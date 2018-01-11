@@ -3,9 +3,11 @@ package de.cyface.persistence;
         import android.content.ContentValues;
         import android.net.Uri;
         import android.support.test.InstrumentationRegistry;
+        import android.support.test.runner.AndroidJUnit4;
 
         import org.junit.Before;
         import org.junit.Test;
+        import org.junit.runner.RunWith;
 
         import static org.hamcrest.CoreMatchers.is;
         import static org.junit.Assert.assertThat;
@@ -19,6 +21,7 @@ package de.cyface.persistence;
  * @version 1.0.0
  * @since 1.0.0
  */
+@RunWith(AndroidJUnit4.class)
 public class MeasurementTest extends CyfaceDatabaseTest {
 
     private ContentValues fixtureMeasurement;
@@ -85,5 +88,11 @@ public class MeasurementTest extends CyfaceDatabaseTest {
         assertThat(getMockContentResolver().query(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,null,null,null,null).getCount(),is(0));
         assertThat(getMockContentResolver().query(MeasuringPointsContentProvider.ROTATION_POINTS_URI,null,null,null,null).getCount(),is(0));
         assertThat(getMockContentResolver().query(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,null,null,null,null).getCount(),is(0));
+    }
+
+    @Test
+    public void tearDown() throws Exception {
+        super.tearDown();
+        getProvider().shutdown();
     }
 }

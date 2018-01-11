@@ -3,6 +3,7 @@
  */
 package de.cyface.persistence;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -17,9 +18,7 @@ import android.test.ProviderTestCase2;
 import android.test.mock.MockContentResolver;
 
 /**
- * <p>
  * Tests whether the content provider for measuring points works or not.
- * </p>
  *
  * @author Klemens Muthmann
  *
@@ -147,6 +146,12 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
                 query.close();
             }
         }
+    }
+
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        getProvider().shutdown();
     }
 
 }

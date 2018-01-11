@@ -3,6 +3,7 @@
  */
 package de.cyface.persistence;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -65,5 +66,11 @@ public class SamplePointTest extends CyfaceDatabaseTest {
     public void testDeleteSuccessfully() {
         create(fixturePoint,"1");
         delete(1);
+    }
+    
+    @After
+    public void tearDown() throws Exception {
+        super.tearDown();
+        getProvider().shutdown();
     }
 }
