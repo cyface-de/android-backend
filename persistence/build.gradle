@@ -23,12 +23,13 @@ android {
         versionName "2.0.0" // this is shown to the users, see Confluence/Android Client for naming guideline
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+
+        buildConfigField("String", "provider", "\"de.cyface.provider\"")
+        //buildConfigField("String", "testProvider", "\"de.cyface.testProvider\"")
     }
 }
 
 dependencies {
-    //implementation fileTree(dir: 'libs', include: ['*.jar'])
-
     // Dependencies for local unit tests
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
     // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other dependencies (e.g. testCompile)
@@ -37,4 +38,8 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${rootProject.ext.mockitoVersion}"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:java-hamcrest:${rootProject.ext.hamcrestVersion}"
+
+    // Dependencies for instrumentation tests
+    androidTestCompile 'com.android.support.test:runner:' + rootProject.ext.runnerVersion
+    androidTestCompile 'com.android.support.test:rules:' + rootProject.ext.rulesVersion
 }

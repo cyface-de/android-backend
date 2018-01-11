@@ -27,7 +27,7 @@ android {
 }
 
 dependencies {
-    //implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation 'com.android.support:support-annotations:' + rootProject.ext.supportLibVersion
 
     // Dependencies for local unit tests
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
