@@ -16,8 +16,6 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import de.cynav.persistence.BuildConfig;
-
 /**
  * <p>
  * Tests whether the content provider for measuring points works or not.

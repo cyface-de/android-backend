@@ -13,8 +13,6 @@ import android.test.mock.MockContentResolver;
 import java.util.ArrayList;
 import java.util.List;
 
-import de.cynav.persistence.BuildConfig;
-
 /**
  * <p>
  * Abstract base class for all tests working on cyface tables.

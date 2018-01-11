@@ -14,8 +14,6 @@ import android.provider.BaseColumns;
 import java.util.Arrays;
 import java.util.Map;
 
-import de.cynav.persistence.BuildConfig;
-
 /**
  * <p>
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to
@@ -29,7 +27,7 @@ import de.cynav.persistence.BuildConfig;
 public final class MeasuringPointsContentProvider extends ContentProvider {
 
     private final static String TAG = MeasuringPointsContentProvider.class.getName();
-    public final static String AUTHORITY = BuildConfig.provider;
+    public final static String AUTHORITY = BuildConfig.testProvider;
     public final static Uri MEASUREMENT_URI = (new Uri.Builder()).scheme("content")
             .encodedAuthority(AUTHORITY).path(DatabaseHelper.MEASUREMENT_URI_PATH).build();
     public final static Uri GPS_POINTS_URI = (new Uri.Builder()).scheme("content")
