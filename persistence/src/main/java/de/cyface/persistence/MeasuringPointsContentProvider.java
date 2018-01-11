@@ -27,7 +27,7 @@ import java.util.Map;
 public final class MeasuringPointsContentProvider extends ContentProvider {
 
     private final static String TAG = MeasuringPointsContentProvider.class.getName();
-    public final static String AUTHORITY = BuildConfig.testProvider;
+    public final static String AUTHORITY = BuildConfig.provider;
     public final static Uri MEASUREMENT_URI = (new Uri.Builder()).scheme("content")
             .encodedAuthority(AUTHORITY).path(DatabaseHelper.MEASUREMENT_URI_PATH).build();
     public final static Uri GPS_POINTS_URI = (new Uri.Builder()).scheme("content")
