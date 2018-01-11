@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
 import android.util.Log;
+import android.util.SparseArray;
 
 import java.util.*;
 
@@ -54,18 +55,19 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MAGNETIC_VALUE_POINT_URI_PATH + "/#", MAGNETIC_VALUE_POINT);
     }
 
-    private final Map<Integer, CyfaceMeasurementTable> tables;
+    private final SparseArray<CyfaceMeasurementTable> tables;
 
     /**
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      *  but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
-     * @param context
+     *
+     * @param context The Android context to use to access the Android System via
      */
     DatabaseHelper(final Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
 
         // Current database structure
-        tables = new HashMap<>();
+        tables = new SparseArray<>(10);
         final MeasurementTable measurementTable = new MeasurementTable();
         final GpsPointsTable gpsPointsTable = new GpsPointsTable();
         final SamplePointTable samplePointTable = new SamplePointTable();
@@ -84,25 +86,27 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * <p>
      * The onCreate method is called when the app is freshly installed (i.e. there is no data yet on the phone)
      *  Update this (in DatabaseHelper()) if the database structure changes
-     *  </p>
+     *
      * @param db the database in which the data shall be stored
      */
     @Override
     public void onCreate(final SQLiteDatabase db) {
-        Set<CyfaceMeasurementTable> uniqueTableList = new HashSet<>(tables.values());
-        for (CyfaceMeasurementTable table : uniqueTableList) {
-            table.onCreate(db);
+        Set<CyfaceMeasurementTable> processedTables = new HashSet<>();
+        for(int i = 0;i<tables.size();i++) {
+            CyfaceMeasurementTable table = tables.get(i);
+            if(!processedTables.contains(table)) {
+                table.onCreate(db);
+                processedTables.add(table);
+            }
         }
     }
 
     /**
-     * <p>
      * The onUpgrade method is called when the app is upgraded and the DATABASE_VERSION changed.
      *  The incremental database upgrades are executed to reach the current version.
-     *  </p>
+     *
      * @param db the database which shall be upgraded
      * @param oldVersion the database version the app was in before the upgrade
      * @param newVersion the database version of the new, upgraded app which shall be reached
@@ -112,16 +116,21 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
 
         // Incremental upgrades for existing tables
-        Set<CyfaceMeasurementTable> uniqueTableList = new HashSet<>(tables.values());
-        for (CyfaceMeasurementTable table : uniqueTableList) {
-            table.onUpgrade(db, oldVersion, newVersion);
+        // tables contains each table 2 times. We do need to call onUpgrade only once per table
+        Set<CyfaceMeasurementTable> processedTables = new HashSet<>();
+        for(int i=0;i<tables.size();i++) {
+            CyfaceMeasurementTable table = tables.get(i);
+            if(!processedTables.contains(table)) {
+                table.onUpgrade(db, oldVersion, newVersion);
+                processedTables.add(table);
+            }
         }
 
         // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
         switch(oldVersion) {
             case 3:
                 Log.w(TAG, "Upgrading gravity_points from version 3 to 4: dropping table");
-                db.execSQL("DELETE FROM gravity_points; DROP gravity_points; ");
+                db.execSQL("DELETE FROM gravity_points; DROP TABLE gravity_points; ");
                 // no break, thus, the upgrade process continues with the next incremental upgrade step ->
             /*case 4:
                 db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_4_to_5);*/
