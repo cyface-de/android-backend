@@ -29,10 +29,10 @@ public abstract class CyfaceDatabaseTest extends ProviderTestCase2<MeasuringPoin
 
     /**
      * Default constructor sets the superclass to use the {@code MeasuringPointsContentProvider} and the package
-     * {@code BuildConfig.provider}.
+     * {@code BuildConfig.testProvider}.
      */
     public CyfaceDatabaseTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, BuildConfig.testProvider);
     }
 
     @Override public MockContentResolver getMockContentResolver() {

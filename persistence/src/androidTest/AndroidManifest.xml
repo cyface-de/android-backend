@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="de.cyface.persistence">
+
+    <application
+        android:allowBackup="true">
+        <provider
+            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:authorities="de.cyface.providerTEST"
+            android:exported="false"
+            android:process=":persistence_process"
+            android:syncable="true"
+            tools:replace="android:authorities">
+        </provider>
+    </application>
+
+</manifest>
