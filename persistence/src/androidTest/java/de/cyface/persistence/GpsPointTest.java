@@ -33,7 +33,7 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
     private ContentValues values;
 
     public GpsPointTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, BuildConfig.testProvider);
     }
 
     private void cursorEqualsValues(final String message, final Cursor cursor, final ContentValues values) {
@@ -71,28 +71,28 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         values.put(GpsPointsTable.COLUMN_SPEED, 2.0f);
         values.put(GpsPointsTable.COLUMN_ACCURACY, 300);
         values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, 2);
-        mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), values);
+        mockResolver.insert(Uri.parse("content://"+BuildConfig.testProvider+"/measuring"), values);
     }
 
     @Test
     public void testDeleteAllMeasuringPoints() throws Exception {
-        assertEquals(1, mockResolver.delete(Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, null));
+        assertEquals(1, mockResolver.delete(Uri.parse("content://"+BuildConfig.testProvider+"/measuring"), null, null));
     }
 
     @Test
     public void testDeleteMeasuringPointViaSelection() throws Exception {
         assertEquals(1, mockResolver.delete(
-                Uri.parse("content://"+BuildConfig.provider+"/measuring"), BaseColumns._ID + "= ?", new String[] {"1"}));
+                Uri.parse("content://"+BuildConfig.testProvider+"/measuring"), BaseColumns._ID + "= ?", new String[] {"1"}));
     }
 
     @Test
     public void testDeleteMeasuringPointViaURL() throws Exception {
-        assertEquals(1, mockResolver.delete(Uri.parse("content://"+BuildConfig.provider+"/measuring/1"), null, null));
+        assertEquals(1, mockResolver.delete(Uri.parse("content://"+BuildConfig.testProvider+"/measuring/1"), null, null));
     }
 
     @Test
     public void testCreateMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), values);
+        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.testProvider+"/measuring"), values);
         assertFalse(insert.getLastPathSegment().equals("-1"));
         assertEquals("2", insert.getLastPathSegment());
     }
@@ -104,15 +104,15 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         Cursor allQuery = null;
         try {
             // Select
-            urlQuery = mockResolver.query(Uri.parse("content://"+BuildConfig.provider+"/measuring/1"), null, null, null, null);
+            urlQuery = mockResolver.query(Uri.parse("content://"+BuildConfig.testProvider+"/measuring/1"), null, null, null, null);
             cursorEqualsValues("Unable to load all measuring points via URI.", urlQuery, values);
 
             selectionQuery = mockResolver.query(
-                    Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, BaseColumns._ID + "=?",
+                    Uri.parse("content://"+BuildConfig.testProvider+"/measuring"), null, BaseColumns._ID + "=?",
                     new String[] {"1"}, null);
             cursorEqualsValues("Unable to load measuring point via selection.", selectionQuery, values);
 
-            allQuery = mockResolver.query(Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, null, null, null);
+            allQuery = mockResolver.query(Uri.parse("content://"+BuildConfig.testProvider+"/measuring"), null, null, null, null);
             cursorEqualsValues("Unable to load all measuring points via URI.", allQuery, values);
         } finally {
             if (urlQuery != null) {
@@ -133,11 +133,11 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         newValues.put(GpsPointsTable.COLUMN_LAT, 10.34f);
 
         assertEquals(
-                1, mockResolver.update(Uri.parse("content://"+BuildConfig.provider+"/measuring/1"), newValues, null, null));
+                1, mockResolver.update(Uri.parse("content://"+BuildConfig.testProvider+"/measuring/1"), newValues, null, null));
 
         Cursor query = null;
         try {
-            query = mockResolver.query(Uri.parse("content://"+BuildConfig.provider+"/measuring/1"), null, null, null, null);
+            query = mockResolver.query(Uri.parse("content://"+BuildConfig.testProvider+"/measuring/1"), null, null, null, null);
             assertEquals(1, query.getCount());
             query.moveToFirst();
             int columnIndex = query.getColumnIndex(GpsPointsTable.COLUMN_LAT);
