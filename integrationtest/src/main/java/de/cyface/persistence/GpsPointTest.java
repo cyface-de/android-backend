@@ -17,8 +17,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import de.cynav.persistence.BuildConfig;
-import de.cynav.persistence.GpsPointsTable;
-import de.cynav.persistence.MeasuringPointsContentProvider;
 
 /**
  * <p>

@@ -33,6 +33,8 @@ android {
         versionName "2.0.0" // this is shown to the users, see Confluence/Android Client for naming guideline
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+
+        multiDexEnabled true
     }
 
     // Sets the target app module which contains the production code the integration test runs against.
@@ -43,6 +45,8 @@ android {
 // In the _com.android.test_ plugin you can only have _implementation_. - still valid?
 // - Error "JUnit version 3.8 or later expected" => manually create a run config as "Instrumented Test" - still valid?
 dependencies {
+    // Local dependencies
+    compile project(path: ':persistence') // needed as the temporal "app" module has not dependencies
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
 
     // Dependencies for local unit tests
@@ -52,13 +56,12 @@ dependencies {
     implementation "junit:junit:${rootProject.ext.junitVersion}"
     implementation "org.mockito:mockito-core:${rootProject.ext.mockitoVersion}"
     // Optional - For better debuggable asserts
-    // - hamcrest-all does not work with com.android.test (integration test) - still valid?
-    implementation "org.hamcrest:java-hamcrest:${rootProject.ext.hamcrestVersion}"
+    // - hamcrest-all does not work with com.android.test (integration test)
+    //implementation "org.hamcrest:java-hamcrest:${rootProject.ext.hamcrestVersion}"
 
     // Dependencies for instrumentation tests
     // Force usage of support annotations in the test app, since it is internally used by the runner module.
     compile "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
     compile "com.android.support.test:runner:${rootProject.ext.runnerVersion}"
     compile "com.android.support.test:rules:${rootProject.ext.rulesVersion}"
-    compile project(path: ':persistence')
 }

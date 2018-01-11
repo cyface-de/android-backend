@@ -10,12 +10,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.util.Log;
-
-import net.grandcentrix.tray.AppPreferences;
 
 import java.util.Arrays;
 import java.util.Map;
+
+import de.cynav.persistence.BuildConfig;
 
 /**
  * <p>

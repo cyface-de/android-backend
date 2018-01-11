@@ -6,10 +6,6 @@ package de.cyface.persistence;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.util.Log;
-import de.cynav.utils.Validate;
-import org.slf4j.Logger;
-import org.slf4j.LoggerFactory;
 
 import java.util.Arrays;
 import java.util.HashSet;
@@ -38,7 +34,9 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
     private final String name;
 
     protected AbstractCyfaceMeasurementTable(final String name) {
-        Validate.notEmpty("Database table name may not be empty.",name);
+        if (name.isEmpty()) {
+            throw new IllegalStateException("Database table name may not be empty.");
+        }
 
         this.name = name;
     }
