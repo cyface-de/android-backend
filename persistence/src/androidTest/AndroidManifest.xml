@@ -3,6 +3,7 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="de.cyface.persistence">
 
+    <!-- The integration test uses a different authority to be executed next to the default app (same device) -->
     <application>
         <provider
             android:name="de.cyface.persistence.MeasuringPointsContentProvider"

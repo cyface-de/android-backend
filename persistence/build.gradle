@@ -25,7 +25,7 @@ android {
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
 
         buildConfigField("String", "provider", "\"de.cyface.provider\"")
-        //buildConfigField("String", "testProvider", "\"de.cyface.testProvider\"")
+        //buildConfigField("String", "testProvider", "\"de.cyface.testProvider\"") - the authority is replaced for iTs via manifest, not sure if we need to use a different provider, too?
     }
 }
 
@@ -40,6 +40,6 @@ dependencies {
     testImplementation "org.hamcrest:java-hamcrest:${rootProject.ext.hamcrestVersion}"
 
     // Dependencies for instrumentation tests
-    androidTestCompile 'com.android.support.test:runner:' + rootProject.ext.runnerVersion
-    androidTestCompile 'com.android.support.test:rules:' + rootProject.ext.rulesVersion
+    androidTestImplementation 'com.android.support.test:runner:' + rootProject.ext.runnerVersion
+    androidTestImplementation 'com.android.support.test:rules:' + rootProject.ext.rulesVersion
 }
