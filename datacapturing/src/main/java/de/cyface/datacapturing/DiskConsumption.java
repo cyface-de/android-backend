@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import java.util.Locale;
+
 /**
  * <p>
  * Objects of this class represent the current disk (or rather SD card) space used and available. This space is mostly
@@ -36,11 +38,11 @@ public final class DiskConsumption {
     public DiskConsumption(final int consumedBytes, final int availableBytes) {
         if (consumedBytes < 0) {
             throw new IllegalArgumentException(String
-                    .format("Illegal value for consumed bytes. May not be smaller then 0 but was %d", consumedBytes));
+                    .format(Locale.US,"Illegal value for consumed bytes. May not be smaller then 0 but was %d", consumedBytes));
         }
         if (availableBytes < 0) {
             throw new IllegalArgumentException(String
-                    .format("Illegal value for available bytes. May not be smaller then 0 but was %d", availableBytes));
+                    .format(Locale.US,"Illegal value for available bytes. May not be smaller then 0 but was %d", availableBytes));
         }
 
         this.consumedBytes = consumedBytes;

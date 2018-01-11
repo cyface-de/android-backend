@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import java.util.Locale;
+
 /**
  * <p>
  * A position captured by the {@link DataCapturingService}
@@ -51,19 +53,19 @@ public class GpsPosition {
     public GpsPosition(final double lat, final double lon, final double speed, final float accuracy) {
         if (lat < -90. || lat > 90.) {
             throw new IllegalArgumentException(String
-                    .format("Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %d", lat));
+                    .format(Locale.US, "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %d", lat));
         }
         if (lon < -180. || lon > 180.) {
             throw new IllegalArgumentException(String
-                    .format("Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %d", lon));
+                    .format(Locale.US, "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %d", lon));
         }
         if (speed < 0.) {
             throw new IllegalArgumentException(
-                    String.format("Illegal value for speed. Is required to be positive but was %d", speed));
+                    String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %d", speed));
         }
         if (accuracy < 0.) {
             throw new IllegalArgumentException(
-                    String.format("Illegal value for accuracy. Is required to be positive but was %d", accuracy));
+                    String.format(Locale.US, "Illegal value for accuracy. Is required to be positive but was %d", accuracy));
         }
 
         this.lat = lat;
