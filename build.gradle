@@ -80,9 +80,7 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
             classifier "source"
         }
 
-        publish {
-            dependsOn(pr.tasks.findAll { task -> task.name.endsWith('assemble') })
-        }
+        publish.dependsOn 'assemble'
 
         publishing {
             publications {
@@ -108,6 +106,7 @@ task publishAll() {
     }
     outputs.upToDateWhen { false }
 }
+publishAll.outputs.upToDateWhen {false}
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.4.1'
