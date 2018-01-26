@@ -8,3 +8,5 @@
 /captures
 .externalNativeBuild
 .idea
+**/src/main/gen
+**/src/androidTest/gen

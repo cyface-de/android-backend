@@ -1,8 +1,6 @@
 /**
- * <p>
  * Gradle's top-level build file which defines the repositories to pull the dependencies from
  * and the default dependency versions used in most modules.
- * </p>
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
