@@ -87,34 +87,18 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
 
     @Test
     public void testDeleteAllMeasuringPoints() throws Exception {
-//        MockContentResolver mockResolver = getMockContentResolver();
-//        Cursor cursorBefore = mockResolver.query(contentUri,null,null,null,null);
-//        Log.d("TEST1 before",Integer.valueOf(cursorBefore.getCount()).toString());
         mockResolver.insert(contentUri,getTextFixture());
 
-//     Cursor cursor = mockResolver.query(contentUri,null,null,null,null);
-//        while(cursor.moveToNext()) {
-//            int columnIndex = cursor.getColumnIndex(BaseColumns._ID);
-//            Log.d("TEST1", Long.valueOf(cursor.getLong(columnIndex)).toString());
-//        }
-        assertEquals(1, mockResolver.delete(contentUri, null, null));
+        assertThat(mockResolver.delete(contentUri, null, null)>0,is(equalTo(true)));
     }
 
     @Test
     public void testDeleteMeasuringPointViaSelection() throws Exception {
-//        MockContentResolver mockResolver = getMockContentResolver();
         Uri createdRowUri = mockResolver.insert(contentUri,getTextFixture());
         String createdId = createdRowUri.getLastPathSegment();
 
-//        Cursor cursor = mockResolver.query(contentUri,null,null,null,null);
-//        while(cursor.moveToNext()) {
-//            int columnIndex = cursor.getColumnIndex(BaseColumns._ID);
-//            Log.d("TEST2", Long.valueOf(cursor.getLong(columnIndex)).toString());
-//        }
-
         assertEquals(1, mockResolver.delete(
                 contentUri, BaseColumns._ID + "= ?", new String[] {createdId}));
-//        mockResolver.delete(contentUri, null, null);
     }
 
     @Test
