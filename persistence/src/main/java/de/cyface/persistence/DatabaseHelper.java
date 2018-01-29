@@ -55,11 +55,11 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MAGNETIC_VALUE_POINT_URI_PATH + "/#", MAGNETIC_VALUE_POINT);
     }
 
-    private final SparseArray<CyfaceMeasurementTable> tables;
+    private final Map<Integer, CyfaceMeasurementTable> tables;
 
     /**
      * Increase the DATABASE_VERSION if the database structure changes with a new update
-     *  but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
+     * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      *
      * @param context The Android context to use to access the Android System via
      */
@@ -67,12 +67,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
 
         // Current database structure
-        tables = new SparseArray<>(10);
+        tables = new HashMap<>(10);
         final MeasurementTable measurementTable = new MeasurementTable();
         final GpsPointsTable gpsPointsTable = new GpsPointsTable();
         final SamplePointTable samplePointTable = new SamplePointTable();
         final RotationPointTable rotationPointTable = new RotationPointTable();
-        final MagneticValuePointTable magneticValuePointTable= new MagneticValuePointTable();
+        final MagneticValuePointTable magneticValuePointTable = new MagneticValuePointTable();
         tables.put(MEASUREMENT, measurementTable);
         tables.put(MEASUREMENTS, measurementTable);
         tables.put(GPS_POINT, gpsPointsTable);
@@ -87,27 +87,23 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * The onCreate method is called when the app is freshly installed (i.e. there is no data yet on the phone)
-     *  Update this (in DatabaseHelper()) if the database structure changes
+     * Update this (in DatabaseHelper()) if the database structure changes
      *
      * @param db the database in which the data shall be stored
      */
     @Override
     public void onCreate(final SQLiteDatabase db) {
-        Set<CyfaceMeasurementTable> processedTables = new HashSet<>();
-        for(int i = 0;i<tables.size();i++) {
-            CyfaceMeasurementTable table = tables.get(i);
-            if(!processedTables.contains(table)) {
-                table.onCreate(db);
-                processedTables.add(table);
-            }
+        Set<CyfaceMeasurementTable> deduplicatedTables = new HashSet<>(tables.values());
+        for (CyfaceMeasurementTable table : deduplicatedTables) {
+            table.onCreate(db);
         }
     }
 
     /**
      * The onUpgrade method is called when the app is upgraded and the DATABASE_VERSION changed.
-     *  The incremental database upgrades are executed to reach the current version.
+     * The incremental database upgrades are executed to reach the current version.
      *
-     * @param db the database which shall be upgraded
+     * @param db         the database which shall be upgraded
      * @param oldVersion the database version the app was in before the upgrade
      * @param newVersion the database version of the new, upgraded app which shall be reached
      */
@@ -117,17 +113,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         // Incremental upgrades for existing tables
         // tables contains each table 2 times. We do need to call onUpgrade only once per table
-        Set<CyfaceMeasurementTable> processedTables = new HashSet<>();
-        for(int i=0;i<tables.size();i++) {
-            CyfaceMeasurementTable table = tables.get(i);
-            if(!processedTables.contains(table)) {
-                table.onUpgrade(db, oldVersion, newVersion);
-                processedTables.add(table);
-            }
+        Set<CyfaceMeasurementTable> deduplicatedTables = new HashSet<>(tables.values());
+        for (CyfaceMeasurementTable table : deduplicatedTables) {
+            table.onUpgrade(db, oldVersion, newVersion);
         }
 
         // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
-        switch(oldVersion) {
+        switch (oldVersion) {
             case 3:
                 Log.w(TAG, "Upgrading gravity_points from version 3 to 4: dropping table");
                 db.execSQL("DELETE FROM gravity_points; DROP TABLE gravity_points; ");
@@ -167,7 +159,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 return table.deleteRow(getWritableDatabase(), adaptedSelection, selectionArgs);
             // Batch deletes:
             case MEASUREMENTS:
-                if (selection != null && selection.equals(BaseColumns._ID+ "<=?")) {
+                if (selection != null && selection.equals(BaseColumns._ID + "<=?")) {
                     gpsPointsTable = tables.get(GPS_POINTS);
                     rotationPointsTable = tables.get(ROTATION_POINTS);
                     magneticValuePointsTable = tables.get(MAGNETIC_VALUE_POINTS);
