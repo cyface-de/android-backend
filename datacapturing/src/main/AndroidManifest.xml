@@ -1,2 +1,11 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.datacapturing" />
+    package="de.cyface.datacapturing" >
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+
+    <application>
+        <!-- Declares the data capturing service which is not exported to other applications. -->
+        <service android:name="de.cyface.datacapturing.backend.DataCapturingBackgroundService"
+                 android:exported="false"
+                 android:description="@string/capturing_service_description"/>
+    </application>
+</manifest>

@@ -1,20 +1,23 @@
 package de.cyface.datacapturing;
 
+import android.content.Context;
+import android.content.Intent;
+import android.content.ServiceConnection;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import de.cyface.datacapturing.de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+
 /**
- * <p>
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
  * to an appropriate server. To avoid using the users traffic or incurring costs, the service waits for Wifi access
  * before transmitting any data. You may however force synchronization if required, using
  * {@link #forceSyncUnsyncedMeasurements()}.
- * </p>
  * <p>
  * An object of this class is not thread safe and should only be used once per application. You may start and stop the
  * service as often as you like and reuse the object.
- * </p>
  *
  * @author Klemens Muthmann
  * @version 1.0.0
@@ -23,63 +26,60 @@ import java.util.List;
 public final class DataCapturingService {
 
     /**
-     * <p>
      * {@code true} if data capturing is running; {@code false} otherwise.
-     * </p>
      */
     private boolean isRunning = false;
     /**
-     * <p>
      * A listener that is notified of important events during data capturing.
-     * </p>
      */
     private DataCapturingListener listener;
     /**
-     * <p>
      * A poor mans data storage. This is only in memory and will be replaced by a database on persistent storage.
-     * </p>
      */
     private final List<Measurement> unsyncedMeasurements;
+    private final Context context;
+    private ServiceConnection serviceConnection;
 
     /**
-     * <p>
      * Creates a new completely initialized {@link DataCapturingService}.
-     * </p>
+     *
+     * @param context
      */
-    public DataCapturingService() {
+    public DataCapturingService(final Context context) {
         unsyncedMeasurements = new ArrayList<>();
+        this.context = context;
     }
 
     /**
-     * <p>
      * Starts the capturing process. This operation is idempotent.
-     * </p>
      */
     public void start() {
         isRunning = true;
         unsyncedMeasurements.add(new Measurement(unsyncedMeasurements.size()));
+        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        context.startService(startIntent);
+        context.bindService(startIntent,serviceConnection);
     }
 
     /**
-     * <p>
      * Starts the capturing process with a listener that is notified of important events occuring while the capturing
      * process is running. This operation is idempotent.
-     * </p>
-     * 
+     *
+     * @param  context
      * @param listener A listener that is notified of important events during data capturing.
      */
-    public void start(final DataCapturingListener listener) {
+    public void start(final Context context, final DataCapturingListener listener) {
         this.listener = listener;
         start();
     }
 
     /**
-     * <p>
      * Stops the currently running data capturing process or does nothing if the process is not running.
-     * </p>
      */
     public void stop() {
         isRunning = false;
+        context.unbindService();
+        context.stopService();
     }
 
     /**
@@ -90,19 +90,16 @@ public final class DataCapturingService {
     }
 
     /**
-     * <p>
      * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
      * service might wait for an opprotune moment to start synchronization.
-     * </p>
      */
     public void forceSyncUnsyncedMeasurements() {
         unsyncedMeasurements.clear();
     }
 
     /**
-     * <p>
-     *     Deletes an unsynchronized {@link Measurement} from this device.
-     * </p>
+     * Deletes an unsynchronized {@link Measurement} from this device.
+     *
      * @param measurement The {@link Measurement} to delete.
      */
     public void deleteUnsyncedMeasurement(final Measurement measurement) {
