@@ -1,8 +1,8 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import android.location.LocationManager;
 
-import de.cyface.datacapturing.de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.CapturedData;
 
 /**
  * <p>

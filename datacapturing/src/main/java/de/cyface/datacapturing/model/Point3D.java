@@ -1,12 +1,7 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.model;
+package de.cyface.datacapturing.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.util.Log;
-
-import java.io.IOException;
-
-import static android.content.ContentValues.TAG;
 
 /**
  * <p>

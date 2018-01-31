@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -16,9 +16,8 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
 
-import de.cyface.datacapturing.DataCapturingListener;
-import de.cyface.datacapturing.de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.de.cyface.datacapturing.model.Point3D;
+import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.Point3D;
 
 /**
  * Implements the data capturing functionality for Cyface. This class implements the SensorEventListener to listen to
@@ -48,7 +47,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     private final Collection<CapturingProcessListener> listener;
     private final LocationManager locationManager;
     private final SensorManager sensorService;
-    private final GpsStatusHandler gpsStatusHandler;
+    private final GPSStatusHandler gpsStatusHandler;
     private long eventTimeOffset = 0;
     private long lastSensorEventTime = 0;
     private long lastNoGpsFixUpdateTime = 0;
@@ -61,7 +60,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param gpsStatusHandler
      * @throws SecurityException If user did not provide permission to access GPS location.
      */
-    public CapturingProcess(final LocationManager locationManager, final SensorManager sensorService, final GpsStatusHandler gpsStatusHandler) throws SecurityException {
+    public CapturingProcess(final LocationManager locationManager, final SensorManager sensorService, final GPSStatusHandler gpsStatusHandler) throws SecurityException {
         if(locationManager==null) {
             throw new IllegalArgumentException("Illegal argument: locationManager was null!");
         }

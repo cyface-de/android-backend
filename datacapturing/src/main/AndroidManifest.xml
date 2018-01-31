@@ -1,11 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.datacapturing" >
-    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION"/>
+    package="de.cyface.datacapturing">
+
+    <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
 
     <application>
-        <!-- Declares the data capturing service which is not exported to other applications. -->
-        <service android:name="de.cyface.datacapturing.backend.DataCapturingBackgroundService"
-                 android:exported="false"
-                 android:description="@string/capturing_service_description"/>
+        <!-- Declares the data capturing service which is not exported to other applications. Most important is the android:process declaration with the ":" in the beginning. It tells the system to run the service in its own process. -->
+        <service
+            android:name=".backend.DataCapturingBackgroundService"
+            android:description="@string/capturing_service_description"
+            android:exported="false"
+            android:process=":capturing_process" />
     </application>
 </manifest>

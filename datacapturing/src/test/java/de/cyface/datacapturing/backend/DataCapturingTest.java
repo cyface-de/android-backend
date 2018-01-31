@@ -1,10 +1,9 @@
 /*
  * Created at 10:20:45 on 09.02.2015
  */
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import android.hardware.SensorManager;
-import android.location.GpsStatus;
 import android.location.Location;
 import android.location.LocationManager;
 
@@ -15,11 +14,7 @@ import org.mockito.MockitoAnnotations;
 
 import java.util.Collections;
 
-import de.cyface.datacapturing.de.cyface.datacapturing.backend.CapturingProcess;
-import de.cyface.datacapturing.de.cyface.datacapturing.backend.CapturingProcessListener;
-import de.cyface.datacapturing.de.cyface.datacapturing.backend.GPSCapturingProcess;
-import de.cyface.datacapturing.de.cyface.datacapturing.backend.GpsStatusHandler;
-import de.cyface.datacapturing.de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.CapturedData;
 
 import static org.junit.Assert.assertEquals;
 import static org.junit.Assert.assertTrue;
@@ -45,12 +40,12 @@ public class DataCapturingTest {
     private Location location;
     @Mock
     private CapturingProcessListener listener;
-    private GpsStatusHandler gpsStatusHandler;
+    private GPSStatusHandler gpsStatusHandler;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        gpsStatusHandler = new GpsStatusHandler() {
+        gpsStatusHandler = new GPSStatusHandler() {
             @Override
             void shutdown() {
 

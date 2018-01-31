@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import android.hardware.SensorManager;
 import android.location.Location;
@@ -9,7 +9,7 @@ import android.location.LocationManager;
  */
 
 public class GPSCapturingProcess extends CapturingProcess {
-    public GPSCapturingProcess(final LocationManager locationManager, SensorManager sensorService, GpsStatusHandler gpsStatusHandler) {
+    public GPSCapturingProcess(final LocationManager locationManager, SensorManager sensorService, GPSStatusHandler gpsStatusHandler) {
         super(locationManager,sensorService,gpsStatusHandler);
     }
 

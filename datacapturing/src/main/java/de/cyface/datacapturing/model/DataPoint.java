@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.model;
+package de.cyface.datacapturing.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;

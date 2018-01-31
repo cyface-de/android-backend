@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import android.location.GpsStatus;
 import android.location.LocationManager;
@@ -7,11 +7,11 @@ import android.location.LocationManager;
  * Created by muthmann on 29.01.18.
  */
 
-public class GpsStatusListener extends GpsStatusHandler {
+public class GPSStatusListener extends GPSStatusHandler {
     private final GpsStatus.Listener listener;
     private final LocationManager manager;
 
-    public GpsStatusListener(final LocationManager mananger) throws SecurityException {
+    public GPSStatusListener(final LocationManager mananger) throws SecurityException {
         this.listener = new GpsStatus.Listener() {
             @Override
             public void onGpsStatusChanged(int event) {

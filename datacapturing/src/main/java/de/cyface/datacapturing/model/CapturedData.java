@@ -1,9 +1,8 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.model;
+package de.cyface.datacapturing.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;
 
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.LinkedList;
 import java.util.List;

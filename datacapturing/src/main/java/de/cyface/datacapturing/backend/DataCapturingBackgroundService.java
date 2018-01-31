@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import android.app.Service;
 import android.content.Context;
@@ -21,7 +21,7 @@ import java.util.ArrayList;
 import java.util.List;
 
 import de.cyface.datacapturing.MessageCodes;
-import de.cyface.datacapturing.de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.CapturedData;
 
 /**
  *
@@ -65,19 +65,22 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onCreate() {
         super.onCreate();
+        Log.d(TAG,"onCreate");
 
         // Prevent this process from being killed by the system.
-        PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
-        wakeLock.acquire();
+        //PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
+        //wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
+        //wakeLock.acquire();
 
         if (sensorManager == null) {
             sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         }
+        Log.d(TAG,"finishedOnCreate");
     }
 
     @Override
     public void onDestroy() {
+        Log.d(TAG,"onDestroy");
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -91,7 +94,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         Log.d(TAG, "Starting data capturing service.");
         // TODO old service checks if init has been called before? Why? Is this necessary?
-        if(intent!=null) { // If this is the initial start command call init.
+        if (intent != null) { // If this is the initial start command call init.
             init();
         }
         return Service.START_STICKY;
@@ -106,9 +109,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private void init() {
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-        GpsStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+        GPSStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
-                : new GpsStatusListener(locationManager);
+                : new GPSStatusListener(locationManager);
         dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
 
         dataCapturing.addCapturingProcessListener(this);
@@ -155,11 +158,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     /**
-     * <p>
      * Handles clients which are sending (private!) inter process messages to this service (e.g. the UI thread).
      * - The Handler code runs all on the same (e.g. UI) thread.
      * - We don't use Broadcasts here to reduce the amount of broadcasts.
-     * </p>
      *
      * @author Klemens Muthmann
      * @version 1.0.0
@@ -167,23 +168,18 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private final static class MessageHandler extends Handler {
         /**
-         * <p>
          * A weak reference to the {@link DataCapturingBackgroundService} responsible for this message
          * handler. The weak reference is necessary to avoid memory leaks if the handler outlives
          * the service.
-         * </p>
          * <p>
          * For reference see for example
          * <a href="http://www.androiddesignpatterns.com/2013/01/inner-class-handler-memory-leak.html">here</a>.
-         * </p>
          */
         private final WeakReference<DataCapturingBackgroundService> context;
 
         /**
-         * <p>
          * Creates a new completely initialized {@link MessageHandler} for messages to this
          * service.
-         * </p>
          *
          * @param context The {@link DataCapturingBackgroundService} receiving messages via this handler.
          */
@@ -197,6 +193,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         @Override
         public void handleMessage(final Message msg) {
+            Log.d(TAG,String.format("Service received message %s",msg.what));
             if (msg == null) {
                 throw new IllegalArgumentException("Illegal argument: msg was null!");
             }
@@ -205,12 +202,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
+                    Log.d(TAG,"Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
                         throw new IllegalStateException("Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
                     break;
                 case MessageCodes.UNREGISTER_CLIENT:
+                    Log.d(TAG,"Unregistering client!");
                     if (!service.clients.contains(msg.replyTo)) {
                         throw new IllegalStateException("Tried to unregister not registered client " + msg.replyTo);
                     }

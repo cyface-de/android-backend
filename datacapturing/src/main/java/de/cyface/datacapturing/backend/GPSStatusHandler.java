@@ -1,9 +1,7 @@
-package de.cyface.datacapturing.de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.backend;
 
 import java.util.ArrayList;
 import java.util.Collection;
-
-import de.cyface.datacapturing.DataCapturingListener;
 
 /**
  * Abstract base class for classes informing the system about the current state of the geo location device. It reacts to fix events and if those events occur often enough it tells its <code>CapturingProcessListener</code>s about the state change.
@@ -12,7 +10,7 @@ import de.cyface.datacapturing.DataCapturingListener;
  * @version 1.0.0
  * @since 1.0.0
  */
-public abstract class GpsStatusHandler {
+public abstract class GPSStatusHandler {
     private static final int MAX_TIME_SINCE_LAST_SATELLITE_UPDATE = 2000;
 
     private boolean hasGpsFix;
