@@ -51,11 +51,20 @@ import de.cyface.datacapturing.model.CapturedData;
 @LargeTest
 public class BackgroundServiceTest {
 
+    /**
+     * The tag used to identify log messages send to logcat.
+     */
     private static final String TAG = "de.cyface.test";
 
+    /**
+     * Junit rule handling the service connection.
+     */
     @Rule
     public ServiceTestRule serviceTestRule = new ServiceTestRule();
 
+    /**
+     * Grants the ACCESS_FINE_LOCATION permission while running this test.
+     */
     @Rule
     public GrantPermissionRule mRuntimePermissionRule = GrantPermissionRule
             .grant(android.Manifest.permission.ACCESS_FINE_LOCATION);
