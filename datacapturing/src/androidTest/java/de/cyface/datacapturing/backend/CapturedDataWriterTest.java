@@ -1,7 +1,7 @@
 /*
  * Created on 12.08.15 at 16:31
  */
-package de.cyface.datacapturing;
+package de.cyface.datacapturing.backend;
 
 import java.util.Arrays;
 

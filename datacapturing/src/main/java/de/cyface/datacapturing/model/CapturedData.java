@@ -173,4 +173,18 @@ public class CapturedData implements Parcelable {
         result = 31 * result + directions.hashCode();
         return result;
     }
+
+    @Override
+    public String toString() {
+        return "CapturedData{" +
+                "lat=" + lat +
+                ", lon=" + lon +
+                ", gpsTime=" + gpsTime +
+                ", gpsSpeed=" + gpsSpeed +
+                ", gpsAccuracy=" + gpsAccuracy +
+                ", accelerations=" + accelerations +
+                ", rotations=" + rotations +
+                ", directions=" + directions +
+                '}';
+    }
 }

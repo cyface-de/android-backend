@@ -68,9 +68,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(TAG,"onCreate");
 
         // Prevent this process from being killed by the system.
-        //PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
-        //wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
-        //wakeLock.acquire();
+        PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
+        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
+        wakeLock.acquire();
 
         if (sensorManager == null) {
             sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
