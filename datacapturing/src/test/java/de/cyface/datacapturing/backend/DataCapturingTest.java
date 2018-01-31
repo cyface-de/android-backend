@@ -40,12 +40,12 @@ public class DataCapturingTest {
     private Location location;
     @Mock
     private CapturingProcessListener listener;
-    private GPSStatusHandler gpsStatusHandler;
+    private GeoLocationDeviceStatusHandler gpsStatusHandler;
 
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        gpsStatusHandler = new GPSStatusHandler() {
+        gpsStatusHandler = new GeoLocationDeviceStatusHandler() {
             @Override
             void shutdown() {
 

@@ -29,6 +29,9 @@ import de.cyface.datacapturing.model.Point3D;
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
 
+    /**
+     * The tag used to identify log messages send to logcat.
+     */
     private final static String TAG = CapturingProcess.class.getName();
 
     /**
@@ -44,30 +47,56 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     private final List<Point3D> directions;
 
+    /**
+     * A <code>List</code> of listeners we need to inform about captured data.
+     */
     private final Collection<CapturingProcessListener> listener;
+    /**
+     * The Android <code>LocationManager</code> used to get geo location updates.
+     */
     private final LocationManager locationManager;
+    /**
+     * The Android <code>SensorManager</code> used to get update from the accelerometer, gyroscope and magnetometer.
+     */
     private final SensorManager sensorService;
-    private final GPSStatusHandler gpsStatusHandler;
+    /**
+     * Status handler watching the geo location device for fix status updates (basically fix or no-fix).
+     */
+    private final GeoLocationDeviceStatusHandler gpsStatusHandler;
+    /**
+     * Time offset used to move event time on devices measuring that time in milliseconds since device activation and
+     * not Unix timestamp format. If event time is already in Unix timestamp format this should always be 0.
+     */
     private long eventTimeOffset = 0;
+    /**
+     * Used for logging the time between sensor events. This is mainly used for debugging purposes.
+     */
     private long lastSensorEventTime = 0;
-    private long lastNoGpsFixUpdateTime = 0;
+    /**
+     * Remembers how long geo location devices did not have a fix anymore. This prevents the system from sending
+     * inaccurate values to the database. In such cases GPS values are filled up with zeros.
+     */
+    private long lastNoGeoLocationFixUpdateTime = 0;
 
     /**
-     * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided {@link LocationManager} as well as the {@link SensorManager}.
+     * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided
+     * {@link LocationManager} as well as the {@link SensorManager}.
      *
      * @param locationManager The {@link LocationManager} used to get updates about the devices location.
-     * @param sensorService   The {@link SensorManager} used to get updates from the devices Accelerometer, Gyroscope and Compass.
-     * @param gpsStatusHandler
-     * @throws SecurityException If user did not provide permission to access GPS location.
+     * @param sensorService The {@link SensorManager} used to get updates from the devices Accelerometer, Gyroscope and
+     *            Compass.
+     * @param geoLocationDeviceStatusHandler Handler that is notified if there is a geo location fix or not.
+     * @throws SecurityException If user did not provide permission to access geo location.
      */
-    public CapturingProcess(final LocationManager locationManager, final SensorManager sensorService, final GPSStatusHandler gpsStatusHandler) throws SecurityException {
-        if(locationManager==null) {
+    CapturingProcess(final LocationManager locationManager, final SensorManager sensorService,
+            final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler) throws SecurityException {
+        if (locationManager == null) {
             throw new IllegalArgumentException("Illegal argument: locationManager was null!");
         }
-        if(sensorService==null) {
+        if (sensorService == null) {
             throw new IllegalArgumentException("Illegal argument: sensorService was null!");
         }
-        if(gpsStatusHandler==null) {
+        if (geoLocationDeviceStatusHandler == null) {
             throw new IllegalArgumentException("Illegal argument: gpsHandler was null!");
         }
 
@@ -77,43 +106,42 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.listener = new HashSet<>();
         this.locationManager = locationManager;
         this.sensorService = sensorService;
-        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER,0L,0f,this);
-        this.gpsStatusHandler = gpsStatusHandler;
+        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this);
+        this.gpsStatusHandler = geoLocationDeviceStatusHandler;
 
         // Registering Sensors
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         Sensor gyroscope = sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         if (accelerometer != null) {
-            sensorService.registerListener(this,accelerometer,SensorManager.SENSOR_DELAY_FASTEST);
+            sensorService.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (gyroscope != null) {
-            sensorService.registerListener(this,gyroscope,SensorManager.SENSOR_DELAY_FASTEST);
+            sensorService.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
         }
         if (magnetometer != null) {
-            sensorService.registerListener(this,magnetometer,SensorManager.SENSOR_DELAY_FASTEST);
+            sensorService.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
         }
     }
 
     /**
-     * <p>
      * Add a listener to this {@code DataCapturing} that is notified when new data arrives.
-     * </p>
      *
-     * @param listener The listener to add to this {@code DataCapturing}.
+     * @param listener The listener to add to this {@code CapturingProcess}.
      */
-    public void addCapturingProcessListener(final CapturingProcessListener listener) {
+    void addCapturingProcessListener(final CapturingProcessListener listener) {
         this.listener.add(listener);
         gpsStatusHandler.setDataCapturingListener(this.listener);
     }
 
+    @Override
     public void onLocationChanged(final Location location) {
         if (location == null) {
             return;
         }
         gpsStatusHandler.setTimeOfLastLocationUpdate(System.currentTimeMillis());
 
-        if(gpsStatusHandler.hasGpsFix()) {
+        if (gpsStatusHandler.hasGpsFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
             long gpsTime = location.getTime();
@@ -121,7 +149,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             // Android gets the accuracy in meters but we save it in centimeters.
             int gpsAccuracy = Math.round(location.getAccuracy() * 100);
             for (CapturingProcessListener listener : this.listener) {
-                listener.onPointCaptured(new CapturedData(latitude,longitude,gpsTime,speed,gpsAccuracy,accelerations,rotations,directions));
+                listener.onPointCaptured(new CapturedData(latitude, longitude, gpsTime, speed, gpsAccuracy,
+                        accelerations, rotations, directions));
             }
             accelerations.clear();
             rotations.clear();
@@ -131,40 +160,42 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
     @Override
     public void onStatusChanged(final String provider, final int status, final Bundle extras) {
-
+        // Nothing to do here.
     }
 
     @Override
     public void onProviderEnabled(final String provider) {
-
+        // Nothing to do here.
     }
 
     @Override
     public void onProviderDisabled(final String provider) {
-
+        // Nothing to do here.
     }
 
     @Override
     public void onSensorChanged(final SensorEvent event) {
         long thisSensorEventTime = event.timestamp / 1000000L + eventTimeOffset;
         if (eventTimeOffset == 0) {
-            // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with rebooting)
+            // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with
+            // rebooting)
             eventTimeOffset = System.currentTimeMillis() - event.timestamp / 1000000L;
         }
 
         // Notify client about sensor update & bulkInsert data into database even without gps fix
-        if (!gpsStatusHandler.hasGpsFix() && (lastNoGpsFixUpdateTime == 0 || (thisSensorEventTime - lastNoGpsFixUpdateTime > 1000))) {
+        if (!gpsStatusHandler.hasGpsFix()
+                && (lastNoGeoLocationFixUpdateTime == 0 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
             for (CapturingProcessListener listener : this.listener) {
-                listener.onPointCaptured(new CapturedData(0.0,0.0,0L,0.0,0,accelerations,rotations,directions));
+                listener.onPointCaptured(new CapturedData(0.0, 0.0, 0L, 0.0, 0, accelerations, rotations, directions));
             }
         }
         accelerations.clear();
         rotations.clear();
         directions.clear();
-        lastNoGpsFixUpdateTime = thisSensorEventTime;
+        lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
 
         // Get sensor values from event
-        if(event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))) {
+        if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))) {
             // Check if there are irregular gaps between sensor events (e.g. no GPS fix or data loss)
             logIrregularSensorValues(thisSensorEventTime);
             saveSensorValue(event, accelerations);
@@ -175,12 +206,19 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         }
     }
 
+    /**
+     * Logs information about sensor update intervals.
+     *
+     * @param thisSensorEventTime The current sensor event time in milliseconds since the 1.1.1970 (Unix timestamp format).
+     */
     private void logIrregularSensorValues(final long thisSensorEventTime) {
         // Check if there are irregular gaps between sensor events (e.g. no GPS fix or data loss)
-        if (lastSensorEventTime != 0 && (thisSensorEventTime - lastSensorEventTime > 100 || thisSensorEventTime - lastSensorEventTime < -100)) {
-            Log.d(TAG, "internalOnSensorChanged: time gap between this (" + thisSensorEventTime
-                    + ") and last (" + lastSensorEventTime + ") SensorEventTime - difference: " +
-                    (thisSensorEventTime - lastSensorEventTime));
+        if (lastSensorEventTime != 0 && (thisSensorEventTime - lastSensorEventTime > 100
+                || thisSensorEventTime - lastSensorEventTime < -100)) {
+            Log.d(TAG,
+                    "internalOnSensorChanged: time gap between this (" + thisSensorEventTime + ") and last ("
+                            + lastSensorEventTime + ") SensorEventTime - difference: "
+                            + (thisSensorEventTime - lastSensorEventTime));
         }
         lastSensorEventTime = thisSensorEventTime;
     }
@@ -207,13 +245,20 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * as different vendors and Android versions store different timestamps in the event.ts
      * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same timestamp format.
      *
-     * @param event   The Android {@code SensorEvent} to store.
+     * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
     private void saveSensorValue(final SensorEvent event, final List<Point3D> storage) {
-        Point3D dataPoint = new Point3D(event.values[0], event.values[1], event.values[2], event.timestamp / 1000000L + eventTimeOffset);
+        Point3D dataPoint = new Point3D(event.values[0], event.values[1], event.values[2],
+                event.timestamp / 1000000L + eventTimeOffset);
         storage.add(dataPoint);
     }
 
+    /**
+     * Provides the speed the device was traveling while being at the provided location.
+     *
+     * @param location The location for which a speed update is requested.
+     * @return The speed in m/s.
+     */
     protected abstract double getCurrentSpeed(final Location location);
 }

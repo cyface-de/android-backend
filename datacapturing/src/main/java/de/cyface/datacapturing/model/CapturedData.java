@@ -16,24 +16,47 @@ import java.util.List;
  */
 public class CapturedData implements Parcelable {
 
+    /**
+     * The latitude of the captured data in decimal degrees. This is a value between -90.0° south and +90.0° north.
+     */
     private final double lat;
+    /**
+     * The longitude of the captured data in decimal degrees. This is a value between -180.0 (west) and 180.0 (east).
+     */
     private final double lon;
+    // TODO Which unit is used for the following. Unix timestamp?
+    /**
+     * The time this data was captured at.
+     */
     private final long gpsTime;
+    /**
+     * The speed the capturing device was traveling at when the data was captured.
+     */
     private final double gpsSpeed;
+    /**
+     * The location accuracy of <code>lat</code> and <code>lon</code>.
+     */
     private final int gpsAccuracy;
+    /**
+     * All accelerations captured since the last position was captured.
+     */
     private final List<Point3D> accelerations;
+    /**
+     * All rotations captured since the last position was captured.
+     */
     private final List<Point3D> rotations;
+    /**
+     * All directions captured since the last position was captured.
+     */
     private final List<Point3D> directions;
 
     /**
-     * <p>
      * Creates a new captured data object from the provided data. The lists are copied and thus may be changed after
      * this constructor has been called without changes occurring in this object.
      * We are not using Collections.unmodifiableList(acc) as we experienced them NOT to be unmodifiable which resulted
      * into data loss. The reason for this could be that we are using parcelable which creates copies instead of
      * references.
      * We could try it with Serializable?
-     * </p>
      *
      * @param lat The latitude as captured by the GPS.
      * @param lon The longitude as captured by the GPS.
@@ -61,43 +84,71 @@ public class CapturedData implements Parcelable {
     }
 
 
-
+    /**
+     * @return The latitude of the captured data in decimal degrees. This is a value between -90.0° south and +90.0° north.
+     */
     public double getLat() {
         return lat;
     }
 
+    /**
+     * @return The longitude of the captured data in decimal degrees. This is a value between -180.0 (west) and 180.0 (east).
+     */
     public double getLon() {
         return lon;
     }
 
+    /**
+     * @return The time this data was captured at.
+     */
     public long getGpsTime() {
         return gpsTime;
     }
 
+    /**
+     * @return The speed the capturing device was traveling at when the data was captured.
+     */
     public double getGpsSpeed() {
         return gpsSpeed;
     }
 
+    /**
+     * @return The location accuracy of <code>lat</code> and <code>lon</code>.
+     */
     public int getGpsAccuracy() {
         return gpsAccuracy;
     }
 
+    /**
+     * @return All accelerations captured since the last position was captured.
+     */
     public List<Point3D> getAccelerations() {
         return Collections.unmodifiableList(accelerations);
     }
 
+    /**
+     * @return All rotations captured since the last position was captured.
+     */
     public List<Point3D> getRotations() {
         return Collections.unmodifiableList(rotations);
     }
 
+    /**
+     * @return All directions captured since the last position was captured.
+     */
     public List<Point3D> getDirections() {
         return Collections.unmodifiableList(directions);
     }
 
     /*
-     * Code for parcelable interface
+     * MARK: Code for parcelable interface
      */
 
+    /**
+     * Recreates this object from the provided <code>Parcel</code>.
+     *
+     * @param in Serialized form of a <code>CapturedData</code> object.
+     */
     protected CapturedData(Parcel in) {
         lat = in.readDouble();
         lon = in.readDouble();
@@ -109,6 +160,9 @@ public class CapturedData implements Parcelable {
         directions = in.createTypedArrayList(Point3D.CREATOR);
     }
 
+    /**
+     * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
+     */
     public static final Creator<CapturedData> CREATOR = new Creator<CapturedData>() {
         @Override
         public CapturedData createFromParcel(Parcel in) {
@@ -137,6 +191,10 @@ public class CapturedData implements Parcelable {
         dest.writeTypedList(rotations);
         dest.writeTypedList(directions);
     }
+
+    /*
+     * MARK: Object Methods
+     */
 
     @Override
     public boolean equals(Object o) {

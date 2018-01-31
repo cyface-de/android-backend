@@ -34,15 +34,36 @@ import de.cyface.datacapturing.model.CapturedData;
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
+
+    /*
+     * MARK: Properties
+     */
+
+    /**
+     * The tag used to identify logging messages send to logcat.
+     */
     private final static String TAG = "de.cyface.datacapturing";
     /**
      * A wake lock used to keep the application active during data capturing.
      */
     private PowerManager.WakeLock wakeLock;
+    /**
+     * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
+     * data capturing.
+     */
     private final Messenger callerMessenger = new Messenger(new MessageHandler(this));
+    /**
+     * The list of clients receiving messages from this service as well as sending controll messages.
+     */
     private final List<Messenger> clients = new ArrayList<>();
-    private SensorManager sensorManager;
+    /**
+     * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
+     */
     private CapturingProcess dataCapturing;
+
+    /*
+     * MARK: Service Lifecycle Methods
+     */
 
     @Override
     public IBinder onBind(final Intent intent) {
@@ -65,22 +86,19 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onCreate() {
         super.onCreate();
-        Log.d(TAG,"onCreate");
+        Log.d(TAG, "onCreate");
 
         // Prevent this process from being killed by the system.
         PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
         wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
         wakeLock.acquire();
 
-        if (sensorManager == null) {
-            sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        }
-        Log.d(TAG,"finishedOnCreate");
+        Log.d(TAG, "finishedOnCreate");
     }
 
     @Override
     public void onDestroy() {
-        Log.d(TAG,"onDestroy");
+        Log.d(TAG, "onDestroy");
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -100,6 +118,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         return Service.START_STICKY;
     }
 
+    /*
+     * MARK: Methods
+     */
+
     /**
      * Initializes this service when it is first started. Since the initialising {@code Intent} sometimes comes with
      * onBind and sometimes with
@@ -109,9 +131,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private void init() {
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-        GPSStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+        GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
+        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
 
         dataCapturing.addCapturingProcessListener(this);
@@ -141,6 +164,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             }
         }
     }
+
+    /*
+     * MARK: CapturingProcessListener Interface
+     */
 
     @Override
     public void onPointCaptured(final CapturedData data) {
@@ -193,7 +220,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         @Override
         public void handleMessage(final Message msg) {
-            Log.d(TAG,String.format("Service received message %s",msg.what));
+            Log.d(TAG, String.format("Service received message %s", msg.what));
             if (msg == null) {
                 throw new IllegalArgumentException("Illegal argument: msg was null!");
             }
@@ -202,14 +229,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
-                    Log.d(TAG,"Registering client!");
+                    Log.d(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
                         throw new IllegalStateException("Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
                     break;
                 case MessageCodes.UNREGISTER_CLIENT:
-                    Log.d(TAG,"Unregistering client!");
+                    Log.d(TAG, "Unregistering client!");
                     if (!service.clients.contains(msg.replyTo)) {
                         throw new IllegalStateException("Tried to unregister not registered client " + msg.replyTo);
                     }
