@@ -18,7 +18,9 @@ import android.util.Log;
 
 import java.lang.ref.WeakReference;
 import java.util.ArrayList;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Set;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
@@ -55,7 +57,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * The list of clients receiving messages from this service as well as sending controll messages.
      */
-    private final List<Messenger> clients = new ArrayList<>();
+    private final Set<Messenger> clients = new HashSet<>();
     /**
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
@@ -155,12 +157,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             msg.setData(dataBundle);
         }
 
-        for (Messenger caller : clients) {
+        Set<Messenger> iterClients = new HashSet<>(clients);
+        for (Messenger caller : iterClients) {
             try {
                 caller.send(msg);
             } catch (RemoteException e) {
                 Log.w(TAG,
                         String.format("Unable to send message (%s) to caller %s due to exception: %s", msg, caller, e));
+                clients.remove(caller);
+
             }
         }
     }
@@ -234,13 +239,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                         throw new IllegalStateException("Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
-                    break;
-                case MessageCodes.UNREGISTER_CLIENT:
-                    Log.d(TAG, "Unregistering client!");
-                    if (!service.clients.contains(msg.replyTo)) {
-                        throw new IllegalStateException("Tried to unregister not registered client " + msg.replyTo);
-                    }
-                    service.clients.remove(msg.replyTo);
                     break;
                 default:
                     super.handleMessage(msg);

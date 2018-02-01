@@ -1,5 +1,12 @@
 package de.cyface.datacapturing;
 
+import static android.content.ContentValues.TAG;
+
+import java.lang.ref.WeakReference;
+import java.util.ArrayList;
+import java.util.Collections;
+import java.util.List;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
@@ -10,11 +17,7 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
+import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
@@ -76,13 +79,18 @@ public final class DataCapturingService {
     public DataCapturingService(final Context context) {
         this.unsyncedMeasurements = new ArrayList<>();
         this.context = new WeakReference<Context>(context);
+
         this.serviceConnection = new BackgroundServiceConnection();
     }
 
     /**
      * Starts the capturing process. This operation is idempotent.
+     * <p>
+     * Since the method is synchronized with the actual service startup it should be considered a long running operation
+     * and not run on the UI thread to avoid ANR errors.
      */
     public void start() {
+        // TODO this will cause an error in the handler which currently does not accept null.
         start(null);
 
     }
@@ -90,6 +98,9 @@ public final class DataCapturingService {
     /**
      * Starts the capturing process with a listener that is notified of important events occuring while the capturing
      * process is running. This operation is idempotent.
+     * <p>
+     * Since the method is synchronized with the actual service startup it should be considered a long running operation
+     * and not run on the UI thread to avoid ANR errors.
      *
      * @param listener A listener that is notified of important events during data capturing.
      */
@@ -106,14 +117,15 @@ public final class DataCapturingService {
         if (serviceComponentName == null) {
             throw new IllegalStateException("Illegal state: back ground service could not be started!");
         }
-        isRunning = context.get().bindService(startIntent, serviceConnection, 0);
-        if (!isRunning) {
-            throw new IllegalStateException("Illegal state: unable to bind to background service!");
-        }
+
+        bind();
     }
 
     /**
      * Stops the currently running data capturing process or does nothing if the process is not running.
+     *
+     * @throws IllegalStateException If service was not connected. The service will still be stopped if the exception
+     *             occurs, but you have to handle it to prevent your application from crashing.
      */
     public void stop() {
         if (context.get() == null) {
@@ -123,11 +135,12 @@ public final class DataCapturingService {
         isRunning = false;
         try {
             unbind();
-        } catch (RemoteException e) {
+        } catch (RemoteException | IllegalArgumentException e) {
             throw new IllegalStateException(e);
+        } finally {
+            Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            context.get().stopService(stopIntent);
         }
-        Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-        context.get().stopService(stopIntent);
     }
 
     /**
@@ -167,12 +180,26 @@ public final class DataCapturingService {
      * shuts down the connection. You should call this method in your <code>Activity</code> lifecycle
      * <code>onStop</code>. You may call <code>reconnect</code> if you would like to receive updates again, like in your
      * <code>Activity</code> lifecycle <code>onRestart</code> method.
+     *
+     * @throws IllegalStateException If service was not connected.
      */
     public void disconnect() {
         try {
             unbind();
-        } catch (RemoteException e) {
+        } catch (RemoteException | IllegalArgumentException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private void bind() {
+        if (context.get() == null) {
+            throw new IllegalStateException("Illegal state: no valid context for binding!");
+        }
+
+        Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+        isRunning = context.get().bindService(startIntent, serviceConnection, 0);
+        if (!isRunning) {
+            throw new IllegalStateException("Illegal state: unable to bind to background service!");
         }
     }
 
@@ -180,9 +207,6 @@ public final class DataCapturingService {
         if (context.get() == null) {
             throw new IllegalStateException("Illegal state: context was null!");
         }
-
-        Message msg = Message.obtain(null, MessageCodes.UNREGISTER_CLIENT);
-        toServiceMessenger.send(msg);
         context.get().unbindService(serviceConnection);
     }
 
@@ -191,15 +215,7 @@ public final class DataCapturingService {
      * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
      */
     public void reconnect() {
-        if (context.get() == null) {
-            throw new IllegalStateException("Illegal state: context was null!");
-        }
-
-        Intent bindServiceIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-        boolean bindingWasSuccessful = context.get().bindService(bindServiceIntent, serviceConnection, 0);
-        if (!bindingWasSuccessful) {
-            throw new IllegalStateException("Unable to reconnect to data capturing service!");
-        }
+        bind();
     }
 
     /**
@@ -214,6 +230,7 @@ public final class DataCapturingService {
 
         @Override
         public void onServiceConnected(final ComponentName componentName, final IBinder binder) {
+            Log.d(TAG, "DataCapturingService connected to background service.");
             toServiceMessenger = new Messenger(binder);
             Message registerClient = new Message();
             registerClient.replyTo = fromServiceMessenger;
@@ -223,10 +240,13 @@ public final class DataCapturingService {
             } catch (RemoteException e) {
                 throw new IllegalStateException(e);
             }
+
+            Log.d(TAG, "ServiceConnection established!");
         }
 
         @Override
         public void onServiceDisconnected(ComponentName componentName) {
+            Log.d(TAG, "Service disconnected!");
             toServiceMessenger = null;
 
         }
@@ -252,7 +272,7 @@ public final class DataCapturingService {
         private DataCapturingListener listener;
 
         public FromServiceMessageHandler(final DataCapturingListener listener) {
-            if(listener==null) {
+            if (listener == null) {
                 throw new IllegalArgumentException("Illegal argument: listener was null!");
             }
 
@@ -265,12 +285,14 @@ public final class DataCapturingService {
             switch (msg.what) {
                 case MessageCodes.POINT_CAPTURED:
                     Bundle dataBundle = msg.getData();
+                    dataBundle.setClassLoader(getClass().getClassLoader());
                     CapturedData data = dataBundle.getParcelable("data");
-                    if(data==null) {
+                    if (data == null) {
                         throw new IllegalStateException("Illegal state: captured data was missing from message!");
                     }
 
-                    GpsPosition geoLocation = new GpsPosition(data.getLat(),data.getLon(),data.getGpsSpeed(),data.getGpsAccuracy());
+                    GpsPosition geoLocation = new GpsPosition(data.getLat(), data.getLon(), data.getGpsSpeed(),
+                            data.getGpsAccuracy());
 
                     listener.onNewGpsPositionAcquired(geoLocation);
                     break;

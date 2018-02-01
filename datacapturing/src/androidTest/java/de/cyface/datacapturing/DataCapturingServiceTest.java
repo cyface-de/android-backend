@@ -1,6 +1,7 @@
 package de.cyface.datacapturing;
 
 import android.content.Context;
+import android.os.RemoteException;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
@@ -9,9 +10,18 @@ import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+import static org.junit.Assert.fail;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
@@ -32,46 +42,214 @@ public class DataCapturingServiceTest {
     public ServiceTestRule serviceTestRule = new ServiceTestRule();
 
     @Rule
-    public GrantPermissionRule grantPermissionRule = GrantPermissionRule.grant(android.Manifest.permission.ACCESS_FINE_LOCATION);
+    public GrantPermissionRule grantPermissionRule = GrantPermissionRule
+            .grant(android.Manifest.permission.ACCESS_FINE_LOCATION);
+
+    private Context context;
+    private DataCapturingService oocut;
+    private TestListener testListener;
+
+    @Before
+    public void setUp() {
+        context = InstrumentationRegistry.getContext();
+        oocut = new DataCapturingService(context);
+        testListener = new TestListener();
+    }
 
     @Test
     public void testRunDataCapturingServiceSuccessfully() {
-        Context context = InstrumentationRegistry.getContext();
-        final DataCapturingService service = new DataCapturingService(context);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+
+        try {
+            Thread.sleep(10000L);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+        oocut.stop();
+        assertThat(testListener.capturedPositions.isEmpty(), is(equalTo(false)));
+    }
+
+    @Test
+    public void testDisconnectConnect() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+
+        oocut.disconnect();
+        oocut.reconnect();
+
+        try {
+            Thread.sleep(5000L);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        }
+
+        oocut.stop();
+        assertThat(testListener.capturedPositions.isEmpty(), is(equalTo(false)));
+    }
+
+    @Test
+    public void testDoubleStart() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                service.start(new TestListener());
-
-                try {
-                    Thread.sleep(1000L);
-                } catch (InterruptedException e) {
-                    e.printStackTrace();
-                }
-
-                service.stop();
+                oocut.start(testListener);
             }
         });
 
+        oocut.stop();
+    }
 
+    @Test
+    public void testDoubleStop() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
 
+        oocut.stop();
+
+        try {
+            oocut.stop();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        // No Exception? FAIL!
+    }
+
+    @Test
+    public void testDoubleDisconnect() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+
+        oocut.disconnect();
+        try {
+            oocut.disconnect();
+        } catch (IllegalStateException e) {
+            return;
+        } finally {
+            try {
+                oocut.stop();
+            } catch (IllegalStateException e) {
+                // Yeah we know, the service is not bound but we choose to silently ignore that fact.
+            }
+        }
+        // No Exception? FAIL!
+        fail();
+    }
+
+    @Test
+    public void testStopNonConnectedService() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+
+        oocut.disconnect();
+
+        try {
+            oocut.stop();
+        } catch (IllegalStateException e) {
+            return;
+        }
+
+        // No Exception? FAIL!
+        fail();
+    }
+
+    @Test
+    public void testDoubleConnect() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+
+        oocut.disconnect();
+
+        oocut.reconnect();
+        oocut.reconnect();
+        oocut.stop();
+    }
+
+    @Test
+    public void testDisconnectConnectTwice() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+
+        oocut.disconnect();
+        oocut.reconnect();
+        oocut.disconnect();
+        oocut.reconnect();
+        oocut.stop();
+    }
+
+    @Test
+    public void testRestart() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+        oocut.stop();
+
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.start(testListener);
+            }
+        });
+        oocut.stop();
     }
 
     private static class TestListener implements DataCapturingListener {
+        final List<GpsPosition> capturedPositions = new ArrayList<>();
+
         @Override
         public void onGpsFixAcquired() {
-            Log.d(TAG,"GPS fix acquired!");
+            Log.d(TAG, "GPS fix acquired!");
         }
 
         @Override
         public void onGpsFixLost() {
-            Log.d(TAG,"GPS fix lost!");
+            Log.d(TAG, "GPS fix lost!");
         }
 
         @Override
         public void onNewGpsPositionAcquired(GpsPosition position) {
-            Log.d(TAG,String.format("New GPS position (lat:%f,lon:%f)",position.getLat(),position.getLon()));
+            Log.d(TAG, String.format("New GPS position (lat:%f,lon:%f)", position.getLat(), position.getLon()));
+            capturedPositions.add(position);
         }
 
         @Override

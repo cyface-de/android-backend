@@ -8,7 +8,6 @@ package de.cyface.datacapturing;
  */
 public class MessageCodes {
     public static final int REGISTER_CLIENT = 1;
-    public static final int UNREGISTER_CLIENT = 3;
     public static final int POINT_CAPTURED = 5;
     public static final int GPS_FIX = 6;
     public static final int NO_GPS_FIX = 7;
