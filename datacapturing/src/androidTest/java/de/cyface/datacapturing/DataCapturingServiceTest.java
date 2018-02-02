@@ -88,7 +88,7 @@ public class DataCapturingServiceTest {
         oocut.reconnect();
 
         try {
-            Thread.sleep(5000L);
+            Thread.sleep(20000L);
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
         }

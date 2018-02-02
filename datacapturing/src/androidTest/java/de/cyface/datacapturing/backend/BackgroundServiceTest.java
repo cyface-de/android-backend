@@ -98,7 +98,7 @@ public class BackgroundServiceTest {
         context.startService(startIntent);
         context.bindService(startIntent, toServiceConnection, 0);
 
-        Thread.sleep(2000L);
+        Thread.sleep(60000L);
 
         context.unbindService(toServiceConnection);
         Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);

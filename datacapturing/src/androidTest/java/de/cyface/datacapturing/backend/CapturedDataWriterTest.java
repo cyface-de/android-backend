@@ -7,6 +7,7 @@ import java.util.Arrays;
 
 import org.junit.Assert;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -27,6 +28,7 @@ import android.test.ProviderTestCase2;
  * @version 1.0.0
  * @since 1.0.0
  */
+@Ignore
 @RunWith(AndroidJUnit4.class)
 public class CapturedDataWriterTest /*extends ProviderTestCase2<MeasuringPointsContentProvider>*/ {
     /**

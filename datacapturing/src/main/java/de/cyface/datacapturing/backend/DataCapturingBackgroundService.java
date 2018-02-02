@@ -24,6 +24,7 @@ import java.util.Set;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.ui.CapturingNotification;
 
 /**
  *
@@ -62,6 +63,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
     private CapturingProcess dataCapturing;
+
+    /**
+     * Notification shown to the user while the data capturing is active.
+     */
+    private CapturingNotification capturingNotification;
 
     /*
      * MARK: Service Lifecycle Methods
@@ -140,6 +146,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
 
         dataCapturing.addCapturingProcessListener(this);
+
+        capturingNotification = new CapturingNotification();
+        startForeground(capturingNotification.getNotificationId(),capturingNotification.getNotification(this));
     }
 
     /**
