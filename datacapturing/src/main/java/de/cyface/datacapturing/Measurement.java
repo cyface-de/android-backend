@@ -50,4 +50,8 @@ public final class Measurement {
     public int hashCode() {
         return (int)(id ^ (id >>> 32));
     }
+
+    public long getIdentifier() {
+        return id;
+    }
 }

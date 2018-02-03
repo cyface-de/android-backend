@@ -5,4 +5,8 @@
     <string name="cancel_capturing">Cancel Capturing</string>
     <string name="notification_title">Cyface</string>
     <string name="ticker_text">Ticker</string>
+
+    <string name="missing_data_error">Captured data was missing from message!</string>
+    <string name="unknown_message_error">Received unknown message %d from data capturing service!</string>
+    <string name="unable_to_rebind_error">"Unable to rebind. Context was null."</string>
 </resources>

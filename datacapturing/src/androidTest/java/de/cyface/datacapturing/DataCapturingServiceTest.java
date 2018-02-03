@@ -18,6 +18,8 @@ import org.junit.runner.RunWith;
 import java.util.ArrayList;
 import java.util.List;
 
+import de.cyface.datacapturing.model.Vehicle;
+
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -61,7 +63,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener, Vehicle.UNKOWN);
             }
         });
 
@@ -80,7 +82,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -102,14 +104,14 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -121,7 +123,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -141,7 +143,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -166,7 +168,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -187,7 +189,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -203,7 +205,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
 
@@ -219,7 +221,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
         oocut.stop();
@@ -227,7 +229,7 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener);
+                oocut.start(testListener,Vehicle.UNKOWN);
             }
         });
         oocut.stop();

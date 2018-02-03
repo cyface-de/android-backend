@@ -99,6 +99,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onCreate();
         Log.d(TAG, "onCreate");
 
+        persistenceLayer = new MeasurementPersistence(this);
+
         // Prevent this process from being killed by the system.
         PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
         if(powerManager!=null) {
