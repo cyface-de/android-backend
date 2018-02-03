@@ -26,7 +26,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     final static String SAMPLE_POINT_URI_PATH = "sample";
     final static String ROTATION_POINT_URI_PATH = "rotation";
     final static String MAGNETIC_VALUE_POINT_URI_PATH = "magnetic_value";
-    private final static int DATABASE_VERSION = 6;
+    private final static int DATABASE_VERSION = 7;
     private final static int GPS_POINTS = 1;
     private final static int GPS_POINT = 2;
     private final static int MEASUREMENTS = 3;

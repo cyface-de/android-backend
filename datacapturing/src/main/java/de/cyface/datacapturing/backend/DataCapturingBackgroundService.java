@@ -24,6 +24,7 @@ import java.util.Set;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.CapturingNotification;
 
 /**
@@ -69,6 +70,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private CapturingNotification capturingNotification;
 
+    private MeasurementPersistence persistenceLayer;
+
     /*
      * MARK: Service Lifecycle Methods
      */
@@ -98,8 +101,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Prevent this process from being killed by the system.
         PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
-        wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
-        wakeLock.acquire();
+        if(powerManager!=null) {
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
+            wakeLock.acquire();
+        } else {
+            Log.w(TAG,"Unable to acquire PowerManager. Not wake lock set!");
+        }
 
         Log.d(TAG, "finishedOnCreate");
     }
@@ -186,6 +193,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onPointCaptured(final CapturedData data) {
         informCaller(MessageCodes.POINT_CAPTURED, data);
+        persistenceLayer.storeData(data);
     }
 
     @Override

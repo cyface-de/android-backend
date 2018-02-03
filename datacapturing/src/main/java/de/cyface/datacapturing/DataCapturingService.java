@@ -11,6 +11,7 @@ import android.content.ComponentName;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
+import android.os.AsyncTask;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -21,6 +22,8 @@ import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
 /**
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
@@ -62,6 +65,7 @@ public final class DataCapturingService {
      * Connection used to communicate with the background service
      */
     private final ServiceConnection serviceConnection;
+    private final MeasurementPersistence persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
@@ -81,15 +85,13 @@ public final class DataCapturingService {
         this.context = new WeakReference<Context>(context);
 
         this.serviceConnection = new BackgroundServiceConnection();
+        this.persistenceLayer = new MeasurementPersistence();
     }
 
     /**
-     * Starts the capturing process. This operation is idempotent.
-     * <p>
-     * Since the method is synchronized with the actual service startup it should be considered a long running operation
-     * and not run on the UI thread to avoid ANR errors.
+     * Starts the capturing process.
      */
-    public void start() {
+    public void start(final Vehicle vehicle) {
         // TODO this will cause an error in the handler which currently does not accept null.
         start(null);
 
@@ -97,21 +99,18 @@ public final class DataCapturingService {
 
     /**
      * Starts the capturing process with a listener that is notified of important events occuring while the capturing
-     * process is running. This operation is idempotent.
-     * <p>
-     * Since the method is synchronized with the actual service startup it should be considered a long running operation
-     * and not run on the UI thread to avoid ANR errors.
+     * process is running.
      *
      * @param listener A listener that is notified of important events during data capturing.
      */
-    public void start(final DataCapturingListener listener) {
+    public void start(final DataCapturingListener listener, final Vehicle vehicle) {
         if (context.get() == null) {
             return;
         }
+        persistenceLayer.newMeasurement(vehicle);
         this.listener = listener;
         this.fromServiceMessenger = new Messenger(new FromServiceMessageHandler(listener));
 
-        unsyncedMeasurements.add(new Measurement(unsyncedMeasurements.size()));
         Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
         ComponentName serviceComponentName = context.get().startService(startIntent);
         if (serviceComponentName == null) {
@@ -140,6 +139,7 @@ public final class DataCapturingService {
         } finally {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
+            persistenceLayer.closeRecentMeasurement();
         }
     }
 
