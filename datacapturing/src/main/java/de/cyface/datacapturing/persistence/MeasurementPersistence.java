@@ -13,6 +13,7 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.model.CapturedData;
@@ -35,6 +36,7 @@ import de.cyface.persistence.SamplePointTable;
  */
 public class MeasurementPersistence {
 
+    private static final String TAG = "cyface.persistence";
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -89,13 +91,13 @@ public class MeasurementPersistence {
         Cursor measurementIdentifierQueryCursor = null;
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
-                    new String[] {BaseColumns._ID}, MeasurementTable.COLUMN_FINISHED + "=0", null, null);
+                    new String[] {BaseColumns._ID}, MeasurementTable.COLUMN_FINISHED + "=0", null, BaseColumns._ID+" DESC");
             if(measurementIdentifierQueryCursor==null) {
                 throw new IllegalStateException("Unable to query for measurement identifier!");
             }
+
             if (measurementIdentifierQueryCursor.getCount() > 1) {
-                throw new IllegalStateException(
-                        "More than one measurement is open. Unable to decide where to store data!");
+                Log.w(TAG, "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
             }
 
             if (!measurementIdentifierQueryCursor.moveToFirst()) {
