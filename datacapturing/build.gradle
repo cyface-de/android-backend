@@ -24,10 +24,21 @@ android {
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
+
+    testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
+    }
 }
 
 dependencies {
-    implementation 'com.android.support:support-annotations:' + rootProject.ext.supportLibVersion
+    implementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
+
+    // Dependencies for instrumentation tests
+    androidTestImplementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
+    androidTestImplementation "com.android.support.test:runner:${rootProject.ext.runnerVersion}"
+    androidTestImplementation "com.android.support.test:rules:${rootProject.ext.rulesVersion}"
 
     // Dependencies for local unit tests
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
@@ -36,5 +47,6 @@ dependencies {
     testImplementation "junit:junit:${rootProject.ext.junitVersion}"
     testImplementation "org.mockito:mockito-core:${rootProject.ext.mockitoVersion}"
     // Optional - For better debuggable asserts
-    testImplementation "org.hamcrest:java-hamcrest:${rootProject.ext.hamcrestVersion}"
+    testImplementation "org.hamcrest:hamcrest-all:${rootProject.ext.hamcrestVersion}"
+    testImplementation "org.robolectric:robolectric:3.6.1"
 }

@@ -3,11 +3,11 @@
     xmlns:tools="http://schemas.android.com/tools"
     package="de.cyface.persistence">
 
-    <application
-        android:allowBackup="true">
+    <!-- The integration test uses a different authority to be executed next to the default app (same device) -->
+    <application>
         <provider
             android:name="de.cyface.persistence.MeasuringPointsContentProvider"
-            android:authorities="de.cyface.providerTEST"
+            android:authorities="de.cyface.provider.test"
             android:exported="false"
             android:process=":persistence_process"
             android:syncable="true"

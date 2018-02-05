@@ -3,14 +3,16 @@
  */
 package de.cyface.persistence;
 
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import android.content.ContentValues;
 import android.net.Uri;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
-
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import android.test.ProviderTestCase2;
 
 /**
  * <p>
@@ -22,13 +24,12 @@ import org.junit.runner.RunWith;
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
-public class SamplePointTest extends CyfaceDatabaseTest {
+public class SamplePointTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
 
     private ContentValues fixturePoint;
 
-    @Override
-    protected Uri getTableUri() {
-        return MeasuringPointsContentProvider.SAMPLE_POINTS_URI;
+    public SamplePointTest() {
+        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
     }
 
     @Before
@@ -46,24 +47,31 @@ public class SamplePointTest extends CyfaceDatabaseTest {
 
     @Test
     public void testCreateSuccessfully() {
-        create(fixturePoint,"1");
+        TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,fixturePoint);
     }
 
     @Test
     public void testReadSuccessfully() {
-        create(fixturePoint,"1");
-        read(fixturePoint);
+        TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,fixturePoint);
+        TestUtils.read(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,fixturePoint);
     }
 
     @Test
     public void testUpdateSuccessfully() {
-        create(fixturePoint,"1");
-        update("1",SamplePointTable.COLUMN_AX,1.0);
+        long identifier = TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,fixturePoint);
+        TestUtils.update(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,identifier,SamplePointTable.COLUMN_AX,1.0);
     }
 
     @Test
     public void testDeleteSuccessfully() {
-        create(fixturePoint,"1");
-        delete(1);
+        long identifier = TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,fixturePoint);
+        TestUtils.delete(getMockContentResolver(),MeasuringPointsContentProvider.SAMPLE_POINTS_URI,identifier);
+    }
+    
+    @After
+    public void tearDown() throws Exception {
+        getMockContentResolver().delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,null,null);
+        super.tearDown();
+        getProvider().shutdown();
     }
 }

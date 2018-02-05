@@ -1,0 +1,4 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capturing_service_description">Use to collect sensor data (GPS, accelerometer, gyroscope, magnetometer) and send it to your local community, where it is used to improve the mobility infrastructure.</string>
+</resources>
