@@ -136,6 +136,7 @@ public class DataCapturingServiceTest {
         }
 
         // No Exception? FAIL!
+        fail();
     }
 
     @Test
@@ -156,6 +157,7 @@ public class DataCapturingServiceTest {
             try {
                 oocut.stop();
             } catch (IllegalStateException e) {
+                // That is the same exception as already catched when calling oocut.disconnect. 
                 // Yeah we know, the service is not bound but we choose to silently ignore that fact.
             }
         }
