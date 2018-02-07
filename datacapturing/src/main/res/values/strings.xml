@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <string name="capturing_service_description">Used to collect sensor data (GPS, accelerometer, gyroscope, magnetometer) and to send it to your local community, where it is used to improve the mobility infrastructure.</string>
-    <string name="capturing_active">Capturing ongoing</string>
+    <string name="capturing_active">Capturing in progress</string>
     <string name="cancel_capturing">Cancel Capturing</string>
     <string name="notification_title">Cyface</string>
     <string name="ticker_text">Ticker</string>
