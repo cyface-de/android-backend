@@ -1,0 +1,6 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capturing_service_description">Sammelt Sensordaten von deinem Smartphone (GPS, Beschleunigungen, Drehungen, Kompassdaten) und sendet sie anonymisiert an deine Kommune zur Verbesserung der Verkehrsinfrastruktur.</string>
+    <string name="capturing_active">Datenerfassung läuft</string>
+    <string name="cancel_capturing">Datenerfassung beenden</string>
+</resources>
