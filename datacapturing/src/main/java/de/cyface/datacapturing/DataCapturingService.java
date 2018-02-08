@@ -1,11 +1,12 @@
 package de.cyface.datacapturing;
 
-import static android.content.ContentValues.TAG;
-
 import java.lang.ref.WeakReference;
 import java.util.List;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -37,6 +38,17 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * @since 1.0.0
  */
 public final class DataCapturingService {
+
+    private static final String TAG = "de.cyface.capturing";
+    private final static String ACCOUNT = "default_account";
+    private final static String ACCOUNT_TYPE = "de.cyface";
+    private final static String AUTHORITY = "";
+    public static final long SECONDS_PER_MINUTE = 60L;
+    public static final long SYNC_INTERVAL_IN_MINUTES = 60L;
+    public static final long SYNC_INTERVAL =
+            SYNC_INTERVAL_IN_MINUTES *
+                    SECONDS_PER_MINUTE;
+
 
     /*
      * MARK: Properties
@@ -77,15 +89,6 @@ public final class DataCapturingService {
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(context);
     }
-
-//    /**
-//     * Starts the capturing process.
-//     */
-//    public void start(final Vehicle vehicle) {
-//        // TODO this will cause an error in the handler which currently does not accept null.
-//        start(null);
-//
-//    }
 
     /**
      * Starts the capturing process with a listener that is notified of important events occuring while the capturing
@@ -129,6 +132,8 @@ public final class DataCapturingService {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
             persistenceLayer.closeRecentMeasurement();
+            // TODO schedule periodic sync after measurement has been finished.
+            activateDataSynchronisation();
         }
     }
 
@@ -144,7 +149,9 @@ public final class DataCapturingService {
      * service might wait for an opprotune moment to start synchronization.
      */
     public void forceSyncUnsyncedMeasurements() {
-
+        AccountManager am = AccountManager.get(context.get());
+        Account account = am.getAccountsByType(ACCOUNT_TYPE)[0];
+        ContentResolver.requestSync(account,AUTHORITY,Bundle.EMPTY);
     }
 
     /**
@@ -177,6 +184,22 @@ public final class DataCapturingService {
             unbind();
         } catch (RemoteException | IllegalArgumentException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    private void activateDataSynchronisation() {
+        if(context.get()==null) {
+            throw new IllegalStateException("No valid context to enable data synchronization!");
+        }
+
+        AccountManager am = AccountManager.get(context.get());
+        Account account = am.getAccountsByType(ACCOUNT_TYPE)[0];
+
+        boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(account, AUTHORITY);
+        boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+
+        if(cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
+            ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
         }
     }
 

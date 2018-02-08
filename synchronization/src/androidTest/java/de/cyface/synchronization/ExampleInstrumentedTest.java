@@ -72,7 +72,7 @@ public class ExampleInstrumentedTest {
         insertTestDirection(resolver,measurementIdentifier,1501662636050L,7.65,-33.15,-71.700005);
 
         InputStream measurementData = convertMeasurementToInput(measurementIdentifier);
-        sendMovebisData(measurementData, new UploadProgressListener() {
+        sendMovebisData(measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {
             @Override
             public void updatedProgress(float percent) {
                 Log.d(TAG,String.format("Upload Progress %f",percent));
@@ -133,15 +133,15 @@ public class ExampleInstrumentedTest {
         return Long.parseLong(resultUri.getLastPathSegment());
     }
 
-    public void sendMovebisData(final @NonNull InputStream data,
+    public void sendMovebisData(final long measurementIdentifier, final String deviceIdentifier, final @NonNull InputStream data,
             final @NonNull UploadProgressListener progressListener) {
         HttpURLConnection.setFollowRedirects(false);
         HttpURLConnection connection = null;
-        String fileName = "test.txt";
+        String fileName = String.format("%s_%d.cyf",deviceIdentifier,measurementIdentifier);
 
         try {
             try {
-                connection = (HttpURLConnection)new URL("http://192.168.178.165:8080/measurements").openConnection();
+                connection = (HttpURLConnection)new URL("http://141.76.40.152:8080/measurements").openConnection();
             } catch (IOException e) {
                 throw new IllegalStateException(e);
             }
@@ -155,8 +155,10 @@ public class ExampleInstrumentedTest {
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
             connection.setDoOutput(true);
 
-            String metadataPart = "--" + boundary + "\r\n" + "Content-Disposition: form-data; name=\"metadata\"\r\n\r\n"
-                    + "" + "\r\n";
+//            String metadataPart = "--" + boundary + "\r\n" + "Content-Disposition: form-data; name=\"metadata\"\r\n\r\n"
+//                    + "" + "\r\n";
+            String userIdPart = addPart("userId",deviceIdentifier,boundary);
+            String measurementIdPart = addPart("measurementId",Long.valueOf(measurementIdentifier).toString(),boundary);
 
             String fileHeader1 = "--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
@@ -174,7 +176,7 @@ public class ExampleInstrumentedTest {
             }
             String fileHeader2 = "Content-length: " + dataSize + "\r\n";
             String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
-            String stringData = metadataPart + fileHeader;
+            String stringData = userIdPart + measurementIdPart + fileHeader;
 
             long requestLength = stringData.length() + dataSize;
             connection.setRequestProperty("Content-length", "" + requestLength);
@@ -247,6 +249,10 @@ public class ExampleInstrumentedTest {
             if (connection != null)
                 connection.disconnect();
         }
+    }
+
+    private String addPart(final @NonNull String key, final @NonNull String value, final @NonNull String boundary) {
+        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n\r\n%s",boundary,key,value);
     }
 
     private InputStream convertMeasurementToInput(final long measurementIdentifier) {
