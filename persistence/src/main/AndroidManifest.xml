@@ -6,7 +6,7 @@
         <provider
             android:name="de.cyface.persistence.MeasuringPointsContentProvider"
             android:authorities="de.cyface.provider"
-            android:exported="true"
+            android:exported="false"
             android:process=":persistence_process"
             android:syncable="true">
         </provider>

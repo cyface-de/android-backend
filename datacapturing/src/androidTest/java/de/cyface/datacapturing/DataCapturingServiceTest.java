@@ -54,7 +54,7 @@ public class DataCapturingServiceTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getContext();
-        oocut = new DataCapturingService(context);
+        oocut = new DataCapturingService(context,"http://localhost:8080");
         testListener = new TestListener();
     }
 

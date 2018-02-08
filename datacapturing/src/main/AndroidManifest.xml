@@ -6,6 +6,7 @@
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
 
     <application>
         <!-- Declares the data capturing service which is not exported to other applications. Most important is the android:process declaration with the ":" in the beginning. It tells the system to run the service in its own process. -->
