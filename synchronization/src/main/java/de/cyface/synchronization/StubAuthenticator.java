@@ -6,48 +6,65 @@ import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 
 /**
- * Created by muthmann on 07.02.18.
+ * Stub class for an authenticator. This is necessary since an authenticator is a requirement for a synchronisation
+ * adapter. But since we are not supporting any user accounts the implementation is mostly empty. Fur further details
+ * visit the <a href="https://developer.android.com/training/sync-adapters/creating-authenticator.html">Android
+ * documentation</a>.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
  */
-
 public final class StubAuthenticator extends AbstractAccountAuthenticator {
-    public StubAuthenticator(Context context) {
+    /**
+     * Creates a new completely initialized <code>StubAuthenticator</code>.
+     *
+     * @param context The Android context for the authenticator.
+     */
+    public StubAuthenticator(final @NonNull Context context) {
         super(context);
     }
 
     @Override
-    public Bundle editProperties(AccountAuthenticatorResponse response, String accountType) {
+    public Bundle editProperties(final @NonNull AccountAuthenticatorResponse response, final @NonNull String accountType) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Bundle addAccount(AccountAuthenticatorResponse response, String accountType, String authTokenType, String[] requiredFeatures, Bundle options) throws NetworkErrorException {
+    public Bundle addAccount(final @NonNull AccountAuthenticatorResponse response, final @NonNull String accountType, final @NonNull String authTokenType,
+            String[] requiredFeatures, Bundle options) throws NetworkErrorException {
         return null;
     }
 
     @Override
-    public Bundle confirmCredentials(AccountAuthenticatorResponse response, Account account, Bundle options) throws NetworkErrorException {
+    public Bundle confirmCredentials(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account, final @NonNull Bundle options)
+            throws NetworkErrorException {
         return null;
     }
 
     @Override
-    public Bundle getAuthToken(AccountAuthenticatorResponse response, Account account, String authTokenType, Bundle options) throws NetworkErrorException {
+    public Bundle getAuthToken(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account, final @NonNull String authTokenType,
+            Bundle options) throws NetworkErrorException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public String getAuthTokenLabel(String authTokenType) {
+    public String getAuthTokenLabel(final @NonNull String authTokenType) {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Bundle updateCredentials(AccountAuthenticatorResponse response, Account account, String authTokenType, Bundle options) throws NetworkErrorException {
+    public Bundle updateCredentials(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account, final @NonNull String authTokenType,
+            Bundle options) throws NetworkErrorException {
         throw new UnsupportedOperationException();
     }
 
     @Override
-    public Bundle hasFeatures(AccountAuthenticatorResponse response, Account account, String[] features) throws NetworkErrorException {
+    public Bundle hasFeatures(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account, final @NonNull String[] features)
+            throws NetworkErrorException {
         throw new UnsupportedOperationException();
     }
 }

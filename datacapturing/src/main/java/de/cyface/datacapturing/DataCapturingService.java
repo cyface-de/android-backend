@@ -1,7 +1,6 @@
 package de.cyface.datacapturing;
 
 import java.lang.ref.WeakReference;
-import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 
@@ -27,7 +26,6 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
-import de.cyface.persistence.*;
 import de.cyface.persistence.BuildConfig;
 import de.cyface.synchronization.CyfaceSyncAdapter;
 
@@ -368,16 +366,16 @@ public final class DataCapturingService {
                         throw new IllegalStateException(context.getString(R.string.missing_data_error));
                     }
 
-                    GpsPosition geoLocation = new GpsPosition(data.getLat(), data.getLon(), data.getGpsSpeed(),
+                    GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsSpeed(),
                             data.getGpsAccuracy());
 
-                    listener.onNewGpsPositionAcquired(geoLocation);
+                    listener.onNewGeoLocationAcquired(geoLocation);
                     break;
                 case MessageCodes.GPS_FIX:
-                    listener.onGpsFixAcquired();
+                    listener.onFixAcquired();
                     break;
                 case MessageCodes.NO_GPS_FIX:
-                    listener.onGpsFixLost();
+                    listener.onFixLost();
                     break;
                 case MessageCodes.WARNING_SPACE:
                     listener.onLowDiskSpace(null);

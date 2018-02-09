@@ -1,6 +1,9 @@
 package de.cyface.synchronization;
 
 import static junit.framework.Assert.assertEquals;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import java.io.InputStream;
 
@@ -12,20 +15,30 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.FlakyTest;
+import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
-import de.cyface.persistence.*;
 import de.cyface.persistence.BuildConfig;
+import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.SamplePointTable;
 
 /**
- * Instrumented test, which will execute on an Android device.
+ * Instrumented test, which will execute on an Android device. Since this requires a running Movebis API it is marked as a flaky test.
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 @RunWith(AndroidJUnit4.class)
+@LargeTest
+@FlakyTest
 public class MovebisDataTransmissionTest {
 
     private static final String TAG = "de.cyface.test";
@@ -42,10 +55,11 @@ public class MovebisDataTransmissionTest {
      * Tests the basic transmission code to a Movebis backend. This is based on some code from stackoverflow. An example
      * request must be formatted as multipart request, which looks like:
      *
-     * {@code POST / HTTP/1.1
-     Host: localhost:8000
-     User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:29.0) Gecko/20100101 Firefox/29.0
-     * Accept: text/html,application/xhtml+xml,application/xml;q=0.9,{@literal*}/{@literal *};q=0.8
+     * <pre>
+     * POST / HTTP/1.1
+     * Host: localhost:8000
+     * User-Agent: Mozilla/5.0 (X11; Ubuntu; Linux i686; rv:29.0) Gecko/20100101 Firefox/29.0
+     * Accept: text/html,application/xhtml+xml,application/xml;q=0.9,{@literal *}/{@literal *};q=0.8
      * Accept-Language: en-US,en;q=0.5
      * Accept-Encoding: gzip, deflate
      * Cookie: __atuvc=34%7C7; permanent=0; _gitlab_session=226ad8a0be43681acf38c2fab9497240; __profilin=p%3Dt;
@@ -68,9 +82,10 @@ public class MovebisDataTransmissionTest {
      * Content-Disposition: form-data; name="file2"; filename="a.html"
      * Content-Type: text/html
      * 
-     * {@literal<}!DOCTYPE html><title>Content of a.html.</title>
+     * {@literal <}!DOCTYPE html{@literal >}{@literal <}title{@literal >}Content of a.html.{@literal <}/title{@literal >}
      * 
-     * -----------------------------9051914041544843365972754266--}
+     * -----------------------------9051914041544843365972754266--
+     * </pre>
      */
     @Test
     public void testUploadSomeBytesViaMultiPart() {
@@ -90,26 +105,37 @@ public class MovebisDataTransmissionTest {
         insertTestDirection(resolver, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
         insertTestDirection(resolver, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
 
-        ContentProviderClient client = resolver.acquireContentProviderClient(BuildConfig.provider);
+        ContentProviderClient client = null;
         try {
+            client = resolver.acquireContentProviderClient(BuildConfig.provider);
+
+            if(client==null) throw new IllegalStateException(String.format("Unable to acquire client for content provider %s", BuildConfig.provider));
+
             MeasurementSerializer serializer = new MeasurementSerializer(client);
             InputStream measurementData = serializer.serialize(measurementIdentifier);
 
             SyncPerformer performer = new SyncPerformer();
-            performer.sendData("http://localhost:8080", measurementIdentifier, "garbage", measurementData,
+            int result = performer.sendData("http://10.42.0.1:8080", measurementIdentifier, "garbage", measurementData,
                     new UploadProgressListener() {
                         @Override
                         public void updatedProgress(float percent) {
                             Log.d(TAG, String.format("Upload Progress %f", percent));
                         }
                     });
+            assertThat(result,is(equalTo(201)));
         } finally {
-            client.close();
+            if (client != null) {
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    client.close();
+                } else {
+                    client.release();
+                }
+            }
         }
     }
 
-    private void insertTestDirection(final @NonNull ContentResolver resolver, final long measurementIdentifier, final long timestamp, final double x,
-            final double y, final double z) {
+    private void insertTestDirection(final @NonNull ContentResolver resolver, final long measurementIdentifier,
+            final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
         values.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(MagneticValuePointTable.COLUMN_IS_SYNCED, false);
@@ -120,8 +146,8 @@ public class MovebisDataTransmissionTest {
         resolver.insert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, values);
     }
 
-    private void insertTestRotation(final @NonNull ContentResolver resolver, final long measurementIdentifier, final long timestamp, final double x,
-            final double y, final double z) {
+    private void insertTestRotation(final @NonNull ContentResolver resolver, final long measurementIdentifier,
+            final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
         values.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(RotationPointTable.COLUMN_IS_SYNCED, false);
@@ -132,8 +158,8 @@ public class MovebisDataTransmissionTest {
         resolver.insert(MeasuringPointsContentProvider.ROTATION_POINTS_URI, values);
     }
 
-    private void insertTestAcceleration(final @NonNull ContentResolver resolver, final long measurementIdentifier, final long timestamp, final double x,
-            final double y, final double z) {
+    private void insertTestAcceleration(final @NonNull ContentResolver resolver, final long measurementIdentifier,
+            final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
         values.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(SamplePointTable.COLUMN_IS_SYNCED, false);

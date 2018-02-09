@@ -14,25 +14,38 @@ import java.net.ProtocolException;
 import java.net.URL;
 
 /**
- * Created by muthmann on 08.02.18.
+ * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
+ * measurements.
+ * 
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
  */
+class SyncPerformer {
 
-public class SyncPerformer {
-
-    private static final String TAG = "de.cyface.sync";
-
-    public void sendData(final String dataServerUrl, final long measurementIdentifier, final String deviceIdentifier, final @NonNull InputStream data,
-                                final @NonNull UploadProgressListener progressListener) {
+    /**
+     * Triggers the data transmission to a Movebis server API. The <code>measurementIdentifier</code> and
+     * <code>deviceIdentifier</code> need to be globally unique. If they are not the server will probably reject the
+     * request.
+     * <p>
+     * Since this is a synchronous call it can take from seconds to minutes depending on the size of <code>data</code>.
+     * Never call this on the UI thread. Your users are going to hate you.
+     *
+     * @param dataServerUrl The server URL to send the data to.
+     * @param measurementIdentifier The measurement identifier of the transmitted measurement.
+     * @param deviceIdentifier The device identifier of the device transmitting the measurement.
+     * @param data The data to transmit as <code>InputStream</code>.
+     * @param progressListener A listener that is informed about the progress of the upload.
+     * @return The <a href="https://de.wikipedia.org/wiki/HTTP-Statuscode">HTTP status</a> code of the response.
+     */
+    int sendData(final String dataServerUrl, final long measurementIdentifier, final String deviceIdentifier,
+            final @NonNull InputStream data, final @NonNull UploadProgressListener progressListener) {
         HttpURLConnection.setFollowRedirects(false);
         HttpURLConnection connection = null;
-        String fileName = String.format("%s_%d.cyf",deviceIdentifier,measurementIdentifier);
+        String fileName = String.format("%s_%d.cyf", deviceIdentifier, measurementIdentifier);
 
         try {
-            try {
-                connection = (HttpURLConnection)new URL(String.format("%s/measurements",dataServerUrl)).openConnection();
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
+            connection = (HttpURLConnection)new URL(String.format("%s/measurements", dataServerUrl)).openConnection();
             try {
                 connection.setRequestMethod("POST");
             } catch (ProtocolException e) {
@@ -43,25 +56,18 @@ public class SyncPerformer {
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
             connection.setDoOutput(true);
 
-//            String metadataPart = "--" + boundary + "\r\n" + "Content-Disposition: form-data; name=\"metadata\"\r\n\r\n"
-//                    + "" + "\r\n";
-            String userIdPart = addPart("userId",deviceIdentifier,boundary);
-            String measurementIdPart = addPart("measurementId",Long.valueOf(measurementIdentifier).toString(),boundary);
+            String userIdPart = addPart("userId", deviceIdentifier, boundary);
+            String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
+                    boundary);
 
             String fileHeader1 = "--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
                     + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n";
 
-            // byte[] source = "test".getBytes();
-            // long fileLength = source.length + tail.length();
             // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
             // returns only the data currently in memory or something similar.
             int dataSize = 0;
-            try {
-                dataSize = data.available()+tail.length();
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
+            dataSize = data.available() + tail.length();
             String fileHeader2 = "Content-length: " + dataSize + "\r\n";
             String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
             String stringData = userIdPart + measurementIdPart + fileHeader;
@@ -69,70 +75,43 @@ public class SyncPerformer {
             long requestLength = stringData.length() + dataSize;
             connection.setRequestProperty("Content-length", "" + requestLength);
             connection.setFixedLengthStreamingMode((int)requestLength);
-            try {
-                connection.connect();
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
+            connection.connect();
 
             DataOutputStream out = null;
-            try {
-                out = new DataOutputStream(connection.getOutputStream());
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-            try {
-                out.writeBytes(stringData);
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
-            try {
-                out.flush();
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
+            out = new DataOutputStream(connection.getOutputStream());
+            out.writeBytes(stringData);
+            out.flush();
 
             int progress = 0;
             int bytesRead = 0;
             byte buf[] = new byte[1024];
             BufferedInputStream bufInput = new BufferedInputStream(data);
-            try {
-                while ((bytesRead = bufInput.read(buf)) != -1) {
-                    // write output
-                    out.write(buf, 0, bytesRead);
-                    out.flush();
-                    progress += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((progress * 100) / dataSize);
+            while ((bytesRead = bufInput.read(buf)) != -1) {
+                // write output
+                out.write(buf, 0, bytesRead);
+                out.flush();
+                progress += bytesRead; // Here progress is total uploaded bytes
+                progressListener.updatedProgress((progress * 100) / dataSize);
 
-                    // publishProgress(""+(int)((progress*100)/totalSize)); // sending progress percent to publishProgress
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
             }
 
             // Write closing boundary and close stream
-            try {
-                out.writeBytes(tail);
-                out.flush();
-                out.close();
-            } catch (IOException e) {
-                e.printStackTrace();
-            }
+            out.writeBytes(tail);
+            out.flush();
+            out.close();
 
             // Get server response
-            try {
-                BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-                String line = "";
-                StringBuilder builder = new StringBuilder();
-                while ((line = reader.readLine()) != null) {
-                    builder.append(line);
-                }
+            // BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+            // String line = "";
+            // StringBuilder builder = new StringBuilder();
+            // while ((line = reader.readLine()) != null) {
+            // builder.append(line);
+            // }
 
-                Log.d(TAG, builder.toString());
-            } catch (IOException e) {
-                throw new IllegalStateException(e);
-            }
+            return connection.getResponseCode();
 
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         } finally {
             if (connection != null)
                 connection.disconnect();
@@ -140,6 +119,7 @@ public class SyncPerformer {
     }
 
     private String addPart(final @NonNull String key, final @NonNull String value, final @NonNull String boundary) {
-        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n\r\n%s\r\n",boundary,key,value);
+        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n\r\n%s\r\n", boundary, key,
+                value);
     }
 }
