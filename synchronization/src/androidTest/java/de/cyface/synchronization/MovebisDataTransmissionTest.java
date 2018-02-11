@@ -32,7 +32,8 @@ import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
 /**
- * Instrumented test, which will execute on an Android device. Since this requires a running Movebis API it is marked as a flaky test.
+ * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
+ * that server, it is a flaky test and a large test.
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
@@ -41,15 +42,10 @@ import de.cyface.persistence.SamplePointTable;
 @FlakyTest
 public class MovebisDataTransmissionTest {
 
+    /**
+     * The tag used to identify messages from logcat.
+     */
     private static final String TAG = "de.cyface.test";
-
-    @Test
-    public void useAppContext() throws Exception {
-        // Context of the app under test.
-        Context appContext = InstrumentationRegistry.getTargetContext();
-
-        assertEquals("de.cyface.synchronization.test", appContext.getPackageName());
-    }
 
     /**
      * Tests the basic transmission code to a Movebis backend. This is based on some code from stackoverflow. An example
@@ -109,7 +105,9 @@ public class MovebisDataTransmissionTest {
         try {
             client = resolver.acquireContentProviderClient(BuildConfig.provider);
 
-            if(client==null) throw new IllegalStateException(String.format("Unable to acquire client for content provider %s", BuildConfig.provider));
+            if (client == null)
+                throw new IllegalStateException(
+                        String.format("Unable to acquire client for content provider %s", BuildConfig.provider));
 
             MeasurementSerializer serializer = new MeasurementSerializer(client);
             InputStream measurementData = serializer.serialize(measurementIdentifier);
@@ -122,7 +120,7 @@ public class MovebisDataTransmissionTest {
                             Log.d(TAG, String.format("Upload Progress %f", percent));
                         }
                     });
-            assertThat(result,is(equalTo(201)));
+            assertThat(result, is(equalTo(201)));
         } finally {
             if (client != null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -134,6 +132,16 @@ public class MovebisDataTransmissionTest {
         }
     }
 
+    /**
+     * Inserts a test direction into the database content provider accessed by the test.
+     *
+     * @param resolver The client to access the content provider storing the data.
+     * @param measurementIdentifier The device wide unique identifier of the test measurement.
+     * @param timestamp A fake test timestamp of the direction.
+     * @param x A fake test x coordinate of the direction.
+     * @param y A fake test y coordinate of the direction.
+     * @param z A fake test z coordinate of the direction.
+     */
     private void insertTestDirection(final @NonNull ContentResolver resolver, final long measurementIdentifier,
             final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
@@ -146,6 +154,16 @@ public class MovebisDataTransmissionTest {
         resolver.insert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, values);
     }
 
+    /**
+     * Inserts a test rotation into the database content provider accessed by the test.
+     *
+     * @param resolver The client to access the content provider storing the data.
+     * @param measurementIdentifier The device wide unique identifier of the test measurement.
+     * @param timestamp A fake test timestamp of the direction.
+     * @param x A fake test x coordinate of the direction.
+     * @param y A fake test y coordinate of the direction.
+     * @param z A fake test z coordinate of the direction.
+     */
     private void insertTestRotation(final @NonNull ContentResolver resolver, final long measurementIdentifier,
             final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
@@ -158,6 +176,16 @@ public class MovebisDataTransmissionTest {
         resolver.insert(MeasuringPointsContentProvider.ROTATION_POINTS_URI, values);
     }
 
+    /**
+     * Inserts a test acceleration into the database content provider accessed by the test.
+     *
+     * @param resolver The client to access the content provider storing the data.
+     * @param measurementIdentifier The device wide unique identifier of the test measurement.
+     * @param timestamp A fake test timestamp of the acceleration.
+     * @param x A fake test x coordinate of the acceleration.
+     * @param y A fake test y coordinate of the acceleration.
+     * @param z A fake test z coordinate of the acceleration.
+     */
     private void insertTestAcceleration(final @NonNull ContentResolver resolver, final long measurementIdentifier,
             final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
@@ -170,6 +198,17 @@ public class MovebisDataTransmissionTest {
         resolver.insert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, values);
     }
 
+    /**
+     * Inserts a test geo location into the database content provider accessed by the test.
+     * 
+     * @param resolver The client to access the content provider storing the data.
+     * @param measurementIdentifier The device wide unique identifier of the test measurement.
+     * @param timestamp A fake test timestamp of the geo location.
+     * @param lat The fake test latitude of the geo location.
+     * @param lon The fake test longitude of the geo location.
+     * @param speed The fake test speed of the geo location.
+     * @param accuracy The fake test accuracy of the geo location.
+     */
     private void insertTestGeoLocation(final @NonNull ContentResolver resolver, final long measurementIdentifier,
             final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
         ContentValues values = new ContentValues();
@@ -183,6 +222,18 @@ public class MovebisDataTransmissionTest {
         resolver.insert(MeasuringPointsContentProvider.GPS_POINTS_URI, values);
     }
 
+    /**
+     * Inserts a test measurement into the database content provider accessed by the test. To add data to the
+     * measurement use some or all of
+     * {@link #insertTestGeoLocation(ContentResolver, long, long, double, double, double, int)},
+     * {@link #insertTestAcceleration(ContentResolver, long, long, double, double, double)},
+     * {@link #insertTestDirection(ContentResolver, long, long, double, double, double)} and
+     * {@link #insertTestRotation(ContentResolver, long, long, double, double, double)}.
+     * 
+     * @param resolver The client to access the content provider storing the data.
+     * @param vehicle The vehicle type of the measurement. A common value is "UNKNOWN" if you do not care.
+     * @return The database identifier of the created measurement.
+     */
     private long insertTestMeasurement(final @NonNull ContentResolver resolver, final @NonNull String vehicle) {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, true);
