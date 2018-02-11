@@ -1,9 +1,10 @@
 package de.cyface.synchronization;
 
+import java.io.InputStream;
+
 import android.accounts.Account;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -11,14 +12,10 @@ import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.os.RemoteException;
-import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.util.Log;
-import android.widget.Toast;
-
-import java.io.InputStream;
 
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
@@ -59,11 +56,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     /**
-     * The client used to access the <code>MeasuringClientContentProvider</code> storing the measurements to synchronize.
-     */
-    private final ContentResolver resolver;
-
-    /**
      * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
      *
      * @param context The current context this adapter is running under.
@@ -72,7 +64,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      */
     CyfaceSyncAdapter(final @NonNull Context context, boolean autoInitialize) {
         super(context, autoInitialize);
-        resolver = context.getContentResolver();
     }
 
     /**
@@ -85,14 +76,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      */
     CyfaceSyncAdapter(final @NonNull Context context, boolean autoInitialize, boolean allowParallelSyncs) {
         super(context, autoInitialize, allowParallelSyncs);
-        resolver = context.getContentResolver();
     }
 
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider,
             SyncResult syncResult) {
         Log.d(TAG, "syncing");
-        MeasurementSerializer serializer = new MeasurementSerializer(provider);
+
+        MeasurementSerializer serializer = new MeasurementSerializer();
         SyncPerformer syncer = new SyncPerformer();
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
@@ -110,12 +101,18 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         try {
             syncableMeasurementsCursor = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                     MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Integer.valueOf(1).toString()}, null);
+
+            if(syncableMeasurementsCursor==null) {
+                throw new IllegalStateException("Unable to load measurement from content provider!");
+            }
+
             while (syncableMeasurementsCursor.moveToNext()) {
 
                 long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
+                MeasurementLoader loader = new MeasurementLoader(measurementIdentifier,provider);
 
-                InputStream data = serializer.serialize(measurementIdentifier);
+                InputStream data = serializer.serialize(loader);
                 syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
                         new UploadProgressListener() {
                             @Override
