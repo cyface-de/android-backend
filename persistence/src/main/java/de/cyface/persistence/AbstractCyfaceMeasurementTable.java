@@ -13,9 +13,7 @@ import java.util.List;
 import java.util.Set;
 
 /**
- * <p>
  * Abstract base class for all Cyface measurement tables implementing common functionality.
- * </p>
  *
  * @author Klemens Muthmann, Armin Schnabel
  * @version 1.0.0
@@ -27,9 +25,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
     private static final String maxQueryLimit = "10000"; // Else we get "Cursor Window: Window is full: requesting allocation ..." error if e.g. 157k unsynced SPs
 
     /**
-     * <p>
      * The database table name.
-     * </p>
      */
     private final String name;
 

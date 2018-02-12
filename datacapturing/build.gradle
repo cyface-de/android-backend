@@ -36,6 +36,7 @@ dependencies {
     implementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
     implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
     implementation project(":persistence")
+    implementation project(":synchronization")
 
     // Dependencies for instrumentation tests
     androidTestImplementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"

@@ -11,17 +11,17 @@ import java.util.Locale;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class GpsPosition {
+public class GeoLocation {
     /**
      * <p>
-     * The captured latitude of this {@code GpsPosition} in decimal coordinates as a value between -90.0 (south pole)
+     * The captured latitude of this {@code GeoLocation} in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
      * </p>
      */
     private final double lat;
     /**
      * <p>
-     * The captured longitude of this {@code GpsPosition} in decimal coordinates as a value between -180.0 and 180.0.
+     * The captured longitude of this {@code GeoLocation} in decimal coordinates as a value between -180.0 and 180.0.
      * </p>
      */
     private final double lon;
@@ -40,17 +40,17 @@ public class GpsPosition {
 
     /**
      * <p>
-     * Creates a new completely initialized GpsPosition.
+     * Creates a new completely initialized GeoLocation.
      * </p>
      * 
-     * @param lat The captured latitude of this GpsPosition in decimal coordinates as a value between -90.0 (south pole)
+     * @param lat The captured latitude of this GeoLocation in decimal coordinates as a value between -90.0 (south pole)
      *            and 90.0 (north pole).
-     * @param lon The captured longitude of this {@code GpsPosition} in decimal coordinates as a value between -180.0
+     * @param lon The captured longitude of this {@code GeoLocation} in decimal coordinates as a value between -180.0
      *            and 180.0.
      * @param speed The current speed of the measuring device according to its location sensor in meters per second.
      * @param accuracy The current accuracy of the measuring device in meters.
      */
-    public GpsPosition(final double lat, final double lon, final double speed, final float accuracy) {
+    public GeoLocation(final double lat, final double lon, final double speed, final float accuracy) {
         if (lat < -90. || lat > 90.) {
             throw new IllegalArgumentException(String
                     .format(Locale.US, "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %d", lat));
@@ -75,7 +75,7 @@ public class GpsPosition {
     }
 
     /**
-     * @return The captured latitude of this GpsPosition in decimal coordinates as a value between -90.0 (south pole)
+     * @return The captured latitude of this GeoLocation in decimal coordinates as a value between -90.0 (south pole)
      *         and 90.0 (north pole).
      */
     public double getLat() {
@@ -83,7 +83,7 @@ public class GpsPosition {
     }
 
     /**
-     * @return The captured longitude of this {@code GpsPosition} in decimal coordinates as a value between -180.0 and
+     * @return The captured longitude of this {@code GeoLocation} in decimal coordinates as a value between -180.0 and
      *         180.0.
      */
     public double getLon() {
