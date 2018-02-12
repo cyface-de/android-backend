@@ -1,6 +1,5 @@
 package de.cyface.synchronization;
 
-import static junit.framework.Assert.assertEquals;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -13,7 +12,6 @@ import org.junit.runner.RunWith;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.Context;
 import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.NonNull;
@@ -109,12 +107,13 @@ public class MovebisDataTransmissionTest {
                 throw new IllegalStateException(
                         String.format("Unable to acquire client for content provider %s", BuildConfig.provider));
 
-            MeasurementSerializer serializer = new MeasurementSerializer(client);
-            InputStream measurementData = serializer.serialize(measurementIdentifier);
+            MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, client);
+            MeasurementSerializer serializer = new MeasurementSerializer();
+            InputStream measurementData = serializer.serialize(loader);
 
             SyncPerformer performer = new SyncPerformer();
-            int result = performer.sendData("http://10.42.0.1:8080", measurementIdentifier, "garbage", measurementData,
-                    new UploadProgressListener() {
+            int result = performer.sendData("http://192.168.178.165:8080", measurementIdentifier, "garbage",
+                    measurementData, new UploadProgressListener() {
                         @Override
                         public void updatedProgress(float percent) {
                             Log.d(TAG, String.format("Upload Progress %f", percent));

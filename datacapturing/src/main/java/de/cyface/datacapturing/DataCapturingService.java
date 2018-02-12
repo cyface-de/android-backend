@@ -94,7 +94,7 @@ public final class DataCapturingService {
         this.context = new WeakReference<Context>(context);
 
         this.serviceConnection = new BackgroundServiceConnection();
-        this.persistenceLayer = new MeasurementPersistence(context);
+        this.persistenceLayer = new MeasurementPersistence(context.getContentResolver());
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

@@ -1,5 +1,9 @@
 package de.cyface.datacapturing.backend;
 
+import java.lang.ref.WeakReference;
+import java.util.HashSet;
+import java.util.Set;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -15,12 +19,6 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
-
-import java.lang.ref.WeakReference;
-import java.util.ArrayList;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
@@ -99,15 +97,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onCreate();
         Log.d(TAG, "onCreate");
 
-        persistenceLayer = new MeasurementPersistence(this);
+        persistenceLayer = new MeasurementPersistence(this.getContentResolver());
 
         // Prevent this process from being killed by the system.
         PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
-        if(powerManager!=null) {
+        if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
             wakeLock.acquire();
         } else {
-            Log.w(TAG,"Unable to acquire PowerManager. Not wake lock set!");
+            Log.w(TAG, "Unable to acquire PowerManager. Not wake lock set!");
         }
 
         Log.d(TAG, "finishedOnCreate");
@@ -157,7 +155,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         dataCapturing.addCapturingProcessListener(this);
 
         capturingNotification = new CapturingNotification();
-        startForeground(capturingNotification.getNotificationId(),capturingNotification.getNotification(this));
+        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
     }
 
     /**

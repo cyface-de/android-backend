@@ -4,8 +4,8 @@ import android.support.annotation.Nullable;
 
 /**
  * An object of this class represents a single measurement captured by the {@link DataCapturingService}. This usually
- * happens between complementary calls to {@link DataCapturingService#startCapturing()} and
- * {@link DataCapturingService#stopCapturing()}.
+ * happens between complementary calls to {@link DataCapturingService#start()} and
+ * {@link DataCapturingService#stop()}.
  *
  * @author Klemens Muthmann
  * @version 1.1.0
@@ -51,8 +51,6 @@ public final class Measurement {
 
     @Override
     public String toString() {
-        return "Measurement{" +
-                "id=" + id +
-                '}';
+        return "Measurement{" + "id=" + id + '}';
     }
 }
