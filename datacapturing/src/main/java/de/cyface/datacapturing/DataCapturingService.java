@@ -46,15 +46,15 @@ import de.cyface.synchronization.CyfaceSyncAdapter;
  * @version 1.0.0
  * @since 1.0.0
  */
-public final class DataCapturingService {
+public class DataCapturingService {
 
     private static final String TAG = "de.cyface.capturing";
     private final static String ACCOUNT = "default_account";
     private final static String ACCOUNT_TYPE = "de.cyface";
     private final static String AUTHORITY = BuildConfig.provider;
-    public static final long SECONDS_PER_MINUTE = 60L;
-    public static final long SYNC_INTERVAL_IN_MINUTES = 60L;
-    public static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
+    private static final long SECONDS_PER_MINUTE = 60L;
+    private static final long SYNC_INTERVAL_IN_MINUTES = 60L;
+    private static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
 
     /*
      * MARK: Properties
@@ -74,6 +74,9 @@ public final class DataCapturingService {
      * Connection used to communicate with the background service
      */
     private final ServiceConnection serviceConnection;
+    /**
+     * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
+     */
     private final MeasurementPersistence persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
@@ -88,7 +91,8 @@ public final class DataCapturingService {
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param dataUploadServerAddress
+     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+     *            this service.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress) {
         this.context = new WeakReference<Context>(context);

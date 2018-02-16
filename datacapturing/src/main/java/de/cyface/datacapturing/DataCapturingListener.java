@@ -46,19 +46,6 @@ public interface DataCapturingListener {
 
     /**
      * <p>
-     * Invoked each time the {@link DataCapturingService} requires some permission from the Android system. That way it
-     * is possible to show the user some explanation as to why that permission is required.
-     * </p>
-     *
-     * @param permission The permission the service requires in the form of an Android permission {@link String}.
-     * @param reason A reason for why the service requires that permission. You may show the reason to the user before
-     *            asking for the permission or create your own message from it.
-     * @return {@code true} if the permission has been granted; {@code false} otherwise.
-     */
-    boolean onRequirePermission(String permission, Reason reason);
-
-    /**
-     * <p>
      * Invoked if the service has synchronized all pending cached data successfully and deleted the local copies.
      * </p>
      */
