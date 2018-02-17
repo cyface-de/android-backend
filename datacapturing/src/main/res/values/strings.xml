@@ -9,5 +9,5 @@
 
     <string name="missing_data_error">Captured data was missing from message!</string>
     <string name="unknown_message_error">Received unknown message %d from data capturing service!</string>
-    <string name="unable_to_rebind_error">"Unable to rebind. Context was null."</string>
+    <string name="unable_to_rebind_error">Unable to rebind. Context was null.</string>
 </resources>
