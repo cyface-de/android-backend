@@ -23,6 +23,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
@@ -48,12 +49,33 @@ import de.cyface.synchronization.CyfaceSyncAdapter;
  */
 public class DataCapturingService {
 
+    /**
+     * Tag used to identify Logcat messages issued by instances of this class.
+     */
     private static final String TAG = "de.cyface.capturing";
     private final static String ACCOUNT = "default_account";
+    /**
+     * The Cyface account type used to identify all Cyface system accounts.
+     */
     private final static String ACCOUNT_TYPE = "de.cyface";
+    /**
+     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
+     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
+     * for further information.
+     */
     private final static String AUTHORITY = BuildConfig.provider;
+    /**
+     * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
+     */
     public static final long SECONDS_PER_MINUTE = 60L;
+    /**
+     * The data synchronisation interval in minutes.
+     */
     public static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes. It seems reasonable and can be changed in the future.
+    /**
+     * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
+     * seconds using {@link #SECONDS_PER_MINUTE}.
+     */
     public static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
 
     /*
@@ -95,7 +117,7 @@ public class DataCapturingService {
      *            this service.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress) {
-        this.context = new WeakReference<Context>(context);
+        this.context = new WeakReference<>(context);
 
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(context.getContentResolver());
@@ -161,10 +183,10 @@ public class DataCapturingService {
     }
 
     /**
-     * @return A list containing the not yet synchronized measurements cached by this application. An empty list if
-     *         there are no such measurements, but never <code>null</code>.
+     * @return A list containing all measurements currently stored on this by this application. An empty list if there
+     *         are no such measurements, but never <code>null</code>.
      */
-    public @NonNull List<Measurement> getUnsyncedMeasurements() {
+    public @NonNull List<Measurement> getCachedMeasurements() {
         return persistenceLayer.loadMeasurements();
     }
 
@@ -172,17 +194,29 @@ public class DataCapturingService {
      * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
      * service might wait for an opportune moment to start synchronization.
      */
-    public void forceSyncUnsyncedMeasurements() {
+    public void forceMeasurementSynchronisation() {
         Account account = getAccount();
         ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
     }
 
+    // TODO provide a custom list implementation that loads only small portions into memory.
     /**
-     * Deletes an unsynchronized {@link Measurement} from this device.
+     * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
+     * memory. For large tracks this could slow down the device or even reach the applications memory limit.
+     *
+     * @param measurement The <code>measurement</code> to load all the geo locations for.
+     * @return The track associated with the measurement as a list of ordered (by timestamp) geo locations.
+     */
+    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
+        return persistenceLayer.loadTrack(measurement);
+    }
+
+    /**
+     * Deletes a {@link Measurement} from this device.
      *
      * @param measurement The {@link Measurement} to delete.
      */
-    public void deleteUnsyncedMeasurement(final @NonNull Measurement measurement) {
+    public void deleteMeasurement(final @NonNull Measurement measurement) {
         persistenceLayer.delete(measurement);
     }
 
@@ -210,6 +244,10 @@ public class DataCapturingService {
         }
     }
 
+    /**
+     * Activates data synchronisation if allowed by the system settings. Synchronisation happens once every
+     * {@link #SYNC_INTERVAL_IN_MINUTES} minutes.
+     */
     private void activateDataSynchronisation() {
         if (context.get() == null) {
             throw new IllegalStateException("No valid context to enable data synchronization!");
@@ -225,6 +263,9 @@ public class DataCapturingService {
         }
     }
 
+    /**
+     * @return The current account used for data synchronisation.
+     */
     private Account getAccount() {
         AccountManager am = AccountManager.get(context.get());
         Account[] cyfaceAccounts = am.getAccountsByType(ACCOUNT_TYPE);
@@ -370,7 +411,7 @@ public class DataCapturingService {
                         throw new IllegalStateException(context.getString(R.string.missing_data_error));
                     }
 
-                    GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsSpeed(),
+                    GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsTime(), data.getGpsSpeed(),
                             data.getGpsAccuracy());
 
                     listener.onNewGeoLocationAcquired(geoLocation);

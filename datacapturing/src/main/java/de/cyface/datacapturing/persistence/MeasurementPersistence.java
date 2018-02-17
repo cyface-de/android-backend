@@ -1,6 +1,7 @@
 package de.cyface.datacapturing.persistence;
 
 import java.util.ArrayList;
+import java.util.Collections;
 import java.util.List;
 
 import android.content.ContentProviderOperation;
@@ -14,6 +15,7 @@ import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.datacapturing.GeoLocation;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Point3D;
@@ -107,9 +109,9 @@ public class MeasurementPersistence {
                 throw new IllegalStateException("Unable to get measurement to store captured data to!");
             }
 
-            int indexOfFinishedColumn = measurementIdentifierQueryCursor
-                    .getColumnIndex(MeasurementTable.COLUMN_FINISHED);
-            final long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfFinishedColumn);
+            int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
+                    .getColumnIndex(BaseColumns._ID);
+            final long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
 
             ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
 
@@ -268,6 +270,37 @@ public class MeasurementPersistence {
                 arrayWithMeasurementIdentifier);
         resolver.delete(MeasuringPointsContentProvider.MEASUREMENT_URI, BaseColumns._ID + "=?",
                 arrayWithMeasurementIdentifier);
+    }
+
+    public List<GeoLocation> loadTrack(Measurement measurement) {
+        Cursor locationsCursor = null;
+        try {
+            locationsCursor = resolver.query(MeasuringPointsContentProvider.GPS_POINTS_URI, null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[]{Long.valueOf(measurement.getIdentifier()).toString()},
+                    GpsPointsTable.COLUMN_GPS_TIME + " ASC");
+
+            if(locationsCursor==null) {
+                return Collections.emptyList();
+            }
+
+            List<GeoLocation> ret = new ArrayList<>(locationsCursor.getCount());
+            while (locationsCursor.moveToNext()) {
+                double lat = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LAT));
+                double lon = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LON));
+                long timestamp = locationsCursor.getLong(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME));
+                double speed = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED));
+                float accuracy = locationsCursor.getFloat(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY));
+
+
+                ret.add(new GeoLocation(lat,lon,timestamp,speed,accuracy));
+            }
+
+            return ret;
+        } finally {
+            if(locationsCursor!=null) {
+                locationsCursor.close();
+            }
+        }
     }
 
     /**
