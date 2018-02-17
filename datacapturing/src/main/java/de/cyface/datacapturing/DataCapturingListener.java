@@ -16,14 +16,14 @@ public interface DataCapturingListener {
      * Called everytime the capturing service received a GPS Fix and thus is able to track its position.
      * </p>
      */
-    void onGpsFixAcquired();
+    void onFixAcquired();
 
     /**
      * <p>
      * Called everytime the capturing service loses its GPS Fix.
      * </p>
      */
-    void onGpsFixLost();
+    void onFixLost();
 
     /**
      * <p>
@@ -32,7 +32,7 @@ public interface DataCapturingListener {
      * 
      * @param position The new geo location position.
      */
-    void onNewGpsPositionAcquired(GpsPosition position);
+    void onNewGeoLocationAcquired(GeoLocation position);
 
     /**
      * <p>
