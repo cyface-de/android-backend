@@ -52,9 +52,9 @@ public class DataCapturingService {
     private final static String ACCOUNT = "default_account";
     private final static String ACCOUNT_TYPE = "de.cyface";
     private final static String AUTHORITY = BuildConfig.provider;
-    private static final long SECONDS_PER_MINUTE = 60L;
-    private static final long SYNC_INTERVAL_IN_MINUTES = 60L;
-    private static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
+    public static final long SECONDS_PER_MINUTE = 60L;
+    public static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes. It seems reasonable and can be changed in the future.
+    public static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
 
     /*
      * MARK: Properties
