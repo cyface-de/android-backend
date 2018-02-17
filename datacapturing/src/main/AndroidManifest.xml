@@ -1,11 +1,17 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.cyface.datacapturing">
 
+    <!-- Required to keep the app from being send to sleep by the system. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
+    <!-- Required to access GPS and similar location providers -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- Required to change periodic synchronisation intervals in the background -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <!-- Required to read current background synchronisation settings -->
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+    <!-- Required to read the Cyface accounts currently registered with the system -->
     <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <!-- Required to authenticate Cyface accounts with a Cyface server -->
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
 
     <application>
