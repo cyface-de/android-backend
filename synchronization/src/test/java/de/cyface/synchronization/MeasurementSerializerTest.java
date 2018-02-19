@@ -77,6 +77,6 @@ public class MeasurementSerializerTest {
 
         InputStream stream = serializer.serialize(loader);
 
-        assertThat(stream.available(), is(equalTo(396)));
+        assertThat(stream.available(), is(equalTo(414)));
     }
 }
