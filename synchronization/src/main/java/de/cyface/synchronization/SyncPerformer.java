@@ -7,14 +7,18 @@ import java.io.InputStream;
 import java.net.ProtocolException;
 import java.net.URL;
 import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
+import java.security.cert.X509Certificate;
+import java.util.Locale;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
+import javax.net.ssl.SSLSession;
+import javax.net.ssl.TrustManager;
+import javax.net.ssl.X509TrustManager;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -22,7 +26,7 @@ import android.support.annotation.NonNull;
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
  * measurements.
- * 
+ *
  * @author Klemens Muthmann
  * @version 1.0.0
  * @since 2.0.0
@@ -36,38 +40,75 @@ class SyncPerformer {
      * and for example <a href=
      * "https://stackoverflow.com/questions/24555890/using-a-custom-truststore-in-java-as-well-as-the-default-one">here</a>.
      */
-    private final SSLContext sslContext;
+    private SSLContext sslContext;
 
     /**
-     * 
+     * This is an array with only one <code>TrustManager</code> trusting all certificates. TODO This is evil and needs
+     * to be fixed for the final release.
      */
-    SyncPerformer(final Context context) {
+    private TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
+        @Override
+        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
 
-        InputStream movebisTrustStoreFile = null;
+        }
+
+        @Override
+        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
+
+        }
+
+        @Override
+        public X509Certificate[] getAcceptedIssuers() {
+            return new X509Certificate[0];
+        }
+    }};
+
+    /**
+     * Creates a new completely initialized <code>SyncPerformer</code> for a given Android <code>Context</code>.
+     *
+     * @param context The Android <code>Context</code> to use for setting the correct server certification information.
+     */
+    SyncPerformer(final @NonNull Context context) {
+
+        // InputStream movebisTrustStoreFile = null;
+        // InputStream movebisCertificateChain = null;
         try {
-            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore_dev);
-
-            KeyStore trustStore = KeyStore.getInstance(KeyStore.getDefaultType());
-            trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance(TrustManagerFactory.getDefaultAlgorithm());
-            tmf.init(trustStore);
+            // movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore_dev);
+            // movebisCertificateChain = context.getResources().openRawResource(R.raw.certificate_chain);
+            // byte[] der = loadPemCertificate(movebisCertificateChain);
+            // ByteArrayInputStream derInputStream = new ByteArrayInputStream(der);
+            // CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
+            // X509Certificate cert = (X509Certificate)certificateFactory.generateCertificate(derInputStream);
+            // String alias = cert.getSubjectX500Principal().getName();
+            //
+            // KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            // trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
+            // trustStore.setCertificateEntry(alias, cert);
+            // TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            // tmf.init(trustStore);
 
             // Create an SSLContext that uses our TrustManager
-            sslContext = SSLContext.getInstance("TLS");
-            sslContext.init(null, tmf.getTrustManagers(), null);
+            sslContext = SSLContext.getInstance("TLSv1");
+            sslContext.init(null, trustAllCerts, new SecureRandom());
+            // sslContext.init(null, tmf.getTrustManagers(), null);
 
-        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
-                | KeyManagementException e) {
+        } catch (NoSuchAlgorithmException e) {
             throw new IllegalStateException(e);
-        } finally {
-            if (movebisTrustStoreFile != null) {
-                try {
-                    movebisTrustStoreFile.close();
-                } catch (IOException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
+        } catch (KeyManagementException e) {
+            throw new IllegalStateException(e);
         }
+        // } finally {
+        // try {
+        // if (movebisTrustStoreFile != null) {
+        // movebisTrustStoreFile.close();
+        // }
+        // if (movebisCertificateChain != null) {
+        // movebisCertificateChain.close();
+        // }
+        // } catch (IOException e) {
+        // throw new IllegalStateException(e);
+        // }
+        // }
     }
 
     /**
@@ -89,18 +130,23 @@ class SyncPerformer {
             final @NonNull InputStream data, final @NonNull UploadProgressListener progressListener) {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
-        String fileName = String.format("%s_%d.cyf", deviceIdentifier, measurementIdentifier);
+        String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
 
         try {
             connection = (HttpsURLConnection)new URL(String.format("%s/measurements", dataServerUrl)).openConnection();
             connection.setSSLSocketFactory(sslContext.getSocketFactory());
+            connection.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(String hostname, SSLSession session) {
+                    return true;
+                }
+            });
             try {
                 connection.setRequestMethod("POST");
             } catch (ProtocolException e) {
                 throw new IllegalStateException(e);
             }
-            connection.setRequestProperty("Authorization",
-                    "Bearer eyJ0eXAiOiJKV1QiLCJhbGciOiJSUzI1NiJ9.eyJyZWYiOiI1YTgyZDU4ODE1MjAwIiwiZ2VuZGVyIjoibWFsZSIsImFnZSI6NTB9.hr2OFMrzRGEIE2544NzrfifL0n22yE5Xz1jl8EDPh9n6PfTbU_znac6bgbzof3R9TJ9EFp2jyU9fI5rp7rNlFxomu-ORaUSMSktZEHMsC6_h7TVAw0Ygp3jS76-YODlw9VjWmj__5qcqYlQ47ywEYv5uHqXecPt3I2rUtGcLsBm7Gb1eKBwxymi_pEivpo0IIiRIfDv4fYM3IB6cosL7zHFO-nDXRz3IXO3KUwljbieZMng50zCuEiN3DVME-QF1GO3PhO_4M4vTq8_uWx62WxCr2UX28U5DJepJSddDsn5VvzfGAPXB7AF5uh33mtDWkRYnA9KrXSpqeE47TkomntfQg5SV4z0CPbr-d9ThN6cynC83kvh2Up5_DA1nF8kqDibX8hIHmQu5eqG8fgLRjJEHFXLOil-Us9i-oWVhNMv8zYBOCsgJErcAOO9TvbFuoTZt1UYyFLovmOIsBHb54A3xLmlGRQy4ClpaCRdtmopz6Y7VCEN5rjXR57L1tRrPgCrOtzEs05wbnvpYWg_5it4Jx8CyzqMC4t2jHqqfRQNq9enRbp2v9Y1GfCQtFP6XB5hi5grGfh8MfHt0JQ-VQ0NYgNVYp_AKf40wz8ygOvLRDdIqBtMeZGU6ZhOPcy-lzl8SZzXtcwBwPH3POL-4qYGexGHjaM0vhWwym2nIfhY");
+            connection.setRequestProperty("Authorization", "Bearer test");
             String boundary = "---------------------------boundary";
             String tail = "\r\n--" + boundary + "--\r\n";
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);

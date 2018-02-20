@@ -10,6 +10,17 @@ import android.support.annotation.NonNull;
  * @since 2.0.0
  */
 public final class DataCapturingException extends Exception {
+
+    /**
+     * Creates a new completely initialized <code>DataCapturingException</code>, wrapping another <code>Exception</code>
+     * from deeper within the system.
+     *
+     * @param e The wrapped <code>Exception</code> containing further details about the error.
+     */
+    public DataCapturingException(final @NonNull Exception e) {
+        super(e);
+    }
+
     /**
      * Creates a new completely initialized <code>DataCapturingException</code>.
      *

@@ -1,8 +1,10 @@
 package de.cyface.datacapturing;
 
 /**
- * This class is a wrapper for all message codes used by the Cyface backend to send inter process communication (IPC) messages.
+ * This class is a wrapper for all message codes used by the Cyface backend to send inter process communication (IPC)
+ * messages.
  *
+ * @author Klemens Muthmann
  * @version 1.0.0
  * @since 2.0.0
  */

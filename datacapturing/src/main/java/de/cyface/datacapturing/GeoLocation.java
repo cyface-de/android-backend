@@ -3,9 +3,7 @@ package de.cyface.datacapturing;
 import java.util.Locale;
 
 /**
- * <p>
  * A position captured by the {@link DataCapturingService}.
- * </p>
  *
  * @author Klemens Muthmann
  * @version 1.1.0
@@ -13,7 +11,6 @@ import java.util.Locale;
  */
 public class GeoLocation {
     /**
-     * <p>
      * The captured latitude of this {@code GeoLocation} in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
      */
@@ -42,7 +39,8 @@ public class GeoLocation {
      *            and 90.0 (north pole).
      * @param lon The captured longitude of this {@code GeoLocation} in decimal coordinates as a value between -180.0
      *            and 180.0.
-     * @param timestamp The timestamp at which this <code>GeoLocation</code> was captured in milliseconds since 1.1.1970.
+     * @param timestamp The timestamp at which this <code>GeoLocation</code> was captured in milliseconds since
+     *            1.1.1970.
      * @param speed The current speed of the measuring device according to its location sensor in meters per second.
      * @param accuracy The current accuracy of the measuring device in meters.
      */

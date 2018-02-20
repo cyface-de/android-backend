@@ -3,20 +3,26 @@ package de.cyface.datacapturing.ui;
 import android.location.Location;
 
 import de.cyface.datacapturing.DataCapturingService;
-import de.cyface.datacapturing.Reason;
 
 /**
- * Created by muthmann on 16.02.18.
+ * A listener the user interface might register with the <code>MovebisDataCapturingListener</code> to be notified of
+ * user interface relevant events.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
  */
-
 public interface UIListener {
+    /**
+     * Handler for location changes occuring even while no tracking is active.
+     *
+     * @param location The new location from the system's location provider (i.e. GPS).
+     */
     void onLocationUpdate(Location location);
 
     /**
-     * <p>
      * Invoked each time the {@link DataCapturingService} requires some permission from the Android system. That way it
      * is possible to show the user some explanation as to why that permission is required.
-     * </p>
      *
      * @param permission The permission the service requires in the form of an Android permission {@link String}.
      * @param reason A reason for why the service requires that permission. You may show the reason to the user before

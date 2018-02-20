@@ -11,7 +11,8 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 
-import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
 /**
@@ -68,15 +69,16 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param uiListener A listener for events which the UI might be interested in.
      * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
      *            if you would like to be notified as often as possible.
-     * @throws DataCapturingException If Initialization of this service facade fails.
+     * @throws SetupException If Initialization of this service facade fails or writing the components preferences
+     *             fails.
      */
     @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate) throws DataCapturingException {
+            final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
         super(context, dataUploadServerAddress);
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
         if (preMeasurementLocationManager == null) {
-            throw new DataCapturingException("Unable to load location manager. Only got null!");
+            throw new SetupException("Unable to load location manager. Only got null!");
         }
         this.uiListener = uiListener;
 

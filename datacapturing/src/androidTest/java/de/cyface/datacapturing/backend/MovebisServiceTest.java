@@ -26,9 +26,9 @@ import android.support.test.rule.GrantPermissionRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.MovebisDataCapturingService;
-import de.cyface.datacapturing.Reason;
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
 /**

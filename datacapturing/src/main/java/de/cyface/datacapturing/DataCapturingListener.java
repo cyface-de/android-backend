@@ -1,10 +1,9 @@
 package de.cyface.datacapturing;
 
 /**
- * <p>
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
- * {@link DataCapturingService} via {@link DataCapturingService#startCapturing(DataCapturingListener)}.
- * </p>
+ * {@link DataCapturingService} via
+ * {@link DataCapturingService#start(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
  * @version 1.0.0
@@ -12,42 +11,39 @@ package de.cyface.datacapturing;
  */
 public interface DataCapturingListener {
     /**
-     * <p>
-     * Called everytime the capturing service received a GPS Fix and thus is able to track its position.
-     * </p>
+     * Called everytime the capturing service received a location Fix and thus is able to track its position.
      */
     void onFixAcquired();
 
     /**
-     * <p>
-     * Called everytime the capturing service loses its GPS Fix.
-     * </p>
+     * Called everytime the capturing service loses its location Fix.
      */
     void onFixLost();
 
     /**
-     * <p>
-     * This method is called each time the data capturing service receives a new GPS position.
-     * </p>
-     * 
+     * This method is called each time the data capturing service receives a new geo location.
+     *
      * @param position The new geo location position.
      */
     void onNewGeoLocationAcquired(GeoLocation position);
 
     /**
-     * <p>
      * This method is called each time the application runs out of space. How much space is used and how much is
      * available may be retrieved from {@code allocation}.
-     * </p>
-     * 
+     *
      * @param allocation Information about the applications disk (or rather SD card) space consumption.
      */
     void onLowDiskSpace(DiskConsumption allocation);
 
     /**
-     * <p>
-     * Invoked if the service has synchronized all pending cached data successfully and deleted the local copies.
-     * </p>
+     * Invoked if the service has synchronized all pending cached data successfully and updated the local copies.
      */
     void onSynchronizationSuccessful();
+
+    /**
+     * Called when an error has been received by the data capturing background service.
+     *
+     * @param e An <code>Exception</code> representing the received error.
+     */
+    void onErrorState(Exception e);
 }
