@@ -38,6 +38,7 @@ import android.util.Log;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 
+// TODO It is possible to simplify this test and remove the synchronization lock.
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
  * GPS signal availability it is a flaky test.
