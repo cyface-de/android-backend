@@ -6,18 +6,24 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.net.ProtocolException;
 import java.net.URL;
+import java.nio.ByteBuffer;
 import java.security.KeyManagementException;
 import java.security.KeyStore;
 import java.security.KeyStoreException;
 import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
+import java.util.Locale;
 
+import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManagerFactory;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -29,6 +35,8 @@ import android.support.annotation.NonNull;
  */
 class SyncPerformer {
 
+    private final static String TAG = "de.cyface.sync";
+
     /**
      * Socket Factory required to communicate with the Movebis Server using the self signed certificate issued by that
      * server. Further details are available in the
@@ -39,72 +47,37 @@ class SyncPerformer {
     private SSLContext sslContext;
 
     /**
-     * This is an array with only one <code>TrustManager</code> trusting all certificates. TODO This is evil and needs
-     * to be fixed for the final release.
-     */
-    private TrustManager[] trustAllCerts = new TrustManager[] {new X509TrustManager() {
-        @Override
-        public void checkClientTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-        }
-
-        @Override
-        public void checkServerTrusted(X509Certificate[] chain, String authType) throws CertificateException {
-
-        }
-
-        @Override
-        public X509Certificate[] getAcceptedIssuers() {
-            return new X509Certificate[0];
-        }
-    }};
-
-    /**
      * Creates a new completely initialized <code>SyncPerformer</code> for a given Android <code>Context</code>.
      *
      * @param context The Android <code>Context</code> to use for setting the correct server certification information.
      */
     SyncPerformer(final @NonNull Context context) {
 
-        // InputStream movebisTrustStoreFile = null;
-        // InputStream movebisCertificateChain = null;
+        InputStream movebisTrustStoreFile = null;
         try {
-            // movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore_dev);
-            // movebisCertificateChain = context.getResources().openRawResource(R.raw.certificate_chain);
-            // byte[] der = loadPemCertificate(movebisCertificateChain);
-            // ByteArrayInputStream derInputStream = new ByteArrayInputStream(der);
-            // CertificateFactory certificateFactory = CertificateFactory.getInstance("X.509");
-            // X509Certificate cert = (X509Certificate)certificateFactory.generateCertificate(derInputStream);
-            // String alias = cert.getSubjectX500Principal().getName();
-            //
-            // KeyStore trustStore = KeyStore.getInstance("PKCS12");
-            // trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
-            // trustStore.setCertificateEntry(alias, cert);
-            // TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-            // tmf.init(trustStore);
+            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore_integrationtest_pkcs12);
+            KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
+            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            tmf.init(trustStore);
 
             // Create an SSLContext that uses our TrustManager
             sslContext = SSLContext.getInstance("TLSv1");
-            sslContext.init(null, trustAllCerts, new SecureRandom());
-            // sslContext.init(null, tmf.getTrustManagers(), null);
+            byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
+            sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
 
-        } catch (NoSuchAlgorithmException e) {
-            throw new IllegalStateException(e);
-        } catch (KeyManagementException e) {
-            throw new IllegalStateException(e);
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
+                | KeyManagementException e) {
+            throw new IllegalArgumentException(e);
+        } finally {
+            try {
+                if (movebisTrustStoreFile != null) {
+                    movebisTrustStoreFile.close();
+                }
+            } catch (IOException e) {
+                throw new IllegalStateException(e);
+            }
         }
-        // } finally {
-        // try {
-        // if (movebisTrustStoreFile != null) {
-        // movebisTrustStoreFile.close();
-        // }
-        // if (movebisCertificateChain != null) {
-        // movebisCertificateChain.close();
-        // }
-        // } catch (IOException e) {
-        // throw new IllegalStateException(e);
-        // }
-        // }
     }
 
     /**
@@ -124,6 +97,8 @@ class SyncPerformer {
      */
     int sendData(final String dataServerUrl, final long measurementIdentifier, final String deviceIdentifier,
             final @NonNull InputStream data, final @NonNull UploadProgressListener progressListener) {
+        Log.i(TAG, String.format(Locale.US, "Uploading data from device %s with identifier %s to server %s",
+                deviceIdentifier, measurementIdentifier, dataServerUrl));
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
@@ -142,11 +117,12 @@ class SyncPerformer {
             } catch (ProtocolException e) {
                 throw new IllegalStateException(e);
             }
-            connection.setRequestProperty("Authorization",
-                    "Bearer test");
+            connection.setRequestProperty("Authorization", "Bearer test");
             String boundary = "---------------------------boundary";
             String tail = "\r\n--" + boundary + "--\r\n";
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
+            connection.setUseCaches(false);
+            connection.setDoInput(true);
             connection.setDoOutput(true);
 
             String userIdPart = addPart("deviceId", deviceIdentifier, boundary);
@@ -217,7 +193,6 @@ class SyncPerformer {
     }
 
     private String addPart(final @NonNull String key, final @NonNull String value, final @NonNull String boundary) {
-        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n\r\n%s\r\n", boundary, key,
-                value);
+        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n", boundary, key, value);
     }
 }

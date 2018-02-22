@@ -4,7 +4,6 @@ import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 
-import android.content.ContentProviderClient;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
@@ -173,16 +172,16 @@ final class MeasurementSerializer {
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
         } finally {
-            if(geoLocationsCursor!=null) {
+            if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
             }
-            if(accelerationsCursor!=null) {
+            if (accelerationsCursor != null) {
                 accelerationsCursor.close();
             }
-            if(rotationsCursor!=null) {
+            if (rotationsCursor != null) {
                 rotationsCursor.close();
             }
-            if(directionsCursor!=null) {
+            if (directionsCursor != null) {
                 directionsCursor.close();
             }
         }
