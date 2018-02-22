@@ -56,7 +56,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     /**
-     * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
+     * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
+     * <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
      *
      * @param context The current context this adapter is running under.
      * @param autoInitialize For details have a look at <code>AbstractThreadedSyncAdapter</code>.
@@ -67,7 +68,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
-     * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
+     * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
+     * <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
      *
      * @param context The current context this adapter is running under.
      * @param autoInitialize For details have a look at <code>AbstractThreadedSyncAdapter</code>.
@@ -84,7 +86,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(TAG, "syncing");
 
         MeasurementSerializer serializer = new MeasurementSerializer();
-        SyncPerformer syncer = new SyncPerformer();
+        SyncPerformer syncer = new SyncPerformer(getContext());
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
 
         String endPointUrl = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
@@ -102,7 +104,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             syncableMeasurementsCursor = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                     MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Integer.valueOf(1).toString()}, null);
 
-            if(syncableMeasurementsCursor==null) {
+            if (syncableMeasurementsCursor == null) {
                 throw new IllegalStateException("Unable to load measurement from content provider!");
             }
 
@@ -110,7 +112,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                MeasurementLoader loader = new MeasurementLoader(measurementIdentifier,provider);
+                MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, provider);
 
                 InputStream data = serializer.serialize(loader);
                 syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,

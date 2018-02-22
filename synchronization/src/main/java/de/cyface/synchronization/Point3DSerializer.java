@@ -24,20 +24,6 @@ import de.cyface.persistence.SamplePointTable;
  */
 abstract class Point3DSerializer {
 
-    // /**
-    // * The client used to load the data to serialize from the <code>ContentProvider</code>.
-    // */
-    // private final ContentProviderClient databaseClient;
-    //
-    // /**
-    // * Creates a new completely initialized <code>Point3DSerializer</code>, with access to a
-    // * <code>MeasuringPointContentProvider</code> to load data from.
-    // *
-    // * @param databaseClient The client used to load the data to serialize from the <code>ContentProvider</code>.
-    // */
-    // Point3DSerializer(final @NonNull ContentProviderClient databaseClient) {
-    // this.databaseClient = databaseClient;
-    // }
     public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
 
     /**

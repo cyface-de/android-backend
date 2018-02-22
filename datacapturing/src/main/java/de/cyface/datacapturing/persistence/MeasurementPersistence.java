@@ -6,13 +6,13 @@ import java.util.List;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.Context;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.model.CapturedData;
@@ -35,6 +35,7 @@ import de.cyface.persistence.SamplePointTable;
  */
 public class MeasurementPersistence {
 
+    private static final String TAG = "cyface.persistence";
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -43,10 +44,10 @@ public class MeasurementPersistence {
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
-     * @param context <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
+     * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
-    public MeasurementPersistence(final @NonNull Context context) {
-        resolver = context.getContentResolver();
+    public MeasurementPersistence(final @NonNull ContentResolver resolver) {
+        this.resolver = resolver;
     }
 
     /**
@@ -61,7 +62,7 @@ public class MeasurementPersistence {
         values.put(MeasurementTable.COLUMN_FINISHED, false);
         Uri resultUri = resolver.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, values);
 
-        if(resultUri==null) {
+        if (resultUri == null) {
             throw new IllegalStateException("New measurement could not be created!");
         }
 
@@ -70,14 +71,16 @@ public class MeasurementPersistence {
 
     /**
      * Close the currently active {@link Measurement}.
+     *
+     * @return The number of rows successfully updated.
      */
-    public void closeRecentMeasurement() {
+    public int closeRecentMeasurement() {
         // For brevity we are closing all open measurements. If we would like to make sure, that no error has occured we
         // would need to check that there is only one such open measurement before closing anything.
         ContentValues values = new ContentValues();
-        values.put(MeasurementTable.COLUMN_FINISHED, true);
-        resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values, MeasurementTable.COLUMN_FINISHED + "=?",
-                new String[] {"false"});
+        values.put(MeasurementTable.COLUMN_FINISHED, 1);
+        return resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values,
+                MeasurementTable.COLUMN_FINISHED + "=?", new String[] {"0"});
     }
 
     /**
@@ -89,21 +92,24 @@ public class MeasurementPersistence {
         Cursor measurementIdentifierQueryCursor = null;
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
-                    new String[] {BaseColumns._ID}, MeasurementTable.COLUMN_FINISHED + "=0", null, null);
-            if(measurementIdentifierQueryCursor==null) {
+                    new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
+                    MeasurementTable.COLUMN_FINISHED + "=0", null, BaseColumns._ID + " DESC");
+            if (measurementIdentifierQueryCursor == null) {
                 throw new IllegalStateException("Unable to query for measurement identifier!");
             }
+
             if (measurementIdentifierQueryCursor.getCount() > 1) {
-                throw new IllegalStateException(
-                        "More than one measurement is open. Unable to decide where to store data!");
+                Log.w(TAG,
+                        "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
             }
 
             if (!measurementIdentifierQueryCursor.moveToFirst()) {
                 throw new IllegalStateException("Unable to get measurement to store captured data to!");
             }
 
-            final long measurementIdentifier = measurementIdentifierQueryCursor
-                    .getLong(measurementIdentifierQueryCursor.getColumnIndex(MeasurementTable.COLUMN_FINISHED));
+            int indexOfFinishedColumn = measurementIdentifierQueryCursor
+                    .getColumnIndex(MeasurementTable.COLUMN_FINISHED);
+            final long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfFinishedColumn);
 
             ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
 
