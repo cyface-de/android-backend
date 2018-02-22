@@ -1,12 +1,10 @@
 package de.cyface.synchronization;
 
-import android.content.ContentProviderClient;
+import java.nio.ByteBuffer;
+
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.RemoteException;
 import android.support.annotation.NonNull;
-
-import java.nio.ByteBuffer;
 
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.RotationPointTable;
@@ -25,21 +23,6 @@ import de.cyface.persistence.SamplePointTable;
  * @see MagneticValuePointTable
  */
 abstract class Point3DSerializer {
-
-//    /**
-//     * The client used to load the data to serialize from the <code>ContentProvider</code>.
-//     */
-//    private final ContentProviderClient databaseClient;
-//
-//    /**
-//     * Creates a new completely initialized <code>Point3DSerializer</code>, with access to a
-//     * <code>MeasuringPointContentProvider</code> to load data from.
-//     *
-//     * @param databaseClient The client used to load the data to serialize from the <code>ContentProvider</code>.
-//     */
-//    Point3DSerializer(final @NonNull ContentProviderClient databaseClient) {
-//        this.databaseClient = databaseClient;
-//    }
 
     /**
      * @return The <code>ContentProvider</code> table URI, containing the data points.
@@ -80,16 +63,17 @@ abstract class Point3DSerializer {
      * @return A <code>byte</code> array containing all the data.
      */
     byte[] serialize(final @NonNull Cursor pointCursor) {
-            ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * (ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES));
-            while (pointCursor.moveToNext()) {
-                buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(getTimestampColumnName())));
-                buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getXColumnName())));
-                buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getYColumnName())));
-                buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getZColumnName())));
-            }
-            byte[] payload = new byte[buffer.capacity()];
-            ((ByteBuffer)buffer.duplicate().clear()).get(payload);
-            // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
-            return payload;
+        ByteBuffer buffer = ByteBuffer
+                .allocate(pointCursor.getCount() * (ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES));
+        while (pointCursor.moveToNext()) {
+            buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(getTimestampColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getXColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getYColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getZColumnName())));
+        }
+        byte[] payload = new byte[buffer.capacity()];
+        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
+        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
+        return payload;
     }
 }
