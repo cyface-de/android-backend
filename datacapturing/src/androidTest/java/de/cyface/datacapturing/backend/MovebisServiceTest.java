@@ -123,7 +123,6 @@ class TestUIListener implements UIListener {
 
     @Override
     public void onLocationUpdate(final @NonNull Location location) {
-        Log.d("tag", "blah");
         updatesReceived.add(location);
         lock.lock();
         try {
