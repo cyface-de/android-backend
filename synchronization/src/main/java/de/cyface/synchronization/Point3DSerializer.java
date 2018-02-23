@@ -24,6 +24,8 @@ import de.cyface.persistence.SamplePointTable;
  */
 abstract class Point3DSerializer {
 
+    public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
+
     /**
      * @return The <code>ContentProvider</code> table URI, containing the data points.
      */
@@ -56,15 +58,14 @@ abstract class Point3DSerializer {
     protected abstract String getTimestampColumnName();
 
     /**
-     * Serializes all the points from the measurement identified by the provided
-     * <code>measurementIdentifier</code>.
+     * Serializes all the points from the provided
+     * <code>pointCursor</code>.
      *
-     * @param measurementIdentifier The device wide unqiue identifier of the measurement to serialize.
+     * @param pointCursor A content provider cursor providing access to the points to serialize
      * @return A <code>byte</code> array containing all the data.
      */
     byte[] serialize(final @NonNull Cursor pointCursor) {
-        ByteBuffer buffer = ByteBuffer
-                .allocate(pointCursor.getCount() * (ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES));
+        ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
         while (pointCursor.moveToNext()) {
             buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(getTimestampColumnName())));
             buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getXColumnName())));

@@ -41,6 +41,18 @@ import de.cyface.persistence.SamplePointTable;
  */
 final class MeasurementSerializer {
 
+    /**
+     * The current version of the data format. This is always specified by the first two bytes and allows to process
+     * different version in parallel.
+     */
+    private final static short DATA_FORMAT_VERSION = 1;
+
+    public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
+            + ByteSizes.INT_BYTES;
+
+    /**
+     * Serializer for transforming acceleration points into a byte representation.
+     */
     private final Point3DSerializer accelerationsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
@@ -73,6 +85,9 @@ final class MeasurementSerializer {
         }
     };
 
+    /**
+     * Serializer for transforming rotation points into a byte representation.
+     */
     private final Point3DSerializer rotationsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
@@ -105,6 +120,9 @@ final class MeasurementSerializer {
         }
     };
 
+    /**
+     * Serializer for transforming direction points into a byte representation.
+     */
     private final Point3DSerializer directionsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
@@ -156,13 +174,16 @@ final class MeasurementSerializer {
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
             directionsCursor = loader.load3DPoint(directionsSerializer);
 
+            byte[] header = createHeader(geoLocationsCursor.getCount(), accelerationsCursor.getCount(),
+                    rotationsCursor.getCount(), directionsCursor.getCount());
             byte[] serializedGeoLocations = serializeGeoLocations(geoLocationsCursor);
             byte[] serializedAccelerations = accelerationsSerializer.serialize(accelerationsCursor);
             byte[] serializedRotations = rotationsSerializer.serialize(rotationsCursor);
             byte[] serializedDirections = directionsSerializer.serialize(directionsCursor);
 
-            ByteBuffer buffer = ByteBuffer.allocate(serializedGeoLocations.length + serializedAccelerations.length
-                    + serializedRotations.length + serializedDirections.length);
+            ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
+                    + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
+            buffer.put(header);
             buffer.put(serializedGeoLocations);
             buffer.put(serializedAccelerations);
             buffer.put(serializedRotations);
@@ -191,13 +212,13 @@ final class MeasurementSerializer {
      * Serializes all the geo locations from the measurement identified by the provided
      * <code>measurementIdentifier</code>.
      *
-     * @param geoLocationsCursor
+     * @param geoLocationsCursor A <code>Cursor</code> returned by a <code>ContentResolver</code> to load geo locations
+     *            from.
      * @return A <code>byte</code> array containing all the data.
      */
     private byte[] serializeGeoLocations(final @NonNull Cursor geoLocationsCursor) {
         // Allocate enough space for all geo locations
-        ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount()
-                * (ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES + ByteSizes.INT_BYTES));
+        ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
             buffer.putLong(
@@ -214,6 +235,39 @@ final class MeasurementSerializer {
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
         // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
         return payload;
+    }
+
+    /**
+     * Creates the header field for a serialized measurement in big endian format.
+     *
+     * @param countOfGeoLocations Number of geo locations in the serialized measurement.
+     * @param countOfAccelerations Number of accelerations in the serialized measurement.
+     * @param countOfRotations Number of rotations in the serialized measurement.
+     * @param countOfDirections Number of directions in the serialized measurement.
+     * @return The header byte array.
+     */
+    private byte[] createHeader(final int countOfGeoLocations, final int countOfAccelerations,
+            final int countOfRotations, final int countOfDirections) {
+        byte[] ret = new byte[18];
+        ret[0] = (byte)(DATA_FORMAT_VERSION >> 8);
+        ret[1] = (byte)DATA_FORMAT_VERSION;
+        ret[2] = (byte)(countOfGeoLocations >> 24);
+        ret[3] = (byte)(countOfGeoLocations >> 16);
+        ret[4] = (byte)(countOfGeoLocations >> 8);
+        ret[5] = (byte)countOfGeoLocations;
+        ret[6] = (byte)(countOfAccelerations >> 24);
+        ret[7] = (byte)(countOfAccelerations >> 16);
+        ret[8] = (byte)(countOfAccelerations >> 8);
+        ret[9] = (byte)countOfAccelerations;
+        ret[10] = (byte)(countOfRotations >> 24);
+        ret[11] = (byte)(countOfRotations >> 16);
+        ret[12] = (byte)(countOfRotations >> 8);
+        ret[13] = (byte)countOfRotations;
+        ret[14] = (byte)(countOfDirections >> 24);
+        ret[15] = (byte)(countOfDirections >> 16);
+        ret[16] = (byte)(countOfDirections >> 8);
+        ret[17] = (byte)countOfDirections;
+        return ret;
     }
 
 }
