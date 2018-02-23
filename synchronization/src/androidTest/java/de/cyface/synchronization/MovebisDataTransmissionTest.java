@@ -112,8 +112,8 @@ public class MovebisDataTransmissionTest {
             InputStream measurementData = serializer.serialize(loader);
 
             SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getTargetContext());
-            int result = performer.sendData("https://192.168.178.54:8080", measurementIdentifier, "garbage",
-                    measurementData, new UploadProgressListener() {
+            int result = performer.sendData("https://localhost:8080", measurementIdentifier, "garbage", measurementData,
+                    new UploadProgressListener() {
                         @Override
                         public void updatedProgress(float percent) {
                             Log.d(TAG, String.format("Upload Progress %f", percent));
