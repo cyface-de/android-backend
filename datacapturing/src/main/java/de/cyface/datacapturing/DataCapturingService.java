@@ -23,6 +23,10 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.NoSuchMeasurementException;
+import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
@@ -33,7 +37,7 @@ import de.cyface.synchronization.CyfaceSyncAdapter;
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
  * to an appropriate server. To avoid using the users traffic or incurring costs, the service waits for Wifi access
  * before transmitting any data. You may however force synchronization if required, using
- * {@link #forceSyncUnsyncedMeasurements()}.
+ * {@link #forceMeasurementSynchronisation()}.
  * <p>
  * An object of this class is not thread safe and should only be used once per application. You may start and stop the
  * service as often as you like and reuse the object.
@@ -46,14 +50,36 @@ import de.cyface.synchronization.CyfaceSyncAdapter;
  * @version 1.0.0
  * @since 1.0.0
  */
-public final class DataCapturingService {
+public class DataCapturingService {
 
+    /**
+     * Tag used to identify Logcat messages issued by instances of this class.
+     */
     private static final String TAG = "de.cyface.capturing";
     private final static String ACCOUNT = "default_account";
+    /**
+     * The Cyface account type used to identify all Cyface system accounts.
+     */
     private final static String ACCOUNT_TYPE = "de.cyface";
+    /**
+     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
+     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
+     * for further information.
+     */
     private final static String AUTHORITY = BuildConfig.provider;
+    /**
+     * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
+     */
     public static final long SECONDS_PER_MINUTE = 60L;
-    public static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes. It seems reasonable and can be changed in the future.
+    /**
+     * The data synchronisation interval in minutes.
+     */
+    public static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes.
+                                                             // It seems reasonable and can be changed in the future.
+    /**
+     * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
+     * seconds using {@link #SECONDS_PER_MINUTE}.
+     */
     public static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
 
     /*
@@ -74,6 +100,9 @@ public final class DataCapturingService {
      * Connection used to communicate with the background service
      */
     private final ServiceConnection serviceConnection;
+    /**
+     * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
+     */
     private final MeasurementPersistence persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
@@ -88,10 +117,13 @@ public final class DataCapturingService {
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param dataUploadServerAddress
+     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+     *            this service.
+     * @throws SetupException If writing the components preferences fails.
      */
-    public DataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress) {
-        this.context = new WeakReference<Context>(context);
+    public DataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress)
+            throws SetupException {
+        this.context = new WeakReference<>(context);
 
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(context.getContentResolver());
@@ -105,7 +137,7 @@ public final class DataCapturingService {
         }
         sharedPreferencesEditor.putString(CyfaceSyncAdapter.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
-            throw new IllegalStateException("Unable to write preferences!");
+            throw new SetupException("Unable to write preferences!");
         }
     }
 
@@ -114,8 +146,10 @@ public final class DataCapturingService {
      * process is running.
      *
      * @param listener A listener that is notified of important events during data capturing.
+     * @throws DataCapturingException If the asynchronuous background service did not start successfully.
      */
-    public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle) {
+    public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
+            throws DataCapturingException {
         if (context.get() == null) {
             return;
         }
@@ -125,7 +159,7 @@ public final class DataCapturingService {
         Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
         ComponentName serviceComponentName = context.get().startService(startIntent);
         if (serviceComponentName == null) {
-            throw new IllegalStateException("Illegal state: back ground service could not be started!");
+            throw new DataCapturingException("Illegal state: back ground service could not be started!");
         }
 
         bind();
@@ -134,10 +168,12 @@ public final class DataCapturingService {
     /**
      * Stops the currently running data capturing process or does nothing if the process is not running.
      *
-     * @throws IllegalStateException If service was not connected. The service will still be stopped if the exception
+     * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
      *             occurs, but you have to handle it to prevent your application from crashing.
+     * @throws SynchronisationException If this service was unable to activate data synchronisation after finishing the
+     *             measurement.
      */
-    public void stop() {
+    public void stop() throws DataCapturingException, SynchronisationException {
         if (context.get() == null) {
             return;
         }
@@ -145,8 +181,8 @@ public final class DataCapturingService {
         isRunning = false;
         try {
             unbind();
-        } catch (RemoteException | IllegalArgumentException e) {
-            throw new IllegalStateException(e);
+        } catch (IllegalArgumentException e) {
+            throw new DataCapturingException(e);
         } finally {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
@@ -157,28 +193,42 @@ public final class DataCapturingService {
     }
 
     /**
-     * @return A list containing the not yet synchronized measurements cached by this application. An empty list if
-     *         there are no such measurements, but never <code>null</code>.
+     * @return A list containing all measurements currently stored on this by this application. An empty list if there
+     *         are no such measurements, but never <code>null</code>.
      */
-    public @NonNull List<Measurement> getUnsyncedMeasurements() {
+    public @NonNull List<Measurement> getCachedMeasurements() {
         return persistenceLayer.loadMeasurements();
     }
 
     /**
      * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
      * service might wait for an opportune moment to start synchronization.
+     *
+     * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
-    public void forceSyncUnsyncedMeasurements() {
+    public void forceMeasurementSynchronisation() throws SynchronisationException {
         Account account = getAccount();
         ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
     }
 
+    // TODO provide a custom list implementation that loads only small portions into memory.
     /**
-     * Deletes an unsynchronized {@link Measurement} from this device.
+     * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
+     * memory. For large tracks this could slow down the device or even reach the applications memory limit.
+     *
+     * @param measurement The <code>measurement</code> to load all the geo locations for.
+     * @return The track associated with the measurement as a list of ordered (by timestamp) geo locations.
+     */
+    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
+        return persistenceLayer.loadTrack(measurement);
+    }
+
+    /**
+     * Deletes a {@link Measurement} from this device.
      *
      * @param measurement The {@link Measurement} to delete.
      */
-    public void deleteUnsyncedMeasurement(final @NonNull Measurement measurement) {
+    public void deleteMeasurement(final @NonNull Measurement measurement) {
         persistenceLayer.delete(measurement);
     }
 
@@ -196,19 +246,22 @@ public final class DataCapturingService {
      * <code>onStop</code>. You may call <code>reconnect</code> if you would like to receive updates again, like in your
      * <code>Activity</code> lifecycle <code>onRestart</code> method.
      *
-     * @throws IllegalStateException If service was not connected.
+     * @throws DataCapturingException If service was not connected.
      */
-    public void disconnect() {
-        try {
-            unbind();
-        } catch (RemoteException | IllegalArgumentException e) {
-            throw new IllegalStateException(e);
-        }
+    public void disconnect() throws DataCapturingException {
+        unbind();
     }
 
-    private void activateDataSynchronisation() {
+    /**
+     * Activates data synchronisation if allowed by the system settings. Synchronisation happens once every
+     * {@link #SYNC_INTERVAL_IN_MINUTES} minutes.
+     *
+     * @throws SynchronisationException If there is no valid Android context to start synchronisation or no valid
+     *             authentication information.
+     */
+    private void activateDataSynchronisation() throws SynchronisationException {
         if (context.get() == null) {
-            throw new IllegalStateException("No valid context to enable data synchronization!");
+            throw new SynchronisationException("No valid context to enable data synchronization!");
         }
 
         Account account = getAccount();
@@ -221,7 +274,11 @@ public final class DataCapturingService {
         }
     }
 
-    private Account getAccount() {
+    /**
+     * @return The current account used for data synchronisation.
+     * @throws SynchronisationException if there is no valid authentication information for data synchronisation.
+     */
+    private Account getAccount() throws SynchronisationException {
         AccountManager am = AccountManager.get(context.get());
         Account[] cyfaceAccounts = am.getAccountsByType(ACCOUNT_TYPE);
         if (cyfaceAccounts.length == 0) {
@@ -229,7 +286,7 @@ public final class DataCapturingService {
                 Account newAccount = new Account(ACCOUNT_TYPE, ACCOUNT_TYPE);
                 boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
                 if (!newAccountAdded) {
-                    throw new IllegalStateException("Unable to add dummy account!");
+                    throw new SynchronisationException("Unable to add dummy account!");
                 }
                 ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
                 ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
@@ -242,37 +299,41 @@ public final class DataCapturingService {
 
     /**
      * Binds this <code>DataCapturingService</code> facade to the underlying {@link DataCapturingBackgroundService}.
+     *
+     * @throws DataCapturingException If binding fails.
      */
-    private void bind() {
+    private void bind() throws DataCapturingException {
         if (context.get() == null) {
-            throw new IllegalStateException("No valid context for binding!");
+            throw new DataCapturingException("No valid context for binding!");
         }
 
         Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
         isRunning = context.get().bindService(startIntent, serviceConnection, 0);
         if (!isRunning) {
-            throw new IllegalStateException("Illegal state: unable to bind to background service!");
+            throw new DataCapturingException("Illegal state: unable to bind to background service!");
         }
     }
 
     /**
      * Unbinds this <code>DataCapturingService</code> facade from the underlying {@link DataCapturingBackgroundService}.
      *
-     * @throws RemoteException If <code>DataCapturingBackgroundService</code> was not bound previously or is not
-     *             reachable.
+     * @throws DataCapturingException If no valid Android context is available.
      */
-    private void unbind() throws RemoteException {
+    private void unbind() throws DataCapturingException {
         if (context.get() == null) {
-            throw new IllegalStateException("Context was null!");
+            throw new DataCapturingException("Context was null!");
         }
+
         context.get().unbindService(serviceConnection);
     }
 
     /**
      * Reconnects your app to the <code>DataCapturingService</code>. This might be especially useful if you have been
      * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
+     *
+     * @throws DataCapturingException If rebinding to the background service fails.
      */
-    public void reconnect() {
+    public void reconnect() throws DataCapturingException {
         bind();
     }
 
@@ -317,7 +378,7 @@ public final class DataCapturingService {
 
             try {
                 unbind();
-            } catch (RemoteException e) {
+            } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);
             }
             Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
@@ -363,13 +424,15 @@ public final class DataCapturingService {
                     dataBundle.setClassLoader(getClass().getClassLoader());
                     CapturedData data = dataBundle.getParcelable("data");
                     if (data == null) {
-                        throw new IllegalStateException(context.getString(R.string.missing_data_error));
+                        listener.onErrorState(
+                                new DataCapturingException(context.getString(R.string.missing_data_error)));
+                    } else {
+
+                        GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsTime(),
+                                data.getGpsSpeed(), data.getGpsAccuracy());
+
+                        listener.onNewGeoLocationAcquired(geoLocation);
                     }
-
-                    GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsSpeed(),
-                            data.getGpsAccuracy());
-
-                    listener.onNewGeoLocationAcquired(geoLocation);
                     break;
                 case MessageCodes.GPS_FIX:
                     listener.onFixAcquired();
@@ -381,7 +444,8 @@ public final class DataCapturingService {
                     listener.onLowDiskSpace(null);
                     break;
                 default:
-                    throw new IllegalStateException(context.getString(R.string.unknown_message_error, msg.what));
+                    listener.onErrorState(
+                            new DataCapturingException(context.getString(R.string.unknown_message_error, msg.what)));
 
             }
         }

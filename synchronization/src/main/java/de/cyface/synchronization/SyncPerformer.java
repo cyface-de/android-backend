@@ -122,7 +122,6 @@ class SyncPerformer {
             String tail = "\r\n--" + boundary + "--\r\n";
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
             connection.setUseCaches(false);
-            connection.setDoInput(true);
             connection.setDoOutput(true);
 
             String userIdPart = addPart("deviceId", deviceIdentifier, boundary);

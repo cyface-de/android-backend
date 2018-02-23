@@ -10,3 +10,6 @@
 .idea
 **/src/main/gen
 **/src/androidTest/gen
+synchronization/src/main/res/raw/**.jks
+synchronization/src/main/res/raw/**.cer
+synchronization/src/main/res/raw/**.pem

@@ -63,7 +63,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param autoInitialize For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @see AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context, boolean)
      */
-    CyfaceSyncAdapter(final @NonNull Context context, boolean autoInitialize) {
+    CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize) {
         super(context, autoInitialize);
     }
 
@@ -76,13 +76,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param allowParallelSyncs For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @see AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context, boolean)
      */
-    CyfaceSyncAdapter(final @NonNull Context context, boolean autoInitialize, boolean allowParallelSyncs) {
+    CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize, final boolean allowParallelSyncs) {
         super(context, autoInitialize, allowParallelSyncs);
     }
 
     @Override
-    public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider,
-            SyncResult syncResult) {
+    public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
+            final @NonNull String authority, final @NonNull ContentProviderClient provider,
+            final @NonNull SyncResult syncResult) {
         Log.d(TAG, "syncing");
 
         MeasurementSerializer serializer = new MeasurementSerializer();

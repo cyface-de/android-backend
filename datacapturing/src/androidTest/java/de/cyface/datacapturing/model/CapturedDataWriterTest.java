@@ -1,7 +1,7 @@
 /*
  * Created on 12.08.15 at 16:31
  */
-package de.cyface.datacapturing.backend;
+package de.cyface.datacapturing.model;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -329,6 +329,20 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             if (rotationsCursor != null) {
                 rotationsCursor.close();
             }
+        }
+    }
+
+    /**
+     * Tests whether loading a track of geo locations is possible via the {@link MeasurementPersistence} object.
+     */
+    @Test
+    public void testLoadTrack() {
+        oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.storeData(testData());
+        List<Measurement> measurements = oocut.loadMeasurements();
+        assertThat(measurements.size(),is(equalTo(1)));
+        for(Measurement measurement:measurements) {
+            assertThat(oocut.loadTrack(measurement).size(),is(equalTo(1)));
         }
     }
 

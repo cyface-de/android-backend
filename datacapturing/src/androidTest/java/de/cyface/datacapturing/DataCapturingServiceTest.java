@@ -313,11 +313,6 @@ public class DataCapturingServiceTest {
         }
 
         @Override
-        public boolean onRequirePermission(final @NonNull String permission, final @NonNull Reason reason) {
-            return false;
-        }
-
-        @Override
         public void onSynchronizationSuccessful() {
 
         }
