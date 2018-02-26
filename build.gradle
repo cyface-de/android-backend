@@ -104,7 +104,7 @@ task publishAll() {
     }
     outputs.upToDateWhen { false }
 }
-publishAll.outputs.upToDateWhen {false}
+publishAll.outputs.upToDateWhen { false }
 
 task wrapper(type: Wrapper) {
     gradleVersion = '4.4.1'
