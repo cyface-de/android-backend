@@ -28,6 +28,19 @@ android {
         buildConfigField("String", "provider", "\"de.cyface.provider\"")
         //buildConfigField("String", "testProvider", "\"de.cyface.testProvider\"") - the authority is replaced for iTs via manifest, not sure if we need to use a different provider, too?
     }
+
+    flavorDimensions "app"
+
+    productFlavors {
+        mock {
+            dimension "app"
+            versionNameSuffix "-mock"
+        }
+        full {
+            dimension "app"
+            versionNameSuffix "-full"
+        }
+    }
 }
 
 dependencies {
