@@ -23,6 +23,8 @@ android {
         versionName "2.0.0" // this is shown to the users, see Confluence/Android Client for naming guideline
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+
+        missingDimensionStrategy 'full', 'mock'
     }
 
     testOptions {
