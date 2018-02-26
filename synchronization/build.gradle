@@ -20,8 +20,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
 
         versionCode 1 // this must be incremented if new apk should be pushed to play store
-        versionName "2.0.0"
         // this is shown to the users, see Confluence/Android Client for naming guideline
+        versionName "2.0.0"
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
