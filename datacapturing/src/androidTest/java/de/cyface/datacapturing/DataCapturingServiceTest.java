@@ -22,6 +22,9 @@ import android.support.test.rule.GrantPermissionRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.model.Vehicle;
 
 /**
@@ -66,7 +69,7 @@ public class DataCapturingServiceTest {
     private TestListener testListener;
 
     @Before
-    public void setUp() {
+    public void setUp() throws SetupException {
         // TODO Maybe use getTargetContext here? What is the difference anyways?
         Context context = InstrumentationRegistry.getContext();
         oocut = new DataCapturingService(context, "http://localhost:8080");
@@ -77,11 +80,15 @@ public class DataCapturingServiceTest {
      * Tests a common service run. Checks that some positons have been captured.
      */
     @Test
-    public void testRunDataCapturingServiceSuccessfully() {
+    public void testRunDataCapturingServiceSuccessfully() throws SynchronisationException, DataCapturingException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
@@ -100,11 +107,15 @@ public class DataCapturingServiceTest {
      * occur and some points should be captured.
      */
     @Test
-    public void testDisconnectConnect() {
+    public void testDisconnectConnect() throws DataCapturingException, SynchronisationException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
@@ -125,18 +136,26 @@ public class DataCapturingServiceTest {
      * Tests that running start twice does not break the system. This test succeeds if no <code>Exception</code> occurs.
      */
     @Test
-    public void testDoubleStart() {
+    public void testDoubleStart() throws SynchronisationException, DataCapturingException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
@@ -146,54 +165,43 @@ public class DataCapturingServiceTest {
     /**
      * Tests for the correct <code>Exception</code> when you try to stop a stopped service.
      */
-    @Test
-    public void testDoubleStop() {
+    @Test(expected = DataCapturingException.class)
+    public void testDoubleStop() throws SynchronisationException, DataCapturingException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
         oocut.stop();
 
-        try {
-            oocut.stop();
-        } catch (IllegalStateException e) {
-            return;
-        }
-
-        // No Exception? FAIL!
-        fail();
+        oocut.stop();
     }
 
     /**
      * Tests for the correct <code>Exception</code> if you try to disconnect from a diconnected service.
      */
-    @Test
-    public void testDoubleDisconnect() {
+    @Test(expected = DataCapturingException.class)
+    public void testDoubleDisconnect() throws DataCapturingException, SynchronisationException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
         oocut.disconnect();
-        try {
-            oocut.disconnect();
-        } catch (IllegalStateException e) {
-            return;
-        } finally {
-            try {
-                oocut.stop();
-            } catch (IllegalStateException e) {
-                // That is the same exception as already catched when calling oocut.disconnect.
-                // Yeah we know, the service is not bound but we choose to silently ignore that fact.
-            }
-        }
-        // No Exception? FAIL!
-        fail();
+        oocut.disconnect();
+        oocut.stop();
     }
 
     // TODO Stopping a disconnected service is actually necessary.
@@ -201,36 +209,36 @@ public class DataCapturingServiceTest {
     /**
      * Tests for the correct <code>Exception</code> if you try to stop a disconnected service.
      */
-    @Test
-    public void testStopNonConnectedService() {
+    @Test(expected = DataCapturingException.class)
+    public void testStopNonConnectedService() throws DataCapturingException, SynchronisationException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
         oocut.disconnect();
-
-        try {
-            oocut.stop();
-        } catch (IllegalStateException e) {
-            return;
-        }
-
-        // No Exception? FAIL!
-        fail();
+        oocut.stop();
     }
 
     /**
      * Tests that no <code>Exception</code> is thrown when we try to connect to the same service twice.
      */
     @Test
-    public void testDoubleConnect() {
+    public void testDoubleConnect() throws DataCapturingException, SynchronisationException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
@@ -245,11 +253,15 @@ public class DataCapturingServiceTest {
      * Tests that two correct cycles of disconnect and reconnect on a running service work fine.
      */
     @Test
-    public void testDisconnectConnectTwice() {
+    public void testDisconnectConnectTwice() throws DataCapturingException, SynchronisationException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
 
@@ -264,11 +276,15 @@ public class DataCapturingServiceTest {
      * Tests that starting a service twice throws no <code>Exception</code>.
      */
     @Test
-    public void testRestart() {
+    public void testRestart() throws SynchronisationException, DataCapturingException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
         oocut.stop();
@@ -276,7 +292,11 @@ public class DataCapturingServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                oocut.start(testListener, Vehicle.UNKOWN);
+                try {
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
             }
         });
         oocut.stop();
@@ -314,6 +334,11 @@ public class DataCapturingServiceTest {
 
         @Override
         public void onSynchronizationSuccessful() {
+
+        }
+
+        @Override
+        public void onErrorState(Exception e) {
 
         }
     }
