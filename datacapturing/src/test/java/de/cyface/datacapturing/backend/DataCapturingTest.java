@@ -45,7 +45,7 @@ public class DataCapturingTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        gpsStatusHandler = new GeoLocationDeviceStatusHandler() {
+        gpsStatusHandler = new GeoLocationDeviceStatusHandler(mockedLocationManager) {
             @Override
             void shutdown() {
 

@@ -97,7 +97,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         Cursor syncableMeasurementsCursor = null;
         AccountManager accountManager = AccountManager.get(getContext());
-        // Account[] accounts AccountManager.get(getContext()).getAccountsByType(StubAuthenticator.ACCOUNT_TYPE);
         AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, StubAuthenticator.AUTH_TOKEN_TYPE,
                 null, false, null, null);
         try {

@@ -23,7 +23,11 @@ import de.cyface.synchronization.StubAuthenticator;
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
  * <p>
- * This implementation provides access to location updates even outside of a running data capturing session.
+ * This implementation provides access to location updates even outside of a running data capturing session. To start
+ * these updates use {@link #startUILocationUpdates()}; to stop it use {@link #stopUILocationUpdates()}. It might be
+ * necessary to provide a user interface asking the user for location access permissions. You can provide this user
+ * interface using {@link UIListener#onRequirePermission(String, Reason)}. This method will be called with
+ * <code>ACCESS_COARSE_LOCATION</code> and <code>ACCESS_FINE_LOCATION</code> permission requests.
  * <p>
  * Before you try to measure any data you should provide a valid JWT auth token for data synchronization. You may do
  * this using {@link #registerJWTAuthToken(String, String)} with a token for a certain username. For annonymization it
@@ -31,7 +35,7 @@ import de.cyface.synchronization.StubAuthenticator;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -70,6 +74,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * A listener for events which the UI might be interested in.
      */
     private final UIListener uiListener;
+    private final long locationUpdateRate;
+    private boolean uiUpdatesActive;
 
     /**
      * Creates a new completely initialized {@link MovebisDataCapturingService}.
@@ -80,30 +86,49 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param uiListener A listener for events which the UI might be interested in.
      * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
      *            if you would like to be notified as often as possible.
-     * @throws SetupException If Initialization of this service facade fails or writing the components preferences
+     * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      */
-    @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
+
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
         super(context, dataUploadServerAddress);
+        this.locationUpdateRate = locationUpdateRate;
+        uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
         if (preMeasurementLocationManager == null) {
             throw new SetupException("Unable to load location manager. Only got null!");
         }
         this.uiListener = uiListener;
+    }
 
-        boolean fineLocationAccessIsGranted = checkFineLocationAccess(context);
-        boolean coarseLocationAccessIsGranted = checkCoarseLocationAccess(context);
-
+    @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
+    public void startUILocationUpdates() {
+        if(uiUpdatesActive==true) {
+            return;
+        }
+        boolean fineLocationAccessIsGranted = checkFineLocationAccess(getContext());
         if (fineLocationAccessIsGranted) {
             preMeasurementLocationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, locationUpdateRate, 0L,
                     locationListener);
+            uiUpdatesActive = true;
         }
+
+        boolean coarseLocationAccessIsGranted = checkCoarseLocationAccess(getContext());
         if (coarseLocationAccessIsGranted) {
             preMeasurementLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, locationUpdateRate,
                     0L, locationListener);
+            uiUpdatesActive = true;
         }
+
+    }
+
+    public void stopUILocationUpdates() {
+        if(uiUpdatesActive==false) {
+            return;
+        }
+        preMeasurementLocationManager.removeUpdates(locationListener);
+        uiUpdatesActive = false;
     }
 
     /**
