@@ -7,7 +7,8 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 /**
- * A sync performer that does absolutely nothing and just prints its status to the terminal. 
+ * This is a no-op implementation of a <code>SyncPerformer</code>. On call it simply ignores all arguments and simulates
+ * a successful data transmission without actually calling any network. It does nothing and just prints its status to the terminal. 
  * Use it in test scenarios where you have no access to a Movebis server.
  *
  * @author Klemens Muthmann
@@ -32,22 +33,19 @@ class SyncPerformer {
     }
 
     /**
-     * Mock implementation of the method to upload data to a Movebis-Server. This implementation just logs a message and
-     * does nothing.
-     * 
-     * @param endPointUrl The URL of the server running the Movebis API to synchronize with.
-     * @param measurementIdentifier Usually the identifier of the measurement ot synchronize. In this mock
-     *            implementation it is ignored.
-     * @param deviceIdentifier Usually the installation identifier of the application. In this mock implementation it is
-     *            ignored.
-     * @param data Usually the data to upload. Since this is a mock implemenation it will be ignored.
-     * @param uploadProgressListener Since there is no progress to report, this will be ignored. You may just provide an
-     *            empty implementation.
-     * @return
+     * A do nothing implementation of the data transmission method.
+     *
+     * @param endPointUrl Is ignored!
+     * @param measurementIdentifier Is ignored!
+     * @param deviceIdentifier Is ignored!
+     * @param data Is ignored!
+     * @param uploadProgressListener Is ignored!
+     * @param jwtAuthToken Is ignored!
+     * @return Always <code>201</code> which is the expected status code for a successful transmission.
      */
     int sendData(final @NonNull String endPointUrl, final long measurementIdentifier,
             final @NonNull String deviceIdentifier, final @NonNull InputStream data,
-            final @NonNull UploadProgressListener uploadProgressListener) {
+            final @NonNull UploadProgressListener uploadProgressListener, final @NonNull String jwtAuthToken) {
         Log.i(TAG, "Synchronizing data");
         return 201;
     }

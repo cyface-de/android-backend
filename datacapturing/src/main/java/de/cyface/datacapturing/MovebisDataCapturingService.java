@@ -1,23 +1,34 @@
 package de.cyface.datacapturing;
 
 import android.Manifest;
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.annotation.SuppressLint;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.synchronization.StubAuthenticator;
 
 /**
- * In implementation of the {@link DataCapturingService} as required inside the Movebis project. This implementation
- * provides access to location updates even outside of a running data capturing session.
+ * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
+ * <p>
+ * This implementation provides access to location updates even outside of a running data capturing session.
+ * <p>
+ * Before you try to measure any data you should provide a valid JWT auth token for data synchronization. You may do
+ * this using {@link #registerJWTAuthToken(String, String)} with a token for a certain username. For annonymization it
+ * is ok to use some garbage username here. If a user is no longer required, you can deregister it using
+ * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
  * @version 1.0.0
@@ -93,6 +104,35 @@ public class MovebisDataCapturingService extends DataCapturingService {
             preMeasurementLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, locationUpdateRate,
                     0L, locationListener);
         }
+    }
+
+    /**
+     * Adds a <a href="https://jwt.io/">JWT</a> authentication token for a specific user to Android's account system.
+     * After the token has been added it starts periodic data synchronization if not yet active.
+     *
+     * @param username The username of the user to add an auth token for.
+     * @param token The auth token to add.
+     * @throws SynchronisationException If unable to create an appropriate account with the Android account system.
+     */
+    public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
+            throws SynchronisationException {
+        AccountManager accountManager = AccountManager.get(getContext());
+
+        setCurrentSynchronizationAccount(username);
+
+        accountManager.setAuthToken(getCurrentSynchronizationAccount(), StubAuthenticator.AUTH_TOKEN_TYPE, token);
+        activateDataSynchronisation();
+    }
+
+    /**
+     * Removes the <a href="https://jwt.io/">JWT</a> auth token for a specific username from the system. If that
+     * username was not registered with
+     * {@link #registerJWTAuthToken(String, String)} this method simply does nothing.
+     *
+     * @param username The username of the user to remove the auth token for.
+     */
+    public void deregisterJWTAuthToken(final @NonNull String username) {
+        deleteAccount(username);
     }
 
     /**

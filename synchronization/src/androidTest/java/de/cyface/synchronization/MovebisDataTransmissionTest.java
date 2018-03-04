@@ -110,6 +110,7 @@ public class MovebisDataTransmissionTest {
             MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, client);
             MeasurementSerializer serializer = new MeasurementSerializer();
             InputStream measurementData = serializer.serialize(loader);
+            String jwtAuthToken = "replaceMe";
 
             SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getTargetContext());
             int result = performer.sendData("https://localhost:8080", measurementIdentifier, "garbage", measurementData,
@@ -118,7 +119,7 @@ public class MovebisDataTransmissionTest {
                         public void updatedProgress(float percent) {
                             Log.d(TAG, String.format("Upload Progress %f", percent));
                         }
-                    });
+                    }, jwtAuthToken);
             assertThat(result, is(equalTo(201)));
         } finally {
             if (client != null) {
