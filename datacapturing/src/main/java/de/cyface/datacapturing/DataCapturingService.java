@@ -110,6 +110,9 @@ public abstract class DataCapturingService {
      */
     private Messenger toServiceMessenger;
 
+    /**
+     * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such <code>Account</code> has been set.
+     */
     private Account currentSynchronizationAccount;
 
     /**
