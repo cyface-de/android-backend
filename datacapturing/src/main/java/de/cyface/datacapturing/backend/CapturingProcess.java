@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.backend;
 
+import android.Manifest;
+import android.content.pm.PackageManager;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -8,6 +10,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
 import java.io.Closeable;
@@ -183,10 +186,19 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         }
 
         // Notify client about sensor update & bulkInsert data into database even without gps fix
-        if (!gpsStatusHandler.hasGpsFix()
-                && (lastNoGeoLocationFixUpdateTime == 0 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
-            for (CapturingProcessListener listener : this.listener) {
-                listener.onPointCaptured(new CapturedData(0.0, 0.0, 0L, 0.0, 0, accelerations, rotations, directions));
+        if (!gpsStatusHandler.hasGpsFix() && (lastNoGeoLocationFixUpdateTime == 0
+                || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
+            try {
+                Location location = locationManager.getLastKnownLocation();
+
+                for (CapturingProcessListener listener : this.listener) {
+
+                    listener.onPointCaptured(new CapturedData(location.getLatitude(), location.getLongitude(),
+                            location.getTime(), location.getSpeed(), Math.round(location.getAccuracy() * 100),
+                            accelerations, rotations, directions));
+                }
+            } catch (SecurityException e) {
+                throw new IllegalStateException(e);
             }
         }
         accelerations.clear();
@@ -209,7 +221,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Logs information about sensor update intervals.
      *
-     * @param thisSensorEventTime The current sensor event time in milliseconds since the 1.1.1970 (Unix timestamp format).
+     * @param thisSensorEventTime The current sensor event time in milliseconds since the 1.1.1970 (Unix timestamp
+     *            format).
      */
     private void logIrregularSensorValues(final long thisSensorEventTime) {
         // Check if there are irregular gaps between sensor events (e.g. no GPS fix or data loss)
