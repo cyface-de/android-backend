@@ -7,7 +7,8 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 /**
- * A sync performer that does absolutely nothing and just prints its status to the terminal.
+ * A sync performer that does absolutely nothing and just prints its status to the terminal. 
+ * Use it in test scenarios where you have no access to a Movebis server.
  *
  * @author Klemens Muthmann
  * @version 1.0.0
