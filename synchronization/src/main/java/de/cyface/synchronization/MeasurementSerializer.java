@@ -3,6 +3,7 @@ package de.cyface.synchronization;
 import java.io.ByteArrayInputStream;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.util.zip.Deflater;
 
 import android.database.Cursor;
 import android.net.Uri;
@@ -47,7 +48,10 @@ final class MeasurementSerializer {
      */
     private final static short DATA_FORMAT_VERSION = 1;
 
-    public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
+    /**
+     * A constant with the number of bytes for one uncompressed geo location entry in the Cyface binary format.
+     */
+    final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
 
     /**
@@ -162,50 +166,24 @@ final class MeasurementSerializer {
      * @param loader The device wide unqiue identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized data.
      */
-    InputStream serialize(final MeasurementLoader loader) {
-        Cursor geoLocationsCursor = null;
-        Cursor accelerationsCursor = null;
-        Cursor rotationsCursor = null;
-        Cursor directionsCursor = null;
+    InputStream serialize(final @NonNull MeasurementLoader loader) {
+        return new ByteArrayInputStream(serializeToByteArray(loader));
+    }
 
-        try {
-            geoLocationsCursor = loader.loadGeoLocations();
-            accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
-            rotationsCursor = loader.load3DPoint(rotationsSerializer);
-            directionsCursor = loader.load3DPoint(directionsSerializer);
-
-            byte[] header = createHeader(geoLocationsCursor.getCount(), accelerationsCursor.getCount(),
-                    rotationsCursor.getCount(), directionsCursor.getCount());
-            byte[] serializedGeoLocations = serializeGeoLocations(geoLocationsCursor);
-            byte[] serializedAccelerations = accelerationsSerializer.serialize(accelerationsCursor);
-            byte[] serializedRotations = rotationsSerializer.serialize(rotationsCursor);
-            byte[] serializedDirections = directionsSerializer.serialize(directionsCursor);
-
-            ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
-                    + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
-            buffer.put(header);
-            buffer.put(serializedGeoLocations);
-            buffer.put(serializedAccelerations);
-            buffer.put(serializedRotations);
-            buffer.put(serializedDirections);
-
-            return new ByteArrayInputStream(buffer.array());
-        } catch (RemoteException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
-            if (accelerationsCursor != null) {
-                accelerationsCursor.close();
-            }
-            if (rotationsCursor != null) {
-                rotationsCursor.close();
-            }
-            if (directionsCursor != null) {
-                directionsCursor.close();
-            }
-        }
+    /**
+     * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
+     * client given to the constructor and serializes it, using standard Android GZIP compression on the described
+     * binary
+     * format to an <code>InputStream</code>.
+     * 
+     * @param loader The device wide unique identifier of the measurement to serialize.
+     * @return An <code>InputStream</code> containing the serialized compressed data.
+     */
+    InputStream serializeCompressed(final @NonNull MeasurementLoader loader) {
+        Deflater compressor = new Deflater();
+        byte[] data = serializeToByteArray(loader);
+        int lengthOfCompressedData = compressor.deflate(data);
+        return new ByteArrayInputStream(data, 0, lengthOfCompressedData);
     }
 
     /**
@@ -270,4 +248,55 @@ final class MeasurementSerializer {
         return ret;
     }
 
+    /**
+     * Implements the core algorithm of loading data from a content provider and serilizing it into an array of bytes.
+     *
+     * @param loader The loader providing access to the content provider storing all the measurements.
+     * @return A byte array containing the serialized data.
+     */
+    private byte[] serializeToByteArray(final @NonNull MeasurementLoader loader) {
+        Cursor geoLocationsCursor = null;
+        Cursor accelerationsCursor = null;
+        Cursor rotationsCursor = null;
+        Cursor directionsCursor = null;
+
+        try {
+            geoLocationsCursor = loader.loadGeoLocations();
+            accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
+            rotationsCursor = loader.load3DPoint(rotationsSerializer);
+            directionsCursor = loader.load3DPoint(directionsSerializer);
+
+            byte[] header = createHeader(geoLocationsCursor.getCount(), accelerationsCursor.getCount(),
+                    rotationsCursor.getCount(), directionsCursor.getCount());
+            byte[] serializedGeoLocations = serializeGeoLocations(geoLocationsCursor);
+            byte[] serializedAccelerations = accelerationsSerializer.serialize(accelerationsCursor);
+            byte[] serializedRotations = rotationsSerializer.serialize(rotationsCursor);
+            byte[] serializedDirections = directionsSerializer.serialize(directionsCursor);
+
+            ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
+                    + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
+            buffer.put(header);
+            buffer.put(serializedGeoLocations);
+            buffer.put(serializedAccelerations);
+            buffer.put(serializedRotations);
+            buffer.put(serializedDirections);
+
+            return buffer.array();
+        } catch (RemoteException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            if (geoLocationsCursor != null) {
+                geoLocationsCursor.close();
+            }
+            if (accelerationsCursor != null) {
+                accelerationsCursor.close();
+            }
+            if (rotationsCursor != null) {
+                rotationsCursor.close();
+            }
+            if (directionsCursor != null) {
+                directionsCursor.close();
+            }
+        }
+    }
 }
