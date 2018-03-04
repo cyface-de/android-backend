@@ -130,7 +130,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
                 MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, provider);
 
-                InputStream data = serializer.serialize(loader);
+                InputStream data = serializer.serializeCompressed(loader);
                 syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
                         new UploadProgressListener() {
                             @Override
