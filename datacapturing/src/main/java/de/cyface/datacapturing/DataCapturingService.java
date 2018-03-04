@@ -12,6 +12,7 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -32,6 +33,7 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.persistence.BuildConfig;
 import de.cyface.synchronization.CyfaceSyncAdapter;
+import de.cyface.synchronization.StubAuthenticator;
 
 /**
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
@@ -50,17 +52,12 @@ import de.cyface.synchronization.CyfaceSyncAdapter;
  * @version 1.0.0
  * @since 1.0.0
  */
-public class DataCapturingService {
+public abstract class DataCapturingService {
 
     /**
      * Tag used to identify Logcat messages issued by instances of this class.
      */
     private static final String TAG = "de.cyface.capturing";
-    private final static String ACCOUNT = "default_account";
-    /**
-     * The Cyface account type used to identify all Cyface system accounts.
-     */
-    private final static String ACCOUNT_TYPE = "de.cyface";
     /**
      * The <code>ContentProvider</code> authority used by this service to store and read data. See the
      * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
@@ -70,17 +67,17 @@ public class DataCapturingService {
     /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
      */
-    public static final long SECONDS_PER_MINUTE = 60L;
+    private static final long SECONDS_PER_MINUTE = 60L;
     /**
      * The data synchronisation interval in minutes.
      */
-    public static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes.
-                                                             // It seems reasonable and can be changed in the future.
+    private static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes.
+                                                              // It seems reasonable and can be changed in the future.
     /**
      * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
      * seconds using {@link #SECONDS_PER_MINUTE}.
      */
-    public static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
+    private static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
 
     /*
      * MARK: Properties
@@ -112,6 +109,8 @@ public class DataCapturingService {
      * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
      */
     private Messenger toServiceMessenger;
+
+    private Account currentSynchronizationAccount;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -187,8 +186,9 @@ public class DataCapturingService {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
             persistenceLayer.closeRecentMeasurement();
-            // TODO schedule periodic sync after measurement has been finished.
-            activateDataSynchronisation();
+            if(currentSynchronizationAccount!=null) {
+                activateDataSynchronisation();
+            }
         }
     }
 
@@ -207,8 +207,10 @@ public class DataCapturingService {
      * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
     public void forceMeasurementSynchronisation() throws SynchronisationException {
-        Account account = getAccount();
-        ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
+        if(currentSynchronizationAccount==null) {
+            throw new SynchronisationException("No current synchonization account registered with this server!");
+        }
+        ContentResolver.requestSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
     }
 
     // TODO provide a custom list implementation that loads only small portions into memory.
@@ -253,37 +255,61 @@ public class DataCapturingService {
     }
 
     /**
-     * Activates data synchronisation if allowed by the system settings. Synchronisation happens once every
-     * {@link #SYNC_INTERVAL_IN_MINUTES} minutes.
-     *
-     * @throws SynchronisationException If there is no valid Android context to start synchronisation or no valid
-     *             authentication information.
+     * @return The current Android <code>Context</code> used by this service or <code>null</code> if there currently is
+     *         none.
      */
-    private void activateDataSynchronisation() throws SynchronisationException {
-        if (context.get() == null) {
-            throw new SynchronisationException("No valid context to enable data synchronization!");
-        }
+    Context getContext() {
+        return context.get();
+    }
 
-        Account account = getAccount();
+    /**
+     * Sets or resets the currently used synchronization account.
+     *
+     * @param username The username of the new synchronization account.
+     * @throws SynchronisationException If creation of the new account was not successful.
+     */
+    void setCurrentSynchronizationAccount(final @NonNull String username) throws SynchronisationException {
+        this.currentSynchronizationAccount = getOrCreateAccount(username);
+    }
 
-        boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(account, AUTHORITY);
-        boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+    /**
+     * @return The current synchronization <code>Account</code> used or <code>null</code> if there is no such <code>Account</code> registered.
+     */
+    Account getCurrentSynchronizationAccount() {
+        return currentSynchronizationAccount;
+    }
 
-        if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-            ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
+    /**
+     * Deletes a Cyface account from the Android <code>Account</code> system. Does silently nothing if no such <code>Account</code> exists.
+     *
+     * @param username The username of the account to delete.
+     */
+    void deleteAccount(final @NonNull String username) {
+        AccountManager accountManager = AccountManager.get(getContext());
+        Account account = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
+        synchronized (this) {
+            if (Build.VERSION.SDK_INT < 22) {
+                accountManager.removeAccount(account, null, null);
+            } else {
+                accountManager.removeAccountExplicitly(account);
+            }
+            currentSynchronizationAccount = null;
         }
     }
 
     /**
-     * @return The current account used for data synchronisation.
-     * @throws SynchronisationException if there is no valid authentication information for data synchronisation.
+     * This method retrieves an <code>Account</code> from the Android account system. If the <code>Account</code> does
+     * not exist it is created before returning it.
+     *
+     * @param username The username of the account you would like to get.
+     * @return The requested <code>Account</code>
      */
-    private Account getAccount() throws SynchronisationException {
+    Account getOrCreateAccount(final @NonNull String username) throws SynchronisationException {
         AccountManager am = AccountManager.get(context.get());
-        Account[] cyfaceAccounts = am.getAccountsByType(ACCOUNT_TYPE);
+        Account[] cyfaceAccounts = am.getAccountsByType(StubAuthenticator.ACCOUNT_TYPE);
         if (cyfaceAccounts.length == 0) {
             synchronized (this) {
-                Account newAccount = new Account(ACCOUNT_TYPE, ACCOUNT_TYPE);
+                Account newAccount = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
                 boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
                 if (!newAccountAdded) {
                     throw new SynchronisationException("Unable to add dummy account!");
@@ -294,6 +320,30 @@ public class DataCapturingService {
             }
         } else {
             return cyfaceAccounts[0];
+        }
+    }
+
+    /**
+     * Activates data synchronisation if allowed by the system settings. Synchronisation happens once every
+     * {@link #SYNC_INTERVAL_IN_MINUTES} minutes.
+     *
+     * @throws SynchronisationException If there is no valid Android context to start synchronisation or no valid
+     *             authentication information.
+     */
+    void activateDataSynchronisation() throws SynchronisationException {
+        if (context.get() == null) {
+            throw new SynchronisationException("No valid context to enable data synchronization!");
+        }
+
+        if(currentSynchronizationAccount==null) {
+            throw new SynchronisationException("No account for data synchronization registered with this service.");
+        }
+
+        boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount, AUTHORITY);
+        boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+
+        if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
+            ContentResolver.addPeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
         }
     }
 
