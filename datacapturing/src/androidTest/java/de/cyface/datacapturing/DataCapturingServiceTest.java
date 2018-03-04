@@ -72,7 +72,7 @@ public class DataCapturingServiceTest {
     public void setUp() throws SetupException {
         // TODO Maybe use getTargetContext here? What is the difference anyways?
         Context context = InstrumentationRegistry.getContext();
-        oocut = new DataCapturingService(context, "http://localhost:8080");
+        oocut = new CyfaceDataCapturingService(context, "http://localhost:8080");
         testListener = new TestListener();
     }
 
