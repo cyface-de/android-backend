@@ -189,7 +189,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (!gpsStatusHandler.hasGpsFix() && (lastNoGeoLocationFixUpdateTime == 0
                 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
             try {
-                Location location = locationManager.getLastKnownLocation();
+                Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
 
                 for (CapturingProcessListener listener : this.listener) {
 
