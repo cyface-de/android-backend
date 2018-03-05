@@ -44,7 +44,7 @@ public class MeasurementSerializerTest {
      * A mock loader, not accessing any database
      */
     @Mock
-    private MeasurementLoader loader;
+    private MeasurementContentProviderClient loader;
 
     /**
      * A mocked cursor for geo locations.

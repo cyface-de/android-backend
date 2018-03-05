@@ -113,10 +113,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, provider);
+                MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+                        provider);
 
                 InputStream data = serializer.serialize(loader);
-                syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
+                int responseStatus = syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
                         new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
@@ -126,6 +127,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                 getContext().sendBroadcast(syncProgressIntent);
                             }
                         });
+                if (responseStatus == 201) {
+                    loader.cleanMeasurement();
+                }
             }
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
@@ -134,7 +138,5 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 syncableMeasurementsCursor.close();
             }
         }
-
-        // TODO delete synchronized measurements.
     }
 }
