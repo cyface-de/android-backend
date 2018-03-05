@@ -24,7 +24,7 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 /**
- * <p> Tests the correct workings of the data capturing functionality. </p>
+ * Tests the correct workings of the data capturing functionality.
  *
  * @author Klemens Muthmann
  * @version 1.0.0
@@ -45,7 +45,7 @@ public class DataCapturingTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        gpsStatusHandler = new GeoLocationDeviceStatusHandler() {
+        gpsStatusHandler = new GeoLocationDeviceStatusHandler(mockedLocationManager) {
             @Override
             void shutdown() {
 
@@ -69,9 +69,9 @@ public class DataCapturingTest {
     }
 
     /**
-     * <p> Tests whether a point captured event is successfully issued after two gps points and one
+     * Tests whether a point captured event is successfully issued after two gps points and one
      * satellite status event are received and the two gps points occured in short succession.
-     * Usually below 2 seconds. </p>
+     * Usually below 2 seconds.
      *
      * @throws Exception If anything went wrong.
      */

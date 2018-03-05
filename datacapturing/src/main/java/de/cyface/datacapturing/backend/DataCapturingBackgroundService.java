@@ -4,6 +4,7 @@ import java.lang.ref.WeakReference;
 import java.util.HashSet;
 import java.util.Set;
 
+import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -68,6 +69,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private CapturingNotification capturingNotification;
 
+    /**
+     * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
+     * measurement data.
+     */
     private MeasurementPersistence persistenceLayer;
 
     /*
@@ -92,6 +97,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onRebind(intent);
     }
 
+    @SuppressLint("WakelockTimeout") // We can not provide a timeout since our service might need to run for hours.
     @Override
     public void onCreate() {
         super.onCreate();

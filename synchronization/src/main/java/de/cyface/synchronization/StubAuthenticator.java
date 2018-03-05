@@ -5,8 +5,11 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.NetworkErrorException;
 import android.content.Context;
+import android.content.Intent;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+
+import java.lang.ref.WeakReference;
 
 /**
  * Stub class for an authenticator. This is necessary since an authenticator is a requirement for a synchronisation
@@ -19,12 +22,19 @@ import android.support.annotation.NonNull;
  * @since 2.0.0
  */
 public final class StubAuthenticator extends AbstractAccountAuthenticator {
+
+    /**
+     * The Cyface account type used to identify all Cyface system accounts.
+     */
+    public final static String ACCOUNT_TYPE = "de.cyface";
+    public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
+
     /**
      * Creates a new completely initialized <code>StubAuthenticator</code>.
      *
      * @param context The Android context for the authenticator.
      */
-    public StubAuthenticator(final @NonNull Context context) {
+    StubAuthenticator(final @NonNull Context context) {
         super(context);
     }
 

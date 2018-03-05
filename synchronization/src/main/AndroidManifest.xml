@@ -1,10 +1,15 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     package="de.cyface.synchronization" >
+    <!-- Required to transmit data to a server -->
     <uses-permission android:name="android.permission.INTERNET" />
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.READ_SYNC_STATS"/>
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+    <!-- Required to load the current user account from the system -->
+    <!--<uses-permission android:name="android.permission.GET_ACCOUNTS"/>-->
+    <!-- Required to read JWT auth token from user account -->
+    <uses-permission android:name="android.permission.USE_CREDENTIALS"/>
 
     <application>
         <service android:name="de.cyface.synchronization.SyncService"

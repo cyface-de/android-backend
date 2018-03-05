@@ -24,10 +24,9 @@ import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
 import android.support.test.rule.GrantPermissionRule;
 import android.support.test.runner.AndroidJUnit4;
-import android.util.Log;
 
 import de.cyface.datacapturing.MovebisDataCapturingService;
-import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
@@ -67,7 +66,7 @@ public final class MovebisServiceTest {
                 try {
                     MovebisDataCapturingService oocut = new MovebisDataCapturingService(context, "garbage",
                             testListener, 1L);
-                } catch (DataCapturingException e) {
+                } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
             }
