@@ -55,7 +55,7 @@ class SyncPerformer {
 
         InputStream movebisTrustStoreFile = null;
         try {
-            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore);
+            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore_integrationtest);
             KeyStore trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
@@ -119,7 +119,7 @@ class SyncPerformer {
             } catch (ProtocolException e) {
                 throw new IllegalStateException(e);
             }
-            connection.setRequestProperty("Authorization", jwtAuthToken);
+            connection.setRequestProperty("Authorization", "Bearer " + jwtAuthToken);
             String boundary = "---------------------------boundary";
             String tail = "\r\n--" + boundary + "--\r\n";
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
@@ -176,14 +176,21 @@ class SyncPerformer {
             }
 
             // Get server response
-            // BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            // String line = "";
-            // StringBuilder builder = new StringBuilder();
-            // while ((line = reader.readLine()) != null) {
-            // builder.append(line);
-            // }
-
-            return connection.getResponseCode();
+            /*
+             * BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+             * String line = "";
+             * StringBuilder builder = new StringBuilder();
+             * while ((line = reader.readLine()) != null) {
+             * builder.append(line);
+             * }
+             * Log.d(TAG, builder.toString());
+             */
+            try {
+                return connection.getResponseCode();
+            } catch (IOException e) {
+                Log.w(TAG, "Server closed stream. Request was not successful!");
+                return 400;
+            }
 
         } catch (IOException e) {
             throw new IllegalStateException(e);
