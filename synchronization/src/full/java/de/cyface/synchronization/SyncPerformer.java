@@ -55,7 +55,7 @@ class SyncPerformer {
 
         InputStream movebisTrustStoreFile = null;
         try {
-            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.fake_truststore);
+            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore);
             KeyStore trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
@@ -93,10 +93,12 @@ class SyncPerformer {
      * @param deviceIdentifier The device identifier of the device transmitting the measurement.
      * @param data The data to transmit as <code>InputStream</code>.
      * @param progressListener A listener that is informed about the progress of the upload.
+     * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return The <a href="https://de.wikipedia.org/wiki/HTTP-Statuscode">HTTP status</a> code of the response.
      */
-    int sendData(final String dataServerUrl, final long measurementIdentifier, final String deviceIdentifier,
-            final @NonNull InputStream data, final @NonNull UploadProgressListener progressListener) {
+    int sendData(final @NonNull String dataServerUrl, final long measurementIdentifier,
+            final @NonNull String deviceIdentifier, final @NonNull InputStream data,
+            final @NonNull UploadProgressListener progressListener, final @NonNull String jwtAuthToken) {
         Log.i(TAG, String.format(Locale.US, "Uploading data from device %s with identifier %s to server %s",
                 deviceIdentifier, measurementIdentifier, dataServerUrl));
         HttpsURLConnection.setFollowRedirects(false);
@@ -117,7 +119,7 @@ class SyncPerformer {
             } catch (ProtocolException e) {
                 throw new IllegalStateException(e);
             }
-            connection.setRequestProperty("Authorization", "Bearer test");
+            connection.setRequestProperty("Authorization", "Bearer " + jwtAuthToken);
             String boundary = "---------------------------boundary";
             String tail = "\r\n--" + boundary + "--\r\n";
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
@@ -174,14 +176,21 @@ class SyncPerformer {
             }
 
             // Get server response
-            // BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
-            // String line = "";
-            // StringBuilder builder = new StringBuilder();
-            // while ((line = reader.readLine()) != null) {
-            // builder.append(line);
-            // }
-
-            return connection.getResponseCode();
+            /*
+             * BufferedReader reader = new BufferedReader(new InputStreamReader(connection.getInputStream()));
+             * String line = "";
+             * StringBuilder builder = new StringBuilder();
+             * while ((line = reader.readLine()) != null) {
+             * builder.append(line);
+             * }
+             * Log.d(TAG, builder.toString());
+             */
+            try {
+                return connection.getResponseCode();
+            } catch (IOException e) {
+                Log.w(TAG, "Server closed stream. Request was not successful!");
+                return 400;
+            }
 
         } catch (IOException e) {
             throw new IllegalStateException(e);

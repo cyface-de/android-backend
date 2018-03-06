@@ -1,8 +1,14 @@
 package de.cyface.synchronization;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.util.concurrent.TimeUnit;
 
 import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.accounts.AccountManagerFuture;
+import android.accounts.AuthenticatorException;
+import android.accounts.OperationCanceledException;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.Context;
@@ -37,14 +43,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Key for the system broadcast action issued to report about the current upload progress.
      */
-    public static final String SYNC_PROGRESS_BROADCAST_ACTION = "de.cyface.broadcast.sync.progress";
+    private static final String SYNC_PROGRESS_BROADCAST_ACTION = "de.cyface.broadcast.sync.progress";
     /**
      * Key used to identify the current progress value in the bundle associated with the upload progress broadcast
      * message.
      * 
      * @see #SYNC_PROGRESS_BROADCAST_ACTION
      */
-    public static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
+    private static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
     /**
      * The settings key used to identify the settings storing the URL of the server to upload data to.
      */
@@ -89,19 +95,27 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         MeasurementSerializer serializer = new MeasurementSerializer();
         SyncPerformer syncer = new SyncPerformer(getContext());
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-
-        String endPointUrl = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
-        if (endPointUrl == null) {
-            throw new IllegalStateException("Unable to read synchronization endpoint from settings!");
-        }
-
-        String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
-        if (deviceIdentifier == null) {
-            throw new IllegalStateException("Unable to read device identifier from settings!");
-        }
-
         Cursor syncableMeasurementsCursor = null;
+        AccountManager accountManager = AccountManager.get(getContext());
+        AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, StubAuthenticator.AUTH_TOKEN_TYPE,
+                null, false, null, null);
         try {
+            Bundle result = future.getResult(1, TimeUnit.SECONDS);
+            String jwtAuthToken = result.getString(AccountManager.KEY_AUTHTOKEN);
+            if (jwtAuthToken == null) {
+                throw new IllegalStateException("No valid auth token supplied. Aborting data synchronization!");
+            }
+
+            String endPointUrl = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+            if (endPointUrl == null) {
+                throw new IllegalStateException("Unable to read synchronization endpoint from settings!");
+            }
+
+            String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
+            if (deviceIdentifier == null) {
+                throw new IllegalStateException("Unable to read device identifier from settings!");
+            }
+
             syncableMeasurementsCursor = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                     MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Integer.valueOf(1).toString()}, null);
 
@@ -116,7 +130,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                         provider);
 
-                InputStream data = serializer.serialize(loader);
+                InputStream data = serializer.serializeCompressed(loader);
                 int responseStatus = syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
                         new UploadProgressListener() {
                             @Override
@@ -126,12 +140,12 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                 syncProgressIntent.putExtra(SYNC_PROGRESS_KEY, percent);
                                 getContext().sendBroadcast(syncProgressIntent);
                             }
-                        });
+                        }, jwtAuthToken);
                 if (responseStatus == 201) {
                     loader.cleanMeasurement();
                 }
             }
-        } catch (RemoteException e) {
+        } catch (RemoteException | OperationCanceledException | AuthenticatorException | IOException e) {
             throw new IllegalStateException(e);
         } finally {
             if (syncableMeasurementsCursor != null) {
