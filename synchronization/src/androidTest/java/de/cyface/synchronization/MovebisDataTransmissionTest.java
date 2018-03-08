@@ -107,7 +107,8 @@ public class MovebisDataTransmissionTest {
                 throw new IllegalStateException(
                         String.format("Unable to acquire client for content provider %s", BuildConfig.provider));
 
-            MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, client);
+            MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+                    client);
             MeasurementSerializer serializer = new MeasurementSerializer();
             InputStream measurementData = serializer.serialize(loader);
             String jwtAuthToken = "replaceMe";

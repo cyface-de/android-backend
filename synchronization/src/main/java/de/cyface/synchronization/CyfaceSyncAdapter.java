@@ -43,14 +43,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Key for the system broadcast action issued to report about the current upload progress.
      */
-    public static final String SYNC_PROGRESS_BROADCAST_ACTION = "de.cyface.broadcast.sync.progress";
+    private static final String SYNC_PROGRESS_BROADCAST_ACTION = "de.cyface.broadcast.sync.progress";
     /**
      * Key used to identify the current progress value in the bundle associated with the upload progress broadcast
      * message.
      * 
      * @see #SYNC_PROGRESS_BROADCAST_ACTION
      */
-    public static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
+    private static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
     /**
      * The settings key used to identify the settings storing the URL of the server to upload data to.
      */
@@ -127,10 +127,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
                 long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, provider);
+                MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+                        provider);
 
                 InputStream data = serializer.serializeCompressed(loader);
-                syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
+                int responseStatus = syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
                         new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
@@ -140,6 +141,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                 getContext().sendBroadcast(syncProgressIntent);
                             }
                         }, jwtAuthToken);
+                if (responseStatus == 201) {
+                    loader.cleanMeasurement();
+                }
             }
         } catch (RemoteException | OperationCanceledException | AuthenticatorException | IOException e) {
             throw new IllegalStateException(e);
@@ -148,7 +152,5 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 syncableMeasurementsCursor.close();
             }
         }
-
-        // TODO delete synchronized measurements.
     }
 }

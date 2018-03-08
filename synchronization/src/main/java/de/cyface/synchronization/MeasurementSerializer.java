@@ -57,7 +57,7 @@ final class MeasurementSerializer {
     /**
      * Serializer for transforming acceleration points into a byte representation.
      */
-    private final Point3DSerializer accelerationsSerializer = new Point3DSerializer() {
+    final static Point3DSerializer accelerationsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
             return MeasuringPointsContentProvider.SAMPLE_POINTS_URI;
@@ -92,7 +92,7 @@ final class MeasurementSerializer {
     /**
      * Serializer for transforming rotation points into a byte representation.
      */
-    private final Point3DSerializer rotationsSerializer = new Point3DSerializer() {
+    final static Point3DSerializer rotationsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
             return MeasuringPointsContentProvider.ROTATION_POINTS_URI;
@@ -127,7 +127,7 @@ final class MeasurementSerializer {
     /**
      * Serializer for transforming direction points into a byte representation.
      */
-    private final Point3DSerializer directionsSerializer = new Point3DSerializer() {
+    final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
             return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;
@@ -166,7 +166,7 @@ final class MeasurementSerializer {
      * @param loader The device wide unqiue identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized data.
      */
-    InputStream serialize(final @NonNull MeasurementLoader loader) {
+    InputStream serialize(final @NonNull MeasurementContentProviderClient loader) {
         return new ByteArrayInputStream(serializeToByteArray(loader));
     }
 
@@ -179,7 +179,7 @@ final class MeasurementSerializer {
      * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
-    InputStream serializeCompressed(final @NonNull MeasurementLoader loader) {
+    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
         int lengthOfCompressedData = compressor.deflate(data);
@@ -254,7 +254,7 @@ final class MeasurementSerializer {
      * @param loader The loader providing access to the content provider storing all the measurements.
      * @return A byte array containing the serialized data.
      */
-    private byte[] serializeToByteArray(final @NonNull MeasurementLoader loader) {
+    private byte[] serializeToByteArray(final @NonNull MeasurementContentProviderClient loader) {
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
         Cursor rotationsCursor = null;
