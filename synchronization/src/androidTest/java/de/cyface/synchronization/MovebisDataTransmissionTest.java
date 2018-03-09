@@ -4,7 +4,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
 import java.io.InputStream;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -82,7 +85,7 @@ public class MovebisDataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart() {
+    public void testUploadSomeBytesViaMultiPart() throws NoSuchAlgorithmException, IOException {
         ContentResolver resolver = InstrumentationRegistry.getTargetContext().getContentResolver();
         long measurementIdentifier = insertTestMeasurement(resolver, "UNKOWN");
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
@@ -110,8 +113,9 @@ public class MovebisDataTransmissionTest {
             MeasurementLoader loader = new MeasurementLoader(measurementIdentifier, client);
             MeasurementSerializer serializer = new MeasurementSerializer();
             InputStream measurementData = serializer.serialize(loader);
-            String jwtAuthToken = "replaceMe";
+            // printMD5(measurementData);
 
+            String jwtAuthToken = "replace me";
             SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getTargetContext());
             int result = performer.sendData("https://localhost:8080", measurementIdentifier, "garbage", measurementData,
                     new UploadProgressListener() {
@@ -130,6 +134,17 @@ public class MovebisDataTransmissionTest {
                 }
             }
         }
+    }
+
+    private void printMD5(final @NonNull InputStream stream) throws IOException, NoSuchAlgorithmException {
+        MessageDigest md = MessageDigest.getInstance("MD5");
+        byte[] content = new byte[stream.available()];
+        stream.read(content);
+        byte[] thedigest = md.digest(content);
+        StringBuilder sb = new StringBuilder(thedigest.length * 2);
+        for (byte b : thedigest)
+            sb.append(String.format("%02x", b));
+        Log.i(TAG, sb.toString());
     }
 
     /**
