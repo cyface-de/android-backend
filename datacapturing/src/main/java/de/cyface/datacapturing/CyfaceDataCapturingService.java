@@ -1,16 +1,17 @@
 package de.cyface.datacapturing;
 
+import android.accounts.Account;
 import android.content.Context;
 import android.support.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.exception.SynchronisationException;
+import de.cyface.synchronization.SynchronisationException;
 
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -31,7 +32,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             throws SetupException {
         super(context, dataUploadServerAddress);
         try {
-            setCurrentSynchronizationAccount(ACCOUNT);
+            Account account = getWiFiSurveyor().getOrCreateAccount(ACCOUNT);
+            getWiFiSurveyor().startSurveillance(account);
         } catch (SynchronisationException e) {
             throw new SetupException(e);
         }

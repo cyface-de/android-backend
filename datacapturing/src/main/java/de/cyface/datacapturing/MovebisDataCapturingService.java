@@ -9,16 +9,15 @@ import android.content.pm.PackageManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.StubAuthenticator;
+import de.cyface.synchronization.SynchronisationException;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
@@ -35,7 +34,7 @@ import de.cyface.synchronization.StubAuthenticator;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -104,7 +103,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
     @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
     public void startUILocationUpdates() {
-        if(uiUpdatesActive==true) {
+        if (uiUpdatesActive) {
             return;
         }
         boolean fineLocationAccessIsGranted = checkFineLocationAccess(getContext());
@@ -124,7 +123,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
     }
 
     public void stopUILocationUpdates() {
-        if(uiUpdatesActive==false) {
+        if (!uiUpdatesActive) {
             return;
         }
         preMeasurementLocationManager.removeUpdates(locationListener);
@@ -143,10 +142,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
             throws SynchronisationException {
         AccountManager accountManager = AccountManager.get(getContext());
 
-        setCurrentSynchronizationAccount(username);
+        Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
 
-        accountManager.setAuthToken(getCurrentSynchronizationAccount(), StubAuthenticator.AUTH_TOKEN_TYPE, token);
-        activateDataSynchronisation();
+        accountManager.setAuthToken(synchronizationAccount, StubAuthenticator.AUTH_TOKEN_TYPE, token);
+        getWiFiSurveyor().startSurveillance(synchronizationAccount);
     }
 
     /**
@@ -157,7 +156,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param username The username of the user to remove the auth token for.
      */
     public void deregisterJWTAuthToken(final @NonNull String username) {
-        deleteAccount(username);
+        getWiFiSurveyor().deleteAccount(username);
     }
 
     /**

@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.exception;
+package de.cyface.synchronization;
 
 import android.support.annotation.NonNull;
 

@@ -3,7 +3,6 @@ package de.cyface.datacapturing;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -24,8 +23,8 @@ import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.synchronization.SynchronisationException;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
