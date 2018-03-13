@@ -9,6 +9,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
@@ -41,6 +42,8 @@ import de.cyface.persistence.SamplePointTable;
  * @since 2.0.0
  */
 final class MeasurementSerializer {
+
+    private final static String TAG = "de.cyface.sync";
 
     /**
      * The current version of the data format. This is always specified by the first two bytes and allows to process
@@ -196,6 +199,7 @@ final class MeasurementSerializer {
      */
     private byte[] serializeGeoLocations(final @NonNull Cursor geoLocationsCursor) {
         // Allocate enough space for all geo locations
+        Log.d(TAG, String.format("Serializing %d geo locations for synchronization.", geoLocationsCursor.getCount()));
         ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
@@ -281,7 +285,9 @@ final class MeasurementSerializer {
             buffer.put(serializedRotations);
             buffer.put(serializedDirections);
 
-            return buffer.array();
+            byte[] result = buffer.array();
+            Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
+            return result;
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
         } finally {

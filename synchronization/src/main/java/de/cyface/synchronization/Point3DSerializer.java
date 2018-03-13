@@ -1,10 +1,13 @@
 package de.cyface.synchronization;
 
+import static android.content.ContentValues.TAG;
+
 import java.nio.ByteBuffer;
 
 import android.database.Cursor;
 import android.net.Uri;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.RotationPointTable;
@@ -65,6 +68,7 @@ abstract class Point3DSerializer {
      * @return A <code>byte</code> array containing all the data.
      */
     byte[] serialize(final @NonNull Cursor pointCursor) {
+        Log.d(TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
         ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
         while (pointCursor.moveToNext()) {
             buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(getTimestampColumnName())));

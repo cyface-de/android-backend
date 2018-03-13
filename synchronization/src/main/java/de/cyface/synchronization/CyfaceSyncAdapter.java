@@ -130,6 +130,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                         provider);
 
+                Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.",
+                        measurementIdentifier));
                 InputStream data = serializer.serializeCompressed(loader);
                 int responseStatus = syncer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
                         new UploadProgressListener() {
