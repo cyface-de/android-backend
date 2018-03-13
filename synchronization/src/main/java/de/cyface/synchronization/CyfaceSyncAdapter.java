@@ -117,7 +117,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             }
 
             syncableMeasurementsCursor = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
-                    MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Integer.valueOf(1).toString()}, null);
+                    MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Integer.valueOf(0).toString()}, null);
 
             if (syncableMeasurementsCursor == null) {
                 throw new IllegalStateException("Unable to load measurement from content provider!");

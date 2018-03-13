@@ -38,6 +38,10 @@ android {
             versionNameSuffix "-full"
         }
     }
+
+    testOptions {
+        unitTests.returnDefaultValues = true
+    }
 }
 
 dependencies {

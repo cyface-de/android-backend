@@ -139,6 +139,15 @@ public class MeasurementSerializerTest {
         assertThat(directions, hasSize(3));
     }
 
+    @Test
+    public void testSerializeCompressedMeasurement() throws IOException {
+        MeasurementSerializer serializer = new MeasurementSerializer();
+
+        InputStream input = serializer.serializeCompressed(loader);
+
+        assertThat(input.available(), is(equalTo(30)));
+    }
+
     private List<Map<String, ?>> deserializePoint3D(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
 

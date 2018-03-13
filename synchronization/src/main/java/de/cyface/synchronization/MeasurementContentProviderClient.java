@@ -1,12 +1,15 @@
 package de.cyface.synchronization;
 
 import android.content.ContentProviderClient;
+import android.content.ContentValues;
 import android.database.Cursor;
 import android.os.RemoteException;
+import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
@@ -81,6 +84,10 @@ public class MeasurementContentProviderClient {
      * @throws RemoteException If the content provider is not accessible.
      */
     int cleanMeasurement() throws RemoteException {
+        ContentValues values = new ContentValues();
+        values.put(MeasurementTable.COLUMN_FINISHED, true);
+        client.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values, BaseColumns._ID + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         int ret = 0;
         ret += client.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
                 SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
