@@ -1,7 +1,11 @@
 package de.cyface.datacapturing.backend;
 
-import android.Manifest;
-import android.content.pm.PackageManager;
+import java.io.Closeable;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Vector;
+
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -10,14 +14,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
-import android.support.v4.app.ActivityCompat;
 import android.util.Log;
-
-import java.io.Closeable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Vector;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Point3D;
@@ -193,9 +190,14 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
                 for (CapturingProcessListener listener : this.listener) {
 
-                    listener.onPointCaptured(new CapturedData(location.getLatitude(), location.getLongitude(),
-                            location.getTime(), location.getSpeed(), Math.round(location.getAccuracy() * 100),
-                            accelerations, rotations, directions));
+                    double lat = location.getLatitude();
+                    double lon = location.getLongitude();
+                    long time = location.getTime();
+                    double speed = location.getSpeed();
+                    int accuracy = Math.round(location.getAccuracy() * 100);
+                    CapturedData capturedData = new CapturedData(lat, lon, time, speed, accuracy, accelerations,
+                            rotations, directions);
+                    listener.onPointCaptured(capturedData);
                 }
             } catch (SecurityException e) {
                 throw new IllegalStateException(e);
