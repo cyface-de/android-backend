@@ -79,7 +79,7 @@ public final class SyncAdapterTest {
             } finally {
                 lock.unlock();
             }
-            assertThat(observer.didSync(),is(equalTo(true)));
+            assertThat(observer.didSync(), is(equalTo(true)));
 
         } finally {
             am.removeAccount(am.getAccountsByType("de.cyface")[0], null, null, null);
@@ -113,7 +113,8 @@ public final class SyncAdapterTest {
          */
         private final Account account;
         /**
-         * The state of the synchronization. This is <code>true</code> if synchronization has been called; <code>false</code> otherwise.
+         * The state of the synchronization. This is <code>true</code> if synchronization has been called;
+         * <code>false</code> otherwise.
          */
         private boolean didSync;
 
