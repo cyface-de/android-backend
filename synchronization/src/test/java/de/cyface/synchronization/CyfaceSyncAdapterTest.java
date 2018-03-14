@@ -16,6 +16,7 @@ import android.content.ContentProviderClient;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 
@@ -58,13 +59,20 @@ public class CyfaceSyncAdapterTest {
         try {
             client = context.getContentResolver()
                     .acquireContentProviderClient(MeasuringPointsContentProvider.MEASUREMENT_URI);
+            if (client == null) {
+                throw new IllegalStateException("ContentProviderClient was null.");
+            }
+
             ContentValues notFinishedMeasurementValues = createMeasurement(false, false);
             ContentValues notSyncedMeasurementValues = createMeasurement(false, true);
             ContentValues syncedMeasurementValues = createMeasurement(true, true);
             client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, notFinishedMeasurementValues);
-            long expectedIdentifier = Long
-                    .parseLong(client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, notSyncedMeasurementValues)
-                            .getLastPathSegment());
+            Uri result = client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, notSyncedMeasurementValues);
+            if (result == null) {
+                throw new IllegalStateException("Unable to insert measurement into ContentProvider.");
+            }
+
+            long expectedIdentifier = Long.parseLong(result.getLastPathSegment());
             client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, syncedMeasurementValues);
 
             Cursor syncableMeasurementsCursor = oocut.loadSyncableMeasurements(client);
@@ -74,7 +82,9 @@ public class CyfaceSyncAdapterTest {
             assertThat(syncableMeasurementsCursor.getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID)),
                     is(expectedIdentifier));
         } finally {
-            client.release();
+            if (client != null) {
+                client.release();
+            }
         }
 
     }
