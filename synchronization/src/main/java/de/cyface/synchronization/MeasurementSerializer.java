@@ -185,8 +185,12 @@ final class MeasurementSerializer {
     InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
-        int lengthOfCompressedData = compressor.deflate(data);
-        return new ByteArrayInputStream(data, 0, lengthOfCompressedData);
+        compressor.setInput(data);
+        compressor.finish();
+        byte[] output = new byte[data.length];
+        int lengthOfCompressedData = compressor.deflate(output);
+        Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
+        return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
     }
 
     /**
