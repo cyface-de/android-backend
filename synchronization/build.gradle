@@ -62,4 +62,6 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${rootProject.ext.mockitoVersion}"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:${rootProject.ext.hamcrestVersion}"
+
+    testImplementation "org.robolectric:robolectric:3.7.1"
 }

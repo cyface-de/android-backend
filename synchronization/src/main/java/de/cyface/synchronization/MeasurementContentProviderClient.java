@@ -85,7 +85,7 @@ public class MeasurementContentProviderClient {
      */
     int cleanMeasurement() throws RemoteException {
         ContentValues values = new ContentValues();
-        values.put(MeasurementTable.COLUMN_FINISHED, true);
+        values.put(MeasurementTable.COLUMN_SYNCED, true);
         client.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values, BaseColumns._ID + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         int ret = 0;

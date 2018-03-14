@@ -27,6 +27,11 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_FINISHED = "finished";
     /**
+     * Tells the system whether this measurement has been synchronized or not. If <code>true</code> or <code>1</code>
+     * this measurement has already been synchronized; if <code>false</code> or <code>0</code> it has not.
+     */
+    public static final String COLUMN_SYNCED = "synced";
+    /**
      * A string which contains the .name() value of the vehicle enumeration
      */
     public static final String COLUMN_VEHICLE = "vehicle";
@@ -34,7 +39,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * An array containing all columns from this table in default order.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_FINISHED, COLUMN_VEHICLE};
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_FINISHED, COLUMN_VEHICLE, COLUMN_SYNCED};
 
     /**
      * Creates a new completely initialized {@code MeasurementTable} using the name "measurement".
@@ -46,7 +51,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     @Override
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + "(" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_FINISHED + " INTEGER NOT NULL DEFAULT 1, " + COLUMN_VEHICLE + " TEXT);";
+                + COLUMN_FINISHED + " INTEGER NOT NULL DEFAULT 1, " + COLUMN_VEHICLE + " TEXT, " + COLUMN_SYNCED
+                + " INTEGER NOT NULL DEFAULT 0);";
     }
 
     /* Don't forget to update the DatabaseHelper's DATABASE_VERSION */
@@ -70,6 +76,10 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 database.execSQL("DROP TABLE " + getName() + ";");
                 database.execSQL("ALTER TABLE " + getName() + "_backup RENAME TO " + getName() + ";");
                 database.endTransaction();
+            case 8:
+                database.beginTransaction();
+                database.execSQL(
+                        "ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_SYNCED + " INTEGER NOT NULL DEFAULT 0;");
         }
     }
 
