@@ -1,12 +1,15 @@
 package de.cyface.datacapturing;
 
+import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
+
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
  * {@link DataCapturingService} via
  * {@link DataCapturingService#start(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 1.0.0
  */
 public interface DataCapturingListener {
@@ -26,6 +29,13 @@ public interface DataCapturingListener {
      * @param position The new geo location position.
      */
     void onNewGeoLocationAcquired(GeoLocation position);
+
+    /**
+     * This method is called each time the data capturing service receives new sensor data.
+     *
+     * @param data The newly received sensor data.
+     */
+    void onNewSensorDataAcquired(CapturedData data);
 
     /**
      * This method is called each time the application runs out of space. How much space is used and how much is

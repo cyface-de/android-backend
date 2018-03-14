@@ -25,7 +25,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.Parcelable;
 import android.os.RemoteException;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
@@ -99,7 +98,7 @@ public class BackgroundServiceTest {
         context.startService(startIntent);
         context.bindService(startIntent, toServiceConnection, 0);
 
-        Thread.sleep(60000L);
+        Thread.sleep(60_000L);
 
         context.unbindService(toServiceConnection);
         Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -122,14 +121,13 @@ public class BackgroundServiceTest {
         Context context = InstrumentationRegistry.getContext();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        assertThat(context.startService(startIntent),is(notNullValue()));
-        assertThat(context.startService(startIntent),is(notNullValue()));
-
+        assertThat(context.startService(startIntent), is(notNullValue()));
+        assertThat(context.startService(startIntent), is(notNullValue()));
 
         Thread.sleep(2000L);
 
-        Intent stopIntent = new Intent(context,DataCapturingBackgroundService.class);
-        assertThat(context.stopService(stopIntent),is(true));
+        Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
+        assertThat(context.stopService(stopIntent), is(true));
     }
 
     /**
@@ -269,7 +267,7 @@ public class BackgroundServiceTest {
             Log.d(TAG, String.format("Test received message %d.", msg.what));
             // super.handleMessage(msg);
             switch (msg.what) {
-                case MessageCodes.POINT_CAPTURED:
+                case MessageCodes.DATA_CAPTURED:
                     Bundle dataBundle = msg.getData();
                     dataBundle.setClassLoader(getClass().getClassLoader());
                     CapturedData data = dataBundle.getParcelable("data");

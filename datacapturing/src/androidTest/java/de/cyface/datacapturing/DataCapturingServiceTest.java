@@ -3,7 +3,6 @@ package de.cyface.datacapturing;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -25,6 +24,8 @@ import android.util.Log;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.exception.SynchronisationException;
+import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 
 /**
@@ -304,6 +305,10 @@ public class DataCapturingServiceTest {
 
     /**
      * A listener for events from the capturing service, only used by tests.
+     *
+     * @author Klemens Muthmann
+     * @version 1.1.0
+     * @since 2.0.0
      */
     private static class TestListener implements DataCapturingListener {
         /**
@@ -325,6 +330,11 @@ public class DataCapturingServiceTest {
         public void onNewGeoLocationAcquired(final @NonNull GeoLocation position) {
             Log.d(TAG, String.format("New GPS position (lat:%f,lon:%f)", position.getLat(), position.getLon()));
             capturedPositions.add(position);
+        }
+
+        @Override
+        public void onNewSensorDataAcquired(CapturedData data) {
+            Log.d(TAG, "New Sensor data.");
         }
 
         @Override

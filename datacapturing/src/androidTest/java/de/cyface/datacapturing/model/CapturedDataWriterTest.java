@@ -24,9 +24,6 @@ import android.test.ProviderTestCase2;
 import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
-import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.Point3D;
-import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
@@ -42,7 +39,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.1.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -115,8 +112,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         try {
             result = getMockContentResolver().query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                     BaseColumns._ID + "=?", new String[] {identifierString}, null);
-            if(result==null) {
-                throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
+            if (result == null) {
+                throw new IllegalStateException(
+                        "Test failed because it was unable to load data from content provider.");
             }
 
             assertThat(result.getCount(), is(equalTo(1)));
@@ -138,8 +136,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         try {
             closingResult = getMockContentResolver().query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                     BaseColumns._ID + "=?", new String[] {identifierString}, null);
-            if(closingResult==null) {
-                throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
+            if (closingResult == null) {
+                throw new IllegalStateException(
+                        "Test failed because it was unable to load data from content provider.");
             }
 
             assertThat(closingResult.getCount(), is(equalTo(1)));
@@ -164,6 +163,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         oocut.newMeasurement(Vehicle.UNKOWN);
 
         oocut.storeData(testData());
+        oocut.storeLocation(testLocation());
 
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
@@ -179,8 +179,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
                     null, null, null, null);
             rotationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null,
                     null, null, null);
-            if(geoLocationsCursor==null || accelerationsCursor==null || directionsCursor==null || rotationsCursor==null) {
-                throw new IllegalStateException("Test failed because it was unable to load data from the content provider.");
+            if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
+                    || rotationsCursor == null) {
+                throw new IllegalStateException(
+                        "Test failed because it was unable to load data from the content provider.");
             }
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(1)));
@@ -212,6 +214,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.newMeasurement(Vehicle.CAR);
         oocut.storeData(testData());
+        oocut.storeLocation(testLocation());
         // clear the test data
         oocut.clear();
 
@@ -233,8 +236,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
                     null, null, null);
             measurementsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                     null, null, null);
-            if(geoLocationsCursor==null || accelerationsCursor==null || directionsCursor==null || rotationsCursor==null || measurementsCursor==null) {
-                throw new IllegalStateException("Test failed because it was unable to load data from the content provider.");
+            if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
+                    || rotationsCursor == null || measurementsCursor == null) {
+                throw new IllegalStateException(
+                        "Test failed because it was unable to load data from the content provider.");
             }
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
@@ -285,6 +290,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     public void testDeleteMeasurement() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeData(testData());
+        oocut.storeLocation(testLocation());
         Measurement measurement = new Measurement(measurementIdentifier);
         oocut.delete(measurement);
 
@@ -308,8 +314,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             rotationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
-            if(geoLocationsCursor==null || accelerationsCursor==null || directionsCursor==null || rotationsCursor==null) {
-                throw new IllegalStateException("Test failed because it was unable to load data from the content provider.");
+            if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
+                    || rotationsCursor == null) {
+                throw new IllegalStateException(
+                        "Test failed because it was unable to load data from the content provider.");
             }
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
@@ -338,12 +346,19 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     @Test
     public void testLoadTrack() {
         oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.storeData(testData());
+        oocut.storeLocation(testLocation());
         List<Measurement> measurements = oocut.loadMeasurements();
-        assertThat(measurements.size(),is(equalTo(1)));
-        for(Measurement measurement:measurements) {
-            assertThat(oocut.loadTrack(measurement).size(),is(equalTo(1)));
+        assertThat(measurements.size(), is(equalTo(1)));
+        for (Measurement measurement : measurements) {
+            assertThat(oocut.loadTrack(measurement).size(), is(equalTo(1)));
         }
+    }
+
+    /**
+     * @return An initialized {@link GeoLocation} object with garbage data for testing.
+     */
+    private GeoLocation testLocation() {
+        return new GeoLocation(1.0, 1.0, 1L, 1.0, 1);
     }
 
     /**
@@ -362,6 +377,6 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         rotations.add(new Point3D(7.0f, 7.0f, 7.0f, 7L));
         rotations.add(new Point3D(8.0f, 8.0f, 8.0f, 8L));
         rotations.add(new Point3D(9.0f, 9.0f, 9.0f, 9L));
-        return new CapturedData(1.0, 1.0, 1L, 1.0, 1, accelerations, rotations, directions);
+        return new CapturedData(accelerations, rotations, directions);
     }
 }

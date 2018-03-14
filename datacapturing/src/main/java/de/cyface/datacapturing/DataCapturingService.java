@@ -28,7 +28,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.exception.SynchronisationException;
-import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.persistence.BuildConfig;
@@ -111,7 +111,8 @@ public abstract class DataCapturingService {
     private Messenger toServiceMessenger;
 
     /**
-     * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such <code>Account</code> has been set.
+     * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such
+     * <code>Account</code> has been set.
      */
     private Account currentSynchronizationAccount;
 
@@ -189,7 +190,7 @@ public abstract class DataCapturingService {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
             persistenceLayer.closeRecentMeasurement();
-            if(currentSynchronizationAccount!=null) {
+            if (currentSynchronizationAccount != null) {
                 activateDataSynchronisation();
             }
         }
@@ -210,7 +211,7 @@ public abstract class DataCapturingService {
      * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
     public void forceMeasurementSynchronisation() throws SynchronisationException {
-        if(currentSynchronizationAccount==null) {
+        if (currentSynchronizationAccount == null) {
             throw new SynchronisationException("No current synchonization account registered with this server!");
         }
         ContentResolver.requestSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
@@ -276,14 +277,16 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @return The current synchronization <code>Account</code> used or <code>null</code> if there is no such <code>Account</code> registered.
+     * @return The current synchronization <code>Account</code> used or <code>null</code> if there is no such
+     *         <code>Account</code> registered.
      */
     Account getCurrentSynchronizationAccount() {
         return currentSynchronizationAccount;
     }
 
     /**
-     * Deletes a Cyface account from the Android <code>Account</code> system. Does silently nothing if no such <code>Account</code> exists.
+     * Deletes a Cyface account from the Android <code>Account</code> system. Does silently nothing if no such
+     * <code>Account</code> exists.
      *
      * @param username The username of the account to delete.
      */
@@ -338,11 +341,12 @@ public abstract class DataCapturingService {
             throw new SynchronisationException("No valid context to enable data synchronization!");
         }
 
-        if(currentSynchronizationAccount==null) {
+        if (currentSynchronizationAccount == null) {
             throw new SynchronisationException("No account for data synchronization registered with this service.");
         }
 
-        boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount, AUTHORITY);
+        boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
+                AUTHORITY);
         boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
 
         if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
@@ -472,21 +476,20 @@ public abstract class DataCapturingService {
         public void handleMessage(final @NonNull Message msg) {
 
             switch (msg.what) {
-                case MessageCodes.POINT_CAPTURED:
+                case MessageCodes.LOCATION_CAPTURED:
                     Bundle dataBundle = msg.getData();
                     dataBundle.setClassLoader(getClass().getClassLoader());
-                    CapturedData data = dataBundle.getParcelable("data");
-                    if (data == null) {
+                    GeoLocation location = dataBundle.getParcelable("data");
+                    if (location == null) {
                         listener.onErrorState(
                                 new DataCapturingException(context.getString(R.string.missing_data_error)));
                     } else {
-
-                        GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsTime(),
-                                data.getGpsSpeed(), data.getGpsAccuracy());
-
-                        listener.onNewGeoLocationAcquired(geoLocation);
+                        listener.onNewGeoLocationAcquired(location);
                     }
                     break;
+                case MessageCodes.DATA_CAPTURED:
+                    Log.i(TAG, "Captured some sensor data, which is ignored for now.");
+                    // TOD
                 case MessageCodes.GPS_FIX:
                     listener.onFixAcquired();
                     break;

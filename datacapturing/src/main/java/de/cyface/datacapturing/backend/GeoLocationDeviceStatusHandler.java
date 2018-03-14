@@ -1,9 +1,9 @@
 package de.cyface.datacapturing.backend;
 
-import android.location.LocationManager;
-
 import java.util.ArrayList;
 import java.util.Collection;
+
+import android.location.LocationManager;
 
 /**
  * Abstract base class for classes informing the system about the current state of the geo location device. It reacts to
@@ -11,10 +11,10 @@ import java.util.Collection;
  * change.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 1.0.0
  */
-public abstract class GeoLocationDeviceStatusHandler {
+abstract class GeoLocationDeviceStatusHandler {
     /**
      * Interval in which location updates need to occur for the device to consider itself having a fix. Reasing behind
      * this number is the following: Usually the geo location device provides updates every second, give or take a few
@@ -39,7 +39,7 @@ public abstract class GeoLocationDeviceStatusHandler {
     /**
      * The <code>LocationManager</code> used to get geo location status updates.
      */
-    protected final LocationManager locationManager;
+    final LocationManager locationManager;
 
     /**
      * Creates a new completely initialized <code>GeoLocationDeviceStatusHandler</code>.
@@ -47,7 +47,7 @@ public abstract class GeoLocationDeviceStatusHandler {
      * @param locationManager The <code>LocationManager</code> used to get geo location status updates.
      */
     GeoLocationDeviceStatusHandler(final LocationManager locationManager) {
-        if(locationManager==null) {
+        if (locationManager == null) {
             throw new IllegalArgumentException("Illegal argument: locationManager was null!");
         }
 
@@ -114,11 +114,11 @@ public abstract class GeoLocationDeviceStatusHandler {
     private void handleGpsFixEvent() {
         if (hasGeoLocationFix) {
             for (CapturingProcessListener listener : this.listener) {
-                listener.onGpsFix();
+                listener.onLocationFix();
             }
         } else {
             for (CapturingProcessListener listener : this.listener) {
-                listener.onGpsFixLost();
+                listener.onLocationFixLost();
             }
         }
     }

@@ -19,10 +19,12 @@ import android.os.Messenger;
 import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.CapturingNotification;
 
@@ -33,7 +35,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -170,7 +172,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @param messageCode A code identifying the message that is send. See {@link MessageCodes} for further details.
      * @param data The data to send appended to this message. This may be <code>null</code> if no data needs to be send.
      */
-    private void informCaller(final int messageCode, final Parcelable data) {
+    private void informCaller(final int messageCode, final @NonNull Parcelable data) {
         Message msg = Message.obtain(null, messageCode);
 
         if (data != null) {
@@ -197,18 +199,24 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
 
     @Override
-    public void onPointCaptured(final CapturedData data) {
-        informCaller(MessageCodes.POINT_CAPTURED, data);
+    public void onDataCaptured(final @NonNull CapturedData data) {
+        informCaller(MessageCodes.DATA_CAPTURED, data);
         persistenceLayer.storeData(data);
     }
 
     @Override
-    public void onGpsFix() {
+    public void onLocationCaptured(final @NonNull GeoLocation location) {
+        informCaller(MessageCodes.LOCATION_CAPTURED, location);
+        persistenceLayer.storeLocation(location);
+    }
+
+    @Override
+    public void onLocationFix() {
         informCaller(MessageCodes.GPS_FIX, null);
     }
 
     @Override
-    public void onGpsFixLost() {
+    public void onLocationFixLost() {
         informCaller(MessageCodes.NO_GPS_FIX, null);
     }
 
