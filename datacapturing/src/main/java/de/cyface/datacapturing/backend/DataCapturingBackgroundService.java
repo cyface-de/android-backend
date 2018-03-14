@@ -246,7 +246,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          *
          * @param context The {@link DataCapturingBackgroundService} receiving messages via this handler.
          */
-        MessageHandler(final DataCapturingBackgroundService context) {
+        MessageHandler(final @NonNull DataCapturingBackgroundService context) {
             if (context == null) {
                 throw new IllegalArgumentException("Illegal argument: context was null!");
             }

@@ -28,30 +28,28 @@ import android.database.Cursor;
 import android.os.RemoteException;
 
 /**
- * Example local unit test, which will execute on the development machine (host).
+ * Tests whether serialization and deserialization of the Cyface binary format is successful.
  *
- * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
  */
 public class MeasurementSerializerTest {
-
     /**
      * Used to mock Android API objects.
      */
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
-
     /**
      * A mock loader, not accessing any database
      */
     @Mock
     private MeasurementContentProviderClient loader;
-
     /**
      * A mocked cursor for geo locations.
      */
     @Mock
     private Cursor geoLocationsCursor;
-
     /**
      * A mocked cursor for 3D points like accelerations, rotations and directions.
      */
@@ -94,6 +92,13 @@ public class MeasurementSerializerTest {
         assertThat(stream.available(), is(equalTo(414)));
     }
 
+    /**
+     * Tests whether deserialization of measurements from a serialized measurement is successful and provides the
+     * expected result.
+     *
+     * @throws IOException Thrown on streaming errors. Since this only uses ByteArrayStreams the exception should not
+     *             occur.
+     */
     @Test
     public void testDeserializeMeasurement() throws IOException {
         MeasurementSerializer serializer = new MeasurementSerializer();
@@ -139,6 +144,30 @@ public class MeasurementSerializerTest {
         assertThat(directions, hasSize(3));
     }
 
+    /**
+     * Tests successful serialization of a measurement to a compressed state.
+     *
+     * @throws IOException Thrown on streaming errors. Since this only uses ByteArrayStreams the exception should not
+     *             occur.
+     */
+    @Test
+    public void testSerializeCompressedMeasurement() throws IOException {
+        MeasurementSerializer serializer = new MeasurementSerializer();
+
+        InputStream input = serializer.serializeCompressed(loader);
+
+        assertThat(input.available(), is(equalTo(30)));
+    }
+
+    /**
+     * Deserializes a list of 3D sample points (i.e. acceleration, rotation or direction) from an array of bytes in
+     * Cyface binary format.
+     *
+     * @param bytes The bytes array to deserialize the sample points from.
+     * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 4 entrys for x, y, z and timestamp
+     *         with the corresponding values. A timestamp is a <code>long</code>, all other values are
+     *         <code>double</code>.
+     */
     private List<Map<String, ?>> deserializePoint3D(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
 
@@ -157,6 +186,14 @@ public class MeasurementSerializerTest {
         return ret;
     }
 
+    /**
+     * Deserializes a list of geo locations from an array of bytes in Cyface binary format.
+     *
+     * @param bytes The bytes array to deserialize the geo locations from.
+     * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 5 entrys keyed with "timestamp",
+     *         "lat", "lon", "speed" and "accuracy" with the appropriate values. The timestamp is a <code>long</code>,
+     *         accuracy is an <code>int</code> and all other values are <code>double</code> values.
+     */
     private List<Map<String, ?>> deserializeGeoLocations(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
         for (int i = 0; i < bytes.length; i += MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY) {

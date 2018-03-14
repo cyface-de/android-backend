@@ -3,6 +3,12 @@
  */
 package de.cyface.persistence;
 
+import java.util.HashMap;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Map;
+import java.util.Set;
+
 import android.content.ContentValues;
 import android.content.Context;
 import android.content.UriMatcher;
@@ -13,9 +19,6 @@ import android.net.Uri;
 import android.provider.BaseColumns;
 import android.text.TextUtils;
 import android.util.Log;
-import android.util.SparseArray;
-
-import java.util.*;
 
 public class DatabaseHelper extends SQLiteOpenHelper {
 
@@ -26,7 +29,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     final static String SAMPLE_POINT_URI_PATH = "sample";
     final static String ROTATION_POINT_URI_PATH = "rotation";
     final static String MAGNETIC_VALUE_POINT_URI_PATH = "magnetic_value";
-    private final static int DATABASE_VERSION = 7;
+    private final static int DATABASE_VERSION = 8;
     private final static int GPS_POINTS = 1;
     private final static int GPS_POINT = 2;
     private final static int MEASUREMENTS = 3;
@@ -35,8 +38,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
     private final static int SAMPLE_POINT = 6;
     private final static int ROTATION_POINTS = 7;
     private final static int ROTATION_POINT = 8;
-    //private final static int GRAVITY_POINTS = 9;
-    //private final static int GRAVITY_POINT = 10;
+    // private final static int GRAVITY_POINTS = 9;
+    // private final static int GRAVITY_POINT = 10;
     private final static int MAGNETIC_VALUE_POINTS = 11;
     private final static int MAGNETIC_VALUE_POINT = 12;
 
@@ -44,15 +47,20 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     static {
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, GPS_POINT_URI_PATH, GPS_POINTS);
-        sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, GPS_POINT_URI_PATH + "/#", GPS_POINT); // with "#" it's a single entry !
+        sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, GPS_POINT_URI_PATH + "/#", GPS_POINT); // with "#"
+                                                                                                            // it's a
+                                                                                                            // single
+                                                                                                            // entry !
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MEASUREMENT_URI_PATH, MEASUREMENTS);
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MEASUREMENT_URI_PATH + "/#", MEASUREMENT);
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, SAMPLE_POINT_URI_PATH, SAMPLE_POINTS);
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, SAMPLE_POINT_URI_PATH + "/#", SAMPLE_POINT);
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, ROTATION_POINT_URI_PATH, ROTATION_POINTS);
         sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, ROTATION_POINT_URI_PATH + "/#", ROTATION_POINT);
-        sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MAGNETIC_VALUE_POINT_URI_PATH, MAGNETIC_VALUE_POINTS);
-        sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MAGNETIC_VALUE_POINT_URI_PATH + "/#", MAGNETIC_VALUE_POINT);
+        sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MAGNETIC_VALUE_POINT_URI_PATH,
+                MAGNETIC_VALUE_POINTS);
+        sUriMatcher.addURI(MeasuringPointsContentProvider.AUTHORITY, MAGNETIC_VALUE_POINT_URI_PATH + "/#",
+                MAGNETIC_VALUE_POINT);
     }
 
     private final Map<Integer, CyfaceMeasurementTable> tables;
@@ -103,7 +111,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
      * The onUpgrade method is called when the app is upgraded and the DATABASE_VERSION changed.
      * The incremental database upgrades are executed to reach the current version.
      *
-     * @param db         the database which shall be upgraded
+     * @param db the database which shall be upgraded
      * @param oldVersion the database version the app was in before the upgrade
      * @param newVersion the database version of the new, upgraded app which shall be reached
      */
@@ -124,8 +132,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 Log.w(TAG, "Upgrading gravity_points from version 3 to 4: dropping table");
                 db.execSQL("DELETE FROM gravity_points; DROP TABLE gravity_points; ");
                 // no break, thus, the upgrade process continues with the next incremental upgrade step ->
-            /*case 4:
-                db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_4_to_5);*/
+                /*
+                 * case 4:
+                 * db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_4_to_5);
+                 */
         }
     }
 
@@ -135,8 +145,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
         CyfaceMeasurementTable table = tables.get(uriType);
         String rowIdentifier = uri.getLastPathSegment();
-        String adaptedSelection =
-                BaseColumns._ID + "=" + rowIdentifier + (selection == null ? "" : " AND " + selection);
+        String adaptedSelection = BaseColumns._ID + "=" + rowIdentifier
+                + (selection == null ? "" : " AND " + selection);
         switch (uriType) {
             case MEASUREMENT:
                 CyfaceMeasurementTable gpsPointsTable = tables.get(GPS_POINTS);
@@ -147,8 +157,10 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                 getWritableDatabase().beginTransaction();
                 gpsPointsTable.deleteRow(database, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", selectionArgs);
                 rotationPointsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "=?", selectionArgs);
-                magneticValuePointsTable.deleteRow(database, MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?", selectionArgs);
-                accelerationPointsTable.deleteRow(database, SamplePointTable.COLUMN_MEASUREMENT_FK + "=?", selectionArgs);
+                magneticValuePointsTable.deleteRow(database, MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                        selectionArgs);
+                accelerationPointsTable.deleteRow(database, SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                        selectionArgs);
                 getWritableDatabase().setTransactionSuccessful();
                 getWritableDatabase().endTransaction();
                 // continues here until return ! -->
@@ -167,9 +179,12 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
                     getWritableDatabase().beginTransaction();
                     gpsPointsTable.deleteRow(database, GpsPointsTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
-                    rotationPointsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
-                    magneticValuePointsTable.deleteRow(database, MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
-                    accelerationPointsTable.deleteRow(database, SamplePointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
+                    rotationPointsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "<=?",
+                            selectionArgs);
+                    magneticValuePointsTable.deleteRow(database, MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "<=?",
+                            selectionArgs);
+                    accelerationPointsTable.deleteRow(database, SamplePointTable.COLUMN_MEASUREMENT_FK + "<=?",
+                            selectionArgs);
                     getWritableDatabase().setTransactionSuccessful();
                     getWritableDatabase().endTransaction();
                 } else {
@@ -216,8 +231,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             case SAMPLE_POINT:
             case MAGNETIC_VALUE_POINT:
             case ROTATION_POINT:
-                String adaptedSelection = BaseColumns._ID + "=" + uri.getLastPathSegment() + (selection == null ?
-                        "" : " AND " + selection);
+                String adaptedSelection = BaseColumns._ID + "=" + uri.getLastPathSegment()
+                        + (selection == null ? "" : " AND " + selection);
                 return table.query(getReadableDatabase(), projection, adaptedSelection, selectionArgs, sortOrder);
             default:
                 throw new IllegalArgumentException("Unknown URI: " + uri);
@@ -240,8 +255,8 @@ public class DatabaseHelper extends SQLiteOpenHelper {
             case MAGNETIC_VALUE_POINT:
             case ROTATION_POINT:
                 String id = uri.getLastPathSegment();
-                String adaptedSelection =
-                        BaseColumns._ID + "=" + id + (TextUtils.isEmpty(selection) ? "" : " AND " + selection);
+                String adaptedSelection = BaseColumns._ID + "=" + id
+                        + (TextUtils.isEmpty(selection) ? "" : " AND " + selection);
                 return table.update(getWritableDatabase(), values, adaptedSelection, selectionArgs);
             default:
                 throw new IllegalArgumentException("Unknown URI: " + uri);
