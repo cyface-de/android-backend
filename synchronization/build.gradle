@@ -39,7 +39,11 @@ android {
         }
     }
 
+    // Required by roboletric
     testOptions {
+        unitTests {
+            includeAndroidResources = true
+        }
         unitTests.returnDefaultValues = true
     }
 }

@@ -9,14 +9,8 @@
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <!-- Required to read current background synchronisation settings -->
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
-    <!-- Required to read the Cyface accounts currently registered with the system -->
-    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
     <!-- Required to authenticate Cyface accounts with a Cyface server -->
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
-    <!-- Required to delete Cyface accounts from the Android system -->
-    <uses-permission
-        android:name="android.permission.MANAGE_ACCOUNTS"
-        android:maxSdkVersion="22" />
 
     <application>
         <!-- Declares the data capturing service which is not exported to other applications. Most important is the android:process declaration with the ":" in the beginning. It tells the system to run the service in its own process. -->

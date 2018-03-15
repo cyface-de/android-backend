@@ -5,14 +5,11 @@ import java.util.List;
 import java.util.UUID;
 
 import android.accounts.Account;
-import android.accounts.AccountManager;
 import android.content.ComponentName;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -27,19 +24,18 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
-import de.cyface.persistence.BuildConfig;
 import de.cyface.synchronization.CyfaceSyncAdapter;
-import de.cyface.synchronization.StubAuthenticator;
+import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.WiFiSurveyor;
 
 /**
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
  * to an appropriate server. To avoid using the users traffic or incurring costs, the service waits for Wifi access
  * before transmitting any data. You may however force synchronization if required, using
- * {@link #forceMeasurementSynchronisation()}.
+ * {@link #forceMeasurementSynchronisation(String)}.
  * <p>
  * An object of this class is not thread safe and should only be used once per application. You may start and stop the
  * service as often as you like and reuse the object.
@@ -49,7 +45,7 @@ import de.cyface.synchronization.StubAuthenticator;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -58,27 +54,6 @@ public abstract class DataCapturingService {
      * Tag used to identify Logcat messages issued by instances of this class.
      */
     private static final String TAG = "de.cyface.capturing";
-    /**
-     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
-     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
-     * for further information.
-     */
-    private final static String AUTHORITY = BuildConfig.provider;
-    /**
-     * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
-     */
-    private static final long SECONDS_PER_MINUTE = 60L;
-    /**
-     * The data synchronisation interval in minutes.
-     */
-    private static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes.
-                                                              // It seems reasonable and can be changed in the future.
-    /**
-     * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
-     * seconds using {@link #SECONDS_PER_MINUTE}.
-     */
-    private static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
-
     /*
      * MARK: Properties
      */
@@ -87,7 +62,6 @@ public abstract class DataCapturingService {
      * {@code true} if data capturing is running; {@code false} otherwise.
      */
     private boolean isRunning = false;
-
     /**
      * A weak reference to the calling context. This is a weak reference since the calling context (i.e.
      * <code>Activity</code>) might have been destroyed, in which case there is no context anymore.
@@ -109,11 +83,12 @@ public abstract class DataCapturingService {
      * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
      */
     private Messenger toServiceMessenger;
-
     /**
-     * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such <code>Account</code> has been set.
+     * This object observers the current WiFi state and starts and stops synchronization based on whether WiFi is active
+     * or not. If the WiFi is active it should activate synchronization. If WiFi connectivity is lost it deactivates the
+     * synchronization.
      */
-    private Account currentSynchronizationAccount;
+    private final WiFiSurveyor surveyor;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -141,6 +116,7 @@ public abstract class DataCapturingService {
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
         }
+        surveyor = new WiFiSurveyor(context);
     }
 
     /**
@@ -189,9 +165,6 @@ public abstract class DataCapturingService {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
             persistenceLayer.closeRecentMeasurement();
-            if(currentSynchronizationAccount!=null) {
-                activateDataSynchronisation();
-            }
         }
     }
 
@@ -209,11 +182,9 @@ public abstract class DataCapturingService {
      *
      * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
-    public void forceMeasurementSynchronisation() throws SynchronisationException {
-        if(currentSynchronizationAccount==null) {
-            throw new SynchronisationException("No current synchonization account registered with this server!");
-        }
-        ContentResolver.requestSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
+    public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
+        Account account = getWiFiSurveyor().getOrCreateAccount(username);
+        getWiFiSurveyor().scheduleSyncNow(account);
     }
 
     // TODO provide a custom list implementation that loads only small portions into memory.
@@ -266,91 +237,6 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Sets or resets the currently used synchronization account.
-     *
-     * @param username The username of the new synchronization account.
-     * @throws SynchronisationException If creation of the new account was not successful.
-     */
-    void setCurrentSynchronizationAccount(final @NonNull String username) throws SynchronisationException {
-        this.currentSynchronizationAccount = getOrCreateAccount(username);
-    }
-
-    /**
-     * @return The current synchronization <code>Account</code> used or <code>null</code> if there is no such <code>Account</code> registered.
-     */
-    Account getCurrentSynchronizationAccount() {
-        return currentSynchronizationAccount;
-    }
-
-    /**
-     * Deletes a Cyface account from the Android <code>Account</code> system. Does silently nothing if no such <code>Account</code> exists.
-     *
-     * @param username The username of the account to delete.
-     */
-    void deleteAccount(final @NonNull String username) {
-        AccountManager accountManager = AccountManager.get(getContext());
-        Account account = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
-        synchronized (this) {
-            if (Build.VERSION.SDK_INT < 22) {
-                accountManager.removeAccount(account, null, null);
-            } else {
-                accountManager.removeAccountExplicitly(account);
-            }
-            currentSynchronizationAccount = null;
-        }
-    }
-
-    /**
-     * This method retrieves an <code>Account</code> from the Android account system. If the <code>Account</code> does
-     * not exist it is created before returning it.
-     *
-     * @param username The username of the account you would like to get.
-     * @return The requested <code>Account</code>
-     */
-    Account getOrCreateAccount(final @NonNull String username) throws SynchronisationException {
-        AccountManager am = AccountManager.get(context.get());
-        Account[] cyfaceAccounts = am.getAccountsByType(StubAuthenticator.ACCOUNT_TYPE);
-        if (cyfaceAccounts.length == 0) {
-            synchronized (this) {
-                Account newAccount = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
-                boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
-                if (!newAccountAdded) {
-                    throw new SynchronisationException("Unable to add dummy account!");
-                }
-                ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
-                ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
-                return newAccount;
-            }
-        } else {
-            return cyfaceAccounts[0];
-        }
-    }
-
-    /**
-     * Activates data synchronisation if allowed by the system settings. Synchronisation happens once every
-     * {@link #SYNC_INTERVAL_IN_MINUTES} minutes.
-     *
-     * @throws SynchronisationException If there is no valid Android context to start synchronisation or no valid
-     *             authentication information.
-     */
-    void activateDataSynchronisation() throws SynchronisationException {
-        if (context.get() == null) {
-            throw new SynchronisationException("No valid context to enable data synchronization!");
-        }
-
-        if(currentSynchronizationAccount==null) {
-            throw new SynchronisationException("No account for data synchronization registered with this service.");
-        }
-
-        boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount, AUTHORITY);
-        boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
-
-        if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-            ContentResolver.addPeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
-        }
-    }
-
-    /**
      * Binds this <code>DataCapturingService</code> facade to the underlying {@link DataCapturingBackgroundService}.
      *
      * @throws DataCapturingException If binding fails.
@@ -388,6 +274,16 @@ public abstract class DataCapturingService {
      */
     public void reconnect() throws DataCapturingException {
         bind();
+    }
+
+    /**
+     * Provides the <code>WiFiSurveyor</code> responsible for switching data synchronization on and off, based on WiFi
+     * state.
+     *
+     * @return The currently active <code>WiFiSurveyor</code>.
+     */
+    WiFiSurveyor getWiFiSurveyor() {
+        return surveyor;
     }
 
     /**
