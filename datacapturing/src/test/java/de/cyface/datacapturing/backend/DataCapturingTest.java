@@ -3,25 +3,21 @@
  */
 package de.cyface.datacapturing.backend;
 
-import android.hardware.SensorManager;
-import android.location.Location;
-import android.location.LocationManager;
+import static org.mockito.Matchers.any;
+import static org.mockito.Mockito.times;
+import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
 
-import java.util.Collections;
+import android.hardware.SensorManager;
+import android.location.Location;
+import android.location.LocationManager;
 
-import de.cyface.datacapturing.model.CapturedData;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertTrue;
-import static org.mockito.Matchers.any;
-import static org.mockito.Mockito.times;
-import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
+import de.cyface.datacapturing.model.GeoLocation;
 
 /**
  * Tests the correct workings of the data capturing functionality.
@@ -60,11 +56,12 @@ public class DataCapturingTest {
         when(location.getLongitude()).thenReturn(13.78828128);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
-        try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService, gpsStatusHandler);){
+        try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService,
+                gpsStatusHandler);) {
             dataCapturing.addCapturingProcessListener(listener);
             gpsStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
-            verify(listener).onPointCaptured(new CapturedData(51.03624633, 13.78828128, 0L, 0.0, 0, Collections.EMPTY_LIST, Collections.EMPTY_LIST, Collections.EMPTY_LIST));
+            verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f));
         }
     }
 
@@ -82,13 +79,14 @@ public class DataCapturingTest {
         when(location.getLongitude()).thenReturn(1.0);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
-        try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService, gpsStatusHandler);){
+        try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService,
+                gpsStatusHandler);) {
             dataCapturing.addCapturingProcessListener(listener);
             dataCapturing.onLocationChanged(location);
             dataCapturing.onLocationChanged(location);
             gpsStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
-            verify(listener, times(1)).onPointCaptured(any(CapturedData.class));
+            verify(listener, times(1)).onLocationCaptured(any(GeoLocation.class));
         }
     }
 }

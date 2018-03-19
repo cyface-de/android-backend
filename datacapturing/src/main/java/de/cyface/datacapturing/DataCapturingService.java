@@ -24,7 +24,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.synchronization.CyfaceSyncAdapter;
@@ -148,10 +148,8 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
      *             occurs, but you have to handle it to prevent your application from crashing.
-     * @throws SynchronisationException If this service was unable to activate data synchronisation after finishing the
-     *             measurement.
      */
-    public void stop() throws DataCapturingException, SynchronisationException {
+    public void stop() throws DataCapturingException {
         if (context.get() == null) {
             return;
         }
@@ -368,21 +366,20 @@ public abstract class DataCapturingService {
         public void handleMessage(final @NonNull Message msg) {
 
             switch (msg.what) {
-                case MessageCodes.POINT_CAPTURED:
+                case MessageCodes.LOCATION_CAPTURED:
                     Bundle dataBundle = msg.getData();
                     dataBundle.setClassLoader(getClass().getClassLoader());
-                    CapturedData data = dataBundle.getParcelable("data");
-                    if (data == null) {
+                    GeoLocation location = dataBundle.getParcelable("data");
+                    if (location == null) {
                         listener.onErrorState(
                                 new DataCapturingException(context.getString(R.string.missing_data_error)));
                     } else {
-
-                        GeoLocation geoLocation = new GeoLocation(data.getLat(), data.getLon(), data.getGpsTime(),
-                                data.getGpsSpeed(), data.getGpsAccuracy());
-
-                        listener.onNewGeoLocationAcquired(geoLocation);
+                        listener.onNewGeoLocationAcquired(location);
                     }
                     break;
+                case MessageCodes.DATA_CAPTURED:
+                    Log.i(TAG, "Captured some sensor data, which is ignored for now.");
+                    // TOD
                 case MessageCodes.GPS_FIX:
                     listener.onFixAcquired();
                     break;

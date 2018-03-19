@@ -3,38 +3,39 @@ package de.cyface.datacapturing.backend;
 import android.location.LocationManager;
 
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 
 /**
- * <p>
  * Interface for all classes that need to listen to events sent by a <code>CapturingProcess</code>.
- * </p>
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 4.0.0
  * @since 1.0.0
  */
 public interface CapturingProcessListener {
     /**
-     * <p>
-     * Called every time a new data point with a valid GPS coordinate has been captured. Transmitted alongside are
-     * the accelerations, rotations and magnetic values captured since the last fix.
-     * </p>
+     * Called every time a new data point with a valid geo location coordinate has been captured.
      *
-     * @param data Captured data wrapper object.
+     * @param location Captured data wrapper object.
      */
-    void onPointCaptured(final CapturedData data);
-    /**
-     * <p>
-     * Called when the {@link LocationManager} this object is registered with thinks there was a successful
-     * GPS fix.
-     * </p>
-     */
-    void onGpsFix();
+    void onLocationCaptured(GeoLocation location);
 
     /**
-     * <p>
-     * Called when the {@link LocationManager} this object is registered with thinks GPS fix was lost.
-     * </p>
+     * Transmits the accelerations, rotations and directions captured in intervals of approximately one geo
+     * location fix or one second if no fix occurs..
+     *
+     * @param data The data captured covering a list of accelerations, rotations and directions.
      */
-    void onGpsFixLost();
+    void onDataCaptured(CapturedData data);
+
+    /**
+     * Called when the {@link LocationManager} this object is registered with thinks there was a successful
+     * geo location fix.
+     */
+    void onLocationFix();
+
+    /**
+     * Called when the {@link LocationManager} this object is registered with thinks geo location fix was lost.
+     */
+    void onLocationFixLost();
 }

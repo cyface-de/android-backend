@@ -14,9 +14,11 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
 
 /**
@@ -146,11 +148,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             double longitude = location.getLongitude();
             long gpsTime = location.getTime();
             double speed = getCurrentSpeed(location);
-            // Android gets the accuracy in meters but we save it in centimeters.
-            int gpsAccuracy = Math.round(location.getAccuracy() * 100);
+            float gpsAccuracy = location.getAccuracy();
+
             for (CapturingProcessListener listener : this.listener) {
-                listener.onPointCaptured(new CapturedData(latitude, longitude, gpsTime, speed, gpsAccuracy,
-                        accelerations, rotations, directions));
+                listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
+                listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
             }
             accelerations.clear();
             rotations.clear();
@@ -174,7 +176,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     }
 
     @Override
-    public void onSensorChanged(final SensorEvent event) {
+    public void onSensorChanged(final @NonNull SensorEvent event) {
         long thisSensorEventTime = event.timestamp / 1000000L + eventTimeOffset;
         if (eventTimeOffset == 0) {
             // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with
@@ -186,18 +188,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (!gpsStatusHandler.hasGpsFix() && (lastNoGeoLocationFixUpdateTime == 0
                 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
             try {
-                Location location = locationManager.getLastKnownLocation(LocationManager.GPS_PROVIDER);
-
                 for (CapturingProcessListener listener : this.listener) {
-
-                    double lat = location.getLatitude();
-                    double lon = location.getLongitude();
-                    long time = location.getTime();
-                    double speed = location.getSpeed();
-                    int accuracy = Math.round(location.getAccuracy() * 100);
-                    CapturedData capturedData = new CapturedData(lat, lon, time, speed, accuracy, accelerations,
-                            rotations, directions);
-                    listener.onPointCaptured(capturedData);
+                    CapturedData capturedData = new CapturedData(accelerations, rotations, directions);
+                    listener.onDataCaptured(capturedData);
                 }
             } catch (SecurityException e) {
                 throw new IllegalStateException(e);

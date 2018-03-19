@@ -1,5 +1,20 @@
 package de.cyface.datacapturing;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import android.Manifest;
 import android.content.Context;
 import android.location.Location;
@@ -10,23 +25,9 @@ import android.support.test.filters.LargeTest;
 import android.support.test.rule.GrantPermissionRule;
 import android.support.test.runner.AndroidJUnit4;
 
-import org.junit.Rule;
-import org.junit.runner.RunWith;
-
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests whether the specific features required for the Movebis project work as expected.
@@ -56,16 +57,25 @@ public final class MovebisTest {
     /**
      * Tests if one lifecycle of starting and stopping location updates works as expected.
      *
-     * @throws SetupException Should not happen. For further details look at the documentation of {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
+     * @throws SetupException Should not happen. For further details look at the documentation of
+     *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
+    @Test
     public void testUiLocationUpdateLifecycle() throws SetupException {
         Context context = InstrumentationRegistry.getTargetContext();
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
         TestUIListener listener = new TestUIListener(lock, condition);
-        MovebisDataCapturingService oocut = new MovebisDataCapturingService(context, "https://localhost:8080", listener, 0L);
+        final MovebisDataCapturingService oocut = new MovebisDataCapturingService(context, "https://localhost:8080",
+                listener, 0L);
 
-        oocut.startUILocationUpdates();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.startUILocationUpdates();
+            }
+        });
+
         lock.lock();
         try {
             condition.await(10L, TimeUnit.SECONDS);
@@ -76,7 +86,7 @@ public final class MovebisTest {
         }
         oocut.stopUILocationUpdates();
 
-        assertThat(listener.receivedUpdates.isEmpty(),is(equalTo(false)));
+        assertThat(listener.receivedUpdates.isEmpty(), is(equalTo(false)));
     }
 
     /**

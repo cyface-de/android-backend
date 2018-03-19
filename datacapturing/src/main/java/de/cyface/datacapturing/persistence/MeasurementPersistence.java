@@ -15,9 +15,9 @@ import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.datacapturing.GeoLocation;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.GpsPointsTable;
@@ -32,12 +32,15 @@ import de.cyface.persistence.SamplePointTable;
  * delegate objects.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
 
-    private static final String TAG = "cyface.persistence";
+    /**
+     * Tag used to identify messages on logcat.
+     */
+    private static final String TAG = "de.cyface.persistence";
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -91,31 +94,10 @@ public class MeasurementPersistence {
      * @param data The data to store.
      */
     public void storeData(final @NonNull CapturedData data) {
-        Cursor measurementIdentifierQueryCursor = null;
         try {
-            measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
-                    new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
-                    MeasurementTable.COLUMN_FINISHED + "=0", null, BaseColumns._ID + " DESC");
-            if (measurementIdentifierQueryCursor == null) {
-                throw new IllegalStateException("Unable to query for measurement identifier!");
-            }
-
-            if (measurementIdentifierQueryCursor.getCount() > 1) {
-                Log.w(TAG,
-                        "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
-            }
-
-            if (!measurementIdentifierQueryCursor.moveToFirst()) {
-                throw new IllegalStateException("Unable to get measurement to store captured data to!");
-            }
-
-            int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
-                    .getColumnIndex(BaseColumns._ID);
-            final long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
-
+            final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
             ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
 
-            batchOperations.add(newGeoLocationInsertOperation(measurementIdentifier, data));
             batchOperations.addAll(newDataPointInsertOperation(data.getAccelerations(),
                     MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
                         @Override
@@ -164,34 +146,64 @@ public class MeasurementPersistence {
             throw new IllegalStateException(e);
         } catch (OperationApplicationException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Stores the provided geo location under the currently active captured measurement.
+     *
+     * @param location The geo location to store.
+     */
+    public void storeLocation(final @NonNull GeoLocation location) {
+        long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
+
+        ContentValues values = new ContentValues();
+        // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
+        values.put(GpsPointsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
+        values.put(GpsPointsTable.COLUMN_GPS_TIME, location.getTimestamp());
+        values.put(GpsPointsTable.COLUMN_IS_SYNCED, false);
+        values.put(GpsPointsTable.COLUMN_LAT, location.getLat());
+        values.put(GpsPointsTable.COLUMN_LON, location.getLon());
+        values.put(GpsPointsTable.COLUMN_SPEED, location.getSpeed());
+        values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+
+        resolver.insert(MeasuringPointsContentProvider.GPS_POINTS_URI, values);
+    }
+
+    /**
+     * Provides the identifier of the measurement currently captured by the framework. This method should only be called
+     * if capturing is active or throw an error otherwise.
+     *
+     * @return The system wide unique identifier of the active measurement.
+     */
+    private long getIdentifierOfCurrentlyCapturedMeasurement() {
+        Cursor measurementIdentifierQueryCursor = null;
+        try {
+            measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
+                    new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
+                    MeasurementTable.COLUMN_FINISHED + "=0", null, BaseColumns._ID + " DESC");
+            if (measurementIdentifierQueryCursor == null) {
+                throw new IllegalStateException("Unable to query for measurement identifier!");
+            }
+
+            if (measurementIdentifierQueryCursor.getCount() > 1) {
+                Log.w(TAG,
+                        "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
+            }
+
+            if (!measurementIdentifierQueryCursor.moveToFirst()) {
+                throw new IllegalStateException("Unable to get measurement to store captured data to!");
+            }
+
+            int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
+            final long measurementIdentifier = measurementIdentifierQueryCursor
+                    .getLong(indexOfMeasurementIdentifierColumn);
+            return measurementIdentifier;
         } finally {
             if (measurementIdentifierQueryCursor != null) {
                 measurementIdentifierQueryCursor.close();
             }
         }
-    }
-
-    /**
-     * Creates a new operation to store the geo location from the provided data under the measurement identified by the
-     * provided identifier.
-     *
-     * @param measurementIdentifier The identifier of the measurement to store the geo location under.
-     * @param data The data containing the geo location to store.
-     * @return A new persistence operation ready to be executed.
-     */
-    private ContentProviderOperation newGeoLocationInsertOperation(final long measurementIdentifier,
-            final CapturedData data) {
-        ContentValues values = new ContentValues();
-        values.put(GpsPointsTable.COLUMN_ACCURACY, data.getGpsAccuracy());
-        values.put(GpsPointsTable.COLUMN_GPS_TIME, data.getGpsTime());
-        values.put(GpsPointsTable.COLUMN_IS_SYNCED, false);
-        values.put(GpsPointsTable.COLUMN_LAT, data.getLat());
-        values.put(GpsPointsTable.COLUMN_LON, data.getLon());
-        values.put(GpsPointsTable.COLUMN_SPEED, data.getGpsSpeed());
-        values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-
-        return ContentProviderOperation.newInsert(MeasuringPointsContentProvider.GPS_POINTS_URI).withValues(values)
-                .build();
     }
 
     /**
@@ -272,14 +284,21 @@ public class MeasurementPersistence {
                 arrayWithMeasurementIdentifier);
     }
 
-    public List<GeoLocation> loadTrack(Measurement measurement) {
+    /**
+     * Loads the track of <code>GeoLocation</code> objects for the provided measurement.
+     *
+     * @param measurement The measurement to load the track for.
+     * @return The loaded track of <code>GeoLocation</code> objects ordered by time ascending.
+     */
+    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) {
         Cursor locationsCursor = null;
         try {
-            locationsCursor = resolver.query(MeasuringPointsContentProvider.GPS_POINTS_URI, null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[]{Long.valueOf(measurement.getIdentifier()).toString()},
+            locationsCursor = resolver.query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
+                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
                     GpsPointsTable.COLUMN_GPS_TIME + " ASC");
 
-            if(locationsCursor==null) {
+            if (locationsCursor == null) {
                 return Collections.emptyList();
             }
 
@@ -287,17 +306,18 @@ public class MeasurementPersistence {
             while (locationsCursor.moveToNext()) {
                 double lat = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LAT));
                 double lon = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LON));
-                long timestamp = locationsCursor.getLong(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME));
+                long timestamp = locationsCursor
+                        .getLong(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME));
                 double speed = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED));
-                float accuracy = locationsCursor.getFloat(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY));
+                float accuracy = locationsCursor
+                        .getFloat(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY));
 
-
-                ret.add(new GeoLocation(lat,lon,timestamp,speed,accuracy));
+                ret.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));
             }
 
             return ret;
         } finally {
-            if(locationsCursor!=null) {
+            if (locationsCursor != null) {
                 locationsCursor.close();
             }
         }

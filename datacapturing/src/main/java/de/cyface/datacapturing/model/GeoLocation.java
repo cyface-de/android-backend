@@ -1,15 +1,21 @@
-package de.cyface.datacapturing;
+package de.cyface.datacapturing.model;
 
 import java.util.Locale;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+import android.support.annotation.NonNull;
+
+import de.cyface.datacapturing.DataCapturingService;
 
 /**
  * A position captured by the {@link DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
-public class GeoLocation {
+public class GeoLocation implements Parcelable {
     /**
      * The captured latitude of this {@code GeoLocation} in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
@@ -109,5 +115,86 @@ public class GeoLocation {
      */
     public float getAccuracy() {
         return accuracy;
+    }
+
+    /*
+     * MARK: Parcelable Interface
+     */
+
+    /**
+     * Constructor as required by <code>Parcelable</code> implementation.
+     *
+     * @param in A <code>Parcel</code> that is a serialized version of a <code>GeoLocation</code>.
+     */
+    protected GeoLocation(final @NonNull Parcel in) {
+        lat = in.readDouble();
+        lon = in.readDouble();
+        timestamp = in.readLong();
+        speed = in.readDouble();
+        accuracy = in.readFloat();
+    }
+
+    /**
+     * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
+     */
+    public static final Creator<GeoLocation> CREATOR = new Creator<GeoLocation>() {
+        @Override
+        public GeoLocation createFromParcel(Parcel in) {
+            return new GeoLocation(in);
+        }
+
+        @Override
+        public GeoLocation[] newArray(int size) {
+            return new GeoLocation[size];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(Parcel dest, int flags) {
+        dest.writeDouble(lat);
+        dest.writeDouble(lon);
+        dest.writeLong(timestamp);
+        dest.writeDouble(speed);
+        dest.writeFloat(accuracy);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+
+        GeoLocation that = (GeoLocation)o;
+
+        if (Double.compare(that.lat, lat) != 0)
+            return false;
+        if (Double.compare(that.lon, lon) != 0)
+            return false;
+        if (timestamp != that.timestamp)
+            return false;
+        if (Double.compare(that.speed, speed) != 0)
+            return false;
+        return Float.compare(that.accuracy, accuracy) == 0;
+    }
+
+    @Override
+    public int hashCode() {
+        int result;
+        long temp;
+        temp = Double.doubleToLongBits(lat);
+        result = (int)(temp ^ (temp >>> 32));
+        temp = Double.doubleToLongBits(lon);
+        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        result = 31 * result + (int)(timestamp ^ (timestamp >>> 32));
+        temp = Double.doubleToLongBits(speed);
+        result = 31 * result + (int)(temp ^ (temp >>> 32));
+        result = 31 * result + (accuracy != +0.0f ? Float.floatToIntBits(accuracy) : 0);
+        return result;
     }
 }
