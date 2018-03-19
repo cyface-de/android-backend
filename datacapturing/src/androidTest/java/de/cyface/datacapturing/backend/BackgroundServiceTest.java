@@ -12,6 +12,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -34,8 +36,12 @@ import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.MessageCodes;
+import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
 // TODO It is possible to simplify this test and remove the synchronization lock.
 /**
@@ -43,7 +49,7 @@ import de.cyface.datacapturing.model.CapturedData;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,6 +81,23 @@ public class BackgroundServiceTest {
     private Messenger fromServiceMessenger;
 
     /**
+     * Required to create a test measurement.
+     */
+    private MeasurementPersistence persistence;
+
+    @Before
+    public void setUp() {
+        Context context = InstrumentationRegistry.getTargetContext();
+        persistence = new MeasurementPersistence(context.getContentResolver());
+        persistence.newMeasurement(Vehicle.BICYCLE);
+    }
+
+    @After
+    public void tearDown() {
+        persistence.clear();
+    }
+
+    /**
      * This test case checks that starting the service works and that the service actually returns some data.
      * <p>
      * CAREFUL! Since the test requires a working geo location and 3 axis of freedom sensor it will only work on an
@@ -85,7 +108,7 @@ public class BackgroundServiceTest {
      */
     @Test
     public void testStartDataCapturing() throws InterruptedException {
-        Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getTargetContext();
 
         FromServiceMessageHandler fromServiceMessageHandler = createFromServiceMessengerSyncronously();
         if (fromServiceMessenger == null) {
@@ -98,13 +121,20 @@ public class BackgroundServiceTest {
         context.startService(startIntent);
         context.bindService(startIntent, toServiceConnection, 0);
 
-        Thread.sleep(60_000L);
+        final TestCallback testCallback = new TestCallback();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                PongReceiver isRunningChecker = new PongReceiver(context);
+                isRunningChecker.pongAndReceive(1, TimeUnit.MINUTES, testCallback);
+            }
+        });
 
         context.unbindService(toServiceConnection);
         Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
         assertThat(context.stopService(stopIntent), is(equalTo(true)));
-        Log.d(TAG, fromServiceMessageHandler.getCapturedData().toString());
-        assertThat(fromServiceMessageHandler.getCapturedData().isEmpty(), is(equalTo(false)));
+        assertThat(testCallback.isRunning, is(equalTo(true)));
+        assertThat(testCallback.timedOut, is(equalTo(false)));
     }
 
     /**
@@ -118,16 +148,25 @@ public class BackgroundServiceTest {
      */
     @Test
     public void testStartDataCapturingTwice() throws InterruptedException {
-        Context context = InstrumentationRegistry.getContext();
+        final Context context = InstrumentationRegistry.getTargetContext();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         assertThat(context.startService(startIntent), is(notNullValue()));
         assertThat(context.startService(startIntent), is(notNullValue()));
 
-        Thread.sleep(2000L);
+        final TestCallback testCallback = new TestCallback();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                PongReceiver isRunningChecker = new PongReceiver(context);
+                isRunningChecker.pongAndReceive(2, TimeUnit.SECONDS, testCallback);
+            }
+        });
 
         Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
         assertThat(context.stopService(stopIntent), is(true));
+        assertThat(testCallback.isRunning, is(equalTo(true)));
+        assertThat(testCallback.timedOut, is(equalTo(false)));
     }
 
     /**
@@ -267,7 +306,7 @@ public class BackgroundServiceTest {
             Log.d(TAG, String.format("Test received message %d.", msg.what));
             // super.handleMessage(msg);
             switch (msg.what) {
-                case MessageCodes.DATA_CAPTURED:
+                case MessageCodes.POINT_CAPTURED:
                     Bundle dataBundle = msg.getData();
                     dataBundle.setClassLoader(getClass().getClassLoader());
                     CapturedData data = dataBundle.getParcelable("data");
@@ -290,6 +329,22 @@ public class BackgroundServiceTest {
          */
         List<CapturedData> getCapturedData() {
             return capturedData;
+        }
+    }
+
+    private static class TestCallback implements IsRunningCallback {
+
+        boolean isRunning = false;
+        boolean timedOut = false;
+
+        @Override
+        public void isRunning() {
+            isRunning = true;
+        }
+
+        @Override
+        public void timedOut() {
+            timedOut = true;
         }
     }
 }

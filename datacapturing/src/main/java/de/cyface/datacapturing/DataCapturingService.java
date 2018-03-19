@@ -3,6 +3,7 @@ package de.cyface.datacapturing;
 import java.lang.ref.WeakReference;
 import java.util.List;
 import java.util.UUID;
+import java.util.concurrent.TimeUnit;
 
 import android.accounts.Account;
 import android.content.ComponentName;
@@ -45,7 +46,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 2.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -116,7 +117,6 @@ public abstract class DataCapturingService {
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
         }
-        surveyor = new WiFiSurveyor(context);
     }
 
     /**
@@ -207,10 +207,21 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @return {@code true} if the data capturing service is running; {@code false} otherwise.
+     * This method checks for whether the service is currently running or not. Since this requires an asynchronous inter
+     * process communication, it should be
+     * considered a long running operation.
+     *
+     * @param timeout The timeout of how long to wait for the service to answer before deciding it is not running. After
+     *            this timeout has passed the <code>IsRunningCallback#timedOut()</code> method is called. Since the
+     *            communication between this class and its background service is usually quite fast (almost
+     *            instantaneous), you may use pretty low values here. It still is a long running operation and should be
+     *            handled as such in the UI.
+     * @param unit The unit of time specified by timeout.
+     * @param callback Called as soon as the current state of the service has become clear.
      */
-    public boolean isRunning() {
-        return isRunning;
+    public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
+        final PongReceiver pongReceiver = new PongReceiver(getContext());
+        pongReceiver.pongAndReceive(timeout, unit, callback);
     }
 
     /**
@@ -272,16 +283,6 @@ public abstract class DataCapturingService {
      */
     public void reconnect() throws DataCapturingException {
         bind();
-    }
-
-    /**
-     * Provides the <code>WiFiSurveyor</code> responsible for switching data synchronization on and off, based on WiFi
-     * state.
-     *
-     * @return The currently active <code>WiFiSurveyor</code>.
-     */
-    WiFiSurveyor getWiFiSurveyor() {
-        return surveyor;
     }
 
     /**

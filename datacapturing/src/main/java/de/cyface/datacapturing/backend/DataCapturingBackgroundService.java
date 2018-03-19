@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
+
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
 import java.util.Set;
@@ -8,6 +10,7 @@ import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.os.Build;
@@ -76,25 +79,29 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * measurement data.
      */
     private MeasurementPersistence persistenceLayer;
+    /**
+     * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
+     */
+    private PingReceiver pingReceiver = new PingReceiver();
 
     /*
      * MARK: Service Lifecycle Methods
      */
 
     @Override
-    public IBinder onBind(final Intent intent) {
+    public IBinder onBind(final @NonNull Intent intent) {
         Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
         return callerMessenger.getBinder();
     }
 
     @Override
-    public boolean onUnbind(final Intent intent) {
+    public boolean onUnbind(final @NonNull Intent intent) {
         Log.d(TAG, "Unbinding from data capturing service.");
         return true; // I want to receive calls to onRebind
     }
 
     @Override
-    public void onRebind(final Intent intent) {
+    public void onRebind(final @NonNull Intent intent) {
         Log.d(TAG, "Rebinding to data capturing service.");
         super.onRebind(intent);
     }
@@ -113,7 +120,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
             wakeLock.acquire();
         } else {
-            Log.w(TAG, "Unable to acquire PowerManager. Not wake lock set!");
+            Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
 
         Log.d(TAG, "finishedOnCreate");
@@ -122,6 +129,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        unregisterReceiver(pingReceiver);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -138,6 +146,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (intent != null) { // If this is the initial start command call init.
             init();
         }
+        registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
         return Service.START_STICKY;
     }
 
@@ -255,7 +264,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         @Override
-        public void handleMessage(final Message msg) {
+        public void handleMessage(final @NonNull Message msg) {
             Log.d(TAG, String.format("Service received message %s", msg.what));
             if (msg == null) {
                 throw new IllegalArgumentException("Illegal argument: msg was null!");

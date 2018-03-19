@@ -16,6 +16,10 @@ public class MessageCodes {
     public static final int NO_GPS_FIX = 7;
     public static final int WARNING_SPACE = 8;
 
+    // TODO This needs to be qualified.
+    public static final String ACTION_PING = "de.cyface.ping";
+    public static final String ACTION_PONG = "de.cyface.pong";
+
     /**
      * Private constructor for utility class.
      */
