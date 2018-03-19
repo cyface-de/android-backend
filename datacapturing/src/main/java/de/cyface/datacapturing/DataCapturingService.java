@@ -117,6 +117,7 @@ public abstract class DataCapturingService {
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
         }
+        surveyor = new WiFiSurveyor(context);
     }
 
     /**
@@ -283,6 +284,16 @@ public abstract class DataCapturingService {
      */
     public void reconnect() throws DataCapturingException {
         bind();
+    }
+
+    /**
+     * Provides the <code>WiFiSurveyor</code> responsible for switching data synchronization on and off, based on WiFi
+     * state.
+     *
+     * @return The currently active <code>WiFiSurveyor</code>.
+     */
+    WiFiSurveyor getWiFiSurveyor() {
+        return surveyor;
     }
 
     /**
