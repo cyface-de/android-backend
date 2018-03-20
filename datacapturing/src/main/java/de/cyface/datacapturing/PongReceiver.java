@@ -10,6 +10,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 /**
  * Created by muthmann on 18.03.18.
@@ -17,6 +18,7 @@ import android.support.annotation.NonNull;
 
 public class PongReceiver extends BroadcastReceiver {
 
+    private static final String TAG = "de.cyface.capturing";
     private IsRunningCallback callback;
     private boolean isRunning;
     private boolean isTimedOut;
@@ -40,10 +42,12 @@ public class PongReceiver extends BroadcastReceiver {
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
+                Log.d(TAG,"PongReceiver.pongAndReceive(): timeout reached after "+unit.toMillis(timeout)+" milliseconds.");
                 lock.lock();
                 try {
                     if (!isRunning) {
-                        callback.timedOut();
+                        Log.d(TAG,"PongReceiver.pongAndReceive(): Service seems not to be running. Timing out!");
+                        PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
                     }
@@ -56,9 +60,11 @@ public class PongReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
+        Log.d(TAG,"PongReceiver.onReceive(): Received Pong Event.");
         lock.lock();
         try {
-            if (!isTimedOut) {
+            if (!isTimedOut && MessageCodes.ACTION_PONG.equals(intent.getAction())) {
+                Log.d(TAG,"PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
                 this.context.unregisterReceiver(this);

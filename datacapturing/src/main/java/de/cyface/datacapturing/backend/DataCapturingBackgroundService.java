@@ -181,7 +181,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @param messageCode A code identifying the message that is send. See {@link MessageCodes} for further details.
      * @param data The data to send appended to this message. This may be <code>null</code> if no data needs to be send.
      */
-    private void informCaller(final int messageCode, final @NonNull Parcelable data) {
+    private void informCaller(final int messageCode, final Parcelable data) {
         Message msg = Message.obtain(null, messageCode);
 
         if (data != null) {
@@ -256,19 +256,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          * @param context The {@link DataCapturingBackgroundService} receiving messages via this handler.
          */
         MessageHandler(final @NonNull DataCapturingBackgroundService context) {
-            if (context == null) {
-                throw new IllegalArgumentException("Illegal argument: context was null!");
-            }
-
             this.context = new WeakReference<>(context);
         }
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
             Log.d(TAG, String.format("Service received message %s", msg.what));
-            if (msg == null) {
-                throw new IllegalArgumentException("Illegal argument: msg was null!");
-            }
 
             DataCapturingBackgroundService service = context.get();
 
