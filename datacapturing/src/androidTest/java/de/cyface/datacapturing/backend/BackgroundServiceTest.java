@@ -306,7 +306,7 @@ public class BackgroundServiceTest {
             Log.d(TAG, String.format("Test received message %d.", msg.what));
             // super.handleMessage(msg);
             switch (msg.what) {
-                case MessageCodes.POINT_CAPTURED:
+                case MessageCodes.DATA_CAPTURED:
                     Bundle dataBundle = msg.getData();
                     dataBundle.setClassLoader(getClass().getClassLoader());
                     CapturedData data = dataBundle.getParcelable("data");
