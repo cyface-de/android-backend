@@ -2,12 +2,12 @@ package de.cyface.datacapturing.backend;
 
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.TimeoutException;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
@@ -29,8 +29,7 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.FlakyTest;
-import android.support.test.filters.LargeTest;
+import android.support.test.filters.MediumTest;
 import android.support.test.rule.GrantPermissionRule;
 import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
@@ -40,10 +39,10 @@ import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
-// TODO It is possible to simplify this test and remove the synchronization lock.
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
  * GPS signal availability it is a flaky test.
@@ -53,8 +52,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
-@LargeTest
+@MediumTest
 public class BackgroundServiceTest {
 
     /**
@@ -99,62 +97,75 @@ public class BackgroundServiceTest {
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
-     * <p>
-     * CAREFUL! Since the test requires a working geo location and 3 axis of freedom sensor it will only work on an
-     * actual device, but not on an emulator.
      * 
      * @throws InterruptedException If test execution is interrupted externally. This should never really happen, but we
      *             need to throw the exception anyways.
      */
     @Test
-    public void testStartDataCapturing() throws InterruptedException {
+    public void testStartDataCapturing() throws InterruptedException, TimeoutException {
         final Context context = InstrumentationRegistry.getTargetContext();
-
-        FromServiceMessageHandler fromServiceMessageHandler = createFromServiceMessengerSyncronously();
-        if (fromServiceMessenger == null) {
-            throw new IllegalStateException("From service messenger was not properly initialized.");
-        }
-
-        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        ToServiceConnection toServiceConnection = new ToServiceConnection();
-
-        context.startService(startIntent);
-        context.bindService(startIntent, toServiceConnection, 0);
-
         final TestCallback testCallback = new TestCallback();
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+        testCallback.lock = lock;
+        testCallback.condition = condition;
+        final ToServiceConnection toServiceConnection = new ToServiceConnection();
+        toServiceConnection.context = context;
+        toServiceConnection.callback = testCallback;
+
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                PongReceiver isRunningChecker = new PongReceiver(context);
-                isRunningChecker.pongAndReceive(1, TimeUnit.MINUTES, testCallback);
+                FromServiceMessageHandler fromServiceMessageHandler = new FromServiceMessageHandler();
+                fromServiceMessenger = new Messenger(fromServiceMessageHandler);
             }
         });
+        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
 
-        context.unbindService(toServiceConnection);
-        Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
-        assertThat(context.stopService(stopIntent), is(equalTo(true)));
-        assertThat(testCallback.isRunning, is(equalTo(true)));
-        assertThat(testCallback.timedOut, is(equalTo(false)));
+        serviceTestRule.startService(startIntent);
+        serviceTestRule.bindService(startIntent, toServiceConnection, 0);
+
+        // This must not run on the main thread or it will produce an ANR.
+        lock.lock();
+        try {
+            if (!testCallback.isRunning) {
+                if (!condition.await(2, TimeUnit.MINUTES)) {
+                    throw new IllegalStateException("Waiting for pong or timeout timed out!");
+                }
+            }
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
+        }
+
+        serviceTestRule.unbindService();
+
+        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
+        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
+                is(equalTo(false)));
     }
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
-     * <p>
-     * CAREFUL! Since the test requires a working geo location and 3 axis of freedom sensor it will only work on an
-     * actual device, but not on an emulator.
      *
      * @throws InterruptedException If test execution is interrupted externally. This should never really happen, but we
      *             need to throw the exception anyways.
      */
     @Test
-    public void testStartDataCapturingTwice() throws InterruptedException {
+    public void testStartDataCapturingTwice() throws InterruptedException, TimeoutException {
         final Context context = InstrumentationRegistry.getTargetContext();
+        Lock lock = new ReentrantLock();
+        Condition condition = lock.newCondition();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        assertThat(context.startService(startIntent), is(notNullValue()));
-        assertThat(context.startService(startIntent), is(notNullValue()));
+        serviceTestRule.startService(startIntent);
+        serviceTestRule.startService(startIntent);
 
         final TestCallback testCallback = new TestCallback();
+        testCallback.lock = lock;
+        testCallback.condition = condition;
+
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -163,101 +174,42 @@ public class BackgroundServiceTest {
             }
         });
 
-        Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
-        assertThat(context.stopService(stopIntent), is(true));
-        assertThat(testCallback.isRunning, is(equalTo(true)));
-        assertThat(testCallback.timedOut, is(equalTo(false)));
-    }
-
-    /**
-     * This method creates the <code>FromServiceMessenger</code> which is responsible to receive messages send by the
-     * service. The method is necessary since creation of a new <code>Handler</code> is only possible on a properly
-     * initialized Android thread.
-     *
-     * @return The created <code>FromServiceMessageHandler</code>, which is wrapped by the messenger.
-     */
-    private FromServiceMessageHandler createFromServiceMessengerSyncronously() {
-        final Lock lock = new ReentrantLock();
-        final Condition finishedCondition = lock.newCondition();
-        FromServiceMessageHandlerFactory factory = new FromServiceMessageHandlerFactory(lock, finishedCondition);
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(factory);
-
+        // This must not run on the main thread or it will produce an ANR.
         lock.lock();
         try {
-            finishedCondition.await(1, TimeUnit.SECONDS);
+            if (!testCallback.isRunning) {
+                if (!condition.await(2, TimeUnit.MINUTES)) {
+                    throw new IllegalStateException("Waiting for pong or timeout timed out!");
+                }
+            }
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
         } finally {
             lock.unlock();
         }
-        return factory.getFromServiceMessageHandler();
-    }
 
-    /**
-     * A Runnable defering the creation of the <code>FromServiceMessageHandler</code> to another thread, which should be
-     * a properly initialized Android thread (one where looper.prepare()) has been called.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 1.0.0
-     */
-    private class FromServiceMessageHandlerFactory implements Runnable {
-
-        /**
-         * The lock used to synchronize the call to this <code>Runnable</code> with the calling thread.
-         */
-        private final Lock lock;
-        /**
-         * The condition used to signal the calling thread that this factory has finished creation of the
-         * <code>FromServiceMessageHandler</code>.
-         */
-        private final Condition condition;
-        /**
-         * The product of this factory or <code>null</code> if not called or creation was not successful.
-         */
-        private FromServiceMessageHandler fromServiceMessageHandler;
-
-        /**
-         * Creates a new <code>FromServiceMessageHandlerFactory</code> with the capabilty to synchronize itself with the
-         * calling thread.
-         *
-         * @param lock The lock used to synchronize the call to this <code>Runnable</code> with the calling thread.
-         * @param condition The condition used to signal the calling thread that this factory has finished creation of
-         *            the <code>FromServiceMessageHandler</code>.
-         */
-        FromServiceMessageHandlerFactory(final Lock lock, final Condition condition) {
-            this.lock = lock;
-            this.condition = condition;
-        }
-
-        @Override
-        public void run() {
-            lock.lock();
-            try {
-                fromServiceMessageHandler = new FromServiceMessageHandler();
-                fromServiceMessenger = new Messenger(fromServiceMessageHandler);
-            } finally {
-                condition.signal();
-                lock.unlock();
-            }
-        }
-
-        /**
-         * @return The product of this factory or <code>null</code> if not called or creation was not successful.
-         */
-        FromServiceMessageHandler getFromServiceMessageHandler() {
-            return fromServiceMessageHandler;
-        }
+        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
+        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
+                is(equalTo(false)));
     }
 
     /**
      * Connection from the test to the capturing service.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 1.0.0
+     * @version 1.1.0
+     * @since 2.0.0
      */
     private class ToServiceConnection implements ServiceConnection {
+
+        /**
+         * The context this <code>ServiceConnection</code> runs with.
+         */
+        Context context;
+        /**
+         * Callback used to check the success or non success of the service startup.
+         */
+        TestCallback callback;
 
         @Override
         public void onServiceConnected(ComponentName componentName, IBinder iBinder) {
@@ -274,6 +226,9 @@ public class BackgroundServiceTest {
             } catch (RemoteException e) {
                 throw new IllegalStateException(e);
             }
+
+            PongReceiver isRunningChecker = new PongReceiver(context);
+            isRunningChecker.pongAndReceive(1, TimeUnit.MINUTES, callback);
         }
 
         @Override
@@ -292,7 +247,7 @@ public class BackgroundServiceTest {
      *
      * @author Klemens Muthmann
      * @version 1.0.0
-     * @since 1.0.0
+     * @since 2.0.0
      */
     private class FromServiceMessageHandler extends Handler {
 
@@ -305,9 +260,9 @@ public class BackgroundServiceTest {
         public void handleMessage(Message msg) {
             Log.d(TAG, String.format("Test received message %d.", msg.what));
             // super.handleMessage(msg);
+            Bundle dataBundle = msg.getData();
             switch (msg.what) {
                 case MessageCodes.DATA_CAPTURED:
-                    Bundle dataBundle = msg.getData();
                     dataBundle.setClassLoader(getClass().getClassLoader());
                     CapturedData data = dataBundle.getParcelable("data");
 
@@ -318,6 +273,15 @@ public class BackgroundServiceTest {
                                 "Test received point captured message without associated data!");
                     }
 
+                    break;
+                case MessageCodes.LOCATION_CAPTURED:
+                    dataBundle.setClassLoader(getClass().getClassLoader());
+                    GeoLocation location = dataBundle.getParcelable("data");
+
+                    Log.d(TAG, String.format("Test received location %f,%f", location.getLat(), location.getLon()));
+                    break;
+                case MessageCodes.GPS_FIX:
+                    Log.d(TAG, String.format("Test received geo location fix."));
                     break;
                 default:
                     throw new IllegalStateException(String.format("Test is unable to handle message %s!", msg.what));
@@ -332,19 +296,52 @@ public class BackgroundServiceTest {
         }
     }
 
+    /**
+     * A callback used to check whether the service has successfully started or not.
+     *
+     * @author Klemens Muthmann
+     * @since 2.0.0
+     * @version 1.0.0
+     */
     private static class TestCallback implements IsRunningCallback {
 
+        /**
+         * Flag indicating a successful startup if <code>true</code>.
+         */
         boolean isRunning = false;
+        /**
+         * Flag indicating an unsuccessful startup if <code>true</code>.
+         */
         boolean timedOut = false;
+        /**
+         * <code>Lock</code> used to synchronize the callback with the test case using it.
+         */
+        Lock lock;
+        /**
+         * <code>Condition</code> used to signal the test case to continue processing.
+         */
+        Condition condition;
 
         @Override
         public void isRunning() {
-            isRunning = true;
+            lock.lock();
+            try {
+                isRunning = true;
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
         }
 
         @Override
         public void timedOut() {
-            timedOut = true;
+            lock.lock();
+            try {
+                timedOut = true;
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
         }
     }
 }

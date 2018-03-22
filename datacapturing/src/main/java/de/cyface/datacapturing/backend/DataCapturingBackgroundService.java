@@ -38,7 +38,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -68,12 +68,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
     private CapturingProcess dataCapturing;
-
     /**
      * Notification shown to the user while the data capturing is active.
      */
     private CapturingNotification capturingNotification;
-
     /**
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
@@ -122,6 +120,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
+        Log.v(TAG, "Registering Ping Receiver");
+        registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
 
         Log.d(TAG, "finishedOnCreate");
     }
@@ -129,6 +129,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
+        Log.v(TAG, "Unregistering Ping receiver.");
         unregisterReceiver(pingReceiver);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
@@ -146,7 +147,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (intent != null) { // If this is the initial start command call init.
             init();
         }
-        registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
         return Service.START_STICKY;
     }
 

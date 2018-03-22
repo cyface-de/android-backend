@@ -6,6 +6,7 @@ import static de.cyface.datacapturing.MessageCodes.ACTION_PONG;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 /**
@@ -24,7 +25,7 @@ public class PingReceiver extends BroadcastReceiver {
     private static final String TAG = "de.cyface.ping";
 
     @Override
-    public void onReceive(Context context, Intent intent) {
+    public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         if (intent.getAction().equals(ACTION_PING)) {
             Log.d(TAG, "Received Ping sending Pong.");
             context.sendBroadcast(new Intent(ACTION_PONG));

@@ -18,15 +18,17 @@ import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
 import android.support.test.rule.GrantPermissionRule;
+import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
+import android.test.ProviderTestCase2;
 import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.exception.SynchronisationException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.synchronization.SynchronisationException;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
@@ -40,18 +42,18 @@ import de.cyface.datacapturing.model.Vehicle;
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
-public class DataCapturingServiceTest {
+public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
 
     /**
      * The tag used to identify log messages.
      */
     private static final String TAG = "de.cyface.test";
 
-    // /**
-    // * Rule used to run
-    // */
-    // @Rule
-    // public ServiceTestRule serviceTestRule = new ServiceTestRule();
+    /**
+     * Rule used to run
+     */
+    @Rule
+    public ServiceTestRule serviceTestRule = new ServiceTestRule();
 
     /**
      * Grants the access location permission to this test.
@@ -69,11 +71,24 @@ public class DataCapturingServiceTest {
      */
     private TestListener testListener;
 
+    /**
+     * Required constructor.
+     */
+
+    public DataCapturingServiceTest() {
+        super(MeasuringPointsContentProvider.class, de.cyface.persistence.BuildConfig.provider);
+    }
+
     @Before
-    public void setUp() throws SetupException {
-        // TODO Maybe use getTargetContext here? What is the difference anyways?
-        Context context = InstrumentationRegistry.getContext();
-        oocut = new CyfaceDataCapturingService(context, "http://localhost:8080");
+    public void setUp() throws Exception {
+        Context context = InstrumentationRegistry.getTargetContext();
+        // WARNING: Never change the order of the following two lines, even though the Google documentation tells you
+        // something different!
+
+        setContext(context);
+        super.setUp();
+
+        oocut = new CyfaceDataCapturingService(context, getMockContentResolver(), "http://localhost:8080");
         testListener = new TestListener();
     }
 
@@ -81,7 +96,7 @@ public class DataCapturingServiceTest {
      * Tests a common service run. Checks that some positons have been captured.
      */
     @Test
-    public void testRunDataCapturingServiceSuccessfully() throws SynchronisationException, DataCapturingException {
+    public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -104,11 +119,11 @@ public class DataCapturingServiceTest {
     }
 
     /**
-     * Tests a common service run with an intermidiate disconnect and reconnect by the application. No problems shour
+     * Tests a common service run with an intermidiate disconnect and reconnect by the application. No problems should
      * occur and some points should be captured.
      */
     @Test
-    public void testDisconnectConnect() throws DataCapturingException, SynchronisationException {
+    public void testDisconnectConnect() throws DataCapturingException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -142,25 +157,19 @@ public class DataCapturingServiceTest {
             @Override
             public void run() {
                 try {
+                    Log.d(TAG, "Starting first time!");
                     oocut.start(testListener, Vehicle.UNKOWN);
+
+                    Log.d(TAG, "Starting second time!");
+                    oocut.start(testListener, Vehicle.UNKOWN);
+                    Log.d(TAG, "Stopping service!");
+                    oocut.stop();
                 } catch (DataCapturingException e) {
                     throw new IllegalStateException(e);
                 }
+
             }
         });
-
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-
-        oocut.stop();
     }
 
     /**

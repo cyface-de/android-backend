@@ -7,6 +7,7 @@ import java.util.concurrent.TimeUnit;
 
 import android.accounts.Account;
 import android.content.ComponentName;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.ServiceConnection;
@@ -46,7 +47,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -99,12 +100,12 @@ public abstract class DataCapturingService {
      *            this service.
      * @throws SetupException If writing the components preferences fails.
      */
-    public DataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress)
-            throws SetupException {
+    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String dataUploadServerAddress) throws SetupException {
         this.context = new WeakReference<>(context);
 
         this.serviceConnection = new BackgroundServiceConnection();
-        this.persistenceLayer = new MeasurementPersistence(context.getContentResolver());
+        this.persistenceLayer = new MeasurementPersistence(resolver);
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -132,15 +133,17 @@ public abstract class DataCapturingService {
         if (context.get() == null) {
             return;
         }
-        persistenceLayer.newMeasurement(vehicle);
+        if (!persistenceLayer.hasOpenMeasurement()) {
+            persistenceLayer.newMeasurement(vehicle);
+        }
         this.fromServiceMessenger = new Messenger(new FromServiceMessageHandler(context.get(), listener));
 
         Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+
         ComponentName serviceComponentName = context.get().startService(startIntent);
         if (serviceComponentName == null) {
             throw new DataCapturingException("Illegal state: back ground service could not be started!");
         }
-
         bind();
     }
 
@@ -156,6 +159,7 @@ public abstract class DataCapturingService {
         }
 
         isRunning = false;
+
         try {
             unbind();
         } catch (IllegalArgumentException e) {
@@ -163,7 +167,10 @@ public abstract class DataCapturingService {
         } finally {
             Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().stopService(stopIntent);
-            persistenceLayer.closeRecentMeasurement();
+
+            if (persistenceLayer.hasOpenMeasurement()) {
+                persistenceLayer.closeRecentMeasurement();
+            }
         }
     }
 
@@ -273,7 +280,11 @@ public abstract class DataCapturingService {
             throw new DataCapturingException("Context was null!");
         }
 
-        context.get().unbindService(serviceConnection);
+        try {
+            context.get().unbindService(serviceConnection);
+        } catch (IllegalArgumentException e) {
+            throw new DataCapturingException(e);
+        }
     }
 
     /**

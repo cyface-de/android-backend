@@ -16,6 +16,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
@@ -32,7 +33,7 @@ import de.cyface.persistence.SamplePointTable;
  * delegate objects.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.1.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -171,6 +172,30 @@ public class MeasurementPersistence {
     }
 
     /**
+     * Provides information about whether there is a currently open measurement or not.
+     *
+     * @return <code>true</code> if a measurement is open; <code>false</code> otherwise.
+     * @throws DataCapturingException If more than one measurement is open.
+     */
+    public boolean hasOpenMeasurement() throws DataCapturingException {
+        Cursor openMeasurementQueryCursor = null;
+        try {
+            openMeasurementQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
+                    MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null, null);
+
+            if (openMeasurementQueryCursor.getCount() > 1) {
+                throw new DataCapturingException("More than one measurement is open.");
+            }
+
+            return openMeasurementQueryCursor.getCount() == 1;
+        } finally {
+            if (openMeasurementQueryCursor != null) {
+                openMeasurementQueryCursor.close();
+            }
+        }
+    }
+
+    /**
      * Provides the identifier of the measurement currently captured by the framework. This method should only be called
      * if capturing is active or throw an error otherwise.
      *
@@ -181,7 +206,8 @@ public class MeasurementPersistence {
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
                     new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
-                    MeasurementTable.COLUMN_FINISHED + "=0", null, BaseColumns._ID + " DESC");
+                    MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
+                    BaseColumns._ID + " DESC");
             if (measurementIdentifierQueryCursor == null) {
                 throw new IllegalStateException("Unable to query for measurement identifier!");
             }

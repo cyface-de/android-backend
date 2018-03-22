@@ -51,7 +51,7 @@ class SyncPerformer {
      *
      * @param context The Android <code>Context</code> to use for setting the correct server certification information.
      */
-    SyncPerformer(final @NonNull Context context) {
+    SyncPerformer(final @NonNull Context context) throws SynchronisationException {
 
         InputStream movebisTrustStoreFile = null;
         try {
@@ -68,7 +68,7 @@ class SyncPerformer {
 
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
                 | KeyManagementException e) {
-            throw new IllegalArgumentException(e);
+            throw new SynchronisationException(e);
         } finally {
             try {
                 if (movebisTrustStoreFile != null) {

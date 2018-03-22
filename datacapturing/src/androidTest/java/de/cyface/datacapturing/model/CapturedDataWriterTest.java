@@ -24,6 +24,7 @@ import android.test.ProviderTestCase2;
 import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
@@ -352,6 +353,29 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         for (Measurement measurement : measurements) {
             assertThat(oocut.loadTrack(measurement).size(), is(equalTo(1)));
         }
+    }
+
+    @Test
+    public void testProvokeAnr() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    if (!oocut.hasOpenMeasurement()) {
+                        oocut.newMeasurement(Vehicle.BICYCLE);
+                    }
+                    if (!oocut.hasOpenMeasurement()) {
+                        oocut.newMeasurement(Vehicle.BICYCLE);
+                    }
+
+                    if (oocut.hasOpenMeasurement()) {
+                        oocut.closeRecentMeasurement();
+                    }
+                } catch (DataCapturingException e) {
+                    e.printStackTrace();
+                }
+            }
+        });
     }
 
     /**

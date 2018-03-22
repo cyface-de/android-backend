@@ -34,7 +34,7 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -43,7 +43,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * running.
      */
     private final LocationManager preMeasurementLocationManager;
-
     /**
      * A listener for location updates, which it passes through to the user interface.
      */
@@ -68,12 +67,19 @@ public class MovebisDataCapturingService extends DataCapturingService {
             // Nothing to do here.
         }
     };
-
     /**
      * A listener for events which the UI might be interested in.
      */
     private final UIListener uiListener;
+    /**
+     * The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
+     * if you would like to be notified as often as possible.
+     */
     private final long locationUpdateRate;
+    /**
+     * A flag set if the locationListener for UI updates is active. This helps us to prevent to register such a listener
+     * multiple times.
+     */
     private boolean uiUpdatesActive;
 
     /**
@@ -91,7 +97,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
-        super(context, dataUploadServerAddress);
+        super(context, context.getContentResolver(), dataUploadServerAddress);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
@@ -101,6 +107,11 @@ public class MovebisDataCapturingService extends DataCapturingService {
         this.uiListener = uiListener;
     }
 
+    /**
+     * Starts the reception of location updates for the user interface. No tracking is started with this method. This is
+     * purely intended for display purposes. The received locations are forwared to the {@link UIListener} provided to
+     * the constructor.
+     */
     @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
     public void startUILocationUpdates() {
         if (uiUpdatesActive) {
@@ -122,6 +133,11 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
     }
 
+    /**
+     * Stops reception of location updates for the user interface.
+     *
+     * @see #startUILocationUpdates()
+     */
     public void stopUILocationUpdates() {
         if (!uiUpdatesActive) {
             return;

@@ -91,13 +91,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(TAG, "syncing");
 
         MeasurementSerializer serializer = new MeasurementSerializer();
-        SyncPerformer syncer = new SyncPerformer(getContext());
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         Cursor syncableMeasurementsCursor = null;
         AccountManager accountManager = AccountManager.get(getContext());
         AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, StubAuthenticator.AUTH_TOKEN_TYPE,
                 null, false, null, null);
         try {
+            SyncPerformer syncer = new SyncPerformer(getContext());
+
             Bundle result = future.getResult(1, TimeUnit.SECONDS);
             String jwtAuthToken = result.getString(AccountManager.KEY_AUTHTOKEN);
             if (jwtAuthToken == null) {
@@ -141,8 +142,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                     loader.cleanMeasurement();
                 }
             }
-        } catch (RemoteException | OperationCanceledException | AuthenticatorException | IOException e) {
-            throw new IllegalStateException(e);
+        } catch (RemoteException | OperationCanceledException | AuthenticatorException | IOException
+                | SynchronisationException e) {
+            Log.e(TAG, "Unable to synchronize data. ", e);
         } finally {
             if (syncableMeasurementsCursor != null) {
                 syncableMeasurementsCursor.close();
