@@ -8,7 +8,8 @@ import android.util.Log;
 
 /**
  * This is a no-op implementation of a <code>SyncPerformer</code>. On call it simply ignores all arguments and simulates
- * a successful data transmission without actually calling any network. It does nothing and just prints its status to the terminal. 
+ * a successful data transmission without actually calling any network. It does nothing and just prints its status to
+ * the terminal.
  * Use it in test scenarios where you have no access to a Movebis server.
  *
  * @author Klemens Muthmann
@@ -27,8 +28,10 @@ class SyncPerformer {
      * Anroid synchronization adapter, this can be the synchronisation service.
      *
      * @param context The Android context to use.
+     * @throws SynchronisationException Never, but required to be in sync with the other implementation in the other
+     *             flavor.
      */
-    SyncPerformer(final @NonNull Context context) {
+    SyncPerformer(final @NonNull Context context) throws SynchronisationException {
         // Nothing to do here. Just mocked
     }
 
