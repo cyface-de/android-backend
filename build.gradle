@@ -66,6 +66,8 @@ allprojects {
     }
 }
 
+apply plugin: 'android-reporting'
+
 configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing"] })) {
     pr ->
         apply plugin: 'com.android.library'

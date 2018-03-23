@@ -9,6 +9,7 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -41,6 +42,7 @@ import de.cyface.persistence.SamplePointTable;
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 @FlakyTest
+@Ignore
 public class MovebisDataTransmissionTest {
 
     /**
@@ -85,7 +87,8 @@ public class MovebisDataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart() throws NoSuchAlgorithmException, IOException {
+    public void testUploadSomeBytesViaMultiPart()
+            throws NoSuchAlgorithmException, IOException, SynchronisationException {
         ContentResolver resolver = InstrumentationRegistry.getTargetContext().getContentResolver();
         long measurementIdentifier = insertTestMeasurement(resolver, "UNKOWN");
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,

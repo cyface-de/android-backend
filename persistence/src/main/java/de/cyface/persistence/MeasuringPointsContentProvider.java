@@ -64,7 +64,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      */
     @Override
     public int delete(Uri uri, final String selection, final String[] selectionArgs) {
-        if (selection != null && selection.equals(BaseColumns._ID + "=?") && selectionArgs.length == 1) {
+        if (selectionArgs != null && (BaseColumns._ID + "=?").equals(selection) && selectionArgs.length == 1) {
             uri = ContentUris.withAppendedId(uri, Long.valueOf(selectionArgs[0]));
         }
         int rowsDeleted = database.deleteRow(uri, selection, selectionArgs);
