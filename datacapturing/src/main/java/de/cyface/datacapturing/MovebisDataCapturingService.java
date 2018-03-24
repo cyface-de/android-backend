@@ -175,6 +175,14 @@ public class MovebisDataCapturingService extends DataCapturingService {
         getWiFiSurveyor().deleteAccount(username);
     }
 
+    public void pause() {
+
+    }
+
+    public void resume() {
+
+    }
+
     /**
      * Checks whether the user has granted the <code>ACCESS_COARSE_LOCATION</code> permission and notifies the UI to ask
      * for it if not.
