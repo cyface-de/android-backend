@@ -40,7 +40,7 @@ ext {
     targetSdkVersion = 25
     compileSdkVersion = 27
     buildToolsVersion = '27.0.2'
-    supportLibVersion = "27.0.2"
+    supportLibVersion = "27.1.0"
     playServicesVersion = "11.8.0"
 
     junitVersion = "4.12"
@@ -63,6 +63,12 @@ allprojects {
         // Needed to resolve newest support libraries with IntelliJ / Gradle
         google()
         jcenter()
+    }
+
+    gradle.projectsEvaluated {
+        tasks.withType(JavaCompile) {
+            options.compilerArgs << "-Xlint:unchecked" << "-Xlint:deprecation"
+        }
     }
 }
 

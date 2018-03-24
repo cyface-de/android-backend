@@ -75,8 +75,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <p>
      * The method also schedules an immediate synchronization run after the WiFi has been connected.
      *
-     * @param account
-     * @throws SynchronisationException
+     * @param account Starts surveillance of the WiFi connection status for this account.
+     * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
     public void startSurveillance(final @NonNull Account account) throws SynchronisationException {
         if (context.get() == null) {

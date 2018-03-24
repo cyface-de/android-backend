@@ -1,13 +1,10 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name">Cyface</string>
     <string name="capturing_service_description">Used to collect sensor data (GPS, accelerometer, gyroscope, magnetometer) and to send it to your local community, where it is used to improve the mobility infrastructure.</string>
     <string name="capturing_active">Capturing in progress</string>
-    <string name="cancel_capturing">Cancel Capturing</string>
-    <string name="notification_title">Cyface</string>
-    <string name="ticker_text">Ticker</string>
+    <string name="notification_title" translatable="false">Cyface</string>
+    <string name="ticker_text" translatable="false">Ticker</string>
 
     <string name="missing_data_error">Captured data was missing from message!</string>
     <string name="unknown_message_error">Received unknown message %d from data capturing service!</string>
-    <string name="unable_to_rebind_error">Unable to rebind. Context was null.</string>
 </resources>
