@@ -142,9 +142,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                     loader.cleanMeasurement();
                 }
             }
-        } catch (RemoteException | OperationCanceledException | AuthenticatorException | IOException
-                | SynchronisationException e) {
-            Log.e(TAG, "Unable to synchronize data. ", e);
+        } catch (RemoteException | OperationCanceledException | AuthenticatorException | IOException e) {
+            Log.e(TAG, "Unable to synchronize data!", e);
+        } catch (SynchronisationException e) {
+            Log.e(TAG, "Unable to synchronize data because of SynchronizationException!", e);
         } finally {
             if (syncableMeasurementsCursor != null) {
                 syncableMeasurementsCursor.close();
