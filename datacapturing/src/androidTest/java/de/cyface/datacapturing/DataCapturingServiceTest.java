@@ -6,8 +6,13 @@ import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -42,6 +47,7 @@ import de.cyface.synchronization.SynchronisationException;
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
+@Ignore
 public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
 
     /**
@@ -71,10 +77,15 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     private TestListener testListener;
 
+    private IsRunningStatus runningStatusCallback;
+
+    private Lock lock;
+
+    private Condition condition;
+
     /**
      * Required constructor.
      */
-
     public DataCapturingServiceTest() {
         super(MeasuringPointsContentProvider.class, de.cyface.persistence.BuildConfig.provider);
     }
@@ -84,12 +95,14 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         Context context = InstrumentationRegistry.getTargetContext();
         // WARNING: Never change the order of the following two lines, even though the Google documentation tells you
         // something different!
-
         setContext(context);
         super.setUp();
 
-        oocut = new CyfaceDataCapturingService(context, getMockContentResolver(), "http://localhost:8080");
-        testListener = new TestListener();
+        oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), "http://localhost:8080");
+        testListener = new TestListener(lock, condition);
+        lock = new ReentrantLock();
+        condition = lock.newCondition();
+        runningStatusCallback = new IsRunningStatus(lock, condition);
     }
 
     /**
@@ -97,25 +110,14 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callStartOnMainThread();
 
-        try {
-            Thread.sleep(10000L);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
 
         oocut.stop();
-        assertThat(testListener.capturedPositions.isEmpty(), is(equalTo(false)));
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
     }
 
     /**
@@ -124,28 +126,21 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDisconnectConnect() throws DataCapturingException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+
+        callStartOnMainThread();
 
         oocut.disconnect();
         oocut.reconnect();
 
-        try {
-            Thread.sleep(20000L);
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        }
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
 
         oocut.stop();
-        assertThat(testListener.capturedPositions.isEmpty(), is(equalTo(false)));
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
     }
 
     /**
@@ -153,23 +148,13 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDoubleStart() throws SynchronisationException, DataCapturingException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Log.d(TAG, "Starting first time!");
-                    oocut.start(testListener, Vehicle.UNKOWN);
+        callStartOnMainThread();
+        callStartOnMainThread();
 
-                    Log.d(TAG, "Starting second time!");
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                    Log.d(TAG, "Stopping service!");
-                    oocut.stop();
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-
-            }
-        });
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
+        oocut.stop();
     }
 
     /**
@@ -177,16 +162,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleStop() throws SynchronisationException, DataCapturingException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callStartOnMainThread();
 
         oocut.stop();
 
@@ -198,16 +174,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleDisconnect() throws DataCapturingException, SynchronisationException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callStartOnMainThread();
 
         oocut.disconnect();
         oocut.disconnect();
@@ -221,16 +188,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testStopNonConnectedService() throws DataCapturingException, SynchronisationException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callStartOnMainThread();
 
         oocut.disconnect();
         oocut.stop();
@@ -241,21 +199,16 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDoubleConnect() throws DataCapturingException, SynchronisationException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callStartOnMainThread();
 
         oocut.disconnect();
 
         oocut.reconnect();
         oocut.reconnect();
+
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
         oocut.stop();
     }
 
@@ -264,22 +217,20 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDisconnectConnectTwice() throws DataCapturingException, SynchronisationException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        callStartOnMainThread();
 
         oocut.disconnect();
         oocut.reconnect();
         oocut.disconnect();
         oocut.reconnect();
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
         oocut.stop();
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
     }
 
     /**
@@ -287,18 +238,45 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRestart() throws SynchronisationException, DataCapturingException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
+
+        callStartOnMainThread();
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         oocut.stop();
 
+        callStartOnMainThread();
+        lockAndWait(2, TimeUnit.SECONDS);
+        callCheckForRunning();
+        lockAndWait(2, TimeUnit.SECONDS);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        oocut.stop();
+    }
+
+    private void lockAndWait(final long time, final @NonNull TimeUnit unit) {
+        lock.lock();
+        try {
+            condition.await(time, unit);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
+        }
+    }
+
+    private void callCheckForRunning() {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.isRunning(1, TimeUnit.SECONDS, runningStatusCallback);
+            }
+        });
+    }
+
+    private void callStartOnMainThread() {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -309,7 +287,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
                 }
             }
         });
-        oocut.stop();
     }
 
     /**
@@ -320,10 +297,19 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @since 2.0.0
      */
     private static class TestListener implements DataCapturingListener {
+
+        private final Lock lock;
+        private final Condition condition;
         /**
          * Geo locations captured during the test run.
          */
-        final List<GeoLocation> capturedPositions = new ArrayList<>();
+        final List<GeoLocation> capturedPositions;
+
+        private TestListener(final @NonNull Lock lock, final @NonNull Condition condition) {
+            capturedPositions = new ArrayList<>();
+            this.lock = lock;
+            this.condition = condition;
+        }
 
         @Override
         public void onFixAcquired() {
@@ -359,6 +345,51 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         @Override
         public void onErrorState(Exception e) {
 
+        }
+    }
+
+    private static class IsRunningStatus implements IsRunningCallback {
+
+        private boolean wasRunning;
+        private boolean didTimeOut;
+        private Lock lock;
+        private Condition condition;
+
+        public IsRunningStatus(final @NonNull Lock lock, final @NonNull Condition condition) {
+            this.wasRunning = false;
+            this.didTimeOut = false;
+            this.lock = lock;
+            this.condition = condition;
+        }
+
+        @Override
+        public void isRunning() {
+            lock.lock();
+            try {
+                wasRunning = true;
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        @Override
+        public void timedOut() {
+            lock.lock();
+            try {
+                didTimeOut = true;
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public boolean wasRunning() {
+            return wasRunning;
+        }
+
+        public boolean didTimeOut() {
+            return didTimeOut;
         }
     }
 }

@@ -286,13 +286,13 @@ public class DatabaseHelper extends SQLiteOpenHelper {
                             }
                         }
                     }
-                    database.setTransactionSuccessful();
                     // continues here until return ! -->
                 case GPS_POINTS:
                 case SAMPLE_POINTS:
                 case MAGNETIC_VALUE_POINTS:
                 case ROTATION_POINTS:
                     ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
+                    database.setTransactionSuccessful();
                     return ret;
                 default:
                     Log.e(TAG, "Unable to delete data from table corresponding to URI " + uri
