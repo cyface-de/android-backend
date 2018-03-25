@@ -138,6 +138,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             dataCapturing.close();
         }
         super.onDestroy();
+        sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
     }
 
     @Override
@@ -147,6 +148,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (intent != null) { // If this is the initial start command call init.
             init();
         }
+        sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STARTED));
         return Service.START_STICKY;
     }
 

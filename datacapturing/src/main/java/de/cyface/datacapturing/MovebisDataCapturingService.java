@@ -13,6 +13,9 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 
+import java.util.concurrent.TimeUnit;
+
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
@@ -34,10 +37,17 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.1.0
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
+
+    /**
+     * The time in milliseconds after which this object stops waiting for the system to pause or resume the Android
+     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
+     * what works under real world conditions.
+     */
+    private final static long PAUSE_RESUME_TIMEOUT_TIME_MILLIS = 10_000L;
     /**
      * A <code>LocationManager</code> that is used to provide location updates for the UI even if no capturing is
      * running.
@@ -175,12 +185,28 @@ public class MovebisDataCapturingService extends DataCapturingService {
         getWiFiSurveyor().deleteAccount(username);
     }
 
-    public void pause() {
-
+    /**
+     * Pauses the current data capturing, but does not finish the current measurement. This is a synchronized call to an
+     * Android service and should be handled as a long running operation.
+     * <p>
+     * To continue with the measurement just call {@link #resume()}.
+     *
+     * @throws DataCapturingException If halting the background service was not successful.
+     */
+    public void pause() throws DataCapturingException {
+        stopServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
     }
 
-    public void resume() {
-
+    /**
+     * Resumes the current data capturing after a previous call to {@link #pause()}. This is a synchronized call to an
+     * Android service and should be considered a long running operation.
+     * <p>
+     * You should only call this after an initial call to <code>pause()</code>.
+     *
+     * @throws DataCapturingException If starting the background service was not successful.
+     */
+    public void resume() throws DataCapturingException {
+        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     /**
