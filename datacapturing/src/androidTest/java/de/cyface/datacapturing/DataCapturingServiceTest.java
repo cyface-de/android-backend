@@ -12,7 +12,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,6 +28,7 @@ import android.test.ProviderTestCase2;
 import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
@@ -47,7 +47,6 @@ import de.cyface.synchronization.SynchronisationException;
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
-@Ignore
 public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
 
     /**
@@ -77,10 +76,19 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     private TestListener testListener;
 
+    /**
+     * Callback triggered if the test successfully establishes a connection with the background service or times out.
+     */
     private IsRunningStatus runningStatusCallback;
 
+    /**
+     * Lock used to synchronize with the background service.
+     */
     private Lock lock;
 
+    /**
+     * Condition waiting for the background service to wake up this test case.
+     */
     private Condition condition;
 
     /**
@@ -92,16 +100,26 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     @Before
     public void setUp() throws Exception {
-        Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getTargetContext();
         // WARNING: Never change the order of the following two lines, even though the Google documentation tells you
         // something different!
         setContext(context);
         super.setUp();
 
-        oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), "http://localhost:8080");
-        testListener = new TestListener(lock, condition);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+                                                                       @Override
+                                                                       public void run() {
+                                                                           try {
+                                                                               oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), "http://localhost:8080");
+                                                                           } catch (SetupException e) {
+                                                                               throw new IllegalStateException(e);
+                                                                           }
+                                                                       }
+                                                                   });
+
         lock = new ReentrantLock();
         condition = lock.newCondition();
+        testListener = new TestListener(lock, condition);
         runningStatusCallback = new IsRunningStatus(lock, condition);
     }
 
@@ -121,7 +139,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests a common service run with an intermidiate disconnect and reconnect by the application. No problems should
+     * Tests a common service run with an intermediate disconnect and reconnect by the application. No problems should
      * occur and some points should be captured.
      */
     @Test
@@ -140,7 +158,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         lockAndWait(2, TimeUnit.SECONDS);
 
         oocut.stop();
-        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
     }
 
     /**
@@ -277,16 +295,16 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     private void callStartOnMainThread() {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+        /*InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
-            public void run() {
+            public void run() {*/
                 try {
-                    oocut.start(testListener, Vehicle.UNKOWN);
+            oocut.start(testListener, Vehicle.UNKOWN);
                 } catch (DataCapturingException e) {
                     throw new IllegalStateException(e);
                 }
-            }
-        });
+            /*}
+        });*/
     }
 
     /**

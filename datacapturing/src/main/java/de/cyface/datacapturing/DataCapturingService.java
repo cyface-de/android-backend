@@ -1,6 +1,8 @@
 package de.cyface.datacapturing;
 
 import java.lang.ref.WeakReference;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
 import java.util.Locale;
 import java.util.UUID;
@@ -20,9 +22,12 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Process;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -92,7 +97,11 @@ public abstract class DataCapturingService {
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
-    private Messenger fromServiceMessenger;
+    private final Messenger fromServiceMessenger;
+    /**
+     * <code>MessageHandler</code> receiving messages from the service via the <code>fromServiceMessenger</code>.
+     */
+    private final FromServiceMessageHandler fromServiceMessageHandler;
     /**
      * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
      */
@@ -131,6 +140,8 @@ public abstract class DataCapturingService {
             throw new SetupException("Unable to write preferences!");
         }
         surveyor = new WiFiSurveyor(context);
+        this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
+        this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
     }
 
     /**
@@ -151,7 +162,7 @@ public abstract class DataCapturingService {
         if (!persistenceLayer.hasOpenMeasurement()) {
             persistenceLayer.newMeasurement(vehicle);
         }
-        this.fromServiceMessenger = new Messenger(new FromServiceMessageHandler(context.get(), listener));
+        fromServiceMessageHandler.addListener(listener);
         runServiceSync(START_STOP_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
@@ -303,6 +314,7 @@ public abstract class DataCapturingService {
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
         StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
+        Log.v(TAG,"Registering receiver for service start broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
         try {
             Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -315,7 +327,7 @@ public abstract class DataCapturingService {
 
             lock.lock();
             try {
-                if (!synchronizationReceiver.receivedServiceStopped()) {
+                if (!synchronizationReceiver.receivedServiceStarted()) {
                     if (!condition.await(timeout, unit)) {
                         throw new DataCapturingException(String.format(Locale.US,
                                 "Service seems to not have started successfully.  Timed out after %d milliseconds.",
@@ -346,6 +358,7 @@ public abstract class DataCapturingService {
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
         StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
+        Log.v(TAG,"Registering receiver for service stop broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         try {
             try {
@@ -457,7 +470,7 @@ public abstract class DataCapturingService {
         /**
          * A listener that is notified of important events during data capturing.
          */
-        private final DataCapturingListener listener;
+        private Collection<DataCapturingListener> listener;
 
         /**
          * The Android context this handler is running under.
@@ -466,46 +479,55 @@ public abstract class DataCapturingService {
 
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
-         *
-         * @param listener A listener that is notified of important events during data capturing.
          */
-        FromServiceMessageHandler(final @NonNull Context context, final @NonNull DataCapturingListener listener) {
+        FromServiceMessageHandler(final @NonNull Context context) {
             this.context = context;
-            this.listener = listener;
+            this.listener = new HashSet<>();
         }
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
 
-            switch (msg.what) {
-                case MessageCodes.LOCATION_CAPTURED:
-                    Bundle dataBundle = msg.getData();
-                    dataBundle.setClassLoader(getClass().getClassLoader());
-                    GeoLocation location = dataBundle.getParcelable("data");
-                    if (location == null) {
+            for(DataCapturingListener listener:this.listener) {
+                switch (msg.what) {
+                    case MessageCodes.LOCATION_CAPTURED:
+                        Bundle dataBundle = msg.getData();
+                        dataBundle.setClassLoader(getClass().getClassLoader());
+                        GeoLocation location = dataBundle.getParcelable("data");
+                        if (location == null) {
+                            listener.onErrorState(
+                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
+                        } else {
+                            listener.onNewGeoLocationAcquired(location);
+                        }
+                        break;
+                    case MessageCodes.DATA_CAPTURED:
+                        Log.i(TAG, "Captured some sensor data, which is ignored for now.");
+                        // TOD
+                    case MessageCodes.GPS_FIX:
+                        listener.onFixAcquired();
+                        break;
+                    case MessageCodes.NO_GPS_FIX:
+                        listener.onFixLost();
+                        break;
+                    case MessageCodes.WARNING_SPACE:
+                        listener.onLowDiskSpace(null);
+                        break;
+                    default:
                         listener.onErrorState(
-                                new DataCapturingException(context.getString(R.string.missing_data_error)));
-                    } else {
-                        listener.onNewGeoLocationAcquired(location);
-                    }
-                    break;
-                case MessageCodes.DATA_CAPTURED:
-                    Log.i(TAG, "Captured some sensor data, which is ignored for now.");
-                    // TOD
-                case MessageCodes.GPS_FIX:
-                    listener.onFixAcquired();
-                    break;
-                case MessageCodes.NO_GPS_FIX:
-                    listener.onFixLost();
-                    break;
-                case MessageCodes.WARNING_SPACE:
-                    listener.onLowDiskSpace(null);
-                    break;
-                default:
-                    listener.onErrorState(
-                            new DataCapturingException(context.getString(R.string.unknown_message_error, msg.what)));
+                                new DataCapturingException(context.getString(R.string.unknown_message_error, msg.what)));
 
+                }
             }
+        }
+
+        /**
+         * Adds a new listener interested in events from the background service.
+         *
+         * @param listener A listener that is notified of important events during data capturing.
+         */
+        public void addListener(final @NonNull DataCapturingListener listener) {
+            this.listener.add(listener);
         }
     }
 
@@ -528,14 +550,17 @@ public abstract class DataCapturingService {
 
         @Override
         public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
+            Log.v(TAG,"Start/Stop Synchronizer received an intent with action "+intent.getAction()+".");
             if (intent.getAction() == null) {
                 throw new IllegalStateException("Received broadcast with null action.");
             }
             switch (intent.getAction()) {
                 case MessageCodes.BROADCAST_SERVICE_STARTED:
+                    Log.v(TAG,"Received Service started broadcast!");
                     receivedServiceStarted = true;
                     break;
                 case MessageCodes.BROADCAST_SERVICE_STOPPED:
+                    Log.v(TAG,"Received Service stopped broadcast!");
                     receivedServiceStopped = true;
                     break;
                 default:

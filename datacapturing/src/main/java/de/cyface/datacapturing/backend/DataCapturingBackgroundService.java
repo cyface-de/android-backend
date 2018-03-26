@@ -23,6 +23,7 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.MessageCodes;
@@ -138,6 +139,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             dataCapturing.close();
         }
         super.onDestroy();
+        Log.v(TAG,"Sending broadcast service stopped.");
         sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
     }
 
@@ -148,6 +150,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (intent != null) { // If this is the initial start command call init.
             init();
         }
+        Log.v(TAG,"Sending broadcast service started.");
         sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STARTED));
         return Service.START_STICKY;
     }
@@ -271,7 +274,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 case MessageCodes.REGISTER_CLIENT:
                     Log.d(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
-                        throw new IllegalStateException("Client " + msg.replyTo + " already registered.");
+                        Log.w(TAG,"Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
                     break;
