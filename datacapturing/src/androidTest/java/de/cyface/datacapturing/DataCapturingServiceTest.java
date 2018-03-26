@@ -21,6 +21,7 @@ import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
+import android.support.test.filters.MediumTest;
 import android.support.test.rule.GrantPermissionRule;
 import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
@@ -45,8 +46,7 @@ import de.cyface.synchronization.SynchronisationException;
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
-@LargeTest
+@MediumTest
 public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
 
     /**
@@ -128,7 +128,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException {
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         lockAndWait(2, TimeUnit.SECONDS);
         callCheckForRunning();
@@ -148,7 +148,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         lockAndWait(2, TimeUnit.SECONDS);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
 
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.reconnect();
@@ -166,8 +166,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDoubleStart() throws SynchronisationException, DataCapturingException {
-        callStartOnMainThread();
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         lockAndWait(2, TimeUnit.SECONDS);
         callCheckForRunning();
@@ -180,7 +180,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleStop() throws SynchronisationException, DataCapturingException {
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.stop();
 
@@ -192,7 +192,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleDisconnect() throws DataCapturingException, SynchronisationException {
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.disconnect();
@@ -206,7 +206,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testStopNonConnectedService() throws DataCapturingException, SynchronisationException {
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.stop();
@@ -217,7 +217,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDoubleConnect() throws DataCapturingException, SynchronisationException {
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
 
@@ -238,7 +238,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         callCheckForRunning();
         lockAndWait(2, TimeUnit.SECONDS);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.reconnect();
@@ -259,14 +259,14 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         callCheckForRunning();
         lockAndWait(2, TimeUnit.SECONDS);
 
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
         lockAndWait(2, TimeUnit.SECONDS);
         callCheckForRunning();
         lockAndWait(2, TimeUnit.SECONDS);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         oocut.stop();
 
-        callStartOnMainThread();
+        oocut.start(testListener, Vehicle.UNKOWN);
         lockAndWait(2, TimeUnit.SECONDS);
         callCheckForRunning();
         lockAndWait(2, TimeUnit.SECONDS);
@@ -274,6 +274,11 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.stop();
     }
 
+    /**
+     * Locks the test and waits until the timeout is reached or a signal to continue execution is received. Never do call this on the main thread or you will receive an Application Not Responding (ANR) error.
+     * @param time The time to wait until the test lock is released and the test continues even if no signal was issued.
+     * @param unit The unit of <code>time</code>. For example seconds or milliseconds.
+     */
     private void lockAndWait(final long time, final @NonNull TimeUnit unit) {
         lock.lock();
         try {
@@ -285,6 +290,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         }
     }
 
+    /**
+     * Checks for the current isRunning status of the object of class under test and runs that on the main thread.
+     */
     private void callCheckForRunning() {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
@@ -292,19 +300,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
                 oocut.isRunning(1, TimeUnit.SECONDS, runningStatusCallback);
             }
         });
-    }
-
-    private void callStartOnMainThread() {
-        /*InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {*/
-                try {
-            oocut.start(testListener, Vehicle.UNKOWN);
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            /*}
-        });*/
     }
 
     /**
