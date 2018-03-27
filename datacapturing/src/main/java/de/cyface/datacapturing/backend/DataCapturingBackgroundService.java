@@ -203,6 +203,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 clients.remove(caller);
 
             } catch (NullPointerException e) {
+                // Calle may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
                 clients.remove(caller);
             }
