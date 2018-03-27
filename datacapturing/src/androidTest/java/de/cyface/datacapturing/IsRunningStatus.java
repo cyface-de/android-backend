@@ -1,9 +1,9 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.NonNull;
-
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import android.support.annotation.NonNull;
 
 /**
  * Created by muthmann on 26.03.18.
@@ -27,6 +27,7 @@ class IsRunningStatus implements IsRunningCallback {
         lock.lock();
         try {
             wasRunning = true;
+            didTimeOut = false;
             condition.signal();
         } finally {
             lock.unlock();
@@ -38,6 +39,7 @@ class IsRunningStatus implements IsRunningCallback {
         lock.lock();
         try {
             didTimeOut = true;
+            wasRunning = false;
             condition.signal();
         } finally {
             lock.unlock();

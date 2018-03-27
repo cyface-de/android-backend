@@ -22,12 +22,9 @@ import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.os.Handler;
-import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.Process;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -168,7 +165,7 @@ public abstract class DataCapturingService {
 
     /**
      * Stops the currently running data capturing process or does nothing if the process is not running.
-     *<p>
+     * <p>
      * Since this method is synchronized with the Android background thread it must be handled as a long running
      * operation and thus should not be called on the main thread.
      *
@@ -314,7 +311,7 @@ public abstract class DataCapturingService {
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
         StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
-        Log.v(TAG,"Registering receiver for service start broadcast.");
+        Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
         try {
             Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -358,7 +355,7 @@ public abstract class DataCapturingService {
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
         StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
-        Log.v(TAG,"Registering receiver for service stop broadcast.");
+        Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         try {
             try {
@@ -373,6 +370,7 @@ public abstract class DataCapturingService {
             lock.lock();
             try {
                 if (!synchronizationReceiver.receivedServiceStopped()) {
+                    Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
                     if (!condition.await(timeout, unit)) {
                         throw new DataCapturingException(String.format(Locale.US,
                                 "Service seems to not have stopped successfully. Timed out after %d milliseconds.",
@@ -488,7 +486,7 @@ public abstract class DataCapturingService {
         @Override
         public void handleMessage(final @NonNull Message msg) {
 
-            for(DataCapturingListener listener:this.listener) {
+            for (DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
                     case MessageCodes.LOCATION_CAPTURED:
                         Bundle dataBundle = msg.getData();
@@ -514,8 +512,8 @@ public abstract class DataCapturingService {
                         listener.onLowDiskSpace(null);
                         break;
                     default:
-                        listener.onErrorState(
-                                new DataCapturingException(context.getString(R.string.unknown_message_error, msg.what)));
+                        listener.onErrorState(new DataCapturingException(
+                                context.getString(R.string.unknown_message_error, msg.what)));
 
                 }
             }
@@ -550,17 +548,17 @@ public abstract class DataCapturingService {
 
         @Override
         public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
-            Log.v(TAG,"Start/Stop Synchronizer received an intent with action "+intent.getAction()+".");
+            Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
             if (intent.getAction() == null) {
                 throw new IllegalStateException("Received broadcast with null action.");
             }
             switch (intent.getAction()) {
                 case MessageCodes.BROADCAST_SERVICE_STARTED:
-                    Log.v(TAG,"Received Service started broadcast!");
+                    Log.v(TAG, "Received Service started broadcast!");
                     receivedServiceStarted = true;
                     break;
                 case MessageCodes.BROADCAST_SERVICE_STOPPED:
-                    Log.v(TAG,"Received Service stopped broadcast!");
+                    Log.v(TAG, "Received Service stopped broadcast!");
                     receivedServiceStopped = true;
                     break;
                 default:
