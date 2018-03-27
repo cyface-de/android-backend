@@ -302,9 +302,15 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @param timeout
-     * @param unit
-     * @throws DataCapturingException
+     * Starts the associated {@link DataCapturingBackgroundService} and waits for the service to send a broadcast, that
+     * it successfully started. That way this function is synchronized with the service. If startup takes really long,
+     * this method might take seconds to return and thus should be handled as a long running background operation and
+     * not called on the UI thread.
+     *
+     * @param timeout The timeout to wait for the background service to successfully start. If it is reached an
+     *            <code>Exception</code> is thrown.
+     * @param unit The <code>TimeUnit</code> for the <code>timeout</code>.
+     * @throws DataCapturingException If timeout is reached, binding fails or startup fails.
      */
     void runServiceSync(final long timeout, final @NonNull TimeUnit unit) throws DataCapturingException {
         Context context = getContext();
@@ -344,9 +350,15 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @param timeout
-     * @param unit
-     * @throws DataCapturingException
+     * Stops the associated {@link DataCapturingBackgroundService} and waits for the service to send a broadcast, that
+     * it successfully stopped. That way this function is synchronized with the service. If shutdown takes really long,
+     * this method might take seconds to return and thus should be handled as a long running background operation and
+     * not called on the UI thread.
+     *
+     * @param timeout The timeout to wait for the background service to successfully terminate. If it is reached an
+     *            <code>Exception</code> is thrown.
+     * @param unit The <code>TimeUnit</code> for the <code>timeout</code>.
+     * @throws DataCapturingException If timeout is reached or unbinding fails.
      */
     void stopServiceSync(final long timeout, final @NonNull TimeUnit unit) throws DataCapturingException {
         isRunning = false;

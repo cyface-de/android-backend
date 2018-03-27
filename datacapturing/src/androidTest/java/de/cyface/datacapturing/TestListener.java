@@ -1,13 +1,13 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.NonNull;
-import android.util.Log;
-
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -20,15 +20,30 @@ import de.cyface.datacapturing.model.GeoLocation;
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
+    /**
+     * The tag used to log messages to Logcat.
+     */
     private final static String TAG = "de.cyface.test";
-
+    /**
+     * Lock used to secure the <code>Condition</code>, prior to sending a signal.
+     */
     private final Lock lock;
+    /**
+     * <code>Condition</code> used to send a signal to the creating thread.
+     */
     private final Condition condition;
     /**
      * Geo locations captured during the test run.
      */
     private final List<GeoLocation> capturedPositions;
 
+    /**
+     * Creates a new completely initialized <code>TestListener</code> signaling the creating thread via the provided
+     * lock and condition of message reception from the <code>DataCapturingService</code>.
+     *
+     * @param lock Lock used to secure the <code>Condition</code>, prior to sending a signal.
+     * @param condition <code>Condition</code> used to send a signal to the creating thread.
+     */
     TestListener(final @NonNull Lock lock, final @NonNull Condition condition) {
         capturedPositions = new ArrayList<>();
         this.lock = lock;
@@ -71,6 +86,9 @@ class TestListener implements DataCapturingListener {
 
     }
 
+    /**
+     * @return The captured positions received during the test run.
+     */
     public List<GeoLocation> getCapturedPositions() {
         return Collections.unmodifiableList(capturedPositions);
 

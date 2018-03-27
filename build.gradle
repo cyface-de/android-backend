@@ -24,7 +24,6 @@ buildscript {
         // - Instant Run Error (https://stackoverflow.com/q/46957873/5815054)
         // Workaround: disable instant run & ignore Gradle Sync Warnings
         classpath 'com.android.tools.build:gradle:3.1.0'
-        classpath 'com.dicedmelon.gradle:jacoco-android:0.1.2'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files

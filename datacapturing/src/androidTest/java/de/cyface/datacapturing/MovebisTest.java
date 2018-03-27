@@ -36,7 +36,7 @@ import de.cyface.datacapturing.ui.UIListener;
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -57,33 +57,59 @@ public final class MovebisTest {
     public GrantPermissionRule grantCoarseLocationPermissionRule = GrantPermissionRule
             .grant(Manifest.permission.ACCESS_COARSE_LOCATION);
 
+    /**
+     * A <code>MovebisDataCapturingService</code> as object of class under test, used for testing.
+     */
     private MovebisDataCapturingService oocut;
+    /**
+     * A lock used to wait for asynchronous calls to the service, before continuing with the test execution.
+     */
     private Lock lock;
+    /**
+     * A <code>Condition</code> used to wait for a singal from asynchronously called callbacks and listeners before
+     * continuing with the test execution.
+     */
     private Condition condition;
+    /**
+     * A listener catching messages send to the UI in real applications.
+     */
     private TestUIListener testUIListener;
+    /**
+     * The context of the test installation.
+     */
     private Context context;
+    /**
+     * A listener catching events from the <code>DataCapturingService</code> during tracking.
+     */
     private TestListener testDataCapturingListener;
+    /**
+     * A listener waiting for the service to either tell, that it is running or for a timeout to happen.
+     */
     private IsRunningStatus isRunningListener;
 
+    /**
+     * Initializes the object of class under test.
+     *
+     * @throws SetupException If the <code>MovebisDataCapturingService</code> was not created properly.
+     */
     @Before
     public void setUp() throws SetupException {
         context = InstrumentationRegistry.getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
         testUIListener = new TestUIListener(lock, condition);
-        testDataCapturingListener = new TestListener(lock,condition);
+        testDataCapturingListener = new TestListener(lock, condition);
         isRunningListener = new IsRunningStatus(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-                                                                       @Override
-                                                                       public void run() {
-                                                                           try {
-                                                                               oocut = new MovebisDataCapturingService(context, "https://localhost:8080",
-                                                                                       testUIListener, 0L);
-                                                                           } catch (SetupException e) {
-                                                                               throw new IllegalStateException(e);
-                                                                           }
-                                                                       }
-                                                                   });
+            @Override
+            public void run() {
+                try {
+                    oocut = new MovebisDataCapturingService(context, "https://localhost:8080", testUIListener, 0L);
+                } catch (SetupException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
 
     }
 
@@ -108,36 +134,42 @@ public final class MovebisTest {
         assertThat(testUIListener.receivedUpdates.isEmpty(), is(equalTo(false)));
     }
 
+    /**
+     * Tests whether the {@link MovebisDataCapturingService#pause()} and {@link MovebisDataCapturingService#resume()}
+     * work correctly.
+     *
+     * @throws DataCapturingException If any unexpected errors occur during data capturing.
+     */
     @Test
-    public void testPauseResumeMeasurement() throws SetupException, DataCapturingException {
+    public void testPauseResumeMeasurement() throws DataCapturingException {
         // start
         oocut.start(testDataCapturingListener, Vehicle.UNKOWN);
         // check is running
-        ServiceTestUtils.callCheckForRunning(oocut,isRunningListener);
-        ServiceTestUtils.lockAndWait(2L,TimeUnit.SECONDS, lock, condition);
-        assertThat(isRunningListener.wasRunning(),is(equalTo(true)));
-        assertThat(isRunningListener.didTimeOut(),is(equalTo(false)));
+        ServiceTestUtils.callCheckForRunning(oocut, isRunningListener);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(isRunningListener.wasRunning(), is(equalTo(true)));
+        assertThat(isRunningListener.didTimeOut(), is(equalTo(false)));
         // get measurements
         List<Measurement> measurements = oocut.getCachedMeasurements();
-        assertThat(measurements.size()>0,is(equalTo(true)));
+        assertThat(measurements.size() > 0, is(equalTo(true)));
         // pause
         oocut.pause();
         // check is not running
-        ServiceTestUtils.callCheckForRunning(oocut,isRunningListener);
+        ServiceTestUtils.callCheckForRunning(oocut, isRunningListener);
         ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
-        assertThat(isRunningListener.wasRunning(),is(equalTo(false)));
-        assertThat(isRunningListener.didTimeOut(),is(equalTo(true)));
+        assertThat(isRunningListener.wasRunning(), is(equalTo(false)));
+        assertThat(isRunningListener.didTimeOut(), is(equalTo(true)));
         // resume
         oocut.resume();
         // check is running
-        ServiceTestUtils.callCheckForRunning(oocut,isRunningListener);
-        ServiceTestUtils.lockAndWait(2L,TimeUnit.SECONDS, lock, condition);
-        assertThat(isRunningListener.wasRunning(),is(equalTo(true)));
-        assertThat(isRunningListener.didTimeOut(),is(equalTo(false)));
+        ServiceTestUtils.callCheckForRunning(oocut, isRunningListener);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(isRunningListener.wasRunning(), is(equalTo(true)));
+        assertThat(isRunningListener.didTimeOut(), is(equalTo(false)));
         // get measurements again
         List<Measurement> newMeasurements = oocut.getCachedMeasurements();
         // check for no new measurements
-        assertThat(measurements.size()==newMeasurements.size(),is(equalTo(true)));
+        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
         // stop
         oocut.stop();
     }
