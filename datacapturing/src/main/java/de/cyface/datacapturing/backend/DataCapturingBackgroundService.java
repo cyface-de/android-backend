@@ -138,6 +138,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             dataCapturing.close();
         }
         super.onDestroy();
+        Log.v(TAG, "Sending broadcast service stopped.");
+        sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
     }
 
     @Override
@@ -147,6 +149,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (intent != null) { // If this is the initial start command call init.
             init();
         }
+        Log.v(TAG, "Sending broadcast service started.");
+        sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STARTED));
         return Service.START_STICKY;
     }
 
@@ -195,10 +199,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             try {
                 caller.send(msg);
             } catch (RemoteException e) {
-                Log.w(TAG,
-                        String.format("Unable to send message (%s) to caller %s due to exception: %s", msg, caller, e));
+                Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
                 clients.remove(caller);
 
+            } catch (NullPointerException e) {
+                // Calle may be null in a typical React Native application.
+                Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
+                clients.remove(caller);
             }
         }
     }
@@ -269,7 +276,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 case MessageCodes.REGISTER_CLIENT:
                     Log.d(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
-                        throw new IllegalStateException("Client " + msg.replyTo + " already registered.");
+                        Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
                     break;

@@ -1,15 +1,23 @@
 package de.cyface.datacapturing;
 
 import java.lang.ref.WeakReference;
+import java.util.Collection;
+import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import android.accounts.Account;
+import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
+import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -47,7 +55,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -56,6 +64,12 @@ public abstract class DataCapturingService {
      * Tag used to identify Logcat messages issued by instances of this class.
      */
     private static final String TAG = "de.cyface.capturing";
+    /**
+     * The time in milliseconds after which this object stops waiting for the system to start or stop the Android
+     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
+     * what works under real world conditions.
+     */
+    private static final long START_STOP_TIMEOUT_MILLIS = 10_000L;
     /*
      * MARK: Properties
      */
@@ -80,7 +94,11 @@ public abstract class DataCapturingService {
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
-    private Messenger fromServiceMessenger;
+    private final Messenger fromServiceMessenger;
+    /**
+     * <code>MessageHandler</code> receiving messages from the service via the <code>fromServiceMessenger</code>.
+     */
+    private final FromServiceMessageHandler fromServiceMessageHandler;
     /**
      * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
      */
@@ -119,14 +137,19 @@ public abstract class DataCapturingService {
             throw new SetupException("Unable to write preferences!");
         }
         surveyor = new WiFiSurveyor(context);
+        this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
+        this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
     }
 
     /**
-     * Starts the capturing process with a listener that is notified of important events occuring while the capturing
+     * Starts the capturing process with a listener that is notified of important events occurring while the capturing
      * process is running.
+     * <p>
+     * Since this method is synchronized with the Android background thread it must be handled as a long running
+     * operation and thus should not be called on the main thread.
      *
      * @param listener A listener that is notified of important events during data capturing.
-     * @throws DataCapturingException If the asynchronuous background service did not start successfully.
+     * @throws DataCapturingException If the asynchronous background service did not start successfully.
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException {
@@ -136,38 +159,29 @@ public abstract class DataCapturingService {
         if (!persistenceLayer.hasOpenMeasurement()) {
             persistenceLayer.newMeasurement(vehicle);
         }
-        this.fromServiceMessenger = new Messenger(new FromServiceMessageHandler(context.get(), listener));
-
-        Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-
-        ComponentName serviceComponentName = context.get().startService(startIntent);
-        if (serviceComponentName == null) {
-            throw new DataCapturingException("Illegal state: back ground service could not be started!");
-        }
-        bind();
+        fromServiceMessageHandler.addListener(listener);
+        runServiceSync(START_STOP_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
     }
 
     /**
      * Stops the currently running data capturing process or does nothing if the process is not running.
+     * <p>
+     * Since this method is synchronized with the Android background thread it must be handled as a long running
+     * operation and thus should not be called on the main thread.
      *
      * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
-     *             occurs, but you have to handle it to prevent your application from crashing.
+     *             occurs, but you have to handle it anyways to prevent your application from crashing.
      */
     public void stop() throws DataCapturingException {
         if (context.get() == null) {
             return;
         }
 
-        isRunning = false;
-
         try {
-            unbind();
+            stopServiceSync(START_STOP_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS);
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
         } finally {
-            Intent stopIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-            context.get().stopService(stopIntent);
-
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
             }
@@ -288,6 +302,104 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * Starts the associated {@link DataCapturingBackgroundService} and waits for the service to send a broadcast, that
+     * it successfully started. That way this function is synchronized with the service. If startup takes really long,
+     * this method might take seconds to return and thus should be handled as a long running background operation and
+     * not called on the UI thread.
+     *
+     * @param timeout The timeout to wait for the background service to successfully start. If it is reached an
+     *            <code>Exception</code> is thrown.
+     * @param unit The <code>TimeUnit</code> for the <code>timeout</code>.
+     * @throws DataCapturingException If timeout is reached, binding fails or startup fails.
+     */
+    void runServiceSync(final long timeout, final @NonNull TimeUnit unit) throws DataCapturingException {
+        Context context = getContext();
+        Lock lock = new ReentrantLock();
+        Condition condition = lock.newCondition();
+        StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
+        Log.v(TAG, "Registering receiver for service start broadcast.");
+        context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
+        try {
+            Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+
+            ComponentName serviceComponentName = context.startService(startIntent);
+            if (serviceComponentName == null) {
+                throw new DataCapturingException("Illegal state: back ground service could not be started!");
+            }
+            bind();
+
+            lock.lock();
+            try {
+                if (!synchronizationReceiver.receivedServiceStarted()) {
+                    if (!condition.await(timeout, unit)) {
+                        throw new DataCapturingException(String.format(Locale.US,
+                                "Service seems to not have started successfully.  Timed out after %d milliseconds.",
+                                unit.toMillis(timeout)));
+                    }
+                }
+                ;
+            } catch (InterruptedException e) {
+                throw new DataCapturingException(e);
+            } finally {
+                lock.unlock();
+            }
+        } finally {
+            context.unregisterReceiver(synchronizationReceiver);
+        }
+
+    }
+
+    /**
+     * Stops the associated {@link DataCapturingBackgroundService} and waits for the service to send a broadcast, that
+     * it successfully stopped. That way this function is synchronized with the service. If shutdown takes really long,
+     * this method might take seconds to return and thus should be handled as a long running background operation and
+     * not called on the UI thread.
+     *
+     * @param timeout The timeout to wait for the background service to successfully terminate. If it is reached an
+     *            <code>Exception</code> is thrown.
+     * @param unit The <code>TimeUnit</code> for the <code>timeout</code>.
+     * @throws DataCapturingException If timeout is reached or unbinding fails.
+     */
+    void stopServiceSync(final long timeout, final @NonNull TimeUnit unit) throws DataCapturingException {
+        isRunning = false;
+
+        Context context = getContext();
+        Lock lock = new ReentrantLock();
+        Condition condition = lock.newCondition();
+        StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
+        Log.v(TAG, "Registering receiver for service stop broadcast.");
+        context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
+        try {
+            try {
+                unbind();
+            } catch (IllegalArgumentException e) {
+                throw new DataCapturingException(e);
+            } finally {
+                Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
+                context.stopService(stopIntent);
+            }
+
+            lock.lock();
+            try {
+                if (!synchronizationReceiver.receivedServiceStopped()) {
+                    Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
+                    if (!condition.await(timeout, unit)) {
+                        throw new DataCapturingException(String.format(Locale.US,
+                                "Service seems to not have stopped successfully. Timed out after %d milliseconds.",
+                                unit.toMillis(timeout)));
+                    }
+                }
+            } catch (InterruptedException e) {
+                throw new DataCapturingException(e);
+            } finally {
+                lock.unlock();
+            }
+        } finally {
+            context.unregisterReceiver(synchronizationReceiver);
+        }
+    }
+
+    /**
      * Reconnects your app to the <code>DataCapturingService</code>. This might be especially useful if you have been
      * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
      *
@@ -368,7 +480,7 @@ public abstract class DataCapturingService {
         /**
          * A listener that is notified of important events during data capturing.
          */
-        private final DataCapturingListener listener;
+        private Collection<DataCapturingListener> listener;
 
         /**
          * The Android context this handler is running under.
@@ -377,46 +489,108 @@ public abstract class DataCapturingService {
 
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
-         *
-         * @param listener A listener that is notified of important events during data capturing.
          */
-        FromServiceMessageHandler(final @NonNull Context context, final @NonNull DataCapturingListener listener) {
+        FromServiceMessageHandler(final @NonNull Context context) {
             this.context = context;
-            this.listener = listener;
+            this.listener = new HashSet<>();
         }
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
 
-            switch (msg.what) {
-                case MessageCodes.LOCATION_CAPTURED:
-                    Bundle dataBundle = msg.getData();
-                    dataBundle.setClassLoader(getClass().getClassLoader());
-                    GeoLocation location = dataBundle.getParcelable("data");
-                    if (location == null) {
-                        listener.onErrorState(
-                                new DataCapturingException(context.getString(R.string.missing_data_error)));
-                    } else {
-                        listener.onNewGeoLocationAcquired(location);
-                    }
+            for (DataCapturingListener listener : this.listener) {
+                switch (msg.what) {
+                    case MessageCodes.LOCATION_CAPTURED:
+                        Bundle dataBundle = msg.getData();
+                        dataBundle.setClassLoader(getClass().getClassLoader());
+                        GeoLocation location = dataBundle.getParcelable("data");
+                        if (location == null) {
+                            listener.onErrorState(
+                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
+                        } else {
+                            listener.onNewGeoLocationAcquired(location);
+                        }
+                        break;
+                    case MessageCodes.DATA_CAPTURED:
+                        Log.i(TAG, "Captured some sensor data, which is ignored for now.");
+                        // TOD
+                    case MessageCodes.GPS_FIX:
+                        listener.onFixAcquired();
+                        break;
+                    case MessageCodes.NO_GPS_FIX:
+                        listener.onFixLost();
+                        break;
+                    case MessageCodes.WARNING_SPACE:
+                        listener.onLowDiskSpace(null);
+                        break;
+                    default:
+                        listener.onErrorState(new DataCapturingException(
+                                context.getString(R.string.unknown_message_error, msg.what)));
+
+                }
+            }
+        }
+
+        /**
+         * Adds a new listener interested in events from the background service.
+         *
+         * @param listener A listener that is notified of important events during data capturing.
+         */
+        public void addListener(final @NonNull DataCapturingListener listener) {
+            this.listener.add(listener);
+        }
+    }
+
+    /**
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private static class StartStopSynchronizer extends BroadcastReceiver {
+
+        private boolean receivedServiceStarted;
+        private boolean receivedServiceStopped;
+        private final Lock lock;
+        private final Condition condition;
+
+        public StartStopSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition) {
+            this.lock = lock;
+            this.condition = condition;
+        }
+
+        @Override
+        public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
+            Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
+            if (intent.getAction() == null) {
+                throw new IllegalStateException("Received broadcast with null action.");
+            }
+            switch (intent.getAction()) {
+                case MessageCodes.BROADCAST_SERVICE_STARTED:
+                    Log.v(TAG, "Received Service started broadcast!");
+                    receivedServiceStarted = true;
                     break;
-                case MessageCodes.DATA_CAPTURED:
-                    Log.i(TAG, "Captured some sensor data, which is ignored for now.");
-                    // TOD
-                case MessageCodes.GPS_FIX:
-                    listener.onFixAcquired();
-                    break;
-                case MessageCodes.NO_GPS_FIX:
-                    listener.onFixLost();
-                    break;
-                case MessageCodes.WARNING_SPACE:
-                    listener.onLowDiskSpace(null);
+                case MessageCodes.BROADCAST_SERVICE_STOPPED:
+                    Log.v(TAG, "Received Service stopped broadcast!");
+                    receivedServiceStopped = true;
                     break;
                 default:
-                    listener.onErrorState(
-                            new DataCapturingException(context.getString(R.string.unknown_message_error, msg.what)));
-
+                    throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
             }
+
+            lock.lock();
+            try {
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        }
+
+        public boolean receivedServiceStarted() {
+            return receivedServiceStarted;
+        }
+
+        public boolean receivedServiceStopped() {
+            return receivedServiceStopped;
         }
     }
 }

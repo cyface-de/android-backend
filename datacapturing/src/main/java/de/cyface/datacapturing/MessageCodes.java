@@ -16,9 +16,11 @@ public class MessageCodes {
     public static final int NO_GPS_FIX = 7;
     public static final int WARNING_SPACE = 8;
 
-    // TODO This needs to be qualified.
+    // TODO This needs to be qualified. We should for example add the application id.
     public static final String ACTION_PING = "de.cyface.ping";
     public static final String ACTION_PONG = "de.cyface.pong";
+    public static final String BROADCAST_SERVICE_STARTED = "de.cyface.service_started";
+    public static final String BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
 
     /**
      * Private constructor for utility class.
