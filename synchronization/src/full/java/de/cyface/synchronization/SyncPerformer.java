@@ -134,7 +134,7 @@ class SyncPerformer {
             String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
                     boundary);
             String deviceTypePart = addPart("deviceType", android.os.Build.MODEL, boundary);
-            String androidVersion = addPart("osVersion", Build.VERSION.RELEASE, boundary);
+            String androidVersion = addPart("osVersion", "Android " + Build.VERSION.RELEASE, boundary);
 
             String fileHeader1 = "--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
