@@ -59,7 +59,7 @@ class SyncPerformer {
 
         InputStream movebisTrustStoreFile = null;
         try {
-            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore_integrationtest);
+            movebisTrustStoreFile = context.getResources().openRawResource(R.raw.truststore);
             KeyStore trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(movebisTrustStoreFile, "secret".toCharArray());
             TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
