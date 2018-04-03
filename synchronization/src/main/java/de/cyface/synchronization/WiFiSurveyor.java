@@ -20,7 +20,7 @@ import android.support.annotation.NonNull;
  * data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -65,12 +65,17 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     private boolean syncOnWiFiOnly;
 
+    /**
+     * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
+     */
     private final ConnectivityManager connectivityManager;
 
     /**
      * Creates a new completely initialized <code>WiFiSurveyor</code> within the current Android context.
      *
      * @param context The current Android context (i.e. Activity or Service).
+     * @param connectivityManager The Android <code>ConnectivityManager</code> used to check the device's current
+     *            connection status.
      */
     public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager) {
         this.context = new WeakReference<>(context);
@@ -83,6 +88,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * If the WiFi goes back down synchronization is deactivated.
      * <p>
      * The method also schedules an immediate synchronization run after the WiFi has been connected.
+     * <p>
+     * ATTENTION: If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the future
+     * or you will waste system resources.
      *
      * @param account Starts surveillance of the WiFi connection status for this account.
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
@@ -102,6 +110,11 @@ public class WiFiSurveyor extends BroadcastReceiver {
         context.get().registerReceiver(this, intentFilter);
     }
 
+    /**
+     * Stops surveillance of the devices connection status. This frees up all used system resources.
+     *
+     * @throws SynchronisationException If no current Android <code>Context</code> is available.
+     */
     public void stopSurveillance() throws SynchronisationException {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");

@@ -30,15 +30,25 @@ import android.net.wifi.WifiManager;
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-// @LargeTest
-// @FlakyTest
 @Config(constants = BuildConfig.class)
 public class WiFiSurveyorTest {
 
+    /**
+     * The Android test <code>Context</code> to use for testing.
+     */
     private Context context;
+    /**
+     * The Robolectric shadow used for the Android <code>ConnectivityManager</code>.
+     */
     private ShadowConnectivityManager shadowConnectivityManager;
+    /**
+     * An object of the class under test.
+     */
     private WiFiSurveyor oocut;
 
+    /**
+     * Initializes the properties for each test case individually.
+     */
     @Before
     public void setUp() {
         context = RuntimeEnvironment.application;
@@ -47,8 +57,14 @@ public class WiFiSurveyorTest {
         oocut = new WiFiSurveyor(context, connectivityManager);
     }
 
+    /**
+     * Tests that WiFi connectivity is detected correctly.
+     *
+     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
+     *             <code>Context</code> is available.
+     */
     @Test
-    public void testWifiConnectivity() throws InterruptedException, SynchronisationException {
+    public void testWifiConnectivity() throws SynchronisationException {
         switchWiFiConnection(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
         Account account = oocut.getOrCreateAccount("test");
@@ -58,6 +74,12 @@ public class WiFiSurveyorTest {
         assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
     }
 
+    /**
+     * Tests if mobile and WiFi connectivity is detected correctly if both are allowed.
+     *
+     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
+     *             <code>Context</code> is available.
+     */
     @Test
     public void testMobileConnectivity() throws SynchronisationException {
         switchMobileConnection(false);
@@ -69,10 +91,19 @@ public class WiFiSurveyorTest {
         assertThat(oocut.isConnected(), is(equalTo(true)));
     }
 
+    /**
+     * @return An appropriate <code>ConnectivityManager</code> from Robolectric.
+     */
     private ConnectivityManager getConnectivityManager() {
         return (ConnectivityManager)RuntimeEnvironment.application.getSystemService(context.CONNECTIVITY_SERVICE);
     }
 
+    /**
+     * Switches the simulated state of the active network connection to either WiFi on or off.
+     *
+     * @param enabled If <code>true</code>, the connection is switched to on; if <code>false</code> it is switched to
+     *            off.
+     */
     private void switchWiFiConnection(final boolean enabled) {
         NetworkInfo networkInfoShadow = ShadowNetworkInfo.newInstance(
                 enabled ? NetworkInfo.DetailedState.CONNECTED : NetworkInfo.DetailedState.DISCONNECTED,
@@ -89,6 +120,12 @@ public class WiFiSurveyorTest {
         RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
     }
 
+    /**
+     * Switches the simulated state of the active network connection to either mobile on or off.
+     *
+     * @param enabled If <code>true</code>, the connection is switched to on; if <code>false</code> it is switched to
+     *            off.
+     */
     private void switchMobileConnection(final boolean enabled) {
         NetworkInfo networkInfoShadow = ShadowNetworkInfo.newInstance(
                 enabled ? NetworkInfo.DetailedState.CONNECTED : NetworkInfo.DetailedState.DISCONNECTED,
