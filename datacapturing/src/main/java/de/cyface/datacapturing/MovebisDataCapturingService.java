@@ -210,6 +210,18 @@ public class MovebisDataCapturingService extends DataCapturingService {
     }
 
     /**
+     * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
+     * connections.
+     * 
+     * @param state If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
+     *            connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
+     *            available. The second option might use up the users data plan rapidly so use it sparingly.
+     */
+    public void syncOnWiFiOnly(final boolean state) {
+        getWiFiSurveyor().syncOnWiFiOnly(state);
+    }
+
+    /**
      * Checks whether the user has granted the <code>ACCESS_COARSE_LOCATION</code> permission and notifies the UI to ask
      * for it if not.
      * 

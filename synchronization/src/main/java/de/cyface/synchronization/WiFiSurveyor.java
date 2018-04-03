@@ -11,7 +11,6 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -21,7 +20,7 @@ import android.support.annotation.NonNull;
  * data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -59,14 +58,29 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * synchronization is active and <code>false</code> otherwise.
      */
     private boolean synchronizationIsActive;
+    /**
+     * If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
+     * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
+     * available. The second option might use up the users data plan rapidly so use it sparingly.
+     */
+    private boolean syncOnWiFiOnly;
+
+    /**
+     * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
+     */
+    private final ConnectivityManager connectivityManager;
 
     /**
      * Creates a new completely initialized <code>WiFiSurveyor</code> within the current Android context.
      *
      * @param context The current Android context (i.e. Activity or Service).
+     * @param connectivityManager The Android <code>ConnectivityManager</code> used to check the device's current
+     *            connection status.
      */
-    public WiFiSurveyor(final @NonNull Context context) {
+    public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager) {
         this.context = new WeakReference<>(context);
+        this.connectivityManager = connectivityManager;
+        syncOnWiFiOnly = true;
     }
 
     /**
@@ -74,6 +88,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * If the WiFi goes back down synchronization is deactivated.
      * <p>
      * The method also schedules an immediate synchronization run after the WiFi has been connected.
+     * <p>
+     * ATTENTION: If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the future
+     * or you will waste system resources.
      *
      * @param account Starts surveillance of the WiFi connection status for this account.
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
@@ -83,14 +100,26 @@ public class WiFiSurveyor extends BroadcastReceiver {
             throw new SynchronisationException("No valid context available!");
         }
 
-        if (isConnectedToWifi()) {
+        if (isConnected()) {
             ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
         }
 
         IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION);
+        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         currentSynchronizationAccount = account;
         context.get().registerReceiver(this, intentFilter);
+    }
+
+    /**
+     * Stops surveillance of the devices connection status. This frees up all used system resources.
+     *
+     * @throws SynchronisationException If no current Android <code>Context</code> is available.
+     */
+    public void stopSurveillance() throws SynchronisationException {
+        if (context.get() == null) {
+            throw new SynchronisationException("No valid context available!");
+        }
+        context.get().unregisterReceiver(this);
     }
 
     /**
@@ -101,7 +130,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * @throws SynchronisationException If current network state is not accessible.
      */
     public void scheduleSyncNow(final @NonNull Account account) throws SynchronisationException {
-        if (isConnectedToWifi()) {
+        if (isConnected()) {
             ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
         }
     }
@@ -113,23 +142,27 @@ public class WiFiSurveyor extends BroadcastReceiver {
         }
 
         final String action = intent.getAction();
-        if (action != null && action.equals(WifiManager.SUPPLICANT_CONNECTION_CHANGE_ACTION)) {
-            if (intent.getBooleanExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, false)) {
-                // do stuff
-                // Try synchronization periodically
-                boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
-                        AUTHORITY);
-                boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+        if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
+            try {
+                if (isConnected()) {
+                    // do stuff
+                    // Try synchronization periodically
+                    boolean cyfaceAccountSyncIsEnabled = ContentResolver
+                            .getSyncAutomatically(currentSynchronizationAccount, AUTHORITY);
+                    boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
 
-                if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-                    ContentResolver.addPeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY,
-                            SYNC_INTERVAL);
+                    if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
+                        ContentResolver.addPeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY,
+                                SYNC_INTERVAL);
+                    }
+                    synchronizationIsActive = true;
+                } else {
+                    // wifi connection was lost
+                    ContentResolver.removePeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
+                    synchronizationIsActive = false;
                 }
-                synchronizationIsActive = true;
-            } else {
-                // wifi connection was lost
-                ContentResolver.removePeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
-                synchronizationIsActive = false;
+            } catch (SynchronisationException e) {
+                throw new IllegalStateException(e);
             }
         }
     }
@@ -190,13 +223,12 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @return <code>true</code> if WiFi is available; <code>false</code> otherwise.
      */
-    public boolean isConnectedToWifi() throws SynchronisationException {
-        ConnectivityManager connMgr = (ConnectivityManager)context.get().getSystemService(Context.CONNECTIVITY_SERVICE);
-        if (connMgr == null) {
-            throw new SynchronisationException("Unable to get access to the connectivity information.");
-        }
-        NetworkInfo networkInfo = connMgr.getNetworkInfo(ConnectivityManager.TYPE_WIFI);
-        return networkInfo.isConnected();
+    public boolean isConnected() throws SynchronisationException {
+        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+        return syncOnWiFiOnly
+                ? activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI
+                        && activeNetworkInfo.isConnected()
+                : activeNetworkInfo != null && activeNetworkInfo.isConnected();
     }
 
     /**
@@ -206,5 +238,18 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public boolean synchronizationIsActive() {
         return synchronizationIsActive;
+    }
+
+    /**
+     * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
+     * connections.
+     *
+     * @param state If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
+     *            connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
+     *            available. The second option might use up the users data plan rapidly so use it sparingly. Default
+     *            value is <code>true</code>.
+     */
+    public void syncOnWiFiOnly(boolean state) {
+        syncOnWiFiOnly = state;
     }
 }

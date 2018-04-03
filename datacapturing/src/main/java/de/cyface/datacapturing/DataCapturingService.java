@@ -20,6 +20,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -136,7 +137,8 @@ public abstract class DataCapturingService {
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
         }
-        surveyor = new WiFiSurveyor(context);
+        surveyor = new WiFiSurveyor(context,
+                (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE));
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
     }
