@@ -22,6 +22,7 @@ import javax.net.ssl.SSLSession;
 import javax.net.ssl.TrustManagerFactory;
 
 import android.content.Context;
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -30,11 +31,14 @@ import android.util.Log;
  * measurements.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 class SyncPerformer {
 
+    /**
+     * Tag used to identify Logcat messages.
+     */
     private final static String TAG = "de.cyface.sync";
 
     /**
@@ -129,6 +133,8 @@ class SyncPerformer {
             String userIdPart = addPart("deviceId", deviceIdentifier, boundary);
             String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
                     boundary);
+            String deviceTypePart = addPart("deviceType", android.os.Build.MODEL, boundary);
+            String androidVersion = addPart("osVersion", "Android " + Build.VERSION.RELEASE, boundary);
 
             String fileHeader1 = "--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
@@ -140,7 +146,7 @@ class SyncPerformer {
             dataSize = data.available() + tail.length();
             String fileHeader2 = "Content-length: " + dataSize + "\r\n";
             String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
-            String stringData = userIdPart + measurementIdPart + fileHeader;
+            String stringData = userIdPart + measurementIdPart + deviceTypePart + androidVersion + fileHeader;
 
             long requestLength = stringData.length() + dataSize;
             connection.setRequestProperty("Content-length", "" + requestLength);
