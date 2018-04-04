@@ -10,6 +10,7 @@ import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Random;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -31,17 +32,35 @@ import android.support.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 
+/**
+ * Test cases to test the correct working of the data capturing process.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
+ */
 @RunWith(RobolectricTestRunner.class)
 public class CapturingProcessTest {
-
+    /**
+     * An object of the class under test.
+     */
     private CapturingProcess oocut;
-
+    /**
+     * A Robolectric shadow for a real Android <code>SensorManager</code>.
+     */
     private ShadowSensorManager shadowSensorManager;
-
+    /**
+     * A Robolectric shadow for a real Android <code>LocationManager</code>.
+     */
     private ShadowLocationManager shadowLocationManager;
-
+    /**
+     * A listener for the capturing process used to receive test events and assert against those events.
+     */
     private TestCapturingProcessListener testListener;
 
+    /**
+     * Initializes all required properties and adds the <code>testListener</code> to the <code>CapturingProcess</code>.
+     */
     @Before
     public void setUp() {
         LocationManager locationManager = (LocationManager)RuntimeEnvironment.application
@@ -72,13 +91,17 @@ public class CapturingProcessTest {
         oocut.addCapturingProcessListener(testListener);
     }
 
+    /**
+     * Tests the happy path of capturing accelerometer data with 200 Hz and geo locations with 1 Hz.
+     */
     @Test
-    public void testCaptureSensorDataAlongWithGeoLocation() throws NoSuchFieldException {
+    public void testCaptureSensorDataAlongWithGeoLocation() {
 
+        Random random = new Random(System.currentTimeMillis());
         for (int i = 1; i <= 400; i++) {
             long currentTimestamp = Integer.valueOf(i).longValue() * 5L;
             SensorEvent sensorEvent = createSensorEvent(shadowSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                    0.1F, 0.1F, 0.1F, currentTimestamp);
+                    random.nextFloat(), random.nextFloat(), random.nextFloat(), currentTimestamp * 1_000_000L);
             oocut.onSensorChanged(sensorEvent);
             if ((i % 200) == 0) {
                 Location location = new Location("");
@@ -93,6 +116,18 @@ public class CapturingProcessTest {
         assertThat(testListener.getCapturedLocations(), hasSize(2));
     }
 
+    /**
+     * A convenience method to ease the creation of new Android <code>SensorEvent</code> objects.
+     *
+     * @param sensor The sensor to create a new <code>SensorEvent</code> for. Refer for example to
+     *            {@code SensorManager#getDefaultSensor(int)} to get a feeling for how to retrieve such an object from
+     *            the Android API.
+     * @param x The x coordinate for the new <code>SensorEvent</code>.
+     * @param y The y coordinate for the new <code>SensorEvent</code>.
+     * @param z The z coordinate for the new <code>SensorEvent</code>.
+     * @param timestamp The timestamp of the new <code>SensorEvent</code> in nanoseconds.
+     * @return The newly created and completely initialized <code>SensorEvent</code>.
+     */
     private SensorEvent createSensorEvent(final @NonNull Sensor sensor, final float x, final float y, final float z,
             final long timestamp) {
         try {
@@ -114,10 +149,24 @@ public class CapturingProcessTest {
         }
     }
 
+    /**
+     * Listener reacting to events from the <code>CapturingProcess</code>. This listener provides accessors to check
+     * whether the test did run correctly.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
     private static class TestCapturingProcessListener implements CapturingProcessListener {
 
+        /**
+         * <code>GeoLocation</code> instances this listener was informed about.
+         */
         private List<GeoLocation> capturedLocations = new ArrayList<>();
 
+        /**
+         * Captured sensor data this listener was informed about.
+         */
         private List<CapturedData> capturedData = new ArrayList<>();
 
         @Override
@@ -140,10 +189,16 @@ public class CapturingProcessTest {
 
         }
 
+        /**
+         * @return <code>GeoLocation</code> instances this listener was informed about.
+         */
         public List<GeoLocation> getCapturedLocations() {
             return Collections.unmodifiableList(capturedLocations);
         }
 
+        /**
+         * @return Captured sensor data this listener was informed about.
+         */
         public List<CapturedData> getCapturedData() {
             return Collections.unmodifiableList(capturedData);
         }
