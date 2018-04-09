@@ -68,7 +68,7 @@ dependencies {
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:${rootProject.ext.hamcrestVersion}"
 
-    testImplementation "org.robolectric:robolectric:3.8"
+    testImplementation "org.robolectric:robolectric:${rootProject.ext.robolectricVersion}"
 }
 
 tasks.withType(Test) {

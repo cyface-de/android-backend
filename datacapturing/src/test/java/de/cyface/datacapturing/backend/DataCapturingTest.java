@@ -23,21 +23,39 @@ import de.cyface.datacapturing.model.GeoLocation;
  * Tests the correct workings of the data capturing functionality.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public class DataCapturingTest {
 
+    /**
+     * A mocked Android <code>SensorManager</code>.
+     */
     @Mock
     private SensorManager mockedSensorService;
+    /**
+     * A mocked Android <code>LocationManager</code>.
+     */
     @Mock
     private LocationManager mockedLocationManager;
+    /**
+     * A mocked test location.
+     */
     @Mock
     private Location location;
+    /**
+     * A mocked listener for capturing events.
+     */
     @Mock
     private CapturingProcessListener listener;
+    /**
+     * The status handler for the geo location device.
+     */
     private GeoLocationDeviceStatusHandler gpsStatusHandler;
 
+    /**
+     * Initializes mocks and the status handler.
+     */
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
@@ -49,8 +67,11 @@ public class DataCapturingTest {
         };
     }
 
+    /**
+     * Tests if <code>CapturingProcessListener</code> is correctly informed about new geo locations.
+     */
     @Test
-    public void testSuccessfulDataCapturing() throws Exception {
+    public void testSuccessfulDataCapturing() {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(51.03624633);
         when(location.getLongitude()).thenReturn(13.78828128);
@@ -69,11 +90,9 @@ public class DataCapturingTest {
      * Tests whether a point captured event is successfully issued after two gps points and one
      * satellite status event are received and the two gps points occured in short succession.
      * Usually below 2 seconds.
-     *
-     * @throws Exception If anything went wrong.
      */
     @Test
-    public void testDataCapturingInterval() throws Exception {
+    public void testDataCapturingInterval() {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(1.0);
         when(location.getLongitude()).thenReturn(1.0);

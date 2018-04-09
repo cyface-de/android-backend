@@ -177,29 +177,32 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
     @Override
     public void onSensorChanged(final @NonNull SensorEvent event) {
-        long thisSensorEventTime = event.timestamp / 1000000L + eventTimeOffset;
+        // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
+        // been the other way around.
         if (eventTimeOffset == 0) {
             // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with
             // rebooting)
-            eventTimeOffset = System.currentTimeMillis() - event.timestamp / 1000000L;
+            eventTimeOffset = System.currentTimeMillis() - event.timestamp / 1_000_000L;
         }
+        long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffset;
 
         // Notify client about sensor update & bulkInsert data into database even without gps fix
         if (!gpsStatusHandler.hasGpsFix() && (lastNoGeoLocationFixUpdateTime == 0
-                || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1000))) {
+                || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1_000))) {
             try {
                 for (CapturingProcessListener listener : this.listener) {
                     CapturedData capturedData = new CapturedData(accelerations, rotations, directions);
                     listener.onDataCaptured(capturedData);
                 }
+
+                accelerations.clear();
+                rotations.clear();
+                directions.clear();
+                lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
             } catch (SecurityException e) {
                 throw new IllegalStateException(e);
             }
         }
-        accelerations.clear();
-        rotations.clear();
-        directions.clear();
-        lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
 
         // Get sensor values from event
         if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))) {
