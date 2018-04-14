@@ -12,7 +12,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import android.accounts.Account;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -371,6 +370,7 @@ public abstract class DataCapturingService {
         StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
         Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
+        fromServiceMessageHandler.addListener(synchronizationReceiver);
         try {
             try {
                 unbind();
@@ -397,6 +397,7 @@ public abstract class DataCapturingService {
                 lock.unlock();
             }
         } finally {
+            fromServiceMessageHandler.removeListener(synchronizationReceiver);
             context.unregisterReceiver(synchronizationReceiver);
         }
     }
@@ -525,6 +526,9 @@ public abstract class DataCapturingService {
                     case MessageCodes.WARNING_SPACE:
                         listener.onLowDiskSpace(null);
                         break;
+                        case MessageCodes.SERVICE_STOPPED:
+                            listener.onServiceStopped();
+                        break;
                     default:
                         listener.onErrorState(new DataCapturingException(
                                 context.getString(R.string.unknown_message_error, msg.what)));
@@ -538,61 +542,18 @@ public abstract class DataCapturingService {
          *
          * @param listener A listener that is notified of important events during data capturing.
          */
-        public void addListener(final @NonNull DataCapturingListener listener) {
+        void addListener(final @NonNull DataCapturingListener listener) {
             this.listener.add(listener);
         }
-    }
 
-    /**
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private static class StartStopSynchronizer extends BroadcastReceiver {
-
-        private boolean receivedServiceStarted;
-        private boolean receivedServiceStopped;
-        private final Lock lock;
-        private final Condition condition;
-
-        public StartStopSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition) {
-            this.lock = lock;
-            this.condition = condition;
-        }
-
-        @Override
-        public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
-            Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
-            if (intent.getAction() == null) {
-                throw new IllegalStateException("Received broadcast with null action.");
-            }
-            switch (intent.getAction()) {
-                case MessageCodes.BROADCAST_SERVICE_STARTED:
-                    Log.v(TAG, "Received Service started broadcast!");
-                    receivedServiceStarted = true;
-                    break;
-                case MessageCodes.BROADCAST_SERVICE_STOPPED:
-                    Log.v(TAG, "Received Service stopped broadcast!");
-                    receivedServiceStopped = true;
-                    break;
-                default:
-                    throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
-            }
-
-            lock.lock();
-            try {
-                condition.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        public boolean receivedServiceStarted() {
-            return receivedServiceStarted;
-        }
-
-        public boolean receivedServiceStopped() {
-            return receivedServiceStopped;
+        /**
+         * Removes the provided object as <code>DataCapturingListener</code> from the list of listeners notified by this object.
+         *
+         * @param listener A listener that is notified of important events during data capturing.
+         */
+        void removeListener(final @NonNull DataCapturingListener listener) {
+            this.listener.remove(listener);
         }
     }
+
 }

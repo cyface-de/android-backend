@@ -137,9 +137,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (dataCapturing != null) {
             dataCapturing.close();
         }
+        // Since on some devices the broadcast seems not to work we are sending a message here.
+        informCaller(MessageCodes.SERVICE_STOPPED,null);
         super.onDestroy();
         Log.v(TAG, "Sending broadcast service stopped.");
         sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
+
     }
 
     @Override
