@@ -9,7 +9,7 @@ import de.cyface.datacapturing.model.GeoLocation;
  * {@link DataCapturingService#start(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public interface DataCapturingListener {
@@ -56,4 +56,9 @@ public interface DataCapturingListener {
      * @param e An <code>Exception</code> representing the received error.
      */
     void onErrorState(Exception e);
+
+    /**
+     * Called when the facade object receives a <code>MessageCodes#SERVICE_STOPPED</code> message from the background service.
+     */
+    void onServiceStopped();
 }

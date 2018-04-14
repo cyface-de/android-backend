@@ -10,6 +10,7 @@ package de.cyface.datacapturing;
  */
 public class MessageCodes {
     public static final int REGISTER_CLIENT = 1;
+    public static final int SERVICE_STOPPED = 2;
     public static final int LOCATION_CAPTURED = 4;
     public static final int DATA_CAPTURED = 5;
     public static final int GPS_FIX = 6;
