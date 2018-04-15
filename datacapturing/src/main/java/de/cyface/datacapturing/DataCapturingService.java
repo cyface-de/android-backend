@@ -69,7 +69,7 @@ public abstract class DataCapturingService {
      * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
      * what works under real world conditions.
      */
-    private static final long START_STOP_TIMEOUT_MILLIS = 10_000L;
+    private static final long START_STOP_TIMEOUT_MILLIS = 20_000L;
     /*
      * MARK: Properties
      */
@@ -321,9 +321,15 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
         try {
+            Log.v(TAG, String.format("Starting using Intent with context %s.", context));
             Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
 
-            ComponentName serviceComponentName = context.startService(startIntent);
+            ComponentName serviceComponentName = null;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                serviceComponentName = context.startForegroundService(startIntent);
+            } else {
+                serviceComponentName = context.startService(startIntent);
+            }
             if (serviceComponentName == null) {
                 throw new DataCapturingException("Illegal state: back ground service could not be started!");
             }
@@ -372,13 +378,23 @@ public abstract class DataCapturingService {
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         fromServiceMessageHandler.addListener(synchronizationReceiver);
         try {
+            boolean serviceWasActive;
             try {
+                Message stopServiceMessage = new Message();
+                stopServiceMessage.what = MessageCodes.STOP_SERVICE;
+                stopServiceMessage.replyTo = fromServiceMessenger;
+                toServiceMessenger.send(stopServiceMessage);
                 unbind();
-            } catch (IllegalArgumentException e) {
+            } catch (IllegalArgumentException | RemoteException e) {
                 throw new DataCapturingException(e);
             } finally {
+                Log.v(TAG, String.format("Stopping using Intent with context %s",context));
                 Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
-                context.stopService(stopIntent);
+                serviceWasActive = context.stopService(stopIntent);
+            }
+
+            if(!serviceWasActive) {
+                throw new DataCapturingException("Unable to stop non existing service.");
             }
 
             lock.lock();
@@ -500,6 +516,7 @@ public abstract class DataCapturingService {
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
+            Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
@@ -516,7 +533,7 @@ public abstract class DataCapturingService {
                         break;
                     case MessageCodes.DATA_CAPTURED:
                         Log.i(TAG, "Captured some sensor data, which is ignored for now.");
-                        // TOD
+                        // TODO
                     case MessageCodes.GPS_FIX:
                         listener.onFixAcquired();
                         break;
@@ -526,8 +543,8 @@ public abstract class DataCapturingService {
                     case MessageCodes.WARNING_SPACE:
                         listener.onLowDiskSpace(null);
                         break;
-                        case MessageCodes.SERVICE_STOPPED:
-                            listener.onServiceStopped();
+                    case MessageCodes.SERVICE_STOPPED:
+                        listener.onServiceStopped();
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(
@@ -547,7 +564,8 @@ public abstract class DataCapturingService {
         }
 
         /**
-         * Removes the provided object as <code>DataCapturingListener</code> from the list of listeners notified by this object.
+         * Removes the provided object as <code>DataCapturingListener</code> from the list of listeners notified by this
+         * object.
          *
          * @param listener A listener that is notified of important events during data capturing.
          */

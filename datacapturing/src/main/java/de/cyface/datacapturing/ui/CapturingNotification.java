@@ -1,6 +1,11 @@
 package de.cyface.datacapturing.ui;
 
 import android.app.Notification;
+import android.app.NotificationChannel;
+import android.app.NotificationManager;
+import android.content.Context;
+import android.os.Build;
+import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 
 import de.cyface.datacapturing.R;
@@ -11,10 +16,12 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  * required to make the user aware of the background tracking. It shows up as a small symbol on the upper status bar.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public class CapturingNotification {
+
+    private static final String CHANNEL_ID = "de.cyface.notification";
 
     /**
      * The Android <code>Notification</code> wrapped by this class.
@@ -50,13 +57,34 @@ public class CapturingNotification {
         // cancelIntent.setAction(CANCEL_REQUEST);
         // PendingIntent pendingCancelIntent = PendingIntent.getService(
         // context, 0, cancelIntent, PendingIntent.FLAG_CANCEL_CURRENT);
+        String channelId = null;
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+            channelId = createNotificationChannelIfNotExists(context);
+        } else {
+            channelId = CHANNEL_ID;
+        }
 
-        wrappedNotification = new NotificationCompat.Builder(context, "de.cyface.notification")
+        wrappedNotification = new NotificationCompat.Builder(context, channelId)
                 .setContentTitle(context.getText(R.string.notification_title))
                 .setContentText(context.getText(R.string.capturing_active)).setSmallIcon(R.drawable.ic_logo_only_c)
                 // .setContentIntent(pendingIntent)
                 .setTicker(context.getText(R.string.ticker_text)).build();
 
         return wrappedNotification;
+    }
+
+    @RequiresApi(api = Build.VERSION_CODES.O)
+    private String createNotificationChannelIfNotExists(final DataCapturingBackgroundService context) {
+        final String channelId = CHANNEL_ID;
+        final CharSequence channelName = "Cyface";
+
+        NotificationManager manager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if (manager.getNotificationChannel(channelId) == null) {
+            NotificationChannel channel = new NotificationChannel(channelId, channelName,
+                    NotificationManager.IMPORTANCE_LOW);
+            manager.createNotificationChannel(channel);
+        }
+
+        return channelId;
     }
 }
