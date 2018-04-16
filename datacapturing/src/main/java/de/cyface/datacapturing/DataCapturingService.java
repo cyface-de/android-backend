@@ -66,7 +66,7 @@ public abstract class DataCapturingService {
     private static final String TAG = "de.cyface.capturing";
     /**
      * The time in milliseconds after which this object stops waiting for the system to start or stop the Android
-     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
+     * service and reports an error. It is set to 20 seconds by default. There is no particular reason. We should check
      * what works under real world conditions.
      */
     private static final long START_STOP_TIMEOUT_MILLIS = 20_000L;
