@@ -21,6 +21,9 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  */
 public class CapturingNotification {
 
+    /**
+     * The identifier of the notification channel used by the foreground service.
+     */
     private static final String CHANNEL_ID = "de.cyface.notification";
 
     /**
@@ -73,6 +76,12 @@ public class CapturingNotification {
         return wrappedNotification;
     }
 
+    /**
+     * Since Android 8 it is necessary to create a new notification channel for a foreground service notification. To save system resources this should only happen if the channel does not exist. This method does just that.
+     *
+     * @param context The Android <code>Context</code> to use to create the notification channel.
+     * @return The identifier of the created or existing channel.
+     */
     @RequiresApi(api = Build.VERSION_CODES.O)
     private String createNotificationChannelIfNotExists(final DataCapturingBackgroundService context) {
         final String channelId = CHANNEL_ID;

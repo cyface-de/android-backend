@@ -38,9 +38,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * The tag used to identify log messages send to logcat.
      */
     private final static String TAG = CapturingProcess.class.getName();
-
+    /**
+     * A delay used to bundle capturing of sensor events, to reduce power consumption.
+     */
     private static final int SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000;
-
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
@@ -53,7 +54,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Cache for captured but not yet processed points from the compass.
      */
     private final List<Point3D> directions;
-
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -84,9 +84,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * inaccurate values to the database. In such cases GPS values are filled up with zeros.
      */
     private long lastNoGeoLocationFixUpdateTime = 0;
-
     /**
-     * <a href="https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please/6769218?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa">StackOverflow</a>.
+     * A <code>HandlerThread</code> to handle new sensor events in the background. This is based on information from
+     * <a href=
+     * "https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please/6769218?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa">StackOverflow</a>.
      */
     private final HandlerThread sensorEventHandlerThread;
 
@@ -94,14 +95,14 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided
      * {@link LocationManager} as well as the {@link SensorManager}.
      *
-     * @param locationManager                The {@link LocationManager} used to get updates about the devices location.
-     * @param sensorService                  The {@link SensorManager} used to get updates from the devices Accelerometer, Gyroscope and
-     *                                       Compass.
+     * @param locationManager The {@link LocationManager} used to get updates about the devices location.
+     * @param sensorService The {@link SensorManager} used to get updates from the devices Accelerometer, Gyroscope and
+     *            Compass.
      * @param geoLocationDeviceStatusHandler Handler that is notified if there is a geo location fix or not.
      * @throws SecurityException If user did not provide permission to access geo location.
      */
     CapturingProcess(final LocationManager locationManager, final SensorManager sensorService,
-                     final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler) throws SecurityException {
+            final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler) throws SecurityException {
         if (locationManager == null) {
             throw new IllegalArgumentException("Illegal argument: locationManager was null!");
         }
@@ -185,7 +186,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     }
 
     /**
-     * See {@link SensorEventListener#onSensorChanged(SensorEvent)}. Since this method runs in a separate thread it needs to be synchronized with this object, so that transmitting the captured data and clearing the cache in {@link #onLocationChanged(Location)} does not interfere with the same calls in this method.
+     * See {@link SensorEventListener#onSensorChanged(SensorEvent)}. Since this method runs in a separate thread it
+     * needs to be synchronized with this object, so that transmitting the captured data and clearing the cache in
+     * {@link #onLocationChanged(Location)} does not interfere with the same calls in this method.
      *
      * @param event See {@link SensorEventListener#onSensorChanged(SensorEvent)}
      */
@@ -234,7 +237,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Logs information about sensor update intervals.
      *
      * @param thisSensorEventTime The current sensor event time in milliseconds since the 1.1.1970 (Unix timestamp
-     *                            format).
+     *            format).
      */
     private void logIrregularSensorValues(final long thisSensorEventTime) {
         // Check if there are irregular gaps between sensor events (e.g. no GPS fix or data loss)
@@ -275,7 +278,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * as different vendors and Android versions store different timestamps in the event.ts
      * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same timestamp format.
      *
-     * @param event   The Android {@code SensorEvent} to store.
+     * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
     private void saveSensorValue(final SensorEvent event, final List<Point3D> storage) {
@@ -285,15 +288,17 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     }
 
     /**
-     * Registers the provided <code>Sensor</code> with this object as a listener, if the sensor is not <code>null</code>. If the sensor is <code>null</code> nothing will happen.
+     * Registers the provided <code>Sensor</code> with this object as a listener, if the sensor is not
+     * <code>null</code>. If the sensor is <code>null</code> nothing will happen.
      *
-     * @param sensor             The Android <code>Sensor</code> to register.
+     * @param sensor The Android <code>Sensor</code> to register.
      * @param sensorEventHandler The <code>Handler</code> to run the <code>onSensorEvent</code> method on.
      */
     private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
         if (sensor != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST, SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
+                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST,
+                        SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
             } else {
                 sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST, sensorEventHandler);
             }
