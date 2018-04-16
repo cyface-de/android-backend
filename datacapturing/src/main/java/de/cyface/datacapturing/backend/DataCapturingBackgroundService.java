@@ -134,7 +134,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             dataCapturing.close();
         }
         // Since on some devices the broadcast seems not to work we are sending a message here.
-        informCaller(MessageCodes.SERVICE_STOPPED,null);
+        //informCaller(MessageCodes.SERVICE_STOPPED,null);
         super.onDestroy();
         Log.v(TAG, "Sending broadcast service stopped.");
         sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
@@ -282,10 +282,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                         Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
-                    break;
-                case MessageCodes.STOP_SERVICE:
-                    Log.d(TAG, "Received message to stop.");
-                    service.stopSelf();
                     break;
                 default:
                     super.handleMessage(msg);

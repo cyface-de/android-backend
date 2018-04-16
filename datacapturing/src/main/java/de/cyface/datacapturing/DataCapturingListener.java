@@ -56,9 +56,4 @@ public interface DataCapturingListener {
      * @param e An <code>Exception</code> representing the received error.
      */
     void onErrorState(Exception e);
-
-    /**
-     * Called when the facade object receives a <code>MessageCodes#SERVICE_STOPPED</code> message from the background service.
-     */
-    void onServiceStopped();
 }

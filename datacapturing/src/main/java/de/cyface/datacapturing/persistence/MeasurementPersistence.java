@@ -4,12 +4,14 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 
+import android.content.ContentProviderClient;
 import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
+import android.os.Build;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
@@ -86,7 +88,7 @@ public class MeasurementPersistence {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
         return resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values,
-                MeasurementTable.COLUMN_FINISHED + "=?", new String[] {"0"});
+                MeasurementTable.COLUMN_FINISHED + "=?", new String[]{"0"});
     }
 
     /**
@@ -97,52 +99,61 @@ public class MeasurementPersistence {
     public void storeData(final @NonNull CapturedData data) {
         try {
             final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
-            ArrayList<ContentProviderOperation> batchOperations = new ArrayList<>();
+            ContentProviderClient client = null;
+            try {
+                client = resolver.acquireContentProviderClient(MeasuringPointsContentProvider.AUTHORITY);
 
-            batchOperations.addAll(newDataPointInsertOperation(data.getAccelerations(),
-                    MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
-                        @Override
-                        public ContentValues map(Point3D dataPoint) {
-                            ContentValues ret = new ContentValues();
-                            ret.put(SamplePointTable.COLUMN_AX, dataPoint.getX());
-                            ret.put(SamplePointTable.COLUMN_AY, dataPoint.getY());
-                            ret.put(SamplePointTable.COLUMN_AZ, dataPoint.getZ());
-                            ret.put(SamplePointTable.COLUMN_IS_SYNCED, 0);
-                            ret.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                            ret.put(SamplePointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                            return ret;
-                        }
-                    }));
-            batchOperations.addAll(newDataPointInsertOperation(data.getRotations(),
-                    MeasuringPointsContentProvider.ROTATION_POINTS_URI, new Mapper() {
-                        @Override
-                        public ContentValues map(Point3D dataPoint) {
-                            ContentValues ret = new ContentValues();
-                            ret.put(RotationPointTable.COLUMN_RX, dataPoint.getX());
-                            ret.put(RotationPointTable.COLUMN_RY, dataPoint.getY());
-                            ret.put(RotationPointTable.COLUMN_RZ, dataPoint.getZ());
-                            ret.put(RotationPointTable.COLUMN_IS_SYNCED, 0);
-                            ret.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                            ret.put(RotationPointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                            return ret;
-                        }
-                    }));
-            batchOperations.addAll(newDataPointInsertOperation(data.getDirections(),
-                    MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, new Mapper() {
-                        @Override
-                        public ContentValues map(Point3D dataPoint) {
-                            ContentValues ret = new ContentValues();
-                            ret.put(MagneticValuePointTable.COLUMN_MX, dataPoint.getX());
-                            ret.put(MagneticValuePointTable.COLUMN_MY, dataPoint.getY());
-                            ret.put(MagneticValuePointTable.COLUMN_MZ, dataPoint.getZ());
-                            ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, 0);
-                            ret.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                            ret.put(MagneticValuePointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                            return ret;
-                        }
-                    }));
-
-            resolver.applyBatch(MeasuringPointsContentProvider.AUTHORITY, batchOperations);
+                client.applyBatch(newDataPointInsertOperation(data.getAccelerations(),
+                        MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
+                            @Override
+                            public ContentValues map(Point3D dataPoint) {
+                                ContentValues ret = new ContentValues();
+                                ret.put(SamplePointTable.COLUMN_AX, dataPoint.getX());
+                                ret.put(SamplePointTable.COLUMN_AY, dataPoint.getY());
+                                ret.put(SamplePointTable.COLUMN_AZ, dataPoint.getZ());
+                                ret.put(SamplePointTable.COLUMN_IS_SYNCED, 0);
+                                ret.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                                ret.put(SamplePointTable.COLUMN_TIME, dataPoint.getTimestamp());
+                                return ret;
+                            }
+                        }));
+                client.applyBatch(newDataPointInsertOperation(data.getRotations(),
+                        MeasuringPointsContentProvider.ROTATION_POINTS_URI, new Mapper() {
+                            @Override
+                            public ContentValues map(Point3D dataPoint) {
+                                ContentValues ret = new ContentValues();
+                                ret.put(RotationPointTable.COLUMN_RX, dataPoint.getX());
+                                ret.put(RotationPointTable.COLUMN_RY, dataPoint.getY());
+                                ret.put(RotationPointTable.COLUMN_RZ, dataPoint.getZ());
+                                ret.put(RotationPointTable.COLUMN_IS_SYNCED, 0);
+                                ret.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                                ret.put(RotationPointTable.COLUMN_TIME, dataPoint.getTimestamp());
+                                return ret;
+                            }
+                        }));
+                client.applyBatch(newDataPointInsertOperation(data.getDirections(),
+                        MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, new Mapper() {
+                            @Override
+                            public ContentValues map(Point3D dataPoint) {
+                                ContentValues ret = new ContentValues();
+                                ret.put(MagneticValuePointTable.COLUMN_MX, dataPoint.getX());
+                                ret.put(MagneticValuePointTable.COLUMN_MY, dataPoint.getY());
+                                ret.put(MagneticValuePointTable.COLUMN_MZ, dataPoint.getZ());
+                                ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, 0);
+                                ret.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                                ret.put(MagneticValuePointTable.COLUMN_TIME, dataPoint.getTimestamp());
+                                return ret;
+                            }
+                        }));
+            } finally {
+                if (client != null) {
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        client.close();
+                    } else {
+                        client.release();
+                    }
+                }
+            }
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
         } catch (OperationApplicationException e) {
@@ -205,7 +216,7 @@ public class MeasurementPersistence {
         Cursor measurementIdentifierQueryCursor = null;
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
-                    new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
+                    new String[]{BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
                     MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
                     BaseColumns._ID + " DESC");
             if (measurementIdentifierQueryCursor == null) {
@@ -236,13 +247,14 @@ public class MeasurementPersistence {
      * Creates a new operation to store a list of data points under the provided URI in the local persistent storage.
      *
      * @param dataPoints The data points to store.
-     * @param uri The uri identifying the data points table to store them at.
-     * @param mapper A mapper for mapping the data point values to the correct columns.
-     * @return A <code>List</code> of operations - one per data point - ready to be executed.
+     * @param uri        The uri identifying the data points table to store them at.
+     * @param mapper     A mapper for mapping the data point values to the correct columns.
+     * @return An <code>ArrayList</code> of operations - one per data point - ready to be executed. This must be an <code>ArrayList</code> since that is what is required by the <code>ContentResolver</code>.
      */
-    private @NonNull List<ContentProviderOperation> newDataPointInsertOperation(final @NonNull List<Point3D> dataPoints,
-            final @NonNull Uri uri, final @NonNull Mapper mapper) {
-        List<ContentProviderOperation> ret = new ArrayList<>(dataPoints.size());
+    private @NonNull
+    ArrayList<ContentProviderOperation> newDataPointInsertOperation(final @NonNull List<Point3D> dataPoints,
+                                                                    final @NonNull Uri uri, final @NonNull Mapper mapper) {
+        ArrayList<ContentProviderOperation> ret = new ArrayList<>(dataPoints.size());
 
         for (Point3D dataPoint : dataPoints) {
             ContentValues values = mapper.map(dataPoint);
@@ -256,7 +268,8 @@ public class MeasurementPersistence {
     /**
      * @return All measurements currently in the local persistent data storage.
      */
-    public @NonNull List<Measurement> loadMeasurements() {
+    public @NonNull
+    List<Measurement> loadMeasurements() {
         Cursor cursor = null;
         try {
             List<Measurement> ret = new ArrayList<>();
@@ -321,7 +334,7 @@ public class MeasurementPersistence {
         try {
             locationsCursor = resolver.query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
+                    new String[]{Long.valueOf(measurement.getIdentifier()).toString()},
                     GpsPointsTable.COLUMN_GPS_TIME + " ASC");
 
             if (locationsCursor == null) {

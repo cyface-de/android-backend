@@ -113,13 +113,13 @@ public abstract class DataCapturingService {
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
      *
-     * @param context The context (i.e. <code>Activity</code>) handling this service.
+     * @param context                 The context (i.e. <code>Activity</code>) handling this service.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *                                this service.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String dataUploadServerAddress) throws SetupException {
+                                final @NonNull String dataUploadServerAddress) throws SetupException {
         this.context = new WeakReference<>(context);
 
         this.serviceConnection = new BackgroundServiceConnection();
@@ -137,7 +137,7 @@ public abstract class DataCapturingService {
             throw new SetupException("Unable to write preferences!");
         }
         surveyor = new WiFiSurveyor(context,
-                (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE));
+                (ConnectivityManager) context.getSystemService(Context.CONNECTIVITY_SERVICE));
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
     }
@@ -171,7 +171,7 @@ public abstract class DataCapturingService {
      * operation and thus should not be called on the main thread.
      *
      * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
-     *             occurs, but you have to handle it anyways to prevent your application from crashing.
+     *                                occurs, but you have to handle it anyways to prevent your application from crashing.
      */
     public void stop() throws DataCapturingException {
         if (context.get() == null) {
@@ -191,9 +191,10 @@ public abstract class DataCapturingService {
 
     /**
      * @return A list containing all measurements currently stored on this by this application. An empty list if there
-     *         are no such measurements, but never <code>null</code>.
+     * are no such measurements, but never <code>null</code>.
      */
-    public @NonNull List<Measurement> getCachedMeasurements() {
+    public @NonNull
+    List<Measurement> getCachedMeasurements() {
         return persistenceLayer.loadMeasurements();
     }
 
@@ -209,6 +210,7 @@ public abstract class DataCapturingService {
     }
 
     // TODO provide a custom list implementation that loads only small portions into memory.
+
     /**
      * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
      * memory. For large tracks this could slow down the device or even reach the applications memory limit.
@@ -234,12 +236,12 @@ public abstract class DataCapturingService {
      * process communication, it should be
      * considered a long running operation.
      *
-     * @param timeout The timeout of how long to wait for the service to answer before deciding it is not running. After
-     *            this timeout has passed the <code>IsRunningCallback#timedOut()</code> method is called. Since the
-     *            communication between this class and its background service is usually quite fast (almost
-     *            instantaneous), you may use pretty low values here. It still is a long running operation and should be
-     *            handled as such in the UI.
-     * @param unit The unit of time specified by timeout.
+     * @param timeout  The timeout of how long to wait for the service to answer before deciding it is not running. After
+     *                 this timeout has passed the <code>IsRunningCallback#timedOut()</code> method is called. Since the
+     *                 communication between this class and its background service is usually quite fast (almost
+     *                 instantaneous), you may use pretty low values here. It still is a long running operation and should be
+     *                 handled as such in the UI.
+     * @param unit     The unit of time specified by timeout.
      * @param callback Called as soon as the current state of the service has become clear.
      */
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
@@ -262,7 +264,7 @@ public abstract class DataCapturingService {
 
     /**
      * @return The current Android <code>Context</code> used by this service or <code>null</code> if there currently is
-     *         none.
+     * none.
      */
     Context getContext() {
         return context.get();
@@ -309,8 +311,8 @@ public abstract class DataCapturingService {
      * not called on the UI thread.
      *
      * @param timeout The timeout to wait for the background service to successfully start. If it is reached an
-     *            <code>Exception</code> is thrown.
-     * @param unit The <code>TimeUnit</code> for the <code>timeout</code>.
+     *                <code>Exception</code> is thrown.
+     * @param unit    The <code>TimeUnit</code> for the <code>timeout</code>.
      * @throws DataCapturingException If timeout is reached, binding fails or startup fails.
      */
     void runServiceSync(final long timeout, final @NonNull TimeUnit unit) throws DataCapturingException {
@@ -353,7 +355,6 @@ public abstract class DataCapturingService {
         } finally {
             context.unregisterReceiver(synchronizationReceiver);
         }
-
     }
 
     /**
@@ -363,8 +364,8 @@ public abstract class DataCapturingService {
      * not called on the UI thread.
      *
      * @param timeout The timeout to wait for the background service to successfully terminate. If it is reached an
-     *            <code>Exception</code> is thrown.
-     * @param unit The <code>TimeUnit</code> for the <code>timeout</code>.
+     *                <code>Exception</code> is thrown.
+     * @param unit    The <code>TimeUnit</code> for the <code>timeout</code>.
      * @throws DataCapturingException If timeout is reached or unbinding fails.
      */
     void stopServiceSync(final long timeout, final @NonNull TimeUnit unit) throws DataCapturingException {
@@ -376,24 +377,23 @@ public abstract class DataCapturingService {
         StartStopSynchronizer synchronizationReceiver = new StartStopSynchronizer(lock, condition);
         Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(synchronizationReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
-        fromServiceMessageHandler.addListener(synchronizationReceiver);
         try {
             boolean serviceWasActive;
             try {
-                Message stopServiceMessage = new Message();
-                stopServiceMessage.what = MessageCodes.STOP_SERVICE;
-                stopServiceMessage.replyTo = fromServiceMessenger;
-                toServiceMessenger.send(stopServiceMessage);
+                /*Message prepareStopMessage = new Message();
+                prepareStopMessage.what = MessageCodes.PREPARE_STOP;
+                toServiceMessenger.send(prepareStopMessage);*/
+
                 unbind();
-            } catch (IllegalArgumentException | RemoteException e) {
+            } catch (IllegalArgumentException e) {
                 throw new DataCapturingException(e);
             } finally {
-                Log.v(TAG, String.format("Stopping using Intent with context %s",context));
+                Log.v(TAG, String.format("Stopping using Intent with context %s", context));
                 Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
                 serviceWasActive = context.stopService(stopIntent);
             }
 
-            if(!serviceWasActive) {
+            if (!serviceWasActive) {
                 throw new DataCapturingException("Unable to stop non existing service.");
             }
 
@@ -413,7 +413,6 @@ public abstract class DataCapturingService {
                 lock.unlock();
             }
         } finally {
-            fromServiceMessageHandler.removeListener(synchronizationReceiver);
             context.unregisterReceiver(synchronizationReceiver);
         }
     }
@@ -542,9 +541,6 @@ public abstract class DataCapturingService {
                         break;
                     case MessageCodes.WARNING_SPACE:
                         listener.onLowDiskSpace(null);
-                        break;
-                    case MessageCodes.SERVICE_STOPPED:
-                        listener.onServiceStopped();
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(

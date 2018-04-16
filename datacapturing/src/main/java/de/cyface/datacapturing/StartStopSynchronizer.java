@@ -9,9 +9,6 @@ import android.util.Log;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-
 /**
  * An object of this class waits to receive a message from the service for a start or a stop event. Please use a new
  * instance for each invocation.
@@ -23,7 +20,7 @@ import de.cyface.datacapturing.model.GeoLocation;
  * @version 1.2.0
  * @since 2.0.0
  */
-class StartStopSynchronizer extends BroadcastReceiver implements DataCapturingListener {
+class StartStopSynchronizer extends BroadcastReceiver {
     /**
      * The tag used to identify Logcat messages from this class.
      */
@@ -96,47 +93,6 @@ class StartStopSynchronizer extends BroadcastReceiver implements DataCapturingLi
      */
     public boolean receivedServiceStopped() {
         return receivedServiceStopped;
-    }
-
-    @Override
-    public void onFixAcquired() {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onFixLost() {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onNewGeoLocationAcquired(GeoLocation position) {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onNewSensorDataAcquired(CapturedData data) {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onLowDiskSpace(DiskConsumption allocation) {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onSynchronizationSuccessful() {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onErrorState(Exception e) {
-        // Nothing to do here.
-    }
-
-    @Override
-    public void onServiceStopped() {
-        receivedServiceStopped = true;
-        signal();
     }
 
     /**

@@ -86,11 +86,6 @@ class TestListener implements DataCapturingListener {
         // Nothing to do here
     }
 
-    @Override
-    public void onServiceStopped() {
-        // Nothing to do here
-    }
-
     /**
      * @return The captured positions received during the test run.
      */
