@@ -9,7 +9,7 @@ import de.cyface.datacapturing.model.GeoLocation;
  * {@link DataCapturingService#start(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @version 1.1.0
  * @since 1.0.0
  */
 public interface DataCapturingListener {

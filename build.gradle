@@ -34,9 +34,6 @@ ext {
     groupId = 'de.cyface'
 
     minSdkVersion = 16
-    // Migrate to new startForeground method and test the DataCapturing extensively before
-    // targeting version 26! See details here:
-    // https://stackoverflow.com/questions/43251528/android-o-old-start-foreground-service-still-working
     targetSdkVersion = 27
     compileSdkVersion = 27
     buildToolsVersion = '27.0.3'
