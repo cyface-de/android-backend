@@ -73,17 +73,17 @@ class TestListener implements DataCapturingListener {
 
     @Override
     public void onLowDiskSpace(final @NonNull DiskConsumption allocation) {
-
+        // Nothing to do here
     }
 
     @Override
     public void onSynchronizationSuccessful() {
-
+        // Nothing to do here
     }
 
     @Override
     public void onErrorState(Exception e) {
-
+        // Nothing to do here
     }
 
     /**

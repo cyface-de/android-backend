@@ -13,7 +13,10 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
+import android.os.Handler;
+import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -26,7 +29,7 @@ import de.cyface.datacapturing.model.Point3D;
  * acceleration sensor events as well as the LocationListener to listen to location updates.
  *
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @version 1.2.1
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -35,7 +38,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * The tag used to identify log messages send to logcat.
      */
     private final static String TAG = CapturingProcess.class.getName();
-
+    /**
+     * A delay used to bundle capturing of sensor events, to reduce power consumption.
+     */
+    private static final int SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000;
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
@@ -48,7 +54,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Cache for captured but not yet processed points from the compass.
      */
     private final List<Point3D> directions;
-
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -79,6 +84,12 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * inaccurate values to the database. In such cases GPS values are filled up with zeros.
      */
     private long lastNoGeoLocationFixUpdateTime = 0;
+    /**
+     * A <code>HandlerThread</code> to handle new sensor events in the background. This is based on information from
+     * <a href=
+     * "https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please/6769218?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa">StackOverflow</a>.
+     */
+    private final HandlerThread sensorEventHandlerThread;
 
     /**
      * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided
@@ -110,20 +121,17 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.sensorService = sensorService;
         this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this);
         this.gpsStatusHandler = geoLocationDeviceStatusHandler;
+        this.sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
 
         // Registering Sensors
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         Sensor gyroscope = sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
-        if (accelerometer != null) {
-            sensorService.registerListener(this, accelerometer, SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (gyroscope != null) {
-            sensorService.registerListener(this, gyroscope, SensorManager.SENSOR_DELAY_FASTEST);
-        }
-        if (magnetometer != null) {
-            sensorService.registerListener(this, magnetometer, SensorManager.SENSOR_DELAY_FASTEST);
-        }
+        sensorEventHandlerThread.start();
+        Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
+        registerSensor(accelerometer, sensorEventHandler);
+        registerSensor(gyroscope, sensorEventHandler);
+        registerSensor(magnetometer, sensorEventHandler);
     }
 
     /**
@@ -150,13 +158,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             double speed = getCurrentSpeed(location);
             float gpsAccuracy = location.getAccuracy();
 
-            for (CapturingProcessListener listener : this.listener) {
-                listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
-                listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
+            synchronized (this) {
+                for (CapturingProcessListener listener : this.listener) {
+                    listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
+                    listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
+                }
+                accelerations.clear();
+                rotations.clear();
+                directions.clear();
             }
-            accelerations.clear();
-            rotations.clear();
-            directions.clear();
         }
     }
 
@@ -175,8 +185,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         // Nothing to do here.
     }
 
+    /**
+     * See {@link SensorEventListener#onSensorChanged(SensorEvent)}. Since this method runs in a separate thread it
+     * needs to be synchronized with this object, so that transmitting the captured data and clearing the cache in
+     * {@link #onLocationChanged(Location)} does not interfere with the same calls in this method.
+     *
+     * @param event See {@link SensorEventListener#onSensorChanged(SensorEvent)}
+     */
     @Override
-    public void onSensorChanged(final @NonNull SensorEvent event) {
+    public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
         // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
         // been the other way around.
         if (eventTimeOffset == 0) {
@@ -249,6 +266,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         locationManager.removeUpdates(this);
         gpsStatusHandler.shutdown();
         sensorService.unregisterListener(this);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            sensorEventHandlerThread.quitSafely();
+        } else {
+            sensorEventHandlerThread.quit();
+        }
     }
 
     /**
@@ -263,6 +285,24 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Point3D dataPoint = new Point3D(event.values[0], event.values[1], event.values[2],
                 event.timestamp / 1000000L + eventTimeOffset);
         storage.add(dataPoint);
+    }
+
+    /**
+     * Registers the provided <code>Sensor</code> with this object as a listener, if the sensor is not
+     * <code>null</code>. If the sensor is <code>null</code> nothing will happen.
+     *
+     * @param sensor The Android <code>Sensor</code> to register.
+     * @param sensorEventHandler The <code>Handler</code> to run the <code>onSensorEvent</code> method on.
+     */
+    private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
+        if (sensor != null) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST,
+                        SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
+            } else {
+                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST, sensorEventHandler);
+            }
+        }
     }
 
     /**

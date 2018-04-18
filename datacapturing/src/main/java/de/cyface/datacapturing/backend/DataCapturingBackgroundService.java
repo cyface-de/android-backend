@@ -69,10 +69,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private CapturingProcess dataCapturing;
     /**
-     * Notification shown to the user while the data capturing is active.
-     */
-    private CapturingNotification capturingNotification;
-    /**
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
      */
@@ -137,9 +133,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (dataCapturing != null) {
             dataCapturing.close();
         }
+        // Since on some devices the broadcast seems not to work we are sending a message here.
+        //informCaller(MessageCodes.SERVICE_STOPPED,null);
         super.onDestroy();
         Log.v(TAG, "Sending broadcast service stopped.");
         sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
+
     }
 
     @Override
@@ -166,6 +165,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * available.
      */
     private void init() {
+        /*
+      Notification shown to the user while the data capturing is active.
+     */
+        CapturingNotification capturingNotification = new CapturingNotification();
+        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
@@ -175,8 +179,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         dataCapturing.addCapturingProcessListener(this);
 
-        capturingNotification = new CapturingNotification();
-        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
     }
 
     /**
@@ -194,6 +196,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             msg.setData(dataBundle);
         }
 
+        Log.v(TAG,String.format("Sending message %d to %d callers.",messageCode,clients.size()));
         Set<Messenger> iterClients = new HashSet<>(clients);
         for (Messenger caller : iterClients) {
             try {

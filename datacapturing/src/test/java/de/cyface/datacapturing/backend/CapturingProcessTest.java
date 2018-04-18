@@ -17,6 +17,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
+import org.robolectric.annotation.Config;
 import org.robolectric.shadow.api.Shadow;
 import org.robolectric.shadows.ShadowLocationManager;
 import org.robolectric.shadows.ShadowSensorManager;
@@ -36,10 +37,11 @@ import de.cyface.datacapturing.model.GeoLocation;
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
+@Config(sdk=17) // Test currently only works for SDK 17 and below, due to bugs in Robolectric
 public class CapturingProcessTest {
     /**
      * An object of the class under test.
@@ -62,18 +64,17 @@ public class CapturingProcessTest {
      * Initializes all required properties and adds the <code>testListener</code> to the <code>CapturingProcess</code>.
      */
     @Before
-    public void setUp() {
+    public void setUp() throws NoSuchFieldException, IllegalAccessException {
         LocationManager locationManager = (LocationManager)RuntimeEnvironment.application
                 .getSystemService(Context.LOCATION_SERVICE);
         SensorManager sensorManager = (SensorManager)RuntimeEnvironment.application
                 .getSystemService(Context.SENSOR_SERVICE);
         shadowSensorManager = shadowOf(sensorManager);
-        Sensor accelerometer = Shadow.newInstanceOf(Sensor.class);
-        shadowSensorManager.addSensor(Sensor.TYPE_ACCELEROMETER, accelerometer);
-        Sensor gyroscope = Shadow.newInstanceOf(Sensor.class);
-        shadowSensorManager.addSensor(Sensor.TYPE_GYROSCOPE, gyroscope);
-        Sensor magnetometer = Shadow.newInstanceOf(Sensor.class);
-        shadowSensorManager.addSensor(Sensor.TYPE_MAGNETIC_FIELD, magnetometer);
+
+        initSensor(shadowSensorManager, Sensor.TYPE_ACCELEROMETER, "accelerometer");
+        initSensor(shadowSensorManager, Sensor.TYPE_MAGNETIC_FIELD, "magnetometer");
+        initSensor(shadowSensorManager, Sensor.TYPE_GYROSCOPE, "gyroscope");
+
         shadowLocationManager = shadowOf(locationManager);
         oocut = new GPSCapturingProcess(locationManager, sensorManager,
                 new GeoLocationDeviceStatusHandler(locationManager) {
@@ -147,6 +148,17 @@ public class CapturingProcessTest {
         } catch (NoSuchFieldException | IllegalAccessException e) {
             throw new IllegalStateException(e);
         }
+    }
+
+    private void initSensor(final @NonNull ShadowSensorManager shadowManager, final int sensorType, final @NonNull String name) throws NoSuchFieldException, IllegalAccessException {
+        Sensor sensor = Shadow.newInstanceOf(Sensor.class);
+        Field nameField = Sensor.class.getDeclaredField("mName");
+        nameField.setAccessible(true);
+        Field vendorField = Sensor.class.getDeclaredField("mVendor");
+        vendorField.setAccessible(true);
+        nameField.set(sensor, name);
+        vendorField.set(sensor, "Cyface");
+        shadowSensorManager.addSensor(sensorType, sensor);
     }
 
     /**
