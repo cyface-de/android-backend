@@ -10,8 +10,10 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
+import org.robolectric.RobolectricTestRunner;
 
 import android.hardware.SensorManager;
 import android.location.Location;
@@ -20,12 +22,14 @@ import android.location.LocationManager;
 import de.cyface.datacapturing.model.GeoLocation;
 
 /**
- * Tests the correct workings of the data capturing functionality.
+ * Tests the correct workings of the data capturing functionality. Since this requires an Android <code>Looper</code> in
+ * the background it needs to be a Robolectric test case.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 2.0.0
  * @since 1.0.0
  */
+@RunWith(RobolectricTestRunner.class)
 public class DataCapturingTest {
 
     /**
