@@ -35,7 +35,7 @@ import de.cyface.persistence.SamplePointTable;
  * delegate objects.
  *
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -44,6 +44,11 @@ public class MeasurementPersistence {
      * Tag used to identify messages on logcat.
      */
     private static final String TAG = "de.cyface.persistence";
+    /**
+     * Number of save operations to carry out in one batch. Increasing this value might increase performance but also
+     * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones.
+     */
+    private static final int MAX_SIMULTANEOUS_OPERATIONS = 500;
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -88,7 +93,7 @@ public class MeasurementPersistence {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
         return resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values,
-                MeasurementTable.COLUMN_FINISHED + "=?", new String[]{"0"});
+                MeasurementTable.COLUMN_FINISHED + "=?", new String[] {"0"});
     }
 
     /**
@@ -101,9 +106,10 @@ public class MeasurementPersistence {
             final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
             ContentProviderClient client = null;
             try {
+                ArrayList<ContentProviderOperation> operations = new ArrayList<>();
                 client = resolver.acquireContentProviderClient(MeasuringPointsContentProvider.AUTHORITY);
 
-                client.applyBatch(newDataPointInsertOperation(data.getAccelerations(),
+                operations.addAll(newDataPointInsertOperation(data.getAccelerations(),
                         MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
                             @Override
                             public ContentValues map(Point3D dataPoint) {
@@ -117,7 +123,7 @@ public class MeasurementPersistence {
                                 return ret;
                             }
                         }));
-                client.applyBatch(newDataPointInsertOperation(data.getRotations(),
+                operations.addAll(newDataPointInsertOperation(data.getRotations(),
                         MeasuringPointsContentProvider.ROTATION_POINTS_URI, new Mapper() {
                             @Override
                             public ContentValues map(Point3D dataPoint) {
@@ -131,7 +137,7 @@ public class MeasurementPersistence {
                                 return ret;
                             }
                         }));
-                client.applyBatch(newDataPointInsertOperation(data.getDirections(),
+                operations.addAll(newDataPointInsertOperation(data.getDirections(),
                         MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, new Mapper() {
                             @Override
                             public ContentValues map(Point3D dataPoint) {
@@ -145,6 +151,12 @@ public class MeasurementPersistence {
                                 return ret;
                             }
                         }));
+
+                for (int i = 0; i < operations.size(); i += MAX_SIMULTANEOUS_OPERATIONS) {
+                    int startIndex = i;
+                    int endIndex = Math.min(operations.size(),i+MAX_SIMULTANEOUS_OPERATIONS-1);
+                    client.applyBatch(new ArrayList<>(operations.subList(startIndex, endIndex)));
+                }
             } finally {
                 if (client != null) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -216,7 +228,7 @@ public class MeasurementPersistence {
         Cursor measurementIdentifierQueryCursor = null;
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
-                    new String[]{BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
+                    new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
                     MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
                     BaseColumns._ID + " DESC");
             if (measurementIdentifierQueryCursor == null) {
@@ -247,13 +259,13 @@ public class MeasurementPersistence {
      * Creates a new operation to store a list of data points under the provided URI in the local persistent storage.
      *
      * @param dataPoints The data points to store.
-     * @param uri        The uri identifying the data points table to store them at.
-     * @param mapper     A mapper for mapping the data point values to the correct columns.
-     * @return An <code>ArrayList</code> of operations - one per data point - ready to be executed. This must be an <code>ArrayList</code> since that is what is required by the <code>ContentResolver</code>.
+     * @param uri The uri identifying the data points table to store them at.
+     * @param mapper A mapper for mapping the data point values to the correct columns.
+     * @return An <code>ArrayList</code> of operations - one per data point - ready to be executed. This must be an
+     *         <code>ArrayList</code> since that is what is required by the <code>ContentResolver</code>.
      */
-    private @NonNull
-    ArrayList<ContentProviderOperation> newDataPointInsertOperation(final @NonNull List<Point3D> dataPoints,
-                                                                    final @NonNull Uri uri, final @NonNull Mapper mapper) {
+    private @NonNull ArrayList<ContentProviderOperation> newDataPointInsertOperation(
+            final @NonNull List<Point3D> dataPoints, final @NonNull Uri uri, final @NonNull Mapper mapper) {
         ArrayList<ContentProviderOperation> ret = new ArrayList<>(dataPoints.size());
 
         for (Point3D dataPoint : dataPoints) {
@@ -268,8 +280,7 @@ public class MeasurementPersistence {
     /**
      * @return All measurements currently in the local persistent data storage.
      */
-    public @NonNull
-    List<Measurement> loadMeasurements() {
+    public @NonNull List<Measurement> loadMeasurements() {
         Cursor cursor = null;
         try {
             List<Measurement> ret = new ArrayList<>();
@@ -334,7 +345,7 @@ public class MeasurementPersistence {
         try {
             locationsCursor = resolver.query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[]{Long.valueOf(measurement.getIdentifier()).toString()},
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
                     GpsPointsTable.COLUMN_GPS_TIME + " ASC");
 
             if (locationsCursor == null) {

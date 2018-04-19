@@ -69,7 +69,7 @@ public abstract class DataCapturingService {
      * service and reports an error. It is set to 20 seconds by default. There is no particular reason. We should check
      * what works under real world conditions.
      */
-    private static final long START_STOP_TIMEOUT_MILLIS = 20_000L;
+    private static final long START_STOP_TIMEOUT_MILLIS = 10_000L;
     /*
      * MARK: Properties
      */
