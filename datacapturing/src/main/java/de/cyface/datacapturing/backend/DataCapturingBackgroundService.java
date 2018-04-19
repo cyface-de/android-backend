@@ -25,6 +25,7 @@ import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -77,6 +78,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
     private PingReceiver pingReceiver = new PingReceiver();
+
+    private long currentMeasurementIdentifier;
 
     /*
      * MARK: Service Lifecycle Methods
@@ -146,6 +149,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(TAG, "Starting data capturing service.");
         // TODO old service checks if init has been called before? Why? Is this necessary?
         if (intent != null) { // If this is the initial start command call init.
+            long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, -1);
+            if (measurementIdentifier==-1) {
+                throw new IllegalStateException("No valid measurement identifier for started service provided.");
+            }
+            this.currentMeasurementIdentifier = measurementIdentifier;
             init();
         }
         Log.v(TAG, "Sending broadcast service started.");
@@ -165,9 +173,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * available.
      */
     private void init() {
-        /*
-      Notification shown to the user while the data capturing is active.
-     */
+        /* Notification shown to the user while the data capturing is active. */
         CapturingNotification capturingNotification = new CapturingNotification();
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
@@ -220,7 +226,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
         informCaller(MessageCodes.DATA_CAPTURED, data);
-        persistenceLayer.storeData(data);
+        persistenceLayer.storeData(data, currentMeasurementIdentifier);
     }
 
     @Override

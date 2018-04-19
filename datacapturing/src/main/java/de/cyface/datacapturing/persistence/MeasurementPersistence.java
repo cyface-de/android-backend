@@ -101,9 +101,9 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data) {
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) {
         try {
-            final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
+            // final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
             ContentProviderClient client = null;
             try {
                 ArrayList<ContentProviderOperation> operations = new ArrayList<>();
@@ -224,7 +224,7 @@ public class MeasurementPersistence {
      *
      * @return The system wide unique identifier of the active measurement.
      */
-    private long getIdentifierOfCurrentlyCapturedMeasurement() {
+    public long getIdentifierOfCurrentlyCapturedMeasurement() {
         Cursor measurementIdentifierQueryCursor = null;
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,

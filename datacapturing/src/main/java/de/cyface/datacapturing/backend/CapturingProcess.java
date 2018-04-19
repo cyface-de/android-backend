@@ -90,6 +90,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * "https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please/6769218?utm_medium=organic&utm_source=google_rich_qa&utm_campaign=google_rich_qa">StackOverflow</a>.
      */
     private final HandlerThread sensorEventHandlerThread;
+    private final HandlerThread locationEventHandlerThread;
 
     /**
      * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided
@@ -119,9 +120,12 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.listener = new HashSet<>();
         this.locationManager = locationManager;
         this.sensorService = sensorService;
-        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this);
         this.gpsStatusHandler = geoLocationDeviceStatusHandler;
+        this.locationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         this.sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
+
+        locationEventHandlerThread.start();
+        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this, locationEventHandlerThread.getLooper());
 
         // Registering Sensors
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -268,8 +272,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         sensorService.unregisterListener(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             sensorEventHandlerThread.quitSafely();
+            locationEventHandlerThread.quitSafely();
         } else {
             sensorEventHandlerThread.quit();
+            locationEventHandlerThread.quit();
         }
     }
 

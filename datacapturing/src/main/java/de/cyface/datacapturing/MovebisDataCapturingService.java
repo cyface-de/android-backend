@@ -206,7 +206,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @throws DataCapturingException If starting the background service was not successful.
      */
     public void resume() throws DataCapturingException {
-        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
+        long identifierOfCurrentlyOpenMeasurement = getPersistenceLayer().getIdentifierOfCurrentlyCapturedMeasurement();
+        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS,identifierOfCurrentlyOpenMeasurement);
     }
 
     /**

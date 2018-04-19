@@ -161,9 +161,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testStoreData() {
-        oocut.newMeasurement(Vehicle.UNKOWN);
+        long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
 
-        oocut.storeData(testData());
+        oocut.storeData(testData(), measurementIdentifier);
         oocut.storeLocation(testLocation());
 
         Cursor geoLocationsCursor = null;
@@ -213,8 +213,8 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     public void testCascadingClearMeasurements() {
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.newMeasurement(Vehicle.CAR);
-        oocut.storeData(testData());
+        long measurementIdnetifier = oocut.newMeasurement(Vehicle.CAR);
+        oocut.storeData(testData(), measurementIdnetifier);
         oocut.storeLocation(testLocation());
         // clear the test data
         oocut.clear();
@@ -290,7 +290,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     @Test
     public void testDeleteMeasurement() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.storeData(testData());
+        oocut.storeData(testData(), measurementIdentifier);
         oocut.storeLocation(testLocation());
         Measurement measurement = new Measurement(measurementIdentifier);
         oocut.delete(measurement);

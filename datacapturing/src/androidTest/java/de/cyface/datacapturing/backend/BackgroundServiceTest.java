@@ -35,6 +35,7 @@ import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
@@ -83,16 +84,19 @@ public class BackgroundServiceTest {
      */
     private MeasurementPersistence persistence;
 
+    private long testMeasurementIdentifier;
+
     @Before
     public void setUp() {
         Context context = InstrumentationRegistry.getTargetContext();
         persistence = new MeasurementPersistence(context.getContentResolver());
-        persistence.newMeasurement(Vehicle.BICYCLE);
+        testMeasurementIdentifier = persistence.newMeasurement(Vehicle.BICYCLE);
     }
 
     @After
     public void tearDown() {
         persistence.clear();
+        testMeasurementIdentifier = -1;
     }
 
     /**
@@ -121,6 +125,7 @@ public class BackgroundServiceTest {
             }
         });
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
 
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
@@ -159,6 +164,7 @@ public class BackgroundServiceTest {
         Condition condition = lock.newCondition();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 
