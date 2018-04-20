@@ -252,7 +252,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onLocationCaptured(final @NonNull GeoLocation location) {
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        persistenceLayer.storeLocation(location);
+        persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
     }
 
     @Override

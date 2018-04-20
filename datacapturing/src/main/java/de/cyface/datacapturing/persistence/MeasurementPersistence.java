@@ -48,7 +48,7 @@ public class MeasurementPersistence {
      * Number of save operations to carry out in one batch. Increasing this value might increase performance but also
      * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones.
      */
-    private static final int MAX_SIMULTANEOUS_OPERATIONS = 500;
+    private static final int MAX_SIMULTANEOUS_OPERATIONS = 1000;
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -178,9 +178,7 @@ public class MeasurementPersistence {
      *
      * @param location The geo location to store.
      */
-    public void storeLocation(final @NonNull GeoLocation location) {
-        long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
-
+    public void storeLocation(final @NonNull GeoLocation location, final @NonNull long measurementIdentifier) {
         ContentValues values = new ContentValues();
         // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
         values.put(GpsPointsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));

@@ -164,7 +164,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
 
         oocut.storeData(testData(), measurementIdentifier);
-        oocut.storeLocation(testLocation());
+        oocut.storeLocation(testLocation(), measurementIdentifier);
 
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
@@ -215,7 +215,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         oocut.newMeasurement(Vehicle.UNKOWN);
         long measurementIdnetifier = oocut.newMeasurement(Vehicle.CAR);
         oocut.storeData(testData(), measurementIdnetifier);
-        oocut.storeLocation(testLocation());
+        oocut.storeLocation(testLocation(), measurementIdnetifier);
         // clear the test data
         oocut.clear();
 
@@ -291,7 +291,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     public void testDeleteMeasurement() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeData(testData(), measurementIdentifier);
-        oocut.storeLocation(testLocation());
+        oocut.storeLocation(testLocation(), measurementIdentifier);
         Measurement measurement = new Measurement(measurementIdentifier);
         oocut.delete(measurement);
 
@@ -346,8 +346,8 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testLoadTrack() {
-        oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.storeLocation(testLocation());
+        long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.storeLocation(testLocation(), measurementIdentifier);
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement measurement : measurements) {
