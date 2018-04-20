@@ -6,6 +6,7 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.synchronization.SynchronisationException;
 
 /**
