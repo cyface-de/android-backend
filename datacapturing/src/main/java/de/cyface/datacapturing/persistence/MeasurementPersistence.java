@@ -154,7 +154,7 @@ public class MeasurementPersistence {
 
                 for (int i = 0; i < operations.size(); i += MAX_SIMULTANEOUS_OPERATIONS) {
                     int startIndex = i;
-                    int endIndex = Math.min(operations.size(),i+MAX_SIMULTANEOUS_OPERATIONS-1);
+                    int endIndex = Math.min(operations.size(),i+MAX_SIMULTANEOUS_OPERATIONS);
                     client.applyBatch(new ArrayList<>(operations.subList(startIndex, endIndex)));
                 }
             } finally {
