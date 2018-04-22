@@ -17,6 +17,7 @@ import java.util.concurrent.TimeUnit;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.StubAuthenticator;
@@ -207,7 +208,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     public void resume() throws DataCapturingException {
         long identifierOfCurrentlyOpenMeasurement = getPersistenceLayer().getIdentifierOfCurrentlyCapturedMeasurement();
-        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS,identifierOfCurrentlyOpenMeasurement);
+        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS, identifierOfCurrentlyOpenMeasurement);
     }
 
     /**

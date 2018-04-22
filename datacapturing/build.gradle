@@ -25,6 +25,12 @@ android {
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
 
         missingDimensionStrategy 'full', 'mock'
+
+            // Defines UI elements for Notification Element
+            buildConfigField "int", "NOTIFICATION_LOGO", "R.drawable.ic_movebis_notification"
+            buildConfigField "int", "NOTIFICATION_TITLE", "R.string.notification_title"
+            buildConfigField "int", "NOTIFICATION_TEXT", "R.string.capturing_active"
+            buildConfigField "int", "NOTIFICATION_CHANNEL", "R.string.notification_channel_id"
     }
 
     testOptions {

@@ -5,9 +5,11 @@ import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Build;
+import android.support.annotation.NonNull;
 import android.support.annotation.RequiresApi;
 import android.support.v4.app.NotificationCompat;
 
+import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.R;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 
@@ -16,15 +18,10 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  * required to make the user aware of the background tracking. It shows up as a small symbol on the upper status bar.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 public class CapturingNotification {
-
-    /**
-     * The identifier of the notification channel used by the foreground service.
-     */
-    private static final String CHANNEL_ID = "de.cyface.notification";
 
     /**
      * The Android <code>Notification</code> wrapped by this class.
@@ -60,16 +57,14 @@ public class CapturingNotification {
         // cancelIntent.setAction(CANCEL_REQUEST);
         // PendingIntent pendingCancelIntent = PendingIntent.getService(
         // context, 0, cancelIntent, PendingIntent.FLAG_CANCEL_CURRENT);
-        String channelId = null;
+        String channelId = context.getText(BuildConfig.NOTIFICATION_CHANNEL).toString();
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-            channelId = createNotificationChannelIfNotExists(context);
-        } else {
-            channelId = CHANNEL_ID;
+            createNotificationChannelIfNotExists(context, channelId);
         }
 
         wrappedNotification = new NotificationCompat.Builder(context, channelId)
-                .setContentTitle(context.getText(R.string.notification_title))
-                .setContentText(context.getText(R.string.capturing_active)).setSmallIcon(R.drawable.ic_logo_only_c)
+                .setContentTitle(context.getText(BuildConfig.NOTIFICATION_TITLE))
+                .setContentText(context.getText(BuildConfig.NOTIFICATION_TEXT)).setSmallIcon(BuildConfig.NOTIFICATION_LOGO)
                 // .setContentIntent(pendingIntent)
                 .setTicker(context.getText(R.string.ticker_text)).build();
 
@@ -80,20 +75,21 @@ public class CapturingNotification {
      * Since Android 8 it is necessary to create a new notification channel for a foreground service notification. To save system resources this should only happen if the channel does not exist. This method does just that.
      *
      * @param context The Android <code>Context</code> to use to create the notification channel.
-     * @return The identifier of the created or existing channel.
+     * @param channelId The identifier of the created or existing channel.
      */
     @RequiresApi(api = Build.VERSION_CODES.O)
-    private String createNotificationChannelIfNotExists(final DataCapturingBackgroundService context) {
-        final String channelId = CHANNEL_ID;
+    private void createNotificationChannelIfNotExists(final @NonNull DataCapturingBackgroundService context, final @NonNull String channelId) {
         final CharSequence channelName = "Cyface";
 
         NotificationManager manager = (NotificationManager)context.getSystemService(Context.NOTIFICATION_SERVICE);
+        if(manager==null) {
+            throw new IllegalStateException("Manager for service notifications not available.");
+        }
+
         if (manager.getNotificationChannel(channelId) == null) {
             NotificationChannel channel = new NotificationChannel(channelId, channelName,
                     NotificationManager.IMPORTANCE_LOW);
             manager.createNotificationChannel(channel);
         }
-
-        return channelId;
     }
 }
