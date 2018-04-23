@@ -36,7 +36,7 @@ import static org.mockito.Mockito.when;
  * Tests the inner workings of the data capturing without any calls to the Android system. Uses fake data.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class DataCapturingLocalTest {
@@ -75,27 +75,34 @@ public class DataCapturingLocalTest {
     @Test
     public void testSplitOfLargeCapturedDataInstances() throws DataCapturingException {
         int someLargeOddNumber = 1247;
-        List<Point3D> accerlerations = new ArrayList<>(someLargeOddNumber);
-        List<Point3D> rotations = new ArrayList<>(someLargeOddNumber);
-        List<Point3D> directions = new ArrayList<>();
         Random random = new Random();
+        int accelerationsSize = someLargeOddNumber*2;
+        int rotationsSize = someLargeOddNumber;
+        int directionsSize = someLargeOddNumber/2;
+        List<Point3D> accelerations = new ArrayList<>(accelerationsSize);
+        List<Point3D> rotations = new ArrayList<>(rotationsSize);
+        List<Point3D> directions = new ArrayList<>(directionsSize);
 
         // Create some random test data.
-        for(int i=0;i<someLargeOddNumber;i++) {
-            accerlerations.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
+        for(int i=0;i<accelerationsSize;i++) {
+            accelerations.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
+        }
+        for(int i=0;i<rotationsSize;i++) {
             rotations.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
+        }
+        for(int i=0;i<directionsSize;i++) {
             directions.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
         }
-        CapturedData data = new CapturedData(accerlerations, rotations, directions);
+        CapturedData data = new CapturedData(accelerations, rotations, directions);
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);
 
         // Hide call to actual Android message service methods.
         doNothing().when(oocut).informCaller(eq(MessageCodes.DATA_CAPTURED), any(CapturedData.class));
         // Call test method.
         oocut.onDataCaptured(data);
-        // 1247 / 400 = 3,1 --> 4
-         int times = someLargeOddNumber / DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
-         int remainder = someLargeOddNumber % DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+        // 1247*2 / 800 = 3,1 --> 4
+         int times = Math.max(accelerationsSize,Math.max(rotationsSize,directionsSize)) / DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+         int remainder = Math.max(accelerationsSize,Math.max(rotationsSize,directionsSize)) % DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
          times = remainder>0 ? ++times : times;
         verify(oocut, times(times)).informCaller(eq(MessageCodes.DATA_CAPTURED), captor.capture());
 
@@ -107,8 +114,8 @@ public class DataCapturingLocalTest {
             receivedRotations += dataFromCall.getRotations().size();
             receivedDirections += dataFromCall.getDirections().size();
         }
-        assertThat(receivedAccelerations, is(equalTo(someLargeOddNumber)));
-        assertThat(receivedRotations, is(equalTo(someLargeOddNumber)));
-        assertThat(receivedDirections, is(equalTo(someLargeOddNumber)));
+        assertThat(receivedAccelerations, is(equalTo(accelerationsSize)));
+        assertThat(receivedRotations, is(equalTo(rotationsSize)));
+        assertThat(receivedDirections, is(equalTo(directionsSize)));
     }
 }

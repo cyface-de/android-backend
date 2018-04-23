@@ -1,8 +1,10 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
+import static java.util.Collections.emptyList;
 
 import java.lang.ref.WeakReference;
+import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
@@ -42,7 +44,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -240,14 +242,18 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         List<Point3D> directions = data.getDirections();
         int iterationSize = Math.max(accelerations.size(),Math.max(directions.size(),rotations.size()));
         for(int i=0;i<iterationSize;i+=MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
-            int endIndex = i+MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
-            int toAccelerationsIndex = Math.min(endIndex, accelerations.size());
-            int toRotationsIndex = Math.min(endIndex, rotations.size());
-            int toDirectionsIndex = Math.min(endIndex, directions.size());
-            CapturedData dataSublist = new CapturedData(accelerations.subList(i, toAccelerationsIndex), rotations.subList(i, toRotationsIndex), rotations.subList(i, toDirectionsIndex));
+
+            CapturedData dataSublist = new CapturedData(sampleSubList(accelerations,i), sampleSubList(rotations,i), sampleSubList(directions,i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
             persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier);
         }
+    }
+
+    private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int i) {
+        int endIndex = i+MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+        int toIndex = Math.min(endIndex, completeList.size());
+        List<Point3D> subList = (i >= toIndex) ? Collections.<Point3D>emptyList() : completeList.subList(i, toIndex);
+        return subList;
     }
 
     @Override
