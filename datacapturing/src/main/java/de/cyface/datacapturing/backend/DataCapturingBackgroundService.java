@@ -28,6 +28,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
@@ -41,7 +42,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.2
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -57,7 +58,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured points they are split into multiple messages.
      */
-    private final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 400;
+    final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
     /**
      * A wake lock used to keep the application active during data capturing.
      */
@@ -233,7 +234,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
 
     @Override
-    public void onDataCaptured(final @NonNull CapturedData data) {
+    public void onDataCaptured(final @NonNull CapturedData data) throws DataCapturingException {
         List<Point3D> accelerations = data.getAccelerations();
         List<Point3D> rotations = data.getRotations();
         List<Point3D> directions = data.getDirections();
@@ -252,7 +253,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onLocationCaptured(final @NonNull GeoLocation location) {
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        persistenceLayer.storeLocation(location);
+        persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
     }
 
     @Override
