@@ -4,6 +4,7 @@ import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
 import java.util.HashSet;
+import java.util.List;
 import java.util.Set;
 
 import android.annotation.SuppressLint;
@@ -29,6 +30,7 @@ import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.CapturingNotification;
 
@@ -39,7 +41,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.0.2
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -52,6 +54,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The tag used to identify logging messages send to logcat.
      */
     private final static String TAG = "de.cyface.datacapturing";
+    /**
+     * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured points they are split into multiple messages.
+     */
+    private final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 400;
     /**
      * A wake lock used to keep the application active during data capturing.
      */
@@ -79,6 +85,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private PingReceiver pingReceiver = new PingReceiver();
 
+    /**
+     * The identifier of the measurement to save all the captured data to.
+     */
     private long currentMeasurementIdentifier;
 
     /*
@@ -193,7 +202,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @param messageCode A code identifying the message that is send. See {@link MessageCodes} for further details.
      * @param data The data to send appended to this message. This may be <code>null</code> if no data needs to be send.
      */
-    private void informCaller(final int messageCode, final Parcelable data) {
+    void informCaller(final int messageCode, final Parcelable data) {
         Message msg = Message.obtain(null, messageCode);
 
         if (data != null) {
@@ -225,8 +234,19 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        informCaller(MessageCodes.DATA_CAPTURED, data);
-        persistenceLayer.storeData(data, currentMeasurementIdentifier);
+        List<Point3D> accelerations = data.getAccelerations();
+        List<Point3D> rotations = data.getRotations();
+        List<Point3D> directions = data.getDirections();
+        int iterationSize = Math.max(accelerations.size(),Math.max(directions.size(),rotations.size()));
+        for(int i=0;i<iterationSize;i+=MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
+            int endIndex = i+MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+            int toAccelerationsIndex = Math.min(endIndex, accelerations.size());
+            int toRotationsIndex = Math.min(endIndex, rotations.size());
+            int toDirectionsIndex = Math.min(endIndex, directions.size());
+            CapturedData dataSublist = new CapturedData(accelerations.subList(i, toAccelerationsIndex), rotations.subList(i, toRotationsIndex), rotations.subList(i, toDirectionsIndex));
+            informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
+            persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier);
+        }
     }
 
     @Override
