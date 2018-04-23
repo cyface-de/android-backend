@@ -20,6 +20,7 @@ import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
@@ -29,7 +30,7 @@ import de.cyface.datacapturing.model.Point3D;
  * acceleration sensor events as well as the LocationListener to listen to location updates.
  *
  * @author Klemens Muthmann
- * @version 1.2.1
+ * @version 1.2.2
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -165,7 +166,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             synchronized (this) {
                 for (CapturingProcessListener listener : this.listener) {
                     listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
-                    listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
+                    try {
+                        listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
+                    } catch (DataCapturingException e) {
+                        throw new IllegalStateException(e);
+                    }
                 }
                 accelerations.clear();
                 rotations.clear();
@@ -221,6 +226,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 directions.clear();
                 lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
             } catch (SecurityException e) {
+                throw new IllegalStateException(e);
+            } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);
             }
         }

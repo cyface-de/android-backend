@@ -40,7 +40,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -160,7 +160,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether data is stored correctly via the <code>MeasurementPersistence</code>.
      */
     @Test
-    public void testStoreData() {
+    public void testStoreData() throws DataCapturingException {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
 
         oocut.storeData(testData(), measurementIdentifier);
@@ -210,7 +210,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether cascading deletion of measurements together with all data is working correctly.
      */
     @Test
-    public void testCascadingClearMeasurements() {
+    public void testCascadingClearMeasurements() throws DataCapturingException {
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKOWN);
         long measurementIdnetifier = oocut.newMeasurement(Vehicle.CAR);
@@ -288,7 +288,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether deleting a measurement actually remove that measurement together with all corresponding data.
      */
     @Test
-    public void testDeleteMeasurement() {
+    public void testDeleteMeasurement() throws DataCapturingException {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeData(testData(), measurementIdentifier);
         oocut.storeLocation(testLocation(), measurementIdentifier);

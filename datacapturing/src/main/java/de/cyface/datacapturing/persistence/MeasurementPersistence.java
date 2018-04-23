@@ -35,7 +35,7 @@ import de.cyface.persistence.SamplePointTable;
  * delegate objects.
  *
  * @author Klemens Muthmann
- * @version 2.1.1
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -101,13 +101,17 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) {
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) throws DataCapturingException {
         try {
             // final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
             ContentProviderClient client = null;
             try {
                 ArrayList<ContentProviderOperation> operations = new ArrayList<>();
                 client = resolver.acquireContentProviderClient(MeasuringPointsContentProvider.AUTHORITY);
+                if (client == null) {
+                    throw new DataCapturingException(String.format("Unable to create client for content provider %s",
+                            MeasuringPointsContentProvider.AUTHORITY));
+                }
 
                 operations.addAll(newDataPointInsertOperation(data.getAccelerations(),
                         MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
@@ -154,7 +158,7 @@ public class MeasurementPersistence {
 
                 for (int i = 0; i < operations.size(); i += MAX_SIMULTANEOUS_OPERATIONS) {
                     int startIndex = i;
-                    int endIndex = Math.min(operations.size(),i+MAX_SIMULTANEOUS_OPERATIONS);
+                    int endIndex = Math.min(operations.size(), i + MAX_SIMULTANEOUS_OPERATIONS);
                     client.applyBatch(new ArrayList<>(operations.subList(startIndex, endIndex)));
                 }
             } finally {
@@ -177,8 +181,9 @@ public class MeasurementPersistence {
      * Stores the provided geo location under the currently active captured measurement.
      *
      * @param location The geo location to store.
+     * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
-    public void storeLocation(final @NonNull GeoLocation location, final @NonNull long measurementIdentifier) {
+    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
         ContentValues values = new ContentValues();
         // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
         values.put(GpsPointsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
