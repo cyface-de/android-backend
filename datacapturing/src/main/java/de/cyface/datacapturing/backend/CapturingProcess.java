@@ -135,9 +135,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
-        registerSensor(accelerometer, sensorEventHandler);
-        registerSensor(gyroscope, sensorEventHandler);
-        registerSensor(magnetometer, sensorEventHandler);
+        //registerSensor(accelerometer, sensorEventHandler);
+        //registerSensor(gyroscope, sensorEventHandler);
+        //registerSensor(magnetometer, sensorEventHandler);
     }
 
     /**
