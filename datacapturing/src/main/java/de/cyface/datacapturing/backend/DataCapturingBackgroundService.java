@@ -9,11 +9,13 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
+import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.os.Build;
@@ -26,6 +28,7 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
@@ -189,6 +192,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         CapturingNotification capturingNotification = new CapturingNotification();
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+
         GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);

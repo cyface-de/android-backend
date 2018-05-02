@@ -11,6 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.Manifest;
 import android.accounts.Account;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -19,6 +20,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,6 +30,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
@@ -37,6 +40,7 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.ui.Reason;
 import de.cyface.synchronization.CyfaceSyncAdapter;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -154,6 +158,11 @@ public abstract class DataCapturingService {
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException {
+        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason("Data Capturing not working without access to sattelite base geo locations."));
+        }
+
         if (context.get() == null) {
             return;
         }

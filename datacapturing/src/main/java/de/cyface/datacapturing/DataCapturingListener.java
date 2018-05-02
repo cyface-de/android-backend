@@ -2,6 +2,7 @@ package de.cyface.datacapturing;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.datacapturing.ui.Reason;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
@@ -9,7 +10,7 @@ import de.cyface.datacapturing.model.GeoLocation;
  * {@link DataCapturingService#start(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public interface DataCapturingListener {
@@ -56,4 +57,14 @@ public interface DataCapturingListener {
      * @param e An <code>Exception</code> representing the received error.
      */
     void onErrorState(Exception e);
+
+    /**
+     * Called if the service notices missing permissions required to run.
+     * @param permission The permission the service requires in the form of an Android permission {@link String}.
+     * @param reason A reason for why the service requires that permission. You may show the reason to the user before
+     *            asking for the permission or create your own message from it.
+     *
+     * @return <code>true</code> if the permission was granted; <code>false</code> otherwise.
+     */
+    boolean onRequiresPermission(String permission, Reason reason);
 }
