@@ -31,16 +31,15 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
 /**
- * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
- * GPS signal availability it is a flaky test.
+ * Tests what happens with the service if the required permissions are missing.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 1.0.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
-public class BackgroundServiceTest {
+public class BackgroundServiceTestWithoutPermission {
 
     /**
      * The tag used to identify log messages send to logcat.
@@ -54,16 +53,11 @@ public class BackgroundServiceTest {
     public ServiceTestRule serviceTestRule = new ServiceTestRule();
 
     /**
-     * Grants the <code>ACCESS_FINE_LOCATION</code> permission while running this test.
-     */
-    @Rule
-    public GrantPermissionRule mRuntimePermissionRule = GrantPermissionRule
-            .grant(android.Manifest.permission.ACCESS_FINE_LOCATION);
-
-    /**
      * The messenger used to receive messages from the data capturing service.
      */
     private Messenger fromServiceMessenger;
+
+    private FromServiceMessageHandler fromServiceMessageHandler;
 
     /**
      * Required to create a test measurement.
@@ -74,7 +68,6 @@ public class BackgroundServiceTest {
      * The identifier for the test measurement created in the <code>setUp</code> method.
      */
     private long testMeasurementIdentifier;
-
     /**
      * Lock used to synchronize the test case with the background service.
      */
@@ -107,15 +100,16 @@ public class BackgroundServiceTest {
      */
     @Test
     public void testStartDataCapturing() throws InterruptedException, TimeoutException {
-        final Context context = InstrumentationRegistry.getTargetContext();
-        final TestCallback testCallback = new TestCallback();
+        Context context = InstrumentationRegistry.getTargetContext();
+        TestCallback testCallback = new TestCallback();
         testCallback.lock = lock;
         testCallback.condition = condition;
+
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                FromServiceMessageHandler fromServiceMessageHandler = new FromServiceMessageHandler();
+                fromServiceMessageHandler = new FromServiceMessageHandler();
                 fromServiceMessenger = new Messenger(fromServiceMessageHandler);
             }
         });
@@ -128,71 +122,8 @@ public class BackgroundServiceTest {
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
 
-        // This must not run on the main thread or it will produce an ANR.
-        lock.lock();
-        try {
-            if (!testCallback.isRunning) {
-                if (!condition.await(2, TimeUnit.MINUTES)) {
-                    throw new IllegalStateException("Waiting for pong or timeout timed out!");
-                }
-            }
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            lock.unlock();
-        }
-
         serviceTestRule.unbindService();
 
-        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
-        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
-                is(equalTo(false)));
+        assertThat("It seems the service did not report its missing permission.", fromServiceMessageHandler.accessWasNotGranted, is(equalTo(true)));
     }
-
-    /**
-     * This test case checks that starting the service works and that the service actually returns some data.
-     *
-     * @throws InterruptedException If test execution is interrupted externally. This should never really happen, but we
-     *             need to throw the exception anyways.
-     */
-    @Test
-    public void testStartDataCapturingTwice() throws InterruptedException, TimeoutException {
-        final Context context = InstrumentationRegistry.getTargetContext();
-
-        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
-        serviceTestRule.startService(startIntent);
-        serviceTestRule.startService(startIntent);
-
-        final TestCallback testCallback = new TestCallback();
-        testCallback.lock = lock;
-        testCallback.condition = condition;
-
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                PongReceiver isRunningChecker = new PongReceiver(context);
-                isRunningChecker.pongAndReceive(2, TimeUnit.SECONDS, testCallback);
-            }
-        });
-
-        // This must not run on the main thread or it will produce an ANR.
-        lock.lock();
-        try {
-            if (!testCallback.isRunning) {
-                if (!condition.await(2, TimeUnit.MINUTES)) {
-                    throw new IllegalStateException("Waiting for pong or timeout timed out!");
-                }
-            }
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            lock.unlock();
-        }
-
-        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
-        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
-                is(equalTo(false)));
-    }
-
 }

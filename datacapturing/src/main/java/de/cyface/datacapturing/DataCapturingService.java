@@ -158,11 +158,6 @@ public abstract class DataCapturingService {
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException {
-        if (ContextCompat.checkSelfPermission(getContext(), Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason("Data Capturing not working without access to sattelite base geo locations."));
-        }
-
         if (context.get() == null) {
             return;
         }
@@ -560,6 +555,10 @@ public abstract class DataCapturingService {
                         break;
                     case MessageCodes.WARNING_SPACE:
                         listener.onLowDiskSpace(null);
+                        break;
+                    case MessageCodes.ERROR_PERMISSION:
+                        listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
+                                "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(

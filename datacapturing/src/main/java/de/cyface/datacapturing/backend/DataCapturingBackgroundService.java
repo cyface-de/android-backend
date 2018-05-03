@@ -39,6 +39,7 @@ import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.CapturingNotification;
+import de.cyface.datacapturing.ui.Reason;
 
 /**
  *
@@ -193,13 +194,21 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
 
-        GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
-                ? new GnssStatusCallback(locationManager)
-                : new GPSStatusListener(locationManager);
-        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
+        // Check necessary permissions.
+        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
+                != PackageManager.PERMISSION_GRANTED) {
+            informCaller(MessageCodes.ERROR_PERMISSION,null);
+            stopSelf();
+        } else {
 
-        dataCapturing.addCapturingProcessListener(this);
+            GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+                    ? new GnssStatusCallback(locationManager)
+                    : new GPSStatusListener(locationManager);
+            SensorManager sensorManager = (SensorManager) getSystemService(Context.SENSOR_SERVICE);
+            dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
+
+            dataCapturing.addCapturingProcessListener(this);
+        }
 
     }
 
