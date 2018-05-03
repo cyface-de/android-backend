@@ -194,13 +194,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
 
-        // Check necessary permissions.
-        if (ContextCompat.checkSelfPermission(this, Manifest.permission.ACCESS_FINE_LOCATION)
-                != PackageManager.PERMISSION_GRANTED) {
-            informCaller(MessageCodes.ERROR_PERMISSION,null);
-            stopSelf();
-        } else {
-
             GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                     ? new GnssStatusCallback(locationManager)
                     : new GPSStatusListener(locationManager);
@@ -208,8 +201,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
 
             dataCapturing.addCapturingProcessListener(this);
-        }
-
     }
 
     /**

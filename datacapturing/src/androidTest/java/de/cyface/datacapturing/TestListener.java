@@ -11,6 +11,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.datacapturing.ui.Reason;
 
 /**
  * A listener for events from the capturing service, only used by tests.
@@ -84,6 +85,11 @@ class TestListener implements DataCapturingListener {
     @Override
     public void onErrorState(Exception e) {
         // Nothing to do here
+    }
+
+    @Override
+    public boolean onRequiresPermission(String permission, Reason reason) {
+        return false;
     }
 
     /**

@@ -13,11 +13,7 @@ import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
 
-import java.util.concurrent.TimeUnit;
-
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.StubAuthenticator;
@@ -38,17 +34,11 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 2.1.2
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
 
-    /**
-     * The time in milliseconds after which this object stops waiting for the system to pause or resume the Android
-     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
-     * what works under real world conditions.
-     */
-    private final static long PAUSE_RESUME_TIMEOUT_TIME_MILLIS = 10_000L;
     /**
      * A <code>LocationManager</code> that is used to provide location updates for the UI even if no capturing is
      * running.
@@ -60,7 +50,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
     private final LocationListener locationListener = new LocationListener() {
         @Override
         public void onLocationChanged(Location location) {
-            uiListener.onLocationUpdate(location);
+            UIListener uiListener = getUiListener();
+            if (uiListener != null) {
+                uiListener.onLocationUpdate(location);
+            }
         }
 
         @Override
@@ -78,10 +71,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
             // Nothing to do here.
         }
     };
-    /**
-     * A listener for events which the UI might be interested in.
-     */
-    private final UIListener uiListener;
     /**
      * The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
      * if you would like to be notified as often as possible.
@@ -105,7 +94,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      */
-
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
         super(context, context.getContentResolver(), dataUploadServerAddress);
@@ -115,7 +103,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
         if (preMeasurementLocationManager == null) {
             throw new SetupException("Unable to load location manager. Only got null!");
         }
-        this.uiListener = uiListener;
+        this.setUiListener(uiListener);
     }
 
     /**
@@ -187,31 +175,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
     }
 
     /**
-     * Pauses the current data capturing, but does not finish the current measurement. This is a synchronized call to an
-     * Android service and should be handled as a long running operation.
-     * <p>
-     * To continue with the measurement just call {@link #resume()}.
-     *
-     * @throws DataCapturingException If halting the background service was not successful.
-     */
-    public void pause() throws DataCapturingException {
-        stopServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
-    }
-
-    /**
-     * Resumes the current data capturing after a previous call to {@link #pause()}. This is a synchronized call to an
-     * Android service and should be considered a long running operation.
-     * <p>
-     * You should only call this after an initial call to <code>pause()</code>.
-     *
-     * @throws DataCapturingException If starting the background service was not successful.
-     */
-    public void resume() throws DataCapturingException {
-        long identifierOfCurrentlyOpenMeasurement = getPersistenceLayer().getIdentifierOfCurrentlyCapturedMeasurement();
-        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS, identifierOfCurrentlyOpenMeasurement);
-    }
-
-    /**
      * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
      * connections.
      * 
@@ -230,24 +193,16 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param context Current <code>Activity</code> context.
      * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
      */
-    private boolean checkCoarseLocationAccess(Context context) {
-        return ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || uiListener.onRequirePermission(Manifest.permission.ACCESS_COARSE_LOCATION, new Reason(
-                        "this app uses information about WiFi and cellular networks to display your position. Please provide your permission to track the networks you are currently using, to see your position on the map."));
-    }
+    private boolean checkCoarseLocationAccess(final @NonNull Context context) {
+        boolean permissionAlreadyGranted = ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_COARSE_LOCATION) == PackageManager.PERMISSION_GRANTED;
 
-    /**
-     * Checks whether the user has granted the <code>ACCESS_FINE_LOCATION</code> permission and notifies the UI to ask
-     * for it if not.
-     *
-     * @param context Current <code>Activity</code> context.
-     * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
-     */
-    private boolean checkFineLocationAccess(final @NonNull Context context) {
-        return ActivityCompat.checkSelfPermission(context,
-                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED
-                || uiListener.onRequirePermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
-                        "This app uses GPS sensors to display your position. If you would like your position to be shown as exactly as possible please allow access to the GPS sensors."));
+        UIListener uiListener = getUiListener();
+        if (!permissionAlreadyGranted && uiListener != null) {
+            return uiListener.onRequirePermission(Manifest.permission.ACCESS_COARSE_LOCATION, new Reason(
+                    "this app uses information about WiFi and cellular networks to display your position. Please provide your permission to track the networks you are currently using, to see your position on the map."));
+        } else {
+            return permissionAlreadyGranted;
+        }
     }
 }
