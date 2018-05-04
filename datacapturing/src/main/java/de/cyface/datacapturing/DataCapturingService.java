@@ -1,6 +1,7 @@
 package de.cyface.datacapturing;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -11,6 +12,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.Manifest;
 import android.accounts.Account;
 import android.content.ComponentName;
 import android.content.ContentResolver;
@@ -19,6 +21,7 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
+import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
@@ -28,15 +31,20 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.ui.Reason;
+import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.CyfaceSyncAdapter;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -55,21 +63,27 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
-
     /**
      * Tag used to identify Logcat messages issued by instances of this class.
      */
     private static final String TAG = "de.cyface.capturing";
     /**
      * The time in milliseconds after which this object stops waiting for the system to start or stop the Android
-     * service and reports an error. It is set to 20 seconds by default. There is no particular reason. We should check
+     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
      * what works under real world conditions.
      */
     private static final long START_STOP_TIMEOUT_MILLIS = 10_000L;
+
+    /**
+     * The time in milliseconds after which this object stops waiting for the system to pause or resume the Android
+     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
+     * what works under real world conditions.
+     */
+    private final static long PAUSE_RESUME_TIMEOUT_TIME_MILLIS = 10_000L;
     /*
      * MARK: Properties
      */
@@ -109,11 +123,16 @@ public abstract class DataCapturingService {
      * synchronization.
      */
     private final WiFiSurveyor surveyor;
+    /**
+     * A listener for events which the UI might be interested in.
+     */
+    private UIListener uiListener;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
+     * @param resolver The <code>ContentResolver</code> used to access the data layer.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
      * @throws SetupException If writing the components preferences fails.
@@ -151,11 +170,17 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
+     * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
+     *             register a {@link UIListener} to ask the user for this permission and prevent the
+     *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
-            throws DataCapturingException {
+            throws DataCapturingException, MissingPermissionException {
         if (context.get() == null) {
             return;
+        }
+        if (!checkFineLocationAccess(getContext())) {
+            throw new MissingPermissionException();
         }
         long measurementIdentifier = -1;
         if (!persistenceLayer.hasOpenMeasurement()) {
@@ -190,6 +215,41 @@ public abstract class DataCapturingService {
                 persistenceLayer.closeRecentMeasurement();
             }
         }
+    }
+
+    /**
+     * Pauses the current data capturing, but does not finish the current measurement. This is a synchronized call to an
+     * Android service and should be handled as a long running operation.
+     * <p>
+     * To continue with the measurement just call {@link #resume()}.
+     *
+     * @throws DataCapturingException If halting the background service was not successful.
+     */
+    public void pause() throws DataCapturingException {
+        stopServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
+    }
+
+    /**
+     * Resumes the current data capturing after a previous call to {@link #pause()}. This is a synchronized call to an
+     * Android service and should be considered a long running operation. Therefore you should never call this on the
+     * main thread.
+     * <p>
+     * You should only call this after an initial call to <code>pause()</code>.
+     *
+     * @throws DataCapturingException If starting the background service was not successful.
+     * @throws MissingPermissionException If permission to access geo location via satellite has not been granted or
+     *             revoked. The current measurement is closed if you receive this <code>Exception</code>. If you get the
+     *             permission in the future you need to start a new measurement and not call <code>resume</code> again.
+     */
+    public void resume() throws DataCapturingException, MissingPermissionException {
+        if (!checkFineLocationAccess(getContext())) {
+            if (persistenceLayer.hasOpenMeasurement()) {
+                persistenceLayer.closeRecentMeasurement();
+            }
+            throw new MissingPermissionException();
+        }
+        long identifierOfCurrentlyOpenMeasurement = getPersistenceLayer().getIdentifierOfCurrentlyCapturedMeasurement();
+        runServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS, identifierOfCurrentlyOpenMeasurement);
     }
 
     /**
@@ -265,6 +325,21 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * @param uiListener A listener for events which the UI might be interested in.
+     */
+    public void setUiListener(final @NonNull UIListener uiListener) {
+        this.uiListener = uiListener;
+    }
+
+    /**
+     * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
+     *         been no previous call to {@link #setUiListener(UIListener)}.
+     */
+    UIListener getUiListener() {
+        return uiListener;
+    }
+
+    /**
      * @return The current Android <code>Context</code> used by this service or <code>null</code> if there currently is
      *         none.
      */
@@ -318,7 +393,7 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException If timeout is reached, binding fails or startup fails.
      */
     void runServiceSync(final long timeout, final @NonNull TimeUnit unit, final @NonNull long measurementIdentifier)
-            throws DataCapturingException {
+            throws DataCapturingException, MissingPermissionException {
         Context context = getContext();
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
@@ -423,7 +498,7 @@ public abstract class DataCapturingService {
         }
     }
 
-    protected MeasurementPersistence getPersistenceLayer() {
+    private MeasurementPersistence getPersistenceLayer() {
         return persistenceLayer;
     }
 
@@ -445,6 +520,24 @@ public abstract class DataCapturingService {
      */
     WiFiSurveyor getWiFiSurveyor() {
         return surveyor;
+    }
+
+    /**
+     * Checks whether the user has granted the <code>ACCESS_FINE_LOCATION</code> permission and notifies the UI to ask
+     * for it if not.
+     *
+     * @param context Current <code>Activity</code> context.
+     * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
+     */
+    boolean checkFineLocationAccess(final @NonNull Context context) {
+        boolean permissionAlreadyGranted = ActivityCompat.checkSelfPermission(context,
+                Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
+        if (!permissionAlreadyGranted && uiListener != null) {
+            return uiListener.onRequirePermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
+                    "This app uses GPS sensors to display your position. If you would like your position to be shown as exactly as possible please allow access to the GPS sensors."));
+        } else {
+            return permissionAlreadyGranted;
+        }
     }
 
     /**
@@ -551,6 +644,10 @@ public abstract class DataCapturingService {
                         break;
                     case MessageCodes.WARNING_SPACE:
                         listener.onLowDiskSpace(null);
+                        break;
+                    case MessageCodes.ERROR_PERMISSION:
+                        listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
+                                "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(

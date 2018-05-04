@@ -33,6 +33,10 @@ public class MessageCodes {
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the {@link DataCapturingService} if device storage is getting low.
      */
     public static final int WARNING_SPACE = 8;
+    /**
+     * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the {@link DataCapturingService} if permission to access geo locations via satellite is not granted.
+     */
+    public static final int ERROR_PERMISSION = 9;
 
     // TODO This needs to be qualified. We should for example add the application id.
     /**

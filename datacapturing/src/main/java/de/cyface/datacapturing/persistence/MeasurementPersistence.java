@@ -12,6 +12,7 @@ import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
+import android.os.DeadObjectException;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
@@ -46,9 +47,10 @@ public class MeasurementPersistence {
     private static final String TAG = "de.cyface.persistence";
     /**
      * Number of save operations to carry out in one batch. Increasing this value might increase performance but also
-     * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones.
+     * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones. The current value is the one
+     * where all tests are finally passing on the Pixel 2.
      */
-    private static final int MAX_SIMULTANEOUS_OPERATIONS = 1000;
+    private static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -101,7 +103,8 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) throws DataCapturingException {
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier)
+            throws DataCapturingException {
         try {
             // final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
             ContentProviderClient client = null;
@@ -170,6 +173,8 @@ public class MeasurementPersistence {
                     }
                 }
             }
+        } catch (DeadObjectException e) {
+            Log.e(TAG,"Binder buffer full. Cannot save data.",e);
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
         } catch (OperationApplicationException e) {

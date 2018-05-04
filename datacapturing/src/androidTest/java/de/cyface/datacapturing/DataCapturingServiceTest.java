@@ -23,6 +23,7 @@ import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.MeasuringPointsContentProvider;
@@ -34,7 +35,7 @@ import de.cyface.synchronization.SynchronisationException;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -117,9 +118,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests a common service run. Checks that some positons have been captured.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException {
+    public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException, MissingPermissionException {
         oocut.start(testListener, Vehicle.UNKOWN);
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -133,9 +137,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     /**
      * Tests a common service run with an intermediate disconnect and reconnect by the application. No problems should
      * occur and some points should be captured.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testDisconnectConnect() throws DataCapturingException {
+    public void testDisconnectConnect() throws DataCapturingException, MissingPermissionException {
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
@@ -155,9 +162,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests that running start twice does not break the system. This test succeeds if no <code>Exception</code> occurs.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testDoubleStart() throws SynchronisationException, DataCapturingException {
+    public void testDoubleStart() throws DataCapturingException, MissingPermissionException {
         oocut.start(testListener, Vehicle.UNKOWN);
         oocut.start(testListener, Vehicle.UNKOWN);
 
@@ -169,9 +179,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests for the correct <code>Exception</code> when you try to stop a stopped service.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test(expected = DataCapturingException.class)
-    public void testDoubleStop() throws SynchronisationException, DataCapturingException {
+    public void testDoubleStop() throws DataCapturingException, MissingPermissionException {
         oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.stop();
@@ -181,9 +194,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests for the correct <code>Exception</code> if you try to disconnect from a diconnected service.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test(expected = DataCapturingException.class)
-    public void testDoubleDisconnect() throws DataCapturingException, SynchronisationException {
+    public void testDoubleDisconnect() throws DataCapturingException, MissingPermissionException {
         oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
@@ -195,9 +211,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     // Do we really want to throw an Exception here?
     /**
      * Tests for the correct <code>Exception</code> if you try to stop a disconnected service.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test(expected = DataCapturingException.class)
-    public void testStopNonConnectedService() throws DataCapturingException, SynchronisationException {
+    public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException {
         oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
@@ -206,9 +225,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests that no <code>Exception</code> is thrown when we try to connect to the same service twice.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testDoubleConnect() throws DataCapturingException, SynchronisationException {
+    public void testDoubleConnect() throws DataCapturingException, MissingPermissionException {
         oocut.start(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
@@ -224,9 +246,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests that two correct cycles of disconnect and reconnect on a running service work fine.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testDisconnectConnectTwice() throws DataCapturingException, SynchronisationException {
+    public void testDisconnectConnectTwice() throws DataCapturingException, MissingPermissionException {
         ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
@@ -245,9 +270,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests that starting a service twice throws no <code>Exception</code>.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testRestart() throws SynchronisationException, DataCapturingException {
+    public void testRestart() throws DataCapturingException, MissingPermissionException {
         ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 

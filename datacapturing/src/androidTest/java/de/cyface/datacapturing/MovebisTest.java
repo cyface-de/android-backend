@@ -27,6 +27,7 @@ import android.support.test.rule.GrantPermissionRule;
 import android.support.test.runner.AndroidJUnit4;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
@@ -139,9 +140,10 @@ public final class MovebisTest {
      * work correctly.
      *
      * @throws DataCapturingException If any unexpected errors occur during data capturing.
+     * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
-    public void testPauseResumeMeasurement() throws DataCapturingException {
+    public void testPauseResumeMeasurement() throws DataCapturingException, MissingPermissionException {
         // start
         oocut.start(testDataCapturingListener, Vehicle.UNKOWN);
         // check is running

@@ -32,6 +32,8 @@ public class GnssStatusCallback extends GeoLocationDeviceStatusHandler {
 
     /**
      * Creates a new completely initialized <code>GnssStatusCallback</code>.
+     * <p>
+     * Requires the ACCESS_FINE_LOCATION permission.
      *
      * @param manager The <code>LocationManager</code> used by this class to get update about GPS status changes.
      * @throws SecurityException If permission to access location via GPS has not been granted.
