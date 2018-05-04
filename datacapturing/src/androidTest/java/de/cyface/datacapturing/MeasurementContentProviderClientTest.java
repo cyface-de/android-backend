@@ -53,12 +53,7 @@ public class MeasurementContentProviderClientTest {
 
     @Test
     public void testLoadGeoLocations_largeAmount() throws RemoteException {
-        testLoadGeoLocations_largeAmount(10);
-        testLoadGeoLocations_largeAmount(100);
-        testLoadGeoLocations_largeAmount(1_001);
         testLoadGeoLocations_largeAmount(10_001);
-        testLoadGeoLocations_largeAmount(20_001);
-        testLoadGeoLocations_largeAmount(100_001);
     }
 
     @Ignore
@@ -98,7 +93,6 @@ public class MeasurementContentProviderClientTest {
                 int startIndex = i;
                 int endIndex = Math.min(geoLocationValuesArray.length,i+MAX_SIMULTANEOUS_OPERATIONS);//TODO removed "-1" here, do the same in the real code, else we loose every 500th dataPoint
                 client.bulkInsert(MeasuringPointsContentProvider.GPS_POINTS_URI, Arrays.copyOfRange(geoLocationValuesArray, startIndex, endIndex));
-                Log.i(TAG, "Inserted "+ (endIndex-startIndex) +" entries");
             }
             Log.i(TAG, "Inserting "+ geoLocationValuesArray.length +" entries took: "+(System.currentTimeMillis() - startTime) + " ms");
 
