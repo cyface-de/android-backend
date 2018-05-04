@@ -42,7 +42,7 @@ public class MeasurementContentProviderClient {
      * @param measurementIdentifier The device wide unqiue identifier of the measurement to serialize.
      * @param client
      */
-    MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client) {
+    public MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client) {
         this.measurementIdentifier = measurementIdentifier;
         this.client = client;
     }
@@ -53,7 +53,7 @@ public class MeasurementContentProviderClient {
      * @return A <code>Cursor</code> on the geo locations stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
-    Cursor loadGeoLocations() throws RemoteException {
+    public Cursor loadGeoLocations() throws RemoteException {
         return client.query(MeasuringPointsContentProvider.GPS_POINTS_URI,
                 new String[] {GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT, GpsPointsTable.COLUMN_LON,
                         GpsPointsTable.COLUMN_SPEED, GpsPointsTable.COLUMN_ACCURACY},

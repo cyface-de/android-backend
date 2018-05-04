@@ -41,7 +41,7 @@ import de.cyface.persistence.SamplePointTable;
  * @version 1.0.0
  * @since 2.0.0
  */
-final class MeasurementSerializer {
+public final class MeasurementSerializer {
 
     private final static String TAG = "de.cyface.sync";
 
@@ -130,7 +130,7 @@ final class MeasurementSerializer {
     /**
      * Serializer for transforming direction points into a byte representation.
      */
-    final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
+    public final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
             return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;

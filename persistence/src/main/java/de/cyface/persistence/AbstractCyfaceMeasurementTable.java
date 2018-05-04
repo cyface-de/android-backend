@@ -22,7 +22,7 @@ import java.util.Set;
 public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasurementTable {
 
     private static final String TAG = AbstractCyfaceMeasurementTable.class.getName();
-    private static final String maxQueryLimit = "10000"; // Else we get "Cursor Window: Window is full: requesting allocation ..." error if e.g. 157k unsynced SPs
+    private static final String maxQueryLimit = null;//TODO: JUST FOR TESTING I SET THIS TO null = NO LIMIT  // Else we get "Cursor Window: Window is full: requesting allocation ..." error if e.g. 157k unsynced SPs
 
     /**
      * The database table name.

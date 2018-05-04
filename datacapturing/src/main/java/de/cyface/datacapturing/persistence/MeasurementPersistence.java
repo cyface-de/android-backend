@@ -117,7 +117,7 @@ public class MeasurementPersistence {
                 }
 
                 operations.addAll(newDataPointInsertOperation(data.getAccelerations(),
-                        MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
+                        MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper<Point3D>() {
                             @Override
                             public ContentValues map(Point3D dataPoint) {
                                 ContentValues ret = new ContentValues();
@@ -131,7 +131,7 @@ public class MeasurementPersistence {
                             }
                         }));
                 operations.addAll(newDataPointInsertOperation(data.getRotations(),
-                        MeasuringPointsContentProvider.ROTATION_POINTS_URI, new Mapper() {
+                        MeasuringPointsContentProvider.ROTATION_POINTS_URI, new Mapper<Point3D>() {
                             @Override
                             public ContentValues map(Point3D dataPoint) {
                                 ContentValues ret = new ContentValues();
@@ -145,7 +145,7 @@ public class MeasurementPersistence {
                             }
                         }));
                 operations.addAll(newDataPointInsertOperation(data.getDirections(),
-                        MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, new Mapper() {
+                        MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, new Mapper<Point3D>() {
                             @Override
                             public ContentValues map(Point3D dataPoint) {
                                 ContentValues ret = new ContentValues();
@@ -285,6 +285,20 @@ public class MeasurementPersistence {
         return ret;
     }
 
+    @NonNull
+    public static ArrayList<ContentProviderOperation> newGeoLocationInsertOperation(
+            final @NonNull List<GeoLocation> geoLocations, final @NonNull Uri uri, final @NonNull Mapper mapper) {
+        ArrayList<ContentProviderOperation> ret = new ArrayList<>(geoLocations.size());
+
+        for (GeoLocation geoLocation : geoLocations) {
+            ContentValues values = mapper.map(geoLocation);
+
+            ret.add(ContentProviderOperation.newInsert(uri).withValues(values).build());
+        }
+
+        return ret;
+    }
+
     /**
      * @return All measurements currently in the local persistent data storage.
      */
@@ -389,13 +403,13 @@ public class MeasurementPersistence {
      * @version 1.0.0
      * @since 2.0.0
      */
-    private interface Mapper {
+    public interface Mapper<T> {
         /**
          * Maps the provided data point to a <code>ContentValues</code> object.
          *
-         * @param dataPoint The {@link Point3D} to map.
+         * @param entry The {@link Point3D} or {@link GeoLocation} to map.
          * @return The mapping as a <code>ContentValues</code> object.
          */
-        ContentValues map(final Point3D dataPoint);
+        ContentValues map(final T entry);
     }
 }
