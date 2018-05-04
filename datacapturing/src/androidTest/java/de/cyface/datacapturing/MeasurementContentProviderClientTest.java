@@ -20,6 +20,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
@@ -57,6 +58,7 @@ public class MeasurementContentProviderClientTest {
         testLoadGeoLocations_largeAmount(1_001);
         testLoadGeoLocations_largeAmount(10_001);
         testLoadGeoLocations_largeAmount(20_001);
+        testLoadGeoLocations_largeAmount(100_001);
     }
 
     @Ignore
@@ -77,36 +79,28 @@ public class MeasurementContentProviderClientTest {
             Uri result = client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, measurementValues);
             final long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
-            List<GeoLocation> geoLocationList = new ArrayList<>();
-            for (long i = 0L; i < numberOftestEntries; i++) {
-                geoLocationList.add(new GeoLocation(1.0, 1.0, i, 1.0, 1));
+            ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
+            for (int i = 0; i < numberOftestEntries; i++) {
+                ContentValues geoLocationValues = new ContentValues();
+                geoLocationValues.put(GpsPointsTable.COLUMN_SPEED, 1.0);
+                geoLocationValues.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                geoLocationValues.put(GpsPointsTable.COLUMN_LON, 1.0);
+                geoLocationValues.put(GpsPointsTable.COLUMN_LAT, 1.0);
+                geoLocationValues.put(GpsPointsTable.COLUMN_IS_SYNCED, 1.0);
+                geoLocationValues.put(GpsPointsTable.COLUMN_GPS_TIME, i);
+                geoLocationValues.put(GpsPointsTable.COLUMN_ACCURACY, 1);
+                geoLocationValuesArray[i] = geoLocationValues;
             }
-            ArrayList<ContentProviderOperation> operations = new ArrayList<>();
-            operations.addAll(MeasurementPersistence.newGeoLocationInsertOperation(geoLocationList,
-                    MeasuringPointsContentProvider.GPS_POINTS_URI, new MeasurementPersistence.Mapper<GeoLocation>() {
-                        @Override
-                        public ContentValues map(GeoLocation geoLocation) {
-                            ContentValues geoLocationValues = new ContentValues();
-                            geoLocationValues.put(GpsPointsTable.COLUMN_SPEED, geoLocation.getSpeed());
-                            geoLocationValues.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                            geoLocationValues.put(GpsPointsTable.COLUMN_LON, geoLocation.getLon());
-                            geoLocationValues.put(GpsPointsTable.COLUMN_LAT, geoLocation.getLat());
-                            geoLocationValues.put(GpsPointsTable.COLUMN_IS_SYNCED, geoLocation.getSpeed());
-                            geoLocationValues.put(GpsPointsTable.COLUMN_GPS_TIME, geoLocation.getTimestamp());
-                            geoLocationValues.put(GpsPointsTable.COLUMN_ACCURACY, geoLocation.getAccuracy());
-                            return geoLocationValues;
-                        }
-                    }));
 
             long startTime = System.currentTimeMillis();
             // Else we get android.os.TransactionTooLargeException: data parcel size ___ bytes
-            for (int i = 0; i < operations.size(); i += MAX_SIMULTANEOUS_OPERATIONS) {
+            for (int i = 0; i < geoLocationValuesArray.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
                 int startIndex = i;
-                int endIndex = Math.min(operations.size(),i+MAX_SIMULTANEOUS_OPERATIONS);//TODO removed "-1" here, do the same in the real code, else we loose every 500th dataPoint
-                client.applyBatch(new ArrayList<>(operations.subList(startIndex, endIndex)));
+                int endIndex = Math.min(geoLocationValuesArray.length,i+MAX_SIMULTANEOUS_OPERATIONS);//TODO removed "-1" here, do the same in the real code, else we loose every 500th dataPoint
+                client.bulkInsert(MeasuringPointsContentProvider.GPS_POINTS_URI, Arrays.copyOfRange(geoLocationValuesArray, startIndex, endIndex));
                 Log.i(TAG, "Inserted "+ (endIndex-startIndex) +" entries");
             }
-            Log.i(TAG, "Inserting "+ operations.size() +" entries took: "+(System.currentTimeMillis() - startTime) + " ms");
+            Log.i(TAG, "Inserting "+ geoLocationValuesArray.length +" entries took: "+(System.currentTimeMillis() - startTime) + " ms");
 
             // Load entries again
             MeasurementContentProviderClient oocut = new MeasurementContentProviderClient(measurementIdentifier,
