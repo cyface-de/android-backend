@@ -50,7 +50,7 @@ public class MeasurementPersistence {
      * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones. The current value is the one
      * where all tests are finally passing on the Pixel 2.
      */
-    private static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
+    public static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */

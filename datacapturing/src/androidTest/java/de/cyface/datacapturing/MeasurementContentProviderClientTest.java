@@ -46,13 +46,13 @@ import static org.junit.Assert.assertThat;
  * the "make public" changes I had to do for this tests are ok.
  */
 @RunWith(AndroidJUnit4.class)
-@LargeTest
+@MediumTest
 public class MeasurementContentProviderClientTest {
 
     private final static String TAG = "de.cyface.datacapturing";
 
     @Test
-    public void testLoadGeoLocations_largeAmount() throws RemoteException, OperationApplicationException {
+    public void testLoadGeoLocations_largeAmount() throws RemoteException {
         testLoadGeoLocations_largeAmount(10);
         testLoadGeoLocations_largeAmount(100);
         testLoadGeoLocations_largeAmount(1_001);
@@ -62,7 +62,7 @@ public class MeasurementContentProviderClientTest {
     }
 
     @Ignore
-    public void testLoadGeoLocations_largeAmount(int numberOftestEntries) throws RemoteException, OperationApplicationException {
+    public void testLoadGeoLocations_largeAmount(int numberOftestEntries) throws RemoteException {
         // Arrange
         Context context = InstrumentationRegistry.getTargetContext();
         ContentProviderClient client = null;
