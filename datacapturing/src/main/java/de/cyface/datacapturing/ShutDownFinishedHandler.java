@@ -33,7 +33,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     /**
      * Method called if shutdown has been finished.
      */
-    abstract void shutDownFinished();
+    public abstract void shutDownFinished();
 
     @Override
     public void onReceive(Context context, Intent intent) {
