@@ -88,7 +88,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         checkColumns(projection);
         /*LOGGER.debug("Querying database table {} with projection {} selection {} and arguments {} limit {} isACountingQuery: {}",
                 getName(), projection, selection, Arrays.toString(selectionArgs), queryLimit, isACountingQuery(projection));*/
-        return database.query(getName(), projection, selection, selectionArgs, null, null, sortOrder/*, queryLimit*/);
+        return database.query(getName(), projection, selection, selectionArgs, null, null, sortOrder);
     }
 
     protected void checkColumns(String[] projection) {
