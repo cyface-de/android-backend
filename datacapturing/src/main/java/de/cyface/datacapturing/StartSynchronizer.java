@@ -33,7 +33,7 @@ public class StartSynchronizer extends StartUpFinishedHandler {
     }
 
     @Override
-    void startUpFinished() {
+    public void startUpFinished() {
         synchronizer.signal();
     }
 }

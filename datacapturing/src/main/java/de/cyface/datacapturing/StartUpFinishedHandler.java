@@ -34,7 +34,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
     /**
      * Method called if start up has been finished.
      */
-    abstract void startUpFinished();
+    abstract public void startUpFinished();
 
     @Override
     public void onReceive(Context context, Intent intent) {

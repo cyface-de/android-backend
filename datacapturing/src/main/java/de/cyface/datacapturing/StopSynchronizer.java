@@ -33,7 +33,7 @@ public class StopSynchronizer extends ShutDownFinishedHandler {
     }
 
     @Override
-    void shutDownFinished() {
+    public void shutDownFinished() {
         synchronizer.signal();
     }
 }
