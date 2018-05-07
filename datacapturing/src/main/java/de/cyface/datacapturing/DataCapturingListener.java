@@ -7,7 +7,7 @@ import de.cyface.datacapturing.ui.Reason;
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
  * {@link DataCapturingService} via
- * {@link DataCapturingService#start(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
+ * {@link DataCapturingService#startSync(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
  * @version 1.2.0

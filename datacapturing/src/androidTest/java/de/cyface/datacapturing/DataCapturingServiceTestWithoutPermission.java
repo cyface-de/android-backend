@@ -5,11 +5,9 @@ import android.content.Context;
 import android.location.Location;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.MediumTest;
-import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -31,7 +29,7 @@ import static org.junit.Assert.fail;
  * Checks if missing permissions are correctly detected before starting a service.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -71,7 +69,7 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Test(expected = MissingPermissionException.class)
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException {
-        oocut.start(new NonSynchronizedTestListener(), Vehicle.UNKOWN);
+        oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKOWN);
     }
 
     /**
@@ -79,12 +77,12 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Test
     public void testUIListenerIsInformedOfMissingPermission() {
-        TestUiListener uiListener = new TestUiListener();
+        TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 
         boolean exceptionCatched = false;
         try {
-            oocut.start(new NonSynchronizedTestListener(),Vehicle.UNKOWN);
+            oocut.startSync(new NonSynchronizedTestListener(),Vehicle.UNKOWN);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCatched = true;
@@ -138,29 +136,6 @@ public class DataCapturingServiceTestWithoutPermission {
 
         @Override
         public boolean onRequiresPermission(String permission, Reason reason) {
-            return false;
-        }
-    }
-
-    /**
-     * A {@link UIListener} implementation used for testing.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private static class TestUiListener implements UIListener {
-
-        boolean requiredPermission;
-
-        @Override
-        public void onLocationUpdate(Location location) {
-
-        }
-
-        @Override
-        public boolean onRequirePermission(String permission, Reason reason) {
-            requiredPermission = true;
             return false;
         }
     }

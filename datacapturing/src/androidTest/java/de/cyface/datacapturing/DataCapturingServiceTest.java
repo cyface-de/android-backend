@@ -27,7 +27,6 @@ import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.synchronization.SynchronisationException;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
@@ -35,7 +34,7 @@ import de.cyface.synchronization.SynchronisationException;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -91,6 +90,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         super(MeasuringPointsContentProvider.class, de.cyface.persistence.BuildConfig.provider);
     }
 
+    /**
+     * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
+     * called prior to every single test case.
+     *
+     * @throws Exception Aborts the test run if anything goes wrong.
+     */
     @Before
     public void setUp() throws Exception {
         final Context context = InstrumentationRegistry.getTargetContext();
@@ -100,15 +105,16 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         super.setUp();
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-                                                                       @Override
-                                                                       public void run() {
-                                                                           try {
-                                                                               oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), "http://localhost:8080");
-                                                                           } catch (SetupException e) {
-                                                                               throw new IllegalStateException(e);
-                                                                           }
-                                                                       }
-                                                                   });
+            @Override
+            public void run() {
+                try {
+                    oocut = new CyfaceDataCapturingService(context, context.getContentResolver(),
+                            "http://localhost:8080");
+                } catch (SetupException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
 
         lock = new ReentrantLock();
         condition = lock.newCondition();
@@ -124,13 +130,13 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException, MissingPermissionException {
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        oocut.stop();
+        oocut.stopSync();
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
     }
 
@@ -147,7 +153,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
 
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.reconnect();
@@ -156,25 +162,26 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        oocut.stop();
+        oocut.stopSync();
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
     }
 
     /**
-     * Tests that running start twice does not break the system. This test succeeds if no <code>Exception</code> occurs.
+     * Tests that running startSync twice does not break the system. This test succeeds if no <code>Exception</code>
+     * occurs.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      */
     @Test
     public void testDoubleStart() throws DataCapturingException, MissingPermissionException {
-        oocut.start(testListener, Vehicle.UNKOWN);
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        oocut.stop();
+        oocut.stopSync();
     }
 
     /**
@@ -185,11 +192,11 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException {
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
-        oocut.stop();
+        oocut.stopSync();
 
-        oocut.stop();
+        oocut.stopSync();
     }
 
     /**
@@ -200,11 +207,11 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleDisconnect() throws DataCapturingException, MissingPermissionException {
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.disconnect();
-        oocut.stop();
+        oocut.stopSync();
     }
 
     // TODO Stopping a disconnected service is actually necessary.
@@ -217,10 +224,10 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test(expected = DataCapturingException.class)
     public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException {
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
-        oocut.stop();
+        oocut.stopSync();
     }
 
     /**
@@ -231,7 +238,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDoubleConnect() throws DataCapturingException, MissingPermissionException {
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
 
@@ -241,7 +248,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        oocut.stop();
+        oocut.stopSync();
     }
 
     /**
@@ -252,19 +259,19 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDisconnectConnectTwice() throws DataCapturingException, MissingPermissionException {
-        ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
         oocut.reconnect();
         oocut.disconnect();
         oocut.reconnect();
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        oocut.stop();
+        oocut.stopSync();
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
     }
 
@@ -276,23 +283,90 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRestart() throws DataCapturingException, MissingPermissionException {
-        ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
 
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
-        oocut.stop();
+        oocut.stopSync();
 
-        oocut.start(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKOWN);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        ServiceTestUtils.callCheckForRunning(oocut,runningStatusCallback);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
-        oocut.stop();
+        oocut.stopSync();
     }
 
+    /**
+     * Tests if the service lifecycle is running with asnyc methods successfully.
+     *
+     * @throws DataCapturingException Happens on unexpected states during data capturing.
+     * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
+     */
+    @Test
+    public void testRunServiceAsync() throws DataCapturingException, MissingPermissionException {
+        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
+        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
+        ShutDownFinishedHandler shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        oocut.pauseAsync(shutDownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+
+        startUpFinishedHandler = new TestStartUpFinishedHandler();
+        oocut.resumeAsync(startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
+
+        shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        oocut.stopAsync(shutDownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+    }
+
+    /**
+     * A handler for service shutdown messages synchronized by the tests synchronization lock.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private class MyShutDownFinishedHandler extends ShutDownFinishedHandler {
+        @Override
+        void shutDownFinished() {
+            lock.lock();
+            try {
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
+
+    /**
+     * A handler for finished events on service start up. This implementation synchronizes the start up with the calling
+     * test case.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private class TestStartUpFinishedHandler extends StartUpFinishedHandler {
+        @Override
+        void startUpFinished() {
+            lock.lock();
+            try {
+                condition.signal();
+            } finally {
+                lock.unlock();
+            }
+        }
+    }
 }

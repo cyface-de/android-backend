@@ -4,7 +4,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -18,8 +17,6 @@ import org.junit.runner.RunWith;
 
 import android.Manifest;
 import android.content.Context;
-import android.location.Location;
-import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
@@ -30,14 +27,13 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.Vehicle;
-import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
 /**
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -136,7 +132,7 @@ public final class MovebisTest {
     }
 
     /**
-     * Tests whether the {@link MovebisDataCapturingService#pause()} and {@link MovebisDataCapturingService#resume()}
+     * Tests whether the {@link MovebisDataCapturingService#pauseSync()} and {@link MovebisDataCapturingService#resumeSync()}
      * work correctly.
      *
      * @throws DataCapturingException If any unexpected errors occur during data capturing.
@@ -145,7 +141,7 @@ public final class MovebisTest {
     @Test
     public void testPauseResumeMeasurement() throws DataCapturingException, MissingPermissionException {
         // start
-        oocut.start(testDataCapturingListener, Vehicle.UNKOWN);
+        oocut.startSync(testDataCapturingListener, Vehicle.UNKOWN);
         // check is running
         ServiceTestUtils.callCheckForRunning(oocut, isRunningListener);
         ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
@@ -155,14 +151,14 @@ public final class MovebisTest {
         List<Measurement> measurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
         // pause
-        oocut.pause();
+        oocut.pauseSync();
         // check is not running
         ServiceTestUtils.callCheckForRunning(oocut, isRunningListener);
         ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
         assertThat(isRunningListener.wasRunning(), is(equalTo(false)));
         assertThat(isRunningListener.didTimeOut(), is(equalTo(true)));
         // resume
-        oocut.resume();
+        oocut.resumeSync();
         // check is running
         ServiceTestUtils.callCheckForRunning(oocut, isRunningListener);
         ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
@@ -173,58 +169,7 @@ public final class MovebisTest {
         // check for no new measurements
         assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
         // stop
-        oocut.stop();
+        oocut.stopSync();
     }
 
-    /**
-     * A test testUIListener receiving values to test agains.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private static class TestUIListener implements UIListener {
-
-        /**
-         * Synchronization lock with the main test.
-         */
-        private final Lock lock;
-        /**
-         * Synchronization condition with the main test.
-         */
-        private final Condition condition;
-        /**
-         * A list of the received locations during one test run.
-         */
-        final List<Location> receivedUpdates;
-
-        /**
-         * Creates a new completely initialized <code>TestUIListener</code>.
-         *
-         * @param lock Synchronization lock with the main test.
-         * @param condition Synchronization condition with the main test.
-         */
-        TestUIListener(final @NonNull Lock lock, final @NonNull Condition condition) {
-            this.lock = lock;
-            this.condition = condition;
-            receivedUpdates = new ArrayList<>();
-        }
-
-        @Override
-        public void onLocationUpdate(Location location) {
-            receivedUpdates.add(location);
-
-            lock.lock();
-            try {
-                condition.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
-
-        @Override
-        public boolean onRequirePermission(String permission, Reason reason) {
-            return true;
-        }
-    }
 }
