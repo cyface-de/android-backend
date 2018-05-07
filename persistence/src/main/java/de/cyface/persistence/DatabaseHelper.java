@@ -133,7 +133,7 @@ public class DatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * Mapping from a table type to a table containing that type.
-     * 
+     *
      * @see #getType(Uri)
      */
     private final Map<Integer, CyfaceMeasurementTable> tables;

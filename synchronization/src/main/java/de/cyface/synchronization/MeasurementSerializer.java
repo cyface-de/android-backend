@@ -1,6 +1,8 @@
 package de.cyface.synchronization;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
@@ -16,6 +18,8 @@ import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
+
+import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 
 /**
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
@@ -269,14 +273,22 @@ public final class MeasurementSerializer {
         Cursor directionsCursor = null;
 
         try {
-            geoLocationsCursor = loader.loadGeoLocations();
+            final int geoLocationCount = loader.countGeoLocations();
             accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
             directionsCursor = loader.load3DPoint(directionsSerializer);
 
-            byte[] header = createHeader(geoLocationsCursor.getCount(), accelerationsCursor.getCount(),
+            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(),
                     rotationsCursor.getCount(), directionsCursor.getCount());
-            byte[] serializedGeoLocations = serializeGeoLocations(geoLocationsCursor);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
+                geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
+                outputStream.write(serializeGeoLocations(geoLocationsCursor));
+            }
+            byte[] serializedGeoLocations = outputStream.toByteArray();
+
+            // TODO: Write Point3D data to a separate file because it's too much db work ...
             byte[] serializedAccelerations = accelerationsSerializer.serialize(accelerationsCursor);
             byte[] serializedRotations = rotationsSerializer.serialize(rotationsCursor);
             byte[] serializedDirections = directionsSerializer.serialize(directionsCursor);
@@ -293,6 +305,8 @@ public final class MeasurementSerializer {
             Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
             return result;
         } catch (RemoteException e) {
+            throw new IllegalStateException(e);
+        } catch (IOException e) {
             throw new IllegalStateException(e);
         } finally {
             if (geoLocationsCursor != null) {

@@ -19,7 +19,7 @@ public interface CyfaceMeasurementTable {
      * Called during creation of the database if not already present. This should execute some SQL statements to
      * actually create the table with the correct schema.
      * </p>
-     * 
+     *
      * @param db The database to create the table in.
      */
     void onCreate(SQLiteDatabase db);
@@ -32,7 +32,7 @@ public interface CyfaceMeasurementTable {
      * table after an update, you can just delete the old table and create an empty new one. This is the easiest
      * implementation but you WILL LOSE ALL DATA.
      * </p>
-     * 
+     *
      * @param database The database to upgrade the table for.
      * @param oldVersion The prior version number.
      * @param newVersion The current version number.
@@ -44,7 +44,7 @@ public interface CyfaceMeasurementTable {
      * Called whenever someone deletes a row in the database. The method should call some SQL statement to actually
      * delete the row in the database.
      * </p>
-     * 
+     *
      * @param database The database containing this table.
      * @param selection Selection statement as supported by the Android API, probably with ? for placeholders. This
      *            corresponds to the SQL WHERE clause.
@@ -63,7 +63,7 @@ public interface CyfaceMeasurementTable {
      * <p>
      * Inserts a new data row into the this table.
      * </p>
-     * 
+     *
      * @param database The database the table belongs to.
      * @param values The new values to insert.
      * @return The identifier of the newly created row as referenced by {@code BaseColumns#_ID}.

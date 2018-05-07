@@ -1,6 +1,3 @@
-/*
- * Created on at 11:05.
- */
 package de.cyface.persistence;
 
 import android.content.ContentValues;
@@ -15,14 +12,17 @@ import java.util.Set;
 /**
  * Abstract base class for all Cyface measurement tables implementing common functionality.
  *
- * @author Klemens Muthmann, Armin Schnabel
- * @version 1.0.0
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since  1.0.0
  */
 public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasurementTable {
 
-    private static final String TAG = AbstractCyfaceMeasurementTable.class.getName();
-    private static final String maxQueryLimit = null;//TODO: JUST FOR TESTING I SET THIS TO null = NO LIMIT  // Else we get "Cursor Window: Window is full: requesting allocation ..." error if e.g. 157k unsynced SPs
+    /**
+     * Loading all entries at once seems slower than loading it in chunks of 10k entries (#MOV-248).
+     */
+    public static final int DATABASE_QUERY_LIMIT = 10_000;
 
     /**
      * The database table name.
@@ -47,6 +47,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         return database.insert(getName(), null, values);
     }
 
+    //TODO: Where is this still used? Its terribly slow compared with a plain bulkInsert
     @Override
     public final long[] insertBatch(SQLiteDatabase db, final List<ContentValues> valuesList) {
         long startTs = System.currentTimeMillis();
@@ -84,12 +85,10 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
     @Override
     public Cursor query(final SQLiteDatabase database, final String[] projection, final String selection,
             final String[] selectionArgs, final String sortOrder) {
-        if (!isACountingQuery(projection)) checkColumns(projection);
-        String queryLimit = (isACountingQuery(projection) ? null : maxQueryLimit);
-
+        checkColumns(projection);
         /*LOGGER.debug("Querying database table {} with projection {} selection {} and arguments {} limit {} isACountingQuery: {}",
                 getName(), projection, selection, Arrays.toString(selectionArgs), queryLimit, isACountingQuery(projection));*/
-        return database.query(getName(),projection,selection,selectionArgs,null,null,sortOrder, queryLimit);
+        return database.query(getName(), projection, selection, selectionArgs, null, null, sortOrder/*, queryLimit*/);
     }
 
     protected void checkColumns(String[] projection) {
@@ -110,10 +109,5 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
 
     @Override public String toString() {
         return name;
-    }
-
-    private boolean isACountingQuery(final String[] projection) {
-        if (projection!= null && projection.length>0 && projection[0].equals("COUNT(*)")) return true;
-        else return false;
     }
 }
