@@ -1,12 +1,10 @@
 package de.cyface.synchronization;
 
 import android.content.ContentProviderClient;
-import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
-import android.os.Bundle;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
@@ -53,10 +51,10 @@ public class MeasurementContentProviderClient {
     }
 
     /**
-     * Loads all the geo locations for the measurement.
+     * Loads a page of the geo locations for the measurement.
      *
-     * @param offset The offset marking the start index within the track to load
-     * @param limit The number of GeoLocations to load
+     * @param offset The start index of the first geoLocation to load within the measurement
+     * @param limit  The number of GeoLocations to load, recommended: {@code DATABASE_QUERY_LIMIT}
      * @return A <code>Cursor</code> on the geo locations stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
@@ -68,14 +66,15 @@ public class MeasurementContentProviderClient {
         final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
         final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
 
+        /* For some reason this does not work (tested on N5X) so we always use the workaround implementation
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Bundle queryArgs = new Bundle();
-            queryArgs.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
-            queryArgs.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
             queryArgs.putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
             queryArgs.putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+            queryArgs.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
+            queryArgs.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
             return client.query(uri, projection, queryArgs, null);
-        }
+        }*/
 
         // Backward compatibility workaround
         return client.query(uri, projection, selection, selectionArgs, GpsPointsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
@@ -100,8 +99,7 @@ public class MeasurementContentProviderClient {
                 throw new IllegalStateException("Unable to count GeoLocations for measurement.");
             }
             return locationsCursor.getCount();
-        }
-        finally {
+        } finally {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
                 client.release();
             } else {
