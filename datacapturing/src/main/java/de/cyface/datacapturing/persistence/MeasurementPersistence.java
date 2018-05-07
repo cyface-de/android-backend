@@ -6,12 +6,9 @@ import java.util.Collections;
 import java.util.List;
 
 import android.content.ContentProviderClient;
-import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.OperationApplicationException;
 import android.database.Cursor;
-import android.graphics.Point;
 import android.net.Uri;
 import android.os.Build;
 import android.os.DeadObjectException;
@@ -270,42 +267,6 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Creates a new operation to store a list of data points under the provided URI in the local persistent storage.
-     *
-     * @param dataPoints The data points to store.
-     * @param uri The uri identifying the data points table to store them at.
-     * @param mapper A mapper for mapping the data point values to the correct columns.
-     * @return An <code>ArrayList</code> of operations - one per data point - ready to be executed. This must be an
-     *         <code>ArrayList</code> since that is what is required by the <code>ContentResolver</code>.
-     */
-    private @NonNull ArrayList<ContentProviderOperation> newDataPointInsertOperation(
-            final @NonNull List<Point3D> dataPoints, final @NonNull Uri uri, final @NonNull Mapper mapper) {
-        ArrayList<ContentProviderOperation> ret = new ArrayList<>(dataPoints.size());
-
-        for (Point3D dataPoint : dataPoints) {
-            ContentValues values = mapper.map(dataPoint);
-
-            ret.add(ContentProviderOperation.newInsert(uri).withValues(values).build());
-        }
-
-        return ret;
-    }
-
-    @NonNull
-    public static ArrayList<ContentProviderOperation> newGeoLocationInsertOperation(
-            final @NonNull List<GeoLocation> geoLocations, final @NonNull Uri uri, final @NonNull Mapper mapper) {
-        ArrayList<ContentProviderOperation> ret = new ArrayList<>(geoLocations.size());
-
-        for (GeoLocation geoLocation : geoLocations) {
-            ContentValues values = mapper.map(geoLocation);
-
-            ret.add(ContentProviderOperation.newInsert(uri).withValues(values).build());
-        }
-
-        return ret;
-    }
-
-    /**
      * @return All measurements currently in the local persistent data storage.
      */
     public @NonNull List<Measurement> loadMeasurements() {
@@ -399,23 +360,5 @@ public class MeasurementPersistence {
                 locationsCursor.close();
             }
         }
-    }
-
-    /**
-     * A mapper for mapping 3D data points to <code>ContentValues</code> objects for storage in the local persistent
-     * data storage. <code>ContentValues</code> objects are the expected input type of Android Content Providers.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    public interface Mapper<T> {
-        /**
-         * Maps the provided data point to a <code>ContentValues</code> object.
-         *
-         * @param entry The {@link Point3D} or {@link GeoLocation} to map.
-         * @return The mapping as a <code>ContentValues</code> object.
-         */
-        ContentValues map(final T entry);
     }
 }
