@@ -500,7 +500,11 @@ public abstract class DataCapturingService {
             throw new DataCapturingException(e);
         } finally {
             lock.unlock();
-            getContext().unregisterReceiver(synchronizationReceiver);
+            try {
+                getContext().unregisterReceiver(synchronizationReceiver);
+            } catch(IllegalArgumentException e) {
+                Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
+            }
         }
     }
 
@@ -564,7 +568,11 @@ public abstract class DataCapturingService {
             throw new DataCapturingException(e);
         } finally {
             lock.unlock();
-            getContext().unregisterReceiver(synchronizationReceiver);
+            try {
+                getContext().unregisterReceiver(synchronizationReceiver);
+            } catch(IllegalArgumentException e) {
+                Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
+            }
         }
     }
 

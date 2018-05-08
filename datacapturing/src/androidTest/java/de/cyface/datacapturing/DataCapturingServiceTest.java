@@ -340,7 +340,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     private class MyShutDownFinishedHandler extends ShutDownFinishedHandler {
         @Override
-        void shutDownFinished() {
+        public void shutDownFinished() {
             lock.lock();
             try {
                 condition.signal();
@@ -360,7 +360,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     private class TestStartUpFinishedHandler extends StartUpFinishedHandler {
         @Override
-        void startUpFinished() {
+        public void startUpFinished() {
             lock.lock();
             try {
                 condition.signal();

@@ -51,7 +51,11 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
                 throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
         }
 
-        context.unregisterReceiver(this);
+        try {
+            context.unregisterReceiver(this);
+        } catch(IllegalArgumentException e) {
+            Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
+        }
 
     }
 

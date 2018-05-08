@@ -51,8 +51,11 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
             default:
                 throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
         }
-
-        context.unregisterReceiver(this);
+        try {
+            context.unregisterReceiver(this);
+        } catch (IllegalArgumentException e) {
+            Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
+            }
     }
 
     /**
