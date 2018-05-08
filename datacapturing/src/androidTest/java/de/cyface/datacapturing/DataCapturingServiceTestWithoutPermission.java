@@ -4,10 +4,14 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.location.Location;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.FlakyTest;
 import android.support.test.filters.MediumTest;
+import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 
 import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -34,6 +38,8 @@ import static org.junit.Assert.fail;
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
+@FlakyTest
+@Ignore // Ignore this test until Android is capable of resetting permissions for every test
 public class DataCapturingServiceTestWithoutPermission {
 
     /**
@@ -53,7 +59,7 @@ public class DataCapturingServiceTestWithoutPermission {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context,contentResolver,dataUploadServerAddress);
+                    oocut = new CyfaceDataCapturingService(context, contentResolver, dataUploadServerAddress);
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -62,9 +68,11 @@ public class DataCapturingServiceTestWithoutPermission {
     }
 
     /**
-     * Tests that the service correctly throws an <code>Exception</code> if no <code>ACCESS_FINE_LOCATION</code> was granted.
+     * Tests that the service correctly throws an <code>Exception</code> if no <code>ACCESS_FINE_LOCATION</code> was
+     * granted.
      *
-     * @throws MissingPermissionException The expected <code>Exception</code> thrown if the <code>ACCESS_FINE_LOCATION</code> is missing.
+     * @throws MissingPermissionException The expected <code>Exception</code> thrown if the
+     *             <code>ACCESS_FINE_LOCATION</code> is missing.
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      */
     @Test(expected = MissingPermissionException.class)
@@ -136,6 +144,29 @@ public class DataCapturingServiceTestWithoutPermission {
 
         @Override
         public boolean onRequiresPermission(String permission, Reason reason) {
+            return false;
+        }
+    }
+
+    /**
+     * A {@link UIListener} implementation used for testing.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private static class TestUiListener implements UIListener {
+
+        boolean requiredPermission;
+
+        @Override
+        public void onLocationUpdate(Location location) {
+
+        }
+
+        @Override
+        public boolean onRequirePermission(String permission, Reason reason) {
+            requiredPermission = true;
             return false;
         }
     }
