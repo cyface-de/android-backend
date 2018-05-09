@@ -1,14 +1,13 @@
 package de.cyface.datacapturing.persistence;
 
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
 
 import android.content.ContentProviderClient;
-import android.content.ContentProviderOperation;
 import android.content.ContentResolver;
 import android.content.ContentValues;
-import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -36,7 +35,8 @@ import de.cyface.persistence.SamplePointTable;
  * delegate objects.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @author Armin Schnabel
+ * @version 3.1.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -50,7 +50,7 @@ public class MeasurementPersistence {
      * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones. The current value is the one
      * where all tests are finally passing on the Pixel 2.
      */
-    private static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
+    public static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -109,61 +109,72 @@ public class MeasurementPersistence {
             // final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
             ContentProviderClient client = null;
             try {
-                ArrayList<ContentProviderOperation> operations = new ArrayList<>();
                 client = resolver.acquireContentProviderClient(MeasuringPointsContentProvider.AUTHORITY);
                 if (client == null) {
                     throw new DataCapturingException(String.format("Unable to create client for content provider %s",
                             MeasuringPointsContentProvider.AUTHORITY));
                 }
 
-                operations.addAll(newDataPointInsertOperation(data.getAccelerations(),
-                        MeasuringPointsContentProvider.SAMPLE_POINTS_URI, new Mapper() {
-                            @Override
-                            public ContentValues map(Point3D dataPoint) {
-                                ContentValues ret = new ContentValues();
-                                ret.put(SamplePointTable.COLUMN_AX, dataPoint.getX());
-                                ret.put(SamplePointTable.COLUMN_AY, dataPoint.getY());
-                                ret.put(SamplePointTable.COLUMN_AZ, dataPoint.getZ());
-                                ret.put(SamplePointTable.COLUMN_IS_SYNCED, 0);
-                                ret.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                                ret.put(SamplePointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                                return ret;
-                            }
-                        }));
-                operations.addAll(newDataPointInsertOperation(data.getRotations(),
-                        MeasuringPointsContentProvider.ROTATION_POINTS_URI, new Mapper() {
-                            @Override
-                            public ContentValues map(Point3D dataPoint) {
-                                ContentValues ret = new ContentValues();
-                                ret.put(RotationPointTable.COLUMN_RX, dataPoint.getX());
-                                ret.put(RotationPointTable.COLUMN_RY, dataPoint.getY());
-                                ret.put(RotationPointTable.COLUMN_RZ, dataPoint.getZ());
-                                ret.put(RotationPointTable.COLUMN_IS_SYNCED, 0);
-                                ret.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                                ret.put(RotationPointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                                return ret;
-                            }
-                        }));
-                operations.addAll(newDataPointInsertOperation(data.getDirections(),
-                        MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, new Mapper() {
-                            @Override
-                            public ContentValues map(Point3D dataPoint) {
-                                ContentValues ret = new ContentValues();
-                                ret.put(MagneticValuePointTable.COLUMN_MX, dataPoint.getX());
-                                ret.put(MagneticValuePointTable.COLUMN_MY, dataPoint.getY());
-                                ret.put(MagneticValuePointTable.COLUMN_MZ, dataPoint.getZ());
-                                ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, 0);
-                                ret.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                                ret.put(MagneticValuePointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                                return ret;
-                            }
-                        }));
-
-                for (int i = 0; i < operations.size(); i += MAX_SIMULTANEOUS_OPERATIONS) {
-                    int startIndex = i;
-                    int endIndex = Math.min(operations.size(), i + MAX_SIMULTANEOUS_OPERATIONS);
-                    client.applyBatch(new ArrayList<>(operations.subList(startIndex, endIndex)));
+                ContentValues[] values = new ContentValues[data.getAccelerations().size()];
+                for (int i = 0; i < data.getAccelerations().size(); i++) {
+                    Point3D dataPoint = data.getAccelerations().get(i);
+                    ContentValues ret = new ContentValues();
+                    ret.put(SamplePointTable.COLUMN_AX, dataPoint.getX());
+                    ret.put(SamplePointTable.COLUMN_AY, dataPoint.getY());
+                    ret.put(SamplePointTable.COLUMN_AZ, dataPoint.getZ());
+                    ret.put(SamplePointTable.COLUMN_IS_SYNCED, 0);
+                    ret.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                    ret.put(SamplePointTable.COLUMN_TIME, dataPoint.getTimestamp());
+                    values[i] = ret;
                 }
+                for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
+                    int startIndex = i;
+                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
+                    // BulkInsert is about 80 times faster than insertBatch
+                    client.bulkInsert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
+                            Arrays.copyOfRange(values, startIndex, endIndex));
+                }
+
+                values = new ContentValues[data.getRotations().size()];
+                for (int i = 0; i < data.getRotations().size(); i++) {
+                    Point3D dataPoint = data.getRotations().get(i);
+                    ContentValues ret = new ContentValues();
+                    ret.put(RotationPointTable.COLUMN_RX, dataPoint.getX());
+                    ret.put(RotationPointTable.COLUMN_RY, dataPoint.getY());
+                    ret.put(RotationPointTable.COLUMN_RZ, dataPoint.getZ());
+                    ret.put(RotationPointTable.COLUMN_IS_SYNCED, 0);
+                    ret.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                    ret.put(RotationPointTable.COLUMN_TIME, dataPoint.getTimestamp());
+                    values[i] = ret;
+                }
+                for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
+                    int startIndex = i;
+                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
+                    // BulkInsert is about 80 times faster than insertBatch
+                    client.bulkInsert(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
+                            Arrays.copyOfRange(values, startIndex, endIndex));
+                }
+
+                values = new ContentValues[data.getDirections().size()];
+                for (int i = 0; i < data.getDirections().size(); i++) {
+                    Point3D dataPoint = data.getDirections().get(i);
+                    ContentValues ret = new ContentValues();
+                    ret.put(MagneticValuePointTable.COLUMN_MX, dataPoint.getX());
+                    ret.put(MagneticValuePointTable.COLUMN_MY, dataPoint.getY());
+                    ret.put(MagneticValuePointTable.COLUMN_MZ, dataPoint.getZ());
+                    ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, 0);
+                    ret.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+                    ret.put(MagneticValuePointTable.COLUMN_TIME, dataPoint.getTimestamp());
+                    values[i] = ret;
+                }
+                for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
+                    int startIndex = i;
+                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
+                    // BulkInsert is about 80 times faster than insertBatch
+                    client.bulkInsert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
+                            Arrays.copyOfRange(values, startIndex, endIndex));
+                }
+
             } finally {
                 if (client != null) {
                     if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
@@ -174,10 +185,8 @@ public class MeasurementPersistence {
                 }
             }
         } catch (DeadObjectException e) {
-            Log.e(TAG,"Binder buffer full. Cannot save data.",e);
+            Log.e(TAG, "Binder buffer full. Cannot save data.", e);
         } catch (RemoteException e) {
-            throw new IllegalStateException(e);
-        } catch (OperationApplicationException e) {
             throw new IllegalStateException(e);
         }
     }
@@ -261,28 +270,6 @@ public class MeasurementPersistence {
                 measurementIdentifierQueryCursor.close();
             }
         }
-    }
-
-    /**
-     * Creates a new operation to store a list of data points under the provided URI in the local persistent storage.
-     *
-     * @param dataPoints The data points to store.
-     * @param uri The uri identifying the data points table to store them at.
-     * @param mapper A mapper for mapping the data point values to the correct columns.
-     * @return An <code>ArrayList</code> of operations - one per data point - ready to be executed. This must be an
-     *         <code>ArrayList</code> since that is what is required by the <code>ContentResolver</code>.
-     */
-    private @NonNull ArrayList<ContentProviderOperation> newDataPointInsertOperation(
-            final @NonNull List<Point3D> dataPoints, final @NonNull Uri uri, final @NonNull Mapper mapper) {
-        ArrayList<ContentProviderOperation> ret = new ArrayList<>(dataPoints.size());
-
-        for (Point3D dataPoint : dataPoints) {
-            ContentValues values = mapper.map(dataPoint);
-
-            ret.add(ContentProviderOperation.newInsert(uri).withValues(values).build());
-        }
-
-        return ret;
     }
 
     /**
@@ -379,23 +366,5 @@ public class MeasurementPersistence {
                 locationsCursor.close();
             }
         }
-    }
-
-    /**
-     * A mapper for mapping 3D data points to <code>ContentValues</code> objects for storage in the local persistent
-     * data storage. <code>ContentValues</code> objects are the expected input type of Android Content Providers.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private interface Mapper {
-        /**
-         * Maps the provided data point to a <code>ContentValues</code> object.
-         *
-         * @param dataPoint The {@link Point3D} to map.
-         * @return The mapping as a <code>ContentValues</code> object.
-         */
-        ContentValues map(final Point3D dataPoint);
     }
 }

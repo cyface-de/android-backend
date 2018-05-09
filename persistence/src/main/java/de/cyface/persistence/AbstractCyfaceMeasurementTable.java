@@ -1,6 +1,3 @@
-/*
- * Created on at 11:05.
- */
 package de.cyface.persistence;
 
 import android.content.ContentValues;
@@ -15,21 +12,24 @@ import java.util.Set;
 /**
  * Abstract base class for all Cyface measurement tables implementing common functionality.
  *
- * @author Klemens Muthmann, Armin Schnabel
- * @version 1.0.0
- * @since  1.0.0
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.1.0
+ * @since 1.0.0
  */
 public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasurementTable {
 
-    private static final String TAG = AbstractCyfaceMeasurementTable.class.getName();
-    private static final String maxQueryLimit = "10000"; // Else we get "Cursor Window: Window is full: requesting allocation ..." error if e.g. 157k unsynced SPs
+    /**
+     * Loading all entries at once seems slower than loading it in chunks of 10k entries (#MOV-248).
+     */
+    public static final int DATABASE_QUERY_LIMIT = 10_000;
 
     /**
      * The database table name.
      */
     private final String name;
 
-    protected AbstractCyfaceMeasurementTable(final String name) {
+    AbstractCyfaceMeasurementTable(final String name) {
         if (name.isEmpty()) {
             throw new IllegalStateException("Database table name may not be empty.");
         }
@@ -47,21 +47,19 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         return database.insert(getName(), null, values);
     }
 
+    // BulkInsert is about 80 times faster than insertBatch
     @Override
     public final long[] insertBatch(SQLiteDatabase db, final List<ContentValues> valuesList) {
-        long startTs = System.currentTimeMillis();
         long[] ret = new long[valuesList.size()];
         db.beginTransaction();
         try {
             int len = valuesList.size();
             for (int i = 0; i < len; i++) {
-                ret[i]=insertRow(db,valuesList.get(i));
+                ret[i] = insertRow(db, valuesList.get(i));
             }
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
-            //long timeTaken = (System.currentTimeMillis() - startTs);
-            //Log.d(TAG, "Time taken to insert " + valuesList.size() + " records was " + timeTaken + " ms ");
         }
         return ret;
     }
@@ -83,13 +81,11 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
 
     @Override
     public Cursor query(final SQLiteDatabase database, final String[] projection, final String selection,
-            final String[] selectionArgs, final String sortOrder) {
-        if (!isACountingQuery(projection)) checkColumns(projection);
-        String queryLimit = (isACountingQuery(projection) ? null : maxQueryLimit);
-
+                        final String[] selectionArgs, final String sortOrder) {
+        checkColumns(projection);
         /*LOGGER.debug("Querying database table {} with projection {} selection {} and arguments {} limit {} isACountingQuery: {}",
                 getName(), projection, selection, Arrays.toString(selectionArgs), queryLimit, isACountingQuery(projection));*/
-        return database.query(getName(),projection,selection,selectionArgs,null,null,sortOrder, queryLimit);
+        return database.query(getName(), projection, selection, selectionArgs, null, null, sortOrder);
     }
 
     protected void checkColumns(String[] projection) {
@@ -101,19 +97,17 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
             }
         }
     }
+
     protected abstract String[] getDatabaseTableColumns();
 
-    @Override public int update(SQLiteDatabase database, ContentValues values, String selection,
-            String[] selectionArgs) {
-        return database.update(getName(),values,selection,selectionArgs);
+    @Override
+    public int update(SQLiteDatabase database, ContentValues values, String selection,
+                      String[] selectionArgs) {
+        return database.update(getName(), values, selection, selectionArgs);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return name;
-    }
-
-    private boolean isACountingQuery(final String[] projection) {
-        if (projection!= null && projection.length>0 && projection[0].equals("COUNT(*)")) return true;
-        else return false;
     }
 }

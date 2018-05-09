@@ -1,6 +1,8 @@
 package de.cyface.synchronization;
 
 import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
@@ -16,6 +18,8 @@ import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
+
+import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 
 /**
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
@@ -38,10 +42,11 @@ import de.cyface.persistence.SamplePointTable;
  * WARNING: This implementation loads all data from one measurement into memory. So be careful with large measurements.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @author Armin Schnabel
+ * @version 1.0.1
  * @since 2.0.0
  */
-final class MeasurementSerializer {
+public final class MeasurementSerializer {
 
     private final static String TAG = "de.cyface.sync";
 
@@ -51,11 +56,15 @@ final class MeasurementSerializer {
      */
     private final static short DATA_FORMAT_VERSION = 1;
 
+    final static int BYTES_IN_HEADER = 2 + 4 * 4;
+
     /**
      * A constant with the number of bytes for one uncompressed geo location entry in the Cyface binary format.
      */
     final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
+
+    final static int BYTES_IN_ONE_POINT_3D_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
 
     /**
      * Serializer for transforming acceleration points into a byte representation.
@@ -130,7 +139,7 @@ final class MeasurementSerializer {
     /**
      * Serializer for transforming direction points into a byte representation.
      */
-    final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
+    public final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
         @Override
         protected Uri getTableUri() {
             return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;
@@ -166,7 +175,7 @@ final class MeasurementSerializer {
      * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
      * client given to the constructor and serializes it in the described binary format to an <code>InputStream</code>.
      *
-     * @param loader The device wide unqiue identifier of the measurement to serialize.
+     * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized data.
      */
     InputStream serialize(final @NonNull MeasurementContentProviderClient loader) {
@@ -182,7 +191,7 @@ final class MeasurementSerializer {
      * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
-    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
+    InputStream     serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
         compressor.setInput(data);
@@ -257,7 +266,7 @@ final class MeasurementSerializer {
     }
 
     /**
-     * Implements the core algorithm of loading data from a content provider and serilizing it into an array of bytes.
+     * Implements the core algorithm of loading data from a content provider and serializing it into an array of bytes.
      *
      * @param loader The loader providing access to the content provider storing all the measurements.
      * @return A byte array containing the serialized data.
@@ -269,14 +278,22 @@ final class MeasurementSerializer {
         Cursor directionsCursor = null;
 
         try {
-            geoLocationsCursor = loader.loadGeoLocations();
+            final int geoLocationCount = loader.countGeoLocations();
             accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
             directionsCursor = loader.load3DPoint(directionsSerializer);
 
-            byte[] header = createHeader(geoLocationsCursor.getCount(), accelerationsCursor.getCount(),
+            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(),
                     rotationsCursor.getCount(), directionsCursor.getCount());
-            byte[] serializedGeoLocations = serializeGeoLocations(geoLocationsCursor);
+
+            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
+                geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
+                outputStream.write(serializeGeoLocations(geoLocationsCursor));
+            }
+            byte[] serializedGeoLocations = outputStream.toByteArray();
+
+            // TODO: Write Point3D data to a separate file because it's too much db work ...
             byte[] serializedAccelerations = accelerationsSerializer.serialize(accelerationsCursor);
             byte[] serializedRotations = rotationsSerializer.serialize(rotationsCursor);
             byte[] serializedDirections = directionsSerializer.serialize(directionsCursor);
@@ -293,6 +310,8 @@ final class MeasurementSerializer {
             Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
             return result;
         } catch (RemoteException e) {
+            throw new IllegalStateException(e);
+        } catch (IOException e) {
             throw new IllegalStateException(e);
         } finally {
             if (geoLocationsCursor != null) {
