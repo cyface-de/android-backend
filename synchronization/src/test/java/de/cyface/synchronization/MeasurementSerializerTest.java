@@ -5,6 +5,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Matchers.any;
+import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -31,7 +32,7 @@ import android.os.RemoteException;
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public class MeasurementSerializerTest {
@@ -58,7 +59,7 @@ public class MeasurementSerializerTest {
 
     @Before
     public void setUp() throws RemoteException {
-        when(loader.loadGeoLocations()).thenReturn(geoLocationsCursor);
+        when(loader.loadGeoLocations(anyInt(),anyInt())).thenReturn(geoLocationsCursor);
         when(loader.load3DPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor);
         when(geoLocationsCursor.getCount()).thenReturn(3);
         when(pointsCursor.getCount()).thenReturn(3);
