@@ -129,8 +129,10 @@ public class MeasurementPersistence {
                 }
                 for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
                     int startIndex = i;
-                    int endIndex = Math.min(values.length,i+MAX_SIMULTANEOUS_OPERATIONS);
-                    client.bulkInsert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, Arrays.copyOfRange(values, startIndex, endIndex));
+                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
+                    // BulkInsert is about 80 times faster than insertBatch
+                    client.bulkInsert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
+                            Arrays.copyOfRange(values, startIndex, endIndex));
                 }
 
                 values = new ContentValues[data.getRotations().size()];
@@ -147,8 +149,10 @@ public class MeasurementPersistence {
                 }
                 for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
                     int startIndex = i;
-                    int endIndex = Math.min(values.length,i+MAX_SIMULTANEOUS_OPERATIONS);
-                    client.bulkInsert(MeasuringPointsContentProvider.ROTATION_POINTS_URI, Arrays.copyOfRange(values, startIndex, endIndex));
+                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
+                    // BulkInsert is about 80 times faster than insertBatch
+                    client.bulkInsert(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
+                            Arrays.copyOfRange(values, startIndex, endIndex));
                 }
 
                 values = new ContentValues[data.getDirections().size()];
@@ -165,8 +169,10 @@ public class MeasurementPersistence {
                 }
                 for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
                     int startIndex = i;
-                    int endIndex = Math.min(values.length,i+MAX_SIMULTANEOUS_OPERATIONS);
-                    client.bulkInsert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, Arrays.copyOfRange(values, startIndex, endIndex));
+                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
+                    // BulkInsert is about 80 times faster than insertBatch
+                    client.bulkInsert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
+                            Arrays.copyOfRange(values, startIndex, endIndex));
                 }
 
             } finally {
@@ -179,7 +185,7 @@ public class MeasurementPersistence {
                 }
             }
         } catch (DeadObjectException e) {
-            Log.e(TAG,"Binder buffer full. Cannot save data.",e);
+            Log.e(TAG, "Binder buffer full. Cannot save data.", e);
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
         }

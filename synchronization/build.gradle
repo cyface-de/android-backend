@@ -69,7 +69,6 @@ dependencies {
     testImplementation "org.hamcrest:hamcrest-all:${rootProject.ext.hamcrestVersion}"
 
     testImplementation "org.robolectric:robolectric:${rootProject.ext.robolectricVersion}"
-    androidTestImplementation project(path: ':datacapturing')
 }
 
 tasks.withType(Test) {

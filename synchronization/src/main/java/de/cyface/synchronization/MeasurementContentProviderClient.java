@@ -45,7 +45,8 @@ public class MeasurementContentProviderClient {
      * @param measurementIdentifier The device wide unqiue identifier of the measurement to serialize.
      * @param client
      */
-    public MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client) {
+    public MeasurementContentProviderClient(final long measurementIdentifier,
+            final @NonNull ContentProviderClient client) {
         this.measurementIdentifier = measurementIdentifier;
         this.client = client;
     }
@@ -54,30 +55,34 @@ public class MeasurementContentProviderClient {
      * Loads a page of the geo locations for the measurement.
      *
      * @param offset The start index of the first geoLocation to load within the measurement
-     * @param limit  The number of GeoLocations to load, recommended: {@code DATABASE_QUERY_LIMIT}
+     * @param limit The number of GeoLocations to load, recommended: {@code DATABASE_QUERY_LIMIT}
      * @return A <code>Cursor</code> on the geo locations stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
 
         final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
-        final String[] projection = new String[]{GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT, GpsPointsTable.COLUMN_LON,
-                GpsPointsTable.COLUMN_SPEED, GpsPointsTable.COLUMN_ACCURACY};
+        final String[] projection = new String[] {GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT,
+                GpsPointsTable.COLUMN_LON, GpsPointsTable.COLUMN_SPEED, GpsPointsTable.COLUMN_ACCURACY};
         final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
+        final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
 
-        /* For some reason this does not work (tested on N5X) so we always use the workaround implementation
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Bundle queryArgs = new Bundle();
-            queryArgs.putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
-            queryArgs.putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
-            queryArgs.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
-            queryArgs.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
-            return client.query(uri, projection, queryArgs, null);
-        }*/
+        /*
+         * For some reason this does not work (tested on N5X) so we always use the workaround implementation
+         * if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+         * Bundle queryArgs = new Bundle();
+         * queryArgs.putString(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION, selection);
+         * queryArgs.putStringArray(android.content.ContentResolver.QUERY_ARG_SQL_SELECTION_ARGS, selectionArgs);
+         * queryArgs.putInt(ContentResolver.QUERY_ARG_OFFSET, offset);
+         * queryArgs.putInt(ContentResolver.QUERY_ARG_LIMIT, limit);
+         * return client.query(uri, projection, queryArgs, null);
+         * }
+         */
 
-        // Backward compatibility workaround
-        return client.query(uri, projection, selection, selectionArgs, GpsPointsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
+        // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
+        // the arguments limit and offset are only available starting with API 26 ("O")
+        return client.query(uri, projection, selection, selectionArgs,
+                GpsPointsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
     }
 
     /**
@@ -90,7 +95,7 @@ public class MeasurementContentProviderClient {
 
         final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
         final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
+        final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
 
         Cursor locationsCursor = null;
         try {
@@ -120,10 +125,10 @@ public class MeasurementContentProviderClient {
      */
     Cursor load3DPoint(final @NonNull Point3DSerializer serializer) throws RemoteException {
         return client.query(serializer.getTableUri(),
-                new String[]{serializer.getTimestampColumnName(), serializer.getXColumnName(),
+                new String[] {serializer.getTimestampColumnName(), serializer.getXColumnName(),
                         serializer.getYColumnName(), serializer.getZColumnName()},
                 serializer.getMeasurementKeyColumnName() + "=?",
-                new String[]{Long.valueOf(measurementIdentifier).toString()}, null);
+                new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
     }
 
     /**
@@ -137,17 +142,17 @@ public class MeasurementContentProviderClient {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_SYNCED, true);
         client.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values, BaseColumns._ID + "=?",
-                new String[]{Long.valueOf(measurementIdentifier).toString()});
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         int ret = 0;
         ret += client.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
                 SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[]{Long.valueOf(measurementIdentifier).toString()});
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
                 RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[]{Long.valueOf(measurementIdentifier).toString()});
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[]{Long.valueOf(measurementIdentifier).toString()});
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         return ret;
     }
 }

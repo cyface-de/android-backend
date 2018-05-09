@@ -1,10 +1,10 @@
 package de.cyface.persistence;
 
+import java.util.List;
+
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-
-import java.util.List;
 
 /**
  * <p>
@@ -109,6 +109,7 @@ public interface CyfaceMeasurementTable {
      * <p>
      * Allows to batch insert multiple values into this table.
      * </p>
+     * 
      * @param database The database the table is part of.
      * @param valuesList The list of values for each row to insert.
      * @return the list of identifiers for the newly created table rows.

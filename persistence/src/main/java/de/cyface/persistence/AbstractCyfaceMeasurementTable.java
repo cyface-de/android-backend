@@ -15,7 +15,7 @@ import java.util.Set;
  * @author Klemens Muthmann
  * @author Armin Schnabel
  * @version 1.1.0
- * @since  1.0.0
+ * @since 1.0.0
  */
 public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasurementTable {
 
@@ -29,7 +29,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
      */
     private final String name;
 
-    protected AbstractCyfaceMeasurementTable(final String name) {
+    AbstractCyfaceMeasurementTable(final String name) {
         if (name.isEmpty()) {
             throw new IllegalStateException("Database table name may not be empty.");
         }
@@ -47,22 +47,19 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
         return database.insert(getName(), null, values);
     }
 
-    //TODO: Where is this still used? Its terribly slow compared with a plain bulkInsert
+    // BulkInsert is about 80 times faster than insertBatch
     @Override
     public final long[] insertBatch(SQLiteDatabase db, final List<ContentValues> valuesList) {
-        long startTs = System.currentTimeMillis();
         long[] ret = new long[valuesList.size()];
         db.beginTransaction();
         try {
             int len = valuesList.size();
             for (int i = 0; i < len; i++) {
-                ret[i]=insertRow(db,valuesList.get(i));
+                ret[i] = insertRow(db, valuesList.get(i));
             }
             db.setTransactionSuccessful();
         } finally {
             db.endTransaction();
-            //long timeTaken = (System.currentTimeMillis() - startTs);
-            //Log.d(TAG, "Time taken to insert " + valuesList.size() + " records was " + timeTaken + " ms ");
         }
         return ret;
     }
@@ -84,7 +81,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
 
     @Override
     public Cursor query(final SQLiteDatabase database, final String[] projection, final String selection,
-            final String[] selectionArgs, final String sortOrder) {
+                        final String[] selectionArgs, final String sortOrder) {
         checkColumns(projection);
         /*LOGGER.debug("Querying database table {} with projection {} selection {} and arguments {} limit {} isACountingQuery: {}",
                 getName(), projection, selection, Arrays.toString(selectionArgs), queryLimit, isACountingQuery(projection));*/
@@ -100,14 +97,17 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
             }
         }
     }
+
     protected abstract String[] getDatabaseTableColumns();
 
-    @Override public int update(SQLiteDatabase database, ContentValues values, String selection,
-            String[] selectionArgs) {
-        return database.update(getName(),values,selection,selectionArgs);
+    @Override
+    public int update(SQLiteDatabase database, ContentValues values, String selection,
+                      String[] selectionArgs) {
+        return database.update(getName(), values, selection, selectionArgs);
     }
 
-    @Override public String toString() {
+    @Override
+    public String toString() {
         return name;
     }
 }
