@@ -1,5 +1,8 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_HEADER;
+import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -32,7 +35,8 @@ import android.os.RemoteException;
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @author Armin Schnabel
+ * @version 1.0.2
  * @since 2.0.0
  */
 public class MeasurementSerializerTest {
@@ -57,18 +61,24 @@ public class MeasurementSerializerTest {
     @Mock
     private Cursor pointsCursor;
 
+    private final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
+            + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
+    private final int SERIALIZED_COMPRESSED_SIZE = 30;
+
     @Before
     public void setUp() throws RemoteException {
+        when(loader.countGeoLocations()).thenReturn(3);
         when(loader.loadGeoLocations(anyInt(),anyInt())).thenReturn(geoLocationsCursor);
         when(loader.load3DPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor);
         when(geoLocationsCursor.getCount()).thenReturn(3);
         when(pointsCursor.getCount()).thenReturn(3);
         // Insert 3 geo locations
         when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
-        // Insert 3 points of each kind
+        // Insert 3 points of each Point3D type
         when(pointsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false)
                 .thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false).thenReturn(true).thenReturn(true)
                 .thenReturn(true).thenReturn(false);
+        // Sample point attributes
         when(geoLocationsCursor.getColumnIndex(any(String.class))).thenReturn(0);
         when(pointsCursor.getColumnIndex(any(String.class))).thenReturn(0);
         when(geoLocationsCursor.getDouble(0)).thenReturn(1.0);
@@ -90,7 +100,7 @@ public class MeasurementSerializerTest {
 
         InputStream stream = serializer.serialize(loader);
 
-        assertThat(stream.available(), is(equalTo(414)));
+        assertThat(stream.available(), is(equalTo(SERIALIZED_SIZE)));
     }
 
     /**
@@ -106,8 +116,8 @@ public class MeasurementSerializerTest {
 
         InputStream stream = serializer.serialize(loader);
 
-        byte[] individualBytes = new byte[414];
-        assertThat(stream.read(individualBytes), is(equalTo(414)));
+        byte[] individualBytes = new byte[SERIALIZED_SIZE];
+        assertThat(stream.read(individualBytes), is(equalTo(SERIALIZED_SIZE)));
 
         ByteBuffer buffer = ByteBuffer.wrap(individualBytes);
         short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
@@ -120,9 +130,9 @@ public class MeasurementSerializerTest {
         assertThat(numberOfRotations, is(equalTo(3)));
         int numberOfDirections = buffer.order(ByteOrder.BIG_ENDIAN).getInt(14);
         assertThat(numberOfDirections, is(equalTo(3)));
-        int beginOfGeoLocationsIndex = 18;
+        int beginOfGeoLocationsIndex = BYTES_IN_HEADER;
         int beginOfAccelerationsIndex = beginOfGeoLocationsIndex
-                + numberOfGeoLocations * MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+                + numberOfGeoLocations * BYTES_IN_ONE_GEO_LOCATION_ENTRY;
         int beginOfRotationsIndex = beginOfAccelerationsIndex
                 + numberOfAccelerations * Point3DSerializer.BYTES_IN_ONE_POINT_ENTRY;
         int beginOfDirectionsIndex = beginOfRotationsIndex
@@ -157,7 +167,7 @@ public class MeasurementSerializerTest {
 
         InputStream input = serializer.serializeCompressed(loader);
 
-        assertThat(input.available(), is(equalTo(30)));
+        assertThat(input.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
     }
 
     /**
@@ -197,9 +207,9 @@ public class MeasurementSerializerTest {
      */
     private List<Map<String, ?>> deserializeGeoLocations(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
-        for (int i = 0; i < bytes.length; i += MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY) {
+        for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_GEO_LOCATION_ENTRY) {
             ByteBuffer buffer = ByteBuffer
-                    .wrap(Arrays.copyOfRange(bytes, i, i + MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY));
+                    .wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_GEO_LOCATION_ENTRY));
             Map<String, Object> entry = new HashMap<>(5);
             entry.put("timestamp", buffer.getLong());
             entry.put("lat", buffer.getDouble());

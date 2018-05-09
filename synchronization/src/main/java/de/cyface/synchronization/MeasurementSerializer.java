@@ -42,7 +42,8 @@ import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUER
  * WARNING: This implementation loads all data from one measurement into memory. So be careful with large measurements.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @author Armin Schnabel
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -55,11 +56,15 @@ public final class MeasurementSerializer {
      */
     private final static short DATA_FORMAT_VERSION = 1;
 
+    final static int BYTES_IN_HEADER = 2 + 4 * 4;
+
     /**
      * A constant with the number of bytes for one uncompressed geo location entry in the Cyface binary format.
      */
     final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
+
+    final static int BYTES_IN_ONE_POINT_3D_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
 
     /**
      * Serializer for transforming acceleration points into a byte representation.
@@ -170,7 +175,7 @@ public final class MeasurementSerializer {
      * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
      * client given to the constructor and serializes it in the described binary format to an <code>InputStream</code>.
      *
-     * @param loader The device wide unqiue identifier of the measurement to serialize.
+     * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized data.
      */
     InputStream serialize(final @NonNull MeasurementContentProviderClient loader) {
@@ -186,7 +191,7 @@ public final class MeasurementSerializer {
      * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
-    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
+    InputStream     serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
         compressor.setInput(data);
@@ -261,7 +266,7 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Implements the core algorithm of loading data from a content provider and serilizing it into an array of bytes.
+     * Implements the core algorithm of loading data from a content provider and serializing it into an array of bytes.
      *
      * @param loader The loader providing access to the content provider storing all the measurements.
      * @return A byte array containing the serialized data.
