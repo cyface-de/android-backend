@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.persistence.MeasurementPersistence.MAX_SIMULTANEOUS_OPERATIONS;
+import static de.cyface.datacapturing.persistence.CapturedDataWriter.MAX_SIMULTANEOUS_OPERATIONS;
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,6 +36,11 @@ import de.cyface.synchronization.MeasurementContentProviderClient;
 /**
  * This test is places in datacapturing as it has dependencies on: datacapturing, synchronization
  * and persistence and it's the only module which can access all three of them.
+ *
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest

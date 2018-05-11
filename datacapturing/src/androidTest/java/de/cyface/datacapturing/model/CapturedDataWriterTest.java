@@ -1,6 +1,3 @@
-/*
- * Created on 12.08.15 at 16:31
- */
 package de.cyface.datacapturing.model;
 
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -40,7 +37,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -345,7 +342,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether loading a track of geo locations is possible via the {@link MeasurementPersistence} object.
      */
     @Test
-    public void testLoadTrack() {
+    public void testLoadTrack() throws DataCapturingException {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeLocation(testLocation(), measurementIdentifier);
         List<Measurement> measurements = oocut.loadMeasurements();

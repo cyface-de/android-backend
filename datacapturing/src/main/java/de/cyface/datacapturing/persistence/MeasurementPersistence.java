@@ -1,18 +1,16 @@
 package de.cyface.datacapturing.persistence;
 
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.concurrent.ExecutorService;
+import java.util.concurrent.Executors;
+import java.util.concurrent.TimeUnit;
 
-import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
-import android.os.DeadObjectException;
-import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -21,7 +19,6 @@ import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
@@ -46,15 +43,13 @@ public class MeasurementPersistence {
      */
     private static final String TAG = "de.cyface.persistence";
     /**
-     * Number of save operations to carry out in one batch. Increasing this value might increase performance but also
-     * can lead to a {@link android.os.TransactionTooLargeException} on some smartphones. The current value is the one
-     * where all tests are finally passing on the Pixel 2.
-     */
-    public static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
-    /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
     private final ContentResolver resolver;
+    /**
+     * A threadPool to execute operations on their own background threads.
+     */
+    private ExecutorService threadPool;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
@@ -63,6 +58,7 @@ public class MeasurementPersistence {
      */
     public MeasurementPersistence(final @NonNull ContentResolver resolver) {
         this.resolver = resolver;
+        threadPool = Executors.newCachedThreadPool();
     }
 
     /**
@@ -103,92 +99,12 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier)
-            throws DataCapturingException {
-        try {
-            // final long measurementIdentifier = getIdentifierOfCurrentlyCapturedMeasurement();
-            ContentProviderClient client = null;
-            try {
-                client = resolver.acquireContentProviderClient(MeasuringPointsContentProvider.AUTHORITY);
-                if (client == null) {
-                    throw new DataCapturingException(String.format("Unable to create client for content provider %s",
-                            MeasuringPointsContentProvider.AUTHORITY));
-                }
-
-                ContentValues[] values = new ContentValues[data.getAccelerations().size()];
-                for (int i = 0; i < data.getAccelerations().size(); i++) {
-                    Point3D dataPoint = data.getAccelerations().get(i);
-                    ContentValues ret = new ContentValues();
-                    ret.put(SamplePointTable.COLUMN_AX, dataPoint.getX());
-                    ret.put(SamplePointTable.COLUMN_AY, dataPoint.getY());
-                    ret.put(SamplePointTable.COLUMN_AZ, dataPoint.getZ());
-                    ret.put(SamplePointTable.COLUMN_IS_SYNCED, 0);
-                    ret.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                    ret.put(SamplePointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                    values[i] = ret;
-                }
-                for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
-                    int startIndex = i;
-                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
-                    // BulkInsert is about 80 times faster than insertBatch
-                    client.bulkInsert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
-                            Arrays.copyOfRange(values, startIndex, endIndex));
-                }
-
-                values = new ContentValues[data.getRotations().size()];
-                for (int i = 0; i < data.getRotations().size(); i++) {
-                    Point3D dataPoint = data.getRotations().get(i);
-                    ContentValues ret = new ContentValues();
-                    ret.put(RotationPointTable.COLUMN_RX, dataPoint.getX());
-                    ret.put(RotationPointTable.COLUMN_RY, dataPoint.getY());
-                    ret.put(RotationPointTable.COLUMN_RZ, dataPoint.getZ());
-                    ret.put(RotationPointTable.COLUMN_IS_SYNCED, 0);
-                    ret.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                    ret.put(RotationPointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                    values[i] = ret;
-                }
-                for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
-                    int startIndex = i;
-                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
-                    // BulkInsert is about 80 times faster than insertBatch
-                    client.bulkInsert(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
-                            Arrays.copyOfRange(values, startIndex, endIndex));
-                }
-
-                values = new ContentValues[data.getDirections().size()];
-                for (int i = 0; i < data.getDirections().size(); i++) {
-                    Point3D dataPoint = data.getDirections().get(i);
-                    ContentValues ret = new ContentValues();
-                    ret.put(MagneticValuePointTable.COLUMN_MX, dataPoint.getX());
-                    ret.put(MagneticValuePointTable.COLUMN_MY, dataPoint.getY());
-                    ret.put(MagneticValuePointTable.COLUMN_MZ, dataPoint.getZ());
-                    ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, 0);
-                    ret.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-                    ret.put(MagneticValuePointTable.COLUMN_TIME, dataPoint.getTimestamp());
-                    values[i] = ret;
-                }
-                for (int i = 0; i < values.length; i += MAX_SIMULTANEOUS_OPERATIONS) {
-                    int startIndex = i;
-                    int endIndex = Math.min(values.length, i + MAX_SIMULTANEOUS_OPERATIONS);
-                    // BulkInsert is about 80 times faster than insertBatch
-                    client.bulkInsert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                            Arrays.copyOfRange(values, startIndex, endIndex));
-                }
-
-            } finally {
-                if (client != null) {
-                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                        client.close();
-                    } else {
-                        client.release();
-                    }
-                }
-            }
-        } catch (DeadObjectException e) {
-            Log.e(TAG, "Binder buffer full. Cannot save data.", e);
-        } catch (RemoteException e) {
-            throw new IllegalStateException(e);
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) {
+        if (threadPool.isShutdown()) {
+            return;
         }
+
+        threadPool.submit(new CapturedDataWriter(data, resolver, measurementIdentifier));
     }
 
     /**
@@ -197,7 +113,13 @@ public class MeasurementPersistence {
      * @param location The geo location to store.
      * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
-    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
+    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier)
+            throws DataCapturingException {
+        if (location.getTimestamp() == 0L) {
+            throw new DataCapturingException(
+                    "GeoLocations captured without GpsFix. Make sure you only capture data when a fix is available.");
+        }
+
         ContentValues values = new ContentValues();
         // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
         values.put(GpsPointsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
@@ -262,9 +184,7 @@ public class MeasurementPersistence {
             }
 
             int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
-            final long measurementIdentifier = measurementIdentifierQueryCursor
-                    .getLong(indexOfMeasurementIdentifierColumn);
-            return measurementIdentifier;
+            return measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
         } finally {
             if (measurementIdentifierQueryCursor != null) {
                 measurementIdentifierQueryCursor.close();
@@ -364,6 +284,21 @@ public class MeasurementPersistence {
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();
+            }
+        }
+    }
+
+    /**
+     * This method cleans up when the persistence layer is no longer needed by the caller.
+     */
+    public void shutdown() {
+        if (threadPool != null) {
+            try {
+                threadPool.shutdown();
+                threadPool.awaitTermination(1, TimeUnit.SECONDS);
+                threadPool.shutdownNow();
+            } catch (InterruptedException e) {
+                throw new IllegalStateException(e);
             }
         }
     }

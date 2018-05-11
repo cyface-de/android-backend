@@ -19,7 +19,7 @@ public interface CapturingProcessListener {
      *
      * @param location Captured data wrapper object.
      */
-    void onLocationCaptured(GeoLocation location);
+    void onLocationCaptured(GeoLocation location) throws DataCapturingException;
 
     /**
      * Transmits the accelerations, rotations and directions captured in intervals of approximately one geo
