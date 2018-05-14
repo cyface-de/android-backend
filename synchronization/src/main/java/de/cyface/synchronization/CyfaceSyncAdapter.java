@@ -138,7 +138,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                 getContext().sendBroadcast(syncProgressIntent);
                             }
                         }, jwtAuthToken);
-                if (responseStatus == 201) {
+                if (responseStatus == 201 || responseStatus == 409) {
                     loader.cleanMeasurement();
                 }
             }
