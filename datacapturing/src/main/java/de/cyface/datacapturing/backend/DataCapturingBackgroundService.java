@@ -27,6 +27,7 @@ import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -62,6 +63,27 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured points they are split into multiple messages.
      */
     final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
+    /**
+     * Reference to the R files identifier for the notification channel name.
+     */
+    private final static int NOTIFICATION_CHANNEL_ID = BuildConfig.NOTIFICATION_CHANNEL;
+    /**
+     * Reference to the R files identifier for the notification title.
+     */
+    private final static int NOTIFICATION_TITEL_ID = BuildConfig.NOTIFICATION_TITLE;
+    /**
+     * Reference to the R files identifier for the notification text.
+     */
+    private final static int NOTIFICATION_TEXT_ID = BuildConfig.NOTIFICATION_TEXT;
+    /**
+     * Reference to the R files identifier for the notification logo.
+     */
+    private final static int NOTIFICATION_LOGO_ID = BuildConfig.NOTIFICATION_LOGO;
+    // TODO: Add this! But not used for the moment.
+    /**
+     * Reference to the R files identifier for the large logo shown as part of the notification.
+     */
+    private final static int NOTIFICATION_LARGE_LOGO_ID = 0;
     /**
      * A wake lock used to keep the application active during data capturing.
      */
@@ -121,6 +143,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
+        /* Notification shown to the user while the data capturing is active. */
+        // This needs to go in onCreate or it will be called to late from time to time!
+        CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,NOTIFICATION_TITEL_ID,NOTIFICATION_TEXT_ID,NOTIFICATION_LOGO_ID,NOTIFICATION_LARGE_LOGO_ID);
+        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
 
         persistenceLayer = new MeasurementPersistence(this.getContentResolver());
 
@@ -186,9 +212,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * available.
      */
     private void init() {
-        /* Notification shown to the user while the data capturing is active. */
-        CapturingNotification capturingNotification = new CapturingNotification();
-        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
         LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
 
             GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
