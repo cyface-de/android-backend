@@ -14,6 +14,7 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 /**
  * An instance of this class is responsible for surveying the state of the devices WiFi connection. If WiFi is active,
@@ -24,6 +25,7 @@ import android.support.annotation.NonNull;
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
+    private static final String TAG = "de.cyface.sync";
     /**
      * The <code>ContentProvider</code> authority used by this service to store and read data. See the
      * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
@@ -138,7 +140,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
     @Override
     public void onReceive(Context context, Intent intent) {
         if (currentSynchronizationAccount == null) {
-            throw new IllegalStateException("No account for data synchronization registered with this service.");
+            Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
+            return;
         }
 
         final String action = intent.getAction();
