@@ -1,7 +1,6 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
-import static java.util.Collections.emptyList;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -9,13 +8,11 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
 
-import android.Manifest;
 import android.annotation.SuppressLint;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.pm.PackageManager;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.os.Build;
@@ -28,7 +25,6 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
-import android.support.v4.content.ContextCompat;
 import android.util.Log;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
@@ -39,16 +35,17 @@ import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.CapturingNotification;
-import de.cyface.datacapturing.ui.Reason;
 
 /**
- *
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
  * active. The service is started by a caller and sends messages to that caller, informing it about its status.
  *
+ * The DataCapturingBackgroundService hides the complexity of the DataCapturingService in order to
+ * hide most of the inter process communication from the SDK user who interact with the DataCapturingService.
+ *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.3
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -152,12 +149,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (dataCapturing != null) {
             dataCapturing.close();
         }
+        persistenceLayer.shutdown();
         // Since on some devices the broadcast seems not to work we are sending a message here.
         //informCaller(MessageCodes.SERVICE_STOPPED,null);
         super.onDestroy();
         Log.v(TAG, "Sending broadcast service stopped.");
         sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
-
     }
 
     @Override
@@ -228,7 +225,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 clients.remove(caller);
 
             } catch (NullPointerException e) {
-                // Calle may be null in a typical React Native application.
+                // Caller may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
                 clients.remove(caller);
             }
@@ -240,7 +237,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
 
     @Override
-    public void onDataCaptured(final @NonNull CapturedData data) throws DataCapturingException {
+    public void onDataCaptured(final @NonNull CapturedData data) {
         List<Point3D> accelerations = data.getAccelerations();
         List<Point3D> rotations = data.getRotations();
         List<Point3D> directions = data.getDirections();
@@ -256,8 +253,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int i) {
         int endIndex = i+MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         int toIndex = Math.min(endIndex, completeList.size());
-        List<Point3D> subList = (i >= toIndex) ? Collections.<Point3D>emptyList() : completeList.subList(i, toIndex);
-        return subList;
+        return (i >= toIndex) ? Collections.<Point3D>emptyList() : completeList.subList(i, toIndex);
     }
 
     @Override

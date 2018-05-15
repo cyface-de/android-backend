@@ -30,7 +30,8 @@ import de.cyface.datacapturing.model.Point3D;
  * acceleration sensor events as well as the LocationListener to listen to location updates.
  *
  * @author Klemens Muthmann
- * @version 1.2.2
+ * @author Armin Schnabel
+ * @version 1.2.4
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {

@@ -1,6 +1,3 @@
-/*
- * Created at 10:20:45 on 09.02.2015
- */
 package de.cyface.datacapturing.backend;
 
 import static org.mockito.Matchers.any;
@@ -19,6 +16,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
 
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.GeoLocation;
 
 /**
@@ -26,7 +24,8 @@ import de.cyface.datacapturing.model.GeoLocation;
  * the background it needs to be a Robolectric test case.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @author Armin Schnabel
+ * @version 2.0.1
  * @since 1.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -75,7 +74,7 @@ public class DataCapturingTest {
      * Tests if <code>CapturingProcessListener</code> is correctly informed about new geo locations.
      */
     @Test
-    public void testSuccessfulDataCapturing() {
+    public void testSuccessfulDataCapturing() throws DataCapturingException {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(51.03624633);
         when(location.getLongitude()).thenReturn(13.78828128);
@@ -96,7 +95,7 @@ public class DataCapturingTest {
      * Usually below 2 seconds.
      */
     @Test
-    public void testDataCapturingInterval() {
+    public void testDataCapturingInterval() throws DataCapturingException {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(1.0);
         when(location.getLongitude()).thenReturn(1.0);
