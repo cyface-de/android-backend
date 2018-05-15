@@ -21,10 +21,13 @@ import android.util.Log;
  * data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
+    /**
+     * The tag used to identify Logcat messages from this class.
+     */
     private static final String TAG = "de.cyface.sync";
     /**
      * The <code>ContentProvider</code> authority used by this service to store and read data. See the
