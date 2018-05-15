@@ -37,7 +37,6 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.CapturingNotification;
 
 /**
- *
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
  * active. The service is started by a caller and sends messages to that caller, informing it about its status.
  *
@@ -46,7 +45,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.2
+ * @version 4.0.3
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -258,7 +257,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     @Override
-    public void onLocationCaptured(final @NonNull GeoLocation location) throws DataCapturingException {
+    public void onLocationCaptured(final @NonNull GeoLocation location) {
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
         persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
     }

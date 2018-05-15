@@ -31,7 +31,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.3
+ * @version 1.2.4
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -166,11 +166,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
             synchronized (this) {
                 for (CapturingProcessListener listener : this.listener) {
-                    try {
-                        listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
-                    } catch (DataCapturingException e) {
-                        throw new IllegalStateException(e);
-                    }
+                    listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {

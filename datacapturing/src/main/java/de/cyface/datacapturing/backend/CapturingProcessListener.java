@@ -10,7 +10,7 @@ import de.cyface.datacapturing.model.GeoLocation;
  * Interface for all classes that need to listen to events sent by a <code>CapturingProcess</code>.
  *
  * @author Klemens Muthmann
- * @version 5.0.0
+ * @version 5.0.1
  * @since 1.0.0
  */
 public interface CapturingProcessListener {
@@ -19,7 +19,7 @@ public interface CapturingProcessListener {
      *
      * @param location Captured data wrapper object.
      */
-    void onLocationCaptured(GeoLocation location) throws DataCapturingException;
+    void onLocationCaptured(GeoLocation location);
 
     /**
      * Transmits the accelerations, rotations and directions captured in intervals of approximately one geo

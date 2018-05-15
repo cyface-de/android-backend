@@ -33,7 +33,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.1.1
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -113,12 +113,7 @@ public class MeasurementPersistence {
      * @param location The geo location to store.
      * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
-    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier)
-            throws DataCapturingException {
-        if (location.getTimestamp() == 0L) {
-            throw new DataCapturingException(
-                    "GeoLocations captured without GpsFix. Make sure you only capture data when a fix is available.");
-        }
+    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
 
         ContentValues values = new ContentValues();
         // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
