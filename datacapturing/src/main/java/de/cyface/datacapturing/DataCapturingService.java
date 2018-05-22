@@ -519,9 +519,9 @@ public abstract class DataCapturingService {
     private void runService(final long measurementIdentifier,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
         Context context = getContext();
-        Log.v(TAG, "Registering receiver for service start broadcast.");
+        if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
-        Log.v(TAG, String.format("Starting using Intent with context %s.", context));
+        if(BuildConfig.DEBUG) Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, measurementIdentifier);
 
@@ -557,7 +557,7 @@ public abstract class DataCapturingService {
         lock.lock();
         try {
             if (!synchronizationReceiver.receivedServiceStopped()) {
-                Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
+                if(BuildConfig.DEBUG) Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
                 if (!condition.await(timeout, unit)) {
                     throw new DataCapturingException(String.format(Locale.US,
                             "Service seems to not have stopped successfully. Timed out after %d milliseconds.",
@@ -589,7 +589,7 @@ public abstract class DataCapturingService {
         isRunning = false;
 
         Context context = getContext();
-        Log.v(TAG, "Registering receiver for service stop broadcast.");
+        if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(finishedHandler, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         boolean serviceWasActive;
         try {
@@ -603,7 +603,7 @@ public abstract class DataCapturingService {
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
         } finally {
-            Log.v(TAG, String.format("Stopping using Intent with context %s", context));
+            if(BuildConfig.DEBUG) Log.v(TAG, String.format("Stopping using Intent with context %s", context));
             Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
             serviceWasActive = context.stopService(stopIntent);
         }
@@ -725,7 +725,7 @@ public abstract class DataCapturingService {
 
         @Override
         public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
-            Log.d(TAG, "DataCapturingService connected to background service.");
+            if(BuildConfig.DEBUG) Log.d(TAG, "DataCapturingService connected to background service.");
             toServiceMessenger = new Messenger(binder);
             Message registerClient = new Message();
             registerClient.replyTo = fromServiceMessenger;
@@ -736,12 +736,12 @@ public abstract class DataCapturingService {
                 throw new IllegalStateException(e);
             }
 
-            Log.d(TAG, "ServiceConnection established!");
+            if(BuildConfig.DEBUG) Log.d(TAG, "ServiceConnection established!");
         }
 
         @Override
         public void onServiceDisconnected(final @NonNull ComponentName componentName) {
-            Log.d(TAG, "Service disconnected!");
+            if(BuildConfig.DEBUG) Log.d(TAG, "Service disconnected!");
             toServiceMessenger = null;
 
         }
@@ -791,7 +791,7 @@ public abstract class DataCapturingService {
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            Log.v(TAG, String.format("Service facade received message: %d", msg.what));
+            if(BuildConfig.DEBUG) Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
@@ -807,7 +807,7 @@ public abstract class DataCapturingService {
                         }
                         break;
                     case MessageCodes.DATA_CAPTURED:
-                        Log.i(TAG, "Captured some sensor data, which is ignored for now.");
+                        if(BuildConfig.DEBUG) Log.i(TAG, "Captured some sensor data, which is ignored for now.");
                         // TODO
                     case MessageCodes.GPS_FIX:
                         listener.onFixAcquired();
