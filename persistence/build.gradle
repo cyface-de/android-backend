@@ -42,6 +42,14 @@ android {
             versionNameSuffix "-full"
         }
     }
+
+    // Enable Proguard for the release build type.
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
 }
 
 dependencies {
