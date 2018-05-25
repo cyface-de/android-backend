@@ -27,21 +27,33 @@ android {
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
-    flavorDimensions "app"
+    // Specifies the flavor dimensions you want to use. The order in which you
+    // list each dimension determines its priority, from highest to lowest,
+    // when Gradle merges variant sources and configurations. You must assign
+    // each product flavor you configure to one of the flavor dimensions.
+    flavorDimensions "project", "mode"
 
     productFlavors {
-        mock {
-            dimension "app"
-            versionNameSuffix "-mock"
-        }
-        // TODO: Rename this to Movebis
-        full {
-            dimension "app"
+        // Configurations in the "project" product flavors override those in "mode"
+        // flavors and the defaultConfig block. Gradle determines the priority
+        // between flavor dimensions based on the order in which they appear next
+        // to the flavorDimensions property above--the first dimension has a higher
+        // priority than the second, and so on.
+        movebis {
+            dimension "project"
             versionNameSuffix "-full"
         }
         cyface {
-            dimension "app"
+            dimension "project"
             versionNameSuffix "-cyface"
+        }
+
+        mock {
+            dimension "mode"
+        }
+
+        full {
+            dimension "mode"
         }
     }
 
