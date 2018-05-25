@@ -51,6 +51,10 @@ android {
             dimension "app"
             versionNameSuffix "-full"
         }
+        cyface {
+            dimension "app"
+            versionNameSuffix "-cyface"
+        }
     }
 
     // Enable Proguard for the release build type.
