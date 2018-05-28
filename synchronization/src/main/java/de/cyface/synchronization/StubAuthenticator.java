@@ -23,6 +23,7 @@ import java.lang.ref.WeakReference;
  */
 public final class StubAuthenticator extends AbstractAccountAuthenticator {
 
+    // TODO: Change these strings between two STADTRADELN Campaigns.
     /**
      * The Cyface account type used to identify all Cyface system accounts.
      */

@@ -85,6 +85,7 @@ public class MeasurementContentProviderClient {
                 GpsPointsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
     }
 
+    // TODO: Why does this method close the client while the others leave that task to the environment?
     /**
      * Counts all the geo locations for the measurement.
      *
@@ -141,6 +142,27 @@ public class MeasurementContentProviderClient {
         ret += client.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[]{Long.valueOf(measurementIdentifier).toString()});
+        return ret;
+    }
+
+    /**
+     * Loads all measurements from the content provider that are already finished capturing, but have not been
+     * synchronized yet.
+     *
+     * @param provider A client with access to the content provider containing the measurements.
+     * @return An initialized cursor pointing to the unsynchronized measurements.
+     * @throws RemoteException If the query to the content provider has not been successful.
+     * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
+     */
+    static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider) throws RemoteException {
+        Cursor ret = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
+                MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
+                new String[] {Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
+
+        if (ret == null) {
+            throw new IllegalStateException("Unable to load measurement from content provider!");
+        }
+
         return ret;
     }
 }

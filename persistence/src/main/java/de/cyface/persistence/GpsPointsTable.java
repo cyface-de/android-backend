@@ -9,10 +9,8 @@ import android.provider.ContactsContract;
 import android.util.Log;
 
 /**
- * <p>
  * Table for storing GPS measuring points. The data in this table is intended for storage prior to processing it by
  * either transfer to a server or export to some external file or device.
- * </p>
  *
  * @author Klemens Muthmann
  * @version 1.2.0
