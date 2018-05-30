@@ -19,7 +19,7 @@ import de.cyface.persistence.SamplePointTable;
 /**
  * A wrapper for a <code>ContentProviderClient</code> used to provide access to one specific measurement.
  * <p>
- * ATTENTION: You must still close the provided <code>ContentProviderClient</code>.
+ * ATTENTION: If you use this class you must still close the provided <code>ContentProviderClient</code>. This class will not do that for you. This has the benefit, that you may call multiple of its methods without requiring a new <code>ContentProvider</code>.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -46,7 +46,7 @@ public class MeasurementContentProviderClient {
      * @param client
      */
     public MeasurementContentProviderClient(final long measurementIdentifier,
-            final @NonNull ContentProviderClient client) {
+                                            final @NonNull ContentProviderClient client) {
         this.measurementIdentifier = measurementIdentifier;
         this.client = client;
     }
@@ -55,17 +55,17 @@ public class MeasurementContentProviderClient {
      * Loads a page of the geo locations for the measurement.
      *
      * @param offset The start index of the first geoLocation to load within the measurement
-     * @param limit The number of GeoLocations to load, recommended: {@code DATABASE_QUERY_LIMIT}
+     * @param limit  The number of GeoLocations to load, recommended: {@code DATABASE_QUERY_LIMIT}
      * @return A <code>Cursor</code> on the geo locations stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
 
         final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
-        final String[] projection = new String[] {GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT,
+        final String[] projection = new String[]{GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT,
                 GpsPointsTable.COLUMN_LON, GpsPointsTable.COLUMN_SPEED, GpsPointsTable.COLUMN_ACCURACY};
         final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
+        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
 
         /*
          * For some reason this does not work (tested on N5X) so we always use the workaround implementation
@@ -95,25 +95,13 @@ public class MeasurementContentProviderClient {
 
         final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
         final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
+        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
 
-        Cursor locationsCursor = null;
-        try {
-            locationsCursor = client.query(uri, null, selection, selectionArgs, null);
+        Cursor locationsCursor = client.query(uri, null, selection, selectionArgs, null);
             if (locationsCursor == null) {
                 throw new IllegalStateException("Unable to count GeoLocations for measurement.");
             }
             return locationsCursor.getCount();
-        } finally {
-            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                client.release();
-            } else {
-                client.close();
-            }
-            if (locationsCursor != null) {
-                locationsCursor.close();
-            }
-        }
     }
 
     /**
@@ -125,10 +113,10 @@ public class MeasurementContentProviderClient {
      */
     Cursor load3DPoint(final @NonNull Point3DSerializer serializer) throws RemoteException {
         return client.query(serializer.getTableUri(),
-                new String[] {serializer.getTimestampColumnName(), serializer.getXColumnName(),
+                new String[]{serializer.getTimestampColumnName(), serializer.getXColumnName(),
                         serializer.getYColumnName(), serializer.getZColumnName()},
                 serializer.getMeasurementKeyColumnName() + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
+                new String[]{Long.valueOf(measurementIdentifier).toString()}, null);
     }
 
     /**
@@ -142,17 +130,17 @@ public class MeasurementContentProviderClient {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_SYNCED, true);
         client.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values, BaseColumns._ID + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         int ret = 0;
         ret += client.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
                 SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
                 RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         return ret;
     }
 }
