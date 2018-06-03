@@ -1,2 +1,48 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.synchronization" />
+    package="de.cyface.synchronization">
+    <!-- Required to transmit data to a server -->
+    <uses-permission android:name="android.permission.INTERNET" />
+    <!-- Required to check current synchronization interval and whether it is active or not-->
+    <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
+    <!-- WTF!!! -->
+    <uses-permission android:name="android.permission.READ_SYNC_STATS" />
+    <!-- Required to enable continuous synchronization -->
+    <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
+    <!-- Required to communicate with the authentication system to get the JWT token. -->
+    <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+    <!-- Required to load the current user account from the system -->
+    <!--<uses-permission android:name="android.permission.GET_ACCOUNTS"/>-->
+    <!-- Required to read JWT auth token from user account -->
+    <uses-permission android:name="android.permission.USE_CREDENTIALS" />
+    <!-- Required to delete Cyface accounts from the Android system -->
+    <uses-permission
+        android:name="android.permission.MANAGE_ACCOUNTS"
+        android:maxSdkVersion="22" />
+    <!-- Required to read the Cyface accounts currently registered with the system -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <!-- Required to check whether WiFi is active or not -->
+    <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
+
+    <application>
+        <service
+            android:name="de.cyface.synchronization.SyncService"
+            android:exported="true"
+            android:process=":sync">
+            <intent-filter>
+                <action android:name="android.content.SyncAdapter" />
+            </intent-filter>
+            <meta-data
+                android:name="android.content.SyncAdapter"
+                android:resource="@xml/syncadapter" />
+        </service>
+
+        <service android:name="de.cyface.synchronization.AuthenticatorService">
+            <intent-filter>
+                <action android:name="android.accounts.AccountAuthenticator" />
+            </intent-filter>
+            <meta-data
+                android:name="android.accounts.AccountAuthenticator"
+                android:resource="@xml/authenticator" />
+        </service>
+    </application>
+</manifest>

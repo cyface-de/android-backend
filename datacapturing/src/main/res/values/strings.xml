@@ -1,0 +1,12 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <string name="capturing_service_description">Used to collect sensor data (GPS, accelerometer, gyroscope, magnetometer) and to send it to your local community, where it is used to improve the mobility infrastructure.</string>
+    <string name="capturing_active">Thank you for your participation</string>
+    <string name="cyface_notification_channel_id" translatable="false">Cyface</string>
+    <string name="notification_channel_id" translatable="false">STADTRADELN</string>
+    <string name="notification_title">Capturing in progress</string>
+    <string name="ticker_text" translatable="false">Ticker</string>
+
+    <string name="missing_data_error">Captured data was missing from message!</string>
+    <string name="unknown_message_error">Received unknown message %d from data capturing service!</string>
+</resources>

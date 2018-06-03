@@ -1,66 +1,70 @@
 package de.cyface.datacapturing;
 
+import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.datacapturing.ui.Reason;
+
 /**
- * <p>
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
- * {@link DataCapturingService} via {@link DataCapturingService#startCapturing(DataCapturingListener)}.
- * </p>
+ * {@link DataCapturingService} via
+ * {@link DataCapturingService#startSync(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public interface DataCapturingListener {
     /**
-     * <p>
-     * Called everytime the capturing service received a GPS Fix and thus is able to track its position.
-     * </p>
+     * Called everytime the capturing service received a location Fix and thus is able to track its position.
      */
-    void onGpsFixAcquired();
+    void onFixAcquired();
 
     /**
-     * <p>
-     * Called everytime the capturing service loses its GPS Fix.
-     * </p>
+     * Called everytime the capturing service loses its location Fix.
      */
-    void onGpsFixLost();
+    void onFixLost();
 
     /**
-     * <p>
-     * This method is called each time the data capturing service receives a new GPS position.
-     * </p>
-     * 
+     * This method is called each time the data capturing service receives a new geo location.
+     *
      * @param position The new geo location position.
      */
-    void onNewGpsPositionAcquired(GpsPosition position);
+    void onNewGeoLocationAcquired(GeoLocation position);
 
     /**
-     * <p>
+     * This method is called each time the data capturing service receives new sensor data.
+     *
+     * @param data The newly received sensor data.
+     */
+    void onNewSensorDataAcquired(CapturedData data);
+
+    /**
      * This method is called each time the application runs out of space. How much space is used and how much is
      * available may be retrieved from {@code allocation}.
-     * </p>
-     * 
+     *
      * @param allocation Information about the applications disk (or rather SD card) space consumption.
      */
     void onLowDiskSpace(DiskConsumption allocation);
 
     /**
-     * <p>
-     * Invoked each time the {@link DataCapturingService} requires some permission from the Android system. That way it
-     * is possible to show the user some explanation as to why that permission is required.
-     * </p>
+     * Invoked if the service has synchronized all pending cached data successfully and updated the local copies.
+     */
+    void onSynchronizationSuccessful();
+
+    /**
+     * Called when an error has been received by the data capturing background service.
      *
+     * @param e An <code>Exception</code> representing the received error.
+     */
+    void onErrorState(Exception e);
+
+    /**
+     * Called if the service notices missing permissions required to run.
      * @param permission The permission the service requires in the form of an Android permission {@link String}.
      * @param reason A reason for why the service requires that permission. You may show the reason to the user before
      *            asking for the permission or create your own message from it.
-     * @return {@code true} if the permission has been granted; {@code false} otherwise.
+     *
+     * @return <code>true</code> if the permission was granted; <code>false</code> otherwise.
      */
-    boolean onRequirePermission(String permission, Reason reason);
-
-    /**
-     * <p>
-     * Invoked if the service has synchronized all pending cached data successfully and deleted the local copies.
-     * </p>
-     */
-    void onSynchronizationSuccessful();
+    boolean onRequiresPermission(String permission, Reason reason);
 }

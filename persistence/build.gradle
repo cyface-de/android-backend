@@ -20,7 +20,8 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
 
         versionCode 1 // this must be incremented if new apk should be pushed to play store
-        versionName "2.0.0" // this is shown to the users, see Confluence/Android Client for naming guideline
+        versionName rootProject.ext.version
+        // this is shown to the users, see Confluence/Android Client for naming guideline
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
 
@@ -28,9 +29,32 @@ android {
         buildConfigField("String", "provider", "\"de.cyface.provider\"")
         //buildConfigField("String", "testProvider", "\"de.cyface.testProvider\"") - the authority is replaced for iTs via manifest, not sure if we need to use a different provider, too?
     }
+
+    flavorDimensions "app"
+
+    productFlavors {
+        mock {
+            dimension "app"
+            versionNameSuffix "-mock"
+        }
+        full {
+            dimension "app"
+            versionNameSuffix "-full"
+        }
+    }
+
+    // Enable Proguard for the release build type.
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+        }
+    }
 }
 
 dependencies {
+    implementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
+
     // Dependencies for local unit tests
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
     // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other dependencies (e.g. testCompile)
