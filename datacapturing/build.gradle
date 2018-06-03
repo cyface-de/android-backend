@@ -13,7 +13,7 @@ apply plugin: 'com.android.library'
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
-    buildToolsVersion '27.0.3'
+    buildToolsVersion rootProject.ext.buildToolsVersion
 
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
@@ -21,7 +21,7 @@ android {
 
         versionCode 1 // this must be incremented if new apk should be pushed to play store
         // this is shown to the users, see Confluence/Android Client for naming guideline
-        versionName "2.0.0"
+        versionName rootProject.ext.version
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
 
