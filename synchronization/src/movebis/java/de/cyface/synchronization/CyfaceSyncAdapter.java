@@ -53,11 +53,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * The settings key used to identify the settings storing the URL of the server to upload data to.
      */
     public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
-    /**
-     * The settings key used to identify the settings storing the device or rather installation identifier of the
-     * current app. This identifier is used to anonymously group measurements from the same device together.
-     */
-    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     /**
      * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
@@ -110,7 +105,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 throw new IllegalStateException("Unable to read synchronization endpoint from settings!");
             }
 
-            String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
+            String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
             if (deviceIdentifier == null) {
                 throw new IllegalStateException("Unable to read device identifier from settings!");
             }

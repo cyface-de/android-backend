@@ -26,6 +26,11 @@ public final class SyncService extends Service {
      */
     private final static String TAG = "de.cyface.sync";
     /**
+     * The settings key used to identify the settings storing the device or rather installation identifier of the
+     * current app. This identifier is used to anonymously group measurements from the same device together.
+     */
+    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
+    /**
      * The synchronisation adapter this service is supposed to call.
      */
     // TODO Ugh. Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to

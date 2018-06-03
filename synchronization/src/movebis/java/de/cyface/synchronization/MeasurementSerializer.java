@@ -48,6 +48,9 @@ import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUER
  */
 public final class MeasurementSerializer {
 
+
+    public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
+
     private final static String TAG = "de.cyface.sync";
 
     /**
@@ -191,7 +194,7 @@ public final class MeasurementSerializer {
      * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
-    InputStream     serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
+    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
         compressor.setInput(data);
@@ -327,5 +330,27 @@ public final class MeasurementSerializer {
                 directionsCursor.close();
             }
         }
+    }
+
+    /**
+     * Serializes all the points from the provided
+     * <code>pointCursor</code>.
+     *
+     * @param pointCursor A content provider cursor providing access to the points to serialize
+     * @return A <code>byte</code> array containing all the data.
+     */
+    byte[] serialize(final @NonNull Cursor pointCursor) {
+        Log.d(TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
+        ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
+        while (pointCursor.moveToNext()) {
+            buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(getTimestampColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getXColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getYColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(getZColumnName())));
+        }
+        byte[] payload = new byte[buffer.capacity()];
+        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
+        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
+        return payload;
     }
 }
