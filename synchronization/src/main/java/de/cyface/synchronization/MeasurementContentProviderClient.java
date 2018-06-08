@@ -107,17 +107,17 @@ public class MeasurementContentProviderClient {
      * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
-    public int countGeoLocations() throws RemoteException {
-
-        final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
-        final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
-
-        Cursor locationsCursor = client.query(uri, null, selection, selectionArgs, null);
-            if (locationsCursor == null) {
-                throw new IllegalStateException("Unable to count GeoLocations for measurement.");
+    long countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName) throws RemoteException {
+        Cursor cursor = null;
+        try {
+            cursor = client.query(tableUri, new String[]{"count(*) AS count"}, measurementForeignKeyColumnName, new String[] {Long.toString(measurementIdentifier)}, null);
+            cursor.moveToFirst();
+            return cursor.getLong(0);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
             }
-            return locationsCursor.getCount();
+        }
     }
 
     /**
