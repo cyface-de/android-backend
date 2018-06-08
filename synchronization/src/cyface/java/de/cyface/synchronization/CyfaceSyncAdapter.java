@@ -81,10 +81,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
      *
-     * @param context The context this adapter is active under.
+     * @param context        The context this adapter is active under.
      * @param autoInitialize More details are available at
-     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *            boolean)}.
+     *                       {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+     *                       boolean)}.
      */
     public CyfaceSyncAdapter(Context context, boolean autoInitialize) {
         this(context, autoInitialize, false);
@@ -93,13 +93,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
      *
-     * @param context The context this transmitter is active under.
-     * @param autoInitialize More details are available at
-     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *            boolean)}.
+     * @param context            The context this transmitter is active under.
+     * @param autoInitialize     More details are available at
+     *                           {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+     *                           boolean)}.
      * @param allowParallelSyncs More details are available at
-     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *            boolean, boolean)}.
+     *                           {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+     *                           boolean, boolean)}.
      */
     public CyfaceSyncAdapter(Context context, boolean autoInitialize, boolean allowParallelSyncs) {
         super(context, autoInitialize, allowParallelSyncs);
@@ -115,15 +115,15 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * Starts the sync process if non-synced data and wifi is available. This contains logging into
      * the server and starting the measurement transmission.
      *
-     * @param account The user's android sync account which is needed to start a synchronization
-     * @param extras not used
-     * @param authority not used
-     * @param provider a link to the content provider which is needed to access the data layer
+     * @param account    The user's android sync account which is needed to start a synchronization
+     * @param extras     not used
+     * @param authority  not used
+     * @param provider   a link to the content provider which is needed to access the data layer
      * @param syncResult used to check if the sync was successful
      */
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider,
-            SyncResult syncResult) {
+                              SyncResult syncResult) {
         final Context context = getContext();
 
         Log.d(TAG, "Sync started.");
@@ -167,11 +167,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 for (int g = 0, a = 0, r = 0, d = 0; g < dataAccessLayer
                         .countData(MeasuringPointsContentProvider.GPS_POINTS_URI, GpsPointsTable.COLUMN_MEASUREMENT_FK)
                         || a < dataAccessLayer.countData(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
-                                SamplePointTable.COLUMN_MEASUREMENT_FK)
+                        SamplePointTable.COLUMN_MEASUREMENT_FK)
                         || r < dataAccessLayer.countData(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
-                                RotationPointTable.COLUMN_MEASUREMENT_FK)
+                        RotationPointTable.COLUMN_MEASUREMENT_FK)
                         || d < dataAccessLayer.countData(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                                MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, a += Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, r += Constants.ROTATIONS_UPLOAD_BATCH_SIZE, d += Constants.DIRECTIONS_UPLOAD_BATCH_SIZE) {
+                        MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, a += Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, r += Constants.ROTATIONS_UPLOAD_BATCH_SIZE, d += Constants.DIRECTIONS_UPLOAD_BATCH_SIZE) {
                     Cursor geoLocationsCursor = null;
                     Cursor accelerationsCursor = null;
                     Cursor rotationsCursor = null;
@@ -315,7 +315,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private long countUnsyncedDataPoints(final @NonNull ContentProviderClient provider,
-            final @NonNull Cursor syncableMeasurements) throws RemoteException {
+                                         final @NonNull Cursor syncableMeasurements) throws RemoteException {
         long ret = 0L;
         while (syncableMeasurements.moveToNext()) {
             long measurementIdentifier = syncableMeasurements
@@ -339,21 +339,21 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * Initializes the synchronisation by logging in to the server and creating this device if
      * necessary.
      *
-     * @param username The username that is used by the application to login to the
-     *            server.
-     * @param password The password belonging to the account with the {@code username}
-     *            logging in to the Cyface server.
+     * @param username               The username that is used by the application to login to the
+     *                               server.
+     * @param password               The password belonging to the account with the {@code username}
+     *                               logging in to the Cyface server.
      * @param installationIdentifier The world wide unique identifier of this application
-     *            installation. This is required to save the context the
-     *            application runs with, such as smartphone type, vehicle type or
-     *            type of mount.
-     * @param url The Cyface server URL to initialize the synchronisation with.
+     *                               installation. This is required to save the context the
+     *                               application runs with, such as smartphone type, vehicle type or
+     *                               type of mount.
+     * @param url                    The Cyface server URL to initialize the synchronisation with.
      * @throws SynchronisationException If there are any communication failures.
-     * @throws MalformedURLException If the used server URL is not well formed.
-     * @throws JSONException Thrown if the returned JSON message is not parsable.
+     * @throws MalformedURLException    If the used server URL is not well formed.
+     * @throws JSONException            Thrown if the returned JSON message is not parsable.
      */
     public static void initSync(final @NonNull String username, final @NonNull String password,
-            final @NonNull String installationIdentifier, final @NonNull String url, final @NonNull Context context)
+                                final @NonNull String installationIdentifier, final @NonNull String url, final @NonNull Context context)
             throws SynchronisationException, MalformedURLException, JSONException {
         try {
             final Device device = new Device(installationIdentifier, Build.DEVICE);
@@ -414,8 +414,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param con The connection that received the response.
      * @return A parsed {@link HttpResponse} object.
      * @throws DataTransmissionException If the response is no successful HTTP response (i.e. no 2XX
-     *             status code).
-     * @throws SynchronisationException If the system fails in handling the HTTP response.
+     *                                   status code).
+     * @throws SynchronisationException  If the system fails in handling the HTTP response.
      */
     private static HttpResponse readResponse(final @NonNull HttpURLConnection con)
             throws DataTransmissionException, SynchronisationException {
@@ -472,7 +472,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
      *
-     * @param url The URL of the cyface backend's REST API.
+     * @param url       The URL of the cyface backend's REST API.
      * @param jwtBearer A String in the format "Bearer TOKEN".
      * @return the HTTPURLConnection
      * @throws DataTransmissionException when no server is at that URL
@@ -480,7 +480,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     private static HttpURLConnection openHttpConnection(final @NonNull URL url, final @NonNull String jwtBearer)
             throws DataTransmissionException {
         try {
-            HttpURLConnection con = (HttpURLConnection)url.openConnection();
+            HttpURLConnection con = (HttpURLConnection) url.openConnection();
             con.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
             con.setRequestProperty("Authorization", jwtBearer);
             con.setConnectTimeout(5000);
@@ -499,10 +499,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * connection
      *
      * @param payload The measurement batch in json format
-     * @param <T> Json string
+     * @param <T>     Json string
      * @throws DataTransmissionException When the server is not reachable or the connection was
-     *             interrupted.
-     * @throws SynchronisationException If the system is unable to handle the HTTP response.
+     *                                   interrupted.
+     * @throws SynchronisationException  If the system is unable to handle the HTTP response.
      */
     private static <T> HttpResponse post(final HttpURLConnection con, final T payload, boolean compress)
             throws DataTransmissionException, SynchronisationException {
@@ -564,13 +564,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * When there is a login or sync error (both DCS API) this method generates a user friendly message
      * which can be used to inform the user about the problem.
      *
-     * @param context The context where the error should be shown, usually a view context
+     * @param context             The context where the error should be shown, usually a view context
      * @param resultExceptionType The name of the Exception returned by Exception.class.getSimpleName()
-     * @param resultErrorMessage The error message returned by the DCS API
+     * @param resultErrorMessage  The error message returned by the DCS API
      * @return A string which contains a user-friendly error message
      */
     public static String identifyTransmissionError(final Context context, final String resultExceptionType,
-            final String resultErrorMessage) {
+                                                   final String resultErrorMessage) {
         String toastErrorMessage = context.getString(R.string.toast_error_message_login_failed); // Default message
 
         // Exception identification

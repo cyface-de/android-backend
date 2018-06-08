@@ -67,17 +67,17 @@ public class MeasurementContentProviderClient {
      * Loads a page of the geo locations for the measurement.
      *
      * @param offset The start index of the first geo location to load within the measurement
-     * @param limit The number of geo locations to load. A recommended upper limit is: {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}
+     * @param limit  The number of geo locations to load. A recommended upper limit is: {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}
      * @return A <code>Cursor</code> on the geo locations stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
 
         final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
-        final String[] projection = new String[] {GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT,
+        final String[] projection = new String[]{GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT,
                 GpsPointsTable.COLUMN_LON, GpsPointsTable.COLUMN_SPEED, GpsPointsTable.COLUMN_ACCURACY};
         final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
+        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
 
         /*
          * For some reason this does not work (tested on N5X) so we always use the workaround implementation
@@ -101,16 +101,16 @@ public class MeasurementContentProviderClient {
      * Counts all the data elements from one table for the measurement. Data elements depend on the provided content
      * provider URI and might be geo locations, accelerations, rotations or directions.
      *
-     * @param tableUri The content provider Uri of the table to count.
+     * @param tableUri                        The content provider Uri of the table to count.
      * @param measurementForeignKeyColumnName The column name of the column containing the reference to the measurement
-     *            table.
+     *                                        table.
      * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
     long countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName) throws RemoteException {
         Cursor cursor = null;
         try {
-            cursor = client.query(tableUri, new String[]{"count(*) AS count"}, measurementForeignKeyColumnName, new String[] {Long.toString(measurementIdentifier)}, null);
+            cursor = client.query(tableUri, new String[]{"count(*) AS count"}, measurementForeignKeyColumnName, new String[]{Long.toString(measurementIdentifier)}, null);
             cursor.moveToFirst();
             return cursor.getLong(0);
         } finally {
@@ -129,27 +129,27 @@ public class MeasurementContentProviderClient {
      */
     Cursor load3DPoint(final @NonNull Point3DSerializer serializer) throws RemoteException {
         return client.query(serializer.getTableUri(),
-                new String[] {serializer.getTimestampColumnName(), serializer.getXColumnName(),
+                new String[]{serializer.getTimestampColumnName(), serializer.getXColumnName(),
                         serializer.getYColumnName(), serializer.getZColumnName()},
                 serializer.getMeasurementKeyColumnName() + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
+                new String[]{Long.valueOf(measurementIdentifier).toString()}, null);
     }
 
     /**
      * Loads data points for the measurement. Such points might be accelerometer, gyroscope or compass points.
      *
      * @param serializer A serializer defining which kind of data points to load and how to access them.
-     * @param offset The start index of the first point to load within the measurement
-     * @param limit The number of points to load. A recommended upper limit is: {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}.
+     * @param offset     The start index of the first point to load within the measurement
+     * @param limit      The number of points to load. A recommended upper limit is: {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}.
      * @return A <code>Cursor</code> on one kind of data points stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
     Cursor load3DPoint(final @NonNull Point3DSerializer serializer, final int offset, final int limit)
             throws RemoteException {
-        String[] projection = new String[] {serializer.getTimestampColumnName(), serializer.getXColumnName(),
+        String[] projection = new String[]{serializer.getTimestampColumnName(), serializer.getXColumnName(),
                 serializer.getYColumnName(), serializer.getZColumnName()};
         String selection = serializer.getMeasurementKeyColumnName() + "=?";
-        String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
+        String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
         // This is a hack, that only works for a content provider with a backing database. More recent Android version
         // provide a native API to support offset and limit. We may switch to that API if we increase the minimum
         // version.
@@ -169,17 +169,17 @@ public class MeasurementContentProviderClient {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_SYNCED, true);
         client.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values, BaseColumns._ID + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         int ret = 0;
         ret += client.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
                 SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
                 RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
+                new String[]{Long.valueOf(measurementIdentifier).toString()});
         return ret;
     }
 
@@ -189,13 +189,13 @@ public class MeasurementContentProviderClient {
      *
      * @param provider A client with access to the content provider containing the measurements.
      * @return An initialized cursor pointing to the unsynchronized measurements.
-     * @throws RemoteException If the query to the content provider has not been successful.
+     * @throws RemoteException       If the query to the content provider has not been successful.
      * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
      */
     static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider) throws RemoteException {
         Cursor ret = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
                 MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
-                new String[] {Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
+                new String[]{Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
 
         if (ret == null) {
             throw new IllegalStateException("Unable to load measurement from content provider!");
