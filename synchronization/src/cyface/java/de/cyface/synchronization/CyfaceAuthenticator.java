@@ -14,6 +14,7 @@ import android.text.TextUtils;
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     private final Context context;
+    public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
 
 
     public CyfaceAuthenticator(final @NonNull Context context) {

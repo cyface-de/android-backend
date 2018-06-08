@@ -49,10 +49,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @see #SYNC_PROGRESS_BROADCAST_ACTION
      */
     private static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
-    /**
-     * The settings key used to identify the settings storing the URL of the server to upload data to.
-     */
-    public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
 
     /**
      * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
@@ -100,7 +96,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 throw new IllegalStateException("No valid auth token supplied. Aborting data synchronization!");
             }
 
-            String endPointUrl = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+            String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             if (endPointUrl == null) {
                 throw new IllegalStateException("Unable to read synchronization endpoint from settings!");
             }

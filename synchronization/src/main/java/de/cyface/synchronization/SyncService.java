@@ -31,6 +31,10 @@ public final class SyncService extends Service {
      */
     public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
     /**
+     * The settings key used to identify the settings storing the URL of the server to upload data to.
+     */
+    public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
+    /**
      * The synchronisation adapter this service is supposed to call.
      */
     // TODO Ugh. Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to

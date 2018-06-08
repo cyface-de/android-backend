@@ -72,107 +72,17 @@ public final class MeasurementSerializer {
     /**
      * Serializer for transforming acceleration points into a byte representation.
      */
-    final static Point3DSerializer accelerationsSerializer = new Point3DSerializer() {
-        @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.SAMPLE_POINTS_URI;
-        }
-
-        @Override
-        protected String getXColumnName() {
-            return SamplePointTable.COLUMN_AX;
-        }
-
-        @Override
-        protected String getYColumnName() {
-            return SamplePointTable.COLUMN_AY;
-        }
-
-        @Override
-        protected String getZColumnName() {
-            return SamplePointTable.COLUMN_AZ;
-        }
-
-        @Override
-        protected String getMeasurementKeyColumnName() {
-            return SamplePointTable.COLUMN_MEASUREMENT_FK;
-        }
-
-        @Override
-        protected String getTimestampColumnName() {
-            return SamplePointTable.COLUMN_TIME;
-        }
-    };
+    final static Point3DSerializer accelerationsSerializer = new AccelerationsSerializer();
 
     /**
      * Serializer for transforming rotation points into a byte representation.
      */
-    final static Point3DSerializer rotationsSerializer = new Point3DSerializer() {
-        @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.ROTATION_POINTS_URI;
-        }
-
-        @Override
-        protected String getXColumnName() {
-            return RotationPointTable.COLUMN_RX;
-        }
-
-        @Override
-        protected String getYColumnName() {
-            return RotationPointTable.COLUMN_RY;
-        }
-
-        @Override
-        protected String getZColumnName() {
-            return RotationPointTable.COLUMN_RZ;
-        }
-
-        @Override
-        protected String getMeasurementKeyColumnName() {
-            return RotationPointTable.COLUMN_MEASUREMENT_FK;
-        }
-
-        @Override
-        protected String getTimestampColumnName() {
-            return RotationPointTable.COLUMN_TIME;
-        }
-    };
+    final static Point3DSerializer rotationsSerializer = new RotationsSerializer();
 
     /**
      * Serializer for transforming direction points into a byte representation.
      */
-    public final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
-        @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;
-        }
-
-        @Override
-        protected String getXColumnName() {
-            return MagneticValuePointTable.COLUMN_MX;
-        }
-
-        @Override
-        protected String getYColumnName() {
-            return MagneticValuePointTable.COLUMN_MY;
-        }
-
-        @Override
-        protected String getZColumnName() {
-            return MagneticValuePointTable.COLUMN_MZ;
-        }
-
-        @Override
-        protected String getMeasurementKeyColumnName() {
-            return MagneticValuePointTable.COLUMN_MEASUREMENT_FK;
-        }
-
-        @Override
-        protected String getTimestampColumnName() {
-            return MagneticValuePointTable.COLUMN_TIME;
-        }
-    };
+    public final static Point3DSerializer directionsSerializer = new DirectionsSerializer();
 
     /**
      * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
