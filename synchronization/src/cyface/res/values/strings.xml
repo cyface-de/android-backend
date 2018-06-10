@@ -15,4 +15,7 @@
     <string name="error_message_url_parsing">test %s</string>
     <string name="error_message_json_parsing">test</string>
     <string name="error_message_database">test</string>
+    <string name="error_message_device_exists">test %s</string>
+
+    <string name="cyface">Cyface</string>
 </resources>

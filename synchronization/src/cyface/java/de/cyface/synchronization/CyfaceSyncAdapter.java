@@ -1,53 +1,40 @@
 package de.cyface.synchronization;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
-import android.app.Notification;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
-import android.content.AbstractThreadedSyncAdapter;
-import android.content.ComponentName;
-import android.content.ContentProviderClient;
-import android.content.ContentProviderOperation;
-import android.content.Context;
-import android.content.Intent;
-import android.content.OperationApplicationException;
-import android.content.SharedPreferences;
-import android.content.SyncResult;
-import android.database.Cursor;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.RemoteException;
-import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
-import android.util.Log;
-import android.util.MalformedJsonException;
-
-import org.json.JSONArray;
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.BufferedOutputStream;
-import java.io.BufferedReader;
-import java.io.ByteArrayOutputStream;
 import java.io.IOException;
-import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.LinkedList;
 import java.util.concurrent.ArrayBlockingQueue;
 import java.util.concurrent.BlockingQueue;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.ThreadPoolExecutor;
 import java.util.concurrent.TimeUnit;
-import java.util.zip.GZIPOutputStream;
+
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.accounts.AuthenticatorException;
+import android.accounts.OperationCanceledException;
+import android.content.AbstractThreadedSyncAdapter;
+import android.content.ContentProviderClient;
+import android.content.ContentProviderOperation;
+import android.content.Context;
+import android.content.OperationApplicationException;
+import android.content.SharedPreferences;
+import android.content.SyncResult;
+import android.database.Cursor;
+import android.os.Bundle;
+import android.os.RemoteException;
+import android.preference.PreferenceManager;
+import android.provider.BaseColumns;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
@@ -55,8 +42,6 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
-
-import static android.content.Context.NOTIFICATION_SERVICE;
 
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
@@ -81,10 +66,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
      *
-     * @param context        The context this adapter is active under.
+     * @param context The context this adapter is active under.
      * @param autoInitialize More details are available at
-     *                       {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *                       boolean)}.
+     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+     *            boolean)}.
      */
     public CyfaceSyncAdapter(Context context, boolean autoInitialize) {
         this(context, autoInitialize, false);
@@ -93,13 +78,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
      *
-     * @param context            The context this transmitter is active under.
-     * @param autoInitialize     More details are available at
-     *                           {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *                           boolean)}.
+     * @param context The context this transmitter is active under.
+     * @param autoInitialize More details are available at
+     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+     *            boolean)}.
      * @param allowParallelSyncs More details are available at
-     *                           {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *                           boolean, boolean)}.
+     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+     *            boolean, boolean)}.
      */
     public CyfaceSyncAdapter(Context context, boolean autoInitialize, boolean allowParallelSyncs) {
         super(context, autoInitialize, allowParallelSyncs);
@@ -115,15 +100,15 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * Starts the sync process if non-synced data and wifi is available. This contains logging into
      * the server and starting the measurement transmission.
      *
-     * @param account    The user's android sync account which is needed to start a synchronization
-     * @param extras     not used
-     * @param authority  not used
-     * @param provider   a link to the content provider which is needed to access the data layer
+     * @param account The user's android sync account which is needed to start a synchronization
+     * @param extras not used
+     * @param authority not used
+     * @param provider a link to the content provider which is needed to access the data layer
      * @param syncResult used to check if the sync was successful
      */
     @Override
     public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider,
-                              SyncResult syncResult) {
+            SyncResult syncResult) {
         final Context context = getContext();
 
         Log.d(TAG, "Sync started.");
@@ -167,11 +152,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 for (int g = 0, a = 0, r = 0, d = 0; g < dataAccessLayer
                         .countData(MeasuringPointsContentProvider.GPS_POINTS_URI, GpsPointsTable.COLUMN_MEASUREMENT_FK)
                         || a < dataAccessLayer.countData(MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
-                        SamplePointTable.COLUMN_MEASUREMENT_FK)
+                                SamplePointTable.COLUMN_MEASUREMENT_FK)
                         || r < dataAccessLayer.countData(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
-                        RotationPointTable.COLUMN_MEASUREMENT_FK)
+                                RotationPointTable.COLUMN_MEASUREMENT_FK)
                         || d < dataAccessLayer.countData(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                        MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, a += Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, r += Constants.ROTATIONS_UPLOAD_BATCH_SIZE, d += Constants.DIRECTIONS_UPLOAD_BATCH_SIZE) {
+                                MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, a += Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, r += Constants.ROTATIONS_UPLOAD_BATCH_SIZE, d += Constants.DIRECTIONS_UPLOAD_BATCH_SIZE) {
                     Cursor geoLocationsCursor = null;
                     Cursor accelerationsCursor = null;
                     Cursor rotationsCursor = null;
@@ -200,13 +185,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                 directionJsonMapper);
                         measurementSlice.put("magneticValuePoints", magneticValuePointsArray);
 
-                        URL postUrl = new URL(returnUrlWithTrailingSlash(url) + "measurements/");
+                        URL postUrl = new URL(Http.returnUrlWithTrailingSlash(url) + "measurements/");
                         final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
                                 CyfaceAuthenticator.AUTH_TOKEN_TYPE, false);
                         HttpURLConnection con = null;
                         try {
-                            con = openHttpConnection(postUrl, jwtBearer);
-                            post(con, measurementSlice, true);
+                            con = Http.openHttpConnection(postUrl, jwtBearer);
+                            Http.post(con, measurementSlice, true);
 
                             ArrayList<ContentProviderOperation> markAsSyncedOperation = new ArrayList<>();
                             markAsSyncedOperation
@@ -243,9 +228,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                     }
                 }
             } while (unsyncedMeasurementsCursor.moveToNext());
-
-            // TODO: Move this to the authenticator.
-            // initSync(username, password, installationIdentifier, url, getContext());
 
         } catch (MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
@@ -315,7 +297,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private long countUnsyncedDataPoints(final @NonNull ContentProviderClient provider,
-                                         final @NonNull Cursor syncableMeasurements) throws RemoteException {
+            final @NonNull Cursor syncableMeasurements) throws RemoteException {
         long ret = 0L;
         while (syncableMeasurements.moveToNext()) {
             long measurementIdentifier = syncableMeasurements
@@ -336,259 +318,35 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
-     * Initializes the synchronisation by logging in to the server and creating this device if
-     * necessary.
-     *
-     * @param username               The username that is used by the application to login to the
-     *                               server.
-     * @param password               The password belonging to the account with the {@code username}
-     *                               logging in to the Cyface server.
-     * @param installationIdentifier The world wide unique identifier of this application
-     *                               installation. This is required to save the context the
-     *                               application runs with, such as smartphone type, vehicle type or
-     *                               type of mount.
-     * @param url                    The Cyface server URL to initialize the synchronisation with.
-     * @throws SynchronisationException If there are any communication failures.
-     * @throws MalformedURLException    If the used server URL is not well formed.
-     * @throws JSONException            Thrown if the returned JSON message is not parsable.
-     */
-    public static void initSync(final @NonNull String username, final @NonNull String password,
-                                final @NonNull String installationIdentifier, final @NonNull String url, final @NonNull Context context)
-            throws SynchronisationException, MalformedURLException, JSONException {
-        try {
-            final Device device = new Device(installationIdentifier, Build.DEVICE);
-            // Don't write password into log!
-            Log.d(TAG, "Authenticating at " + url + " as " + username);
-
-            // Login to get JWT token
-            JSONObject loginPayload = new JSONObject();
-            loginPayload.put("login", username);
-            loginPayload.put("password", password);
-            final HttpURLConnection connection = openHttpConnection(new URL(returnUrlWithTrailingSlash(url) + "login"),
-                    null, false);
-            final HttpResponse loginResponse = post(connection, loginPayload, false);
-            connection.disconnect();
-            if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
-                throw new IllegalStateException("Login successful but response does not contain a token");
-            }
-            final String jwtBearer = connection.getHeaderField("Authorization");
-            final AppPreferences appPreferences = new AppPreferences(context);
-            appPreferences.put(context.getString(R.string.jwt_bearer_key), jwtBearer);
-
-            // Register device
-            final HttpURLConnection con = openHttpConnection(new URL(returnUrlWithTrailingSlash(url) + "devices/"),
-                    jwtBearer, true);
-            final HttpResponse registerDeviceResponse = post(con, device.toJson(), false);
-            con.disconnect();
-
-            if (registerDeviceResponse.is2xxSuccessful() && !registerDeviceResponse.getBody().isNull("errorName")
-                    && registerDeviceResponse.getBody().get("errorName").equals("Duplicate Device")) {
-                Log.w(TAG,
-                        String.format(context.getString(R.string.error_message_device_exists), installationIdentifier));
-            }
-        } catch (IOException e) {
-            throw new IllegalStateException(e);
-        }
-    }
-
-    private static BufferedOutputStream initOutputStream(HttpURLConnection con, boolean compress)
-            throws SynchronisationException {
-        if (compress) {
-            con.setRequestProperty("Content-Encoding", "gzip");
-        }
-        con.setChunkedStreamingMode(0);
-        con.setDoOutput(true);
-        try {
-            return new BufferedOutputStream(con.getOutputStream());
-        } catch (IOException e) {
-            throw new SynchronisationException(String.format(
-                    "OutputStream failed: Error %s. Unable to create new data output for the http connection.",
-                    e.getMessage()), e);
-        }
-    }
-
-    /**
-     * Parses the JSON response from a connection and includes error handling for non 2XX status
-     * codes.
-     *
-     * @param con The connection that received the response.
-     * @return A parsed {@link HttpResponse} object.
-     * @throws DataTransmissionException If the response is no successful HTTP response (i.e. no 2XX
-     *                                   status code).
-     * @throws SynchronisationException  If the system fails in handling the HTTP response.
-     */
-    private static HttpResponse readResponse(final @NonNull HttpURLConnection con)
-            throws DataTransmissionException, SynchronisationException {
-
-        StringBuilder responseString = new StringBuilder();
-        HttpResponse response;
-        try {
-            // We need to read the status code first, as a response with an error might not contain
-            // a response body but an error response body. This caused "response not readable" on Xpedia Z5 6.0.1
-            // int status = con.getResponseCode();
-            try { // if (status >= 400 && status <= 600) {
-                BufferedReader er = new BufferedReader(new InputStreamReader(con.getErrorStream()));
-                String errorLine;
-                while ((errorLine = er.readLine()) != null) {
-                    responseString.append(errorLine);
-                }
-                er.close();
-            } catch (NullPointerException e) { // } else {
-                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    responseString.append(inputLine);
-                }
-                in.close();
-            }
-            response = new HttpResponse(con.getResponseCode(), responseString.toString());
-            if (response.is2xxSuccessful()) {
-                return response;
-            } else {
-                if (response.getBody().has("errorName")) {
-                    throw new DataTransmissionException(response.getResponseCode(),
-                            response.getBody().getString("errorName"), response.getBody().getString("errorMessage"));
-                } else if (response.getBody().has("exception") && response.getBody().has("error")
-                        && response.getBody().has("message")) {
-                    throw new DataTransmissionException(response.getResponseCode(),
-                            response.getBody().getString("exception"),
-                            response.getBody().getString("error") + ": " + response.getBody().getString("message"));
-                } else {
-                    throw new DataTransmissionException(response.getResponseCode(), "unknown response attributes",
-                            response.getBody().toString());
-                }
-            }
-        } catch (IOException e) {
-            throw new SynchronisationException(String.format(
-                    "Invalid http response: Error: '%s'. Unable to read the http response.", e.getMessage()), e);
-        } catch (JSONException e) {
-            throw new SynchronisationException(
-                    String.format("Json Parsing failed: Error: '%s'. Unable to parse http response to json: %s",
-                            e.getMessage(), responseString),
-                    e);
-        }
-    }
-
-    /**
-     * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
-     *
-     * @param url       The URL of the cyface backend's REST API.
-     * @param jwtBearer A String in the format "Bearer TOKEN".
-     * @return the HTTPURLConnection
-     * @throws DataTransmissionException when no server is at that URL
-     */
-    private static HttpURLConnection openHttpConnection(final @NonNull URL url, final @NonNull String jwtBearer)
-            throws DataTransmissionException {
-        try {
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
-            con.setRequestProperty("Authorization", jwtBearer);
-            con.setConnectTimeout(5000);
-            con.setRequestMethod("POST");
-            con.setRequestProperty("User-Agent", System.getProperty("http.agent"));
-            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-            return con;
-        } catch (IOException e) {
-            throw new DataTransmissionException(0, "No valid server",
-                    String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
-        }
-    }
-
-    /**
-     * The compressed post request which transmits a measurement batch through an existing http
-     * connection
-     *
-     * @param payload The measurement batch in json format
-     * @param <T>     Json string
-     * @throws DataTransmissionException When the server is not reachable or the connection was
-     *                                   interrupted.
-     * @throws SynchronisationException  If the system is unable to handle the HTTP response.
-     */
-    private static <T> HttpResponse post(final HttpURLConnection con, final T payload, boolean compress)
-            throws DataTransmissionException, SynchronisationException {
-
-        BufferedOutputStream os = initOutputStream(con, compress);
-        try {
-            Log.d(TAG, "Transmitting with compression " + compress + ".");
-            if (compress) {
-                os.write(gzip(payload.toString().getBytes("UTF-8")));
-            } else {
-                os.write(payload.toString().getBytes("UTF-8"));
-            }
-            os.flush();
-            os.close();
-        } catch (IOException e) {
-            throw new DataTransmissionException(0, "Parsing failed",
-                    String.format("Error %s. Unable to parse http request or response.", e.getMessage()), e);
-        }
-        return readResponse(con);
-    }
-
-    private static byte[] gzip(byte[] input) {
-        GZIPOutputStream gzipOutputStream = null;
-        try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-            gzipOutputStream.write(input);
-            gzipOutputStream.flush();
-            gzipOutputStream.close();
-            gzipOutputStream = null;
-            return byteArrayOutputStream.toByteArray();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            if (gzipOutputStream != null) {
-                try {
-                    gzipOutputStream.close();
-                } catch (Exception ignored) {
-                }
-            }
-        }
-    }
-
-    /**
-     * Adds a trailing slash to the server URL or leaves an existing trailing slash untouched.
-     *
-     * @param url The url to format.
-     * @return The server URL with a trailing slash.
-     */
-    private static String returnUrlWithTrailingSlash(final String url) {
-        if (url.endsWith("/")) {
-            return url;
-        } else {
-            return url + "/";
-        }
-    }
-
-    /**
      * When there is a login or sync error (both DCS API) this method generates a user friendly message
      * which can be used to inform the user about the problem.
      *
-     * @param context             The context where the error should be shown, usually a view context
+     * @param context The context where the error should be shown, usually a view context
      * @param resultExceptionType The name of the Exception returned by Exception.class.getSimpleName()
-     * @param resultErrorMessage  The error message returned by the DCS API
+     * @param resultErrorMessage The error message returned by the DCS API
      * @return A string which contains a user-friendly error message
      */
-    public static String identifyTransmissionError(final Context context, final String resultExceptionType,
-                                                   final String resultErrorMessage) {
-        String toastErrorMessage = context.getString(R.string.toast_error_message_login_failed); // Default message
-
-        // Exception identification
-        if (resultExceptionType.equals(MalformedJsonException.class.getSimpleName())) {
-            toastErrorMessage = context.getString(R.string.toast_error_message_server_unavailable);
-        } else if (resultExceptionType.equals(JSONException.class.getSimpleName())) {
-            toastErrorMessage = context.getString(R.string.toast_error_message_response_unreadable);
-        } else if (resultExceptionType.equals(DataTransmissionException.class.getSimpleName())) {
-            if (resultErrorMessage.contains(ERROR_MESSAGE_BAD_CREDENTIALS)) {
-                toastErrorMessage = context.getString(R.string.toast_error_message_credentials_incorrect);
-            } else if (resultErrorMessage.contains(ERROR_MESSAGE_SERVER_UNAVAILABLE)) {
-                toastErrorMessage = context.getString(R.string.toast_error_message_server_unavailable);
-            }
-        } else if (resultExceptionType.equals(RemoteException.class.getSimpleName())) {
-            toastErrorMessage = context.getString(R.string.toast_error_message_database_unaddressable);
-        }
-        return toastErrorMessage;
-    }
+    /*
+     * public static String identifyTransmissionError(final Context context, final String resultExceptionType,
+     * final String resultErrorMessage) {
+     * String toastErrorMessage = context.getString(R.string.toast_error_message_login_failed); // Default message
+     * // Exception identification
+     * if (resultExceptionType.equals(MalformedJsonException.class.getSimpleName())) {
+     * toastErrorMessage = context.getString(R.string.toast_error_message_server_unavailable);
+     * } else if (resultExceptionType.equals(JSONException.class.getSimpleName())) {
+     * toastErrorMessage = context.getString(R.string.toast_error_message_response_unreadable);
+     * } else if (resultExceptionType.equals(DataTransmissionException.class.getSimpleName())) {
+     * if (resultErrorMessage.contains(ERROR_MESSAGE_BAD_CREDENTIALS)) {
+     * toastErrorMessage = context.getString(R.string.toast_error_message_credentials_incorrect);
+     * } else if (resultErrorMessage.contains(ERROR_MESSAGE_SERVER_UNAVAILABLE)) {
+     * toastErrorMessage = context.getString(R.string.toast_error_message_server_unavailable);
+     * }
+     * } else if (resultExceptionType.equals(RemoteException.class.getSimpleName())) {
+     * toastErrorMessage = context.getString(R.string.toast_error_message_database_unaddressable);
+     * }
+     * return toastErrorMessage;
+     * }
+     */
 
     /*
      * private boolean synchronizationDisabled(AppPreferences appPreferences) {
@@ -834,43 +592,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * notificationManager.notify(CAPTURING_ONGOING_NOTIFICATION_ID, notification);
      * }
      */
-
-    /**
-     * <p>
-     * Internal value object class for the attributes of an HTTP response. It wrappers the HTTP
-     * status code as well as a JSON body object.
-     * </p>
-     */
-    private static class HttpResponse {
-        private int responseCode;
-        private JSONObject body;
-
-        HttpResponse(int responseCode, String responseBodyAsString) throws JSONException {
-            this.responseCode = responseCode;
-            try {
-                this.body = new JSONObject(responseBodyAsString);
-            } catch (JSONException e) {
-                if (is2xxSuccessful()) {
-                    this.body = null; // this is expected, continue.
-                } else {
-                    throw new JSONException("Empty response body for unsuccessful response (code " + responseCode
-                            + "): " + e.getMessage());
-                }
-            }
-        }
-
-        JSONObject getBody() {
-            return body;
-        }
-
-        int getResponseCode() {
-            return responseCode;
-        }
-
-        boolean is2xxSuccessful() {
-            return (responseCode >= 200 && responseCode <= 300);
-        }
-    }
 
     /*
      * private static class SyncedMeasurementsDeleter implements Runnable {
