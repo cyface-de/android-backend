@@ -7,6 +7,7 @@ import android.support.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.CapturingNotification;
+import de.cyface.synchronization.Constants;
 import de.cyface.synchronization.SynchronisationException;
 
 /**
@@ -17,10 +18,6 @@ import de.cyface.synchronization.SynchronisationException;
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
-    /**
-     * Default dummy account used for data synchronization.
-     */
-    private final static String ACCOUNT = "default_account";
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -35,7 +32,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull String dataUploadServerAddress) throws SetupException {
         super(context, contentResolver, dataUploadServerAddress);
         try {
-            Account account = getWiFiSurveyor().getOrCreateAccount(ACCOUNT);
+            Account account = getWiFiSurveyor().getOrCreateAccount(Constants.DEFAULT_FREE_USERNAME);
             getWiFiSurveyor().startSurveillance(account);
         } catch (SynchronisationException e) {
             throw new SetupException(e);

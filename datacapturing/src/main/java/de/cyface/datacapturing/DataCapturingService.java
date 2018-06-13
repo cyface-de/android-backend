@@ -43,7 +43,9 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.synchronization.Constants;
 import de.cyface.synchronization.CyfaceSyncAdapter;
+import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 
@@ -144,12 +146,12 @@ public abstract class DataCapturingService {
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String deviceIdentifier = preferences.getString(CyfaceSyncAdapter.DEVICE_IDENTIFIER_KEY, null);
+        String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
         if (deviceIdentifier == null) {
-            sharedPreferencesEditor.putString(CyfaceSyncAdapter.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+            sharedPreferencesEditor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         }
-        sharedPreferencesEditor.putString(CyfaceSyncAdapter.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
+        sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
         }
@@ -158,7 +160,7 @@ public abstract class DataCapturingService {
         if (connectivityManager == null) {
             throw new SetupException("Android connectivity manager is not available!");
         }
-        surveyor = new WiFiSurveyor(context, connectivityManager);
+        surveyor = new WiFiSurveyor(context, connectivityManager, Constants.ACCOUNT_TYPE);
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
     }

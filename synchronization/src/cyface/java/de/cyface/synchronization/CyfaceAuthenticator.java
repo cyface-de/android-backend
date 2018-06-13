@@ -27,10 +27,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     private final Context context;
     private final static String TAG = "de.cyface.auth";
-    public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
-
-    public final static String DEFAULT_FREE_USERNAME = "";
-    public final static String DEFAULT_FREE_PASSWORD = "";
 
     public final static int ACCOUNT_NOT_ADDED_ERROR_CODE = 1;
 
@@ -56,25 +52,26 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
         return bundle;*/
+        Log.i(TAG, "Adding Account");
         Account account = null;
         AccountManager manager = AccountManager.get(context);
         Account[] accounts = manager.getAccountsByType(accountType);
 
         for(Account existingAccount: accounts) {
-            if(existingAccount.name.equals(DEFAULT_FREE_USERNAME)) {
+            if(existingAccount.name.equals(Constants.DEFAULT_FREE_USERNAME)) {
                 account = existingAccount;
             }
         }
 
         boolean accountExists = account==null;
         if(!accountExists) {
-            account = new Account(DEFAULT_FREE_USERNAME, accountType);
-            accountExists = manager.addAccountExplicitly(account, DEFAULT_FREE_PASSWORD,null);
+            account = new Account(Constants.DEFAULT_FREE_USERNAME, accountType);
+            accountExists = manager.addAccountExplicitly(account, Constants.DEFAULT_FREE_PASSWORD,null);
         }
 
         Bundle bundle = new Bundle();
         if(accountExists) {
-            bundle.putCharSequence(AccountManager.KEY_ACCOUNT_NAME, DEFAULT_FREE_USERNAME);
+            bundle.putCharSequence(AccountManager.KEY_ACCOUNT_NAME, Constants.DEFAULT_FREE_USERNAME);
             bundle.putCharSequence(AccountManager.KEY_ACCOUNT_TYPE, accountType);
             response.onResult(bundle);
         } else {
@@ -90,20 +87,24 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     @Override
-    public Bundle getAuthToken(AccountAuthenticatorResponse response, Account account, String authTokenType,
-            Bundle options) throws NetworkErrorException {
+    public Bundle getAuthToken(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account, final @NonNull String authTokenType,
+            final Bundle options) throws NetworkErrorException {
         // Extract the username and password from the Account Manager, and ask
         // the server for an appropriate AuthToken.
+        Log.i(TAG, "Getting Auth Token.");
         final AccountManager am = AccountManager.get(context);
 
         String authToken = am.peekAuthToken(account, authTokenType);
 
         // Lets give another try to authenticate the user
         if (TextUtils.isEmpty(authToken)) {
+            Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
             final String password = am.getPassword(account);
+            Log.v(TAG, String.format("Password: %s", password));
             if (password != null) {
                 try {
                     authToken = initSync(account.name, password);
+                    Log.v(TAG, String.format("Auth token: %s", authToken));
                 } catch (SynchronisationException e) {
                     throw new NetworkErrorException(e);
                 } catch (JSONException e) {
@@ -139,7 +140,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     @Override
     public String getAuthTokenLabel(String authTokenType) {
-        return null;
+        return "JWT Token";
     }
 
     @Override
@@ -168,6 +169,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      */
     private String initSync(final @NonNull String username, final @NonNull String password)
             throws SynchronisationException, JSONException {
+        Log.v(TAG, "Init Sync!");
         try {
             SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
             String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);

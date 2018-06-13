@@ -6,10 +6,10 @@
     <uses-permission android:name="android.permission.READ_PROFILE" />
     <uses-permission android:name="android.permission.READ_CONTACTS" />
 
-    <application>
+    <!--<application>
         <activity
             android:name=".CyfaceLoginActivity"
             android:label="@string/title_activity_cyface_login"
             android:theme="@style/AppTheme"></activity>
-    </application>
+    </application>-->
 </manifest>

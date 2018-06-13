@@ -187,7 +187,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
                         URL postUrl = new URL(Http.returnUrlWithTrailingSlash(url) + "measurements/");
                         final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
-                                CyfaceAuthenticator.AUTH_TOKEN_TYPE, false);
+                                Constants.AUTH_TOKEN_TYPE, false);
                         HttpURLConnection con = null;
                         try {
                             con = Http.openHttpConnection(postUrl, jwtBearer);
