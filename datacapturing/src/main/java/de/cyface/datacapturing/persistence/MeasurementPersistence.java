@@ -104,7 +104,12 @@ public class MeasurementPersistence {
             return;
         }
 
-        threadPool.submit(new CapturedDataWriter(data, resolver, measurementIdentifier));
+        threadPool.submit(new CapturedDataWriter(data, resolver, measurementIdentifier, new WritingDataCompletedCallback() {
+            @Override
+            public void writingDataCompleted() {
+
+            }
+        }));
     }
 
     /**
