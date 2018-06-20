@@ -9,7 +9,6 @@ import android.accounts.OperationCanceledException;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.Preference;
 import android.preference.PreferenceManager;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
@@ -24,10 +23,10 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
-import de.cyface.synchronization.Constants;
-import de.cyface.synchronization.CyfaceAuthenticator;
-import de.cyface.synchronization.CyfaceSyncAdapter;
-import de.cyface.synchronization.SyncService;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
 
 @RunWith(AndroidJUnit4.class)
 @LargeTest
@@ -69,6 +68,11 @@ public class CyfaceAuthenticatorTest {
         Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
 
         Log.i(TAG, bundle.toString());
+
+        String authToken = bundle.getString("authtoken");
+        assertThat(authToken, not(nullValue()));
+        assertThat(authToken.isEmpty(), is(false));
+        assertThat(authToken.startsWith("Bearer "), is(true));
     }
 
 }

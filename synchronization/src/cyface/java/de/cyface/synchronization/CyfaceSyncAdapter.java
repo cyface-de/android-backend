@@ -107,8 +107,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param syncResult used to check if the sync was successful
      */
     @Override
-    public void onPerformSync(Account account, Bundle extras, String authority, ContentProviderClient provider,
-            SyncResult syncResult) {
+    public void onPerformSync(final @NonNull Account account, Bundle extras, String authority, final @NonNull ContentProviderClient provider,
+            final @NonNull SyncResult syncResult) {
         final Context context = getContext();
 
         Log.d(TAG, "Sync started.");
