@@ -170,6 +170,8 @@ public abstract class DataCapturingService {
      * Since this method is synchronized with the Android background thread it must be handled as a long running
      * operation and thus should not be called on the main thread. If you want to start the process asynchronously you
      * may use {@link #startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} instead.
+     * <p>
+     * This method is synchronized to prevent starting of two services in parallel.
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
@@ -179,8 +181,12 @@ public abstract class DataCapturingService {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
-    public void startSync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
+    public synchronized void startSync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException, MissingPermissionException {
+        if(isRunning) {
+            return;
+        }
+
         long measurementIdentifier = prepareStart(listener, vehicle);
         runServiceSync(START_STOP_TIMEOUT_MILLIS, TimeUnit.MILLISECONDS, measurementIdentifier);
     }
@@ -193,8 +199,10 @@ public abstract class DataCapturingService {
      * after the method returns. Please use the {@link StartUpFinishedHandler} to receive a callback, when the service
      * has been started or use the synchronized version {@link #startSync(DataCapturingListener, Vehicle)}.
      * <p>
+     * This method is synchronized to prevent starting of two services in parallel.
+     * <p>
      * ATTENTION: If there are errors while starting the service, your handler might never be called. You may need to
-     * apply some timeout mechanism to not wait indefinetly
+     * apply some timeout mechanism to not wait indefinetly.
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
@@ -204,9 +212,13 @@ public abstract class DataCapturingService {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
-    public void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
+    public synchronized void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
+        if(isRunning) {
+            return;
+        }
+
         long measurementIdentifier = prepareStart(listener, vehicle);
         runService(measurementIdentifier, finishedHandler);
     }
@@ -516,7 +528,7 @@ public abstract class DataCapturingService {
      * @param startedMessageReceiver A handler called if the service started successfully.
      * @throws DataCapturingException If service could not be started.
      */
-    private void runService(final long measurementIdentifier,
+    private synchronized void runService(final long measurementIdentifier,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
         Context context = getContext();
         if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service start broadcast.");
