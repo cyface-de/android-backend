@@ -41,7 +41,7 @@ public class MeasurementPersistence {
     /**
      * Tag used to identify messages on logcat.
      */
-    private static final String TAG = "de.cyface.persistence";
+    private static final String TAG = "de.cyface.capturing";
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -88,10 +88,13 @@ public class MeasurementPersistence {
     public int closeRecentMeasurement() {
         // For brevity we are closing all open measurements. If we would like to make sure, that no error has occured we
         // would need to check that there is only one such open measurement before closing anything.
+        Log.d(TAG, "Closing recent measurements");
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
-        return resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values,
-                MeasurementTable.COLUMN_FINISHED + "=?", new String[] {"0"});
+        int updatedRows = resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values,
+                MeasurementTable.COLUMN_FINISHED + "=?", new String[]{"0"});
+        Log.d(TAG, "Closed "+updatedRows+" measurements");
+        return updatedRows;
     }
 
     /**
@@ -107,7 +110,8 @@ public class MeasurementPersistence {
         threadPool.submit(new CapturedDataWriter(data, resolver, measurementIdentifier, new WritingDataCompletedCallback() {
             @Override
             public void writingDataCompleted() {
-
+                // TODO: Add some useful code here as soon as data capturing is activated again.
+                Log.d(TAG, "Completed writing data.");
             }
         }));
     }
@@ -140,6 +144,7 @@ public class MeasurementPersistence {
      * @throws DataCapturingException If more than one measurement is open.
      */
     public boolean hasOpenMeasurement() throws DataCapturingException {
+        Log.d(TAG, "Checking if app has an open measurement.");
         Cursor openMeasurementQueryCursor = null;
         try {
             openMeasurementQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
@@ -149,7 +154,9 @@ public class MeasurementPersistence {
                 throw new DataCapturingException("More than one measurement is open.");
             }
 
-            return openMeasurementQueryCursor.getCount() == 1;
+            boolean hasOpenMeasurement = openMeasurementQueryCursor.getCount() == 1;
+            Log.d(TAG, hasOpenMeasurement ? "One measurement is open.": "No measurement is open.");
+            return hasOpenMeasurement;
         } finally {
             if (openMeasurementQueryCursor != null) {
                 openMeasurementQueryCursor.close();
@@ -164,6 +171,7 @@ public class MeasurementPersistence {
      * @return The system wide unique identifier of the active measurement.
      */
     public long getIdentifierOfCurrentlyCapturedMeasurement() {
+        Log.d(TAG, "Trying to load measurement identifier from content provider!");
         Cursor measurementIdentifierQueryCursor = null;
         try {
             measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
@@ -184,7 +192,9 @@ public class MeasurementPersistence {
             }
 
             int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
-            return measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
+            long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
+            Log.d(TAG, "Providing measurement identifier "+measurementIdentifier);
+            return measurementIdentifier;
         } finally {
             if (measurementIdentifierQueryCursor != null) {
                 measurementIdentifierQueryCursor.close();

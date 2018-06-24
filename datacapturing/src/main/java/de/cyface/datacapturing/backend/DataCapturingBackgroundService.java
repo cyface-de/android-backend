@@ -58,7 +58,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * The tag used to identify logging messages send to logcat.
      */
-    private final static String TAG = "de.cyface.datacapturing";
+    private final static String TAG = "de.cyface.background";
     /**
      * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
      * points they are split into multiple messages.

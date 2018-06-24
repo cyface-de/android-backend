@@ -22,6 +22,7 @@ import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
 
+import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
@@ -324,6 +325,64 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.resumeAsync(startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
+
+        shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        oocut.stopAsync(shutDownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+    }
+
+    @Test
+    public void testResumeAsyncTwice() throws MissingPermissionException, DataCapturingException {
+        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
+        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
+
+        ShutDownFinishedHandler shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        oocut.pauseAsync(shutDownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+
+        startUpFinishedHandler = new TestStartUpFinishedHandler();
+        oocut.resumeAsync(startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
+
+        startUpFinishedHandler = new TestStartUpFinishedHandler();
+        oocut.resumeAsync(startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
+
+        shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        oocut.stopAsync(shutDownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+
+
+        final TestCallback isRunningCallback = new TestCallback();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                oocut.isRunning(2, TimeUnit.SECONDS, isRunningCallback);
+            }
+        });
+
+        assertThat(isRunningCallback.isRunning, is(equalTo(false)));
+        assertThat(isRunningCallback.timedOut, is(equalTo(false)));
+    }
+
+    @Test
+    public void testStartPauseStop() throws MissingPermissionException, DataCapturingException {
+        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
+        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
+
+        ShutDownFinishedHandler shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        oocut.pauseAsync(shutDownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
         shutDownFinishedHandler = new MyShutDownFinishedHandler();
         oocut.stopAsync(shutDownFinishedHandler);

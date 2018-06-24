@@ -46,7 +46,7 @@ import de.cyface.synchronization.MeasurementContentProviderClient;
 @MediumTest
 public class MeasurementContentProviderClientTest {
 
-    private final static String TAG = "de.cyface.datacapturing";
+    private final static String TAG = "de.cyface.test";
 
     /**
      * This test makes sure that larger GeoLocation tracks can be loaded completely form the

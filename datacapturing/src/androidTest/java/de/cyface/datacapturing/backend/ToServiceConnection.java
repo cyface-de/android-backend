@@ -27,7 +27,7 @@ class ToServiceConnection implements ServiceConnection {
     /**
      * The tag used to identify logcat messages.
      */
-    private final static String TAG = "de.cyface.capture.background";
+    private final static String TAG = "de.cyface.test";
 
     /**
      * The context this <code>ServiceConnection</code> runs with.

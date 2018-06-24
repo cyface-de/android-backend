@@ -10,18 +10,18 @@ import de.cyface.datacapturing.IsRunningCallback;
  *
  * @author Klemens Muthmann
  * @since 2.0.0
- * @version 1.0.0
+ * @version 1.1.0
  */
-class TestCallback implements IsRunningCallback {
+public class TestCallback implements IsRunningCallback {
 
     /**
      * Flag indicating a successful startup if <code>true</code>.
      */
-    boolean isRunning = false;
+    public boolean isRunning = false;
     /**
      * Flag indicating an unsuccessful startup if <code>true</code>.
      */
-    boolean timedOut = false;
+    public boolean timedOut = false;
     /**
      * <code>Lock</code> used to synchronize the callback with the test case using it.
      */

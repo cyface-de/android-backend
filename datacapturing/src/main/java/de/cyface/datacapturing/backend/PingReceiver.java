@@ -22,7 +22,7 @@ public class PingReceiver extends BroadcastReceiver {
     /**
      * The tag used to identify Logcat messages.
      */
-    private static final String TAG = "de.cyface.ping";
+    private static final String TAG = "de.cyface.background";
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {

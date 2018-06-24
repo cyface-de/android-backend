@@ -215,6 +215,7 @@ public abstract class DataCapturingService {
     public synchronized void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
+        Log.d(TAG, "Starting asynchronously!");
         if(isRunning) {
             return;
         }
@@ -267,6 +268,7 @@ public abstract class DataCapturingService {
      *             occurs, but you have to handle it anyways to prevent your application from crashing.
      */
     public void stopAsync(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+        Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
             return;
         }
@@ -314,6 +316,7 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException
      */
     public void pauseAsync(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+        Log.d(TAG, "Pausing asynchronously.");
         stopService(finishedHandler);
     }
 
@@ -365,6 +368,7 @@ public abstract class DataCapturingService {
      */
     public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
+        Log.d(TAG, "Resume assynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
@@ -430,6 +434,7 @@ public abstract class DataCapturingService {
      * @param callback Called as soon as the current state of the service has become clear.
      */
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
+        Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
         pongReceiver.pongAndReceive(timeout, unit, callback);
     }
@@ -530,6 +535,7 @@ public abstract class DataCapturingService {
      */
     private synchronized void runService(final long measurementIdentifier,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
+        Log.d(TAG, "Starting the background service for measurement identifier !" + measurementIdentifier);
         Context context = getContext();
         if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
@@ -598,6 +604,7 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
     private void stopService(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+        Log.d(TAG, "Stopping the background service.");
         isRunning = false;
 
         Context context = getContext();

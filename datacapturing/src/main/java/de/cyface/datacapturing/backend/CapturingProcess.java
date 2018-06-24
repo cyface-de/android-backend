@@ -39,7 +39,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * The tag used to identify log messages send to logcat.
      */
-    private final static String TAG = CapturingProcess.class.getName();
+    private final static String TAG = "de.cyface.background";
     /**
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */
