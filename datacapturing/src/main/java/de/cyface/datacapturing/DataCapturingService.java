@@ -89,7 +89,7 @@ public abstract class DataCapturingService {
     /**
      * {@code true} if data capturing is running; {@code false} otherwise.
      */
-    private boolean isRunning = false;
+    private boolean isRunning;
     /**
      * A weak reference to the calling context. This is a weak reference since the calling context (i.e.
      * <code>Activity</code>) might have been destroyed, in which case there is no context anymore.
@@ -161,6 +161,7 @@ public abstract class DataCapturingService {
         surveyor = new WiFiSurveyor(context, connectivityManager);
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
+        setIsRunning(false);
     }
 
     /**
@@ -183,7 +184,7 @@ public abstract class DataCapturingService {
      */
     public synchronized void startSync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException, MissingPermissionException {
-        if(isRunning) {
+        if(getIsRunning()) {
             return;
         }
 
@@ -216,7 +217,8 @@ public abstract class DataCapturingService {
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
         Log.d(TAG, "Starting asynchronously!");
-        if(isRunning) {
+        if(getIsRunning()) {
+            Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
             return;
         }
 
@@ -368,7 +370,7 @@ public abstract class DataCapturingService {
      */
     public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
-        Log.d(TAG, "Resume assynchronously.");
+        Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
@@ -605,7 +607,7 @@ public abstract class DataCapturingService {
      */
     private void stopService(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
         Log.d(TAG, "Stopping the background service.");
-        isRunning = false;
+        setIsRunning(false);
 
         Context context = getContext();
         if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service stop broadcast.");
@@ -709,8 +711,8 @@ public abstract class DataCapturingService {
         }
 
         Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-        isRunning = context.get().bindService(startIntent, serviceConnection, 0);
-        if (!isRunning) {
+        setIsRunning(context.get().bindService(startIntent, serviceConnection, 0));
+        if (!getIsRunning()) {
             throw new DataCapturingException("Illegal state: unable to bind to background service!");
         }
     }
@@ -730,6 +732,16 @@ public abstract class DataCapturingService {
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
         }
+    }
+
+    private void setIsRunning(final boolean isRunning) {
+        Log.d(TAG, "Setting isRunning to "+isRunning);
+        this.isRunning = isRunning;
+    }
+
+    private boolean getIsRunning() {
+        Log.d(TAG, "Getting isRunning with value " + isRunning);
+        return isRunning;
     }
 
     /**
