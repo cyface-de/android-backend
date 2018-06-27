@@ -390,6 +390,21 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
     }
 
+    @Test
+    public void testReconnectOnNonRunningServer() throws DataCapturingException {
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    oocut.reconnect();
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+        assertThat(oocut.getIsRunning(),is(equalTo(false)));
+    }
+
     /**
      * A handler for service shutdown messages synchronized by the tests synchronization lock.
      *
