@@ -157,7 +157,16 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
-        oocut.reconnect();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    oocut.reconnect();
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
@@ -243,8 +252,18 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         oocut.disconnect();
 
-        oocut.reconnect();
-        oocut.reconnect();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    oocut.reconnect();
+                    oocut.reconnect();
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException();
+                }
+            }
+        });
+
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
