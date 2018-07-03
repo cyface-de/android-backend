@@ -285,9 +285,27 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
-        oocut.reconnect();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    oocut.reconnect();
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
         oocut.disconnect();
-        oocut.reconnect();
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                try {
+                    oocut.reconnect();
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -378,17 +396,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
-
-        final TestCallback isRunningCallback = new TestCallback();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                oocut.isRunning(2, TimeUnit.SECONDS, isRunningCallback);
-            }
-        });
-
+        // Tests that nothing is running anymore.
+        final TestCallback isRunningCallback = new TestCallback("testResumeAsyncTwice", lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, isRunningCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(isRunningCallback.isRunning, is(equalTo(false)));
-        assertThat(isRunningCallback.timedOut, is(equalTo(false)));
+        assertThat(isRunningCallback.timedOut, is(equalTo(true)));
     }
 
     @Test

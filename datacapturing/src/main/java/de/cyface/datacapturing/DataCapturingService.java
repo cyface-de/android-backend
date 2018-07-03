@@ -492,6 +492,7 @@ public abstract class DataCapturingService {
         //Condition condition = lock.newCondition();
         //IsRunningStatus callback = new IsRunningStatus(lock, condition);
         // TODO: Maybe move the timeout time to a parameter.
+        // FIXME: This happens asynchronously now. Somehow we need to handle that.
         isRunning(500L, TimeUnit.MILLISECONDS, new IsRunningCallback() {
             @Override
             public void isRunning() {
