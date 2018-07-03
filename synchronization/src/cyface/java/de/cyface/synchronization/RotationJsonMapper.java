@@ -18,7 +18,7 @@ final class RotationJsonMapper implements JsonMapper {
     @Override
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
         JSONObject json = new JSONObject();
-        json.put("rX",cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RX)));
+        json.put("rX", cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RX)));
         json.put("rY", cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RY)));
         json.put("rZ", cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RZ)));
         json.put("timestamp", cursor.getLong(cursor.getColumnIndex(RotationPointTable.COLUMN_TIME)));

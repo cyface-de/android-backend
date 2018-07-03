@@ -109,10 +109,13 @@ public class MeasurementContentProviderClient {
      */
     long countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName) throws RemoteException {
         Cursor cursor = null;
+
         try {
-            cursor = client.query(tableUri, new String[]{"count(*) AS count"}, measurementForeignKeyColumnName, new String[]{Long.toString(measurementIdentifier)}, null);
-            cursor.moveToFirst();
-            return cursor.getLong(0);
+            // For unknown reasons the "COUNT(*)" projections is not accepted anymore.
+            // However, both (COUNT(*) and the getCount()) are anyway too slow for large tables
+            // See RadVerS fix for a faster implementation
+            cursor = client.query(tableUri, new String[]{BaseColumns._ID}, measurementForeignKeyColumnName + " = ?1", new String[]{Long.toString(measurementIdentifier)}, null);
+            return cursor.getCount();
         } finally {
             if (cursor != null) {
                 cursor.close();

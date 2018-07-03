@@ -27,12 +27,14 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     private final Context context;
     private final static String TAG = "de.cyface.auth";
+    private final Http http;
 
     public final static int ACCOUNT_NOT_ADDED_ERROR_CODE = 1;
 
     public CyfaceAuthenticator(final @NonNull Context context) {
         super(context);
         this.context = context;
+        this.http = new CyfaceHttpConnection();
     }
 
     @Override
@@ -187,8 +189,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             JSONObject loginPayload = new JSONObject();
             loginPayload.put("login", username);
             loginPayload.put("password", password);
-            final HttpURLConnection connection = Http.openHttpConnection(new URL(Http.returnUrlWithTrailingSlash(url) + "login"));
-            HttpResponse loginResponse = Http.post(connection, loginPayload, false);
+            final HttpURLConnection connection = http.openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "login"));
+            HttpResponse loginResponse = http.post(connection, loginPayload, false);
             connection.disconnect();
             if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
@@ -217,12 +219,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      */
     private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier, final @NonNull String authToken) throws SynchronisationException, DataTransmissionException, MalformedURLException, JSONException {
         // Register device
-        final HttpURLConnection con = Http.openHttpConnection(new URL(Http.returnUrlWithTrailingSlash(url) + "devices/"),
+        final HttpURLConnection con = http.openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"),
                 authToken);
         JSONObject device = new JSONObject();
         device.put("id", installationIdentifier);
         device.put("name", Build.DEVICE);
-        final HttpResponse registerDeviceResponse = Http.post(con, device, false);
+        final HttpResponse registerDeviceResponse = http.post(con, device, false);
         con.disconnect();
 
         if (registerDeviceResponse.is2xxSuccessful() && !registerDeviceResponse.getBody().isNull("errorName")

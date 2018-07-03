@@ -3,11 +3,7 @@ package de.cyface.synchronization;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
-
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The synchronistaion <code>Service</code> used to bind the synchronisation adapter to the Android framework.
@@ -50,7 +46,7 @@ public final class SyncService extends Service {
         Log.d(TAG, "sync service on create");
         synchronized (LOCK) {
             if (syncAdapter == null) {
-                syncAdapter = new CyfaceSyncAdapter(getApplicationContext(), true);
+                syncAdapter = new CyfaceSyncAdapter(getApplicationContext(), true, new CyfaceHttpConnection(), Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, Constants.ROTATIONS_UPLOAD_BATCH_SIZE, Constants.DIRECTIONS_UPLOAD_BATCH_SIZE);
             }
         }
     }

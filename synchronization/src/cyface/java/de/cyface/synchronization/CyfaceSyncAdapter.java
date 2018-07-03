@@ -62,33 +62,54 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     private final static int TRANSMISSION_BATCH_SIZE = 7500;
     private final ExecutorService threadPool;
     private final Collection<SyncProgressListener> progressListener;
+    private final Http http;
+    private final int geoLocationsUploadBatchSize;
+    private final int accelerationsUploadBatchSize;
+    private final int rotationsUploadBatchSize;
+    private final int directionsUploadBatchSize;
+
 
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
-     *
-     * @param context The context this adapter is active under.
+     *  @param context The context this adapter is active under.
      * @param autoInitialize More details are available at
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
      *            boolean)}.
+     * @param geoLocationsUploadBatchSize the number of elements to transmit in one batch
+     * @param accelerationsUploadBatchSize the number of elements to transmit in one batch
+     * @param rotationsUploadBatchSize the number of elements to transmit in one batch
+     * @param directionsUploadBatchSize the number of elements to transmit in one batch
      */
-    public CyfaceSyncAdapter(Context context, boolean autoInitialize) {
-        this(context, autoInitialize, false);
+    public CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize, final @NonNull Http http,
+                             final int geoLocationsUploadBatchSize, final int accelerationsUploadBatchSize,
+                             final int rotationsUploadBatchSize, final int directionsUploadBatchSize) {
+        this(context, autoInitialize, false, http, geoLocationsUploadBatchSize, accelerationsUploadBatchSize, rotationsUploadBatchSize, directionsUploadBatchSize);
     }
 
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
-     *
-     * @param context The context this transmitter is active under.
+     *  @param context The context this transmitter is active under.
      * @param autoInitialize More details are available at
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
      *            boolean)}.
      * @param allowParallelSyncs More details are available at
-     *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
-     *            boolean, boolean)}.
+ *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
+ *            boolean, boolean)}.
+     * @param geoLocationsUploadBatchSize the number of elements to transmit in one batch
+     * @param accelerationsUploadBatchSize the number of elements to transmit in one batch
+     * @param rotationsUploadBatchSize the number of elements to transmit in one batch
+     * @param directionsUploadBatchSize the number of elements to transmit in one batch
      */
-    public CyfaceSyncAdapter(Context context, boolean autoInitialize, boolean allowParallelSyncs) {
+    public CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize,
+                             final boolean allowParallelSyncs, final @NonNull Http http, int geoLocationsUploadBatchSize,
+                             int accelerationsUploadBatchSize, int rotationsUploadBatchSize, int directionsUploadBatchSize) {
         super(context, autoInitialize, allowParallelSyncs);
 
+        this.http = http;
+        this.geoLocationsUploadBatchSize = geoLocationsUploadBatchSize;
+        this.accelerationsUploadBatchSize = accelerationsUploadBatchSize;
+        this.rotationsUploadBatchSize = rotationsUploadBatchSize;
+        this.directionsUploadBatchSize = directionsUploadBatchSize;
         int availableCores = Runtime.getRuntime().availableProcessors() + 1;
         BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(10);
         threadPool = new ThreadPoolExecutor(availableCores, availableCores, 1, TimeUnit.SECONDS, workQueue);
@@ -124,9 +145,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             return;
         }
 
+        Cursor unsyncedMeasurementsCursor = null;
         try {
-            Cursor unsyncedMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider);
-            if (!unsyncedMeasurementsCursor.moveToFirst()) {
+            unsyncedMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider);
+            boolean atLeastOneMeasurementExists = unsyncedMeasurementsCursor.moveToNext();
+            if (!atLeastOneMeasurementExists) {
                 Log.i(TAG, "Unable to sync data: " + SYNC_ERROR_MESSAGE_NO_UN_SYNCED_DATA);
                 return;
             }
@@ -137,9 +160,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             RotationJsonMapper rotationJsonMapper = new RotationJsonMapper();
             DirectionJsonMapper directionJsonMapper = new DirectionJsonMapper();
 
+            // The cursor is reset to initial position (i.e. 0) by countUnsyncedDataPoints
             do {
-                long measurementIdentifier = unsyncedMeasurementsCursor
-                        .getLong(unsyncedMeasurementsCursor.getColumnIndex(BaseColumns._ID));
+                final int identifierColumnIndex = unsyncedMeasurementsCursor.getColumnIndex(BaseColumns._ID);
+                final long measurementIdentifier = unsyncedMeasurementsCursor.getLong(identifierColumnIndex);
 
                 String measurementContext = unsyncedMeasurementsCursor
                         .getString(unsyncedMeasurementsCursor.getColumnIndex(MeasurementTable.COLUMN_VEHICLE));
@@ -156,42 +180,43 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                         || r < dataAccessLayer.countData(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
                                 RotationPointTable.COLUMN_MEASUREMENT_FK)
                         || d < dataAccessLayer.countData(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                                MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, a += Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, r += Constants.ROTATIONS_UPLOAD_BATCH_SIZE, d += Constants.DIRECTIONS_UPLOAD_BATCH_SIZE) {
+                                MagneticValuePointTable.COLUMN_MEASUREMENT_FK);
+                     g += geoLocationsUploadBatchSize, a += accelerationsUploadBatchSize, r += rotationsUploadBatchSize, d += directionsUploadBatchSize) {
                     Cursor geoLocationsCursor = null;
                     Cursor accelerationsCursor = null;
                     Cursor rotationsCursor = null;
                     Cursor directionsCursor = null;
                     try {
                         geoLocationsCursor = dataAccessLayer.loadGeoLocations(g,
-                                g + Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE);
+                                g + geoLocationsUploadBatchSize);
                         JSONArray geoLocationsJsonArray = transformToJsonArray(geoLocationsCursor,
                                 geoLocationJsonMapper);
                         measurementSlice.put("gpsPoints", geoLocationsJsonArray);
 
                         accelerationsCursor = dataAccessLayer.load3DPoint(new AccelerationsSerializer(), a,
-                                a + Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE);
+                                a + accelerationsUploadBatchSize);
                         JSONArray accelerationPointsArray = transformToJsonArray(accelerationsCursor,
                                 accelerationJsonMapper);
                         measurementSlice.put("accelerationPoints", accelerationPointsArray);
 
                         rotationsCursor = dataAccessLayer.load3DPoint(new RotationsSerializer(), r,
-                                r + Constants.ROTATIONS_UPLOAD_BATCH_SIZE);
+                                r + rotationsUploadBatchSize);
                         JSONArray rotationPointsArray = transformToJsonArray(rotationsCursor, rotationJsonMapper);
                         measurementSlice.put("rotationPoints", rotationPointsArray);
 
                         directionsCursor = dataAccessLayer.load3DPoint(new DirectionsSerializer(), d,
-                                d + Constants.DIRECTIONS_UPLOAD_BATCH_SIZE);
+                                d + directionsUploadBatchSize);
                         JSONArray magneticValuePointsArray = transformToJsonArray(directionsCursor,
                                 directionJsonMapper);
                         measurementSlice.put("magneticValuePoints", magneticValuePointsArray);
 
-                        URL postUrl = new URL(Http.returnUrlWithTrailingSlash(url) + "measurements/");
+                        URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
                         final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
                                 Constants.AUTH_TOKEN_TYPE, false);
                         HttpURLConnection con = null;
                         try {
-                            con = Http.openHttpConnection(postUrl, jwtBearer);
-                            Http.post(con, measurementSlice, true);
+                            con = http.openHttpConnection(postUrl, jwtBearer);
+                            http.post(con, measurementSlice, true);
 
                             ArrayList<ContentProviderOperation> markAsSyncedOperation = new ArrayList<>();
                             markAsSyncedOperation
@@ -249,6 +274,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             notifySyncFinished();
+            if(unsyncedMeasurementsCursor!=null) {
+                unsyncedMeasurementsCursor.close();
+            }
         }
     }
 
@@ -299,7 +327,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     private long countUnsyncedDataPoints(final @NonNull ContentProviderClient provider,
             final @NonNull Cursor syncableMeasurements) throws RemoteException {
         long ret = 0L;
-        while (syncableMeasurements.moveToNext()) {
+        int initialPosition = syncableMeasurements.getPosition();
+        syncableMeasurements.moveToFirst();
+        do {
             long measurementIdentifier = syncableMeasurements
                     .getLong(syncableMeasurements.getColumnIndex(BaseColumns._ID));
             MeasurementContentProviderClient client = new MeasurementContentProviderClient(measurementIdentifier,
@@ -313,7 +343,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                     RotationPointTable.COLUMN_MEASUREMENT_FK);
             ret += client.countData(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
                     MagneticValuePointTable.COLUMN_MEASUREMENT_FK);
-        }
+        } while (syncableMeasurements.moveToNext());
+        final int offsetToInitialPosition = syncableMeasurements.getPosition() - initialPosition;
+        syncableMeasurements.move(-offsetToInitialPosition);
         return ret;
     }
 

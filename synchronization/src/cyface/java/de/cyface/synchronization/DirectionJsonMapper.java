@@ -32,7 +32,7 @@ final class DirectionJsonMapper implements JsonMapper {
 
         try {
             String measurementIdentifier = measurementSlice.getString("id");
-            JSONArray directionArray = measurementSlice.getJSONArray("directionPoints");
+            JSONArray directionArray = measurementSlice.getJSONArray("magneticValuePoints");
             for (int i = 0; i < directionArray.length(); i++) {
                 JSONObject direction = directionArray.getJSONObject(i);
                 ContentProviderOperation operation = ContentProviderOperation
