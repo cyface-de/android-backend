@@ -224,7 +224,7 @@ public abstract class DataCapturingService {
      *                                    <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     public void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
-                                        final @NonNull StartUpFinishedHandler finishedHandler)
+                           final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
         Log.d(TAG, "Starting asynchronously and locking lifecycle!");
         lifecycleLock.lock();
@@ -255,6 +255,7 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
      *                                occurs, but you have to handle it anyways to prevent your application from crashing.
      */
+    @Deprecated
     public void stopSync() throws DataCapturingException {
         if (getContext() == null) {
             return;
@@ -306,7 +307,7 @@ public abstract class DataCapturingService {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
             }
-            Log.v(TAG,"Unlocking in asynchronous stop.");
+            Log.v(TAG, "Unlocking in asynchronous stop.");
             lifecycleLock.unlock();
         }
     }
@@ -322,6 +323,7 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If halting the background service was not successful.
      */
+    @Deprecated
     public void pauseSync() throws DataCapturingException {
         stopServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
     }
@@ -362,6 +364,7 @@ public abstract class DataCapturingService {
      *                                    permission in the future you need to start a new measurement and not call <code>resumeSync</code>
      *                                    again.
      */
+    @Deprecated
     public void resumeSync() throws DataCapturingException, MissingPermissionException {
         if (!checkFineLocationAccess(getContext())) {
             if (persistenceLayer.hasOpenMeasurement()) {
@@ -483,31 +486,47 @@ public abstract class DataCapturingService {
     /**
      * Reconnects your app to the <code>DataCapturingService</code>. This might be especially useful if you have been
      * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
+     * <p>
+     * <b>ATTENTION</b>: This method might take some time to check for a running service. Always consider this to be a long running operation and never call it on the main thread.
      *
      * @throws DataCapturingException If rebinding to the background service fails.
      */
     public void reconnect() throws DataCapturingException {
 
-        //final Lock lock = new ReentrantLock();
-        //Condition condition = lock.newCondition();
-        //IsRunningStatus callback = new IsRunningStatus(lock, condition);
-        // TODO: Maybe move the timeout time to a parameter.
-        // FIXME: This happens asynchronously now. Somehow we need to handle that.
-        isRunning(500L, TimeUnit.MILLISECONDS, new IsRunningCallback() {
+        final Lock lock = new ReentrantLock();
+        Condition condition = lock.newCondition();
+
+        ReconnectCallback reconnectCallback = new ReconnectCallback(lock, condition) {
             @Override
-            public void isRunning() {
+            public void onSuccess() {
                 try {
                     bind();
                 } catch (DataCapturingException e) {
                     throw new IllegalStateException("Illegal state: unable to bind to background service!");
                 }
             }
+        };
 
-            @Override
-            public void timedOut() {
-                Log.w(TAG, "Unable to bind on reconnect. It seems the service is not running");
-            }
-        });
+        // TODO: Maybe move the timeout time to a parameter.
+        try {
+            isRunning(500L, TimeUnit.MILLISECONDS, reconnectCallback);
+        } catch (IllegalStateException e) {
+            throw new DataCapturingException(e);
+        }
+
+        // Wait for isRunning to return.
+        lock.lock();
+        try {
+            condition.await(500L, TimeUnit.MILLISECONDS);
+        } catch (InterruptedException e) {
+            throw new DataCapturingException(e);
+        } finally {
+            lock.unlock();
+        }
+
+        if (reconnectCallback.hasTimedOut()) {
+            throw new DataCapturingException("Reconnect failed since there is no service to reconnect to!");
+        }
     }
 
     /**
@@ -676,8 +695,8 @@ public abstract class DataCapturingService {
             unbind();
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
-        } catch(DataCapturingException e) {
-          Log.w(TAG, "Service was either paused or already stopped, so I was unable to unbind from it.");
+        } catch (DataCapturingException e) {
+            Log.w(TAG, "Service was either paused or already stopped, so I was unable to unbind from it.");
         } finally {
             if (BuildConfig.DEBUG)
                 Log.v(TAG, String.format("Stopping using Intent with context %s", context));
@@ -773,7 +792,7 @@ public abstract class DataCapturingService {
         lifecycleLock.lock();
         Log.v(TAG, "Locking bind.");
         try {
-            if(getIsStoppingOrHasStopped()) {
+            if (getIsStoppingOrHasStopped()) {
                 return false;
             }
 
