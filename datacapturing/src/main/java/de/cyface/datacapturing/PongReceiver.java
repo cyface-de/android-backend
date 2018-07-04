@@ -10,6 +10,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.os.Handler;
+import android.os.HandlerThread;
+import android.os.Process;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -29,6 +31,7 @@ public class PongReceiver extends BroadcastReceiver {
      * The tag used to identify messages in Logcat.
      */
     private static final String TAG = "de.cyface.capturing";
+    private static final String BACKGROUND_THREAD_NAME = "de.cyface.thread.pongreceiver";
     /**
      * The callback called if either the <code>MessageCodes.PONG</code> event has been received or the timeout was
      * reached.
@@ -46,10 +49,6 @@ public class PongReceiver extends BroadcastReceiver {
      */
     private boolean isTimedOut;
     /**
-     * A <code>Handler</code> that manages to call the timeout callback after the timeout has passed.
-     */
-    private final Handler timeoutHandler;
-    /**
      * Lock used to synchronize the timeout and the isRunning callback if both happen to happen simultaneously.
      */
     private final Lock lock;
@@ -58,19 +57,22 @@ public class PongReceiver extends BroadcastReceiver {
      */
     private final Context context;
 
+    private final HandlerThread pongReceiverThread;
+
     /**
      * Creates a new completely <code>PongReceiver</code> for a certain context.
      *
      * @param context The context to use to send and receive broadcast messages.
      */
     public PongReceiver(final @NonNull Context context) {
-        timeoutHandler = new Handler();
+        pongReceiverThread = new HandlerThread(BACKGROUND_THREAD_NAME, Process.THREAD_PRIORITY_DEFAULT);
         lock = new ReentrantLock();
         this.context = context;
         isRunning = false;
         isTimedOut = false;
     }
 
+    // TODO: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and iAmRunning would be more readable.
     /**
      * Sends the <code>MessageCodes.PING</code> message to the system and waits for the timeout to occur or the service
      * to answer with a <code>MessageCodes.PONG</code>.
@@ -83,7 +85,13 @@ public class PongReceiver extends BroadcastReceiver {
     public void pongAndReceive(final long timeout, final @NonNull TimeUnit unit,
                                final @NonNull IsRunningCallback callback) {
         this.callback = callback;
-        context.registerReceiver(this, new IntentFilter(MessageCodes.ACTION_PONG));
+
+        // Run receiver on a different thread so it runs even if calling thread waits for it to return:
+
+        pongReceiverThread.start();
+        Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
+        context.registerReceiver(this, new IntentFilter(MessageCodes.ACTION_PONG), null, receiverHandler);
+
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);
 
@@ -98,6 +106,7 @@ public class PongReceiver extends BroadcastReceiver {
 
         context.sendBroadcast(broadcastIntent);
         if (BuildConfig.DEBUG) Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
+        Handler timeoutHandler = new Handler(pongReceiverThread.getLooper());
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
@@ -112,6 +121,9 @@ public class PongReceiver extends BroadcastReceiver {
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
+                        if(Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
+                            pongReceiverThread.quit();
+                        }
                     }
                 } finally {
                     lock.unlock();
@@ -132,6 +144,9 @@ public class PongReceiver extends BroadcastReceiver {
                 isRunning = true;
                 callback.isRunning();
                 this.context.unregisterReceiver(this);
+                if(Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
+                    pongReceiverThread.quit();
+                }
             }
         } finally {
             lock.unlock();

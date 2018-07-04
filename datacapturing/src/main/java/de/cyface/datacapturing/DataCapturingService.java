@@ -192,6 +192,7 @@ public abstract class DataCapturingService {
      *                                    register a {@link UIListener} to ask the user for this permission and prevent the
      *                                    <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
+    @Deprecated
     public synchronized void startSync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException, MissingPermissionException {
         if (getIsRunning()) {
@@ -494,12 +495,13 @@ public abstract class DataCapturingService {
     public void reconnect() throws DataCapturingException {
 
         final Lock lock = new ReentrantLock();
-        Condition condition = lock.newCondition();
+        final Condition condition = lock.newCondition();
 
         ReconnectCallback reconnectCallback = new ReconnectCallback(lock, condition) {
             @Override
             public void onSuccess() {
                 try {
+                    Log.v(TAG, "ReconnectCallback.onSuccess(): Binding to service!");
                     bind();
                 } catch (DataCapturingException e) {
                     throw new IllegalStateException("Illegal state: unable to bind to background service!");
@@ -517,7 +519,10 @@ public abstract class DataCapturingService {
         // Wait for isRunning to return.
         lock.lock();
         try {
-            condition.await(500L, TimeUnit.MILLISECONDS);
+            if(BuildConfig.DEBUG) Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
+            if(!condition.await(500L, TimeUnit.MILLISECONDS)) {
+                Log.v(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
+            }
         } catch (InterruptedException e) {
             throw new DataCapturingException(e);
         } finally {

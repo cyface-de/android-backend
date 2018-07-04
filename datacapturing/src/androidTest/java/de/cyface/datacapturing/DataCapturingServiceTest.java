@@ -158,16 +158,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.startSync(testListener, Vehicle.UNKOWN);
 
         oocut.disconnect();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.reconnect();
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        oocut.reconnect();
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
@@ -196,18 +187,66 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests for the correct <code>Exception</code> when you try to stop a stopped service.
+     * Tests that stopping a stopped service causes no problems.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      */
-    @Test(expected = DataCapturingException.class)
+    @Test
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException {
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
+            @Override
+            public void startUpFinished() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        });
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        oocut.stopSync();
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(false)));
 
-        oocut.stopSync();
+        oocut.stopAsync(new ShutDownFinishedHandler() {
+            @Override
+            public void shutDownFinished() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        });
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
+
+        oocut.stopAsync(new ShutDownFinishedHandler() {
+            @Override
+            public void shutDownFinished() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        });
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
     }
 
     /**
@@ -225,20 +264,51 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.stopSync();
     }
 
-    // TODO Stopping a disconnected service is actually necessary.
-    // Do we really want to throw an Exception here?
     /**
-     * Tests for the correct <code>Exception</code> if you try to stop a disconnected service.
+     * Tests that no <code>Exception</code> occurs if you stop a disconnected service.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      */
-    @Test(expected = DataCapturingException.class)
+    @Test
     public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException {
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
+            @Override
+            public void startUpFinished() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        });
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(false)));
 
         oocut.disconnect();
-        oocut.stopSync();
+
+        oocut.stopAsync(new ShutDownFinishedHandler() {
+            @Override
+            public void shutDownFinished() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        });
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
     }
 
     /**
@@ -253,18 +323,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         oocut.disconnect();
 
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.reconnect();
-                    oocut.reconnect();
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException();
-                }
-            }
-        });
-
+        oocut.reconnect();
+        oocut.reconnect();
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
@@ -283,7 +343,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         // Service should not run in the beginning!
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        assertThat("Service seems to be running before even started!",runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat("Service seems to be running before even started!", runningStatusCallback.wasRunning(),
+                is(equalTo(false)));
 
         // Start service and wait for it to run.
         oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
@@ -300,41 +361,18 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        assertThat("Service seems to not have started successfully!", runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat("Service seems to not have started successfully!", runningStatusCallback.wasRunning(),
+                is(equalTo(true)));
 
-
-        Log.v(TAG, "Entering disconnect 1");
         oocut.disconnect();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Log.v(TAG, "Entering reconnect 1");
-                    oocut.reconnect();
-                    Log.v(TAG, "Leaving reconnect 1");
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-        Log.v(TAG, "Entering disconnect 2");
+        oocut.reconnect();
         oocut.disconnect();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    Log.v(TAG, "Entering reconnect 2");
-                    oocut.reconnect();
-                    Log.v(TAG, "Leaving reconnect 2");
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
+        oocut.reconnect();
 
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        assertThat("Service seems not to be running anymore after two disconnect/reconnect cycles!", runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat("Service seems not to be running anymore after two disconnect/reconnect cycles!",
+                runningStatusCallback.wasRunning(), is(equalTo(true)));
 
         oocut.stopAsync(new ShutDownFinishedHandler() {
             @Override
@@ -348,7 +386,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
             }
         });
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        assertThat("Service seems to still be running after having been stopped after two disconnect/reconnect cycles!", runningStatusCallback.wasRunning(), is(equalTo(false)));
+
+        // Check whether shutdown is still successful.
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat("Service seems to still be running after having been stopped after two disconnect/reconnect cycles!",
+                runningStatusCallback.wasRunning(), is(equalTo(false)));
     }
 
     /**
@@ -460,19 +503,21 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
     }
 
+    /**
+     * Tests whether reconnect throws an exception when called without a running background service and leaves the
+     * DataCapturingService in the correct state (<code>isRunning</code> is <code>false</code>.
+     *
+     * @throws DataCapturingException The exception that should occur.
+     */
     @Test
     public void testReconnectOnNonRunningServer() throws DataCapturingException {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut.reconnect();
-                } catch (DataCapturingException e) {
-                    throw new IllegalStateException(e);
-                }
-            }
-        });
-        assertThat(oocut.getIsRunning(),is(equalTo(false)));
+        try {
+            oocut.reconnect();
+        } catch (DataCapturingException e) {
+            assertThat(oocut.getIsRunning(), is(equalTo(false)));
+            return;
+        }
+        fail("No DataCapturingException occured when reconnecting without a running service!");
     }
 
     /**

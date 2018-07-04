@@ -1,5 +1,6 @@
 package de.cyface.datacapturing;
 
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -21,25 +22,32 @@ abstract class ReconnectCallback implements IsRunningCallback {
 
     @Override
     public void isRunning() {
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "ReconnectCallback.isRunning(): Entering!");
         lock.lock();
         try {
-            if(!hasTimedOut) {
+            if (!hasTimedOut) {
                 wasRunning = true;
                 hasTimedOut = false;
+                onSuccess();
                 condition.signal();
             }
         } finally {
             lock.unlock();
         }
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "ReconnectCallback.isRunning(): Leaving!");
     }
 
     public abstract void onSuccess();
 
     @Override
     public void timedOut() {
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "ReconnectCallback.timedOut(): Entering!");
         lock.lock();
         try {
-            if(!wasRunning) {
+            if (!wasRunning) {
                 Log.w(TAG, "Unable to bind on reconnect. It seems the service is not running");
                 hasTimedOut = true;
                 wasRunning = false;
@@ -48,6 +56,8 @@ abstract class ReconnectCallback implements IsRunningCallback {
         } finally {
             lock.unlock();
         }
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "ReconnectCallback.timedOut(): Leaving!");
     }
 
     public boolean hasTimedOut() {
