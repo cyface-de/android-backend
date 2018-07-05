@@ -504,20 +504,15 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests whether reconnect throws an exception when called without a running background service and leaves the
+     * Tests whether reconnect throws no exception when called without a running background service and leaves the
      * DataCapturingService in the correct state (<code>isRunning</code> is <code>false</code>.
      *
-     * @throws DataCapturingException The exception that should occur.
+     * @throws DataCapturingException Fails the test if anything goes wrong.
      */
     @Test
     public void testReconnectOnNonRunningServer() throws DataCapturingException {
-        try {
-            oocut.reconnect();
-        } catch (DataCapturingException e) {
-            assertThat(oocut.getIsRunning(), is(equalTo(false)));
-            return;
-        }
-        fail("No DataCapturingException occured when reconnecting without a running service!");
+        oocut.reconnect();
+        assertThat(oocut.getIsRunning(), is(equalTo(false)));
     }
 
     /**
