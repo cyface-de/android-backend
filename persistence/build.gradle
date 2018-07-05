@@ -27,7 +27,7 @@ android {
 
         // Needed, to execute the integration tests and the apk onto the same device
         buildConfigField("String", "provider", "\"de.cyface.provider\"")
-        //buildConfigField("String", "testProvider", "\"de.cyface.testProvider\"") - the authority is replaced for iTs via manifest, not sure if we need to use a different provider, too?
+        buildConfigField("String", "testProvider", "\"de.cyface.provider.test\"")// - the authority is replaced for iTs via manifest, not sure if we need to use a different provider, too?
     }
 
     flavorDimensions "app"

@@ -25,6 +25,7 @@ import android.test.ProviderTestCase2;
  */
 @RunWith(AndroidJUnit4.class)
 public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
+    private static final String PROVIDER = BuildConfig.testProvider;
     /**
      * A <code>ContentValues</code> object as prototype to create measurements in the database.
      */
@@ -32,13 +33,17 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
     /**
      * The <code>Uri</code> to use when accessing the measurements table.
      */
-    Uri contentUri = MeasuringPointsContentProvider.MEASUREMENT_URI;
+    private Uri contentUri;
+
+    static {
+        MeasuringPointsContentProvider.AUTHORITY = PROVIDER;
+    }
 
     /**
      * Constructor required by <code>ProviderTestCase2</code>.
      */
     public MeasurementTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, PROVIDER);
     }
 
     /**
@@ -53,6 +58,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
         fixtureMeasurement = new ContentValues();
         fixtureMeasurement.put(MeasurementTable.COLUMN_FINISHED, false);
         fixtureMeasurement.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
+        contentUri = MeasuringPointsContentProvider.MEASUREMENT_URI;
     }
 
     /**

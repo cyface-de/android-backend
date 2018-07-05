@@ -27,7 +27,13 @@ import android.provider.BaseColumns;
 public final class MeasuringPointsContentProvider extends ContentProvider {
 
     private final static String TAG = MeasuringPointsContentProvider.class.getName();
-    public final static String AUTHORITY = BuildConfig.provider;
+    // TODO: A content provider should not be linked with its authority as described here:
+    // https://stackoverflow.com/questions/10790919/android-having-provider-authority-in-the-app-project
+    /**
+     * The authority this content provider is identified with. This needs to be written to change the authority based on
+     * the calling application or even from test cases.
+     */
+    public static String AUTHORITY = BuildConfig.provider;
     public final static Uri MEASUREMENT_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
             .path(DatabaseHelper.MEASUREMENT_URI_PATH).build();
     public final static Uri GPS_POINTS_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)

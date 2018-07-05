@@ -25,11 +25,16 @@ import android.test.ProviderTestCase2;
  */
 @RunWith(AndroidJUnit4.class)
 public class SamplePointTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
+    private static final String PROVIDER = BuildConfig.testProvider;
+
+    static {
+        MeasuringPointsContentProvider.AUTHORITY = PROVIDER;
+    }
 
     private ContentValues fixturePoint;
 
     public SamplePointTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, PROVIDER);
     }
 
     @Before

@@ -35,9 +35,14 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
 
     private MockContentResolver mockResolver;
     private Uri contentUri;
+    private static final String PROVIDER = BuildConfig.testProvider;
+
+    static {
+        MeasuringPointsContentProvider.AUTHORITY = PROVIDER;
+    }
 
     public GpsPointTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, PROVIDER);
     }
 
     private void cursorEqualsValues(final String message, final Cursor cursor, final ContentValues values) {
@@ -69,7 +74,7 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         setContext(InstrumentationRegistry.getTargetContext());
         super.setUp();
         mockResolver = getMockContentResolver();
-        contentUri = Uri.parse(String.format("content://%s/%s", BuildConfig.provider, DatabaseHelper.GPS_POINT_URI_PATH));
+        contentUri = Uri.parse(String.format("content://%s/%s", PROVIDER, DatabaseHelper.GPS_POINT_URI_PATH));
     }
 
     private ContentValues getTextFixture() {
@@ -104,12 +109,12 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         Uri createdRowUri = mockResolver.insert(contentUri,getTextFixture());
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertEquals(1, mockResolver.delete(Uri.parse(String.format("content://%s/%s/%s",BuildConfig.provider,DatabaseHelper.GPS_POINT_URI_PATH,createdId)), null, null));
+        assertEquals(1, mockResolver.delete(Uri.parse(String.format("content://%s/%s/%s",PROVIDER,DatabaseHelper.GPS_POINT_URI_PATH,createdId)), null, null));
     }
 
     @Test
     public void testCreateMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), getTextFixture());
+        Uri insert = mockResolver.insert(Uri.parse("content://"+PROVIDER+"/measuring"), getTextFixture());
         String lastPathSegment = insert.getLastPathSegment();
         assertThat(lastPathSegment,not(equalTo("-1")));
         long identifier = Long.parseLong(lastPathSegment);
@@ -118,12 +123,12 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
 
     @Test
     public void testReadMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), getTextFixture());
+        Uri insert = mockResolver.insert(Uri.parse("content://"+PROVIDER+"/measuring"), getTextFixture());
         String lastPathSegment = insert.getLastPathSegment();
 
-        try (Cursor urlQuery= mockResolver.query(Uri.parse(String.format("content://%s/%s/%s",BuildConfig.provider,DatabaseHelper.GPS_POINT_URI_PATH,lastPathSegment)), null, null, null, null);Cursor selectionQuery = mockResolver.query(
-                Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, BaseColumns._ID + "=?",
-                new String[] {lastPathSegment}, null); Cursor allQuery = mockResolver.query(Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, null, null, null);) {
+        try (Cursor urlQuery= mockResolver.query(Uri.parse(String.format("content://%s/%s/%s",PROVIDER,DatabaseHelper.GPS_POINT_URI_PATH,lastPathSegment)), null, null, null, null);Cursor selectionQuery = mockResolver.query(
+                Uri.parse("content://"+PROVIDER+"/measuring"), null, BaseColumns._ID + "=?",
+                new String[] {lastPathSegment}, null); Cursor allQuery = mockResolver.query(Uri.parse("content://"+PROVIDER+"/measuring"), null, null, null, null);) {
             // Select
             cursorEqualsValues("Unable to load all measuring points via URI.", urlQuery, getTextFixture());
             cursorEqualsValues("Unable to load measuring point via selection.", selectionQuery, getTextFixture());
@@ -133,13 +138,13 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
 
     @Test
     public void testUpdateMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), getTextFixture());
+        Uri insert = mockResolver.insert(Uri.parse("content://"+PROVIDER+"/measuring"), getTextFixture());
         String lastPathSegment = insert.getLastPathSegment();
 
         ContentValues newValues = new ContentValues();
         newValues.put(GpsPointsTable.COLUMN_LAT, 10.34f);
 
-        Uri dataPointUri = Uri.parse(String.format("content://%s/%s/%s", BuildConfig.provider, DatabaseHelper.GPS_POINT_URI_PATH, lastPathSegment));
+        Uri dataPointUri = Uri.parse(String.format("content://%s/%s/%s", PROVIDER, DatabaseHelper.GPS_POINT_URI_PATH, lastPathSegment));
         assertEquals(
                 1, mockResolver.update(dataPointUri, newValues, null, null));
 
