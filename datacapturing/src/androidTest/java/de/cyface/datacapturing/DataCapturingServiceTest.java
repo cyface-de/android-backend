@@ -36,7 +36,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 3.0.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -450,6 +450,13 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
     }
 
+    /**
+     * Tests that calling resume two times in a row works without causing any errors. The second call to resume should
+     * just do nothing.
+     *
+     * @throws MissingPermissionException If permission to access geo location sensor is missing.
+     * @throws DataCapturingException If any unexpected error occurs during the test.
+     */
     @Test
     public void testResumeAsyncTwice() throws MissingPermissionException, DataCapturingException {
         StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
@@ -485,6 +492,12 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         assertThat(isRunningCallback.timedOut, is(equalTo(true)));
     }
 
+    /**
+     * Tests that stopping a paused service does work successfully.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     */
     @Test
     public void testStartPauseStop() throws MissingPermissionException, DataCapturingException {
         StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();

@@ -10,13 +10,20 @@ import de.cyface.datacapturing.IsRunningCallback;
 
 /**
  * A callback used to check whether the service has successfully started or not.
+ * <p>
+ * This callback is used by tests and is provided with a <code>lock</code> and <code>condition</code> to wake up the
+ * test as soon as the callback receives some response. It also provides methods to check the current state of the
+ * service under test after having been executed.
  *
  * @author Klemens Muthmann
  * @since 2.0.0
- * @version 2.0.0
+ * @version 3.0.0
  */
 public class TestCallback implements IsRunningCallback {
 
+    /**
+     * The tag used to identify Logcat messages this class.
+     */
     private final static String TAG = "de.cyface.test";
 
     /**
@@ -36,8 +43,18 @@ public class TestCallback implements IsRunningCallback {
      */
     private final Condition condition;
 
+    /**
+     * A tag used to mark messages from different instances of this class.
+     */
     private final String logTag;
 
+    /**
+     * Creates a new completely intialized <code>TestCallback</code>
+     *
+     * @param logTag A tag used to mark messages from different instances of this class.
+     * @param lock <code>Lock</code> used to synchronize the callback with the test case using it.
+     * @param condition <code>Condition</code> used to signal the test case to continue processing.
+     */
     public TestCallback(final @NonNull String logTag, final @NonNull Lock lock, final @NonNull Condition condition) {
         this.logTag = logTag;
         this.lock = lock;

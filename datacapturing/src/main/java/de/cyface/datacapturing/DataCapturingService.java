@@ -61,7 +61,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 4.0.1
+ * @version 5.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -91,6 +91,11 @@ public abstract class DataCapturingService {
      */
     private boolean isRunning;
 
+    /**
+     * A flag indicating whether the background service is currently stopped or in the process of stopping. This flag is
+     * used to prevent multiple lifecycle method from interrupting a stop process or being called, while no service is
+     * running.
+     */
     private boolean isStoppingOrHasStopped;
 
     /**
@@ -228,11 +233,13 @@ public abstract class DataCapturingService {
     public void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
-        Log.d(TAG, "Starting asynchronously and locking lifecycle!");
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Starting asynchronously and locking lifecycle!");
         lifecycleLock.lock();
         try {
             if (getIsRunning()) {
-                Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
                 return;
             }
             // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
@@ -242,7 +249,8 @@ public abstract class DataCapturingService {
             long measurementIdentifier = prepareStart(listener, vehicle);
             runService(measurementIdentifier, finishedHandler);
         } finally {
-            Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
             lifecycleLock.unlock();
         }
     }
@@ -294,13 +302,15 @@ public abstract class DataCapturingService {
      *             occurs, but you have to handle it anyways to prevent your application from crashing.
      */
     public void stopAsync(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
-        Log.d(TAG, "Stopping asynchronously!");
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
             return;
         }
 
         lifecycleLock.lock();
-        Log.v(TAG, "Locking in asynchronous stop.");
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "Locking in asynchronous stop.");
         try {
             setIsStoppingOrHasStopped(true);
             stopService(finishedHandler);
@@ -310,7 +320,8 @@ public abstract class DataCapturingService {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
             }
-            Log.v(TAG, "Unlocking in asynchronous stop.");
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "Unlocking in asynchronous stop.");
             lifecycleLock.unlock();
         }
     }
@@ -348,7 +359,8 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException
      */
     public void pauseAsync(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
-        Log.d(TAG, "Pausing asynchronously.");
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Pausing asynchronously.");
         stopService(finishedHandler);
     }
 
@@ -401,7 +413,8 @@ public abstract class DataCapturingService {
      */
     public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
-        Log.d(TAG, "Resume asynchronously.");
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
@@ -467,7 +480,8 @@ public abstract class DataCapturingService {
      * @param callback Called as soon as the current state of the service has become clear.
      */
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
-        Log.d(TAG, "Checking isRunning?");
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
         pongReceiver.pongAndReceive(timeout, unit, callback);
     }
@@ -485,8 +499,10 @@ public abstract class DataCapturingService {
         unbind();
     }
 
-    /* TODO: This should probably throw an exception if reconnect was not possible. But we can do this only for the next
-      version release.*/
+    /*
+     * TODO: This should probably throw an exception if reconnect was not possible. But we can do this only for the next
+     * version release.
+     */
     /**
      * Reconnects your app to the <code>DataCapturingService</code>. This might be especially useful if you have been
      * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
@@ -505,7 +521,8 @@ public abstract class DataCapturingService {
             @Override
             public void onSuccess() {
                 try {
-                    Log.v(TAG, "ReconnectCallback.onSuccess(): Binding to service!");
+                    if (BuildConfig.DEBUG)
+                        Log.v(TAG, "ReconnectCallback.onSuccess(): Binding to service!");
                     bind();
                 } catch (DataCapturingException e) {
                     throw new IllegalStateException("Illegal state: unable to bind to background service!");
@@ -526,7 +543,7 @@ public abstract class DataCapturingService {
             if (BuildConfig.DEBUG)
                 Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
             if (!condition.await(500L, TimeUnit.MILLISECONDS)) {
-                Log.v(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
+                Log.w(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
             }
         } catch (InterruptedException e) {
             throw new DataCapturingException(e);
@@ -608,7 +625,8 @@ public abstract class DataCapturingService {
      */
     private synchronized void runService(final long measurementIdentifier,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
-        Log.d(TAG, "Starting the background service for measurement identifier !" + measurementIdentifier);
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Starting the background service for measurement identifier !" + measurementIdentifier);
         Context context = getContext();
         if (BuildConfig.DEBUG)
             Log.v(TAG, "Registering receiver for service start broadcast.");
@@ -680,7 +698,8 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
     private void stopService(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
-        Log.d(TAG, "Stopping the background service.");
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
 
         Context context = getContext();
@@ -792,7 +811,8 @@ public abstract class DataCapturingService {
 
         // This must not be interrupted or interrupt a call to stop the service.
         lifecycleLock.lock();
-        Log.v(TAG, "Locking bind.");
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "Locking bind.");
         try {
             if (getIsStoppingOrHasStopped()) {
                 return false;
@@ -803,7 +823,8 @@ public abstract class DataCapturingService {
             setIsRunning(ret);
             return ret;
         } finally {
-            Log.v(TAG, "Unlocking bind.");
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "Unlocking bind.");
             lifecycleLock.unlock();
         }
     }
@@ -825,23 +846,43 @@ public abstract class DataCapturingService {
         }
     }
 
+    /**
+     * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
+     */
     private void setIsRunning(final boolean isRunning) {
-        Log.d(TAG, "Setting isRunning to " + isRunning);
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Setting isRunning to " + isRunning);
         this.isRunning = isRunning;
     }
 
+    /**
+     * @return {@code true} if data capturing is running; {@code false} otherwise.
+     */
     public boolean getIsRunning() {
-        Log.d(TAG, "Getting isRunning with value " + isRunning);
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Getting isRunning with value " + isRunning);
         return isRunning;
     }
 
+    /**
+     * @param isStoppingOrHasStopped A flag indicating whether the background service is currently stopped or in the
+     *            process of stopping. This flag is used to prevent multiple lifecycle method from interrupting a stop
+     *            process or being called, while no service is running.
+     */
     private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
-        Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
         this.isStoppingOrHasStopped = isStoppingOrHasStopped;
     }
 
+    /**
+     * @return A flag indicating whether the background service is currently stopped or in the process of stopping. This
+     *         flag is used to prevent multiple lifecycle method from interrupting a stop process or being called, while
+     *         no service is running.
+     */
     private boolean getIsStoppingOrHasStopped() {
-        Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
         return isStoppingOrHasStopped;
     }
 

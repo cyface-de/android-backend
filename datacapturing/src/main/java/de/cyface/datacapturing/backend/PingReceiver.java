@@ -17,7 +17,7 @@ import de.cyface.datacapturing.BundlesExtrasCodes;
  * This can be used to check if the service is alive.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {

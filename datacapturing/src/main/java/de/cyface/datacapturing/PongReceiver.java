@@ -22,7 +22,7 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.1.0
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -31,6 +31,10 @@ public class PongReceiver extends BroadcastReceiver {
      * The tag used to identify messages in Logcat.
      */
     private static final String TAG = "de.cyface.capturing";
+    /**
+     * The human readable name for the background thread handling response and timeout of the ping pong process between
+     * background service and foreground facade.
+     */
     private static final String BACKGROUND_THREAD_NAME = "de.cyface.thread.pongreceiver";
     /**
      * The callback called if either the <code>MessageCodes.PONG</code> event has been received or the timeout was
@@ -72,18 +76,19 @@ public class PongReceiver extends BroadcastReceiver {
         isTimedOut = false;
     }
 
-    // TODO: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and iAmRunning would be more readable.
+    // TODO: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and iAmRunning
+    // would be more readable.
     /**
      * Sends the <code>MessageCodes.PING</code> message to the system and waits for the timeout to occur or the service
      * to answer with a <code>MessageCodes.PONG</code>.
      *
-     * @param timeout  The time to wait for the <code>MessageCodes.PONG</code> in the specified unit.
-     * @param unit     The unit of the <code>timeout</code>.
+     * @param timeout The time to wait for the <code>MessageCodes.PONG</code> in the specified unit.
+     * @param unit The unit of the <code>timeout</code>.
      * @param callback The callback to inform about either the timeout or the successful reception of the
-     *                 <code>MessageCodes.PONG</code> message.
+     *            <code>MessageCodes.PONG</code> message.
      */
     public void pongAndReceive(final long timeout, final @NonNull TimeUnit unit,
-                               final @NonNull IsRunningCallback callback) {
+            final @NonNull IsRunningCallback callback) {
         this.callback = callback;
 
         // Run receiver on a different thread so it runs even if calling thread waits for it to return:
@@ -105,14 +110,17 @@ public class PongReceiver extends BroadcastReceiver {
         }
 
         context.sendBroadcast(broadcastIntent);
-        if (BuildConfig.DEBUG) Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
         Handler timeoutHandler = new Handler(pongReceiverThread.getLooper());
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
                 if (BuildConfig.DEBUG)
-                    Log.d(TAG, "PongReceiver.pongAndReceive(): Timeout for pong " + pingPongIdentifier + " reached after " + unit.toMillis(timeout)
-                            + " milliseconds. Executed at: " + SystemClock.uptimeMillis());
+                    Log.d(TAG,
+                            "PongReceiver.pongAndReceive(): Timeout for pong " + pingPongIdentifier + " reached after "
+                                    + unit.toMillis(timeout) + " milliseconds. Executed at: "
+                                    + SystemClock.uptimeMillis());
                 lock.lock();
                 try {
                     if (!isRunning) {
@@ -121,7 +129,7 @@ public class PongReceiver extends BroadcastReceiver {
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
-                        if(Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
+                        if (Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
                             pongReceiverThread.quit();
                         }
                     }
@@ -135,7 +143,8 @@ public class PongReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         if (BuildConfig.DEBUG)
-            Log.d(TAG, "PongReceiver.onReceive(): Received pong with identifier " + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
+            Log.d(TAG, "PongReceiver.onReceive(): Received pong with identifier "
+                    + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
             if (!isTimedOut && MessageCodes.ACTION_PONG.equals(intent.getAction())) {
@@ -144,7 +153,7 @@ public class PongReceiver extends BroadcastReceiver {
                 isRunning = true;
                 callback.isRunning();
                 this.context.unregisterReceiver(this);
-                if(Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
+                if (Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
                     pongReceiverThread.quit();
                 }
             }
