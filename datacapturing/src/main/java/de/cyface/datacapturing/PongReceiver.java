@@ -61,6 +61,9 @@ public class PongReceiver extends BroadcastReceiver {
      */
     private final Context context;
 
+    /**
+     * Background thread used to handle timeout or broadcast response without blocking the calling thread.
+     */
     private final HandlerThread pongReceiverThread;
 
     /**
