@@ -39,14 +39,17 @@ import de.cyface.synchronization.MeasurementContentProviderClient;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class MeasurementContentProviderClientTest {
 
-    private final static String TAG = "de.cyface.datacapturing";
+    /**
+     * The tag used to identify Logcat messages from this class.
+     */
+    private final static String TAG = "de.cyface.test";
 
     /**
      * This test makes sure that larger GeoLocation tracks can be loaded completely form the

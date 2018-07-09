@@ -23,18 +23,36 @@ import de.cyface.persistence.SamplePointTable;
 
 /**
  * A class responsible for writing captured sensor data to the underlying database.
+ * <p>
+ * This is a throw away runnable. You should never run this twice. Doing so will cause duplicates inside the <code>ContentProvider</code>. Instead create a new instance per <code>CapturedData</code> to save.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 2.0.0
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {
 
+    /**
+     * The tag used to identify Logcat messages from this class.
+     */
     private static final String TAG = CapturedDataWriter.class.getName();
+    /**
+     * The data to write.
+     */
     private final CapturedData data;
+    /**
+     * The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the data to.
+     */
     private final ContentResolver resolver;
+    /**
+     * The device wide unique identifier of the measurement to write the data to.
+     */
     private final long measurementIdentifier;
+    /**
+     * Callback which is called after writing data has finished.
+     */
+    private final WritingDataCompletedCallback callback;
     /**
      * Number of save operations to carry out in one batch. Increasing this value might increase performance but also
      * can lead to a {@link android.os.TransactionTooLargeException} on some mobile phones. The current value is the one
@@ -42,14 +60,19 @@ public class CapturedDataWriter implements Runnable {
      */
     public static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
 
-    CapturedDataWriter(final CapturedData data, final ContentResolver resolver, final long measurementIdentifier) {
-        if (data == null || resolver == null) {
-            throw new IllegalStateException("CapturedDataWrite called without data or resolver.");
-        }
-
+    /**
+     * Creates a new completely initialized writer for captured data.
+     *
+     * @param data The data to write.
+     * @param resolver The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the data to.
+     * @param measurementIdentifier The device wide unique identifier of the measurement to write the data to.
+     * @param callback Callback which is called after writing data has finished.
+     */
+    CapturedDataWriter(final @NonNull CapturedData data, final @NonNull ContentResolver resolver, final long measurementIdentifier, final @NonNull WritingDataCompletedCallback callback) {
         this.data = data;
         this.resolver = resolver;
         this.measurementIdentifier = measurementIdentifier;
+        this.callback = callback;
     }
 
     /**
@@ -131,6 +154,10 @@ public class CapturedDataWriter implements Runnable {
 
     @Override
     public void run() {
-        writeCapturedData();
+        try {
+            writeCapturedData();
+        } finally {
+            callback.writingDataCompleted();
+        }
     }
 }
