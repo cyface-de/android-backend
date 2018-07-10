@@ -61,7 +61,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 4.0.1
+ * @version 5.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -89,7 +89,15 @@ public abstract class DataCapturingService {
     /**
      * {@code true} if data capturing is running; {@code false} otherwise.
      */
-    private boolean isRunning = false;
+    private boolean isRunning;
+
+    /**
+     * A flag indicating whether the background service is currently stopped or in the process of stopping. This flag is
+     * used to prevent multiple lifecycle method from interrupting a stop process or being called, while no service is
+     * running.
+     */
+    private boolean isStoppingOrHasStopped;
+
     /**
      * A weak reference to the calling context. This is a weak reference since the calling context (i.e.
      * <code>Activity</code>) might have been destroyed, in which case there is no context anymore.
@@ -127,6 +135,12 @@ public abstract class DataCapturingService {
     private UIListener uiListener;
 
     /**
+     * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
+     * stop.
+     */
+    private final Lock lifecycleLock;
+
+    /**
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
@@ -161,6 +175,9 @@ public abstract class DataCapturingService {
         surveyor = new WiFiSurveyor(context, connectivityManager);
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
+        lifecycleLock = new ReentrantLock();
+        setIsRunning(false);
+        setIsStoppingOrHasStopped(false);
     }
 
     /**
@@ -181,9 +198,10 @@ public abstract class DataCapturingService {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
+    @Deprecated
     public synchronized void startSync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException, MissingPermissionException {
-        if(isRunning) {
+        if (getIsRunning()) {
             return;
         }
 
@@ -199,10 +217,10 @@ public abstract class DataCapturingService {
      * after the method returns. Please use the {@link StartUpFinishedHandler} to receive a callback, when the service
      * has been started or use the synchronized version {@link #startSync(DataCapturingListener, Vehicle)}.
      * <p>
-     * This method is synchronized to prevent starting of two services in parallel.
+     * This method is thread safe to call.
      * <p>
      * ATTENTION: If there are errors while starting the service, your handler might never be called. You may need to
-     * apply some timeout mechanism to not wait indefinetly.
+     * apply some timeout mechanism to not wait indefinitely.
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
@@ -212,15 +230,29 @@ public abstract class DataCapturingService {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
-    public synchronized void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
+    public void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
-        if(isRunning) {
-            return;
-        }
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Starting asynchronously and locking lifecycle!");
+        lifecycleLock.lock();
+        try {
+            if (getIsRunning()) {
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
+                return;
+            }
+            // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
+            // stopping the service.
+            setIsStoppingOrHasStopped(false);
 
-        long measurementIdentifier = prepareStart(listener, vehicle);
-        runService(measurementIdentifier, finishedHandler);
+            long measurementIdentifier = prepareStart(listener, vehicle);
+            runService(measurementIdentifier, finishedHandler);
+        } finally {
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
+            lifecycleLock.unlock();
+        }
     }
 
     /**
@@ -234,6 +266,7 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
      *             occurs, but you have to handle it anyways to prevent your application from crashing.
      */
+    @Deprecated
     public void stopSync() throws DataCapturingException {
         if (getContext() == null) {
             return;
@@ -254,24 +287,32 @@ public abstract class DataCapturingService {
      * Stops the currently running data capturing process. It throws an exception if this instance of
      * <code>DataCapturingService</code> is not bound to the underlying <code>DataCapturingBackgroundService</code>.
      * <p>
-     * This is the not asynchronous version of the <code>stopSync()</code> method. You should not assume that the
+     * This is the asynchronous version of the <code>stopSync()</code> method. You should not assume that the
      * service has been stopped after the method returns. The provided <code>finishedHandler</code> is called after the
      * <code>DataCapturingBackgroundService</code> has successfully shutdown.
      * <p>
      * ATTENTION: It seems to be possible, that the service stopped signal is never received. Under these circumstances
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
      * being caught in an infinite "loop".
+     * <p>
+     * This method is thread safe.
      *
      * @param finishedHandler
      * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
      *             occurs, but you have to handle it anyways to prevent your application from crashing.
      */
     public void stopAsync(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
             return;
         }
 
+        lifecycleLock.lock();
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "Locking in asynchronous stop.");
         try {
+            setIsStoppingOrHasStopped(true);
             stopService(finishedHandler);
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
@@ -279,6 +320,9 @@ public abstract class DataCapturingService {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
             }
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "Unlocking in asynchronous stop.");
+            lifecycleLock.unlock();
         }
     }
 
@@ -293,6 +337,7 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If halting the background service was not successful.
      */
+    @Deprecated
     public void pauseSync() throws DataCapturingException {
         stopServiceSync(PAUSE_RESUME_TIMEOUT_TIME_MILLIS, TimeUnit.MILLISECONDS);
     }
@@ -314,6 +359,8 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException
      */
     public void pauseAsync(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Pausing asynchronously.");
         stopService(finishedHandler);
     }
 
@@ -332,6 +379,7 @@ public abstract class DataCapturingService {
      *             permission in the future you need to start a new measurement and not call <code>resumeSync</code>
      *             again.
      */
+    @Deprecated
     public void resumeSync() throws DataCapturingException, MissingPermissionException {
         if (!checkFineLocationAccess(getContext())) {
             if (persistenceLayer.hasOpenMeasurement()) {
@@ -354,7 +402,7 @@ public abstract class DataCapturingService {
      * ATTENTION: It seems to be possible, that the service started signal is never received. Under these circumstances
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
      * being caught in an infinite "loop".
-     * 
+     *
      * @param finishedHandler A handler that is called as soon as the background service sends a message that the
      *            background service has resumed successfully.
      * @throws DataCapturingException If starting the background service was not successful.
@@ -365,6 +413,8 @@ public abstract class DataCapturingService {
      */
     public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             if (persistenceLayer.hasOpenMeasurement()) {
                 persistenceLayer.closeRecentMeasurement();
@@ -430,6 +480,8 @@ public abstract class DataCapturingService {
      * @param callback Called as soon as the current state of the service has become clear.
      */
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
         pongReceiver.pongAndReceive(timeout, unit, callback);
     }
@@ -447,14 +499,57 @@ public abstract class DataCapturingService {
         unbind();
     }
 
+    /*
+     * TODO: This should probably throw an exception if reconnect was not possible. But we can do this only for the next
+     * version release.
+     */
     /**
      * Reconnects your app to the <code>DataCapturingService</code>. This might be especially useful if you have been
      * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
+     * <p>
+     * <b>ATTENTION</b>: This method might take some time to check for a running service. Always consider this to be a
+     * long running operation and never call it on the main thread.
      *
-     * @throws DataCapturingException If rebinding to the background service fails.
+     * @throws DataCapturingException If communication with background service is not successful.
      */
     public void reconnect() throws DataCapturingException {
-        bind();
+
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+
+        ReconnectCallback reconnectCallback = new ReconnectCallback(lock, condition) {
+            @Override
+            public void onSuccess() {
+                try {
+                    if (BuildConfig.DEBUG)
+                        Log.v(TAG, "ReconnectCallback.onSuccess(): Binding to service!");
+                    bind();
+                } catch (DataCapturingException e) {
+                    throw new IllegalStateException("Illegal state: unable to bind to background service!");
+                }
+            }
+        };
+
+        // TODO: Maybe move the timeout time to a parameter.
+        try {
+            isRunning(500L, TimeUnit.MILLISECONDS, reconnectCallback);
+        } catch (IllegalStateException e) {
+            throw new DataCapturingException(e);
+        }
+
+        // Wait for isRunning to return.
+        lock.lock();
+        try {
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
+            if (!condition.await(500L, TimeUnit.MILLISECONDS)) {
+                Log.w(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
+            }
+        } catch (InterruptedException e) {
+            throw new DataCapturingException(e);
+        } finally {
+            lock.unlock();
+        }
     }
 
     /**
@@ -514,7 +609,7 @@ public abstract class DataCapturingService {
             lock.unlock();
             try {
                 getContext().unregisterReceiver(synchronizationReceiver);
-            } catch(IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
             }
         }
@@ -523,17 +618,21 @@ public abstract class DataCapturingService {
     /**
      * Starts the associated {@link DataCapturingBackgroundService} and calls the provided
      * <code>startedMessageReceiver</code>, after it successfully started.
-     * 
+     *
      * @param measurementIdentifier The identifier of the measurement to store the captured data to.
      * @param startedMessageReceiver A handler called if the service started successfully.
      * @throws DataCapturingException If service could not be started.
      */
     private synchronized void runService(final long measurementIdentifier,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Starting the background service for measurement identifier !" + measurementIdentifier);
         Context context = getContext();
-        if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service start broadcast.");
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
-        if(BuildConfig.DEBUG) Log.v(TAG, String.format("Starting using Intent with context %s.", context));
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, measurementIdentifier);
 
@@ -569,7 +668,8 @@ public abstract class DataCapturingService {
         lock.lock();
         try {
             if (!synchronizationReceiver.receivedServiceStopped()) {
-                if(BuildConfig.DEBUG) Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
+                if (BuildConfig.DEBUG)
+                    Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
                 if (!condition.await(timeout, unit)) {
                     throw new DataCapturingException(String.format(Locale.US,
                             "Service seems to not have stopped successfully. Timed out after %d milliseconds.",
@@ -582,7 +682,7 @@ public abstract class DataCapturingService {
             lock.unlock();
             try {
                 getContext().unregisterReceiver(synchronizationReceiver);
-            } catch(IllegalArgumentException e) {
+            } catch (IllegalArgumentException e) {
                 Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
             }
         }
@@ -598,10 +698,13 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
     private void stopService(final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
-        isRunning = false;
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Stopping the background service.");
+        setIsRunning(false);
 
         Context context = getContext();
-        if(BuildConfig.DEBUG) Log.v(TAG, "Registering receiver for service stop broadcast.");
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(finishedHandler, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         boolean serviceWasActive;
         try {
@@ -614,14 +717,18 @@ public abstract class DataCapturingService {
             unbind();
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
+        } catch (DataCapturingException e) {
+            Log.w(TAG, "Service was either paused or already stopped, so I was unable to unbind from it.");
         } finally {
-            if(BuildConfig.DEBUG) Log.v(TAG, String.format("Stopping using Intent with context %s", context));
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, String.format("Stopping using Intent with context %s", context));
             Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
             serviceWasActive = context.stopService(stopIntent);
         }
 
         if (!serviceWasActive) {
-            throw new DataCapturingException("Unable to stop non existing service.");
+            // The background service was not running so we need to inform the caller of this method ourselves.
+            context.sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
         }
     }
 
@@ -694,24 +801,38 @@ public abstract class DataCapturingService {
     /**
      * Binds this <code>DataCapturingService</code> facade to the underlying {@link DataCapturingBackgroundService}.
      *
+     * @return <code>true</code> if successfully bound to a running service; <code>false</code> otherwise.
      * @throws DataCapturingException If binding fails.
      */
-    private void bind() throws DataCapturingException {
+    private boolean bind() throws DataCapturingException {
         if (context.get() == null) {
             throw new DataCapturingException("No valid context for binding!");
         }
 
-        Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-        isRunning = context.get().bindService(startIntent, serviceConnection, 0);
-        if (!isRunning) {
-            throw new DataCapturingException("Illegal state: unable to bind to background service!");
+        // This must not be interrupted or interrupt a call to stop the service.
+        lifecycleLock.lock();
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "Locking bind.");
+        try {
+            if (getIsStoppingOrHasStopped()) {
+                return false;
+            }
+
+            Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            boolean ret = context.get().bindService(startIntent, serviceConnection, 0);
+            setIsRunning(ret);
+            return ret;
+        } finally {
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, "Unlocking bind.");
+            lifecycleLock.unlock();
         }
     }
 
     /**
      * Unbinds this <code>DataCapturingService</code> facade from the underlying {@link DataCapturingBackgroundService}.
      *
-     * @throws DataCapturingException If no valid Android context is available.
+     * @throws DataCapturingException If no valid Android context is available or the service was not running.
      */
     private void unbind() throws DataCapturingException {
         if (context.get() == null) {
@@ -726,6 +847,46 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
+     */
+    private void setIsRunning(final boolean isRunning) {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Setting isRunning to " + isRunning);
+        this.isRunning = isRunning;
+    }
+
+    /**
+     * @return {@code true} if data capturing is running; {@code false} otherwise.
+     */
+    public boolean getIsRunning() {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Getting isRunning with value " + isRunning);
+        return isRunning;
+    }
+
+    /**
+     * @param isStoppingOrHasStopped A flag indicating whether the background service is currently stopped or in the
+     *            process of stopping. This flag is used to prevent multiple lifecycle method from interrupting a stop
+     *            process or being called, while no service is running.
+     */
+    private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
+        this.isStoppingOrHasStopped = isStoppingOrHasStopped;
+    }
+
+    /**
+     * @return A flag indicating whether the background service is currently stopped or in the process of stopping. This
+     *         flag is used to prevent multiple lifecycle method from interrupting a stop process or being called, while
+     *         no service is running.
+     */
+    private boolean getIsStoppingOrHasStopped() {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
+        return isStoppingOrHasStopped;
+    }
+
+    /**
      * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
      * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
      *
@@ -737,7 +898,8 @@ public abstract class DataCapturingService {
 
         @Override
         public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
-            if(BuildConfig.DEBUG) Log.d(TAG, "DataCapturingService connected to background service.");
+            if (BuildConfig.DEBUG)
+                Log.d(TAG, "DataCapturingService connected to background service.");
             toServiceMessenger = new Messenger(binder);
             Message registerClient = new Message();
             registerClient.replyTo = fromServiceMessenger;
@@ -748,12 +910,14 @@ public abstract class DataCapturingService {
                 throw new IllegalStateException(e);
             }
 
-            if(BuildConfig.DEBUG) Log.d(TAG, "ServiceConnection established!");
+            if (BuildConfig.DEBUG)
+                Log.d(TAG, "ServiceConnection established!");
         }
 
         @Override
         public void onServiceDisconnected(final @NonNull ComponentName componentName) {
-            if(BuildConfig.DEBUG) Log.d(TAG, "Service disconnected!");
+            if (BuildConfig.DEBUG)
+                Log.d(TAG, "Service disconnected!");
             toServiceMessenger = null;
 
         }
@@ -803,7 +967,8 @@ public abstract class DataCapturingService {
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            if(BuildConfig.DEBUG) Log.v(TAG, String.format("Service facade received message: %d", msg.what));
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
@@ -819,7 +984,8 @@ public abstract class DataCapturingService {
                         }
                         break;
                     case MessageCodes.DATA_CAPTURED:
-                        if(BuildConfig.DEBUG) Log.i(TAG, "Captured some sensor data, which is ignored for now.");
+                        if (BuildConfig.DEBUG)
+                            Log.i(TAG, "Captured some sensor data, which is ignored for now.");
                         // TODO
                     case MessageCodes.GPS_FIX:
                         listener.onFixAcquired();

@@ -31,7 +31,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.4
+ * @version 1.2.5
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -39,7 +39,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * The tag used to identify log messages send to logcat.
      */
-    private final static String TAG = CapturingProcess.class.getName();
+    private final static String TAG = "de.cyface.background";
     /**
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */

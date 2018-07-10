@@ -23,7 +23,7 @@ class FromServiceMessageHandler extends Handler {
     /**
      * The tag used to identify Logcat messages.
      */
-    private static final String TAG = "de.cyface.capture.background";
+    private static final String TAG = "de.cyface.test";
     /**
      * The data previously captured by the service and send to this handler.
      */

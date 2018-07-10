@@ -35,7 +35,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -108,9 +108,7 @@ public class BackgroundServiceTest {
     @Test
     public void testStartDataCapturing() throws InterruptedException, TimeoutException {
         final Context context = InstrumentationRegistry.getTargetContext();
-        final TestCallback testCallback = new TestCallback();
-        testCallback.lock = lock;
-        testCallback.condition = condition;
+        final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
@@ -164,9 +162,7 @@ public class BackgroundServiceTest {
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 
-        final TestCallback testCallback = new TestCallback();
-        testCallback.lock = lock;
-        testCallback.condition = condition;
+        final TestCallback testCallback = new TestCallback("testStartDataCapturingTwice", lock, condition);
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
