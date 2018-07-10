@@ -349,37 +349,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         return ret;
     }
 
-    /**
-     * When there is a login or sync error (both DCS API) this method generates a user friendly message
-     * which can be used to inform the user about the problem.
-     *
-     * @param context The context where the error should be shown, usually a view context
-     * @param resultExceptionType The name of the Exception returned by Exception.class.getSimpleName()
-     * @param resultErrorMessage The error message returned by the DCS API
-     * @return A string which contains a user-friendly error message
-     */
-    /*
-     * public static String identifyTransmissionError(final Context context, final String resultExceptionType,
-     * final String resultErrorMessage) {
-     * String toastErrorMessage = context.getString(R.string.toast_error_message_login_failed); // Default message
-     * // Exception identification
-     * if (resultExceptionType.equals(MalformedJsonException.class.getSimpleName())) {
-     * toastErrorMessage = context.getString(R.string.toast_error_message_server_unavailable);
-     * } else if (resultExceptionType.equals(JSONException.class.getSimpleName())) {
-     * toastErrorMessage = context.getString(R.string.toast_error_message_response_unreadable);
-     * } else if (resultExceptionType.equals(DataTransmissionException.class.getSimpleName())) {
-     * if (resultErrorMessage.contains(ERROR_MESSAGE_BAD_CREDENTIALS)) {
-     * toastErrorMessage = context.getString(R.string.toast_error_message_credentials_incorrect);
-     * } else if (resultErrorMessage.contains(ERROR_MESSAGE_SERVER_UNAVAILABLE)) {
-     * toastErrorMessage = context.getString(R.string.toast_error_message_server_unavailable);
-     * }
-     * } else if (resultExceptionType.equals(RemoteException.class.getSimpleName())) {
-     * toastErrorMessage = context.getString(R.string.toast_error_message_database_unaddressable);
-     * }
-     * return toastErrorMessage;
-     * }
-     */
-
     /*
      * private boolean synchronizationDisabled(AppPreferences appPreferences) {
      * return !appPreferences.getBoolean(getContext().getString(R.string.setting_synchronization_key), true);
