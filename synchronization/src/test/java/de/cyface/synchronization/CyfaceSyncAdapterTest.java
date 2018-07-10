@@ -54,11 +54,11 @@ public class CyfaceSyncAdapterTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws RemoteException {
-        CyfaceSyncAdapter oocut = new CyfaceSyncAdapter(context, false);
         ContentProviderClient client = null;
         try {
             client = context.getContentResolver()
                     .acquireContentProviderClient(MeasuringPointsContentProvider.MEASUREMENT_URI);
+
             if (client == null) {
                 throw new IllegalStateException("ContentProviderClient was null.");
             }
@@ -75,7 +75,8 @@ public class CyfaceSyncAdapterTest {
             long expectedIdentifier = Long.parseLong(result.getLastPathSegment());
             client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, syncedMeasurementValues);
 
-            Cursor syncableMeasurementsCursor = oocut.loadSyncableMeasurements(client);
+            // TODO: Why is this a static method and gets a client like the constructor. Should probably be an instance method with no arguments.
+            Cursor syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(client);
 
             assertThat(syncableMeasurementsCursor.getCount(), is(1));
             syncableMeasurementsCursor.moveToFirst();

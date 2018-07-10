@@ -1,7 +1,9 @@
 package de.cyface.synchronization;
 
 import android.content.ContentProviderClient;
+import android.content.ContentProviderOperation;
 import android.content.ContentValues;
+import android.content.OperationApplicationException;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
@@ -9,6 +11,14 @@ import android.os.RemoteException;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 
+import org.json.JSONArray;
+import org.json.JSONException;
+import org.json.JSONObject;
+
+import java.util.ArrayList;
+import java.util.List;
+
+import de.cyface.persistence.AbstractCyfaceMeasurementTable;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
@@ -16,10 +26,12 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
+import static de.cyface.persistence.BuildConfig.provider;
+
 /**
  * A wrapper for a <code>ContentProviderClient</code> used to provide access to one specific measurement.
  * <p>
- * ATTENTION: If you use this class you must still close the provided <code>ContentProviderClient</code>. This class will not do that for you. This has the benefit, that you may call multiple of its methods without requiring a new <code>ContentProvider</code>.
+ * ATTENTION: You must still close the provided <code>ContentProviderClient</code>.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -54,8 +66,8 @@ public class MeasurementContentProviderClient {
     /**
      * Loads a page of the geo locations for the measurement.
      *
-     * @param offset The start index of the first geoLocation to load within the measurement
-     * @param limit  The number of GeoLocations to load, recommended: {@code DATABASE_QUERY_LIMIT}
+     * @param offset The start index of the first geo location to load within the measurement
+     * @param limit  The number of geo locations to load. A recommended upper limit is: {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}
      * @return A <code>Cursor</code> on the geo locations stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
@@ -86,22 +98,29 @@ public class MeasurementContentProviderClient {
     }
 
     /**
-     * Counts all the geo locations for the measurement.
+     * Counts all the data elements from one table for the measurement. Data elements depend on the provided content
+     * provider URI and might be geo locations, accelerations, rotations or directions.
      *
-     * @return the number of geo locations stored for the measurement.
+     * @param tableUri                        The content provider Uri of the table to count.
+     * @param measurementForeignKeyColumnName The column name of the column containing the reference to the measurement
+     *                                        table.
+     * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
-    public int countGeoLocations() throws RemoteException {
+    long countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName) throws RemoteException {
+        Cursor cursor = null;
 
-        final Uri uri = MeasuringPointsContentProvider.GPS_POINTS_URI;
-        final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
-        final String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
-
-        Cursor locationsCursor = client.query(uri, null, selection, selectionArgs, null);
-            if (locationsCursor == null) {
-                throw new IllegalStateException("Unable to count GeoLocations for measurement.");
+        try {
+            // For unknown reasons the "COUNT(*)" projections is not accepted anymore.
+            // However, both (COUNT(*) and the getCount()) are anyway too slow for large tables
+            // See RadVerS fix for a faster implementation
+            cursor = client.query(tableUri, new String[]{BaseColumns._ID}, measurementForeignKeyColumnName + " = ?1", new String[]{Long.toString(measurementIdentifier)}, null);
+            return cursor.getCount();
+        } finally {
+            if (cursor != null) {
+                cursor.close();
             }
-            return locationsCursor.getCount();
+        }
     }
 
     /**
@@ -117,6 +136,29 @@ public class MeasurementContentProviderClient {
                         serializer.getYColumnName(), serializer.getZColumnName()},
                 serializer.getMeasurementKeyColumnName() + "=?",
                 new String[]{Long.valueOf(measurementIdentifier).toString()}, null);
+    }
+
+    /**
+     * Loads data points for the measurement. Such points might be accelerometer, gyroscope or compass points.
+     *
+     * @param serializer A serializer defining which kind of data points to load and how to access them.
+     * @param offset     The start index of the first point to load within the measurement
+     * @param limit      The number of points to load. A recommended upper limit is: {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}.
+     * @return A <code>Cursor</code> on one kind of data points stored for the measurement.
+     * @throws RemoteException If the content provider is not accessible.
+     */
+    Cursor load3DPoint(final @NonNull Point3DSerializer serializer, final int offset, final int limit)
+            throws RemoteException {
+        String[] projection = new String[]{serializer.getTimestampColumnName(), serializer.getXColumnName(),
+                serializer.getYColumnName(), serializer.getZColumnName()};
+        String selection = serializer.getMeasurementKeyColumnName() + "=?";
+        String[] selectionArgs = new String[]{Long.valueOf(measurementIdentifier).toString()};
+        // This is a hack, that only works for a content provider with a backing database. More recent Android version
+        // provide a native API to support offset and limit. We may switch to that API if we increase the minimum
+        // version.
+        String sortOrder = serializer.getMeasurementKeyColumnName() + " ASC limit " + limit + " offset " + offset;
+
+        return client.query(serializer.getTableUri(), projection, selection, selectionArgs, sortOrder);
     }
 
     /**
@@ -141,6 +183,27 @@ public class MeasurementContentProviderClient {
         ret += client.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[]{Long.valueOf(measurementIdentifier).toString()});
+        return ret;
+    }
+
+    /**
+     * Loads all measurements from the content provider that are already finished capturing, but have not been
+     * synchronized yet.
+     *
+     * @param provider A client with access to the content provider containing the measurements.
+     * @return An initialized cursor pointing to the unsynchronized measurements.
+     * @throws RemoteException       If the query to the content provider has not been successful.
+     * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
+     */
+    static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider) throws RemoteException {
+        Cursor ret = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
+                MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
+                new String[]{Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
+
+        if (ret == null) {
+            throw new IllegalStateException("Unable to load measurement from content provider!");
+        }
+
         return ret;
     }
 }

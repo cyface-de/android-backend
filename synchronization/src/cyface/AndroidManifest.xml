@@ -1,0 +1,15 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    package="de.cyface.synchronization">
+
+    <!-- To auto-complete the email text field in the login form with the user's emails -->
+    <uses-permission android:name="android.permission.GET_ACCOUNTS" />
+    <uses-permission android:name="android.permission.READ_PROFILE" />
+    <uses-permission android:name="android.permission.READ_CONTACTS" />
+
+    <!--<application>
+        <activity
+            android:name=".CyfaceLoginActivity"
+            android:label="@string/title_activity_cyface_login"
+            android:theme="@style/AppTheme"></activity>
+    </application>-->
+</manifest>

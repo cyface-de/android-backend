@@ -16,7 +16,7 @@ import android.support.v4.app.ActivityCompat;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.synchronization.StubAuthenticator;
+import de.cyface.synchronization.Constants;
 import de.cyface.synchronization.SynchronisationException;
 
 /**
@@ -159,7 +159,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
         Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
 
-        accountManager.setAuthToken(synchronizationAccount, StubAuthenticator.AUTH_TOKEN_TYPE, token);
+        accountManager.setAuthToken(synchronizationAccount, Constants.AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
     }
 

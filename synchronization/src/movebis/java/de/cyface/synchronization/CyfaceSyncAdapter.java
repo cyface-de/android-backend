@@ -49,15 +49,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @see #SYNC_PROGRESS_BROADCAST_ACTION
      */
     private static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
-    /**
-     * The settings key used to identify the settings storing the URL of the server to upload data to.
-     */
-    public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
-    /**
-     * The settings key used to identify the settings storing the device or rather installation identifier of the
-     * current app. This identifier is used to anonymously group measurements from the same device together.
-     */
-    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     /**
      * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
@@ -94,7 +85,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
         Cursor syncableMeasurementsCursor = null;
         AccountManager accountManager = AccountManager.get(getContext());
-        AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, StubAuthenticator.AUTH_TOKEN_TYPE,
+        AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, Constants.AUTH_TOKEN_TYPE,
                 null, false, null, null);
         try {
             SyncPerformer syncer = new SyncPerformer(getContext());
@@ -105,18 +96,18 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 throw new IllegalStateException("No valid auth token supplied. Aborting data synchronization!");
             }
 
-            String endPointUrl = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+            String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             if (endPointUrl == null) {
                 throw new IllegalStateException("Unable to read synchronization endpoint from settings!");
             }
 
-            String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
+            String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
             if (deviceIdentifier == null) {
                 throw new IllegalStateException("Unable to read device identifier from settings!");
             }
 
             // Load all Measurements that are finished capturing
-            syncableMeasurementsCursor = loadSyncableMeasurements(provider);
+            syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider);
 
             while (syncableMeasurementsCursor.moveToNext()) {
 
@@ -153,26 +144,5 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 syncableMeasurementsCursor.close();
             }
         }
-    }
-
-    /**
-     * Loads all measurements from the content provider that are already finished capturing, but have not been
-     * synchronized yet.
-     *
-     * @param provider A client with access to the content provider containing the measurements.
-     * @return An initialized cursor pointing to the unsynchronized measurements.
-     * @throws RemoteException If the query to the content provider has not been successful.
-     * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
-     */
-    Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider) throws RemoteException {
-        Cursor ret = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
-                MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
-                new String[] {Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
-
-        if (ret == null) {
-            throw new IllegalStateException("Unable to load measurement from content provider!");
-        }
-
-        return ret;
     }
 }

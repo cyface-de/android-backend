@@ -15,10 +15,8 @@ import android.net.Uri;
 import android.provider.BaseColumns;
 
 /**
- * <p>
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to
  * transferring the data to the server.
- * </p>
  *
  * @author Klemens Muthmann
  * @version 1.1.0

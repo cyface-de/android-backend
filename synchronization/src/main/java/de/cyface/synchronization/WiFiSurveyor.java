@@ -76,16 +76,26 @@ public class WiFiSurveyor extends BroadcastReceiver {
     private final ConnectivityManager connectivityManager;
 
     /**
+     * The type of account to add. You may for example distinguish between administrator, user and guest. Currently
+     * Cyface only supports one type of account.
+     */
+    private final String accountType;
+
+    /**
      * Creates a new completely initialized <code>WiFiSurveyor</code> within the current Android context.
      *
      * @param context The current Android context (i.e. Activity or Service).
      * @param connectivityManager The Android <code>ConnectivityManager</code> used to check the device's current
      *            connection status.
+     * @param accountType The type of account to add. You may for example distinguish between administrator, user and
+     *            guest. Currently Cyface only supports one type of account.
      */
-    public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager) {
+    public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager,
+            final @NonNull String accountType) {
         this.context = new WeakReference<>(context);
         this.connectivityManager = connectivityManager;
         syncOnWiFiOnly = true;
+        this.accountType = accountType;
     }
 
     /**
@@ -181,7 +191,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void deleteAccount(final @NonNull String username) {
         AccountManager accountManager = AccountManager.get(context.get());
-        Account account = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
+        Account account = new Account(username, accountType);
 
         if (!ContentResolver.getPeriodicSyncs(account, AUTHORITY).isEmpty()) {
             ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
@@ -207,10 +217,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public Account getOrCreateAccount(final @NonNull String username) throws SynchronisationException {
         AccountManager am = AccountManager.get(context.get());
-        Account[] cyfaceAccounts = am.getAccountsByType(StubAuthenticator.ACCOUNT_TYPE);
+        Account[] cyfaceAccounts = am.getAccountsByType(accountType);
         if (cyfaceAccounts.length == 0) {
             synchronized (this) {
-                Account newAccount = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
+                Account newAccount = new Account(username, accountType);
                 boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
                 if (!newAccountAdded) {
                     throw new SynchronisationException("Unable to add dummy account!");

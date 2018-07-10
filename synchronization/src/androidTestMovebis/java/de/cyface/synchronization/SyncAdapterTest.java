@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.BuildConfig.provider;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -33,7 +34,7 @@ import android.util.Log;
  * the test large and flaky. Future implementation will hopefully remove this dependency.
  * 
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -54,27 +55,27 @@ public final class SyncAdapterTest {
     @Test
     public void testRequestSync() throws InterruptedException {
         AccountManager am = AccountManager.get(InstrumentationRegistry.getContext());
-        Account newAccount = new Account("default_user", "de.cyface");
-        if (am.addAccountExplicitly(newAccount, "testpw", Bundle.EMPTY)) {
-            ContentResolver.setIsSyncable(newAccount, "de.cyface.provider", 1);
-            ContentResolver.setSyncAutomatically(newAccount, "de.cyface.provider", true);
+        Account newAccount = new Account(Constants.DEFAULT_FREE_USERNAME, Constants.ACCOUNT_TYPE);
+        if (am.addAccountExplicitly(newAccount, Constants.DEFAULT_FREE_PASSWORD, Bundle.EMPTY)) {
+            ContentResolver.setIsSyncable(newAccount, provider, 1);
+            ContentResolver.setSyncAutomatically(newAccount, provider, true);
         }
 
         try {
-            final Account account = am.getAccountsByType("de.cyface")[0];
+            final Account account = am.getAccountsByType(Constants.ACCOUNT_TYPE)[0];
 
             final Lock lock = new ReentrantLock();
             final Condition condition = lock.newCondition();
 
             TestSyncStatusObserver observer = new TestSyncStatusObserver(account, lock, condition);
 
-            ContentResolver.requestSync(account, "de.cyface.provider", Bundle.EMPTY);
+            ContentResolver.requestSync(account, provider, Bundle.EMPTY);
             ContentResolver.addStatusChangeListener(ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE, observer);
 
             lock.lock();
             try {
                 if (!condition.await(10, TimeUnit.SECONDS)) {
-                    fail();
+                    fail(); // Does not work in cyface variant!
                 }
             } finally {
                 lock.unlock();
@@ -82,13 +83,13 @@ public final class SyncAdapterTest {
             assertThat(observer.didSync(), is(equalTo(true)));
 
         } finally {
-            am.removeAccount(am.getAccountsByType("de.cyface")[0], null, null, null);
+            am.removeAccount(am.getAccountsByType(Constants.ACCOUNT_TYPE)[0], null, null, null);
         }
     }
 
     /**
      * A <code>SyncStatusObserver</code> used to get information about the synchronization adapter. This observer waits
-     * for the sync adapter to start synchroniation and stop it again bevor waking up the actual test case.
+     * for the sync adapter to start synchronization and stop it again befor waking up the actual test case.
      * 
      * @author Klemens Muthmann
      * @version 1.0.0
@@ -119,7 +120,7 @@ public final class SyncAdapterTest {
         private boolean didSync;
 
         /**
-         * Creates a new completely initialized <code>TestSYncStatusObserver</code>.
+         * Creates a new completely initialized <code>TestSyncStatusObserver</code>.
          *
          * @param account An account required to identify the correct synchronization adapter call.
          * @param lock The lock used to synchronize the synchronization adapter with the calling test case.

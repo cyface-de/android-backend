@@ -48,6 +48,8 @@ import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUER
  */
 public final class MeasurementSerializer {
 
+    public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
+
     private final static String TAG = "de.cyface.sync";
 
     /**
@@ -69,107 +71,17 @@ public final class MeasurementSerializer {
     /**
      * Serializer for transforming acceleration points into a byte representation.
      */
-    final static Point3DSerializer accelerationsSerializer = new Point3DSerializer() {
-        @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.SAMPLE_POINTS_URI;
-        }
-
-        @Override
-        protected String getXColumnName() {
-            return SamplePointTable.COLUMN_AX;
-        }
-
-        @Override
-        protected String getYColumnName() {
-            return SamplePointTable.COLUMN_AY;
-        }
-
-        @Override
-        protected String getZColumnName() {
-            return SamplePointTable.COLUMN_AZ;
-        }
-
-        @Override
-        protected String getMeasurementKeyColumnName() {
-            return SamplePointTable.COLUMN_MEASUREMENT_FK;
-        }
-
-        @Override
-        protected String getTimestampColumnName() {
-            return SamplePointTable.COLUMN_TIME;
-        }
-    };
+    final static Point3DSerializer accelerationsSerializer = new AccelerationsSerializer();
 
     /**
      * Serializer for transforming rotation points into a byte representation.
      */
-    final static Point3DSerializer rotationsSerializer = new Point3DSerializer() {
-        @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.ROTATION_POINTS_URI;
-        }
-
-        @Override
-        protected String getXColumnName() {
-            return RotationPointTable.COLUMN_RX;
-        }
-
-        @Override
-        protected String getYColumnName() {
-            return RotationPointTable.COLUMN_RY;
-        }
-
-        @Override
-        protected String getZColumnName() {
-            return RotationPointTable.COLUMN_RZ;
-        }
-
-        @Override
-        protected String getMeasurementKeyColumnName() {
-            return RotationPointTable.COLUMN_MEASUREMENT_FK;
-        }
-
-        @Override
-        protected String getTimestampColumnName() {
-            return RotationPointTable.COLUMN_TIME;
-        }
-    };
+    final static Point3DSerializer rotationsSerializer = new RotationsSerializer();
 
     /**
      * Serializer for transforming direction points into a byte representation.
      */
-    public final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
-        @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;
-        }
-
-        @Override
-        protected String getXColumnName() {
-            return MagneticValuePointTable.COLUMN_MX;
-        }
-
-        @Override
-        protected String getYColumnName() {
-            return MagneticValuePointTable.COLUMN_MY;
-        }
-
-        @Override
-        protected String getZColumnName() {
-            return MagneticValuePointTable.COLUMN_MZ;
-        }
-
-        @Override
-        protected String getMeasurementKeyColumnName() {
-            return MagneticValuePointTable.COLUMN_MEASUREMENT_FK;
-        }
-
-        @Override
-        protected String getTimestampColumnName() {
-            return MagneticValuePointTable.COLUMN_TIME;
-        }
-    };
+    public final static Point3DSerializer directionsSerializer = new DirectionsSerializer();
 
     /**
      * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
@@ -191,7 +103,7 @@ public final class MeasurementSerializer {
      * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
-    InputStream     serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
+    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
         compressor.setInput(data);
@@ -241,11 +153,12 @@ public final class MeasurementSerializer {
      * @param countOfDirections Number of directions in the serialized measurement.
      * @return The header byte array.
      */
-    private byte[] createHeader(final int countOfGeoLocations, final int countOfAccelerations,
+    private byte[] createHeader(final long countOfGeoLocations, final int countOfAccelerations,
             final int countOfRotations, final int countOfDirections) {
         byte[] ret = new byte[18];
         ret[0] = (byte)(DATA_FORMAT_VERSION >> 8);
         ret[1] = (byte)DATA_FORMAT_VERSION;
+        // TODO: This puts a long into only 4 bytes, which will not work
         ret[2] = (byte)(countOfGeoLocations >> 24);
         ret[3] = (byte)(countOfGeoLocations >> 16);
         ret[4] = (byte)(countOfGeoLocations >> 8);
@@ -278,13 +191,14 @@ public final class MeasurementSerializer {
         Cursor directionsCursor = null;
 
         try {
-            final int geoLocationCount = loader.countGeoLocations();
+            final long geoLocationCount = loader.countData(MeasuringPointsContentProvider.GPS_POINTS_URI,
+                    GpsPointsTable.COLUMN_MEASUREMENT_FK);
             accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
             directionsCursor = loader.load3DPoint(directionsSerializer);
 
-            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(),
-                    rotationsCursor.getCount(), directionsCursor.getCount());
+            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(), rotationsCursor.getCount(),
+                    directionsCursor.getCount());
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
@@ -294,15 +208,15 @@ public final class MeasurementSerializer {
             byte[] serializedGeoLocations = outputStream.toByteArray();
 
             // TODO: Write Point3D data to a separate file because it's too much db work ...
-            byte[] serializedAccelerations = accelerationsSerializer.serialize(accelerationsCursor);
-            byte[] serializedRotations = rotationsSerializer.serialize(rotationsCursor);
-            byte[] serializedDirections = directionsSerializer.serialize(directionsCursor);
+            byte[] serializedAccelerations = serialize(accelerationsCursor, accelerationsSerializer);
+            byte[] serializedRotations = serialize(rotationsCursor, rotationsSerializer);
+            byte[] serializedDirections = serialize(directionsCursor, directionsSerializer);
 
             ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
                     + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
             buffer.put(header);
             buffer.put(serializedGeoLocations);
-            buffer.put(serializedAccelerations);
+           buffer.put(serializedAccelerations);
             buffer.put(serializedRotations);
             buffer.put(serializedDirections);
 
@@ -327,5 +241,28 @@ public final class MeasurementSerializer {
                 directionsCursor.close();
             }
         }
+    }
+
+    /**
+     * Serializes all the points from the provided
+     * <code>pointCursor</code>.
+     *
+     * @param pointCursor A content provider cursor providing access to the points to serialize
+     * @param serializer Wrapped information about the points to serialize.
+     * @return A <code>byte</code> array containing all the data.
+     */
+    byte[] serialize(final @NonNull Cursor pointCursor, final @NonNull Point3DSerializer serializer) {
+        Log.d(TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
+        ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
+        while (pointCursor.moveToNext()) {
+            buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(serializer.getTimestampColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(serializer.getXColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(serializer.getYColumnName())));
+            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(serializer.getZColumnName())));
+        }
+        byte[] payload = new byte[buffer.capacity()];
+        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
+        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
+        return payload;
     }
 }

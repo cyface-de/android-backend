@@ -54,7 +54,7 @@ public class WiFiSurveyorTest {
         context = RuntimeEnvironment.application;
         ConnectivityManager connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
-        oocut = new WiFiSurveyor(context, connectivityManager);
+        oocut = new WiFiSurveyor(context, connectivityManager, Constants.ACCOUNT_TYPE);
     }
 
     /**

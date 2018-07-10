@@ -3,12 +3,14 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
 import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
+import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -24,12 +26,18 @@ import java.util.Map;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.robolectric.RobolectricTestRunner;
 
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.RemoteException;
+
+import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.MeasuringPointsContentProvider;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
@@ -39,6 +47,7 @@ import android.os.RemoteException;
  * @version 1.0.2
  * @since 2.0.0
  */
+@RunWith(RobolectricTestRunner.class)
 public class MeasurementSerializerTest {
     /**
      * Used to mock Android API objects.
@@ -67,7 +76,7 @@ public class MeasurementSerializerTest {
 
     @Before
     public void setUp() throws RemoteException {
-        when(loader.countGeoLocations()).thenReturn(3);
+        when(loader.countData(any(Uri.class), anyString())).thenReturn(3L);
         when(loader.loadGeoLocations(anyInt(),anyInt())).thenReturn(geoLocationsCursor);
         when(loader.load3DPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor);
         when(geoLocationsCursor.getCount()).thenReturn(3);
@@ -134,9 +143,9 @@ public class MeasurementSerializerTest {
         int beginOfAccelerationsIndex = beginOfGeoLocationsIndex
                 + numberOfGeoLocations * BYTES_IN_ONE_GEO_LOCATION_ENTRY;
         int beginOfRotationsIndex = beginOfAccelerationsIndex
-                + numberOfAccelerations * Point3DSerializer.BYTES_IN_ONE_POINT_ENTRY;
+                + numberOfAccelerations * BYTES_IN_ONE_POINT_ENTRY;
         int beginOfDirectionsIndex = beginOfRotationsIndex
-                + numberOfRotations * Point3DSerializer.BYTES_IN_ONE_POINT_ENTRY;
+                + numberOfRotations * BYTES_IN_ONE_POINT_ENTRY;
 
         List<Map<String, ?>> geoLocations = deserializeGeoLocations(
                 Arrays.copyOfRange(individualBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
@@ -182,9 +191,9 @@ public class MeasurementSerializerTest {
     private List<Map<String, ?>> deserializePoint3D(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
 
-        for (int i = 0; i < bytes.length; i += Point3DSerializer.BYTES_IN_ONE_POINT_ENTRY) {
+        for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_POINT_ENTRY) {
             ByteBuffer buffer = ByteBuffer
-                    .wrap(Arrays.copyOfRange(bytes, i, i + Point3DSerializer.BYTES_IN_ONE_POINT_ENTRY));
+                    .wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_POINT_ENTRY));
             Map<String, Object> entry = new HashMap<>(4);
             entry.put("timestamp", buffer.getLong());
             entry.put("x", buffer.getDouble());

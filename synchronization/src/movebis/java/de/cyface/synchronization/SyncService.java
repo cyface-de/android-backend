@@ -3,11 +3,7 @@ package de.cyface.synchronization;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.support.annotation.Nullable;
 import android.util.Log;
-
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 /**
  * The synchronistaion <code>Service</code> used to bind the synchronisation adapter to the Android framework.
@@ -25,6 +21,15 @@ public final class SyncService extends Service {
      * The tag used to display log messages.
      */
     private final static String TAG = "de.cyface.sync";
+    /**
+     * The settings key used to identify the settings storing the device or rather installation identifier of the
+     * current app. This identifier is used to anonymously group measurements from the same device together.
+     */
+    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
+    /**
+     * The settings key used to identify the settings storing the URL of the server to upload data to.
+     */
+    public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
     /**
      * The synchronisation adapter this service is supposed to call.
      */
