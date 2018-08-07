@@ -6,7 +6,6 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.synchronization.Constants;
 import de.cyface.synchronization.SynchronisationException;
 
@@ -14,7 +13,7 @@ import de.cyface.synchronization.SynchronisationException;
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.1.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -37,5 +36,14 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
         } catch (SynchronisationException e) {
             throw new SetupException(e);
         }
+    }
+
+    /**
+     * Frees up resources used by CyfaceDataCapturingService
+     * 
+     * @throws SynchronisationException
+     */
+    public void shutdownDataCapturingService() throws SynchronisationException {
+        getWiFiSurveyor().stopSurveillance();
     }
 }
