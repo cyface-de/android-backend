@@ -32,7 +32,7 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "2.0.2"
+    version = "2.0.3"
 
     minSdkVersion = 16
     targetSdkVersion = 27

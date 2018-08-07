@@ -238,6 +238,32 @@ public class MeasurementPersistence {
         }
     }
 
+    public List<Measurement> loadFinishedMeasurements() {
+        Cursor cursor = null;
+
+        try {
+            List<Measurement> ret = new ArrayList<>();
+
+            cursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null, MeasurementTable.COLUMN_FINISHED + "=?", new String[]{String.valueOf(MeasuringPointsContentProvider.SQLITE_TRUE)}, null);
+            if (cursor == null) {
+                throw new IllegalStateException("Unable to access database to load measurements!");
+            }
+
+            while (cursor.moveToNext()) {
+                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(BaseColumns._ID));
+
+                ret.add(new Measurement(measurementIdentifier));
+            }
+
+            return ret;
+
+        } finally {
+            if(cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
     /**
      * Removes everything from the local persistent data storage.
      */

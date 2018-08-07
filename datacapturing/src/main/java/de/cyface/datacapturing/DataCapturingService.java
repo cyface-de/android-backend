@@ -427,12 +427,25 @@ public abstract class DataCapturingService {
         runService(identifierOfCurrentlyOpenMeasurement, finishedHandler);
     }
 
+    // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
+    // the interface of PersistenceLayer (like on iOS).
     /**
-     * @return A list containing all measurements currently stored on this by this application. An empty list if there
-     *         are no such measurements, but never <code>null</code>.
+     * Returns ALL measurements currently on this device. This includes currently running ones as well as paused and
+     * finished measurements.
+     *
+     * @return A list containing all measurements currently stored on this device by this application. An empty list if
+     *         there are no such measurements, but never <code>null</code>.
      */
     public @NonNull List<Measurement> getCachedMeasurements() {
         return persistenceLayer.loadMeasurements();
+    }
+
+    /**
+     * @return A list containing all the finished (i.e. not running and not paused) but not yet uploaded measurements on
+     *         this device. An empty list if there are no such measurements, but never <code>null</code>.
+     */
+    public @NonNull List<Measurement> getFinishedMeasurements() {
+        return persistenceLayer.loadFinishedMeasurements();
     }
 
     /**
