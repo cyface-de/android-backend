@@ -2,9 +2,11 @@ package de.cyface.synchronization;
 
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
+import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -23,11 +25,15 @@ import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+/**
+ * //TODO
+ */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     private final Context context;
     private final static String TAG = "de.cyface.auth";
     private final Http http;
+    //public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
     public final static int ACCOUNT_NOT_ADDED_ERROR_CODE = 1;
 
@@ -126,18 +132,21 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
         return null;
 
+        /*
+        if (LOGIN_ACTIVITY == null) {
+            Log.w(TAG, "Please set LOGIN_ACTIVITY.");
+            return null;
+        }
         // If we get here, then we couldn't access the user's password - so we
         // need to re-prompt them for their credentials. We do that by creating
         // an intent to display our AuthenticatorActivity.
-        /*
-         * final Intent intent = new Intent(context, CyfaceLoginActivity.class);
-         * intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
-         * intent.putExtra(CyfaceLoginActivity.ARG_ACCOUNT_TYPE, account.type);
-         * intent.putExtra(CyfaceLoginActivity.ARG_AUTH_TYPE, authTokenType);
-         * final Bundle bundle = new Bundle();
-         * bundle.putParcelable(AccountManager.KEY_INTENT, intent);
-         * return bundle;
-         */
+        final Intent intent = new Intent(context, LOGIN_ACTIVITY);
+        intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
+        intent.putExtra(Constants.ACCOUNT_TYPE, account.type);
+        intent.putExtra(Constants.AUTH_TOKEN_TYPE, authTokenType);
+        final Bundle bundle = new Bundle();
+        bundle.putParcelable(AccountManager.KEY_INTENT, intent);
+        return bundle;*/
     }
 
     @Override
