@@ -15,28 +15,20 @@ import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
 
 /**
- * <p>
  * Tests whether creating, inserting, updating and deleting of rotation points is successful.
- * </p>
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
 public class RotationPointTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
-    private static final String PROVIDER = BuildConfig.testProvider;
-
-    static {
-        MeasuringPointsContentProvider.AUTHORITY = PROVIDER;
-    }
 
     private ContentValues fixturePoint;
 
     public RotationPointTest() {
-        super(MeasuringPointsContentProvider.class, PROVIDER);
+        super(MeasuringPointsContentProvider.class, TestUtils.AUTHORITY);
     }
-
 
     @Override
     @Before
@@ -53,30 +45,31 @@ public class RotationPointTest extends ProviderTestCase2<MeasuringPointsContentP
 
     @Test
     public void testCreateSuccessfully() {
-        TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,fixturePoint);
+        TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixturePoint);
     }
 
     @Test
     public void testReadSuccessfully() {
-        TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,fixturePoint);
-        TestUtils.read(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,fixturePoint);
+        final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixturePoint);
+        TestUtils.read(getMockContentResolver(), TestUtils.getRotationsUri().buildUpon().appendPath(Long.toString(identifier)).build(), fixturePoint);
     }
 
     @Test
     public void testUpdateSuccessfully() {
-        long identifier = TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,fixturePoint);
-        TestUtils.update(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,identifier,RotationPointTable.COLUMN_RY,2.0);
+        long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixturePoint);
+        TestUtils.update(getMockContentResolver(), TestUtils.getRotationsUri(), identifier,
+                RotationPointTable.COLUMN_RY, 2.0);
     }
 
     @Test
     public void testDeleteSuccessfully() {
-        long identifier = TestUtils.create(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,fixturePoint);
-        TestUtils.delete(getMockContentResolver(),MeasuringPointsContentProvider.ROTATION_POINTS_URI,identifier);
+        long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixturePoint);
+        TestUtils.delete(getMockContentResolver(), TestUtils.getRotationsUri(), identifier);
     }
 
     @After
     public void tearDown() throws Exception {
-        getMockContentResolver().delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI,null,null);
+        getMockContentResolver().delete(TestUtils.getRotationsUri(), null, null);
         super.tearDown();
         getProvider().shutdown();
     }

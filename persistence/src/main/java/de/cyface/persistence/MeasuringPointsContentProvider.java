@@ -13,6 +13,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.support.annotation.NonNull;
 
 /**
  * <p>
@@ -33,7 +34,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      * The authority this content provider is identified with. This needs to be written to change the authority based on
      * the calling application or even from test cases.
      */
-    public static String AUTHORITY = BuildConfig.provider;
+    /*public static String AUTHORITY = BuildConfig.provider;
     public final static Uri MEASUREMENT_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
             .path(DatabaseHelper.MEASUREMENT_URI_PATH).build();
     public final static Uri GPS_POINTS_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
@@ -43,9 +44,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
     public final static Uri ROTATION_POINTS_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
             .appendPath(DatabaseHelper.ROTATION_POINT_URI_PATH).build();
     public final static Uri MAGNETIC_VALUE_POINTS_URI = new Uri.Builder().scheme("content").encodedAuthority(AUTHORITY)
-            .appendEncodedPath(DatabaseHelper.MAGNETIC_VALUE_POINT_URI_PATH).build();
-
-    public static final String DATABASE_NAME = DatabaseHelper.DATABASE_NAME;
+            .appendEncodedPath(DatabaseHelper.MAGNETIC_VALUE_POINT_URI_PATH).build();*/
 
     public static final int SQLITE_FALSE = 0;
     public static final int SQLITE_TRUE = 1;
@@ -69,12 +68,13 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      * @return the number of rows ob the given object (e.g. measurement) which has been deleted
      */
     @Override
-    public int delete(Uri uri, final String selection, final String[] selectionArgs) {
+    public int delete(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
+        Uri uriWithPotentialSelection = uri;
         if (selectionArgs != null && (BaseColumns._ID + "=?").equals(selection) && selectionArgs.length == 1) {
-            uri = ContentUris.withAppendedId(uri, Long.valueOf(selectionArgs[0]));
+            uriWithPotentialSelection = ContentUris.withAppendedId(uri, Long.valueOf(selectionArgs[0]));
         }
-        int rowsDeleted = database.deleteRow(uri, selection, selectionArgs);
-        context.getContentResolver().notifyChange(uri, null);
+        int rowsDeleted = database.deleteRow(uriWithPotentialSelection, selection, selectionArgs);
+        context.getContentResolver().notifyChange(uriWithPotentialSelection, null);
 
         return rowsDeleted;
     }
@@ -97,22 +97,6 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         return database.bulkInsert(uri, Arrays.asList(values)).length;
     }
 
-    private String toString(final ContentValues[] valuesArray) {
-        StringBuffer ret = new StringBuffer();
-        for (ContentValues values : valuesArray) {
-            ret.append(toString(values));
-        }
-        return ret.toString();
-    }
-
-    private String toString(final ContentValues values) {
-        StringBuffer ret = new StringBuffer();
-        for (Map.Entry<String, Object> entry : values.valueSet()) {
-            ret.append("\n\t").append(entry.getKey()).append(":").append(entry.getValue());
-        }
-        return ret.toString();
-    }
-
     @Override
     public Cursor query(final Uri uri, final String[] projection, final String selection, final String[] selectionArgs,
             final String sortOrder) {
@@ -128,7 +112,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         return rowsUpdated;
     }
 
-    public long bulkDeleteSyncedMeasurementPoints(Context context, long gps_unSynced_from, long sp_unSynced_from,
+    /*public long bulkDeleteSyncedMeasurementPoints(Context context, long gps_unSynced_from, long sp_unSynced_from,
             long rp_unSynced_from, long mp_unSynced_from) {
         long deleted = 0;
         this.context = context;
@@ -145,5 +129,5 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         database.getWritableDatabase().setTransactionSuccessful();
         database.getWritableDatabase().endTransaction();
         return deleted;
-    }
+    }*/
 }

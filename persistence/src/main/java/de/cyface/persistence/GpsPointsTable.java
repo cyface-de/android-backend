@@ -21,7 +21,10 @@ import android.util.Log;
 public class GpsPointsTable extends AbstractCyfaceMeasurementTable {
 
     static final String TAG = "GpsPointsTable";
-    //    static final String DATABASE_TABLE = "measuring_points";
+    /**
+     * The path segment in the table URI identifying the geo locations table.
+     */
+    final static String URI_PATH = "measuring";
     public static final String COLUMN_GPS_TIME = "gps_time";
     public static final String COLUMN_LAT = "lat";
     public static final String COLUMN_LON = "lon";

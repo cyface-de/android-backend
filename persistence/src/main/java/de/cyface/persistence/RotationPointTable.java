@@ -7,9 +7,7 @@ import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 
 /**
- * <p>
  * A table for rotation points from the android gyroscope sensor.
- * </p>
  *
  * @author Klemens Muthmann
  * @version 1.1.0
@@ -17,60 +15,46 @@ import android.provider.BaseColumns;
  */
 public class RotationPointTable extends AbstractCyfaceMeasurementTable {
     /**
-     * <p>
+     * The path segment in the table URI identifying the rotations table.
+     */
+    public final static String URI_PATH = "rotation";
+    /**
      * Creates a new completely initialized {@code RotationPointTable} using "rotation_points" as table name.
-     * </p>
      */
     protected RotationPointTable() {
         super("rotation_points");
     }
 
     /**
-     * <p>
      * Logging tag for Android logging.
-     * </p>
      */
     static final String TAG = "RotationPointsTable";
     /**
-     * <p>
      * Column name for the column storing the gyroscope value in X direction in [unit?] using the device coordinate system.
-     * </p>
      */
     public static final String COLUMN_RX = "rx";
     /**
-     * <p>
      * Column name for the column storing the gyroscope value in Y direction in [unit?] using the device coordinate system.
-     * </p>
      */
     public static final String COLUMN_RY = "ry";
     /**
-     * <p>
      * Column name for the column storing the gyroscope value in Z direction in [unit?] using the device coordinate system.
-     * </p>
      */
     public static final String COLUMN_RZ = "rz";
     /**
-     * <p>
      * Column name for the column storing the timestamp this point was captured at in milliseconds since 01.01.1970 (UNIX timestamp format).
-     * </p>
      */
     public static final String COLUMN_TIME = "time";
     /**
-     * <p>
      * Column name for the foreign key to the measurement this point belongs to.
-     * </p>
      */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
     /**
-     * <p>
      * Column name for the column storing either a '1' if this point has been synchronized with a Cyface server and '0' otherwise.
-     * </p>
      */
     public static final String COLUMN_IS_SYNCED = "is_synced";
     /**
-     * <p>
      * An array containing all columns from this table in default order.
-     * </p>
      */
     static final String[] COLUMNS = {BaseColumns._ID, COLUMN_RX, COLUMN_RY,
             COLUMN_RZ, COLUMN_TIME, COLUMN_MEASUREMENT_FK, COLUMN_IS_SYNCED};
