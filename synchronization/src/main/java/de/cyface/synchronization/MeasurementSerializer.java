@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -8,18 +10,14 @@ import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
 
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
-
-import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 
 /**
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
@@ -71,8 +69,8 @@ public final class MeasurementSerializer {
      */
     final static Point3DSerializer accelerationsSerializer = new Point3DSerializer() {
         @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.SAMPLE_POINTS_URI;
+        protected String getTableUriPathSegment() {
+            return SamplePointTable.URI_PATH;
         }
 
         @Override
@@ -106,8 +104,8 @@ public final class MeasurementSerializer {
      */
     final static Point3DSerializer rotationsSerializer = new Point3DSerializer() {
         @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.ROTATION_POINTS_URI;
+        protected String getTableUriPathSegment() {
+            return RotationPointTable.URI_PATH;
         }
 
         @Override
@@ -141,8 +139,8 @@ public final class MeasurementSerializer {
      */
     public final static Point3DSerializer directionsSerializer = new Point3DSerializer() {
         @Override
-        protected Uri getTableUri() {
-            return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;
+        protected String getTableUriPathSegment() {
+            return MagneticValuePointTable.URI_PATH;
         }
 
         @Override
@@ -191,7 +189,7 @@ public final class MeasurementSerializer {
      * @param loader The device wide unique identifier of the measurement to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
-    InputStream     serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
+    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         Deflater compressor = new Deflater();
         byte[] data = serializeToByteArray(loader);
         compressor.setInput(data);
@@ -283,8 +281,8 @@ public final class MeasurementSerializer {
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
             directionsCursor = loader.load3DPoint(directionsSerializer);
 
-            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(),
-                    rotationsCursor.getCount(), directionsCursor.getCount());
+            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(), rotationsCursor.getCount(),
+                    directionsCursor.getCount());
 
             ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {

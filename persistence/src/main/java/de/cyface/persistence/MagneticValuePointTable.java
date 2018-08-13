@@ -21,7 +21,7 @@ public class MagneticValuePointTable extends AbstractCyfaceMeasurementTable {
     /**
      * The path segment in the table URI identifying the directions table.
      */
-    final static String URI_PATH = "magnetic_value";
+    public final static String URI_PATH = "magnetic_value";
     /**
      * Logging tag for Android logging.
      */

@@ -96,7 +96,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
-        super(context, context.getContentResolver(), dataUploadServerAddress);
+        super(context, context.getContentResolver(), "de.cyface.provider", dataUploadServerAddress);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

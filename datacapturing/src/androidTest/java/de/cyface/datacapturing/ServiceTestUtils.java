@@ -4,8 +4,15 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
+import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
+
+import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.SamplePointTable;
 
 /**
  * A class containing static utility functions, encapsulating often used calls.
@@ -14,7 +21,12 @@ import android.support.test.InstrumentationRegistry;
  * @version 1.0.0
  * @since 2.0.0
  */
-class ServiceTestUtils {
+public class ServiceTestUtils {
+    /**
+     * The tag used to identify log messages send to logcat.
+     */
+    public static final String TAG = "de.cyface.test";
+    public static final String AUTHORITY = "de.cyface.provider.test";
 
     /**
      * Private constructor so no one tries to instantiate the utility class.
@@ -59,5 +71,25 @@ class ServiceTestUtils {
                 oocut.isRunning(1, TimeUnit.SECONDS, runningStatusCallback);
             }
         });
+    }
+
+    public static Uri getMeasurementUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
+    }
+
+    public static Uri getGeoLocationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+    }
+
+    public static Uri getAccelerationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(SamplePointTable.URI_PATH).build();
+    }
+
+    public static Uri getRotationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(RotationPointTable.URI_PATH).build();
+    }
+
+    public static Uri getDirectionsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MagneticValuePointTable.URI_PATH).build();
     }
 }

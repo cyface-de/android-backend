@@ -14,6 +14,7 @@ import org.junit.runner.RunWith;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.Vehicle;
 
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -41,7 +42,7 @@ public class MeasurementPersistenceTest {
     public void setUp() {
         Context context = InstrumentationRegistry.getTargetContext();
         ContentResolver resolver = context.getContentResolver();
-        oocut = new MeasurementPersistence(resolver);
+        oocut = new MeasurementPersistence(resolver, AUTHORITY);
     }
 
     /**

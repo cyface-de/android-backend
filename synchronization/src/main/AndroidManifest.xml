@@ -26,7 +26,7 @@
     <application>
         <service
             android:name="de.cyface.synchronization.SyncService"
-            android:exported="true"
+            android:exported="false"
             android:process=":sync">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter" />

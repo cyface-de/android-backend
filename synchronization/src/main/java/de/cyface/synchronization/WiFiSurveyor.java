@@ -30,12 +30,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     private static final String TAG = "de.cyface.sync";
     /**
-     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
-     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
-     * for further information.
-     */
-    final static String AUTHORITY = de.cyface.persistence.BuildConfig.provider;
-    /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
      */
     private static final long SECONDS_PER_MINUTE = 60L;
@@ -69,6 +63,14 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * available. The second option might use up the users data plan rapidly so use it sparingly.
      */
     private boolean syncOnWiFiOnly;
+    /**
+     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
+     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
+     * for further information.
+     */
+    private final String authority;
+
+    private final String accountType = "de.cyface.datacapturing.test";
 
     /**
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
@@ -82,10 +84,12 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * @param connectivityManager The Android <code>ConnectivityManager</code> used to check the device's current
      *            connection status.
      */
-    public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager) {
+    public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager,
+            final @NonNull String authority) {
         this.context = new WeakReference<>(context);
         this.connectivityManager = connectivityManager;
-        syncOnWiFiOnly = true;
+        this.syncOnWiFiOnly = true;
+        this.authority = authority;
     }
 
     /**
@@ -106,7 +110,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         }
 
         if (isConnected()) {
-            ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
+            ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
 
         IntentFilter intentFilter = new IntentFilter();
@@ -136,7 +140,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void scheduleSyncNow(final @NonNull Account account) throws SynchronisationException {
         if (isConnected()) {
-            ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
+            ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
     }
 
@@ -154,17 +158,17 @@ public class WiFiSurveyor extends BroadcastReceiver {
                     // do stuff
                     // Try synchronization periodically
                     boolean cyfaceAccountSyncIsEnabled = ContentResolver
-                            .getSyncAutomatically(currentSynchronizationAccount, AUTHORITY);
+                            .getSyncAutomatically(currentSynchronizationAccount, authority);
                     boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
 
                     if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-                        ContentResolver.addPeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY,
+                        ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY,
                                 SYNC_INTERVAL);
                     }
                     synchronizationIsActive = true;
                 } else {
                     // wifi connection was lost
-                    ContentResolver.removePeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
+                    ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
                     synchronizationIsActive = false;
                 }
             } catch (SynchronisationException e) {
@@ -181,10 +185,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void deleteAccount(final @NonNull String username) {
         AccountManager accountManager = AccountManager.get(context.get());
-        Account account = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
+        Account account = new Account(username, accountType);
 
-        if (!ContentResolver.getPeriodicSyncs(account, AUTHORITY).isEmpty()) {
-            ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
+        if (!ContentResolver.getPeriodicSyncs(account, authority).isEmpty()) {
+            ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY);
         }
 
         synchronized (this) {
@@ -207,16 +211,16 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public Account getOrCreateAccount(final @NonNull String username) throws SynchronisationException {
         AccountManager am = AccountManager.get(context.get());
-        Account[] cyfaceAccounts = am.getAccountsByType(StubAuthenticator.ACCOUNT_TYPE);
+        Account[] cyfaceAccounts = am.getAccountsByType(accountType);
         if (cyfaceAccounts.length == 0) {
             synchronized (this) {
-                Account newAccount = new Account(username, StubAuthenticator.ACCOUNT_TYPE);
+                Account newAccount = new Account(username, accountType);
                 boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
                 if (!newAccountAdded) {
                     throw new SynchronisationException("Unable to add dummy account!");
                 }
-                ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
-                ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
+                ContentResolver.setIsSyncable(newAccount, authority, 1);
+                ContentResolver.setSyncAutomatically(newAccount, authority, true);
                 return newAccount;
             }
         } else {

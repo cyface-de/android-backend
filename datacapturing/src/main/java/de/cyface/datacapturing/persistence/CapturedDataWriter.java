@@ -17,14 +17,14 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
 /**
  * A class responsible for writing captured sensor data to the underlying database.
  * <p>
- * This is a throw away runnable. You should never run this twice. Doing so will cause duplicates inside the <code>ContentProvider</code>. Instead create a new instance per <code>CapturedData</code> to save.
+ * This is a throw away runnable. You should never run this twice. Doing so will cause duplicates inside the
+ * <code>ContentProvider</code>. Instead create a new instance per <code>CapturedData</code> to save.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -45,6 +45,7 @@ public class CapturedDataWriter implements Runnable {
      * The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the data to.
      */
     private final ContentResolver resolver;
+    private final String authority;
     /**
      * The device wide unique identifier of the measurement to write the data to.
      */
@@ -58,19 +59,24 @@ public class CapturedDataWriter implements Runnable {
      * can lead to a {@link android.os.TransactionTooLargeException} on some mobile phones. The current value is the one
      * where all tests are finally passing on the Pixel 2.
      */
-    public static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
+    private static final int MAX_SIMULTANEOUS_OPERATIONS = 550;
 
     /**
      * Creates a new completely initialized writer for captured data.
      *
      * @param data The data to write.
-     * @param resolver The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the data to.
+     * @param resolver The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the
+     *            data to.
+     * @param authority
      * @param measurementIdentifier The device wide unique identifier of the measurement to write the data to.
      * @param callback Callback which is called after writing data has finished.
      */
-    CapturedDataWriter(final @NonNull CapturedData data, final @NonNull ContentResolver resolver, final long measurementIdentifier, final @NonNull WritingDataCompletedCallback callback) {
+    CapturedDataWriter(final @NonNull CapturedData data, final @NonNull ContentResolver resolver,
+            final @NonNull String authority, final long measurementIdentifier,
+            final @NonNull WritingDataCompletedCallback callback) {
         this.data = data;
         this.resolver = resolver;
+        this.authority = authority;
         this.measurementIdentifier = measurementIdentifier;
         this.callback = callback;
     }
@@ -90,23 +96,29 @@ public class CapturedDataWriter implements Runnable {
         try {
             ContentProviderClient client = null;
             try {
-                client = resolver.acquireContentProviderClient(MeasuringPointsContentProvider.AUTHORITY);
+                client = resolver.acquireContentProviderClient(authority);
                 if (client == null) {
-                    throw new DataCapturingException(String.format("Unable to create client for content provider %s",
-                            MeasuringPointsContentProvider.AUTHORITY));
+                    throw new DataCapturingException(
+                            String.format("Unable to create client for content provider %s", authority));
                 }
 
-                insert(client, data.getAccelerations(), MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
+                insert(client, data.getAccelerations(),
+                        new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH)
+                                .build(),
                         SamplePointTable.COLUMN_AX, SamplePointTable.COLUMN_AY, SamplePointTable.COLUMN_AZ,
                         SamplePointTable.COLUMN_IS_SYNCED, SamplePointTable.COLUMN_MEASUREMENT_FK,
                         SamplePointTable.COLUMN_TIME);
 
-                insert(client, data.getRotations(), MeasuringPointsContentProvider.ROTATION_POINTS_URI,
+                insert(client, data.getRotations(),
+                        new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH)
+                                .build(),
                         RotationPointTable.COLUMN_RX, RotationPointTable.COLUMN_RY, RotationPointTable.COLUMN_RZ,
                         RotationPointTable.COLUMN_IS_SYNCED, RotationPointTable.COLUMN_MEASUREMENT_FK,
                         RotationPointTable.COLUMN_TIME);
 
-                insert(client, data.getDirections(), MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
+                insert(client, data.getDirections(),
+                        new Uri.Builder().scheme("content").authority(authority)
+                                .appendPath(MagneticValuePointTable.URI_PATH).build(),
                         MagneticValuePointTable.COLUMN_MX, MagneticValuePointTable.COLUMN_MY,
                         MagneticValuePointTable.COLUMN_MZ, MagneticValuePointTable.COLUMN_IS_SYNCED,
                         MagneticValuePointTable.COLUMN_MEASUREMENT_FK, MagneticValuePointTable.COLUMN_TIME);

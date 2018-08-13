@@ -1,10 +1,14 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -16,6 +20,7 @@ import org.junit.runner.RunWith;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
+import android.content.SyncInfo;
 import android.content.SyncStatusObserver;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
@@ -33,19 +38,13 @@ import android.util.Log;
  * the test large and flaky. Future implementation will hopefully remove this dependency.
  * 
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
 public final class SyncAdapterTest {
-
-    /**
-     * The tag used to identify log messages from logcat.
-     */
-    private final static String TAG = "de.cyface.sync.test";
-
     /**
      * This test case tests whether the sync adapter is called after a request for a direct synchronization.
      *
@@ -53,36 +52,40 @@ public final class SyncAdapterTest {
      */
     @Test
     public void testRequestSync() throws InterruptedException {
-        AccountManager am = AccountManager.get(InstrumentationRegistry.getContext());
-        Account newAccount = new Account("default_user", "de.cyface");
+        AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
+        Account newAccount = new Account("default_user", ACCOUNT_TYPE);
         if (am.addAccountExplicitly(newAccount, "testpw", Bundle.EMPTY)) {
-            ContentResolver.setIsSyncable(newAccount, "de.cyface.provider", 1);
-            ContentResolver.setSyncAutomatically(newAccount, "de.cyface.provider", true);
+            ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
+            ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
         }
 
         try {
-            final Account account = am.getAccountsByType("de.cyface")[0];
+            final Account account = am.getAccountsByType(ACCOUNT_TYPE)[0];
 
             final Lock lock = new ReentrantLock();
             final Condition condition = lock.newCondition();
 
             TestSyncStatusObserver observer = new TestSyncStatusObserver(account, lock, condition);
 
-            ContentResolver.requestSync(account, "de.cyface.provider", Bundle.EMPTY);
-            ContentResolver.addStatusChangeListener(ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE, observer);
+            Object statusChangeListenerHandle = ContentResolver.addStatusChangeListener(
+                    ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE | ContentResolver.SYNC_OBSERVER_TYPE_PENDING, observer);
+            ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
 
             lock.lock();
             try {
                 if (!condition.await(10, TimeUnit.SECONDS)) {
-                    fail();
+                    fail("Sync did not happen within the timeout time of 10 seconds.");
                 }
             } finally {
                 lock.unlock();
+                ContentResolver.removeStatusChangeListener(statusChangeListenerHandle);
             }
             assertThat(observer.didSync(), is(equalTo(true)));
 
         } finally {
-            am.removeAccount(am.getAccountsByType("de.cyface")[0], null, null, null);
+            for (Account account : am.getAccountsByType(ACCOUNT_TYPE)) {
+                am.removeAccountExplicitly(account);
+            }
         }
     }
 
@@ -95,11 +98,6 @@ public final class SyncAdapterTest {
      * @since 2.0.0
      */
     private static class TestSyncStatusObserver implements SyncStatusObserver {
-
-        /**
-         * The authority identifying the content provider used by the <code>SyncAdapter</code> under test.
-         */
-        static final String CONTENT_PROVIDER_AUTHORITY = "de.cyface.provider";
         /**
          * The lock used to synchronize the synchronization adapter with the calling test case.
          */
@@ -129,18 +127,35 @@ public final class SyncAdapterTest {
                 final @NonNull Condition syncCondition) {
             this.lock = lock;
             this.syncCondition = syncCondition;
+            this.didSync = false;
             this.account = account;
-            didSync = false;
         }
 
         @Override
         public void onStatusChanged(int which) {
-            Log.d(TAG, "Sync Status changed!");
-            Log.d(TAG, String.format("Sync Status active is: %s",
-                    ContentResolver.isSyncActive(account, CONTENT_PROVIDER_AUTHORITY)));
-            didSync = didSync || ContentResolver.isSyncActive(account, CONTENT_PROVIDER_AUTHORITY);
+            // Print synchronization info for debugging purposes.
+            Log.d(TAG, "Sync Status changed! " + which);
+            List<SyncInfo> syncs = ContentResolver.getCurrentSyncs();
+            Log.d(TAG, "Syncs: " + syncs.size());
+            for (SyncInfo syncInfo : syncs) {
+                Log.d(TAG, String.format("Sync: %s,%s,%s,%d", syncInfo.account.name, syncInfo.account.type,
+                        syncInfo.authority, syncInfo.startTime));
+            }
+
+            // Print synchronizing accounts for debugging purposes.
+            AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
+            Account[] accounts = am.getAccountsByType(ACCOUNT_TYPE);
+            for (Account account : accounts) {
+                Log.d(TAG,
+                        String.format("Account: %s/active: %s/pending: %s", account,
+                                ContentResolver.isSyncActive(account, AUTHORITY),
+                                ContentResolver.isSyncPending(account, AUTHORITY)));
+            }
+
+            // Actual check for test account
+            didSync = didSync || ContentResolver.isSyncActive(account, AUTHORITY);
             // Calling thread will only be called if content resolver has been active but is not anymore.
-            if (didSync && !ContentResolver.isSyncActive(account, CONTENT_PROVIDER_AUTHORITY)) {
+            if (didSync && !ContentResolver.isSyncActive(account, AUTHORITY)) {
                 lock.lock();
                 try {
                     syncCondition.signal();

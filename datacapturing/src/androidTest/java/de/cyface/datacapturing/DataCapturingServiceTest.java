@@ -1,9 +1,11 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -36,7 +38,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -73,7 +75,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     /**
      * Callback triggered if the test successfully establishes a connection with the background service or times out.
      */
-    private IsRunningStatus runningStatusCallback;
+    private TestCallback runningStatusCallback;
 
     /**
      * Lock used to synchronize with the background service.
@@ -89,7 +91,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * Required constructor.
      */
     public DataCapturingServiceTest() {
-        super(MeasuringPointsContentProvider.class, de.cyface.persistence.BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, AUTHORITY);
     }
 
     /**
@@ -110,7 +112,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, context.getContentResolver(),
+                    oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                             "http://localhost:8080");
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
@@ -121,7 +123,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         lock = new ReentrantLock();
         condition = lock.newCondition();
         testListener = new TestListener(lock, condition);
-        runningStatusCallback = new IsRunningStatus(lock, condition);
+        runningStatusCallback = new TestCallback("Default Callback", lock, condition);
     }
 
     /**
@@ -514,6 +516,47 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         oocut.stopAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+    }
+
+    /**
+     * Tests whether the {@link MovebisDataCapturingService#pauseSync()} and {@link MovebisDataCapturingService#resumeSync()}
+     * work correctly.
+     *
+     * @throws DataCapturingException If any unexpected errors occur during data capturing.
+     * @throws MissingPermissionException If an Android permission is missing.
+     */
+    @Test
+    public void testPauseResumeMeasurement() throws DataCapturingException, MissingPermissionException {
+        // start
+        oocut.startSync(testListener, Vehicle.UNKOWN);
+        // check is running
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.isRunning, is(equalTo(true)));
+        assertThat(runningStatusCallback.timedOut, is(equalTo(false)));
+        // get measurements
+        final List<Measurement> measurements = oocut.getCachedMeasurements();
+        assertThat(measurements.size() > 0, is(equalTo(true)));
+        // pause
+        oocut.pauseSync();
+        // check is not running
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
+        // resume
+        oocut.resumeSync();
+        // check is running
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(false)));
+        // get measurements again
+        final List<Measurement> newMeasurements = oocut.getCachedMeasurements();
+        // check for no new measurements
+        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
+        // stop
+        oocut.stopSync();
     }
 
     /**

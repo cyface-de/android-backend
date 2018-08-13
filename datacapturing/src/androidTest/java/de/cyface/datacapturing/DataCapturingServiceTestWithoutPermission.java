@@ -24,6 +24,7 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -59,7 +60,8 @@ public class DataCapturingServiceTestWithoutPermission {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, contentResolver, dataUploadServerAddress);
+                    oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY,
+                            dataUploadServerAddress);
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -90,7 +92,7 @@ public class DataCapturingServiceTestWithoutPermission {
 
         boolean exceptionCatched = false;
         try {
-            oocut.startSync(new NonSynchronizedTestListener(),Vehicle.UNKOWN);
+            oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKOWN);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCatched = true;
