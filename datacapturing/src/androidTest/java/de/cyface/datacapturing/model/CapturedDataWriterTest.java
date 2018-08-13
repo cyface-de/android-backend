@@ -209,7 +209,8 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         oocut.storeData(testData(), measurementIdnetifier);
         oocut.storeLocation(testLocation(), measurementIdnetifier);
         // clear the test data
-        oocut.clear();
+        int removedRows = oocut.clear();
+        assertThat(removedRows, is(equalTo(12)));
 
         // make sure nothing is left.
         Cursor geoLocationsCursor = null;
@@ -219,10 +220,18 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor measurementsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null, null, null, null);
-            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null, null, null, null);
-            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null, null, null, null);
-            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null, null, null, null);
+            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null,
+                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurementIdnetifier)},
+                    null);
+            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
+                    SamplePointTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurementIdnetifier)},
+                    null);
+            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
+                    MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.toString(measurementIdnetifier)}, null);
+            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
+                    RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.toString(measurementIdnetifier)}, null);
             measurementsCursor = getMockContentResolver().query(getMeasurementUri(), null, null, null, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
                     || rotationsCursor == null || measurementsCursor == null) {

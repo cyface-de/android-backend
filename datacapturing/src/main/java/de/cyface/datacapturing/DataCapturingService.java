@@ -660,6 +660,7 @@ public abstract class DataCapturingService {
             Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, measurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
 
         ComponentName serviceComponentName = null;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {

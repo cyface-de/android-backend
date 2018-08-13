@@ -279,13 +279,17 @@ public class MeasurementPersistence {
 
     /**
      * Removes everything from the local persistent data storage.
+     *
+     * @return number of rows removed from the database.
      */
-    public void clear() {
-        resolver.delete(getRotationsUri(), null, null);
-        resolver.delete(getAccelerationsUri(), null, null);
-        resolver.delete(getDirectionsUri(), null, null);
-        resolver.delete(getGeoLocationsUri(), null, null);
-        resolver.delete(getMeasurementUri(), null, null);
+    public int clear() {
+        int ret = 0;
+        ret += resolver.delete(getRotationsUri(), null, null);
+        ret += resolver.delete(getAccelerationsUri(), null, null);
+        ret += resolver.delete(getDirectionsUri(), null, null);
+        ret += resolver.delete(getGeoLocationsUri(), null, null);
+        ret += resolver.delete(getMeasurementUri(), null, null);
+        return ret;
     }
 
     /**
