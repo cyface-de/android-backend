@@ -318,6 +318,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             }
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
+            assertThat(accelerationsCursor.getCount(), is(equalTo(0)));
+            assertThat(directionsCursor.getCount(), is(equalTo(0)));
+            assertThat(rotationsCursor.getCount(), is(equalTo(0)));
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
