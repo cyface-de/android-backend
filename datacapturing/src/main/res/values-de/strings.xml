@@ -5,4 +5,5 @@
     <string name="missing_data_error">Die Nachricht enhält keine aufgezeichneten Daten.</string>
     <string name="unknown_message_error">Unbekannte Nachricht %d aus Datenerfassungsdienst erhalten!</string>
     <string name="notification_title">Datenerfassung läuft</string>
+    <string name="notification_channel_description_running">Benachrichtigung, die gezeigt wird während die Messung läuft und einen stop Button beinhaltet.</string>
 </resources>
