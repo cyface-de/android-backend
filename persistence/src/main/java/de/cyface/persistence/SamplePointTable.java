@@ -10,18 +10,21 @@ import android.provider.BaseColumns;
  * A table for sample points (acceleration) from the android acceleration sensor.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public class SamplePointTable extends AbstractCyfaceMeasurementTable {
 
+    /**
+     * The path segment in the table URI identifying the accelerations table.
+     */
+    public final static String URI_PATH = "sample";
     /**
      * Creates a new completely initialized {@code SamplePointTable} using "sample_points" as table name.
      */
     public SamplePointTable() {
         super("sample_points");
     }
-
     /**
      * Logging tag for Android logging.
      */

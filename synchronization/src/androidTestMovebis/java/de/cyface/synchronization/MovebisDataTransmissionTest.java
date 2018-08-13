@@ -1,10 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
-import static de.cyface.synchronization.TestUtils.insertTestDirection;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestRotation;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -41,6 +37,10 @@ import de.cyface.persistence.SamplePointTable;
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
  * that server, it is a flaky test and a large test.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.1
+ * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
@@ -112,14 +112,14 @@ public class MovebisDataTransmissionTest {
 
         ContentProviderClient client = null;
         try {
-            client = resolver.acquireContentProviderClient(BuildConfig.provider);
+            client = resolver.acquireContentProviderClient(AUTHORITY);
 
             if (client == null)
                 throw new IllegalStateException(
-                        String.format("Unable to acquire client for content provider %s", BuildConfig.provider));
+                        String.format("Unable to acquire client for content provider %s", AUTHORITY));
 
             MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                    client);
+                    client, AUTHORITY);
             MeasurementSerializer serializer = new MeasurementSerializer();
             InputStream measurementData = serializer.serialize(loader);
             // printMD5(measurementData);
@@ -145,6 +145,13 @@ public class MovebisDataTransmissionTest {
         }
     }
 
+    /**
+     * Prints the MD5 of an input stream. This is useful for debugging purposes.
+     *
+     * @param stream The stream to print the MD5 sum for.
+     * @throws IOException Thrown if the stream is not readable.
+     * @throws NoSuchAlgorithmException Thrown if MD5 Algorithm is not supported
+     */
     private void printMD5(final @NonNull InputStream stream) throws IOException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] content = new byte[stream.available()];

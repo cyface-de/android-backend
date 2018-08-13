@@ -10,6 +10,10 @@ import android.database.sqlite.SQLiteDatabase;
  * Base interface for all tables used by this content provider. You need to provide the SQLite database to every method
  * call for performance reasons. That way the connection to the database need not be constructed before the first real
  * call to any data.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 1.0.0
  */
 public interface CyfaceMeasurementTable {
     /**
@@ -87,7 +91,7 @@ public interface CyfaceMeasurementTable {
      *            {@code selectionArgs}. This is what you usually expect behind an SQL WHERE statement.
      * @param selectionArgs The values for the ? placeholders within {@code selection}. Use this to avoid SQL injection
      *            attacks.
-     * @return
+     * @return The number of updated rows in the database.
      */
     int update(SQLiteDatabase database, ContentValues values, String selection, String[] selectionArgs);
 

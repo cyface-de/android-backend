@@ -16,6 +16,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
@@ -30,7 +31,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * The <code>SyncAdapter</code> implementation used by the framework to transmit measured data to a server.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
@@ -107,14 +108,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             }
 
             // Load all Measurements that are finished capturing
-            syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider);
+            syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
 
             while (syncableMeasurementsCursor.moveToNext()) {
 
                 long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
                 MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                        provider);
+                        provider, authority);
 
                 Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.",
                         measurementIdentifier));

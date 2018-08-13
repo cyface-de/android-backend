@@ -1,14 +1,14 @@
 package de.cyface.synchronization;
 
-import android.content.ContentProviderOperation;
-import android.database.Cursor;
+import java.util.Collection;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.Collection;
+import android.content.ContentProviderOperation;
+import android.database.Cursor;
 
 public interface JsonMapper {
     JSONObject map(Cursor cursor) throws JSONException;
-    Collection<ContentProviderOperation> buildMarkSyncedOperation(JSONObject measurementSlice) throws SynchronisationException;
+    Collection<ContentProviderOperation> buildMarkSyncedOperation(JSONObject measurementSlice, String authority) throws SynchronisationException;
 }

@@ -63,7 +63,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 5.0.0
+ * @version 6.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -135,7 +135,12 @@ public abstract class DataCapturingService {
      * A listener for events which the UI might be interested in.
      */
     private UIListener uiListener;
-
+    /**
+     * The <code>ContentProvider</code> authority used to identify the content provider used by this
+     * <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     * avoid collisions between different apps using the Cyface SDK.
+     */
+    private String authority;
     /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
@@ -147,16 +152,21 @@ public abstract class DataCapturingService {
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param resolver The <code>ContentResolver</code> used to access the data layer.
+     * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
+     *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     *            avoid collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress) throws SetupException {
         this.context = new WeakReference<>(context);
-
+        this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
-        this.persistenceLayer = new MeasurementPersistence(resolver);
+        this.persistenceLayer = new MeasurementPersistence(resolver, authority);
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -174,7 +184,7 @@ public abstract class DataCapturingService {
         if (connectivityManager == null) {
             throw new SetupException("Android connectivity manager is not available!");
         }
-        surveyor = new WiFiSurveyor(context, connectivityManager, Constants.ACCOUNT_TYPE);
+        surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         lifecycleLock = new ReentrantLock();

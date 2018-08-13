@@ -2,6 +2,7 @@ package de.cyface.synchronization;
 
 import android.content.ContentProviderOperation;
 import android.database.Cursor;
+import android.net.Uri;
 import android.support.annotation.NonNull;
 
 import org.json.JSONArray;
@@ -27,17 +28,19 @@ final class GeoLocationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice)
+    public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice, final @NonNull String authority)
             throws SynchronisationException {
         Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
 
         try {
             String measurementIdentifier = measurementSlice.getString("id");
             JSONArray geoLocationsArray = measurementSlice.getJSONArray("gpsPoints");
+            Uri tableUri = new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
+
             for (int i = 0; i < geoLocationsArray.length(); i++) {
                 JSONObject geoLocation = geoLocationsArray.getJSONObject(i);
                 ContentProviderOperation operation = ContentProviderOperation
-                        .newUpdate(MeasuringPointsContentProvider.GPS_POINTS_URI)
+                        .newUpdate(tableUri)
                         .withSelection(
                                 GpsPointsTable.COLUMN_MEASUREMENT_FK + "=? AND " + GpsPointsTable.COLUMN_GPS_TIME
                                         + "=?",

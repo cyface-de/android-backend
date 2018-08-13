@@ -34,7 +34,7 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.1.2
+ * @version 2.1.3
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -96,7 +96,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
-        super(context, context.getContentResolver(), dataUploadServerAddress);
+        super(context, context.getContentResolver(), "de.cyface.provider", "de.cyface", dataUploadServerAddress);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

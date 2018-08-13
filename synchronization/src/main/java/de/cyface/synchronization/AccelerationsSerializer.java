@@ -1,14 +1,11 @@
 package de.cyface.synchronization;
 
-import android.net.Uri;
-
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.SamplePointTable;
 
 final class AccelerationsSerializer implements Point3DSerializer {
     @Override
-    public Uri getTableUri() {
-        return MeasuringPointsContentProvider.SAMPLE_POINTS_URI;
+    public String getTableUriPathSegment() {
+        return SamplePointTable.URI_PATH;
     }
 
     @Override

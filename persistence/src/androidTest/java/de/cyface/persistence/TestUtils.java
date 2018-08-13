@@ -22,15 +22,16 @@ import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
 /**
- * <p>
  * A utility class with static methods for supporting tests on the persistence code.
- * </p>
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 1.0.0
  */
 class TestUtils {
+
+    static final String AUTHORITY = "de.cyface.provider.test";
+
     private static void compareCursorWithValues(final Cursor cursor, final List<ContentValues> contentValues) {
         assertThat(contentValues.size()<=cursor.getCount(),is(equalTo(true)));
         for (ContentValues values : contentValues) {
@@ -88,5 +89,25 @@ class TestUtils {
 
     static int count(final MockContentResolver mockResolver, final Uri contentUri) {
         return mockResolver.query(contentUri,null,null,null,null).getCount();
+    }
+
+    static Uri getMeasurementUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
+    }
+
+    static Uri getGeoLocationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+    }
+
+    static Uri getAccelerationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(SamplePointTable.URI_PATH).build();
+    }
+
+    static Uri getRotationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(RotationPointTable.URI_PATH).build();
+    }
+
+    static Uri getDirectionsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MagneticValuePointTable.URI_PATH).build();
     }
 }

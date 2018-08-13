@@ -27,34 +27,42 @@ import android.test.mock.MockContentResolver;
  *
  * @author Klemens Muthmann
  *
- * @version 1.0.3
+ * @version 1.1.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
 public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
 
+    /**
+     * A mock content resolver provided by the Android test environment to work on a simulated content provider.
+     */
     private MockContentResolver mockResolver;
-    private Uri contentUri;
 
+    /**
+     * Required by <code>ProviderTestCase2</code> to completely initialize a test instance.
+     */
     public GpsPointTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, TestUtils.AUTHORITY);
     }
 
+    /**
+     * Compares a cursor from the database with a set of content values via JUnit assertions.
+     *
+     * @param message Error message to show if cursor contains multiple elements.
+     * @param cursor The cursor to compare
+     * @param values The values to compare to
+     */
     private void cursorEqualsValues(final String message, final Cursor cursor, final ContentValues values) {
         assertEquals(message, 1, cursor.getCount());
         cursor.moveToFirst();
 
-        assertEquals(
-                values.get(GpsPointsTable.COLUMN_GPS_TIME),
+        assertEquals(values.get(GpsPointsTable.COLUMN_GPS_TIME),
                 cursor.getLong(cursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME)));
-        assertEquals(
-                values.get(GpsPointsTable.COLUMN_LAT),
+        assertEquals(values.get(GpsPointsTable.COLUMN_LAT),
                 cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
-        assertEquals(
-                values.get(GpsPointsTable.COLUMN_LON),
+        assertEquals(values.get(GpsPointsTable.COLUMN_LON),
                 cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LON)));
-        assertEquals(
-                values.get(GpsPointsTable.COLUMN_MEASUREMENT_FK),
+        assertEquals(values.get(GpsPointsTable.COLUMN_MEASUREMENT_FK),
                 cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_MEASUREMENT_FK)));
         assertEquals(values.get(GpsPointsTable.COLUMN_SPEED),
                 cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED)));
@@ -65,13 +73,18 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
     @Override
     @Before
     public void setUp() throws Exception {
-        // WARNING: Never change the order of the following two lines, even though the Google documentation tells you something different!
+        // WARNING: Never change the order of the following two lines, even though the Google documentation tells you
+        // something different!
         setContext(InstrumentationRegistry.getTargetContext());
         super.setUp();
         mockResolver = getMockContentResolver();
-        contentUri = Uri.parse(String.format("content://%s/%s", BuildConfig.provider, DatabaseHelper.GPS_POINT_URI_PATH));
     }
 
+    /**
+     * A convenience method to quickly get some test data.
+     *
+     * @return A test fixture with one geo location.
+     */
     private ContentValues getTextFixture() {
         ContentValues values = new ContentValues();
         values.put(GpsPointsTable.COLUMN_GPS_TIME, 1234567890L);
@@ -83,47 +96,67 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         return values;
     }
 
+    /**
+     * Test that there are no geo locations left after we delete them from the database.
+     */
     @Test
-    public void testDeleteAllMeasuringPoints() throws Exception {
-        mockResolver.insert(contentUri,getTextFixture());
+    public void testDeleteAllMeasuringPoints() {
+        mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
 
-        assertThat(mockResolver.delete(contentUri, null, null)>0,is(equalTo(true)));
+        assertThat(mockResolver.delete(TestUtils.getGeoLocationsUri(), null, null) > 0, is(equalTo(true)));
     }
 
+    /**
+     * Test that deleting a geo location via selection actually removes that location from the content provider.
+     */
     @Test
-    public void testDeleteMeasuringPointViaSelection() throws Exception {
-        Uri createdRowUri = mockResolver.insert(contentUri,getTextFixture());
+    public void testDeleteMeasuringPointViaSelection() {
+        Uri createdRowUri = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertEquals(1, mockResolver.delete(
-                contentUri, BaseColumns._ID + "= ?", new String[] {createdId}));
+        assertEquals(1,
+                mockResolver.delete(TestUtils.getGeoLocationsUri(), BaseColumns._ID + "= ?", new String[] {createdId}));
     }
 
+    /**
+     * Test that deleting a geo location via URI identifier actually removes that location from the content provider.
+     */
     @Test
-    public void testDeleteMeasuringPointViaURL() throws Exception {
-        Uri createdRowUri = mockResolver.insert(contentUri,getTextFixture());
+    public void testDeleteMeasuringPointViaURL() {
+        Uri createdRowUri = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertEquals(1, mockResolver.delete(Uri.parse(String.format("content://%s/%s/%s",BuildConfig.provider,DatabaseHelper.GPS_POINT_URI_PATH,createdId)), null, null));
+        assertEquals(1,
+                mockResolver.delete(TestUtils.getGeoLocationsUri().buildUpon().appendPath(createdId).build(),
+                        null, null));
     }
 
+    /**
+     * Test that inserting a geo location into a content provider results in a content provider containing one geo location.
+     */
     @Test
-    public void testCreateMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), getTextFixture());
+    public void testCreateMeasuringPoint() {
+        Uri insert = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String lastPathSegment = insert.getLastPathSegment();
-        assertThat(lastPathSegment,not(equalTo("-1")));
+        assertThat(lastPathSegment, not(equalTo("-1")));
         long identifier = Long.parseLong(lastPathSegment);
         assertTrue(identifier > 0L);
     }
 
+    /**
+     * Test that reading from a content provider with a geo location returns that geo location.
+     */
     @Test
-    public void testReadMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), getTextFixture());
+    public void testReadMeasuringPoint() {
+        Uri insert = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String lastPathSegment = insert.getLastPathSegment();
 
-        try (Cursor urlQuery= mockResolver.query(Uri.parse(String.format("content://%s/%s/%s",BuildConfig.provider,DatabaseHelper.GPS_POINT_URI_PATH,lastPathSegment)), null, null, null, null);Cursor selectionQuery = mockResolver.query(
-                Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, BaseColumns._ID + "=?",
-                new String[] {lastPathSegment}, null); Cursor allQuery = mockResolver.query(Uri.parse("content://"+BuildConfig.provider+"/measuring"), null, null, null, null);) {
+        try (Cursor urlQuery = mockResolver.query(TestUtils.getGeoLocationsUri().buildUpon().appendPath(lastPathSegment).build(),
+                null, null, null, null);
+                Cursor selectionQuery = mockResolver.query(TestUtils.getGeoLocationsUri(), null,
+                        BaseColumns._ID + "=?", new String[] {lastPathSegment}, null);
+                Cursor allQuery = mockResolver.query(TestUtils.getGeoLocationsUri(), null, null,
+                        null, null);) {
             // Select
             cursorEqualsValues("Unable to load all measuring points via URI.", urlQuery, getTextFixture());
             cursorEqualsValues("Unable to load measuring point via selection.", selectionQuery, getTextFixture());
@@ -131,17 +164,19 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         }
     }
 
+    /**
+     * Test that changing a single column value for a geo location works as expected.
+     */
     @Test
-    public void testUpdateMeasuringPoint() throws Exception {
-        Uri insert = mockResolver.insert(Uri.parse("content://"+BuildConfig.provider+"/measuring"), getTextFixture());
+    public void testUpdateMeasuringPoint() {
+        Uri insert = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String lastPathSegment = insert.getLastPathSegment();
 
         ContentValues newValues = new ContentValues();
         newValues.put(GpsPointsTable.COLUMN_LAT, 10.34f);
 
-        Uri dataPointUri = Uri.parse(String.format("content://%s/%s/%s", BuildConfig.provider, DatabaseHelper.GPS_POINT_URI_PATH, lastPathSegment));
-        assertEquals(
-                1, mockResolver.update(dataPointUri, newValues, null, null));
+        Uri dataPointUri = TestUtils.getGeoLocationsUri().buildUpon().appendPath(lastPathSegment).build();
+        assertEquals(1, mockResolver.update(dataPointUri, newValues, null, null));
 
         try (Cursor query = mockResolver.query(dataPointUri, null, null, null, null);) {
 
@@ -152,9 +187,14 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         }
     }
 
+    /**
+     * Clean the database after each test.
+     *
+     * @throws Exception In case anything unexpected happens in the super class.
+     */
     @After
     public void tearDown() throws Exception {
-        mockResolver.delete(contentUri, null, null);
+        mockResolver.delete(TestUtils.getGeoLocationsUri(), null, null);
         super.tearDown();
         getProvider().shutdown();
     }

@@ -1,14 +1,11 @@
 package de.cyface.synchronization;
 
-import android.net.Uri;
-
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 
 final class RotationsSerializer implements Point3DSerializer {
     @Override
-    public Uri getTableUri() {
-        return MeasuringPointsContentProvider.ROTATION_POINTS_URI;
+    public String getTableUriPathSegment() {
+        return RotationPointTable.URI_PATH;
     }
 
     @Override

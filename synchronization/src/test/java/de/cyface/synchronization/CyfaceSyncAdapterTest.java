@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -28,7 +29,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -43,7 +44,7 @@ public class CyfaceSyncAdapterTest {
     @Before
     public void setUp() {
         context = RuntimeEnvironment.application;
-        ShadowContentResolver.registerProviderInternal(BuildConfig.provider,
+        ShadowContentResolver.registerProviderInternal(AUTHORITY,
                 Robolectric.setupContentProvider(MeasuringPointsContentProvider.class));
     }
 
@@ -54,11 +55,12 @@ public class CyfaceSyncAdapterTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws RemoteException {
+        CyfaceSyncAdapter oocut = new CyfaceSyncAdapter(context, false);
         ContentProviderClient client = null;
+        Uri measurementUri = new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
         try {
             client = context.getContentResolver()
-                    .acquireContentProviderClient(MeasuringPointsContentProvider.MEASUREMENT_URI);
-
+                    .acquireContentProviderClient(measurementUri);
             if (client == null) {
                 throw new IllegalStateException("ContentProviderClient was null.");
             }
@@ -66,17 +68,16 @@ public class CyfaceSyncAdapterTest {
             ContentValues notFinishedMeasurementValues = createMeasurement(false, false);
             ContentValues notSyncedMeasurementValues = createMeasurement(false, true);
             ContentValues syncedMeasurementValues = createMeasurement(true, true);
-            client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, notFinishedMeasurementValues);
-            Uri result = client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, notSyncedMeasurementValues);
+            client.insert(measurementUri, notFinishedMeasurementValues);
+            Uri result = client.insert(measurementUri, notSyncedMeasurementValues);
             if (result == null) {
                 throw new IllegalStateException("Unable to insert measurement into ContentProvider.");
             }
 
             long expectedIdentifier = Long.parseLong(result.getLastPathSegment());
-            client.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, syncedMeasurementValues);
+            client.insert(measurementUri, syncedMeasurementValues);
 
-            // TODO: Why is this a static method and gets a client like the constructor. Should probably be an instance method with no arguments.
-            Cursor syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(client);
+            Cursor syncableMeasurementsCursor = oocut.loadSyncableMeasurements(client, AUTHORITY);
 
             assertThat(syncableMeasurementsCursor.getCount(), is(1));
             syncableMeasurementsCursor.moveToFirst();

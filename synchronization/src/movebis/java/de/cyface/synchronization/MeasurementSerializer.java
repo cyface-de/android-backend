@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
@@ -8,18 +10,14 @@ import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
 
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
-
-import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 
 /**
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
@@ -43,7 +41,7 @@ import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUER
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
