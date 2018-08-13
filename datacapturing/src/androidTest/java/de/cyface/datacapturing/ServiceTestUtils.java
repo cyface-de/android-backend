@@ -26,7 +26,14 @@ public class ServiceTestUtils {
      * The tag used to identify log messages send to logcat.
      */
     public static final String TAG = "de.cyface.test";
+    /**
+     * The authority used to identify the content provider for testing.
+     */
     public static final String AUTHORITY = "de.cyface.provider.test";
+    /**
+     * Account type used by all accounts created during testing.
+     */
+    public static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
 
     /**
      * Private constructor so no one tries to instantiate the utility class.

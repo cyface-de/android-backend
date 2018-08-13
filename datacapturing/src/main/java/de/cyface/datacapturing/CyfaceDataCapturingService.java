@@ -30,13 +30,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
      *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      */
     public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver contentResolver,
-            final @NonNull String authority, final @NonNull String dataUploadServerAddress) throws SetupException {
-        super(context, contentResolver, authority, dataUploadServerAddress);
+            final @NonNull String authority, final @NonNull String accountType,
+            final @NonNull String dataUploadServerAddress) throws SetupException {
+        super(context, contentResolver, authority, accountType, dataUploadServerAddress);
         try {
             Account account = getWiFiSurveyor().getOrCreateAccount(ACCOUNT);
             getWiFiSurveyor().startSurveillance(account);

@@ -153,12 +153,14 @@ public abstract class DataCapturingService {
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
      *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String dataUploadServerAddress) throws SetupException {
+            final @NonNull String authority, final @NonNull String accountType,
+            final @NonNull String dataUploadServerAddress) throws SetupException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
@@ -180,7 +182,7 @@ public abstract class DataCapturingService {
         if (connectivityManager == null) {
             throw new SetupException("Android connectivity manager is not available!");
         }
-        surveyor = new WiFiSurveyor(context, connectivityManager, authority);
+        surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         lifecycleLock = new ReentrantLock();

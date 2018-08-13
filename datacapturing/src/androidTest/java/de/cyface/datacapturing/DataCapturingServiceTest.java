@@ -1,5 +1,6 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -113,7 +114,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
-                            "http://localhost:8080");
+                            ACCOUNT_TYPE, "http://localhost:8080");
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -519,7 +520,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests whether the {@link MovebisDataCapturingService#pauseSync()} and {@link MovebisDataCapturingService#resumeSync()}
+     * Tests whether the {@link MovebisDataCapturingService#pauseSync()} and
+     * {@link MovebisDataCapturingService#resumeSync()}
      * work correctly.
      *
      * @throws DataCapturingException If any unexpected errors occur during data capturing.

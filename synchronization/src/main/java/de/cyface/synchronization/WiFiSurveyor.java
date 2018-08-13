@@ -70,7 +70,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     private final String authority;
 
-    private final String accountType = "de.cyface.datacapturing.test";
+    /**
+     * A <code>String</code> identifying the account type of the accounts to use for data synchronization.
+     */
+    private final String accountType;
 
     /**
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
@@ -83,13 +86,20 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * @param context The current Android context (i.e. Activity or Service).
      * @param connectivityManager The Android <code>ConnectivityManager</code> used to check the device's current
      *            connection status.
+     * @param authority The <code>ContentProvider</code> authority used by this service to store and read data. See the
+     *            <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android
+     *            documentation</a>
+     *            for further information.
+     * @param accountType A <code>String</code> identifying the account type of the accounts to use for data
+     *            synchronization.
      */
     public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager,
-            final @NonNull String authority) {
+            final @NonNull String authority, final @NonNull String accountType) {
         this.context = new WeakReference<>(context);
         this.connectivityManager = connectivityManager;
         this.syncOnWiFiOnly = true;
         this.authority = authority;
+        this.accountType = accountType;
     }
 
     /**
@@ -136,9 +146,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * going to start immediately. The Android system still decides when it is convenient.
      *
      * @param account The <code>Account</code> to use or synchronization.
-     * @throws SynchronisationException If current network state is not accessible.
      */
-    public void scheduleSyncNow(final @NonNull Account account) throws SynchronisationException {
+    public void scheduleSyncNow(final @NonNull Account account) {
         if (isConnected()) {
             ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
@@ -153,26 +162,22 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
         final String action = intent.getAction();
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
-            try {
-                if (isConnected()) {
-                    // do stuff
-                    // Try synchronization periodically
-                    boolean cyfaceAccountSyncIsEnabled = ContentResolver
-                            .getSyncAutomatically(currentSynchronizationAccount, authority);
-                    boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+            if (isConnected()) {
+                // do stuff
+                // Try synchronization periodically
+                boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
+                        authority);
+                boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
 
-                    if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-                        ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY,
-                                SYNC_INTERVAL);
-                    }
-                    synchronizationIsActive = true;
-                } else {
-                    // wifi connection was lost
-                    ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
-                    synchronizationIsActive = false;
+                if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
+                    ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY,
+                            SYNC_INTERVAL);
                 }
-            } catch (SynchronisationException e) {
-                throw new IllegalStateException(e);
+                synchronizationIsActive = true;
+            } else {
+                // wifi connection was lost
+                ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
+                synchronizationIsActive = false;
             }
         }
     }
@@ -233,7 +238,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @return <code>true</code> if WiFi is available; <code>false</code> otherwise.
      */
-    public boolean isConnected() throws SynchronisationException {
+    public boolean isConnected() {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return syncOnWiFiOnly
                 ? activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI

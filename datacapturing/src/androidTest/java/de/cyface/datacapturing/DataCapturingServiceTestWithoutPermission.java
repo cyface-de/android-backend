@@ -24,6 +24,7 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
+import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -60,7 +61,7 @@ public class DataCapturingServiceTestWithoutPermission {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY,
+                    oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
                             dataUploadServerAddress);
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
