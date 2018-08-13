@@ -16,6 +16,7 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
@@ -30,7 +31,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * The <code>SyncAdapter</code> implementation used by the framework to transmit measured data to a server.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
@@ -116,14 +117,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             }
 
             // Load all Measurements that are finished capturing
-            syncableMeasurementsCursor = loadSyncableMeasurements(provider);
+            syncableMeasurementsCursor = loadSyncableMeasurements(provider, authority);
 
             while (syncableMeasurementsCursor.moveToNext()) {
 
                 long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
                 MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                        provider);
+                        provider, authority);
 
                 Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.",
                         measurementIdentifier));
@@ -160,12 +161,16 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * synchronized yet.
      *
      * @param provider A client with access to the content provider containing the measurements.
+     * @param authority The authority used to identify the content provider to load the measurements from.
      * @return An initialized cursor pointing to the unsynchronized measurements.
      * @throws RemoteException If the query to the content provider has not been successful.
      * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
      */
-    Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider) throws RemoteException {
-        Cursor ret = provider.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
+    Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider, final @NonNull String authority)
+            throws RemoteException {
+        Uri measurementUri = new Uri.Builder().scheme("content").authority(authority)
+                .appendPath(MeasurementTable.URI_PATH).build();
+        Cursor ret = provider.query(measurementUri, null,
                 MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
                 new String[] {Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
 

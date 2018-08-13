@@ -1,5 +1,12 @@
 package de.cyface.datacapturing.model;
 
+import static android.content.ContentValues.TAG;
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.ServiceTestUtils.getAccelerationsUri;
+import static de.cyface.datacapturing.ServiceTestUtils.getDirectionsUri;
+import static de.cyface.datacapturing.ServiceTestUtils.getGeoLocationsUri;
+import static de.cyface.datacapturing.ServiceTestUtils.getMeasurementUri;
+import static de.cyface.datacapturing.ServiceTestUtils.getRotationsUri;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -37,18 +44,12 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.1.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
-
-    /**
-     * The tag used to identify log messages send via Logcat.
-     */
-    private final static String TAG = "de.cyface.test";
-
     /**
      * The object of the class under test.
      */
@@ -58,7 +59,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * The Constructor which needs to be overwritten for classes inheriting from <code>ProviderTestCase2</code>.
      */
     public CapturedDataWriterTest() {
-        super(MeasuringPointsContentProvider.class, de.cyface.persistence.BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, AUTHORITY);
     }
 
     /**
@@ -77,7 +78,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         setContext(InstrumentationRegistry.getTargetContext());
         super.setUp();
 
-        oocut = new MeasurementPersistence(getMockContentResolver());
+        oocut = new MeasurementPersistence(getMockContentResolver(), AUTHORITY);
     }
 
     /**
@@ -89,11 +90,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @After
     public void tearDown() throws Exception {
-        List<Measurement> measurements = oocut.loadMeasurements();
-        for (Measurement measurement : measurements) {
-            oocut.delete(measurement);
-        }
+        oocut.clear();
         super.tearDown();
+        getProvider().shutdown();
     }
 
     /**
@@ -108,8 +107,8 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
 
         Cursor result = null;
         try {
-            result = getMockContentResolver().query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
-                    BaseColumns._ID + "=?", new String[] {identifierString}, null);
+            result = getMockContentResolver().query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+                    new String[] {identifierString}, null);
             if (result == null) {
                 throw new IllegalStateException(
                         "Test failed because it was unable to load data from content provider.");
@@ -132,8 +131,8 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         assertThat(numberOfClosedMeasurements > 0, is(equalTo(true)));
         Cursor closingResult = null;
         try {
-            closingResult = getMockContentResolver().query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
-                    BaseColumns._ID + "=?", new String[] {identifierString}, null);
+            closingResult = getMockContentResolver().query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+                    new String[] {identifierString}, null);
             if (closingResult == null) {
                 throw new IllegalStateException(
                         "Test failed because it was unable to load data from content provider.");
@@ -157,7 +156,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether data is stored correctly via the <code>MeasurementPersistence</code>.
      */
     @Test
-    public void testStoreData() throws DataCapturingException {
+    public void testStoreData() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
 
         oocut.storeData(testData(), measurementIdentifier);
@@ -169,14 +168,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor rotationsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
-                    null, null, null);
-            accelerationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null,
-                    null, null, null);
-            directionsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                    null, null, null, null);
-            rotationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null,
-                    null, null, null);
+            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null, null, null, null);
+            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null, null, null, null);
+            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null, null, null, null);
+            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null, null, null, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
                     || rotationsCursor == null) {
                 throw new IllegalStateException(
@@ -207,7 +202,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether cascading deletion of measurements together with all data is working correctly.
      */
     @Test
-    public void testCascadingClearMeasurements() throws DataCapturingException {
+    public void testCascadingClearMeasurements() {
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKOWN);
         long measurementIdnetifier = oocut.newMeasurement(Vehicle.CAR);
@@ -224,16 +219,11 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor measurementsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
-                    null, null, null);
-            accelerationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null,
-                    null, null, null);
-            directionsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                    null, null, null, null);
-            rotationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null,
-                    null, null, null);
-            measurementsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
-                    null, null, null);
+            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null, null, null, null);
+            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null, null, null, null);
+            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null, null, null, null);
+            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null, null, null, null);
+            measurementsCursor = getMockContentResolver().query(getMeasurementUri(), null, null, null, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
                     || rotationsCursor == null || measurementsCursor == null) {
                 throw new IllegalStateException(
@@ -285,7 +275,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether deleting a measurement actually remove that measurement together with all corresponding data.
      */
     @Test
-    public void testDeleteMeasurement() throws DataCapturingException {
+    public void testDeleteMeasurement() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeData(testData(), measurementIdentifier);
         oocut.storeLocation(testLocation(), measurementIdentifier);
@@ -300,16 +290,16 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor rotationsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
+            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null,
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
-            accelerationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null,
+            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
                     SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
-            directionsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                    null, MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
+                    MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
-            rotationsCursor = getMockContentResolver().query(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null,
+            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
@@ -319,9 +309,6 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             }
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-            assertThat(accelerationsCursor.getCount(), is(equalTo(0)));
-            assertThat(directionsCursor.getCount(), is(equalTo(0)));
-            assertThat(rotationsCursor.getCount(), is(equalTo(0)));
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
@@ -342,7 +329,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      * Tests whether loading a track of geo locations is possible via the {@link MeasurementPersistence} object.
      */
     @Test
-    public void testLoadTrack() throws DataCapturingException {
+    public void testLoadTrack() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeLocation(testLocation(), measurementIdentifier);
         List<Measurement> measurements = oocut.loadMeasurements();

@@ -7,72 +7,55 @@ import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 
 /**
- * <p>
  * A table for sample points (acceleration) from the android acceleration sensor.
- * </p>
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public class SamplePointTable extends AbstractCyfaceMeasurementTable {
 
     /**
-     * <p>
+     * The path segment in the table URI identifying the accelerations table.
+     */
+    public final static String URI_PATH = "sample";
+    /**
      * Creates a new completely initialized {@code SamplePointTable} using "sample_points" as table name.
-     * </p>
      */
     public SamplePointTable() {
         super("sample_points");
     }
-
     /**
-     * <p>
      * Logging tag for Android logging.
-     * </p>
      */
     private static final String TAG = "SamplePointsTable";
     /**
-     * <p>
      * Column name for the column storing the acceleration value in X direction in m/s² using the device coordinate system.
-     * </p>
      */
     public static final String COLUMN_AX = "ax";
     /**
-     * <p>
      * Column name for the column storing the acceleration value in Y direction in m/s² using the device coordinate system.
-     * </p>
      */
     public static final String COLUMN_AY = "ay";
     /**
-     * <p>
      * Column name for the column storing the acceleration value in Z direction in m/s² using the device coordinate system.
-     * </p>
      */
     public static final String COLUMN_AZ = "az";
     /**
-     * <p>
      * Column name for the column storing the timestamp this point was captured at in milliseconds since 01.01.1970 (UNIX timestamp format).
-     * </p>
      */
     public static final String COLUMN_TIME = "time";
     /**
-     * <p>
      * Column name for the foreign key to the measurement this point belongs to.
-     * </p>
      */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
     /**
-     * <p>
      * Column name for the column storing either a '1' if this point has been synchronized with a Cyface server and '0' otherwise.
-     * </p>
      */
     public static final String COLUMN_IS_SYNCED = "is_synced";
 
     /**
-     * <p>
      * An array containing all columns from this table in default order.
-     * </p>
      */
     private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_AX, COLUMN_AY,
             COLUMN_AZ, COLUMN_TIME, COLUMN_MEASUREMENT_FK, COLUMN_IS_SYNCED};

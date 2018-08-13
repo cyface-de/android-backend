@@ -13,38 +13,34 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.support.annotation.NonNull;
 
 /**
- * <p>
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to
  * transferring the data to the server.
- * </p>
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.1.1
  * @since 1.0.0
  */
 public final class MeasuringPointsContentProvider extends ContentProvider {
 
-    private final static String TAG = MeasuringPointsContentProvider.class.getName();
-    public final static String AUTHORITY = BuildConfig.provider;
-    public final static Uri MEASUREMENT_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
-            .path(DatabaseHelper.MEASUREMENT_URI_PATH).build();
-    public final static Uri GPS_POINTS_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
-            .appendPath(DatabaseHelper.GPS_POINT_URI_PATH).build();
-    public final static Uri SAMPLE_POINTS_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
-            .appendPath(DatabaseHelper.SAMPLE_POINT_URI_PATH).build();
-    public final static Uri ROTATION_POINTS_URI = (new Uri.Builder()).scheme("content").encodedAuthority(AUTHORITY)
-            .appendPath(DatabaseHelper.ROTATION_POINT_URI_PATH).build();
-    public final static Uri MAGNETIC_VALUE_POINTS_URI = new Uri.Builder().scheme("content").encodedAuthority(AUTHORITY)
-            .appendEncodedPath(DatabaseHelper.MAGNETIC_VALUE_POINT_URI_PATH).build();
-
-    public static final String DATABASE_NAME = DatabaseHelper.DATABASE_NAME;
-
+    /**
+     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant contains the integer value used to represent <code>false</code> values in an SQLite database.
+     */
     public static final int SQLITE_FALSE = 0;
+    /**
+     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant contains the integer value used to represent <code>true</code> values in an SQLite database.
+     */
     public static final int SQLITE_TRUE = 1;
 
+    /**
+     * A representation of the database manged by this <code>ContentProvider</code>.
+     */
     private DatabaseHelper database;
+    /**
+     * The Android context used by this <code>ContentProvider</code>.
+     */
     private Context context;
 
     @Override
@@ -63,12 +59,13 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      * @return the number of rows ob the given object (e.g. measurement) which has been deleted
      */
     @Override
-    public int delete(Uri uri, final String selection, final String[] selectionArgs) {
+    public int delete(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
+        Uri uriWithPotentialSelection = uri;
         if (selectionArgs != null && (BaseColumns._ID + "=?").equals(selection) && selectionArgs.length == 1) {
-            uri = ContentUris.withAppendedId(uri, Long.valueOf(selectionArgs[0]));
+            uriWithPotentialSelection = ContentUris.withAppendedId(uri, Long.valueOf(selectionArgs[0]));
         }
-        int rowsDeleted = database.deleteRow(uri, selection, selectionArgs);
-        context.getContentResolver().notifyChange(uri, null);
+        int rowsDeleted = database.deleteRow(uriWithPotentialSelection, selection, selectionArgs);
+        context.getContentResolver().notifyChange(uriWithPotentialSelection, null);
 
         return rowsDeleted;
     }
@@ -87,24 +84,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
 
     @Override
     public int bulkInsert(Uri uri, ContentValues[] values) {
-        // Log.d(TAG,"Writing bulk to database: #"+values.length);
         return database.bulkInsert(uri, Arrays.asList(values)).length;
-    }
-
-    private String toString(final ContentValues[] valuesArray) {
-        StringBuffer ret = new StringBuffer();
-        for (ContentValues values : valuesArray) {
-            ret.append(toString(values));
-        }
-        return ret.toString();
-    }
-
-    private String toString(final ContentValues values) {
-        StringBuffer ret = new StringBuffer();
-        for (Map.Entry<String, Object> entry : values.valueSet()) {
-            ret.append("\n\t").append(entry.getKey()).append(":").append(entry.getValue());
-        }
-        return ret.toString();
     }
 
     @Override
@@ -120,24 +100,5 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         int rowsUpdated = database.update(uri, values, selection, selectionArgs);
         context.getContentResolver().notifyChange(uri, null);
         return rowsUpdated;
-    }
-
-    public long bulkDeleteSyncedMeasurementPoints(Context context, long gps_unSynced_from, long sp_unSynced_from,
-            long rp_unSynced_from, long mp_unSynced_from) {
-        long deleted = 0;
-        this.context = context;
-        database = new DatabaseHelper(context);
-        database.getWritableDatabase().beginTransaction();
-        deleted += delete(MeasuringPointsContentProvider.GPS_POINTS_URI, BaseColumns._ID + "<=?",
-                new String[] {String.valueOf(gps_unSynced_from - 1)});
-        deleted += delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, BaseColumns._ID + "<=?",
-                new String[] {String.valueOf(sp_unSynced_from - 1)});
-        deleted += delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI, BaseColumns._ID + "<=?",
-                new String[] {String.valueOf(rp_unSynced_from - 1)});
-        deleted += delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, BaseColumns._ID + "<=?",
-                new String[] {String.valueOf(mp_unSynced_from - 1)});
-        database.getWritableDatabase().setTransactionSuccessful();
-        database.getWritableDatabase().endTransaction();
-        return deleted;
     }
 }

@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
@@ -30,7 +31,6 @@ import android.util.Log;
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
@@ -46,15 +46,10 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.4
+ * @version 4.0.5
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
-
-    /*
-     * MARK: Properties
-     */
-
     /**
      * The tag used to identify logging messages send to logcat.
      */
@@ -111,7 +106,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
     private PingReceiver pingReceiver = new PingReceiver();
-
     /**
      * The identifier of the measurement to save all the captured data to.
      */
@@ -153,8 +147,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
                 NOTIFICATION_TITEL_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
-
-        persistenceLayer = new MeasurementPersistence(this.getContentResolver());
 
         // Prevent this process from being killed by the system.
         PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
@@ -198,13 +190,21 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         if (BuildConfig.DEBUG)
             Log.d(TAG, "Starting data capturing service.");
-        // TODO old service checks if init has been called before? Why? Is this necessary?
         if (intent != null) { // If this is the initial start command call init.
             long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, -1);
             if (measurementIdentifier == -1) {
                 throw new IllegalStateException("No valid measurement identifier for started service provided.");
             }
             this.currentMeasurementIdentifier = measurementIdentifier;
+
+            if (!intent.hasExtra(AUTHORITY_ID)) {
+                throw new IllegalStateException(
+                        "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
+                                + AUTHORITY_ID);
+            }
+            String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+            persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
+
             init();
         }
         if (BuildConfig.DEBUG)
@@ -251,7 +251,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             msg.setData(dataBundle);
         }
 
-        if(BuildConfig.DEBUG) Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
         Set<Messenger> iterClients = new HashSet<>(clients);
         for (Messenger caller : iterClients) {
             try {
@@ -341,13 +342,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            if(BuildConfig.DEBUG) Log.d(TAG, String.format("Service received message %s", msg.what));
+            if (BuildConfig.DEBUG)
+                Log.d(TAG, String.format("Service received message %s", msg.what));
 
             DataCapturingBackgroundService service = context.get();
 
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
-                    if(BuildConfig.DEBUG) Log.d(TAG, "Registering client!");
+                    if (BuildConfig.DEBUG)
+                        Log.d(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
                         Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }

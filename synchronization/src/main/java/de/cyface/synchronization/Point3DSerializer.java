@@ -19,7 +19,7 @@ import de.cyface.persistence.SamplePointTable;
  * serialization.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  * @see SamplePointTable
  * @see RotationPointTable
@@ -30,9 +30,9 @@ abstract class Point3DSerializer {
     public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
 
     /**
-     * @return The <code>ContentProvider</code> table URI, containing the data points.
+     * @return The path segment from the <code>ContentProvider</code> URI, which identifies the table containing the data points.
      */
-    protected abstract Uri getTableUri();
+    protected abstract String getTableUriPathSegment();
 
     /**
      * @return The database name of the column containing the point's X values.
