@@ -10,7 +10,7 @@ import android.provider.BaseColumns;
  * A table for rotation points from the android gyroscope sensor.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public class RotationPointTable extends AbstractCyfaceMeasurementTable {

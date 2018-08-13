@@ -18,7 +18,7 @@ import de.cyface.persistence.SamplePointTable;
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.0.0
  */
 public class ServiceTestUtils {

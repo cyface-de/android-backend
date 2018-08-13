@@ -21,7 +21,7 @@ import android.util.Log;
  * data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {

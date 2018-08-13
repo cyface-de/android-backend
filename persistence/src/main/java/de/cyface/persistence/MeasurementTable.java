@@ -11,7 +11,7 @@ import android.util.Log;
  * This class represents the table containing all the measurements currently stored on this device.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {

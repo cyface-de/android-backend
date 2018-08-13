@@ -9,34 +9,61 @@ import android.provider.ContactsContract;
 import android.util.Log;
 
 /**
- * <p>
  * Table for storing GPS measuring points. The data in this table is intended for storage prior to processing it by
  * either transfer to a server or export to some external file or device.
- * </p>
  *
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @version 1.2.1
  * @since 1.0.0
  */
 public class GpsPointsTable extends AbstractCyfaceMeasurementTable {
 
+    /**
+     * Tag used to identify Logcat messages from objects of this class.
+     */
     static final String TAG = "GpsPointsTable";
     /**
      * The path segment in the table URI identifying the geo locations table.
      */
     public final static String URI_PATH = "measuring";
+    /**
+     * Column name for the column storing the GPS timestamp.
+     */
     public static final String COLUMN_GPS_TIME = "gps_time";
+    /**
+     * Column name for the column storing the GPS latitude.
+     */
     public static final String COLUMN_LAT = "lat";
+    /**
+     * Column name for the column storing the GPS longitude.
+     */
     public static final String COLUMN_LON = "lon";
+    /**
+     * Column name for the column storing the GPS speed in meters per second.
+     */
     public static final String COLUMN_SPEED = "speed";
+    /**
+     * Column name for the column storing the GPS accuracy.
+     */
     public static final String COLUMN_ACCURACY = "accuracy";
+    /**
+     * Column name for the column storing the foreign key referencing the measurement for this geo location.
+     */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
+    /**
+     * Column name for the column storing the information on whether this geo location has already been synchronized or not.
+     */
     public static final String COLUMN_IS_SYNCED = "is_synced";
 
-
+    /**
+     * An array containing all the column names used by a geo location table.
+     */
     static final String[] COLUMNS = {BaseColumns._ID, COLUMN_GPS_TIME, COLUMN_LAT,
             COLUMN_LON, COLUMN_SPEED, COLUMN_ACCURACY, COLUMN_MEASUREMENT_FK, COLUMN_IS_SYNCED};
 
+    /**
+     * Provides a completely initialized object as a representation of a table containing geo locations in the database.
+     */
     protected GpsPointsTable() {
         super("gps_points");
     }

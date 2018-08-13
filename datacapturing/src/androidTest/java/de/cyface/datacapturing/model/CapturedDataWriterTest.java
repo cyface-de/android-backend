@@ -44,7 +44,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.1.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)

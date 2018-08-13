@@ -28,7 +28,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {
@@ -45,6 +45,9 @@ public class CapturedDataWriter implements Runnable {
      * The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the data to.
      */
     private final ContentResolver resolver;
+    /**
+     * The authority used to identify the Android content provider to write the data to.
+     */
     private final String authority;
     /**
      * The device wide unique identifier of the measurement to write the data to.
@@ -67,7 +70,7 @@ public class CapturedDataWriter implements Runnable {
      * @param data The data to write.
      * @param resolver The <code>ContentResolver</code> to use to access the <code>ContentProvider</code> to write the
      *            data to.
-     * @param authority
+     * @param authority The authority used to identify the Android content provider to write the data to.
      * @param measurementIdentifier The device wide unique identifier of the measurement to write the data to.
      * @param callback Callback which is called after writing data has finished.
      */

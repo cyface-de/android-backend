@@ -10,7 +10,7 @@ import android.provider.BaseColumns;
  * A table for sample points (acceleration) from the android acceleration sensor.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public class SamplePointTable extends AbstractCyfaceMeasurementTable {

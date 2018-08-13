@@ -34,7 +34,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.2
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -51,12 +51,16 @@ public class MeasurementPersistence {
      * A threadPool to execute operations on their own background threads.
      */
     private ExecutorService threadPool;
+    /**
+     * The authority used to identify the Android content provider to persist data to or load it from.
+     */
     private final String authority;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
      * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
+     * @param authority The authority used to identify the Android content provider to persist data to or load it from.
      */
     public MeasurementPersistence(final @NonNull ContentResolver resolver, final @NonNull String authority) {
         this.resolver = resolver;
@@ -112,8 +116,8 @@ public class MeasurementPersistence {
             return;
         }
 
-        threadPool.submit(
-                new CapturedDataWriter(data, resolver, authority, measurementIdentifier, new WritingDataCompletedCallback() {
+        threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
+                new WritingDataCompletedCallback() {
                     @Override
                     public void writingDataCompleted() {
                         // TODO: Add some useful code here as soon as data capturing is activated again.
@@ -240,6 +244,12 @@ public class MeasurementPersistence {
         }
     }
 
+    /**
+     * Loads only the finished {@link Measurement} instances from the local persistent data storage. Finished
+     * measurements are the ones not currently capturing or paused.
+     *
+     * @return All the finished measurements from the local persistent data storage.
+     */
     public List<Measurement> loadFinishedMeasurements() {
         Cursor cursor = null;
 
@@ -349,22 +359,37 @@ public class MeasurementPersistence {
         }
     }
 
+    /**
+     * @return The content provider URI for the measurement table.
+     */
     private Uri getMeasurementUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build();
     }
 
+    /**
+     * @return The content provider URI for the geo locations table.
+     */
     private Uri getGeoLocationsUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
     }
 
+    /**
+     * @return The content provider URI for the accelerations table.
+     */
     private Uri getAccelerationsUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH).build();
     }
 
+    /**
+     * @return The content provider URI for the rotations table.
+     */
     private Uri getRotationsUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH).build();
     }
 
+    /**
+     * @return The content provider URI for the directions table.
+     */
     private Uri getDirectionsUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(MagneticValuePointTable.URI_PATH)
                 .build();

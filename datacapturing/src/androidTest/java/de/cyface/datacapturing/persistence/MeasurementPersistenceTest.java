@@ -23,7 +23,7 @@ import static org.junit.Assert.assertThat;
  * Tests the correct workings of the <code>MeasurementPersistence</code> class.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
