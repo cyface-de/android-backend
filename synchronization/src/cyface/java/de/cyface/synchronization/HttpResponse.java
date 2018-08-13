@@ -9,10 +9,10 @@ import org.json.JSONObject;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
-class HttpResponse {
+public class HttpResponse {
     private int responseCode;
     private JSONObject body;
 
@@ -24,8 +24,8 @@ class HttpResponse {
             if (is2xxSuccessful()) {
                 this.body = null; // this is expected, continue.
             } else {
-                throw new JSONException("Empty response body for unsuccessful response (code " + responseCode
-                        + "): " + e.getMessage());
+                throw new JSONException(
+                        "Empty response body for unsuccessful response (code " + responseCode + "): " + e.getMessage());
             }
         }
     }
@@ -38,7 +38,7 @@ class HttpResponse {
         return responseCode;
     }
 
-    boolean is2xxSuccessful() {
+    public boolean is2xxSuccessful() {
         return (responseCode >= 200 && responseCode <= 300);
     }
 }
