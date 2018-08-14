@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.ACCOUNT_TYPE;
-import static de.cyface.synchronization.Constants.ARG_IS_ADDING_NEW_ACCOUNT;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 
 import java.io.IOException;
@@ -34,6 +33,7 @@ import android.util.Log;
  * against the Cyface server.
  *
  * @author Klemens Muthmann
+ * @author Armin Schnabel
  * @version 1.0.0
  * @since 2.0.0
  */
@@ -65,7 +65,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(ACCOUNT_TYPE, accountType);
         intent.putExtra(AUTH_TOKEN_TYPE, authTokenType);
-        intent.putExtra(ARG_IS_ADDING_NEW_ACCOUNT, true);
+        //intent.putExtra(ARG_IS_ADDING_NEW_ACCOUNT, true);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
@@ -134,7 +134,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // If we get an authToken - we return it
         if (!TextUtils.isEmpty(authToken)) {
             final Bundle result = new Bundle();
-            result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
+            result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name); // FIXME: Const or AM?
             result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
             result.putString(AccountManager.KEY_AUTHTOKEN, authToken);
             return result;
@@ -150,7 +150,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // an intent to display our AuthenticatorActivity.
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
-        intent.putExtra(Constants.ACCOUNT_TYPE, account.type);
+        intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type); // FIXME: Const or AM?
         intent.putExtra(Constants.AUTH_TOKEN_TYPE, authTokenType);
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);

@@ -33,7 +33,7 @@
             </intent-filter>
             <meta-data
                 android:name="android.content.SyncAdapter"
-                android:resource="@xml/syncadapter" />
+                android:resource="@xml/sync_adapter" />
         </service>
 
         <service android:name="de.cyface.synchronization.AuthenticatorService">

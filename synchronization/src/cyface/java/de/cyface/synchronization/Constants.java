@@ -17,8 +17,7 @@ public final class Constants {
 
     public final static String ACCOUNT_TYPE = "de.cyface.account";
     public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
-    //FIXME: What is this for / is this necessary?
-    public final static String ARG_IS_ADDING_NEW_ACCOUNT = "de.cyface.arg_is_adding_new_account";
+    //public final static String ARG_IS_ADDING_NEW_ACCOUNT = "de.cyface.arg_is_adding_new_account";
 
     public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
     public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
