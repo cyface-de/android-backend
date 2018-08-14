@@ -199,7 +199,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException {
         oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
             @Override
-            public void startUpFinished() {
+            public void startUpFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -217,7 +217,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         oocut.stopAsync(new ShutDownFinishedHandler() {
             @Override
-            public void shutDownFinished() {
+            public void shutDownFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -235,7 +235,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         oocut.stopAsync(new ShutDownFinishedHandler() {
             @Override
-            public void shutDownFinished() {
+            public void shutDownFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -277,7 +277,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException {
         oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
             @Override
-            public void startUpFinished() {
+            public void startUpFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -297,7 +297,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         oocut.stopAsync(new ShutDownFinishedHandler() {
             @Override
-            public void shutDownFinished() {
+            public void shutDownFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -352,7 +352,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         // Start service and wait for it to run.
         oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
             @Override
-            public void startUpFinished() {
+            public void startUpFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -379,7 +379,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         oocut.stopAsync(new ShutDownFinishedHandler() {
             @Override
-            public void shutDownFinished() {
+            public void shutDownFinished(final long measurementIdentifier) {
                 lock.lock();
                 try {
                     condition.signal();
@@ -582,7 +582,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     private class MyShutDownFinishedHandler extends ShutDownFinishedHandler {
         @Override
-        public void shutDownFinished() {
+        public void shutDownFinished(final long measurementIdentifier) {
             lock.lock();
             try {
                 condition.signal();
@@ -602,7 +602,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     private class TestStartUpFinishedHandler extends StartUpFinishedHandler {
         @Override
-        public void startUpFinished() {
+        public void startUpFinished(final long measurementIdentifier) {
             lock.lock();
             try {
                 condition.signal();

@@ -61,7 +61,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 6.0.0
+ * @version 6.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -657,7 +657,7 @@ public abstract class DataCapturingService {
         if (BuildConfig.DEBUG)
             Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, measurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurementIdentifier);
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
 
         ComponentName serviceComponentName = null;
