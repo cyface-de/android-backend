@@ -34,7 +34,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.2
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -51,15 +51,21 @@ public class MeasurementPersistence {
      * A threadPool to execute operations on their own background threads.
      */
     private ExecutorService threadPool;
+    /**
+     * The authority used to identify the Android content provider to persist data to or load it from.
+     */
+    private final String authority;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
      * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
+     * @param authority The authority used to identify the Android content provider to persist data to or load it from.
      */
-    public MeasurementPersistence(final @NonNull ContentResolver resolver) {
+    public MeasurementPersistence(final @NonNull ContentResolver resolver, final @NonNull String authority) {
         this.resolver = resolver;
-        threadPool = Executors.newCachedThreadPool();
+        this.threadPool = Executors.newCachedThreadPool();
+        this.authority = authority;
     }
 
     /**
@@ -72,7 +78,7 @@ public class MeasurementPersistence {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
         values.put(MeasurementTable.COLUMN_FINISHED, false);
-        Uri resultUri = resolver.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, values);
+        Uri resultUri = resolver.insert(getMeasurementUri(), values);
 
         if (resultUri == null) {
             throw new IllegalStateException("New measurement could not be created!");
@@ -93,8 +99,8 @@ public class MeasurementPersistence {
             Log.d(TAG, "Closing recent measurements");
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
-        int updatedRows = resolver.update(MeasuringPointsContentProvider.MEASUREMENT_URI, values,
-                MeasurementTable.COLUMN_FINISHED + "=?", new String[] {"0"});
+        int updatedRows = resolver.update(getMeasurementUri(), values, MeasurementTable.COLUMN_FINISHED + "=?",
+                new String[] {"0"});
         if (BuildConfig.DEBUG)
             Log.d(TAG, "Closed " + updatedRows + " measurements");
         return updatedRows;
@@ -105,20 +111,23 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) {
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier, final @NonNull WritingDataCompletedCallback callback) {
         if (threadPool.isShutdown()) {
             return;
         }
 
-        threadPool.submit(
-                new CapturedDataWriter(data, resolver, measurementIdentifier, new WritingDataCompletedCallback() {
+        CapturedDataWriter writer = new CapturedDataWriter(data, resolver, authority, measurementIdentifier, callback);
+
+        threadPool.submit(writer);
+        /*threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
+                new WritingDataCompletedCallback() {
                     @Override
                     public void writingDataCompleted() {
                         // TODO: Add some useful code here as soon as data capturing is activated again.
                         if (BuildConfig.DEBUG)
                             Log.d(TAG, "Completed writing data.");
                     }
-                }));
+                }));*/
     }
 
     /**
@@ -139,7 +148,7 @@ public class MeasurementPersistence {
         values.put(GpsPointsTable.COLUMN_SPEED, location.getSpeed());
         values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
 
-        resolver.insert(MeasuringPointsContentProvider.GPS_POINTS_URI, values);
+        resolver.insert(getGeoLocationsUri(), values);
     }
 
     /**
@@ -153,7 +162,7 @@ public class MeasurementPersistence {
             Log.d(TAG, "Checking if app has an open measurement.");
         Cursor openMeasurementQueryCursor = null;
         try {
-            openMeasurementQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
+            openMeasurementQueryCursor = resolver.query(getMeasurementUri(), null,
                     MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null, null);
 
             if (openMeasurementQueryCursor.getCount() > 1) {
@@ -182,7 +191,7 @@ public class MeasurementPersistence {
             Log.d(TAG, "Trying to load measurement identifier from content provider!");
         Cursor measurementIdentifierQueryCursor = null;
         try {
-            measurementIdentifierQueryCursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI,
+            measurementIdentifierQueryCursor = resolver.query(getMeasurementUri(),
                     new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
                     MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
                     BaseColumns._ID + " DESC");
@@ -219,7 +228,7 @@ public class MeasurementPersistence {
         try {
             List<Measurement> ret = new ArrayList<>();
 
-            cursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null, null, null, null);
+            cursor = resolver.query(getMeasurementUri(), null, null, null, null);
             if (cursor == null) {
                 throw new IllegalStateException("Unable to access database to load measurements!");
             }
@@ -238,13 +247,20 @@ public class MeasurementPersistence {
         }
     }
 
+    /**
+     * Loads only the finished {@link Measurement} instances from the local persistent data storage. Finished
+     * measurements are the ones not currently capturing or paused.
+     *
+     * @return All the finished measurements from the local persistent data storage.
+     */
     public List<Measurement> loadFinishedMeasurements() {
         Cursor cursor = null;
 
         try {
             List<Measurement> ret = new ArrayList<>();
 
-            cursor = resolver.query(MeasuringPointsContentProvider.MEASUREMENT_URI, null, MeasurementTable.COLUMN_FINISHED + "=?", new String[]{String.valueOf(MeasuringPointsContentProvider.SQLITE_TRUE)}, null);
+            cursor = resolver.query(getMeasurementUri(), null, MeasurementTable.COLUMN_FINISHED + "=?",
+                    new String[] {String.valueOf(MeasuringPointsContentProvider.SQLITE_TRUE)}, null);
             if (cursor == null) {
                 throw new IllegalStateException("Unable to access database to load measurements!");
             }
@@ -258,7 +274,7 @@ public class MeasurementPersistence {
             return ret;
 
         } finally {
-            if(cursor != null) {
+            if (cursor != null) {
                 cursor.close();
             }
         }
@@ -266,13 +282,17 @@ public class MeasurementPersistence {
 
     /**
      * Removes everything from the local persistent data storage.
+     *
+     * @return number of rows removed from the database.
      */
-    public void clear() {
-        resolver.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null, null);
-        resolver.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null, null);
-        resolver.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, null, null);
-        resolver.delete(MeasuringPointsContentProvider.GPS_POINTS_URI, null, null);
-        resolver.delete(MeasuringPointsContentProvider.MEASUREMENT_URI, null, null);
+    public int clear() {
+        int ret = 0;
+        ret += resolver.delete(getRotationsUri(), null, null);
+        ret += resolver.delete(getAccelerationsUri(), null, null);
+        ret += resolver.delete(getDirectionsUri(), null, null);
+        ret += resolver.delete(getGeoLocationsUri(), null, null);
+        ret += resolver.delete(getMeasurementUri(), null, null);
+        return ret;
     }
 
     /**
@@ -282,16 +302,15 @@ public class MeasurementPersistence {
      */
     public void delete(final @NonNull Measurement measurement) {
         String[] arrayWithMeasurementIdentifier = {Long.valueOf(measurement.getIdentifier()).toString()};
-        resolver.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI,
-                RotationPointTable.COLUMN_MEASUREMENT_FK + "=?", arrayWithMeasurementIdentifier);
-        resolver.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
+        resolver.delete(getRotationsUri(), RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
-        resolver.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?", arrayWithMeasurementIdentifier);
-        resolver.delete(MeasuringPointsContentProvider.GPS_POINTS_URI, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+        resolver.delete(getAccelerationsUri(), SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
-        resolver.delete(MeasuringPointsContentProvider.MEASUREMENT_URI, BaseColumns._ID + "=?",
+        resolver.delete(getDirectionsUri(), MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
+        resolver.delete(getGeoLocationsUri(), GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                arrayWithMeasurementIdentifier);
+        resolver.delete(getMeasurementUri(), BaseColumns._ID + "=?", arrayWithMeasurementIdentifier);
     }
 
     /**
@@ -303,8 +322,7 @@ public class MeasurementPersistence {
     public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) {
         Cursor locationsCursor = null;
         try {
-            locationsCursor = resolver.query(MeasuringPointsContentProvider.GPS_POINTS_URI, null,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+            locationsCursor = resolver.query(getGeoLocationsUri(), null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
                     GpsPointsTable.COLUMN_GPS_TIME + " ASC");
 
@@ -346,5 +364,41 @@ public class MeasurementPersistence {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    /**
+     * @return The content provider URI for the measurement table.
+     */
+    private Uri getMeasurementUri() {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build();
+    }
+
+    /**
+     * @return The content provider URI for the geo locations table.
+     */
+    private Uri getGeoLocationsUri() {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
+    }
+
+    /**
+     * @return The content provider URI for the accelerations table.
+     */
+    private Uri getAccelerationsUri() {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH).build();
+    }
+
+    /**
+     * @return The content provider URI for the rotations table.
+     */
+    private Uri getRotationsUri() {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH).build();
+    }
+
+    /**
+     * @return The content provider URI for the directions table.
+     */
+    private Uri getDirectionsUri() {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(MagneticValuePointTable.URI_PATH)
+                .build();
     }
 }

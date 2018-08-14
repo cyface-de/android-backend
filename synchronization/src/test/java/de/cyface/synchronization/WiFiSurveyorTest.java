@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -26,17 +28,13 @@ import android.net.wifi.WifiManager;
  * and thus is a <code>FlakyTest</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(constants = BuildConfig.class)
 public class WiFiSurveyorTest {
 
-    /**
-     * The Android test <code>Context</code> to use for testing.
-     */
-    private Context context;
     /**
      * The Robolectric shadow used for the Android <code>ConnectivityManager</code>.
      */
@@ -51,10 +49,13 @@ public class WiFiSurveyorTest {
      */
     @Before
     public void setUp() {
-        context = RuntimeEnvironment.application;
+        /*
+      The Android test <code>Context</code> to use for testing.
+     */
+        Context context = RuntimeEnvironment.application;
         ConnectivityManager connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
-        oocut = new WiFiSurveyor(context, connectivityManager, Constants.ACCOUNT_TYPE);
+        oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
     }
 
     /**
@@ -95,7 +96,7 @@ public class WiFiSurveyorTest {
      * @return An appropriate <code>ConnectivityManager</code> from Robolectric.
      */
     private ConnectivityManager getConnectivityManager() {
-        return (ConnectivityManager)RuntimeEnvironment.application.getSystemService(context.CONNECTIVITY_SERVICE);
+        return (ConnectivityManager)RuntimeEnvironment.application.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     /**

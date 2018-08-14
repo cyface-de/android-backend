@@ -12,7 +12,7 @@ import de.cyface.persistence.SamplePointTable;
  * serialization.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 2.0.0
  * @since 2.0.0
  * @see SamplePointTable
  * @see RotationPointTable
@@ -21,9 +21,9 @@ import de.cyface.persistence.SamplePointTable;
 interface Point3DSerializer {
 
     /**
-     * @return The <code>ContentProvider</code> table URI, containing the data points.
+     * @return The path segment from the <code>ContentProvider</code> URI, which identifies the table containing the data points.
      */
-    Uri getTableUri();
+    String getTableUriPathSegment();
 
     /**
      * @return The database name of the column containing the point's X values.

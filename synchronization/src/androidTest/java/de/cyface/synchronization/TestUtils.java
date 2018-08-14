@@ -8,11 +8,49 @@ import android.support.annotation.NonNull;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
-public final class TestUtils {
+/**
+ * Contains utility methods and constants required by the tests within the synchronization project.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.1.0
+ */
+final class TestUtils {
+    /**
+     * The tag used to identify Logcat messages from this module.
+     */
+    final static String TAG = "de.cyface.synchronization.test";
+    /**
+     * The content provider authority used during tests. This must be the same as in the manifest and the authenticator configuration.
+     */
+    final static String AUTHORITY = "de.cyface.synchronization.provider.test";
+    /**
+     * The account type used during testing. This must be the same as in the authenticator configuration.
+     */
+    final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
+
+    static Uri getMeasurementUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
+    }
+
+    static Uri getGeoLocationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+    }
+
+    static Uri getAccelerationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(SamplePointTable.URI_PATH).build();
+    }
+
+    static Uri getRotationsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(RotationPointTable.URI_PATH).build();
+    }
+
+    static Uri getDirectionsUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MagneticValuePointTable.URI_PATH).build();
+    }
 
     /**
      * Inserts a test direction into the database content provider accessed by the test.
@@ -33,7 +71,7 @@ public final class TestUtils {
         values.put(MagneticValuePointTable.COLUMN_MY, y);
         values.put(MagneticValuePointTable.COLUMN_MZ, z);
         values.put(MagneticValuePointTable.COLUMN_TIME, timestamp);
-        resolver.insert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, values);
+        resolver.insert(getDirectionsUri(), values);
     }
 
     /**
@@ -55,7 +93,7 @@ public final class TestUtils {
         values.put(RotationPointTable.COLUMN_RY, y);
         values.put(RotationPointTable.COLUMN_RZ, z);
         values.put(RotationPointTable.COLUMN_TIME, timestamp);
-        resolver.insert(MeasuringPointsContentProvider.ROTATION_POINTS_URI, values);
+        resolver.insert(getRotationsUri(), values);
     }
 
     /**
@@ -77,7 +115,7 @@ public final class TestUtils {
         values.put(SamplePointTable.COLUMN_AY, y);
         values.put(SamplePointTable.COLUMN_AZ, z);
         values.put(SamplePointTable.COLUMN_TIME, timestamp);
-        resolver.insert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, values);
+        resolver.insert(getAccelerationsUri(), values);
     }
 
     /**
@@ -101,7 +139,7 @@ public final class TestUtils {
         values.put(GpsPointsTable.COLUMN_LON, lon);
         values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(GpsPointsTable.COLUMN_SPEED, speed);
-        resolver.insert(MeasuringPointsContentProvider.GPS_POINTS_URI, values);
+        resolver.insert(getGeoLocationsUri(), values);
     }
 
     /**
@@ -120,7 +158,7 @@ public final class TestUtils {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, true);
         values.put(MeasurementTable.COLUMN_VEHICLE, vehicle);
-        Uri resultUri = resolver.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, values);
+        Uri resultUri = resolver.insert(getMeasurementUri(), values);
         if (resultUri == null) {
             throw new IllegalStateException();
         }
@@ -130,11 +168,11 @@ public final class TestUtils {
 
     static int clearDatabase(final @NonNull ContentResolver resolver) {
         int ret = 0;
-        ret += resolver.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,null,null);
-        ret += resolver.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null, null);
-        ret += resolver.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null, null);
-        ret += resolver.delete(MeasuringPointsContentProvider.GPS_POINTS_URI, null, null);
-        ret += resolver.delete(MeasuringPointsContentProvider.MEASUREMENT_URI, null, null);
+        ret += resolver.delete(getDirectionsUri(),null,null);
+        ret += resolver.delete(getRotationsUri(), null, null);
+        ret += resolver.delete(getAccelerationsUri(), null, null);
+        ret += resolver.delete(getGeoLocationsUri(), null, null);
+        ret += resolver.delete(getMeasurementUri(), null, null);
         return ret;
     }
 }

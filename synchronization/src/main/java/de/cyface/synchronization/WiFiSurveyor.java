@@ -21,7 +21,7 @@ import android.util.Log;
  * data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -29,12 +29,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * The tag used to identify Logcat messages from this class.
      */
     private static final String TAG = "de.cyface.sync";
-    /**
-     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
-     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
-     * for further information.
-     */
-    final static String AUTHORITY = de.cyface.persistence.BuildConfig.provider;
     /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
      */
@@ -69,6 +63,17 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * available. The second option might use up the users data plan rapidly so use it sparingly.
      */
     private boolean syncOnWiFiOnly;
+    /**
+     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
+     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
+     * for further information.
+     */
+    private final String authority;
+
+    /**
+     * A <code>String</code> identifying the account type of the accounts to use for data synchronization.
+     */
+    private final String accountType;
 
     /**
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
@@ -76,25 +81,24 @@ public class WiFiSurveyor extends BroadcastReceiver {
     private final ConnectivityManager connectivityManager;
 
     /**
-     * The type of account to add. You may for example distinguish between administrator, user and guest. Currently
-     * Cyface only supports one type of account.
-     */
-    private final String accountType;
-
-    /**
      * Creates a new completely initialized <code>WiFiSurveyor</code> within the current Android context.
      *
      * @param context The current Android context (i.e. Activity or Service).
      * @param connectivityManager The Android <code>ConnectivityManager</code> used to check the device's current
      *            connection status.
-     * @param accountType The type of account to add. You may for example distinguish between administrator, user and
-     *            guest. Currently Cyface only supports one type of account.
+     * @param authority The <code>ContentProvider</code> authority used by this service to store and read data. See the
+     *            <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android
+     *            documentation</a>
+     *            for further information.
+     * @param accountType A <code>String</code> identifying the account type of the accounts to use for data
+     *            synchronization.
      */
     public WiFiSurveyor(final @NonNull Context context, final @NonNull ConnectivityManager connectivityManager,
-            final @NonNull String accountType) {
+            final @NonNull String authority, final @NonNull String accountType) {
         this.context = new WeakReference<>(context);
         this.connectivityManager = connectivityManager;
-        syncOnWiFiOnly = true;
+        this.syncOnWiFiOnly = true;
+        this.authority = authority;
         this.accountType = accountType;
     }
 
@@ -116,7 +120,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         }
 
         if (isConnected()) {
-            ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
+            ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
 
         IntentFilter intentFilter = new IntentFilter();
@@ -142,11 +146,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * going to start immediately. The Android system still decides when it is convenient.
      *
      * @param account The <code>Account</code> to use or synchronization.
-     * @throws SynchronisationException If current network state is not accessible.
      */
-    public void scheduleSyncNow(final @NonNull Account account) throws SynchronisationException {
+    public void scheduleSyncNow(final @NonNull Account account) {
         if (isConnected()) {
-            ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
+            ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
     }
 
@@ -159,26 +162,22 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
         final String action = intent.getAction();
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
-            try {
-                if (isConnected()) {
-                    // do stuff
-                    // Try synchronization periodically
-                    boolean cyfaceAccountSyncIsEnabled = ContentResolver
-                            .getSyncAutomatically(currentSynchronizationAccount, AUTHORITY);
-                    boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+            if (isConnected()) {
+                // do stuff
+                // Try synchronization periodically
+                boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
+                        authority);
+                boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
 
-                    if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-                        ContentResolver.addPeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY,
-                                SYNC_INTERVAL);
-                    }
-                    synchronizationIsActive = true;
-                } else {
-                    // wifi connection was lost
-                    ContentResolver.removePeriodicSync(currentSynchronizationAccount, AUTHORITY, Bundle.EMPTY);
-                    synchronizationIsActive = false;
+                if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
+                    ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY,
+                            SYNC_INTERVAL);
                 }
-            } catch (SynchronisationException e) {
-                throw new IllegalStateException(e);
+                synchronizationIsActive = true;
+            } else {
+                // wifi connection was lost
+                ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
+                synchronizationIsActive = false;
             }
         }
     }
@@ -193,8 +192,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
         AccountManager accountManager = AccountManager.get(context.get());
         Account account = new Account(username, accountType);
 
-        if (!ContentResolver.getPeriodicSyncs(account, AUTHORITY).isEmpty()) {
-            ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
+        if (!ContentResolver.getPeriodicSyncs(account, authority).isEmpty()) {
+            ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY);
         }
 
         synchronized (this) {
@@ -225,8 +224,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
                 if (!newAccountAdded) {
                     throw new SynchronisationException("Unable to add dummy account!");
                 }
-                ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
-                ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
+                ContentResolver.setIsSyncable(newAccount, authority, 1);
+                ContentResolver.setSyncAutomatically(newAccount, authority, true);
                 return newAccount;
             }
         } else {
@@ -239,7 +238,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @return <code>true</code> if WiFi is available; <code>false</code> otherwise.
      */
-    public boolean isConnected() throws SynchronisationException {
+    public boolean isConnected() {
         NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
         return syncOnWiFiOnly
                 ? activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI

@@ -8,6 +8,8 @@ import java.util.concurrent.locks.Lock;
 
 import de.cyface.datacapturing.IsRunningCallback;
 
+import static de.cyface.datacapturing.ServiceTestUtils.TAG;
+
 /**
  * A callback used to check whether the service has successfully started or not.
  * <p>
@@ -17,15 +19,9 @@ import de.cyface.datacapturing.IsRunningCallback;
  *
  * @author Klemens Muthmann
  * @since 2.0.0
- * @version 3.0.0
+ * @version 3.1.0
  */
 public class TestCallback implements IsRunningCallback {
-
-    /**
-     * The tag used to identify Logcat messages this class.
-     */
-    private final static String TAG = "de.cyface.test";
-
     /**
      * Flag indicating a successful startup if <code>true</code>.
      */
@@ -68,6 +64,7 @@ public class TestCallback implements IsRunningCallback {
         Log.v(TAG, logTag + "Locked TestCallback isRunning!");
         try {
             isRunning = true;
+            timedOut = false;
             Log.v(TAG, logTag + ": Set isRunning to true and signalling calling thread!");
             condition.signal();
         } finally {
@@ -83,11 +80,29 @@ public class TestCallback implements IsRunningCallback {
         Log.v(TAG, logTag + ": Locked TestCallback timedOut!");
         try {
             timedOut = true;
+            isRunning = false;
             Log.v(TAG, logTag + ": Set timedOut to true and signalling calling thread!");
             condition.signal();
         } finally {
             Log.v(TAG, logTag + ": Unlocking TestCallback timedOut!");
             lock.unlock();
         }
+    }
+
+    /**
+     * @return A value of <code>true</code> if the service reported that it is running; <code>false</code> if it times
+     *         out.
+     */
+    public boolean wasRunning() {
+        return isRunning;
+    }
+
+    /**
+     * @return A value of <code>true</code> if the timeout was reached before receiving a notification from the service.
+     *         This usually means the service is not running at the moment. Return <code>false</code> if a message has
+     *         been received.
+     */
+    public boolean didTimeOut() {
+        return timedOut;
     }
 }

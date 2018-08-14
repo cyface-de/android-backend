@@ -12,6 +12,7 @@ import org.junit.runner.RunWith;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
+import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
@@ -20,7 +21,7 @@ import android.test.ProviderTestCase2;
  * Tests that CRUD operations on measurements and the measurements table are working correctly.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -29,16 +30,12 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      * A <code>ContentValues</code> object as prototype to create measurements in the database.
      */
     private ContentValues fixtureMeasurement;
-    /**
-     * The <code>Uri</code> to use when accessing the measurements table.
-     */
-    Uri contentUri = MeasuringPointsContentProvider.MEASUREMENT_URI;
 
     /**
      * Constructor required by <code>ProviderTestCase2</code>.
      */
     public MeasurementTest() {
-        super(MeasuringPointsContentProvider.class, BuildConfig.provider);
+        super(MeasuringPointsContentProvider.class, TestUtils.AUTHORITY);
     }
 
     /**
@@ -60,26 +57,25 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      */
     @Test
     public void testCascadingDeleteOneMeasurement() {
-        long identifier = TestUtils.create(getMockContentResolver(), contentUri, fixtureMeasurement);
+        final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getMeasurementUri(),
+                fixtureMeasurement);
 
-        ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
+        final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
 
-        ContentValues fixtureAcceleration = accelerationContentValues(identifier);
+        final ContentValues fixtureAcceleration = accelerationContentValues(identifier);
 
-        ContentValues fixtureRotation = rotationContentValues(identifier);
+        final ContentValues fixtureRotation = rotationContentValues(identifier);
 
-        ContentValues fixtureDirection = directionContentValues(identifier);
+        final ContentValues fixtureDirection = directionContentValues(identifier);
 
-        TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.GPS_POINTS_URI, fixtureGpsPoint);
-        TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
-                fixtureAcceleration);
-        TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.ROTATION_POINTS_URI, fixtureRotation);
-        TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                fixtureDirection);
+        TestUtils.create(getMockContentResolver(), TestUtils.getGeoLocationsUri(), fixtureGpsPoint);
+        TestUtils.create(getMockContentResolver(), TestUtils.getAccelerationsUri(), fixtureAcceleration);
+        TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixtureRotation);
+        TestUtils.create(getMockContentResolver(), TestUtils.getDirectionsUri(), fixtureDirection);
 
         Cursor measurementCursor = null;
         try {
-            measurementCursor = getMockContentResolver().query(contentUri, null,
+            measurementCursor = getMockContentResolver().query(TestUtils.getMeasurementUri(), null,
                     MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Long.valueOf(0).toString()}, null);
             assertThat(measurementCursor.getCount() > 0, is(equalTo(true)));
         } finally {
@@ -88,14 +84,12 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
             }
         }
 
-        final int rowsDeleted = getMockContentResolver().delete(contentUri, null, null);
-        assertEquals("Delete was unsuccessful for uri " + contentUri, 5, rowsDeleted);
-        assertThat(TestUtils.count(getMockContentResolver(), MeasuringPointsContentProvider.GPS_POINTS_URI), is(0));
-        assertThat(TestUtils.count(getMockContentResolver(), MeasuringPointsContentProvider.SAMPLE_POINTS_URI), is(0));
-        assertThat(TestUtils.count(getMockContentResolver(), MeasuringPointsContentProvider.ROTATION_POINTS_URI),
-                is(0));
-        assertThat(TestUtils.count(getMockContentResolver(), MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI),
-                is(0));
+        final int rowsDeleted = getMockContentResolver().delete(TestUtils.getMeasurementUri(), null, null);
+        assertEquals("Delete was unsuccessful for uri " + TestUtils.getMeasurementUri(), 5, rowsDeleted);
+        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getGeoLocationsUri()), is(0));
+        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getAccelerationsUri()), is(0));
+        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getRotationsUri()), is(0));
+        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getDirectionsUri()), is(0));
     }
 
     /**
@@ -104,29 +98,25 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
     @Test
     public void cascadingDeleteMeasurements() {
         for (int i = 0; i < 2; i++) {
-            long identifier = TestUtils.create(getMockContentResolver(), contentUri, fixtureMeasurement);
+            final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getMeasurementUri(),
+                    fixtureMeasurement);
 
-            ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
+            final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
 
-            ContentValues fixtureAcceleration = accelerationContentValues(identifier);
+            final ContentValues fixtureAcceleration = accelerationContentValues(identifier);
 
-            ContentValues fixtureRotation = rotationContentValues(identifier);
+            final ContentValues fixtureRotation = rotationContentValues(identifier);
 
-            ContentValues fixtureDirection = directionContentValues(identifier);
+            final ContentValues fixtureDirection = directionContentValues(identifier);
 
-            TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.GPS_POINTS_URI, fixtureGpsPoint);
-            TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.SAMPLE_POINTS_URI,
-                    fixtureAcceleration);
-            TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.ROTATION_POINTS_URI,
-                    fixtureRotation);
-            TestUtils.create(getMockContentResolver(), MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,
-                    fixtureDirection);
+            TestUtils.create(getMockContentResolver(), TestUtils.getGeoLocationsUri(), fixtureGpsPoint);
+            TestUtils.create(getMockContentResolver(), TestUtils.getAccelerationsUri(), fixtureAcceleration);
+            TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixtureRotation);
+            TestUtils.create(getMockContentResolver(), TestUtils.getDirectionsUri(), fixtureDirection);
         }
 
-        final int rowsDeleted = getMockContentResolver().delete(MeasuringPointsContentProvider.MEASUREMENT_URI, null,
-                null);
-        assertEquals("Delete was unsuccessful for uri " + MeasuringPointsContentProvider.MEASUREMENT_URI, 10,
-                rowsDeleted);
+        final int rowsDeleted = getMockContentResolver().delete(TestUtils.getMeasurementUri(), null, null);
+        assertEquals("Delete was unsuccessful for uri " + TestUtils.getMeasurementUri(), 10, rowsDeleted);
     }
 
     /**
@@ -136,7 +126,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      * @return The filled out <code>ContentValues</code>.
      */
     private ContentValues geoLocationContentValues(final long measurementIdentifier) {
-        ContentValues ret = new ContentValues();
+        final ContentValues ret = new ContentValues();
         ret.put(GpsPointsTable.COLUMN_GPS_TIME, 10000L);
         ret.put(GpsPointsTable.COLUMN_IS_SYNCED, false);
         ret.put(GpsPointsTable.COLUMN_LAT, 13.0);
@@ -154,7 +144,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      * @return The filled out <code>ContentValues</code>.
      */
     private ContentValues accelerationContentValues(final long measurementIdentifier) {
-        ContentValues ret = new ContentValues();
+        final ContentValues ret = new ContentValues();
         ret.put(SamplePointTable.COLUMN_TIME, 10000L);
         ret.put(SamplePointTable.COLUMN_IS_SYNCED, false);
         ret.put(SamplePointTable.COLUMN_AX, 1.0);
@@ -171,7 +161,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      * @return The filled out <code>ContentValues</code>.
      */
     private ContentValues rotationContentValues(final long measurementIdentifier) {
-        ContentValues ret = new ContentValues();
+        final ContentValues ret = new ContentValues();
         ret.put(RotationPointTable.COLUMN_TIME, 10000L);
         ret.put(RotationPointTable.COLUMN_IS_SYNCED, false);
         ret.put(RotationPointTable.COLUMN_RX, 1.0);
@@ -188,7 +178,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      * @return The filled out <code>ContentValues</code>.
      */
     private ContentValues directionContentValues(final long measurementIdentifier) {
-        ContentValues ret = new ContentValues();
+        final ContentValues ret = new ContentValues();
         ret.put(MagneticValuePointTable.COLUMN_TIME, 10000L);
         ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, false);
         ret.put(MagneticValuePointTable.COLUMN_MX, 1.0);
@@ -205,11 +195,11 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      */
     @After
     public void tearDown() throws Exception {
-        getMockContentResolver().delete(MeasuringPointsContentProvider.GPS_POINTS_URI, null, null);
-        getMockContentResolver().delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null, null);
-        getMockContentResolver().delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, null, null);
-        getMockContentResolver().delete(MeasuringPointsContentProvider.MEASUREMENT_URI, null, null);
-        getMockContentResolver().delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null, null);
+        getMockContentResolver().delete(TestUtils.getGeoLocationsUri(), null, null);
+        getMockContentResolver().delete(TestUtils.getAccelerationsUri(), null, null);
+        getMockContentResolver().delete(TestUtils.getDirectionsUri(), null, null);
+        getMockContentResolver().delete(TestUtils.getRotationsUri(), null, null);
+        getMockContentResolver().delete(TestUtils.getMeasurementUri(), null, null);
         super.tearDown();
         getProvider().shutdown();
     }

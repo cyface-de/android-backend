@@ -23,6 +23,7 @@ import java.io.IOException;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -39,7 +40,7 @@ public class CyfaceAuthenticatorTest {
     public void testAuthenticationHappyPath() throws AuthenticatorException, OperationCanceledException, IOException {
         Context context = InstrumentationRegistry.getTargetContext();
         AccountManager manager = AccountManager.get(context);
-        Account requestAccount = new Account(Constants.DEFAULT_FREE_USERNAME, Constants.ACCOUNT_TYPE);
+        Account requestAccount = new Account(Constants.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(requestAccount, Constants.DEFAULT_FREE_PASSWORD, null);
 
         AccountManagerCallback callback = new AccountManagerCallback() {

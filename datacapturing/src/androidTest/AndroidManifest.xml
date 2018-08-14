@@ -1,0 +1,16 @@
+<manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
+    package="de.cyface.datacapturing.test">
+    <!-- Required to change WiFi state for testing. -->
+    <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
+
+    <!-- Content provider used for storing and retrieving test data.-->
+    <application>
+        <provider
+            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:authorities="de.cyface.provider.test"
+            android:exported="false"
+            android:process=":persistence_process"
+            android:syncable="true"
+            tools:replace="android:authorities"/>
+    </application>
+</manifest>

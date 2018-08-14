@@ -10,10 +10,14 @@ import android.provider.BaseColumns;
  * A table for rotation points from the android gyroscope sensor.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.2.0
  * @since 1.0.0
  */
 public class RotationPointTable extends AbstractCyfaceMeasurementTable {
+    /**
+     * The path segment in the table URI identifying the rotations table.
+     */
+    public final static String URI_PATH = "rotation";
     /**
      * Creates a new completely initialized {@code RotationPointTable} using "rotation_points" as table name.
      */
