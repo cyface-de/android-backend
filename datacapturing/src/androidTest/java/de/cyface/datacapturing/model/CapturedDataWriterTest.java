@@ -13,6 +13,10 @@ import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
 import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Before;
@@ -30,6 +34,7 @@ import android.util.Log;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
@@ -159,7 +164,31 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     public void testStoreData() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
 
-        oocut.storeData(testData(), measurementIdentifier);
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+        WritingDataCompletedCallback callback = new WritingDataCompletedCallback() {
+            @Override
+            public void writingDataCompleted() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        };
+
+        oocut.storeData(testData(), measurementIdentifier, callback);
+
+        lock.lock();
+        try {
+            condition.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
+        }
+
         oocut.storeLocation(testLocation(), measurementIdentifier);
 
         Cursor geoLocationsCursor = null;
@@ -206,8 +235,33 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKOWN);
         long measurementIdnetifier = oocut.newMeasurement(Vehicle.CAR);
-        oocut.storeData(testData(), measurementIdnetifier);
+
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+        WritingDataCompletedCallback finishedCallback = new WritingDataCompletedCallback() {
+            @Override
+            public void writingDataCompleted() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        };
+
+        oocut.storeData(testData(), measurementIdnetifier, finishedCallback);
         oocut.storeLocation(testLocation(), measurementIdnetifier);
+
+        lock.lock();
+        try {
+            condition.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
+        }
+
         // clear the test data
         int removedRows = oocut.clear();
         assertThat(removedRows, is(equalTo(12)));
@@ -286,7 +340,32 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     @Test
     public void testDeleteMeasurement() {
         long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.storeData(testData(), measurementIdentifier);
+
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+
+        WritingDataCompletedCallback callback = new WritingDataCompletedCallback() {
+            @Override
+            public void writingDataCompleted() {
+                lock.lock();
+                try {
+                    condition.signal();
+                } finally {
+                    lock.unlock();
+                }
+            }
+        };
+        oocut.storeData(testData(), measurementIdentifier, callback);
+
+        lock.lock();
+        try {
+            condition.await(2, TimeUnit.SECONDS);
+        } catch (InterruptedException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            lock.unlock();
+        }
+
         oocut.storeLocation(testLocation(), measurementIdentifier);
         Measurement measurement = new Measurement(measurementIdentifier);
         oocut.delete(measurement);

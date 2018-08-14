@@ -12,6 +12,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
@@ -49,7 +50,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     private final LocationListener locationListener = new LocationListener() {
         @Override
-        public void onLocationChanged(Location location) {
+        public void onLocationChanged(final @NonNull Location location) {
             UIListener uiListener = getUiListener();
             if (uiListener != null) {
                 uiListener.onLocationUpdate(location);

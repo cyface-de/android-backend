@@ -5,8 +5,12 @@ import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.mockito.Mock;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
@@ -21,7 +25,6 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 
-import de.cyface.persistence.BuildConfig;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 
@@ -41,6 +44,12 @@ public class CyfaceSyncAdapterTest {
      */
     private Context context;
 
+    @Rule
+    public MockitoRule rule = MockitoJUnit.rule();
+
+    @Mock
+    Http httpConnection;
+
     @Before
     public void setUp() {
         context = RuntimeEnvironment.application;
@@ -55,12 +64,12 @@ public class CyfaceSyncAdapterTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws RemoteException {
-        CyfaceSyncAdapter oocut = new CyfaceSyncAdapter(context, false);
+        CyfaceSyncAdapter oocut = new CyfaceSyncAdapter(context, false, httpConnection, 10_000, 10_000, 10_000, 10_000);
         ContentProviderClient client = null;
-        Uri measurementUri = new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
+        Uri measurementUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
+                .appendPath(MeasurementTable.URI_PATH).build();
         try {
-            client = context.getContentResolver()
-                    .acquireContentProviderClient(measurementUri);
+            client = context.getContentResolver().acquireContentProviderClient(measurementUri);
             if (client == null) {
                 throw new IllegalStateException("ContentProviderClient was null.");
             }
@@ -77,7 +86,8 @@ public class CyfaceSyncAdapterTest {
             long expectedIdentifier = Long.parseLong(result.getLastPathSegment());
             client.insert(measurementUri, syncedMeasurementValues);
 
-            Cursor syncableMeasurementsCursor = oocut.loadSyncableMeasurements(client, AUTHORITY);
+            Cursor syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(client,
+                    AUTHORITY);
 
             assertThat(syncableMeasurementsCursor.getCount(), is(1));
             syncableMeasurementsCursor.moveToFirst();

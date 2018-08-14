@@ -53,14 +53,14 @@ public final class SyncAdapterTest {
     @Test
     public void testRequestSync() throws InterruptedException {
         AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
-        Account newAccount = new Account(Constants.DEFAULT_FREE_USERNAME, Constants.ACCOUNT_TYPE);
+        Account newAccount = new Account(Constants.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
         if (am.addAccountExplicitly(newAccount, Constants.DEFAULT_FREE_PASSWORD, Bundle.EMPTY)) {
             ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
             ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
         }
 
         try {
-            final Account account = am.getAccountsByType(Constants.ACCOUNT_TYPE)[0];
+            final Account account = am.getAccountsByType(ACCOUNT_TYPE)[0];
 
             final Lock lock = new ReentrantLock();
             final Condition condition = lock.newCondition();

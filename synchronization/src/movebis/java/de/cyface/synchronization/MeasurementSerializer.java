@@ -15,9 +15,6 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
@@ -189,7 +186,7 @@ public final class MeasurementSerializer {
         Cursor directionsCursor = null;
 
         try {
-            final long geoLocationCount = loader.countData(MeasuringPointsContentProvider.GPS_POINTS_URI,
+            final long geoLocationCount = loader.countData(loader.createGeoLocationTableUri(),
                     GpsPointsTable.COLUMN_MEASUREMENT_FK);
             accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
@@ -214,7 +211,7 @@ public final class MeasurementSerializer {
                     + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
             buffer.put(header);
             buffer.put(serializedGeoLocations);
-           buffer.put(serializedAccelerations);
+            buffer.put(serializedAccelerations);
             buffer.put(serializedRotations);
             buffer.put(serializedDirections);
 

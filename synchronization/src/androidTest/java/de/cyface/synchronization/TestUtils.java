@@ -8,7 +8,6 @@ import android.support.annotation.NonNull;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
@@ -72,7 +71,7 @@ final class TestUtils {
         values.put(MagneticValuePointTable.COLUMN_MY, y);
         values.put(MagneticValuePointTable.COLUMN_MZ, z);
         values.put(MagneticValuePointTable.COLUMN_TIME, timestamp);
-        resolver.insert(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI, values);
+        resolver.insert(getDirectionsUri(), values);
     }
 
     /**
@@ -94,7 +93,7 @@ final class TestUtils {
         values.put(RotationPointTable.COLUMN_RY, y);
         values.put(RotationPointTable.COLUMN_RZ, z);
         values.put(RotationPointTable.COLUMN_TIME, timestamp);
-        resolver.insert(MeasuringPointsContentProvider.ROTATION_POINTS_URI, values);
+        resolver.insert(getRotationsUri(), values);
     }
 
     /**
@@ -116,7 +115,7 @@ final class TestUtils {
         values.put(SamplePointTable.COLUMN_AY, y);
         values.put(SamplePointTable.COLUMN_AZ, z);
         values.put(SamplePointTable.COLUMN_TIME, timestamp);
-        resolver.insert(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, values);
+        resolver.insert(getAccelerationsUri(), values);
     }
 
     /**
@@ -140,7 +139,7 @@ final class TestUtils {
         values.put(GpsPointsTable.COLUMN_LON, lon);
         values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(GpsPointsTable.COLUMN_SPEED, speed);
-        resolver.insert(MeasuringPointsContentProvider.GPS_POINTS_URI, values);
+        resolver.insert(getGeoLocationsUri(), values);
     }
 
     /**
@@ -159,7 +158,7 @@ final class TestUtils {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, true);
         values.put(MeasurementTable.COLUMN_VEHICLE, vehicle);
-        Uri resultUri = resolver.insert(MeasuringPointsContentProvider.MEASUREMENT_URI, values);
+        Uri resultUri = resolver.insert(getMeasurementUri(), values);
         if (resultUri == null) {
             throw new IllegalStateException();
         }
@@ -169,11 +168,11 @@ final class TestUtils {
 
     static int clearDatabase(final @NonNull ContentResolver resolver) {
         int ret = 0;
-        ret += resolver.delete(MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI,null,null);
-        ret += resolver.delete(MeasuringPointsContentProvider.ROTATION_POINTS_URI, null, null);
-        ret += resolver.delete(MeasuringPointsContentProvider.SAMPLE_POINTS_URI, null, null);
-        ret += resolver.delete(MeasuringPointsContentProvider.GPS_POINTS_URI, null, null);
-        ret += resolver.delete(MeasuringPointsContentProvider.MEASUREMENT_URI, null, null);
+        ret += resolver.delete(getDirectionsUri(),null,null);
+        ret += resolver.delete(getRotationsUri(), null, null);
+        ret += resolver.delete(getAccelerationsUri(), null, null);
+        ret += resolver.delete(getGeoLocationsUri(), null, null);
+        ret += resolver.delete(getMeasurementUri(), null, null);
         return ret;
     }
 }

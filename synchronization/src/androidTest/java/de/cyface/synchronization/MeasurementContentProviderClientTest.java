@@ -221,9 +221,12 @@ public class MeasurementContentProviderClientTest {
             MeasurementContentProviderClient oocut = new MeasurementContentProviderClient(measurementIdentifier, client,
                     AUTHORITY);
 
-            loadedAccelerations = oocut.load3DPoint(MeasurementSerializer.accelerationsSerializer);
-            loadedRotations = oocut.load3DPoint(MeasurementSerializer.rotationsSerializer);
-            loadedDirections = oocut.load3DPoint(MeasurementSerializer.directionsSerializer);
+            AccelerationsSerializer accelerationsSerializer = new AccelerationsSerializer();
+            loadedAccelerations = oocut.load3DPoint(accelerationsSerializer);
+            RotationsSerializer rotationsSerializer = new RotationsSerializer();
+            loadedRotations = oocut.load3DPoint(rotationsSerializer);
+            DirectionsSerializer directionsSerializer = new DirectionsSerializer();
+            loadedDirections = oocut.load3DPoint(directionsSerializer);
 
             assertThat(loadedAccelerations.getCount(), is(equalTo(3)));
             assertThat(loadedRotations.getCount(), is(equalTo(3)));
@@ -231,9 +234,9 @@ public class MeasurementContentProviderClientTest {
 
             assertThat(oocut.cleanMeasurement(), is(equalTo(9)));
 
-            loadedEmptyAccelerations = oocut.load3DPoint(MeasurementSerializer.accelerationsSerializer);
-            loadedEmptyRotations = oocut.load3DPoint(MeasurementSerializer.rotationsSerializer);
-            loadedEmptyDirections = oocut.load3DPoint(MeasurementSerializer.directionsSerializer);
+            loadedEmptyAccelerations = oocut.load3DPoint(accelerationsSerializer);
+            loadedEmptyRotations = oocut.load3DPoint(rotationsSerializer);
+            loadedEmptyDirections = oocut.load3DPoint(directionsSerializer);
 
             assertThat(loadedEmptyAccelerations.getCount(), is(equalTo(0)));
             assertThat(loadedEmptyRotations.getCount(), is(equalTo(0)));

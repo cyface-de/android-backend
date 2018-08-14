@@ -35,6 +35,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.datacapturing.ui.CapturingNotification;
 
 /**
@@ -284,7 +285,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i), sampleSubList(rotations, i),
                     sampleSubList(directions, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
-            persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier);
+            persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
+                @Override
+                public void writingDataCompleted() {
+                    // Nothing to do here!
+                }
+            });
         }
     }
 

@@ -1,6 +1,11 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
+import static de.cyface.synchronization.TestUtils.insertTestDirection;
+import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
+import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
+import static de.cyface.synchronization.TestUtils.insertTestRotation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -16,8 +21,6 @@ import org.junit.runner.RunWith;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
-import android.content.ContentValues;
-import android.net.Uri;
 import android.os.Build;
 import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
@@ -25,14 +28,6 @@ import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
-
-import de.cyface.persistence.BuildConfig;
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -92,8 +87,7 @@ public class MovebisDataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart()
-            throws NoSuchAlgorithmException, IOException, SynchronisationException {
+    public void testUploadSomeBytesViaMultiPart() throws SynchronisationException {
         ContentResolver resolver = InstrumentationRegistry.getTargetContext().getContentResolver();
         long measurementIdentifier = insertTestMeasurement(resolver, "UNKOWN");
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,

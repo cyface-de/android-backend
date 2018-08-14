@@ -111,12 +111,15 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier) {
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier, final @NonNull WritingDataCompletedCallback callback) {
         if (threadPool.isShutdown()) {
             return;
         }
 
-        threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
+        CapturedDataWriter writer = new CapturedDataWriter(data, resolver, authority, measurementIdentifier, callback);
+
+        threadPool.submit(writer);
+        /*threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
                 new WritingDataCompletedCallback() {
                     @Override
                     public void writingDataCompleted() {
@@ -124,7 +127,7 @@ public class MeasurementPersistence {
                         if (BuildConfig.DEBUG)
                             Log.d(TAG, "Completed writing data.");
                     }
-                }));
+                }));*/
     }
 
     /**

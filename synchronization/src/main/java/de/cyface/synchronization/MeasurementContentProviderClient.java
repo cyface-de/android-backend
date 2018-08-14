@@ -201,6 +201,10 @@ public class MeasurementContentProviderClient {
         return ret;
     }
 
+    public @NonNull Uri createGeoLocationTableUri() {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
+    }
+
     /**
      * Loads all measurements from the content provider that are already finished capturing, but have not been
      * synchronized yet.
