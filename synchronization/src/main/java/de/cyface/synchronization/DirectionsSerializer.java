@@ -1,14 +1,11 @@
 package de.cyface.synchronization;
 
-import android.net.Uri;
-
 import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 
 final class DirectionsSerializer implements Point3DSerializer {
     @Override
-    public Uri getTableUri() {
-        return MeasuringPointsContentProvider.MAGNETIC_VALUE_POINTS_URI;
+    public String getTableUriPathSegment() {
+        return MagneticValuePointTable.URI_PATH;
     }
 
     @Override

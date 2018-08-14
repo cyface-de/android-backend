@@ -63,7 +63,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 5.0.0
+ * @version 6.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -135,7 +135,12 @@ public abstract class DataCapturingService {
      * A listener for events which the UI might be interested in.
      */
     private UIListener uiListener;
-
+    /**
+     * The <code>ContentProvider</code> authority used to identify the content provider used by this
+     * <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     * avoid collisions between different apps using the Cyface SDK.
+     */
+    private String authority;
     /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
@@ -147,16 +152,21 @@ public abstract class DataCapturingService {
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param resolver The <code>ContentResolver</code> used to access the data layer.
+     * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
+     *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     *            avoid collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress) throws SetupException {
         this.context = new WeakReference<>(context);
-
+        this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
-        this.persistenceLayer = new MeasurementPersistence(resolver);
+        this.persistenceLayer = new MeasurementPersistence(resolver, authority);
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -174,7 +184,7 @@ public abstract class DataCapturingService {
         if (connectivityManager == null) {
             throw new SetupException("Android connectivity manager is not available!");
         }
-        surveyor = new WiFiSurveyor(context, connectivityManager, Constants.ACCOUNT_TYPE);
+        surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
         this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         lifecycleLock = new ReentrantLock();
@@ -427,12 +437,25 @@ public abstract class DataCapturingService {
         runService(identifierOfCurrentlyOpenMeasurement, finishedHandler);
     }
 
+    // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
+    // the interface of PersistenceLayer (like on iOS).
     /**
-     * @return A list containing all measurements currently stored on this by this application. An empty list if there
-     *         are no such measurements, but never <code>null</code>.
+     * Returns ALL measurements currently on this device. This includes currently running ones as well as paused and
+     * finished measurements.
+     *
+     * @return A list containing all measurements currently stored on this device by this application. An empty list if
+     *         there are no such measurements, but never <code>null</code>.
      */
     public @NonNull List<Measurement> getCachedMeasurements() {
         return persistenceLayer.loadMeasurements();
+    }
+
+    /**
+     * @return A list containing all the finished (i.e. not running and not paused) but not yet uploaded measurements on
+     *         this device. An empty list if there are no such measurements, but never <code>null</code>.
+     */
+    public @NonNull List<Measurement> getFinishedMeasurements() {
+        return persistenceLayer.loadFinishedMeasurements();
     }
 
     /**
@@ -637,6 +660,7 @@ public abstract class DataCapturingService {
             Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, measurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
 
         ComponentName serviceComponentName = null;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {

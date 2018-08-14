@@ -6,6 +6,11 @@ import java.net.HttpURLConnection;
 import java.net.URL;
 import java.net.URLConnection;
 
+/**
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 3.0.0
+ */
 interface Http {
     /**
      * Adds a trailing slash to the server URL or leaves an existing trailing slash untouched.

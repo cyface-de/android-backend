@@ -1,11 +1,11 @@
 package de.cyface.datacapturing;
 
 /**
- * A utility class collecting all codes identifying extras used to transmit datas via bundles in this application.
+ * A utility class collecting all codes identifying extras used to transmit data via bundles in this application.
  *
  * @author Klemens Muthmann
  * @since 2.0.2
- * @version 1.0.1
+ * @version 1.0.2
  */
 public class BundlesExtrasCodes {
     /**
@@ -17,6 +17,8 @@ public class BundlesExtrasCodes {
      * checking whether the service is running.
      */
     public static final String PING_PONG_ID = "de.cyface.pingpong.id";
+
+    public static final String AUTHORITY_ID = "de.cyface.authority.id";
 
     /**
      * Constructor is private to prevent creation of utility class.

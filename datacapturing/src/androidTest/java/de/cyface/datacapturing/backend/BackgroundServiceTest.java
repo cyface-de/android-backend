@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -35,18 +36,12 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class BackgroundServiceTest {
-
-    /**
-     * The tag used to identify log messages send to logcat.
-     */
-    private static final String TAG = "de.cyface.test";
-
     /**
      * Junit rule handling the service connection.
      */
@@ -87,7 +82,7 @@ public class BackgroundServiceTest {
     @Before
     public void setUp() {
         Context context = InstrumentationRegistry.getTargetContext();
-        persistence = new MeasurementPersistence(context.getContentResolver());
+        persistence = new MeasurementPersistence(context.getContentResolver(), AUTHORITY);
         testMeasurementIdentifier = persistence.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
@@ -122,6 +117,7 @@ public class BackgroundServiceTest {
         toServiceConnection.callback = testCallback;
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
 
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
@@ -159,6 +155,7 @@ public class BackgroundServiceTest {
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 

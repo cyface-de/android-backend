@@ -12,6 +12,7 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.util.Log;
 
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
@@ -34,7 +35,7 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.1.2
+ * @version 2.1.3
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -49,7 +50,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     private final LocationListener locationListener = new LocationListener() {
         @Override
-        public void onLocationChanged(Location location) {
+        public void onLocationChanged(final @NonNull Location location) {
             UIListener uiListener = getUiListener();
             if (uiListener != null) {
                 uiListener.onLocationUpdate(location);
@@ -96,7 +97,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      */
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
-        super(context, context.getContentResolver(), dataUploadServerAddress);
+        super(context, context.getContentResolver(), "de.cyface.provider", "de.cyface", dataUploadServerAddress);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

@@ -15,20 +15,16 @@ import java.util.concurrent.TimeUnit;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 
+import static de.cyface.datacapturing.ServiceTestUtils.TAG;
+
 /**
  * Connection from the test to the capturing service.
  *
  * @author Klemens Muthmann
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 class ToServiceConnection implements ServiceConnection {
-
-    /**
-     * The tag used to identify logcat messages.
-     */
-    private final static String TAG = "de.cyface.test";
-
     /**
      * The context this <code>ServiceConnection</code> runs with.
      */
