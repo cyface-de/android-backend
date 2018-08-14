@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -49,12 +50,12 @@ public class WiFiSurveyorTest {
     @Before
     public void setUp() {
         /*
-      The Android test <code>Context</code> to use for testing.
-     */
+         * The Android test <code>Context</code> to use for testing.
+         */
         Context context = RuntimeEnvironment.application;
         ConnectivityManager connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
-        oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY);
+        oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
     }
 
     /**
