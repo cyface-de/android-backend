@@ -4,6 +4,7 @@ import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
@@ -18,6 +19,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.Context;
+import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.MediumTest;
 import android.support.test.rule.GrantPermissionRule;
@@ -135,14 +137,23 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException, MissingPermissionException {
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        TestShutdownFinishedHandler shutdownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+
+        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedMeasurementIdentifier, is(not(equalTo(-1L))));
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        oocut.stopSync();
+        oocut.stopAsync(shutdownFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(shutdownFinishedHandler.receivedMeasurementIdentifier, is(not(equalTo(-1L))));
+        assertThat(shutdownFinishedHandler.receivedMeasurementIdentifier,
+                is(equalTo(startUpFinishedHandler.receivedMeasurementIdentifier)));
     }
 
     /**
@@ -350,17 +361,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
                 is(equalTo(false)));
 
         // Start service and wait for it to run.
-        oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
-            @Override
-            public void startUpFinished(final long measurementIdentifier) {
-                lock.lock();
-                try {
-                    condition.signal();
-                } finally {
-                    lock.unlock();
-                }
-            }
-        });
+        oocut.startAsync(testListener, Vehicle.UNKOWN, new TestStartUpFinishedHandler(lock, condition));
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -377,17 +378,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         assertThat("Service seems not to be running anymore after two disconnect/reconnect cycles!",
                 runningStatusCallback.wasRunning(), is(equalTo(true)));
 
-        oocut.stopAsync(new ShutDownFinishedHandler() {
-            @Override
-            public void shutDownFinished(final long measurementIdentifier) {
-                lock.lock();
-                try {
-                    condition.signal();
-                } finally {
-                    lock.unlock();
-                }
-            }
-        });
+        oocut.stopAsync(new TestShutdownFinishedHandler(lock, condition));
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         // Check whether shutdown is still successful.
@@ -432,22 +423,22 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testRunServiceAsync() throws DataCapturingException, MissingPermissionException {
-        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
+        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        ShutDownFinishedHandler shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        ShutDownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.pauseAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
-        startUpFinishedHandler = new TestStartUpFinishedHandler();
+        startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resumeAsync(startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.stopAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
@@ -462,27 +453,27 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testResumeAsyncTwice() throws MissingPermissionException, DataCapturingException {
-        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
+        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        ShutDownFinishedHandler shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        ShutDownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.pauseAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
-        startUpFinishedHandler = new TestStartUpFinishedHandler();
+        startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resumeAsync(startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        startUpFinishedHandler = new TestStartUpFinishedHandler();
+        startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resumeAsync(startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.stopAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
@@ -503,17 +494,17 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testStartPauseStop() throws MissingPermissionException, DataCapturingException {
-        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler();
+        StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        ShutDownFinishedHandler shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        ShutDownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.pauseAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
-        shutDownFinishedHandler = new MyShutDownFinishedHandler();
+        shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.stopAsync(shutDownFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
@@ -571,44 +562,5 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testReconnectOnNonRunningServer() throws DataCapturingException {
         oocut.reconnect();
         assertThat(oocut.getIsRunning(), is(equalTo(false)));
-    }
-
-    /**
-     * A handler for service shutdown messages synchronized by the tests synchronization lock.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private class MyShutDownFinishedHandler extends ShutDownFinishedHandler {
-        @Override
-        public void shutDownFinished(final long measurementIdentifier) {
-            lock.lock();
-            try {
-                condition.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
-    }
-
-    /**
-     * A handler for finished events on service start up. This implementation synchronizes the start up with the calling
-     * test case.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private class TestStartUpFinishedHandler extends StartUpFinishedHandler {
-        @Override
-        public void startUpFinished(final long measurementIdentifier) {
-            lock.lock();
-            try {
-                condition.signal();
-            } finally {
-                lock.unlock();
-            }
-        }
     }
 }
