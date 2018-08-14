@@ -457,6 +457,16 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * @param measurementIdentifier The identifier of the measurement to load.
+     * @return The measurement corresponding to the provided <code>measurementIdentifier</code> or <code>null</code> if
+     *         no such measurement exists.
+     * @throws DataCapturingException If accessing the data storage fails.
+     */
+    public Measurement loadMeasurement(final long measurementIdentifier) throws DataCapturingException {
+        return persistenceLayer.loadMeasurement(measurementIdentifier);
+    }
+
+    /**
      * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
      * service might wait for an opportune moment to start synchronization.
      *
