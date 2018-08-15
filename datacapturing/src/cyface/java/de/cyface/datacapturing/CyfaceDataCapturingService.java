@@ -43,4 +43,13 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             throw new SetupException(e);
         }
     }
+
+    /**
+     * Frees up resources used by CyfaceDataCapturingService
+     * 
+     * @throws SynchronisationException
+     */
+    public void shutdownDataCapturingService() throws SynchronisationException {
+        getWiFiSurveyor().stopSurveillance();
+    }
 }
