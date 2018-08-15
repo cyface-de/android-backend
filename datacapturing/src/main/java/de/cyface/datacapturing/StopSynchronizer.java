@@ -1,9 +1,9 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.NonNull;
-
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import android.support.annotation.NonNull;
 
 /**
  * Synchronizes the calling thread with the shut down of the
@@ -33,7 +33,7 @@ public class StopSynchronizer extends ShutDownFinishedHandler {
     }
 
     @Override
-    public void shutDownFinished() {
+    public void shutDownFinished(final @NonNull long measurementIdentifier) {
         synchronizer.signal();
     }
 }

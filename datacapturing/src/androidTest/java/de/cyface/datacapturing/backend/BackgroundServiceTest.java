@@ -116,7 +116,7 @@ public class BackgroundServiceTest {
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurementIdentifier);
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
 
         serviceTestRule.startService(startIntent);
@@ -154,7 +154,7 @@ public class BackgroundServiceTest {
         final Context context = InstrumentationRegistry.getTargetContext();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, testMeasurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurementIdentifier);
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);

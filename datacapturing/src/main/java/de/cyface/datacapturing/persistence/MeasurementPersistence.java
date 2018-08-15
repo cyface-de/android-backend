@@ -162,6 +162,11 @@ public class MeasurementPersistence {
             openMeasurementQueryCursor = resolver.query(getMeasurementUri(), null,
                     MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null, null);
 
+            if (openMeasurementQueryCursor == null) {
+                throw new DataCapturingException(
+                        "Unable to initialize cursor to check for open measurement. Cursor was null!");
+            }
+
             if (openMeasurementQueryCursor.getCount() > 1) {
                 throw new DataCapturingException("More than one measurement is open.");
             }
@@ -237,6 +242,42 @@ public class MeasurementPersistence {
             }
 
             return ret;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Provide one specific measurement from the data storage if it exists.
+     *
+     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
+     * @return The loaded measurement if it exists; <code>null</code> otherwise.
+     * @throws DataCapturingException If accessing the content provider fails.
+     */
+    public Measurement loadMeasurement(final long measurementIdentifier) throws DataCapturingException {
+        Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier)).build();
+        Cursor cursor = null;
+
+        try {
+            cursor = resolver.query(measurementUri, null, null, null, null);
+
+            if (cursor == null) {
+                throw new DataCapturingException(
+                        "Cursor for loading a measurement not correctly initialized. Was null for URI "
+                                + measurementUri);
+            }
+
+            if (cursor.getCount() > 1) {
+                throw new DataCapturingException("Too many measurements loaded from URI: " + measurementUri);
+            }
+
+            if (cursor.moveToFirst()) {
+                return new Measurement(measurementIdentifier);
+            } else {
+                return null;
+            }
         } finally {
             if (cursor != null) {
                 cursor.close();
