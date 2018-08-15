@@ -24,7 +24,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class MeasurementContentProviderClient {
@@ -40,7 +40,7 @@ public class MeasurementContentProviderClient {
     /**
      * The authority also used by the provided <code>ContentProviderClient</code>. Unfortunately it is
      * not possible to retrieve this from the <code>client</code> itself. To communicate with the client this
-     * information is required and so needs to be injected explicitely.
+     * information is required and so needs to be injected explicitly.
      */
     private final String authority;
 
@@ -49,11 +49,11 @@ public class MeasurementContentProviderClient {
      * a <code>ContentProviderClient</code>. The wrapped client is not closed by this object. You are still responsible
      * for closing it after you have finished communication with the <code>ContentProvider</code>.
      *
-     * @param measurementIdentifier The device wide unqiue identifier of the measurement to serialize.
+     * @param measurementIdentifier The device wide unique identifier of the measurement to serialize.
      * @param client The <code>ContentProviderClient</code> wrapped by this object.
      * @param authority The authority also used by the provided <code>ContentProviderClient</code>. Unfortunately it is
      *            not possible to retrieve this from the <code>client</code> itself. To communicate with the client this
-     *            information is required and so needs to be injected explicitely.
+     *            information is required and so needs to be injected explicitly.
      */
     MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client,
             final String authority) {

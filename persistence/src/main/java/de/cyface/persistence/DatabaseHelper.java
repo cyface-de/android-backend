@@ -62,7 +62,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
     private final MagneticValuePointTable directionsTable;
 
     /**
-     * Creates a new compltely intialized <code>DatabaseHelper</code>.
+     * Creates a new completely initialized <code>DatabaseHelper</code>.
      *
      * @param context The Android context to use to access the Android System via
      */

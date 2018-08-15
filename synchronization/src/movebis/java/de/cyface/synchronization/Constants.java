@@ -1,5 +1,13 @@
 package de.cyface.synchronization;
 
+/**
+ * Final static constants used by multiple classes.
+ *
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 2.0.0
+ */
 public final class Constants {
 
     // TODO: Change these strings between two STADTRADELN Campaigns.
@@ -8,9 +16,6 @@ public final class Constants {
      */
     public final static String ACCOUNT_TYPE = "de.cyface";
     public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
-
-    public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
-    public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
 
     private Constants() {
         // Nothing to do here.

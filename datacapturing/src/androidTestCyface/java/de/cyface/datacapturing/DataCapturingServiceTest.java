@@ -17,6 +17,8 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.MediumTest;
@@ -24,7 +26,6 @@ import android.support.test.rule.GrantPermissionRule;
 import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
-import android.util.Log;
 
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -39,17 +40,13 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 3.1.0
+ * @author Armin Schnabel
+ * @version 3.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
-
-    /**
-     * The tag used to identify log messages.
-     */
-    private static final String TAG = "de.cyface.test";
 
     /**
      * Rule used to run
@@ -113,6 +110,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
             @Override
             public void run() {
                 try {
+                    final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_FREE_USERNAME, ServiceTestUtils.ACCOUNT_TYPE);
+                    AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_FREE_PASSWORD,
+                            null);
                     oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                             ACCOUNT_TYPE, "http://localhost:8080");
                 } catch (SetupException e) {
