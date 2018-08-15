@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.0.0
  */
 public final class Constants {
@@ -15,12 +15,8 @@ public final class Constants {
     final static int ROTATIONS_UPLOAD_BATCH_SIZE = 2_000;
     final static int DIRECTIONS_UPLOAD_BATCH_SIZE = 2_000;
 
-    public final static String ACCOUNT_TYPE = "de.cyface.account";
+    // This may be used by all implementing apps, thus, public
     public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
-    //public final static String ARG_IS_ADDING_NEW_ACCOUNT = "de.cyface.arg_is_adding_new_account";
-
-    public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
-    public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
 
     private Constants() {
         // Nothing to do here.

@@ -40,8 +40,8 @@ public class CyfaceAuthenticatorTest {
     public void testAuthenticationHappyPath() throws AuthenticatorException, OperationCanceledException, IOException {
         Context context = InstrumentationRegistry.getTargetContext();
         AccountManager manager = AccountManager.get(context);
-        Account requestAccount = new Account(Constants.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(requestAccount, Constants.DEFAULT_FREE_PASSWORD, null);
+        Account requestAccount = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_FREE_PASSWORD, null);
 
         AccountManagerCallback callback = new AccountManagerCallback() {
             @Override

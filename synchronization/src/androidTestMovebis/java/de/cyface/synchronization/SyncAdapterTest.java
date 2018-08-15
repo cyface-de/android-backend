@@ -38,7 +38,7 @@ import android.util.Log;
  * the test large and flaky. Future implementation will hopefully remove this dependency.
  * 
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -53,8 +53,8 @@ public final class SyncAdapterTest {
     @Test
     public void testRequestSync() throws InterruptedException {
         AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
-        Account newAccount = new Account(Constants.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        if (am.addAccountExplicitly(newAccount, Constants.DEFAULT_FREE_PASSWORD, Bundle.EMPTY)) {
+        Account newAccount = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
+        if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_FREE_PASSWORD, Bundle.EMPTY)) {
             ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
             ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
         }

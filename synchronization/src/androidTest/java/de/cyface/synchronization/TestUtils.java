@@ -15,7 +15,7 @@ import de.cyface.persistence.SamplePointTable;
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.1.0
  */
 final class TestUtils {
@@ -31,6 +31,8 @@ final class TestUtils {
      * The account type used during testing. This must be the same as in the authenticator configuration.
      */
     final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
+    public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
+    public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
 
     static Uri getMeasurementUri() {
         return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();

@@ -1,8 +1,5 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.ACCOUNT_TYPE;
-import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
-
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -24,6 +21,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -43,7 +41,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     private final static String TAG = "de.cyface.auth";
     private final Http http;
     public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
-    //public final static int ACCOUNT_NOT_ADDED_ERROR_CODE = 1;
 
     public CyfaceAuthenticator(final @NonNull Context context) {
         super(context);
@@ -63,39 +60,10 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
         Log.d(TAG, "Adding Account");
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
-        intent.putExtra(ACCOUNT_TYPE, accountType);
-        intent.putExtra(AUTH_TOKEN_TYPE, authTokenType);
-        //intent.putExtra(ARG_IS_ADDING_NEW_ACCOUNT, true);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
         return bundle;
-
-        // FIXME: Is the following code still necessary?
-        /*
-         * Account account = null;
-         * final AccountManager manager = AccountManager.get(context);
-         * final Account[] accounts = manager.getAccountsByType(accountType);
-         * for (Account existingAccount : accounts) {
-         * if (existingAccount.name.equals(Constants.DEFAULT_FREE_USERNAME)) {
-         * account = existingAccount;
-         * }
-         * }
-         * boolean accountExists = account == null;
-         * if (!accountExists) {
-         * account = new Account(Constants.DEFAULT_FREE_USERNAME, accountType);
-         * accountExists = manager.addAccountExplicitly(account, Constants.DEFAULT_FREE_PASSWORD, null);
-         * }
-         * Bundle bundle = new Bundle();
-         * if (accountExists) {
-         * bundle.putCharSequence(AccountManager.KEY_ACCOUNT_NAME, Constants.DEFAULT_FREE_USERNAME);
-         * bundle.putCharSequence(AccountManager.KEY_ACCOUNT_TYPE, accountType);
-         * response.onResult(bundle);
-         * } else {
-         * response.onError(ACCOUNT_NOT_ADDED_ERROR_CODE, "Unable to add or find default account.");
-         * }
-         * return null;
-         */
     }
 
     @Override
@@ -104,12 +72,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     @Override
-    public Bundle getAuthToken(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account,
+    public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
             final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {
 
         // Extract the username and password from the Account Manager, and ask
         // the server for an appropriate AuthToken.
-        Log.d(TAG, "Getting Auth Token.");
         final AccountManager am = AccountManager.get(context);
 
         String authToken = am.peekAuthToken(account, authTokenType);
@@ -134,7 +101,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // If we get an authToken - we return it
         if (!TextUtils.isEmpty(authToken)) {
             final Bundle result = new Bundle();
-            result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name); // FIXME: Const or AM?
+            result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
             result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
             result.putString(AccountManager.KEY_AUTHTOKEN, authToken);
             return result;
@@ -150,8 +117,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // an intent to display our AuthenticatorActivity.
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
-        intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type); // FIXME: Const or AM?
-        intent.putExtra(Constants.AUTH_TOKEN_TYPE, authTokenType);
+        intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type);
+        intent.putExtra(AccountManager.KEY_AUTHTOKEN, authTokenType);
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
         return bundle;
