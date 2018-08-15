@@ -29,11 +29,11 @@ public class ServiceTestUtils {
     /**
      * The authority used to identify the content provider for testing.
      */
-    public static final String AUTHORITY = "de.cyface.datacapturing.provider.test";
+    public static final String AUTHORITY = "de.cyface.datacapturing.test.provider";
     /**
      * Account type used by all accounts created during testing.
      */
-    public static final String ACCOUNT_TYPE = "de.cyface.datacapturing.account.test";
+    public static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
     public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
     public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
 

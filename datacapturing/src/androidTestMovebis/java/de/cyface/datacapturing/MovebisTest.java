@@ -33,7 +33,7 @@ import de.cyface.datacapturing.ui.UIListener;
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -102,11 +102,12 @@ public final class MovebisTest {
 
     /**
      * Tests if one lifecycle of starting and stopping location updates works as expected.
+     * FlakyTest: This integration test may be dependent on position / GPS updates.
      *
      * @throws SetupException Should not happen. For further details look at the documentation of
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
-    @Test
+    @FlakyTest
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
