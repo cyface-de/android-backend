@@ -63,7 +63,7 @@ public final class MovebisTest {
      */
     private Lock lock;
     /**
-     * A <code>Condition</code> used to wait for a singal from asynchronously called callbacks and listeners before
+     * A <code>Condition</code> used to wait for a signal from asynchronously called callbacks and listeners before
      * continuing with the test execution.
      */
     private Condition condition;
