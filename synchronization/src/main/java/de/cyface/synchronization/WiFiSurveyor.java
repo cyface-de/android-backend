@@ -22,7 +22,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.1.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -139,7 +139,11 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
         }
-        context.get().unregisterReceiver(this);
+        try {
+            context.get().unregisterReceiver(this);
+        } catch (IllegalArgumentException e) {
+            throw new SynchronisationException(e);
+        }
     }
 
     /**
