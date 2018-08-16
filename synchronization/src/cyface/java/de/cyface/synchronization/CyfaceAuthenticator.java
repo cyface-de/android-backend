@@ -57,8 +57,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     @Override
     public Bundle addAccount(final AccountAuthenticatorResponse response, final String accountType,
             final String authTokenType, final String[] requiredFeatures, final Bundle options) {
-
-        Log.d(TAG, "Adding Account");
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         final Bundle bundle = new Bundle();
