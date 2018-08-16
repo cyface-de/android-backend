@@ -13,7 +13,7 @@ import de.cyface.synchronization.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.1.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -35,13 +35,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress) throws SetupException {
         super(context, contentResolver, authority, accountType, dataUploadServerAddress);
-        try {
-            // We require SDK users (other than Movebis) to always have exactly one account available
-            final Account account = getWiFiSurveyor().getAccount();
-            getWiFiSurveyor().startSurveillance(account);
-        } catch (SynchronisationException e) {
-            throw new SetupException(e);
-        }
     }
 
     /**
@@ -51,5 +44,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      */
     public void shutdownDataCapturingService() throws SynchronisationException {
         getWiFiSurveyor().stopSurveillance();
+    }
+
+    public void startWifiSurveyor() throws SetupException {
+        try {
+            // We require SDK users (other than Movebis) to always have exactly one account available
+            final Account account = getWiFiSurveyor().getAccount();
+            getWiFiSurveyor().startSurveillance(account);
+        } catch (SynchronisationException e) {
+            throw new SetupException(e);
+        }
     }
 }
