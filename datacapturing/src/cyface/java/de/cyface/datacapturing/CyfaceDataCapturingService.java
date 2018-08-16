@@ -8,12 +8,14 @@ import android.support.annotation.NonNull;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.synchronization.SynchronisationException;
 
+import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
+
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.1.1
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -35,6 +37,9 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress) throws SetupException {
         super(context, contentResolver, authority, accountType, dataUploadServerAddress);
+        if (LOGIN_ACTIVITY == null) {
+            throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
+        }
     }
 
     /**

@@ -32,7 +32,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -40,6 +40,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     private final Context context;
     private final static String TAG = "de.cyface.auth";
     private final Http http;
+    // This variable is only used in the Cyface flavor (using Android's LoginActivity flow)
     public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
     public CyfaceAuthenticator(final @NonNull Context context) {
