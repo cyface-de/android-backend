@@ -51,6 +51,11 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
         getWiFiSurveyor().stopSurveillance();
     }
 
+    /**
+     * Starts a <code>WifiSurveyor</code>. A synchronization account must be available at that time.
+     *
+     * @throws SetupException when no account is available.
+     */
     public void startWifiSurveyor() throws SetupException {
         try {
             // We require SDK users (other than Movebis) to always have exactly one account available

@@ -31,7 +31,13 @@ final class TestUtils {
      * The account type used during testing. This must be the same as in the authenticator configuration.
      */
     final static String ACCOUNT_TYPE = "de.cyface.synchronization.test";
+    /**
+     * An username used by the tests to set up a Cyface account for synchronization.
+     */
     public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
+    /**
+     * A password used by the tests to set up a Cyface account for synchronization.
+     */
     public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
 
     static Uri getMeasurementUri() {

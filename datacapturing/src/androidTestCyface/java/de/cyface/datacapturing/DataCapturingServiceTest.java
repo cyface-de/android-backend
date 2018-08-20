@@ -18,6 +18,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
+import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
@@ -33,6 +34,7 @@ import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.synchronization.CyfaceAuthenticator;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
@@ -106,13 +108,15 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         setContext(context);
         super.setUp();
 
+        // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
+        CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
+        final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_FREE_USERNAME, ServiceTestUtils.ACCOUNT_TYPE);
+        AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_FREE_PASSWORD,
+                null);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
-                    final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_FREE_USERNAME, ServiceTestUtils.ACCOUNT_TYPE);
-                    AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_FREE_PASSWORD,
-                            null);
                     oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                             ACCOUNT_TYPE, "http://localhost:8080");
                 } catch (SetupException e) {

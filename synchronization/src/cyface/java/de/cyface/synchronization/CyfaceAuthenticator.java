@@ -40,7 +40,10 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     private final Context context;
     private final static String TAG = "de.cyface.auth";
     private final Http http;
-    // This variable is only used in the Cyface flavor (using Android's LoginActivity flow)
+    /**
+     * A reference to the LoginActivity for the Android's AccountManager workflow to start when
+     * an authToken is requested but not available.
+      */
     public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
     public CyfaceAuthenticator(final @NonNull Context context) {
@@ -193,7 +196,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     /**
-     * Only registered devices can push data to the Cyface Server. This method
+     * Registers device to the Cyface Server as only registered devices can push data.
      *
      * @param url The URL or the Server API
      * @param installationIdentifier The device id
