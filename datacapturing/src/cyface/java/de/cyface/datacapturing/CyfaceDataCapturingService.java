@@ -6,15 +6,16 @@ import android.content.Context;
 import android.support.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.ui.CapturingNotification;
-import de.cyface.synchronization.Constants;
 import de.cyface.synchronization.SynchronisationException;
+
+import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
  *
  * @author Klemens Muthmann
- * @version 4.0.0
+ * @author Armin Schnabel
+ * @version 4.1.1
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -36,11 +37,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress) throws SetupException {
         super(context, contentResolver, authority, accountType, dataUploadServerAddress);
-        try {
-            Account account = getWiFiSurveyor().getOrCreateAccount(Constants.DEFAULT_FREE_USERNAME);
-            getWiFiSurveyor().startSurveillance(account);
-        } catch (SynchronisationException e) {
-            throw new SetupException(e);
+        if (LOGIN_ACTIVITY == null) {
+            throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
     }
 
@@ -51,5 +49,20 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      */
     public void shutdownDataCapturingService() throws SynchronisationException {
         getWiFiSurveyor().stopSurveillance();
+    }
+
+    /**
+     * Starts a <code>WifiSurveyor</code>. A synchronization account must be available at that time.
+     *
+     * @throws SetupException when no account is available.
+     */
+    public void startWifiSurveyor() throws SetupException {
+        try {
+            // We require SDK users (other than Movebis) to always have exactly one account available
+            final Account account = getWiFiSurveyor().getAccount();
+            getWiFiSurveyor().startSurveillance(account);
+        } catch (SynchronisationException e) {
+            throw new SetupException(e);
+        }
     }
 }

@@ -63,7 +63,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 6.0.0
+ * @version 6.1.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -456,17 +456,6 @@ public abstract class DataCapturingService {
      */
     public @NonNull List<Measurement> getFinishedMeasurements() {
         return persistenceLayer.loadFinishedMeasurements();
-    }
-
-    /**
-     * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
-     * service might wait for an opportune moment to start synchronization.
-     *
-     * @throws SynchronisationException If synchronisation account information is invalid or not available.
-     */
-    public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
-        Account account = getWiFiSurveyor().getOrCreateAccount(username);
-        getWiFiSurveyor().scheduleSyncNow(account);
     }
 
     // TODO provide a custom list implementation that loads only small portions into memory.

@@ -7,7 +7,7 @@ import android.support.annotation.NonNull;
  * further information either via a message or another wrapped <code>Exception</code>.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 public final class SynchronisationException extends Exception {
@@ -20,7 +20,7 @@ public final class SynchronisationException extends Exception {
      * @param cause The wrapped <code>Exception</code>.
      */
     public SynchronisationException(final @NonNull Exception cause) {
-
+        super(cause);
     }
 
     /**

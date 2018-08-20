@@ -1,12 +1,19 @@
 package de.cyface.synchronization;
 
+import java.io.IOException;
+import java.net.HttpURLConnection;
+import java.net.MalformedURLException;
+import java.net.URL;
+
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
-import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -14,28 +21,30 @@ import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
-import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
-
 /**
- * //TODO
+ * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
+ * tasks such as getting stored auth-tokens, opening the login activity and handling user authentication
+ * against the Cyface server.
+ *
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.0.1
+ * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     private final Context context;
     private final static String TAG = "de.cyface.auth";
     private final Http http;
-    //public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
-
-    public final static int ACCOUNT_NOT_ADDED_ERROR_CODE = 1;
+    /**
+     * A reference to the LoginActivity for the Android's AccountManager workflow to start when
+     * an authToken is requested but not available.
+      */
+    public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
     public CyfaceAuthenticator(final @NonNull Context context) {
         super(context);
@@ -50,56 +59,26 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     @Override
-    public Bundle addAccount(AccountAuthenticatorResponse response, String accountType, String authTokenType,
-            String[] requiredFeatures, Bundle options) throws NetworkErrorException {
-        /*final Intent intent = new Intent(context, CyfaceLoginActivity.class);
-        intent.putExtra(CyfaceLoginActivity.ARG_ACCOUNT_TYPE, accountType);
-        intent.putExtra(CyfaceLoginActivity.ARG_AUTH_TYPE, authTokenType);
-        intent.putExtra(CyfaceLoginActivity.ARG_IS_ADDING_NEW_ACCOUNT, true);
+    public Bundle addAccount(final AccountAuthenticatorResponse response, final String accountType,
+            final String authTokenType, final String[] requiredFeatures, final Bundle options) {
+        final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
-        return bundle;*/
-        Log.i(TAG, "Adding Account");
-        Account account = null;
-        AccountManager manager = AccountManager.get(context);
-        Account[] accounts = manager.getAccountsByType(accountType);
+        return bundle;
+    }
 
-        for(Account existingAccount: accounts) {
-            if(existingAccount.name.equals(Constants.DEFAULT_FREE_USERNAME)) {
-                account = existingAccount;
-            }
-        }
-
-        boolean accountExists = account==null;
-        if(!accountExists) {
-            account = new Account(Constants.DEFAULT_FREE_USERNAME, accountType);
-            accountExists = manager.addAccountExplicitly(account, Constants.DEFAULT_FREE_PASSWORD,null);
-        }
-
-        Bundle bundle = new Bundle();
-        if(accountExists) {
-            bundle.putCharSequence(AccountManager.KEY_ACCOUNT_NAME, Constants.DEFAULT_FREE_USERNAME);
-            bundle.putCharSequence(AccountManager.KEY_ACCOUNT_TYPE, accountType);
-            response.onResult(bundle);
-        } else {
-            response.onError(ACCOUNT_NOT_ADDED_ERROR_CODE, "Unable to add or find default account.");
-        }
+    @Override
+    public Bundle confirmCredentials(AccountAuthenticatorResponse response, Account account, Bundle options) {
         return null;
     }
 
     @Override
-    public Bundle confirmCredentials(AccountAuthenticatorResponse response, Account account, Bundle options)
-            throws NetworkErrorException {
-        return null;
-    }
+    public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
+            final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {
 
-    @Override
-    public Bundle getAuthToken(final @NonNull AccountAuthenticatorResponse response, final @NonNull Account account, final @NonNull String authTokenType,
-            final Bundle options) throws NetworkErrorException {
         // Extract the username and password from the Account Manager, and ask
         // the server for an appropriate AuthToken.
-        Log.i(TAG, "Getting Auth Token.");
         final AccountManager am = AccountManager.get(context);
 
         String authToken = am.peekAuthToken(account, authTokenType);
@@ -130,23 +109,21 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             return result;
         }
 
-        return null;
-
-        /*
         if (LOGIN_ACTIVITY == null) {
             Log.w(TAG, "Please set LOGIN_ACTIVITY.");
             return null;
         }
+
         // If we get here, then we couldn't access the user's password - so we
         // need to re-prompt them for their credentials. We do that by creating
         // an intent to display our AuthenticatorActivity.
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
-        intent.putExtra(Constants.ACCOUNT_TYPE, account.type);
-        intent.putExtra(Constants.AUTH_TOKEN_TYPE, authTokenType);
+        intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type);
+        intent.putExtra(AccountManager.KEY_AUTHTOKEN, authTokenType);
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
-        return bundle;*/
+        return bundle;
     }
 
     @Override
@@ -156,13 +133,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     @Override
     public Bundle updateCredentials(AccountAuthenticatorResponse response, Account account, String authTokenType,
-            Bundle options) throws NetworkErrorException {
+            Bundle options) {
         return null;
     }
 
     @Override
-    public Bundle hasFeatures(AccountAuthenticatorResponse response, Account account, String[] features)
-            throws NetworkErrorException {
+    public Bundle hasFeatures(AccountAuthenticatorResponse response, Account account, String[] features) {
         return null;
     }
 
@@ -182,24 +158,27 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             throws SynchronisationException, JSONException {
         Log.v(TAG, "Init Sync!");
         try {
-            SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-            String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+            final String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
             if (installationIdentifier == null) {
-                throw new SynchronisationException("Sync canceled: No installation identifier for this application set in its preferences.");
+                throw new SynchronisationException(
+                        "Sync canceled: No installation identifier for this application set in its preferences.");
             }
-            String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+            final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             if (url == null) {
-                throw new SynchronisationException("Sync canceled: Server url not available. Please set the applications server url preference.");
+                throw new SynchronisationException(
+                        "Sync canceled: Server url not available. Please set the applications server url preference.");
             }
             // Don't write password into log!
             Log.d(TAG, "Authenticating at " + url + " as " + username);
 
             // Login to get JWT token
-            JSONObject loginPayload = new JSONObject();
+            final JSONObject loginPayload = new JSONObject();
             loginPayload.put("login", username);
             loginPayload.put("password", password);
-            final HttpURLConnection connection = http.openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "login"));
-            HttpResponse loginResponse = http.post(connection, loginPayload, false);
+            final HttpURLConnection connection = http
+                    .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "login"));
+            final HttpResponse loginResponse = http.post(connection, loginPayload, false);
             connection.disconnect();
             if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
@@ -217,20 +196,23 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     /**
+     * Registers device to the Cyface Server as only registered devices can push data.
      *
-     * @param url
-     * @param installationIdentifier
-     * @param authToken
+     * @param url The URL or the Server API
+     * @param installationIdentifier The device id
+     * @param authToken The authentication token to prove that the user is who is says he is
      * @throws SynchronisationException
      * @throws DataTransmissionException
      * @throws MalformedURLException If the used server URL is not well formed
-     * @throws JSONException
+     * @throws JSONException If the server response is not well formed
      */
-    private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier, final @NonNull String authToken) throws SynchronisationException, DataTransmissionException, MalformedURLException, JSONException {
-        // Register device
-        final HttpURLConnection con = http.openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"),
-                authToken);
-        JSONObject device = new JSONObject();
+    private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier,
+            final @NonNull String authToken)
+            throws SynchronisationException, DataTransmissionException, MalformedURLException, JSONException {
+
+        final HttpURLConnection con = http
+                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken);
+        final JSONObject device = new JSONObject();
         device.put("id", installationIdentifier);
         device.put("name", Build.DEVICE);
         final HttpResponse registerDeviceResponse = http.post(con, device, false);
@@ -238,8 +220,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
         if (registerDeviceResponse.is2xxSuccessful() && !registerDeviceResponse.getBody().isNull("errorName")
                 && registerDeviceResponse.getBody().get("errorName").equals("Duplicate Device")) {
-            Log.w(TAG,
-                    String.format(context.getString(R.string.error_message_device_exists), installationIdentifier));
+            Log.w(TAG, String.format(context.getString(R.string.error_message_device_exists), installationIdentifier));
         }
     }
 }

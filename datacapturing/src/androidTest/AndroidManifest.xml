@@ -7,7 +7,7 @@
     <application>
         <provider
             android:name="de.cyface.persistence.MeasuringPointsContentProvider"
-            android:authorities="de.cyface.provider.test"
+            android:authorities="de.cyface.datacapturing.test.provider"
             android:exported="false"
             android:process=":persistence_process"
             android:syncable="true"

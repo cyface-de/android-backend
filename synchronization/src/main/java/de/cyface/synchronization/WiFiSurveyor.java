@@ -21,7 +21,8 @@ import android.util.Log;
  * data is going to be synchronized continuously.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @author Armin Schnabel
+ * @version 3.1.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -138,7 +139,11 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
         }
-        context.get().unregisterReceiver(this);
+        try {
+            context.get().unregisterReceiver(this);
+        } catch (IllegalArgumentException e) {
+            throw new SynchronisationException(e);
+        }
     }
 
     /**
@@ -231,6 +236,25 @@ public class WiFiSurveyor extends BroadcastReceiver {
         } else {
             return cyfaceAccounts[0];
         }
+    }
+
+    /**
+     * This method retrieves an <code>Account</code> from the Android account system. If the <code>Account</code>
+     * does not exist it throws an IllegalStateException as we require the default SDK using apps to have exactly one
+     * account created in advance.
+     *
+     * @return The only <code>Account</code> existing
+     */
+    public Account getAccount() {
+        final AccountManager accountManager = AccountManager.get(context.get());
+        final Account[] cyfaceAccounts = accountManager.getAccountsByType(accountType);
+        if (cyfaceAccounts.length == 0) {
+            throw new IllegalStateException("No cyface account exists.");
+        }
+        if (cyfaceAccounts.length > 1) {
+            throw new IllegalStateException("More than one cyface account exists.");
+        }
+        return cyfaceAccounts[0];
     }
 
     /**

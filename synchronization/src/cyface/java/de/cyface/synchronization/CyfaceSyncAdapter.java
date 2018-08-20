@@ -7,11 +7,6 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.concurrent.ArrayBlockingQueue;
-import java.util.concurrent.BlockingQueue;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.ThreadPoolExecutor;
-import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -40,28 +35,13 @@ import android.util.Log;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
-    public final static String NOTIFICATION_CHANNEL_ID_WARNING = "cyface_warnings";
-    public final static String NOTIFICATION_CHANNEL_ID_RUNNING = "cyface_running"; // with cancel button
-    public final static String NOTIFICATION_CHANNEL_ID_INFO = "cyface_info";
     public final static String SYNC_ERROR_MESSAGE_NO_UN_SYNCED_DATA = "no un-synced data available";
     private final static String TAG = "de.cyface.sync";
-    private final static String ERROR_MESSAGE_BAD_CREDENTIALS = "Bad credentials";
-    private static final String ERROR_MESSAGE_SERVER_UNAVAILABLE = "Error failed to connect to";
-    /**
-     * In order to reduce the amount of points loaded into the memory we load "slices" of
-     * measurements which load a maximum of 10k points of each kind into memory (due to hardcoded
-     * query limit of 10k). However, as the transmission of that amount of points takes a few
-     * seconds, we split those slices into smaller "batches" so that the UI transmission progress is
-     * updated more often, and thus, fluently.
-     */
-    private final static int TRANSMISSION_BATCH_SIZE = 7500;
-    private final ExecutorService threadPool;
     private final Collection<SyncProgressListener> progressListener;
     private final Http http;
     private final int geoLocationsUploadBatchSize;
@@ -113,9 +93,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         this.accelerationsUploadBatchSize = accelerationsUploadBatchSize;
         this.rotationsUploadBatchSize = rotationsUploadBatchSize;
         this.directionsUploadBatchSize = directionsUploadBatchSize;
-        int availableCores = Runtime.getRuntime().availableProcessors() + 1;
-        BlockingQueue<Runnable> workQueue = new ArrayBlockingQueue<>(10);
-        threadPool = new ThreadPoolExecutor(availableCores, availableCores, 1, TimeUnit.SECONDS, workQueue);
         progressListener = new HashSet<>();
         addSyncProgressListener(new CyfaceSyncProgressListener(context));
     }
@@ -180,7 +157,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                         GpsPointsTable.COLUMN_MEASUREMENT_FK)
                         || a < dataAccessLayer.countData(createAccelerationsUri(authority),
                                 SamplePointTable.COLUMN_MEASUREMENT_FK)
-                        || r < dataAccessLayer.countData(createRotationsUri(authority), RotationPointTable.COLUMN_MEASUREMENT_FK)
+                        || r < dataAccessLayer.countData(createRotationsUri(authority),
+                                RotationPointTable.COLUMN_MEASUREMENT_FK)
                         || d < dataAccessLayer.countData(createDirectionsUri(authority),
                                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += geoLocationsUploadBatchSize, a += accelerationsUploadBatchSize, r += rotationsUploadBatchSize, d += directionsUploadBatchSize) {
                     Cursor geoLocationsCursor = null;
@@ -221,8 +199,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                             ArrayList<ContentProviderOperation> markAsSyncedOperation = new ArrayList<>();
                             markAsSyncedOperation.addAll(
                                     geoLocationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
-                            markAsSyncedOperation
-                                    .addAll(accelerationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
+                            markAsSyncedOperation.addAll(
+                                    accelerationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
                             markAsSyncedOperation
                                     .addAll(rotationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
                             markAsSyncedOperation

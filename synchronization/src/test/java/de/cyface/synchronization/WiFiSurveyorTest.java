@@ -28,11 +28,10 @@ import android.net.wifi.WifiManager;
  * and thus is a <code>FlakyTest</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class)
 public class WiFiSurveyorTest {
 
     /**
