@@ -44,7 +44,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 3.1.0
+ * @version 3.1.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -100,9 +100,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testCreateNewMeasurement() {
-        long identifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        assertThat(identifier >= 0L, is(equalTo(true)));
-        String identifierString = Long.valueOf(identifier).toString();
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        assertThat(measurement.getIdentifier() >= 0L, is(equalTo(true)));
+        String identifierString = Long.valueOf(measurement.getIdentifier()).toString();
         Log.d(TAG, identifierString);
 
         Cursor result = null;
@@ -157,10 +157,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testStoreData() {
-        long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
 
-        oocut.storeData(testData(), measurementIdentifier);
-        oocut.storeLocation(testLocation(), measurementIdentifier);
+        oocut.storeData(testData(), measurement.getIdentifier());
+        oocut.storeLocation(testLocation(), measurement.getIdentifier());
 
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
@@ -205,9 +205,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     public void testCascadingClearMeasurements() {
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKOWN);
-        long measurementIdnetifier = oocut.newMeasurement(Vehicle.CAR);
-        oocut.storeData(testData(), measurementIdnetifier);
-        oocut.storeLocation(testLocation(), measurementIdnetifier);
+        Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
+        oocut.storeData(testData(), measurement.getIdentifier());
+        oocut.storeLocation(testLocation(), measurement.getIdentifier());
         // clear the test data
         oocut.clear();
 
@@ -276,10 +276,9 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testDeleteMeasurement() {
-        long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.storeData(testData(), measurementIdentifier);
-        oocut.storeLocation(testLocation(), measurementIdentifier);
-        Measurement measurement = new Measurement(measurementIdentifier);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.storeData(testData(), measurement.getIdentifier());
+        oocut.storeLocation(testLocation(), measurement.getIdentifier());
         oocut.delete(measurement);
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
@@ -292,16 +291,16 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         try {
             geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null,
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
                     SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
                     MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
                     || rotationsCursor == null) {
                 throw new IllegalStateException(
@@ -330,12 +329,12 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testLoadTrack() {
-        long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        oocut.storeLocation(testLocation(), measurementIdentifier);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
-        for (Measurement measurement : measurements) {
-            assertThat(oocut.loadTrack(measurement).size(), is(equalTo(1)));
+        for (Measurement loadedMeasurement : measurements) {
+            assertThat(oocut.loadTrack(loadedMeasurement).size(), is(equalTo(1)));
         }
     }
 
