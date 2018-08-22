@@ -3,9 +3,13 @@
     <string name="cyface">Cyface</string>
 
 <<<<<<< HEAD
+<<<<<<< HEAD
     <!-- Parsing errors -->
 =======
 >>>>>>> Fixes build #CY-3733
+=======
+    <!-- Parsing errors -->
+>>>>>>> Fixes invalid credentials error handling #CY-3960
     <string name="error_message_url_parsing">URL parsing failed: %s</string>
     <string name="error_message_request_parsing">Request parsing failed</string>
     <string name="error_message_http_response_parsing">HTTP Response parsing failed</string>
