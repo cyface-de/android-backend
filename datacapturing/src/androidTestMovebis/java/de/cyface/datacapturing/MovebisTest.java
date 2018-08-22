@@ -33,7 +33,7 @@ import de.cyface.datacapturing.ui.UIListener;
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
