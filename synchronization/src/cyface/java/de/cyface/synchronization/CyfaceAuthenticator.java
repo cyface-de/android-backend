@@ -143,6 +143,35 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         return bundle;
     }
 
+<<<<<<< HEAD
+=======
+    /**
+     * Informs listeners, e.g. a SDK implementing app, about errors.
+     *
+     * @param context the {@link Context}
+     * @param errorCode the Cyface error code
+     * @param httpCode the HTTP error returned by the server
+     */
+    public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode) {
+        final Intent intent = new Intent(ERROR_INTENT);
+        intent.putExtra(HTTP_CODE_EXTRA, httpCode);
+        intent.putExtra(ERROR_CODE_EXTRA, errorCode);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+    }
+
+    /**
+     * Informs listeners, e.g. a SDK implementing app, about errors.
+     *
+     * @param context the {@link Context}
+     * @param errorCode the Cyface error code
+     */
+    public static void sendErrorIntent(final Context context, final int errorCode) {
+        final Intent intent = new Intent(ERROR_INTENT);
+        intent.putExtra(ERROR_CODE_EXTRA, errorCode);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+    }
+
+>>>>>>> Adds documentation #CY-3958
     @Override
     public String getAuthTokenLabel(String authTokenType) {
         return "JWT Token";
