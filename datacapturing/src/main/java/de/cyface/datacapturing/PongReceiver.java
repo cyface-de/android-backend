@@ -9,6 +9,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
@@ -22,7 +23,7 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -112,9 +113,6 @@ public class PongReceiver extends BroadcastReceiver {
             Log.v(TAG, "PongReceiver.pongAndReceive(): Sending ping with identifier " + pingPongIdentifier);
         }
 
-        context.sendBroadcast(broadcastIntent);
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
         Handler timeoutHandler = new Handler(pongReceiverThread.getLooper());
         timeoutHandler.postAtTime(new Runnable() {
             @Override
@@ -132,15 +130,17 @@ public class PongReceiver extends BroadcastReceiver {
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
-                        if (Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
-                            pongReceiverThread.quit();
-                        }
+                        quitBackgroundHandlerThread();
                     }
                 } finally {
                     lock.unlock();
                 }
             }
         }, currentUptimeInMillis + offset);
+
+        context.sendBroadcast(broadcastIntent);
+        if (BuildConfig.DEBUG)
+            Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
     }
 
     @Override
@@ -156,12 +156,20 @@ public class PongReceiver extends BroadcastReceiver {
                 isRunning = true;
                 callback.isRunning();
                 this.context.unregisterReceiver(this);
-                if (Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
-                    pongReceiverThread.quit();
-                }
+                quitBackgroundHandlerThread();
             }
         } finally {
             lock.unlock();
+        }
+    }
+
+    private void quitBackgroundHandlerThread() {
+        if (Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                pongReceiverThread.quitSafely();
+            } else {
+                pongReceiverThread.quit();
+            }
         }
     }
 }

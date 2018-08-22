@@ -43,8 +43,6 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.synchronization.Constants;
-import de.cyface.synchronization.CyfaceSyncAdapter;
 import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -458,6 +456,27 @@ public abstract class DataCapturingService {
         return persistenceLayer.loadFinishedMeasurements();
     }
 
+    /**
+     * @param measurementIdentifier The identifier of the measurement to load.
+     * @return The measurement corresponding to the provided <code>measurementIdentifier</code> or <code>null</code> if
+     *         no such measurement exists.
+     * @throws DataCapturingException If accessing the data storage fails.
+     */
+    public Measurement loadMeasurement(final long measurementIdentifier) throws DataCapturingException {
+        return persistenceLayer.loadMeasurement(measurementIdentifier);
+    }
+
+    /**
+     * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
+     * service might wait for an opportune moment to start synchronization.
+     *
+     * @throws SynchronisationException If synchronisation account information is invalid or not available.
+     */
+    public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
+        Account account = getWiFiSurveyor().getOrCreateAccount(username);
+        getWiFiSurveyor().scheduleSyncNow(account);
+    }
+
     // TODO provide a custom list implementation that loads only small portions into memory.
 
     /**
@@ -648,7 +667,7 @@ public abstract class DataCapturingService {
         if (BuildConfig.DEBUG)
             Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, measurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurementIdentifier);
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
 
         ComponentName serviceComponentName = null;

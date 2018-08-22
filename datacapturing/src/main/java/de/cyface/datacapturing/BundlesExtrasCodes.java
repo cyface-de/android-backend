@@ -5,13 +5,13 @@ package de.cyface.datacapturing;
  *
  * @author Klemens Muthmann
  * @since 2.0.2
- * @version 1.0.2
+ * @version 2.0.0
  */
 public class BundlesExtrasCodes {
     /**
      * Code that identifys the extra transmitted to the background service to tell it which measurement to capture.
      */
-    public static final String START_WITH_MEASUREMENT_ID = "de.cyface.extra.mid";
+    public static final String MEASUREMENT_ID = "de.cyface.extra.mid";
     /**
      * Code that identifys the extra transmitted between ping and pong messages to associated a ping with a pong, while
      * checking whether the service is running.

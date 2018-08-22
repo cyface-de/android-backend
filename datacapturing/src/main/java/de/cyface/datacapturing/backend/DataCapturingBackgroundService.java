@@ -1,6 +1,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
@@ -184,7 +185,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onDestroy();
         if (BuildConfig.DEBUG)
             Log.v(TAG, "Sending broadcast service stopped.");
-        sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED));
+        Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
+        serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        sendBroadcast(serviceStoppedIntent);
     }
 
     @Override
@@ -192,7 +195,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (BuildConfig.DEBUG)
             Log.d(TAG, "Starting data capturing service.");
         if (intent != null) { // If this is the initial start command call init.
-            long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.START_WITH_MEASUREMENT_ID, -1);
+            long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
             if (measurementIdentifier == -1) {
                 throw new IllegalStateException("No valid measurement identifier for started service provided.");
             }
@@ -210,7 +213,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         if (BuildConfig.DEBUG)
             Log.v(TAG, "Sending broadcast service started.");
-        sendBroadcast(new Intent(MessageCodes.BROADCAST_SERVICE_STARTED));
+        Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
+        serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
     }
 

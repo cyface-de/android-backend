@@ -49,8 +49,8 @@ public class WiFiSurveyorTest {
     @Before
     public void setUp() {
         /*
-      The Android test <code>Context</code> to use for testing.
-     */
+         * The Android test <code>Context</code> to use for testing.
+         */
         Context context = RuntimeEnvironment.application;
         ConnectivityManager connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);

@@ -4,7 +4,7 @@ package de.cyface.synchronization;
  * Contains constants and utility methods required during testing.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.1.0
  */
 final class TestUtils {
@@ -15,7 +15,7 @@ final class TestUtils {
     /**
      * The account type used during testing. This must be the same as in the authenticator configuration.
      */
-    final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
+    public final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
     /**
      * Private constructor to avoid instantiation of utility class.
      */

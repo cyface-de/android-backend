@@ -3,19 +3,22 @@ package de.cyface.datacapturing;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.Vehicle;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+
 /**
- * Handler for start up finished events. Just implement the {@link #startUpFinished()} method with the code you would
- * like to run after the service has been started. This class is used for asynchronous calls to
+ * Handler for start up finished events. Just implement the {@link #startUpFinished(long)} method with the code you
+ * would like to run after the service has been started. This class is used for asynchronous calls to
  * <code>DataCapturingService</code> lifecycle methods.
  * <p>
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>..
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.0.0
  * @since 2.0.0
  * @see DataCapturingService#resumeAsync(StartUpFinishedHandler)
  * @see DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)
@@ -33,11 +36,13 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 
     /**
      * Method called if start up has been finished.
+     *
+     * @param measurementIdentifier The identifier of the measurement that is captured by the started capturing process.
      */
-    public abstract void startUpFinished();
+    public abstract void startUpFinished(final @NonNull long measurementIdentifier);
 
     @Override
-    public void onReceive(Context context, Intent intent) {
+    public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
         if (intent.getAction() == null) {
             throw new IllegalStateException("Received broadcast with null action.");
@@ -46,7 +51,11 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
             case MessageCodes.BROADCAST_SERVICE_STARTED:
                 Log.v(TAG, "Received Service started broadcast!");
                 receivedServiceStarted = true;
-                startUpFinished();
+                long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
+                if (measurementIdentifier == -1) {
+                    throw new IllegalStateException("No measurement identifier provided on service started message.");
+                }
+                startUpFinished(measurementIdentifier);
                 break;
             default:
                 throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
@@ -55,12 +64,13 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
             context.unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
-            }
+        }
     }
 
     /**
-     * @return This is set to <code>true</code> if a <code>MessageCodes.BROADCAST_SERVICE_STARTED</code> broadcast has been
-     * received and is <code>false</code> otherwise.
+     * @return This is set to <code>true</code> if a <code>MessageCodes.BROADCAST_SERVICE_STARTED</code> broadcast has
+     *         been
+     *         received and is <code>false</code> otherwise.
      */
     public boolean receivedServiceStarted() {
         return receivedServiceStarted;

@@ -1,23 +1,24 @@
 package de.cyface.datacapturing.persistence;
 
-import android.content.ContentResolver;
-import android.content.Context;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.MediumTest;
-import android.support.test.runner.AndroidJUnit4;
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import android.content.ContentResolver;
+import android.content.Context;
+import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.MediumTest;
+import android.support.test.runner.AndroidJUnit4;
+
+import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.Vehicle;
-
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests the correct workings of the <code>MeasurementPersistence</code> class.
@@ -77,5 +78,21 @@ public class MeasurementPersistenceTest {
     @Test
     public void testLoadFinishedMeasurements_noMeasurements() {
         assertThat(oocut.loadFinishedMeasurements().isEmpty(), is(equalTo(true)));
+    }
+
+    /**
+     * Test that loading an open and a closed measurement works as expected.
+     *
+     * @throws DataCapturingException Fails the test if anything unexpected happens.
+     */
+    @Test
+    public void testLoadMeasurementSuccessfully() throws DataCapturingException {
+        final long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurementIdentifier);
+        assertThat(loadedOpenMeasurement.getIdentifier(), is(equalTo(measurementIdentifier)));
+
+        assertThat(oocut.closeRecentMeasurement(), is(equalTo(1)));
+        Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurementIdentifier);
+        assertThat(loadedClosedMeasurement.getIdentifier(), is(equalTo(measurementIdentifier)));
     }
 }
