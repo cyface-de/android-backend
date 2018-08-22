@@ -1,4 +1,7 @@
 <resources>
+    <!-- Used in the authenticator.xml in the cyface flavor -->
+    <string name="cyface">Cyface</string>
+
     <string name="error_message_url_parsing">URL parsing failed: %s</string>
     <string name="error_message_request_parsing">Request parsing failed</string>
     <string name="error_message_http_response_parsing">HTTP Response parsing failed</string>
