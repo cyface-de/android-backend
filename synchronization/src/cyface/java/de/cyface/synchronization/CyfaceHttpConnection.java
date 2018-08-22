@@ -1,5 +1,10 @@
 package de.cyface.synchronization;
 
+import android.support.annotation.NonNull;
+import android.util.Log;
+
+import org.json.JSONException;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;

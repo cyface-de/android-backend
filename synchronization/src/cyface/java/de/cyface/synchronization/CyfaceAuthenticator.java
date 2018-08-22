@@ -1,9 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.ERROR_CODE_EXTRA;
-import static de.cyface.synchronization.Constants.ERROR_INTENT;
-import static de.cyface.synchronization.Constants.HTTP_CODE_EXTRA;
-
+import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
@@ -25,7 +22,6 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -145,32 +141,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         final Bundle bundle = new Bundle();
         bundle.putParcelable(AccountManager.KEY_INTENT, intent);
         return bundle;
-    }
-
-    /**
-     * Informs listeners, e.g. a SDK implementing app, about errors.
-     *
-     * @param context the {@link Context}
-     * @param errorCode the Cyface error code
-     * @param httpCode the HTTP error returned by the server
-     */
-    public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode) {
-        final Intent intent = new Intent(ERROR_INTENT);
-        intent.putExtra(HTTP_CODE_EXTRA, httpCode);
-        intent.putExtra(ERROR_CODE_EXTRA, errorCode);
-        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-    }
-
-    /**
-     * Informs listeners, e.g. a SDK implementing app, about errors.
-     *
-     * @param context the {@link Context}
-     * @param errorCode the Cyface error code
-     */
-    public static void sendErrorIntent(final Context context, final int errorCode) {
-        final Intent intent = new Intent(ERROR_INTENT);
-        intent.putExtra(ERROR_CODE_EXTRA, errorCode);
-        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 
     @Override
