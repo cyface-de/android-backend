@@ -5,20 +5,29 @@ package de.cyface.datacapturing;
  *
  * @author Klemens Muthmann
  * @since 2.0.2
- * @version 2.0.0
+ * @version 2.1.0
  */
 public class BundlesExtrasCodes {
     /**
-     * Code that identifys the extra transmitted to the background service to tell it which measurement to capture.
+     * Code that identifies the extra transmitted to the background service to tell it which measurement to capture.
      */
     public static final String MEASUREMENT_ID = "de.cyface.extra.mid";
     /**
-     * Code that identifys the extra transmitted between ping and pong messages to associated a ping with a pong, while
+     * Code that identifies the extra transmitted between ping and pong messages to associated a ping with a pong, while
      * checking whether the service is running.
      */
     public static final String PING_PONG_ID = "de.cyface.pingpong.id";
-
+    /**
+     * Code that identifies the authority id if transmitted via an Android bundle.
+     */
     public static final String AUTHORITY_ID = "de.cyface.authority.id";
+    /**
+     * Code that identifies the status information in the message send when the data capturing service has been stopped.
+     * This should be a boolean extra that is <code>false</code> if the service was not actually stopped (if stop is
+     * called twice in succession) or <code>true</code> is stopping was successful. In the first case the intent should
+     * also contain the measurement id as an extra identified by {@link #MEASUREMENT_ID}.
+     */
+    public static final String STOPPED_SUCCESSFULLY = "de.cyface.extra.stopped_successfully";
 
     /**
      * Constructor is private to prevent creation of utility class.

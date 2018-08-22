@@ -27,6 +27,7 @@ import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
@@ -36,7 +37,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -68,7 +69,7 @@ public class BackgroundServiceTest {
     /**
      * The identifier for the test measurement created in the <code>setUp</code> method.
      */
-    private long testMeasurementIdentifier;
+    private Measurement testMeasurement;
 
     /**
      * Lock used to synchronize the test case with the background service.
@@ -83,7 +84,7 @@ public class BackgroundServiceTest {
     public void setUp() {
         Context context = InstrumentationRegistry.getTargetContext();
         persistence = new MeasurementPersistence(context.getContentResolver(), AUTHORITY);
-        testMeasurementIdentifier = persistence.newMeasurement(Vehicle.BICYCLE);
+        testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
     }
@@ -91,7 +92,7 @@ public class BackgroundServiceTest {
     @After
     public void tearDown() {
         persistence.clear();
-        testMeasurementIdentifier = -1;
+        testMeasurement = null;
     }
 
     /**
@@ -116,7 +117,7 @@ public class BackgroundServiceTest {
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
 
         serviceTestRule.startService(startIntent);
@@ -154,7 +155,7 @@ public class BackgroundServiceTest {
         final Context context = InstrumentationRegistry.getTargetContext();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurementIdentifier);
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);

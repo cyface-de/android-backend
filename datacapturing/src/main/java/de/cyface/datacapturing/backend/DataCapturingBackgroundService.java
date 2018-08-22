@@ -2,6 +2,7 @@ package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
@@ -48,7 +49,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.5
+ * @version 4.0.6
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -187,6 +188,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             Log.v(TAG, "Sending broadcast service stopped.");
         Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
         serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        serviceStoppedIntent.putExtra(STOPPED_SUCCESSFULLY, true);
         sendBroadcast(serviceStoppedIntent);
     }
 

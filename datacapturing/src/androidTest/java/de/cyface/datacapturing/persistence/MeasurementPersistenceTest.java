@@ -24,7 +24,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * Tests the correct workings of the <code>MeasurementPersistence</code> class.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -87,12 +87,12 @@ public class MeasurementPersistenceTest {
      */
     @Test
     public void testLoadMeasurementSuccessfully() throws DataCapturingException {
-        final long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurementIdentifier);
-        assertThat(loadedOpenMeasurement.getIdentifier(), is(equalTo(measurementIdentifier)));
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
         assertThat(oocut.closeRecentMeasurement(), is(equalTo(1)));
-        Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurementIdentifier);
-        assertThat(loadedClosedMeasurement.getIdentifier(), is(equalTo(measurementIdentifier)));
+        Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        assertThat(loadedClosedMeasurement, is(equalTo(measurement)));
     }
 }

@@ -13,11 +13,13 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
@@ -34,7 +36,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 5.0.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -57,6 +59,13 @@ public class MeasurementPersistence {
     private final String authority;
 
     /**
+     * Caching the current measurement identifier, so we do not need to ask the database each time we require the
+     * current measurement identifier. This is <code>null</code> if there is no running measurement or if we lost the
+     * cache due to Android stopping the application hosting the data capturing service.
+     */
+    private Long currentMeasurementIdentifier;
+
+    /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
      * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
@@ -72,19 +81,22 @@ public class MeasurementPersistence {
      * Creates a new {@link Measurement} for the provided {@link Vehicle}.
      *
      * @param vehicle The vehicle to create a new measurement for.
-     * @return The system wide unique identifier of the newly created <code>Measurement</code>.
+     * @return The newly created <code>Measurement</code>.
      */
-    public long newMeasurement(final @NonNull Vehicle vehicle) {
+    public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
         values.put(MeasurementTable.COLUMN_FINISHED, false);
-        Uri resultUri = resolver.insert(getMeasurementUri(), values);
+        synchronized (this) {
+            Uri resultUri = resolver.insert(getMeasurementUri(), values);
 
-        if (resultUri == null) {
-            throw new IllegalStateException("New measurement could not be created!");
+            if (resultUri == null) {
+                throw new IllegalStateException("New measurement could not be created!");
+            }
+
+            currentMeasurementIdentifier = Long.valueOf(resultUri.getLastPathSegment());
+            return new Measurement(currentMeasurementIdentifier);
         }
-
-        return Long.valueOf(resultUri.getLastPathSegment());
     }
 
     /**
@@ -99,11 +111,15 @@ public class MeasurementPersistence {
             Log.d(TAG, "Closing recent measurements");
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
-        int updatedRows = resolver.update(getMeasurementUri(), values, MeasurementTable.COLUMN_FINISHED + "=?",
-                new String[] {"0"});
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Closed " + updatedRows + " measurements");
-        return updatedRows;
+        synchronized (this) {
+            int updatedRows = resolver.update(getMeasurementUri(), values, MeasurementTable.COLUMN_FINISHED + "=?",
+                    new String[]{"0"});
+            currentMeasurementIdentifier = null;
+
+            if (BuildConfig.DEBUG)
+                Log.d(TAG, "Closed " + updatedRows + " measurements");
+            return updatedRows;
+        }
     }
 
     /**
@@ -155,29 +171,32 @@ public class MeasurementPersistence {
      * Provides information about whether there is a currently open measurement or not.
      *
      * @return <code>true</code> if a measurement is open; <code>false</code> otherwise.
-     * @throws DataCapturingException If more than one measurement is open.
+     * @throws DataCapturingException If more than one measurement is open or access to the content provider was
+     *             impossible. The second case is probably a serious system issue and should not happen.
      */
     public boolean hasOpenMeasurement() throws DataCapturingException {
         if (BuildConfig.DEBUG)
             Log.d(TAG, "Checking if app has an open measurement.");
         Cursor openMeasurementQueryCursor = null;
         try {
-            openMeasurementQueryCursor = resolver.query(getMeasurementUri(), null,
-                    MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null, null);
+            synchronized (this) {
+                openMeasurementQueryCursor = resolver.query(getMeasurementUri(), null,
+                        MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null, null);
 
-            if (openMeasurementQueryCursor == null) {
-                throw new DataCapturingException(
-                        "Unable to initialize cursor to check for open measurement. Cursor was null!");
+                if (openMeasurementQueryCursor == null) {
+                    throw new DataCapturingException(
+                            "Unable to initialize cursor to check for open measurement. Cursor was null!");
+                }
+
+                if (openMeasurementQueryCursor.getCount() > 1) {
+                    throw new DataCapturingException("More than one measurement is open.");
+                }
+
+                boolean hasOpenMeasurement = openMeasurementQueryCursor.getCount() == 1;
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, hasOpenMeasurement ? "One measurement is open." : "No measurement is open.");
+                return hasOpenMeasurement;
             }
-
-            if (openMeasurementQueryCursor.getCount() > 1) {
-                throw new DataCapturingException("More than one measurement is open.");
-            }
-
-            boolean hasOpenMeasurement = openMeasurementQueryCursor.getCount() == 1;
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, hasOpenMeasurement ? "One measurement is open." : "No measurement is open.");
-            return hasOpenMeasurement;
         } finally {
             if (openMeasurementQueryCursor != null) {
                 openMeasurementQueryCursor.close();
@@ -187,37 +206,45 @@ public class MeasurementPersistence {
 
     /**
      * Provides the identifier of the measurement currently captured by the framework. This method should only be called
-     * if capturing is active or throw an error otherwise.
+     * if capturing is active. It throws an error otherwise.
      *
      * @return The system wide unique identifier of the active measurement.
+     * @throws DataCapturingException If access to the content provider was somehow impossible. This is probably a
+     *             serious system issue and should not occur.
+     * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
+     *             use
+     *             {@link #hasOpenMeasurement()} to check, whether there is an actual open measurement.
      */
-    public long getIdentifierOfCurrentlyCapturedMeasurement() {
+    private long refreshIdentifierOfCurrentlyCapturedMeasurement()
+            throws DataCapturingException, NoSuchMeasurementException {
         if (BuildConfig.DEBUG)
             Log.d(TAG, "Trying to load measurement identifier from content provider!");
         Cursor measurementIdentifierQueryCursor = null;
         try {
-            measurementIdentifierQueryCursor = resolver.query(getMeasurementUri(),
-                    new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
-                    MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
-                    BaseColumns._ID + " DESC");
-            if (measurementIdentifierQueryCursor == null) {
-                throw new IllegalStateException("Unable to query for measurement identifier!");
-            }
+            synchronized (this) {
+                measurementIdentifierQueryCursor = resolver.query(getMeasurementUri(),
+                        new String[]{BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
+                        MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
+                        BaseColumns._ID + " DESC");
+                if (measurementIdentifierQueryCursor == null) {
+                    throw new DataCapturingException("Unable to query for measurement identifier!");
+                }
 
-            if (measurementIdentifierQueryCursor.getCount() > 1) {
-                Log.w(TAG,
-                        "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
-            }
+                if (measurementIdentifierQueryCursor.getCount() > 1) {
+                    Log.w(TAG,
+                            "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
+                }
 
-            if (!measurementIdentifierQueryCursor.moveToFirst()) {
-                throw new IllegalStateException("Unable to get measurement to store captured data to!");
-            }
+                if (!measurementIdentifierQueryCursor.moveToFirst()) {
+                    throw new NoSuchMeasurementException("Unable to get measurement to store captured data to!");
+                }
 
-            int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
-            long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "Providing measurement identifier " + measurementIdentifier);
-            return measurementIdentifier;
+                int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
+                long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
+                if (BuildConfig.DEBUG)
+                    Log.d(TAG, "Providing measurement identifier " + measurementIdentifier);
+                return measurementIdentifier;
+            }
         } finally {
             if (measurementIdentifierQueryCursor != null) {
                 measurementIdentifierQueryCursor.close();
@@ -389,6 +416,32 @@ public class MeasurementPersistence {
             if (locationsCursor != null) {
                 locationsCursor.close();
             }
+        }
+    }
+
+    /**
+     * Loads the identifier of the current measurement from the internal cache if possible, or from the database if an
+     * open measurement exists. If neither the cache nor the database have an open measurement this method returns
+     * <code>null</code>.
+     *
+     * @return The identifier of the currently captured measurement or <code>null</code> if none exists.
+     */
+    public @Nullable Measurement loadCurrentlyCapturedMeasurement() {
+        try {
+            synchronized (this) {
+                if (currentMeasurementIdentifier != null) {
+                    return new Measurement(currentMeasurementIdentifier);
+                } else if (hasOpenMeasurement()) {
+                    return new Measurement(refreshIdentifierOfCurrentlyCapturedMeasurement());
+                } else {
+                    return null;
+                }
+            }
+        } catch (DataCapturingException e) {
+            throw new IllegalStateException("Unrecoverable internal error!", e);
+        } catch (NoSuchMeasurementException e) {
+            Log.w(TAG, "Trying to load measurement identifier while no measurement was open!");
+            return null;
         }
     }
 

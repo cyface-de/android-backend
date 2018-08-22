@@ -107,6 +107,7 @@ public final class MovebisTest {
      * @throws SetupException Should not happen. For further details look at the documentation of
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
+    @Test
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
