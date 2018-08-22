@@ -39,7 +39,7 @@ public final class Measurement {
 
         Measurement that = (Measurement)o;
 
-        return id == that.id;
+        return id.equals(that.id);
     }
 
     @Override

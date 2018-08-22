@@ -20,6 +20,8 @@ public class BundlesExtrasCodes {
 
     public static final String AUTHORITY_ID = "de.cyface.authority.id";
 
+    public static final String STOPPED_SUCCESSFULLY = "de.cyface.extra.stopped_successfully";
+
     /**
      * Constructor is private to prevent creation of utility class.
      */

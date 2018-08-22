@@ -1,6 +1,7 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -333,9 +334,10 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(true);
             Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
-            if (measurement == null) {
+            // TODO: This should throw an exception. But since we need to handle double stop gracefully it is impossible at the moment.
+            /*if (measurement == null) {
                 throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
-            }
+            }*/
 
             stopService(measurement, finishedHandler);
         } catch (IllegalArgumentException e) {
@@ -792,7 +794,7 @@ public abstract class DataCapturingService {
             // The background service was not running so we need to inform the caller of this method ourselves.
             Intent stoppedBroadcastIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
 
-            stoppedBroadcastIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
+            stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, false);
             context.sendBroadcast(stoppedBroadcastIntent);
         }
     }

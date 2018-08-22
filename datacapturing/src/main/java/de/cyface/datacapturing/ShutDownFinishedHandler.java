@@ -7,6 +7,7 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
 /**
  * Handler for shutdown finished events. Just implement the {@link #shutDownFinished(long)} method with the code you
@@ -39,7 +40,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
      * @param measurementIdentifier The identifier of the measurement, that was captured by the stopped capturing
      *            service.
      */
-    public abstract void shutDownFinished(final @NonNull long measurementIdentifier);
+    public abstract void shutDownFinished(final long measurementIdentifier);
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
@@ -51,9 +52,13 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
             case MessageCodes.BROADCAST_SERVICE_STOPPED:
                 Log.v(TAG, "Received Service stopped broadcast!");
                 receivedServiceStopped = true;
-                long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
-                if (measurementIdentifier == -1) {
-                    throw new IllegalStateException("No measurement identifier provided for stopped service!");
+                boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY,false);
+                long measurementIdentifier = -1;
+                if(serviceWasStoppedSuccessfully) {
+                    measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
+                    if (measurementIdentifier == -1) {
+                        throw new IllegalStateException("No measurement identifier provided for stopped service!");
+                    }
                 }
                 shutDownFinished(measurementIdentifier);
                 break;
