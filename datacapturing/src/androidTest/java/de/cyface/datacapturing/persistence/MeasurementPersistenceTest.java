@@ -87,12 +87,12 @@ public class MeasurementPersistenceTest {
      */
     @Test
     public void testLoadMeasurementSuccessfully() throws DataCapturingException {
-        final long measurementIdentifier = oocut.newMeasurement(Vehicle.UNKOWN);
-        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurementIdentifier);
-        assertThat(loadedOpenMeasurement.getIdentifier(), is(equalTo(measurementIdentifier)));
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
         assertThat(oocut.closeRecentMeasurement(), is(equalTo(1)));
-        Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurementIdentifier);
-        assertThat(loadedClosedMeasurement.getIdentifier(), is(equalTo(measurementIdentifier)));
+        Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        assertThat(loadedClosedMeasurement, is(equalTo(measurement)));
     }
 }
