@@ -147,6 +147,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         return bundle;
     }
 
+    /**
+     * Informs listeners, e.g. a SDK implementing app, about errors.
+     *
+     * @param context the {@link Context}
+     * @param errorCode the Cyface error code
+     * @param httpCode the HTTP error returned by the server
+     */
     public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode) {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(HTTP_CODE_EXTRA, httpCode);
@@ -154,6 +161,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 
+    /**
+     * Informs listeners, e.g. a SDK implementing app, about errors.
+     *
+     * @param context the {@link Context}
+     * @param errorCode the Cyface error code
+     */
     public static void sendErrorIntent(final Context context, final int errorCode) {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
