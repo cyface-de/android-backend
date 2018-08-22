@@ -1,16 +1,16 @@
 package de.cyface.synchronization;
 
+import org.json.JSONException;
+import org.json.JSONObject;
+
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 
-import org.json.JSONException;
-import org.json.JSONObject;
-
 /**
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 1.0.0
  */
 public final class CyfaceSyncProgressListener implements SyncProgressListener {
@@ -48,10 +48,11 @@ public final class CyfaceSyncProgressListener implements SyncProgressListener {
 
     @Override
     public void onSyncReadError(final @NonNull String errorMessage, final @NonNull Throwable errorType) {
-       onError(SYNC_READ_ERROR, errorMessage, errorType);
+        onError(SYNC_READ_ERROR, errorMessage, errorType);
     }
 
-    private void onError(final @NonNull String errorKind, final @NonNull String errorMessage, final @NonNull Throwable errorType) {
+    private void onError(final @NonNull String errorKind, final @NonNull String errorMessage,
+            final @NonNull Throwable errorType) {
         Intent syncFinishedIntent = new Intent(errorKind);
         syncFinishedIntent.putExtra(SYNC_ERROR_MESSAGE, errorMessage);
         syncFinishedIntent.putExtra(SYNC_EXCEPTION_TYPE, errorType.getClass().getSimpleName());
@@ -59,10 +60,15 @@ public final class CyfaceSyncProgressListener implements SyncProgressListener {
     }
 
     @Override
-    public void onProgress(JSONObject measurementSlice) throws JSONException {
-        countOfTransmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
-                + measurementSlice.getJSONArray("magneticValuePoints").length()
-                + measurementSlice.getJSONArray("rotationPoints").length() + measurementSlice.getJSONArray("accelerationPoints").length();
+    public void onProgress(JSONObject measurementSlice) throws RequestParsingException {
+        try {
+            countOfTransmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
+                    + measurementSlice.getJSONArray("magneticValuePoints").length()
+                    + measurementSlice.getJSONArray("rotationPoints").length()
+                    + measurementSlice.getJSONArray("accelerationPoints").length();
+        } catch (final JSONException e) {
+            throw new RequestParsingException("Unable to parse measurement data", e);
+        }
         Intent syncInProgressIntent = new Intent(SYNC_PROGRESS);
         syncInProgressIntent.putExtra(SYNC_PROGRESS_TRANSMITTED, countOfTransmittedPoints);
         syncInProgressIntent.putExtra(SYNC_PROGRESS_TOTAL, countOfPointsToTransmit);
