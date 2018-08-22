@@ -40,7 +40,6 @@ import de.cyface.persistence.SamplePointTable;
 
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
-    public final static String SYNC_ERROR_MESSAGE_NO_UN_SYNCED_DATA = "no un-synced data available";
     private final static String TAG = "de.cyface.sync";
     private final Collection<SyncProgressListener> progressListener;
     private final Http http;
@@ -51,7 +50,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
-     * 
+     *
      * @param context The context this adapter is active under.
      * @param autoInitialize More details are available at
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
@@ -70,7 +69,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
-     * 
+     *
      * @param context The context this transmitter is active under.
      * @param autoInitialize More details are available at
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
@@ -113,13 +112,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         final Context context = getContext();
 
         Log.d(TAG, "Sync started.");
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         if (deviceIdentifier == null) {
             Log.e(TAG, "Sync canceled: No installation identifier for this application set in its preferences.");
             return;
         }
-        String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+        final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         if (url == null) {
             Log.e(TAG, "Sync canceled: Server url not available. Please set the applications server url preference.");
             return;
@@ -128,31 +127,35 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         Cursor unsyncedMeasurementsCursor = null;
         try {
             unsyncedMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
-            boolean atLeastOneMeasurementExists = unsyncedMeasurementsCursor.moveToNext();
+            final boolean atLeastOneMeasurementExists = unsyncedMeasurementsCursor.moveToNext();
             if (!atLeastOneMeasurementExists) {
-                Log.i(TAG, "Unable to sync data: " + SYNC_ERROR_MESSAGE_NO_UN_SYNCED_DATA);
+                Log.i(TAG, "Unable to sync data: no unsynchronized data");
                 return;
             }
             notifySyncStarted(countUnsyncedDataPoints(provider, unsyncedMeasurementsCursor, authority));
 
-            GeoLocationJsonMapper geoLocationJsonMapper = new GeoLocationJsonMapper();
-            AccelerationJsonMapper accelerationJsonMapper = new AccelerationJsonMapper();
-            RotationJsonMapper rotationJsonMapper = new RotationJsonMapper();
-            DirectionJsonMapper directionJsonMapper = new DirectionJsonMapper();
+            final GeoLocationJsonMapper geoLocationJsonMapper = new GeoLocationJsonMapper();
+            final AccelerationJsonMapper accelerationJsonMapper = new AccelerationJsonMapper();
+            final RotationJsonMapper rotationJsonMapper = new RotationJsonMapper();
+            final DirectionJsonMapper directionJsonMapper = new DirectionJsonMapper();
 
             // The cursor is reset to initial position (i.e. 0) by countUnsyncedDataPoints
             do {
                 final int identifierColumnIndex = unsyncedMeasurementsCursor.getColumnIndex(BaseColumns._ID);
                 final long measurementIdentifier = unsyncedMeasurementsCursor.getLong(identifierColumnIndex);
 
-                String measurementContext = unsyncedMeasurementsCursor
+                final String measurementContext = unsyncedMeasurementsCursor
                         .getString(unsyncedMeasurementsCursor.getColumnIndex(MeasurementTable.COLUMN_VEHICLE));
-                MeasurementContentProviderClient dataAccessLayer = new MeasurementContentProviderClient(
+                final MeasurementContentProviderClient dataAccessLayer = new MeasurementContentProviderClient(
                         measurementIdentifier, provider, authority);
-                JSONObject measurementSlice = new JSONObject();
-                measurementSlice.put("id", measurementIdentifier);
-                measurementSlice.put("deviceId", deviceIdentifier);
-                measurementSlice.put("vehicle", measurementContext);
+                final JSONObject measurementSlice = new JSONObject();
+                try {
+                    measurementSlice.put("id", measurementIdentifier);
+                    measurementSlice.put("deviceId", deviceIdentifier);
+                    measurementSlice.put("vehicle", measurementContext);
+                } catch (final JSONException e) {
+                    throw new RequestParsingException("Failed to parse measurement info.", e);
+                }
                 for (int g = 0, a = 0, r = 0, d = 0; g < dataAccessLayer.countData(createGeoLocationsUri(authority),
                         GpsPointsTable.COLUMN_MEASUREMENT_FK)
                         || a < dataAccessLayer.countData(createAccelerationsUri(authority),
@@ -167,28 +170,28 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                     Cursor directionsCursor = null;
                     try {
                         geoLocationsCursor = dataAccessLayer.loadGeoLocations(g, g + geoLocationsUploadBatchSize);
-                        JSONArray geoLocationsJsonArray = transformToJsonArray(geoLocationsCursor,
+                        final JSONArray geoLocationsJsonArray = transformToJsonArray(geoLocationsCursor,
                                 geoLocationJsonMapper);
                         measurementSlice.put("gpsPoints", geoLocationsJsonArray);
 
                         accelerationsCursor = dataAccessLayer.load3DPoint(new AccelerationsSerializer(), a,
                                 a + accelerationsUploadBatchSize);
-                        JSONArray accelerationPointsArray = transformToJsonArray(accelerationsCursor,
+                        final JSONArray accelerationPointsArray = transformToJsonArray(accelerationsCursor,
                                 accelerationJsonMapper);
                         measurementSlice.put("accelerationPoints", accelerationPointsArray);
 
                         rotationsCursor = dataAccessLayer.load3DPoint(new RotationsSerializer(), r,
                                 r + rotationsUploadBatchSize);
-                        JSONArray rotationPointsArray = transformToJsonArray(rotationsCursor, rotationJsonMapper);
+                        final JSONArray rotationPointsArray = transformToJsonArray(rotationsCursor, rotationJsonMapper);
                         measurementSlice.put("rotationPoints", rotationPointsArray);
 
                         directionsCursor = dataAccessLayer.load3DPoint(new DirectionsSerializer(), d,
                                 d + directionsUploadBatchSize);
-                        JSONArray magneticValuePointsArray = transformToJsonArray(directionsCursor,
+                        final JSONArray magneticValuePointsArray = transformToJsonArray(directionsCursor,
                                 directionJsonMapper);
                         measurementSlice.put("magneticValuePoints", magneticValuePointsArray);
 
-                        URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
+                        final URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
                         final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
                                 Constants.AUTH_TOKEN_TYPE, false);
                         HttpURLConnection con = null;
@@ -206,16 +209,16 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                             markAsSyncedOperation
                                     .addAll(directionJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
                             provider.applyBatch(markAsSyncedOperation);
-                        } catch (OperationApplicationException e) {
-                            Log.e(TAG, "Unable to sync data.", e);
+                        } catch (final OperationApplicationException e) {
                             notifySyncTransmitError(e.getMessage(), e);
                         } finally {
                             if (con != null) {
                                 con.disconnect();
                             }
                         }
-
                         notifySyncProgress(measurementSlice);
+                    } catch (final JSONException e) {
+                        throw new RequestParsingException("Failed to parse measurement data.", e);
                     } finally {
                         if (geoLocationsCursor != null) {
                             geoLocationsCursor.close();
@@ -233,22 +236,48 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             } while (unsyncedMeasurementsCursor.moveToNext());
 
-        } catch (MalformedURLException e) {
-            syncResult.stats.numParseExceptions++;
-            Log.e(TAG, "Unable to sync data.", e);
-            notifySyncTransmitError(String.format(context.getString(R.string.error_message_url_parsing), url), e);
-        } catch (OperationCanceledException | AuthenticatorException | SynchronisationException
-                | DataTransmissionException | IllegalStateException e) {
-            syncResult.stats.numAuthExceptions++;
-            Log.e(TAG, "Unable to sync data.", e);
+        }
+        // We currently inform two groups of listeners: the error intent listeners (to show the
+        // error) and the syncProgress listeners to upgrade the sync progress UI
+        catch (final ServerUnavailableException e) {
+            syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.SERVER_UNAVAILABLE_EC);
             notifySyncTransmitError(e.getMessage(), e);
-        } catch (JSONException | IOException e) {
+        } catch (final MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
-            Log.e(TAG, "Unable to sync data.", e);
-            notifySyncTransmitError(context.getString(R.string.error_message_json_parsing), e);
-        } catch (RemoteException e) {
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.MALFORMED_URL_EC);
+            notifySyncTransmitError(String.format(context.getString(R.string.error_message_url_parsing), url), e);
+        } catch (final AuthenticatorException e) {
+            syncResult.stats.numAuthExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.AUTHENTICATION_ERROR_EC);
+            notifySyncTransmitError(context.getString(R.string.error_message_authentication_error), e);
+        } catch (final OperationCanceledException e) {
+            syncResult.stats.numAuthExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.AUTHENTICATION_CANCELED_ERROR_EC);
+            notifySyncTransmitError(context.getString(R.string.error_message_authentication_canceled), e);
+        } catch (final RequestParsingException e) {
+            syncResult.stats.numParseExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+            notifySyncTransmitError(context.getString(R.string.error_message_synchronization_error), e);
+        } catch (final ResponseParsingException e) {
+            syncResult.stats.numParseExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
+            notifySyncTransmitError(context.getString(R.string.error_message_http_response_parsing), e);
+        } catch (final DataTransmissionException e) {
+            syncResult.stats.numIoExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.DATA_TRANSMISSION_ERROR_EC, e.getHttpStatusCode());
+            notifySyncTransmitError(context.getString(R.string.error_message_data_transmission_error_with_code), e);
+        } catch (final SynchronisationException e) {
+            syncResult.stats.numParseExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+            notifySyncTransmitError(e.getMessage(), e);
+        } catch (final IOException e) {
+            syncResult.stats.numIoExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.NETWORK_ERROR_EC);
+            notifySyncTransmitError(context.getString(R.string.error_message_network_error), e);
+        } catch (final RemoteException e) {
             syncResult.databaseError = true;
-            Log.e(TAG, "Unable to sync data.", e);
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.DATABASE_ERROR_EC);
             notifySyncReadError(context.getString(R.string.error_message_database), e);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
@@ -292,12 +321,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private void notifySyncTransmitError(final @NonNull String errorMessage, final Throwable errorType) {
+        Log.e(TAG, "Unable to sync data.", errorType);
         for (SyncProgressListener listener : progressListener) {
             listener.onSyncTransmitError(errorMessage, errorType);
         }
     }
 
-    private void notifySyncProgress(final @NonNull JSONObject measurementSlice) throws JSONException {
+    private void notifySyncProgress(final @NonNull JSONObject measurementSlice) {
         for (SyncProgressListener listener : progressListener) {
             listener.onProgress(measurementSlice);
         }
@@ -324,19 +354,19 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         return ret;
     }
 
-    private static final Uri createGeoLocationsUri(final @NonNull String authority) {
+    private static Uri createGeoLocationsUri(final @NonNull String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
     }
 
-    private static final Uri createAccelerationsUri(final @NonNull String authority) {
+    private static Uri createAccelerationsUri(final @NonNull String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH).build();
     }
 
-    private static final Uri createRotationsUri(final @NonNull String authority) {
+    private static Uri createRotationsUri(final @NonNull String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH).build();
     }
 
-    private static final Uri createDirectionsUri(final @NonNull String authority) {
+    private static Uri createDirectionsUri(final @NonNull String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(MagneticValuePointTable.URI_PATH)
                 .build();
     }
