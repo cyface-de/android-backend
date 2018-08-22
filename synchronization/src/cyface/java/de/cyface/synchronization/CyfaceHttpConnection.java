@@ -16,6 +16,11 @@ import android.util.Log;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
+ *
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 2.0.0
  */
 public class CyfaceHttpConnection implements Http {
 
@@ -57,7 +62,7 @@ public class CyfaceHttpConnection implements Http {
     @Override
     public <T> HttpResponse post(final HttpURLConnection con, final T payload, boolean compress)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException {
+            ResponseParsingException, UnauthorizedException {
 
         BufferedOutputStream os = initOutputStream(con, compress);
         try {
@@ -122,9 +127,10 @@ public class CyfaceHttpConnection implements Http {
      * @return A parsed {@link HttpResponse} object.
      * @throws DataTransmissionException If the response was a non-successful HTTP response.
      * @throws ResponseParsingException If the system fails in handling the HTTP response.
+     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
     private HttpResponse readResponse(final @NonNull HttpURLConnection con)
-            throws DataTransmissionException, ResponseParsingException {
+            throws DataTransmissionException, ResponseParsingException, UnauthorizedException {
 
         StringBuilder responseString = new StringBuilder();
         HttpResponse response;
@@ -151,7 +157,9 @@ public class CyfaceHttpConnection implements Http {
             if (response.is2xxSuccessful()) {
                 return response;
             } else {
-                // The server responses were not always in the same format in the past:
+                if (response.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                    throw new UnauthorizedException("Server returned 401: UNAUTHORIZED.");
+                }
                 if (response.getBody().has("errorName")) {
                     throw new DataTransmissionException(response.getResponseCode(),
                             response.getBody().getString("errorName"), response.getBody().getString("errorMessage"));

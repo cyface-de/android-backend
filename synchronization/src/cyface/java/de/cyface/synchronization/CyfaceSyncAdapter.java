@@ -210,7 +210,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                     .addAll(directionJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
                             provider.applyBatch(markAsSyncedOperation);
                         } catch (final OperationApplicationException e) {
-                            notifySyncTransmitError(e.getMessage(), e);
+                            throw new DatabaseException("ApplyBatch operation failed", e);
                         } finally {
                             if (con != null) {
                                 con.disconnect();
@@ -275,10 +275,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             syncResult.stats.numIoExceptions++;
             CyfaceAuthenticator.sendErrorIntent(context, Constants.NETWORK_ERROR_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_network_error), e);
-        } catch (final RemoteException e) {
+        } catch (final RemoteException | DatabaseException e) {
             syncResult.databaseError = true;
             CyfaceAuthenticator.sendErrorIntent(context, Constants.DATABASE_ERROR_EC);
             notifySyncReadError(context.getString(R.string.error_message_database), e);
+        } catch (final UnauthorizedException e) {
+            syncResult.stats.numAuthExceptions++;
+            CyfaceAuthenticator.sendErrorIntent(context, Constants.UNAUTHORIZED_EC);
+            notifySyncTransmitError(context.getString(R.string.error_message_unauthorized), e);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             notifySyncFinished();
@@ -314,6 +318,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
+    // TODO: Do we need to differentiate between a "read" and "transmission" error? What for?
     private void notifySyncReadError(final @NonNull String errorMessage, final Throwable errorType) {
         for (SyncProgressListener listener : progressListener) {
             listener.onSyncReadError(errorMessage, errorType);
