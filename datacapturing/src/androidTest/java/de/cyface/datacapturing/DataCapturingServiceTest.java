@@ -40,7 +40,7 @@ import static org.junit.Assert.assertThat;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 3.1.0
+ * @version 4.0.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

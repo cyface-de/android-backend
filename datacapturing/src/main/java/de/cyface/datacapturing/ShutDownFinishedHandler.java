@@ -17,7 +17,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  * @see DataCapturingService#pauseAsync(ShutDownFinishedHandler)
  * @see DataCapturingService#stopAsync(ShutDownFinishedHandler)

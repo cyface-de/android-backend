@@ -24,7 +24,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * Tests the correct workings of the <code>MeasurementPersistence</code> class.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)

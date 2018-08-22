@@ -10,7 +10,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * {@link DataCapturingService#stopSync()}.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 1.0.0
  */
 public final class Measurement {
