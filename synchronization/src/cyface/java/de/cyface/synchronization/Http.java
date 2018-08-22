@@ -52,7 +52,9 @@ interface Http {
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
+     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
-    <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress) throws DataTransmissionException,
-            RequestParsingException, ServerUnavailableException, ResponseParsingException, SynchronisationException;
+    <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress)
+            throws DataTransmissionException, RequestParsingException, ServerUnavailableException,
+            ResponseParsingException, SynchronisationException, UnauthorizedException;
 }

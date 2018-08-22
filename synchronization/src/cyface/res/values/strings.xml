@@ -2,14 +2,22 @@
     <!-- Used in the authenticator.xml in the cyface flavor -->
     <string name="cyface">Cyface</string>
 
+    <!-- Parsing errors -->
     <string name="error_message_url_parsing">URL parsing failed: %s</string>
     <string name="error_message_request_parsing">Request parsing failed</string>
     <string name="error_message_http_response_parsing">HTTP Response parsing failed</string>
+
+    <!-- Generic errors -->
     <string name="error_message_database">Database error</string>
-    <string name="error_message_device_exists">Device already exists: %s</string>
     <string name="error_message_network_error">Network error</string>
+    <string name="error_message_data_transmission_error_with_code">Transmission error: %1$d</string>
+    <string name="error_message_synchronization_error">Synchronization error</string>
+
+    <!-- Auth -->
     <string name="error_message_authentication_error">Authentication error</string>
     <string name="error_message_authentication_canceled">Authentication canceled</string>
-    <string name="error_message_synchronization_error">Synchronization error</string>
-    <string name="error_message_data_transmission_error_with_code">Transmission error: %1$d</string>
+    <string name="error_message_unauthorized">Unauthorized</string>
+
+    <!-- Other -->
+    <string name="error_message_device_exists">Device already exists: %s</string>
 </resources>
