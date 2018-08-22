@@ -114,6 +114,9 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                 } catch (final ResponseParsingException e) {
                     sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
                     throw new NetworkErrorException(e);
+                } catch (final UnauthorizedException e) {
+                    sendErrorIntent(context, Constants.UNAUTHORIZED_EC);
+                    throw new NetworkErrorException(e);
                 }
             }
         }
@@ -189,10 +192,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws DataTransmissionException When the server returned a non-successful status code.
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
+     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
     private String initSync(final @NonNull String username, final @NonNull String password)
             throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
-            DataTransmissionException, ResponseParsingException, SynchronisationException {
+            DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException {
         Log.v(TAG, "Init Sync!");
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
@@ -235,10 +239,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws RequestParsingException When the request could not be generated.
      * @throws DataTransmissionException When the server returned a non-successful status code.
+     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
     private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier,
-            final @NonNull String authToken) throws MalformedURLException, ServerUnavailableException,
-            SynchronisationException, ResponseParsingException, RequestParsingException, DataTransmissionException {
+            final @NonNull String authToken)
+            throws MalformedURLException, ServerUnavailableException, SynchronisationException,
+            ResponseParsingException, RequestParsingException, DataTransmissionException, UnauthorizedException {
 
         final HttpURLConnection con = http
                 .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken);
