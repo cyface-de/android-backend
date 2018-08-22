@@ -9,23 +9,23 @@ import org.json.JSONObject;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 class HttpResponse {
     private int responseCode;
     private JSONObject body;
 
-    HttpResponse(int responseCode, String responseBodyAsString) throws JSONException {
+    HttpResponse(int responseCode, String responseBodyAsString) throws ResponseParsingException {
         this.responseCode = responseCode;
         try {
             this.body = new JSONObject(responseBodyAsString);
-        } catch (JSONException e) {
+        } catch (final JSONException e) {
             if (is2xxSuccessful()) {
                 this.body = null; // this is expected, continue.
             } else {
-                throw new JSONException("Empty response body for unsuccessful response (code " + responseCode
-                        + "): " + e.getMessage());
+                throw new ResponseParsingException(
+                        "Empty response body for unsuccessful response (code " + responseCode + "): " + e.getMessage());
             }
         }
     }
