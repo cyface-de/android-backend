@@ -36,9 +36,12 @@ import android.util.Log;
  * <p>
  * Currently the test calls the actual data transmission code and thus depends on a running server instance. This makes
  * the test large and flaky. Future implementation will hopefully remove this dependency.
+ * <p>
+ * Currently, Wi-Fi must be activated for this test to run through.
  * 
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 1.0.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

@@ -327,7 +327,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    private void notifySyncProgress(final @NonNull JSONObject measurementSlice) {
+    private void notifySyncProgress(final @NonNull JSONObject measurementSlice) throws RequestParsingException {
         for (SyncProgressListener listener : progressListener) {
             listener.onProgress(measurementSlice);
         }
