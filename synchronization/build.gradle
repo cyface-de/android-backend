@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
 
@@ -76,6 +76,7 @@ android {
 
 dependencies {
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
+    implementation project(":utils")
     implementation project(":persistence")
     implementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
 
