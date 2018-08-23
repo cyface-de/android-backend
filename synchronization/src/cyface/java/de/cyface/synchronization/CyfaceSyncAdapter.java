@@ -38,6 +38,8 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
 
+import static de.cyface.utils.ErrorHandler.sendErrorIntent;
+
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private final static String TAG = "de.cyface.sync";
@@ -241,47 +243,47 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         // error) and the syncProgress listeners to upgrade the sync progress UI
         catch (final ServerUnavailableException e) {
             syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.SERVER_UNAVAILABLE_EC);
+            sendErrorIntent(context, Constants.SERVER_UNAVAILABLE_EC);
             notifySyncTransmitError(e.getMessage(), e);
         } catch (final MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.MALFORMED_URL_EC);
+            sendErrorIntent(context, Constants.MALFORMED_URL_EC);
             notifySyncTransmitError(String.format(context.getString(R.string.error_message_url_parsing), url), e);
         } catch (final AuthenticatorException e) {
             syncResult.stats.numAuthExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.AUTHENTICATION_ERROR_EC);
+            sendErrorIntent(context, Constants.AUTHENTICATION_ERROR_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_authentication_error), e);
         } catch (final OperationCanceledException e) {
             syncResult.stats.numAuthExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.AUTHENTICATION_CANCELED_ERROR_EC);
+            sendErrorIntent(context, Constants.AUTHENTICATION_CANCELED_ERROR_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_authentication_canceled), e);
         } catch (final RequestParsingException e) {
             syncResult.stats.numParseExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+            sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_synchronization_error), e);
         } catch (final ResponseParsingException e) {
             syncResult.stats.numParseExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
+            sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_http_response_parsing), e);
         } catch (final DataTransmissionException e) {
             syncResult.stats.numIoExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.DATA_TRANSMISSION_ERROR_EC, e.getHttpStatusCode());
+            sendErrorIntent(context, Constants.DATA_TRANSMISSION_ERROR_EC, e.getHttpStatusCode());
             notifySyncTransmitError(context.getString(R.string.error_message_data_transmission_error_with_code), e);
         } catch (final SynchronisationException e) {
             syncResult.stats.numParseExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+            sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
             notifySyncTransmitError(e.getMessage(), e);
         } catch (final IOException e) {
             syncResult.stats.numIoExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.NETWORK_ERROR_EC);
+            sendErrorIntent(context, Constants.NETWORK_ERROR_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_network_error), e);
         } catch (final RemoteException | DatabaseException e) {
             syncResult.databaseError = true;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.DATABASE_ERROR_EC);
+            sendErrorIntent(context, Constants.DATABASE_ERROR_EC);
             notifySyncReadError(context.getString(R.string.error_message_database), e);
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
-            CyfaceAuthenticator.sendErrorIntent(context, Constants.UNAUTHORIZED_EC);
+            sendErrorIntent(context, Constants.UNAUTHORIZED_EC);
             notifySyncTransmitError(context.getString(R.string.error_message_unauthorized), e);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
