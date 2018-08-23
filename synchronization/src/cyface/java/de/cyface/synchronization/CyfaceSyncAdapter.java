@@ -1,6 +1,16 @@
 package de.cyface.synchronization;
 
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
+import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_CANCELED;
+import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
 import java.net.HttpURLConnection;
@@ -175,11 +185,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
         } catch (final RemoteException e) {
             syncResult.databaseError = true;
-            sendErrorIntent(context, Constants.DATABASE_ERROR_EC);
+            sendErrorIntent(context, DATABASE_ERROR.getCode());
             notifySyncReadError(context.getString(R.string.error_message_database), e);
         } catch (final RequestParsingException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_synchronization_error), e);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
@@ -271,43 +281,43 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         // error) and the syncProgress listeners to upgrade the sync progress UI
         catch (final ServerUnavailableException e) {
             syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
-            sendErrorIntent(context, Constants.SERVER_UNAVAILABLE_EC);
+            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
             notifySyncTransmitError(e.getMessage(), e);
         } catch (final MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, Constants.MALFORMED_URL_EC);
+            sendErrorIntent(context, MALFORMED_URL.getCode());
             notifySyncTransmitError(String.format(context.getString(R.string.error_message_url_parsing), url), e);
         } catch (final AuthenticatorException e) {
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, Constants.AUTHENTICATION_ERROR_EC);
+            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_authentication_error), e);
         } catch (final OperationCanceledException e) {
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, Constants.AUTHENTICATION_CANCELED_ERROR_EC);
+            sendErrorIntent(context, AUTHENTICATION_CANCELED.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_authentication_canceled), e);
         } catch (final ResponseParsingException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
+            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_http_response_parsing), e);
         } catch (final DataTransmissionException e) {
             syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, Constants.DATA_TRANSMISSION_ERROR_EC, e.getHttpStatusCode());
+            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
             notifySyncTransmitError(context.getString(R.string.error_message_data_transmission_error_with_code), e);
         } catch (final SynchronisationException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
             notifySyncTransmitError(e.getMessage(), e);
         } catch (final IOException e) {
             syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, Constants.NETWORK_ERROR_EC);
+            sendErrorIntent(context, NETWORK_ERROR.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_network_error), e);
         } catch (final DatabaseException e) {
             syncResult.databaseError = true;
-            sendErrorIntent(context, Constants.DATABASE_ERROR_EC);
+            sendErrorIntent(context, DATABASE_ERROR.getCode());
             notifySyncReadError(context.getString(R.string.error_message_database), e);
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, Constants.UNAUTHORIZED_EC);
+            sendErrorIntent(context, UNAUTHORIZED.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_unauthorized), e);
         }
     }
