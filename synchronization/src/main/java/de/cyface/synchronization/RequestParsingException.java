@@ -13,7 +13,7 @@ public class RequestParsingException extends Exception {
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
     public RequestParsingException(final String detailedMessage) {
-        this(detailedMessage, null);
+        super(detailedMessage);
     }
 
     /**

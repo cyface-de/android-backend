@@ -13,7 +13,7 @@ public class DatabaseException extends Exception {
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
     public DatabaseException(final String detailedMessage) {
-        this(detailedMessage, null);
+        super(detailedMessage);
     }
 
     /**
