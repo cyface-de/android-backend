@@ -18,7 +18,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>..
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  * @see DataCapturingService#resumeAsync(StartUpFinishedHandler)
  * @see DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)
@@ -39,7 +39,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
      *
      * @param measurementIdentifier The identifier of the measurement that is captured by the started capturing process.
      */
-    public abstract void startUpFinished(final @NonNull long measurementIdentifier);
+    public abstract void startUpFinished(final long measurementIdentifier);
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
