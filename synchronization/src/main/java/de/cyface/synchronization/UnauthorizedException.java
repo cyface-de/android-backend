@@ -13,7 +13,7 @@ public class UnauthorizedException extends Exception {
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
     public UnauthorizedException(final String detailedMessage) {
-        this(detailedMessage, null);
+        super(detailedMessage);
     }
 
     /**

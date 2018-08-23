@@ -8,6 +8,8 @@ import android.content.Intent;
 import android.support.annotation.NonNull;
 
 /**
+ * TODO: make the sync progress listeners listen to the error handler for errors
+ *
  * @author Armin Schnabel
  * @author Klemens Muthmann
  * @version 2.0.1
