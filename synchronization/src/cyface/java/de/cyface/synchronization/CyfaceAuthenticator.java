@@ -1,6 +1,12 @@
 package de.cyface.synchronization;
 
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
+import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
@@ -33,7 +39,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -94,25 +100,25 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                     authToken = initSync(account.name, password);
                     Log.v(TAG, String.format("Auth token: %s", authToken));
                 } catch (final ServerUnavailableException e) {
-                    sendErrorIntent(context, Constants.SERVER_UNAVAILABLE_EC);
+                    sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
                     throw new NetworkErrorException(e);
                 } catch (final MalformedURLException e) {
-                    sendErrorIntent(context, Constants.MALFORMED_URL_EC);
+                    sendErrorIntent(context, MALFORMED_URL.getCode());
                     throw new NetworkErrorException(e);
                 } catch (final JSONException e) {
-                    sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
+                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
                     throw new NetworkErrorException(e);
                 } catch (final SynchronisationException | RequestParsingException e) {
-                    sendErrorIntent(context, Constants.SYNCHRONIZATION_ERROR_EC);
+                    sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
                     throw new NetworkErrorException(e);
                 } catch (final DataTransmissionException e) {
-                    sendErrorIntent(context, Constants.DATA_TRANSMISSION_ERROR_EC, e.getHttpStatusCode());
+                    sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
                     throw new NetworkErrorException(e);
                 } catch (final ResponseParsingException e) {
-                    sendErrorIntent(context, Constants.HTTP_RESPONSE_UNREADABLE_EC);
+                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
                     throw new NetworkErrorException(e);
                 } catch (final UnauthorizedException e) {
-                    sendErrorIntent(context, Constants.UNAUTHORIZED_EC);
+                    sendErrorIntent(context, UNAUTHORIZED.getCode());
                     throw new NetworkErrorException(e);
                 }
             }

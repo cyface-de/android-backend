@@ -322,8 +322,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    private JSONObject prepareMeasurementSliceTemplate(long measurementIdentifier, Cursor unsyncedMeasurementsCursor,
-            String deviceIdentifier) throws RequestParsingException {
+    private JSONObject prepareMeasurementSliceTemplate(final long measurementIdentifier,
+            final Cursor unsyncedMeasurementsCursor, final String deviceIdentifier) throws RequestParsingException {
 
         final String measurementContext = unsyncedMeasurementsCursor
                 .getString(unsyncedMeasurementsCursor.getColumnIndex(MeasurementTable.COLUMN_VEHICLE));
