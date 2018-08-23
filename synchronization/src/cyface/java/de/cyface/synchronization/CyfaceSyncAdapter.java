@@ -39,6 +39,7 @@ import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.SamplePointTable;
+import de.cyface.utils.Validate;
 
 /**
  * The SyncAdapter implements Android's SyncAdapter which is responsible for the synchronization.
@@ -120,19 +121,15 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, Bundle extras, String authority,
             final @NonNull ContentProviderClient provider, final @NonNull SyncResult syncResult) {
         final Context context = getContext();
-
         Log.d(TAG, "Sync started.");
+
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
-        if (deviceIdentifier == null) {
-            Log.e(TAG, "Sync canceled: No installation identifier for this application set in its preferences.");
-            return;
-        }
         final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
-        if (url == null) {
-            Log.e(TAG, "Sync canceled: Server url not available. Please set the applications server url preference.");
-            return;
-        }
+        Validate.notNull(deviceIdentifier,
+                "Sync canceled: No installation identifier for this application set in its preferences.");
+        Validate.notNull(url,
+                "Sync canceled: Server url not available. Please set the applications server url preference.");
 
         Cursor unsyncedMeasurementsCursor = null;
         try {
@@ -193,10 +190,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    private JSONObject fillMeasurementSlice(JSONObject measurementSlice,
-            MeasurementContentProviderClient dataAccessLayer, int g, int a, int r, int d,
-            GeoLocationJsonMapper geoLocationJsonMapper, AccelerationJsonMapper accelerationJsonMapper,
-            RotationJsonMapper rotationJsonMapper, DirectionJsonMapper directionJsonMapper)
+    private JSONObject fillMeasurementSlice(final JSONObject measurementSlice,
+            final MeasurementContentProviderClient dataAccessLayer, final int g, final int a, final int r, final int d,
+            final GeoLocationJsonMapper geoLocationJsonMapper, final AccelerationJsonMapper accelerationJsonMapper,
+            final RotationJsonMapper rotationJsonMapper, final DirectionJsonMapper directionJsonMapper)
             throws RemoteException, RequestParsingException {
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
@@ -239,11 +236,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         return measurementSlice;
     }
 
-    private void postMeasurementSlice(String authority, ContentProviderClient provider, SyncResult syncResult,
-            Context context, String url, Account account, JSONObject measurementSlice,
-            GeoLocationJsonMapper geoLocationJsonMapper, AccelerationJsonMapper accelerationJsonMapper,
-            RotationJsonMapper rotationJsonMapper, DirectionJsonMapper directionJsonMapper)
-            throws RequestParsingException, RemoteException {
+    private void postMeasurementSlice(final String authority, final ContentProviderClient provider,
+            final SyncResult syncResult, final Context context, final String url, final Account account,
+            JSONObject measurementSlice, final GeoLocationJsonMapper geoLocationJsonMapper,
+            final AccelerationJsonMapper accelerationJsonMapper, final RotationJsonMapper rotationJsonMapper,
+            final DirectionJsonMapper directionJsonMapper) throws RequestParsingException, RemoteException {
         try {
             final URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
             final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
