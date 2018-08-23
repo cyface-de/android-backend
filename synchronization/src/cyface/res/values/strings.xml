@@ -1,21 +1,23 @@
 <resources>
-    <string name="title_activity_cyface_login">Sign in</string>
-
-    <!-- Strings related to login -->
-    <string name="prompt_email">Email</string>
-    <string name="prompt_password">Password (optional)</string>
-    <string name="action_sign_in">Sign in or register</string>
-    <string name="action_sign_in_short">Sign in</string>
-    <string name="error_invalid_email">This email address is invalid</string>
-    <string name="error_invalid_password">This password is too short</string>
-    <string name="error_incorrect_password">This password is incorrect</string>
-    <string name="error_field_required">This field is required</string>
-    <string name="permission_rationale">"Contacts permissions are needed for providing email completions."</string>
-
-    <string name="error_message_url_parsing">test %s</string>
-    <string name="error_message_json_parsing">test</string>
-    <string name="error_message_database">test</string>
-    <string name="error_message_device_exists">test %s</string>
-
+    <!-- Used in the authenticator.xml in the cyface flavor -->
     <string name="cyface">Cyface</string>
+
+    <!-- Parsing errors -->
+    <string name="error_message_url_parsing">URL parsing failed: %s</string>
+    <string name="error_message_request_parsing">Request parsing failed</string>
+    <string name="error_message_http_response_parsing">HTTP Response parsing failed</string>
+
+    <!-- Generic errors -->
+    <string name="error_message_database">Database error</string>
+    <string name="error_message_network_error">Network error</string>
+    <string name="error_message_data_transmission_error_with_code">Transmission error: %1$d</string>
+    <string name="error_message_synchronization_error">Synchronization error</string>
+
+    <!-- Auth -->
+    <string name="error_message_authentication_error">Authentication error</string>
+    <string name="error_message_authentication_canceled">Authentication canceled</string>
+    <string name="error_message_unauthorized">Unauthorized</string>
+
+    <!-- Other -->
+    <string name="error_message_device_exists">Device already exists: %s</string>
 </resources>
