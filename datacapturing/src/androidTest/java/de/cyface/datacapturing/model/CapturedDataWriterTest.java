@@ -29,6 +29,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MagneticValuePointTable;
@@ -326,9 +327,11 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
 
     /**
      * Tests whether loading a track of geo locations is possible via the {@link MeasurementPersistence} object.
+     *
+     * @throws NoSuchMeasurementException if the created measurement is null for some unexpected reason.
      */
     @Test
-    public void testLoadTrack() {
+    public void testLoadTrack() throws NoSuchMeasurementException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();
