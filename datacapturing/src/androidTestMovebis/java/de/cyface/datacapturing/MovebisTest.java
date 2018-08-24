@@ -11,6 +11,7 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -33,7 +34,7 @@ import de.cyface.datacapturing.ui.UIListener;
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -102,12 +103,14 @@ public final class MovebisTest {
 
     /**
      * Tests if one lifecycle of starting and stopping location updates works as expected.
-     * FlakyTest: This integration test may be dependent on position / GPS updates.
+     * FlakyTest: This integration test may be dependent on position / GPS updates on real devices.
+     * Ignored: Currently this test only runs on Pixel 2 emulators which is not available on our CI
      *
      * @throws SetupException Should not happen. For further details look at the documentation of
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
+    @Ignore
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
