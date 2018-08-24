@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  * all the details available and relevant to diagnose the error case.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public final class DataTransmissionException extends Exception {
@@ -24,7 +24,7 @@ public final class DataTransmissionException extends Exception {
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
     public DataTransmissionException(final int httpStatusCode, final String errorName, final String detailedMessage) {
-        this(httpStatusCode,errorName,detailedMessage,null);
+        this(httpStatusCode, errorName, detailedMessage, null);
 
     }
 
@@ -34,8 +34,9 @@ public final class DataTransmissionException extends Exception {
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      * @param cause The <code>Exception</code> that caused this one.
      */
-    public DataTransmissionException(final int httpStatusCode, final String errorName, final String detailedMessage, final Exception cause) {
-        super(detailedMessage,cause);
+    public DataTransmissionException(final int httpStatusCode, final String errorName, final String detailedMessage,
+            final Exception cause) {
+        super(detailedMessage, cause);
         this.httpStatusCode = httpStatusCode;
         this.errorName = errorName;
     }
@@ -43,7 +44,7 @@ public final class DataTransmissionException extends Exception {
     /**
      * @return The HTTP status error code causing this <code>Exception</code>.
      */
-    public int getErrorCode() {
+    public int getHttpStatusCode() {
         return httpStatusCode;
     }
 

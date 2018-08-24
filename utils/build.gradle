@@ -1,10 +1,9 @@
 /**
- * Gradle's build file for the module which captures the sensor data.
+ * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @author Klemens Muthmann
- * @version 2.0.1
- * @since 1.0.0
+ * @version 1.0.0
+ * @since 2.2.0
  */
 
 apply plugin: 'com.android.library'
@@ -22,20 +21,6 @@ android {
         versionName rootProject.ext.version
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
-
-        missingDimensionStrategy 'full', 'mock'
-
-            // Defines UI elements for Notification Element
-            buildConfigField "int", "NOTIFICATION_LOGO", "R.drawable.ic_movebis_notification"
-            buildConfigField "int", "NOTIFICATION_TITLE", "R.string.notification_title"
-            buildConfigField "int", "NOTIFICATION_TEXT", "R.string.capturing_active"
-            buildConfigField "int", "NOTIFICATION_CHANNEL", "R.string.notification_channel_id"
-    }
-
-    testOptions {
-        unitTests {
-            includeAndroidResources = true
-        }
     }
 
     // Specifies the flavor dimensions you want to use. The order in which you
@@ -75,19 +60,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
         }
     }
+
 }
 
 dependencies {
+    implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
-    implementation "com.android.support:appcompat-v7:${rootProject.ext.supportLibVersion}"
-    implementation project(":utils")
-    implementation project(":persistence")
-    implementation project(":synchronization")
-
-    // Dependencies for instrumentation tests
-    androidTestImplementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
-    androidTestImplementation "com.android.support.test:runner:${rootProject.ext.runnerVersion}"
-    androidTestImplementation "com.android.support.test:rules:${rootProject.ext.rulesVersion}"
 
     // Dependencies for local unit tests
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
@@ -97,5 +75,12 @@ dependencies {
     testImplementation "org.mockito:mockito-core:${rootProject.ext.mockitoVersion}"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:${rootProject.ext.hamcrestVersion}"
-    testImplementation "org.robolectric:robolectric:${rootProject.ext.robolectricVersion}"
+
+    // Dependencies for instrumentation tests
+    implementation 'com.android.support:appcompat-v7:27.1.1'
+    implementation 'com.android.support:design:27.1.1'
+    // Force usage of support annotations in the test app, since it is internally used by the runner module.
+    androidTestImplementation "com.android.support:support-annotations:${rootProject.ext.supportLibVersion}"
+    androidTestImplementation "com.android.support.test:runner:${rootProject.ext.runnerVersion}"
+    androidTestImplementation "com.android.support.test:rules:${rootProject.ext.rulesVersion}"
 }
