@@ -360,8 +360,14 @@ public class MeasurementPersistence {
      * Removes one {@link Measurement} from the local persistent data storage.
      *
      * @param measurement The measurement to remove.
+     *
+     * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
      */
-    public void delete(final @NonNull Measurement measurement) {
+    public void delete(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
+        if(measurement==null) {
+            throw new NoSuchMeasurementException("Unable to delete null measurement!");
+        }
+
         String[] arrayWithMeasurementIdentifier = {Long.valueOf(measurement.getIdentifier()).toString()};
         resolver.delete(getRotationsUri(), RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);

@@ -45,7 +45,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 3.1.1
+ * @version 4.0.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -258,9 +258,12 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     /**
      * Tests whether loading measurements from the data storage via <code>MeasurementPersistence</code> is working as
      * expected.
+     *
+     * @throws NoSuchMeasurementException If the test measurement was null for some reason. This should only happen if
+     *             there was a very serious database error.
      */
     @Test
-    public void testLoadMeasurements() {
+    public void testLoadMeasurements() throws NoSuchMeasurementException {
         oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
@@ -274,9 +277,12 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
 
     /**
      * Tests whether deleting a measurement actually remove that measurement together with all corresponding data.
+     *
+     * @throws NoSuchMeasurementException If the test measurement was null for some reason. This should only happen if
+     *             there was a very serious database error.
      */
     @Test
-    public void testDeleteMeasurement() {
+    public void testDeleteMeasurement() throws NoSuchMeasurementException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
         oocut.storeData(testData(), measurement.getIdentifier());
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
