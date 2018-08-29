@@ -179,7 +179,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (dataCapturing != null) {
             dataCapturing.close();
         }
-        persistenceLayer.shutdown();
+        if (persistenceLayer != null) {
+            persistenceLayer.shutdown();
+        }
         // Since on some devices the broadcast seems not to work we are sending a message here.
         // informCaller(MessageCodes.SERVICE_STOPPED,null);
         super.onDestroy();
