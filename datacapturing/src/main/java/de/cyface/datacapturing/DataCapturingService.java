@@ -334,10 +334,13 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(true);
             Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
-            // TODO: This should throw an exception. But since we need to handle double stop gracefully it is impossible at the moment.
-            /*if (measurement == null) {
-                throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
-            }*/
+            // TODO: This should throw an exception. But since we need to handle double stop gracefully it is impossible
+            // at the moment.
+            /*
+             * if (measurement == null) {
+             * throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
+             * }
+             */
 
             stopService(measurement, finishedHandler);
         } catch (IllegalArgumentException e) {
@@ -518,8 +521,12 @@ public abstract class DataCapturingService {
      * Deletes a {@link Measurement} from this device.
      *
      * @param measurement The {@link Measurement} to delete.
+     *
+     * @throws NoSuchMeasurementException If the provided measurement was <code>null</code> due to some unknown reasons.
+     *             This is an API violation. You are not supposed to provide <code>null</code> measurements to this
+     *             method.
      */
-    public void deleteMeasurement(final @NonNull Measurement measurement) {
+    public void deleteMeasurement(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
         persistenceLayer.delete(measurement);
     }
 
