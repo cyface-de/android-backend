@@ -379,8 +379,14 @@ public class MeasurementPersistence {
      *
      * @param measurement The measurement to load the track for.
      * @return The loaded track of <code>GeoLocation</code> objects ordered by time ascending.
+     *
+     * @throws NoSuchMeasurementException If a non valid measurement was provided.
      */
-    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) {
+    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
+        if(measurement==null) {
+            throw new NoSuchMeasurementException("You may not load a track for a null measurement!");
+        }
+
         Cursor locationsCursor = null;
         try {
             locationsCursor = resolver.query(getGeoLocationsUri(), null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
