@@ -380,11 +380,11 @@ public class MeasurementPersistence {
      * @param measurement The measurement to load the track for.
      * @return The loaded track of <code>GeoLocation</code> objects ordered by time ascending.
      *
-     * @throws NoSuchMeasurementException If a non valid measurement was provided.
+     * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
      */
     public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
         if(measurement==null) {
-            throw new NoSuchMeasurementException("You may not load a track for a null measurement!");
+            throw new NoSuchMeasurementException("Unable to load track for null measurement!");
         }
 
         Cursor locationsCursor = null;
