@@ -139,7 +139,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests a common service run. Checks that some positons have been captured.
+     * Tests a common service run. Checks that some positions have been captured.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
@@ -552,6 +552,55 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         // get measurements
         final List<Measurement> measurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
+        // pause
+        oocut.pauseSync();
+        // check is not running
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
+        // resume
+        oocut.resumeSync();
+        // check is running
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(false)));
+        // get measurements again
+        final List<Measurement> newMeasurements = oocut.getCachedMeasurements();
+        // check for no new measurements
+        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
+        // stop
+        oocut.stopSync();
+    }
+
+    /**
+     * Tests whether the {@link CyfaceDataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} ()} and
+     * work correctly, which means: sensor data is captured (see bug #CY-3862: no points captured)
+     *
+     * @throws DataCapturingException If any unexpected errors occur during data capturing.
+     * @throws MissingPermissionException If an Android permission is missing.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     */
+    @Test
+    public void testAsyncStartWithSensorData() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        // start
+        oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
+            @Override
+            public void startUpFinished(final long l) {
+                // nothing to do
+            }
+        });
+        // check is running
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.isRunning, is(equalTo(true)));
+        assertThat(runningStatusCallback.timedOut, is(equalTo(false)));
+        // get measurement data
+        //FIXME: get points not just the M entry which existed in the referenced bug but no other data
+        final List<Measurement> measurements = oocut.getCachedMeasurements();
+        assertThat(measurements.size() > 0, is(equalTo(true)));
+        oocut.loadTrack()
         // pause
         oocut.pauseSync();
         // check is not running
