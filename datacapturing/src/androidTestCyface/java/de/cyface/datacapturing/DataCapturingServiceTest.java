@@ -608,15 +608,14 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         // check is running
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedMeasurementIdentifier, is(not(equalTo(-1L))));
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         // get measurement data
         final List<Measurement> measurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
         assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true))); //FIXME: Fails
-
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         // stop
         oocut.stopAsync(shutdownFinishedHandler);
