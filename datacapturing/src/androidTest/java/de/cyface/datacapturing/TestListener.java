@@ -17,7 +17,8 @@ import de.cyface.datacapturing.ui.Reason;
  * A listener for events from the capturing service, only used by tests.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @author Armin Schnabel
+ * @version 1.2.0
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
@@ -37,6 +38,10 @@ class TestListener implements DataCapturingListener {
      * Geo locations captured during the test run.
      */
     private final List<GeoLocation> capturedPositions;
+    /**
+     * Sensor data captured during the test run.
+     */
+    private final List<CapturedData> capturedData;
 
     /**
      * Creates a new completely initialized <code>TestListener</code> signaling the creating thread via the provided
@@ -47,6 +52,7 @@ class TestListener implements DataCapturingListener {
      */
     TestListener(final @NonNull Lock lock, final @NonNull Condition condition) {
         capturedPositions = new ArrayList<>();
+        capturedData = new ArrayList<>();
         this.lock = lock;
         this.condition = condition;
     }
@@ -70,6 +76,7 @@ class TestListener implements DataCapturingListener {
     @Override
     public void onNewSensorDataAcquired(CapturedData data) {
         Log.d(TAG, "New Sensor data.");
+        capturedData.add(data);
     }
 
     @Override
@@ -98,5 +105,13 @@ class TestListener implements DataCapturingListener {
     public List<GeoLocation> getCapturedPositions() {
         return Collections.unmodifiableList(capturedPositions);
 
+    }
+
+    /**
+     *
+     * @return The captured sensor data received during the test run.
+     */
+    public List<CapturedData> getCapturedData() {
+        return capturedData;
     }
 }
