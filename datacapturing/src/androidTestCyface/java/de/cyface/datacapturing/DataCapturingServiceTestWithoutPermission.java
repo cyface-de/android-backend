@@ -35,7 +35,7 @@ import static org.junit.Assert.fail;
  * Checks if missing permissions are correctly detected before starting a service.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -91,14 +91,14 @@ public class DataCapturingServiceTestWithoutPermission {
         TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 
-        boolean exceptionCatched = false;
+        boolean exceptionCaught = false;
         try {
             oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKOWN);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
-            exceptionCatched = true;
+            exceptionCaught = true;
         }
-        assertThat(exceptionCatched, is(equalTo(true)));
+        assertThat(exceptionCaught, is(equalTo(true)));
     }
 
     /**
