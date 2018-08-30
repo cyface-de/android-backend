@@ -96,7 +96,7 @@ public abstract class DataCapturingService {
 
     /**
      * A flag indicating whether the background service is currently stopped or in the process of stopping. This flag is
-     * used to prevent multiple lifecycle method from interrupting a stop process or being called, while no service is
+     * used to prevent multiple lifecycle methods from interrupting a stop process or being called, while no service is
      * running.
      */
     private boolean isStoppingOrHasStopped;
@@ -138,7 +138,7 @@ public abstract class DataCapturingService {
     private UIListener uiListener;
     /**
      * The <code>ContentProvider</code> authority used to identify the content provider used by this
-     * <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     * <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      * avoid collisions between different apps using the Cyface SDK.
      */
     private String authority;
@@ -154,7 +154,7 @@ public abstract class DataCapturingService {
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param resolver The <code>ContentResolver</code> used to access the data layer.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
-     *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
