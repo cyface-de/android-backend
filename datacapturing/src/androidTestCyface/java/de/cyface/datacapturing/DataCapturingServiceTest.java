@@ -615,7 +615,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         // get measurement data
         final List<Measurement> measurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
-        assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true))); //FIXME: Fails
+        assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true))); //FIXME: Fails also when sensor data is captured
 
         // stop
         oocut.stopAsync(shutdownFinishedHandler);
