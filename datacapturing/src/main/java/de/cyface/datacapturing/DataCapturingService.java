@@ -709,7 +709,7 @@ public abstract class DataCapturingService {
             serviceComponentName = context.startService(startIntent);
         }
         if (serviceComponentName == null) {
-            throw new DataCapturingException("Illegal state: back ground service could not be started!");
+            throw new DataCapturingException("DataCapturingBackgroundService failed to start!");
         }
         bind();
     }

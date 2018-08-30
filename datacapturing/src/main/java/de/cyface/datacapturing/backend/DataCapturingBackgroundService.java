@@ -49,7 +49,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.6
+ * @version 4.0.7
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -145,24 +145,28 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onCreate();
         if (BuildConfig.DEBUG)
             Log.d(TAG, "onCreate");
-        /* Notification shown to the user while the data capturing is active. */
-        // This needs to go in onCreate or it will be called to late from time to time!
-        CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
+
+        /*
+         * Notification shown to the user while the data capturing is active.
+         * This must be placed in onCreate or it will be called to late from time to time!
+         */
+        final CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
                 NOTIFICATION_TITEL_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
 
-        // Prevent this process from being killed by the system.
-        PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
+        // Prevents this process from being killed by the system.
+        final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
         if (powerManager != null) {
             wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
             wakeLock.acquire();
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
+
+        // Allows other parties to ping this service to see if it is running
         if (BuildConfig.DEBUG)
             Log.v(TAG, "Registering Ping Receiver");
         registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
-
         if (BuildConfig.DEBUG)
             Log.d(TAG, "finishedOnCreate");
     }
@@ -188,7 +192,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onDestroy();
         if (BuildConfig.DEBUG)
             Log.v(TAG, "Sending broadcast service stopped.");
-        Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
+        final Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
         serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         serviceStoppedIntent.putExtra(STOPPED_SUCCESSFULLY, true);
         sendBroadcast(serviceStoppedIntent);
@@ -197,27 +201,34 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         if (BuildConfig.DEBUG)
-            Log.d(TAG, "Starting data capturing service.");
-        if (intent != null) { // If this is the initial start command call init.
-            long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
+            Log.d(TAG, "Starting DataCapturingBackgroundService.");
+
+        if (intent != null) { // i.e. this is the initial start command call init.
+            // Loads measurement id
+            final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
             if (measurementIdentifier == -1) {
                 throw new IllegalStateException("No valid measurement identifier for started service provided.");
             }
             this.currentMeasurementIdentifier = measurementIdentifier;
 
+            // Loads authority / persistence layer
             if (!intent.hasExtra(AUTHORITY_ID)) {
                 throw new IllegalStateException(
                         "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
                                 + AUTHORITY_ID);
             }
-            String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+            final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
             persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
 
-            init();
+            // Init capturing process
+            dataCapturing = initializeCapturingProcess();
+            dataCapturing.addCapturingProcessListener(this);
         }
+
+        // Informs about the service start
         if (BuildConfig.DEBUG)
             Log.v(TAG, "Sending broadcast service started.");
-        Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
+        final Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
@@ -228,22 +239,19 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
 
     /**
-     * Initializes this service when it is first started. Since the initialising {@code Intent} sometimes comes with
-     * onBind and sometimes with
-     * onStartCommand and since the {@code Intent} contains the details about the Bluetooth setup,
-     * this method makes sure it is only called once and only if the correct {@code Intent} is
-     * available.
+     * Initializes this service
+     *
+     * @return the {@link GPSCapturingProcess}
      */
-    private void init() {
-        LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-
-        GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+    private GPSCapturingProcess initializeCapturingProcess() {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Initializing capturing process");
+        final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
-        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
-
-        dataCapturing.addCapturingProcessListener(this);
+        final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
     }
 
     /**
@@ -253,25 +261,26 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @param data The data to send appended to this message. This may be <code>null</code> if no data needs to be send.
      */
     void informCaller(final int messageCode, final Parcelable data) {
-        Message msg = Message.obtain(null, messageCode);
+        final Message msg = Message.obtain(null, messageCode);
 
         if (data != null) {
-            Bundle dataBundle = new Bundle();
+            final Bundle dataBundle = new Bundle();
             dataBundle.putParcelable("data", data);
             msg.setData(dataBundle);
         }
 
         if (BuildConfig.DEBUG)
             Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
-        Set<Messenger> iterClients = new HashSet<>(clients);
-        for (Messenger caller : iterClients) {
+        // FIXME: Why do we make a copy of this set to iterate over it when we modify the original set anyway?
+        final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
+        for (final Messenger caller : temporaryCallerSet) {
             try {
                 caller.send(msg);
-            } catch (RemoteException e) {
+            } catch (final RemoteException e) {
                 Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
                 clients.remove(caller);
 
-            } catch (NullPointerException e) {
+            } catch (final NullPointerException e) {
                 // Caller may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
                 clients.remove(caller);
@@ -285,14 +294,16 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        List<Point3D> accelerations = data.getAccelerations();
-        List<Point3D> rotations = data.getRotations();
-        List<Point3D> directions = data.getDirections();
-        int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Data captured with #accelerations: " + data.getAccelerations().size());
+        final List<Point3D> accelerations = data.getAccelerations();
+        final List<Point3D> rotations = data.getRotations();
+        final List<Point3D> directions = data.getDirections();
+        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
         for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
-            CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i), sampleSubList(rotations, i),
-                    sampleSubList(directions, i));
+            final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
+                    sampleSubList(rotations, i), sampleSubList(directions, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
             persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
                 @Override
@@ -304,13 +315,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int i) {
-        int endIndex = i + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
-        int toIndex = Math.min(endIndex, completeList.size());
+        final int endIndex = i + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+        final int toIndex = Math.min(endIndex, completeList.size());
         return (i >= toIndex) ? Collections.<Point3D> emptyList() : completeList.subList(i, toIndex);
     }
 
     @Override
     public void onLocationCaptured(final @NonNull GeoLocation location) {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
         persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
     }
@@ -331,7 +344,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * - We don't use Broadcasts here to reduce the amount of broadcasts.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
+     * @version 1.0.1
      * @since 1.0.0
      */
     private final static class MessageHandler extends Handler {
@@ -360,7 +373,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             if (BuildConfig.DEBUG)
                 Log.d(TAG, String.format("Service received message %s", msg.what));
 
-            DataCapturingBackgroundService service = context.get();
+            final DataCapturingBackgroundService service = context.get();
 
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
