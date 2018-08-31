@@ -625,6 +625,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         // stop
         oocut.stopAsync(shutdownFinishedHandler);
+        // Prevents this test interacting with other tests
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
     }
 
     /**

@@ -314,10 +314,17 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
     }
 
-    private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int i) {
-        final int endIndex = i + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+    /**
+     * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
+     *
+     * @param completeList The {@link List<Point3D>} to extract a subset from
+     * @param fromIndex The low endpoint (inclusive) of the subList
+     * @return The extracted sublist
+     */
+    private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int fromIndex) {
+        final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
-        return (i >= toIndex) ? Collections.<Point3D> emptyList() : completeList.subList(i, toIndex);
+        return (fromIndex >= toIndex) ? Collections.<Point3D> emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override
