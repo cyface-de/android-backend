@@ -41,6 +41,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
@@ -1044,12 +1045,12 @@ public abstract class DataCapturingService {
             if (BuildConfig.DEBUG)
                 Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
-            for (DataCapturingListener listener : this.listener) {
+            for (final DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
                     case MessageCodes.LOCATION_CAPTURED:
-                        Bundle dataBundle = msg.getData();
+                        final Bundle dataBundle = msg.getData();
                         dataBundle.setClassLoader(getClass().getClassLoader());
-                        GeoLocation location = dataBundle.getParcelable("data");
+                        final GeoLocation location = dataBundle.getParcelable("data");
                         if (location == null) {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
@@ -1058,9 +1059,18 @@ public abstract class DataCapturingService {
                         }
                         break;
                     case MessageCodes.DATA_CAPTURED:
-                        if (BuildConfig.DEBUG)
-                            Log.i(TAG, "Captured some sensor data, which is ignored for now.");
-                        // TODO
+                        final Bundle bundleData = msg.getData();
+                        bundleData.setClassLoader(getClass().getClassLoader());
+                        CapturedData capturedData = bundleData.getParcelable("data");
+                        if (capturedData == null) {
+                            listener.onErrorState(
+                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
+                        } else {
+                            if (BuildConfig.DEBUG)
+                                Log.d(TAG, "Captured some sensor data.");
+                            listener.onNewSensorDataAcquired(capturedData);
+                        }
+                        break;
                     case MessageCodes.GPS_FIX:
                         listener.onFixAcquired();
                         break;

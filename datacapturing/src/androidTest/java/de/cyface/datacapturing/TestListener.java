@@ -74,7 +74,7 @@ class TestListener implements DataCapturingListener {
     }
 
     @Override
-    public void onNewSensorDataAcquired(CapturedData data) {
+    public void onNewSensorDataAcquired(final @NonNull CapturedData data) {
         Log.d(TAG, "New Sensor data.");
         capturedData.add(data);
     }
