@@ -104,7 +104,7 @@ public class PingPongTest {
         DataCapturingListener listener = new TestListener(lock, condition);
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition);
 
-        dcs.startAsync(listener, Vehicle.UNKOWN, finishedHandler);
+        dcs.startAsync(listener, Vehicle.UNKNOWN, finishedHandler);
 
         lock.lock();
         try {

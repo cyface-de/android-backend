@@ -20,6 +20,7 @@ import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -31,7 +32,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.5
+ * @version 1.3.0
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -135,9 +136,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
-        //registerSensor(accelerometer, sensorEventHandler);
-        //registerSensor(gyroscope, sensorEventHandler);
-        //registerSensor(magnetometer, sensorEventHandler);
+        registerSensor(accelerometer, sensorEventHandler);
+        registerSensor(gyroscope, sensorEventHandler);
+        registerSensor(magnetometer, sensorEventHandler);
     }
 
     /**
@@ -204,6 +205,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     @Override
     public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
+        if (BuildConfig.DEBUG)
+            Log.d(TAG, "onSensorChanged");
         // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
         // been the other way around.
         if (eventTimeOffset == 0) {

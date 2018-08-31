@@ -1,14 +1,19 @@
 package de.cyface.datacapturing.model;
 
 /**
- * Created by muthmann on 02.02.18.
+ * The vehicle context to choose from when starting a measurement.
+ *
+ * @author Armin Schnabel
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 1.0.0
  */
 public enum Vehicle {
-    BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), UNKOWN("UNKOWN");
+    BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), UNKNOWN("UNKNOWN");
 
     private String databaseIdentifier;
 
-    private Vehicle(final String databaseIdentifier) {
+    Vehicle(final String databaseIdentifier) {
         this.databaseIdentifier = databaseIdentifier;
     }
 

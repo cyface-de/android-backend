@@ -41,6 +41,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
@@ -96,7 +97,7 @@ public abstract class DataCapturingService {
 
     /**
      * A flag indicating whether the background service is currently stopped or in the process of stopping. This flag is
-     * used to prevent multiple lifecycle method from interrupting a stop process or being called, while no service is
+     * used to prevent multiple lifecycle methods from interrupting a stop process or being called, while no service is
      * running.
      */
     private boolean isStoppingOrHasStopped;
@@ -138,7 +139,7 @@ public abstract class DataCapturingService {
     private UIListener uiListener;
     /**
      * The <code>ContentProvider</code> authority used to identify the content provider used by this
-     * <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     * <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      * avoid collisions between different apps using the Cyface SDK.
      */
     private String authority;
@@ -154,7 +155,7 @@ public abstract class DataCapturingService {
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param resolver The <code>ContentResolver</code> used to access the data layer.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
-     *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
@@ -205,7 +206,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
-     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKOWN}.
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
@@ -237,7 +238,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
-     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKOWN}.
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
@@ -709,7 +710,7 @@ public abstract class DataCapturingService {
             serviceComponentName = context.startService(startIntent);
         }
         if (serviceComponentName == null) {
-            throw new DataCapturingException("Illegal state: back ground service could not be started!");
+            throw new DataCapturingException("DataCapturingBackgroundService failed to start!");
         }
         bind();
     }
@@ -841,7 +842,7 @@ public abstract class DataCapturingService {
      *
      * @param listener The <code>DataCapturingListener</code> receiving events during data capturing.
      * @param vehicle The type of vehicle this method is called for. If you do not know which vehicle was used you might
-     *            use {@link Vehicle#UNKOWN}.
+     *            use {@link Vehicle#UNKNOWN}.
      * @return The prepared measurement, which is ready to receive data.
      * @throws DataCapturingException If this object has no valid Android <code>Context</code>.
      * @throws MissingPermissionException If permission <code>ACCESS_FINE_LOCATION</code> has not been granted or
@@ -1044,12 +1045,12 @@ public abstract class DataCapturingService {
             if (BuildConfig.DEBUG)
                 Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
-            for (DataCapturingListener listener : this.listener) {
+            for (final DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
                     case MessageCodes.LOCATION_CAPTURED:
-                        Bundle dataBundle = msg.getData();
+                        final Bundle dataBundle = msg.getData();
                         dataBundle.setClassLoader(getClass().getClassLoader());
-                        GeoLocation location = dataBundle.getParcelable("data");
+                        final GeoLocation location = dataBundle.getParcelable("data");
                         if (location == null) {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
@@ -1058,9 +1059,18 @@ public abstract class DataCapturingService {
                         }
                         break;
                     case MessageCodes.DATA_CAPTURED:
-                        if (BuildConfig.DEBUG)
-                            Log.i(TAG, "Captured some sensor data, which is ignored for now.");
-                        // TODO
+                        final Bundle bundleData = msg.getData();
+                        bundleData.setClassLoader(getClass().getClassLoader());
+                        CapturedData capturedData = bundleData.getParcelable("data");
+                        if (capturedData == null) {
+                            listener.onErrorState(
+                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
+                        } else {
+                            if (BuildConfig.DEBUG)
+                                Log.d(TAG, "Captured some sensor data.");
+                            listener.onNewSensorDataAcquired(capturedData);
+                        }
+                        break;
                     case MessageCodes.GPS_FIX:
                         listener.onFixAcquired();
                         break;

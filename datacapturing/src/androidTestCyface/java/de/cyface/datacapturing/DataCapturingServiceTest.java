@@ -23,12 +23,13 @@ import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.Context;
 import android.support.test.InstrumentationRegistry;
+import android.support.test.filters.FlakyTest;
+import android.support.test.filters.LargeTest;
 import android.support.test.filters.MediumTest;
 import android.support.test.rule.GrantPermissionRule;
 import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
-import android.util.Log;
 
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -45,7 +46,8 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
- * @version 4.0.0
+ * @author Armin Schnabel
+ * @version 4.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -117,9 +119,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
-        final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_FREE_USERNAME, ServiceTestUtils.ACCOUNT_TYPE);
-        AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_FREE_PASSWORD,
-                null);
+        final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_FREE_USERNAME,
+                ServiceTestUtils.ACCOUNT_TYPE);
+        AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_FREE_PASSWORD, null);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -139,18 +141,19 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests a common service run. Checks that some positons have been captured.
+     * Tests a common service run. Checks that some positions have been captured.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testRunDataCapturingServiceSuccessfully() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void testRunDataCapturingServiceSuccessfully()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
         TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         TestShutdownFinishedHandler shutdownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
 
-        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedMeasurementIdentifier, is(not(equalTo(-1L))));
 
@@ -175,12 +178,13 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testDisconnectConnect() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void testDisconnectConnect()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
 
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
 
         oocut.disconnect();
         oocut.reconnect();
@@ -202,9 +206,10 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testDoubleStart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
-        oocut.startSync(testListener, Vehicle.UNKOWN);
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+    public void testDoubleStart()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
@@ -221,7 +226,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      */
     @Test
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
-        oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, new StartUpFinishedHandler() {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 lock.lock();
@@ -284,8 +289,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test(expected = DataCapturingException.class)
-    public void testDoubleDisconnect() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+    public void testDoubleDisconnect()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
 
         oocut.disconnect();
         oocut.disconnect();
@@ -300,8 +306,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
-        oocut.startAsync(testListener, Vehicle.UNKOWN, new StartUpFinishedHandler() {
+    public void testStopNonConnectedService()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, new StartUpFinishedHandler() {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 lock.lock();
@@ -348,8 +355,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testDoubleConnect() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+    public void testDoubleConnect()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
 
         oocut.disconnect();
 
@@ -370,7 +378,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testDisconnectConnectTwice() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void testDisconnectConnectTwice()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
         // Service should not run in the beginning!
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -378,7 +387,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
                 is(equalTo(false)));
 
         // Start service and wait for it to run.
-        oocut.startAsync(testListener, Vehicle.UNKOWN, new TestStartUpFinishedHandler(lock, condition));
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, new TestStartUpFinishedHandler(lock, condition));
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -418,14 +427,14 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
 
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         oocut.stopSync();
 
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -441,9 +450,10 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testRunServiceAsync() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void testRunServiceAsync()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
         StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
@@ -472,9 +482,10 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testResumeAsyncTwice() throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
+    public void testResumeAsyncTwice()
+            throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
         StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
@@ -514,9 +525,10 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testStartPauseStop() throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
+    public void testStartPauseStop()
+            throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
         StartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.startAsync(testListener, Vehicle.UNKOWN, startUpFinishedHandler);
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
@@ -541,9 +553,10 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test
-    public void testPauseResumeMeasurement() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void testPauseResumeMeasurement()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
         // start
-        oocut.startSync(testListener, Vehicle.UNKOWN);
+        oocut.startSync(testListener, Vehicle.UNKNOWN);
         // check is running
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
@@ -572,6 +585,48 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
         // stop
         oocut.stopSync();
+    }
+
+    /**
+     * Tests whether actual sensor data is captured after running the method
+     * {@link CyfaceDataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} ()}.
+     * In bug #CY-3862 only the {@link DataCapturingService} was started and measurements created
+     * but no sensor data was captured as the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
+     * was not started. The cause was: disables sensor capturing.
+     *
+     * This test is Flaky because it's success depends on if sensor data was captured during the
+     * lockAndWait timeout. It's large because multiple seconds are waited until during the test.
+     *
+     * @throws DataCapturingException If any unexpected errors occur during data capturing.
+     * @throws MissingPermissionException If an Android permission is missing.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     */
+    @Test
+    @LargeTest
+    @FlakyTest
+    public void testSensorDataCapturing()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        TestShutdownFinishedHandler shutdownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+
+        // start & check is running
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(startUpFinishedHandler.receivedMeasurementIdentifier, is(not(equalTo(-1L))));
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        // Check sensor data
+        final List<Measurement> measurements = oocut.getCachedMeasurements();
+        assertThat(measurements.size() > 0, is(equalTo(true)));
+        ServiceTestUtils.lockAndWait(10, TimeUnit.SECONDS, lock, condition);
+        assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true)));
+
+        // stop
+        oocut.stopAsync(shutdownFinishedHandler);
+        // Prevents this test interacting with other tests
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
     }
 
     /**

@@ -89,7 +89,7 @@ public class MovebisDataTransmissionTest {
     @Test
     public void testUploadSomeBytesViaMultiPart() throws SynchronisationException {
         ContentResolver resolver = InstrumentationRegistry.getTargetContext().getContentResolver();
-        long measurementIdentifier = insertTestMeasurement(resolver, "UNKOWN");
+        long measurementIdentifier = insertTestMeasurement(resolver, "UNKNOWN");
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
                 940);
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
