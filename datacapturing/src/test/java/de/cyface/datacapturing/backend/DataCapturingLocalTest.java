@@ -1,15 +1,15 @@
 package de.cyface.datacapturing.backend;
 
-import android.graphics.Point;
-
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.robolectric.RobolectricTestRunner;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -30,15 +30,15 @@ import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 /**
  * Tests the inner workings of the data capturing without any calls to the Android system. Uses fake data.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
+@RunWith(RobolectricTestRunner.class)
 public class DataCapturingLocalTest {
 
     /**
