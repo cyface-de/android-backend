@@ -80,7 +80,7 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Test(expected = MissingPermissionException.class)
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException {
-        oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKOWN);
+        oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKNOWN);
     }
 
     /**
@@ -93,7 +93,7 @@ public class DataCapturingServiceTestWithoutPermission {
 
         boolean exceptionCaught = false;
         try {
-            oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKOWN);
+            oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKNOWN);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCaught = true;

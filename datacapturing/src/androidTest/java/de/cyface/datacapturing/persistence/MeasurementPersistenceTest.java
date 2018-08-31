@@ -63,11 +63,11 @@ public class MeasurementPersistenceTest {
      */
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning() throws DataCapturingException {
-        oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasOpenMeasurement(), is(equalTo(true)));
         oocut.closeRecentMeasurement();
         assertThat(oocut.hasOpenMeasurement(), is(equalTo(false)));
-        oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasOpenMeasurement(), is(equalTo(true)));
         assertThat(oocut.loadFinishedMeasurements().size(), is(equalTo(1)));
     }
@@ -87,7 +87,7 @@ public class MeasurementPersistenceTest {
      */
     @Test
     public void testLoadMeasurementSuccessfully() throws DataCapturingException {
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 

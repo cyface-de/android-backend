@@ -205,7 +205,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
-     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKOWN}.
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
@@ -237,7 +237,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
-     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKOWN}.
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
@@ -841,7 +841,7 @@ public abstract class DataCapturingService {
      *
      * @param listener The <code>DataCapturingListener</code> receiving events during data capturing.
      * @param vehicle The type of vehicle this method is called for. If you do not know which vehicle was used you might
-     *            use {@link Vehicle#UNKOWN}.
+     *            use {@link Vehicle#UNKNOWN}.
      * @return The prepared measurement, which is ready to receive data.
      * @throws DataCapturingException If this object has no valid Android <code>Context</code>.
      * @throws MissingPermissionException If permission <code>ACCESS_FINE_LOCATION</code> has not been granted or

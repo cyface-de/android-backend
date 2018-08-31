@@ -112,6 +112,6 @@ class TestListener implements DataCapturingListener {
      * @return The captured sensor data received during the test run.
      */
     public List<CapturedData> getCapturedData() {
-        return capturedData;
+        return Collections.unmodifiableList(capturedData);
     }
 }

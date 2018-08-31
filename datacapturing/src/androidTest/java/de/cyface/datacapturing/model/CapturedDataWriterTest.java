@@ -106,7 +106,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testCreateNewMeasurement() {
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(measurement.getIdentifier() >= 0L, is(equalTo(true)));
         String identifierString = Long.valueOf(measurement.getIdentifier()).toString();
         Log.d(TAG, identifierString);
@@ -124,7 +124,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             assertThat(result.moveToFirst(), is(equalTo(true)));
 
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
-                    is(equalTo(Vehicle.UNKOWN.getDatabaseIdentifier())));
+                    is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
             assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_FINISHED)), is(equalTo(0)));
 
         } finally {
@@ -148,7 +148,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             assertThat(closingResult.moveToFirst(), is(equalTo(true)));
 
             assertThat(closingResult.getString(closingResult.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
-                    is(equalTo(Vehicle.UNKOWN.getDatabaseIdentifier())));
+                    is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
             assertThat(closingResult.getInt(closingResult.getColumnIndex(MeasurementTable.COLUMN_FINISHED)),
                     is(equalTo(1)));
         } finally {
@@ -163,7 +163,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testStoreData() {
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -234,7 +234,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
     @Test
     public void testCascadingClearMeasurements() {
         // Insert some test data
-        oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
 
         final Lock lock = new ReentrantLock();
@@ -327,7 +327,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testLoadMeasurements() throws NoSuchMeasurementException {
-        oocut.newMeasurement(Vehicle.UNKOWN);
+        oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
         List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -346,7 +346,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testDeleteMeasurement() throws NoSuchMeasurementException {
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -429,7 +429,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
      */
     @Test
     public void testLoadTrack() throws NoSuchMeasurementException {
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKOWN);
+        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
