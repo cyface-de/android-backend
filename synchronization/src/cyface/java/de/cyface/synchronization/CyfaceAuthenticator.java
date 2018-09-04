@@ -115,6 +115,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                     sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
                     throw new NetworkErrorException(e);
                 } catch (final ResponseParsingException e) {
+                    Log.d(TAG, String.format("GetAuthToken failed: Error %s.", e.getMessage()));
                     sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
                     throw new NetworkErrorException(e);
                 } catch (final UnauthorizedException e) {
