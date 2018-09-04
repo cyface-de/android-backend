@@ -120,22 +120,19 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
+        Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
         return callerMessenger.getBinder();
     }
 
     @Override
     public boolean onUnbind(final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Unbinding from data capturing service.");
+        Log.d(TAG, "Unbinding from data capturing service.");
         return true; // I want to receive calls to onRebind
     }
 
     @Override
     public void onRebind(final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Rebinding to data capturing service.");
+        Log.d(TAG, "Rebinding to data capturing service.");
         super.onRebind(intent);
     }
 
@@ -143,8 +140,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onCreate() {
         super.onCreate();
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "onCreate");
+        Log.d(TAG, "onCreate");
 
         /*
          * Notification shown to the user while the data capturing is active.
@@ -164,19 +160,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         // Allows other parties to ping this service to see if it is running
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Registering Ping Receiver");
+        Log.v(TAG, "Registering Ping Receiver");
         registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "finishedOnCreate");
+        Log.d(TAG, "finishedOnCreate");
     }
 
     @Override
     public void onDestroy() {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "onDestroy");
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Unregistering Ping receiver.");
+        Log.d(TAG, "onDestroy");
+        Log.v(TAG, "Unregistering Ping receiver.");
         unregisterReceiver(pingReceiver);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
@@ -190,8 +182,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Since on some devices the broadcast seems not to work we are sending a message here.
         // informCaller(MessageCodes.SERVICE_STOPPED,null);
         super.onDestroy();
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Sending broadcast service stopped.");
+        Log.v(TAG, "Sending broadcast service stopped.");
         final Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
         serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         serviceStoppedIntent.putExtra(STOPPED_SUCCESSFULLY, true);
@@ -200,8 +191,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Starting DataCapturingBackgroundService.");
+        Log.d(TAG, "Starting DataCapturingBackgroundService.");
 
         if (intent != null) { // i.e. this is the initial start command call init.
             // Loads measurement id
@@ -226,8 +216,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         // Informs about the service start
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Sending broadcast service started.");
+        Log.v(TAG, "Sending broadcast service started.");
         final Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
@@ -244,8 +233,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @return the {@link GPSCapturingProcess}
      */
     private GPSCapturingProcess initializeCapturingProcess() {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Initializing capturing process");
+        Log.d(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
@@ -269,8 +257,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             msg.setData(dataBundle);
         }
 
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
+        Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
         // FIXME: Why do we make a copy of this set to iterate over it when we modify the original set anyway?
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
@@ -294,8 +281,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Data captured with #accelerations: " + data.getAccelerations().size());
+        Log.d(TAG, "Data captured with #accelerations: " + data.getAccelerations().size());
         final List<Point3D> accelerations = data.getAccelerations();
         final List<Point3D> rotations = data.getRotations();
         final List<Point3D> directions = data.getDirections();
@@ -329,8 +315,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onLocationCaptured(final @NonNull GeoLocation location) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Location captured");
+        Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
         persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
     }
@@ -377,15 +362,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, String.format("Service received message %s", msg.what));
+            Log.d(TAG, String.format("Service received message %s", msg.what));
 
             final DataCapturingBackgroundService service = context.get();
 
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
-                    if (BuildConfig.DEBUG)
-                        Log.d(TAG, "Registering client!");
+                    Log.d(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
                         Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }

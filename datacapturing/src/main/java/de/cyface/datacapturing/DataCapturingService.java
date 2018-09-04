@@ -247,13 +247,11 @@ public abstract class DataCapturingService {
     public void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Starting asynchronously and locking lifecycle!");
+        Log.d(TAG, "Starting asynchronously and locking lifecycle!");
         lifecycleLock.lock();
         try {
             if (getIsRunning()) {
-                if (BuildConfig.DEBUG)
-                    Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
+                Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
                 return;
             }
             // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
@@ -263,8 +261,7 @@ public abstract class DataCapturingService {
             Measurement measurement = prepareStart(listener, vehicle);
             runService(measurement, finishedHandler);
         } finally {
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
+            Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
             lifecycleLock.unlock();
         }
     }
@@ -322,15 +319,13 @@ public abstract class DataCapturingService {
      */
     public void stopAsync(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Stopping asynchronously!");
+        Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
             return;
         }
 
         lifecycleLock.lock();
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Locking in asynchronous stop.");
+        Log.v(TAG, "Locking in asynchronous stop.");
         try {
             setIsStoppingOrHasStopped(true);
             Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
@@ -348,8 +343,7 @@ public abstract class DataCapturingService {
             throw new DataCapturingException(e);
         } finally {
             persistenceLayer.closeRecentMeasurement();
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, "Unlocking in asynchronous stop.");
+            Log.v(TAG, "Unlocking in asynchronous stop.");
             lifecycleLock.unlock();
         }
     }
@@ -394,8 +388,7 @@ public abstract class DataCapturingService {
      */
     public void pauseAsync(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Pausing asynchronously.");
+        Log.d(TAG, "Pausing asynchronously.");
         Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
         if (currentMeasurement == null) {
@@ -453,8 +446,7 @@ public abstract class DataCapturingService {
      */
     public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Resume asynchronously.");
+        Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             persistenceLayer.closeRecentMeasurement();
             throw new MissingPermissionException();
@@ -545,8 +537,7 @@ public abstract class DataCapturingService {
      * @param callback Called as soon as the current state of the service has become clear.
      */
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Checking isRunning?");
+        Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
         pongReceiver.pongAndReceive(timeout, unit, callback);
     }
@@ -586,8 +577,7 @@ public abstract class DataCapturingService {
             @Override
             public void onSuccess() {
                 try {
-                    if (BuildConfig.DEBUG)
-                        Log.v(TAG, "ReconnectCallback.onSuccess(): Binding to service!");
+                    Log.v(TAG, "ReconnectCallback.onSuccess(): Binding to service!");
                     bind();
                 } catch (DataCapturingException e) {
                     throw new IllegalStateException("Illegal state: unable to bind to background service!");
@@ -605,8 +595,7 @@ public abstract class DataCapturingService {
         // Wait for isRunning to return.
         lock.lock();
         try {
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
+            Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
             if (!condition.await(500L, TimeUnit.MILLISECONDS)) {
                 Log.w(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
             }
@@ -691,14 +680,11 @@ public abstract class DataCapturingService {
      */
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
+        Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         Context context = getContext();
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Registering receiver for service start broadcast.");
+        Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, String.format("Starting using Intent with context %s.", context));
+        Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
@@ -743,8 +729,7 @@ public abstract class DataCapturingService {
         lock.lock();
         try {
             if (!synchronizationReceiver.receivedServiceStopped()) {
-                if (BuildConfig.DEBUG)
-                    Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
+                Log.v(TAG, "DataCapturingService.stopServiceSync: Did not yet receive service stopped. Waiting!");
                 if (!condition.await(timeout, unit)) {
                     throw new DataCapturingException(String.format(Locale.US,
                             "Service seems to not have stopped successfully. Timed out after %d milliseconds.",
@@ -776,13 +761,11 @@ public abstract class DataCapturingService {
      */
     private void stopService(final @NonNull Measurement measurement,
             final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Stopping the background service.");
+        Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
 
         Context context = getContext();
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Registering receiver for service stop broadcast.");
+        Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(finishedHandler, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         boolean serviceWasActive;
         try {
@@ -792,8 +775,7 @@ public abstract class DataCapturingService {
         } catch (DataCapturingException e) {
             Log.w(TAG, "Service was either paused or already stopped, so I was unable to unbind from it.");
         } finally {
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, String.format("Stopping using Intent with context %s", context));
+            Log.v(TAG, String.format("Stopping using Intent with context %s", context));
             Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
             serviceWasActive = context.stopService(stopIntent);
         }
@@ -886,8 +868,7 @@ public abstract class DataCapturingService {
 
         // This must not be interrupted or interrupt a call to stop the service.
         lifecycleLock.lock();
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Locking bind.");
+        Log.v(TAG, "Locking bind.");
         try {
             if (getIsStoppingOrHasStopped()) {
                 return false;
@@ -898,8 +879,7 @@ public abstract class DataCapturingService {
             setIsRunning(ret);
             return ret;
         } finally {
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, "Unlocking bind.");
+            Log.v(TAG, "Unlocking bind.");
             lifecycleLock.unlock();
         }
     }
@@ -925,8 +905,7 @@ public abstract class DataCapturingService {
      * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
      */
     private void setIsRunning(final boolean isRunning) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Setting isRunning to " + isRunning);
+        Log.d(TAG, "Setting isRunning to " + isRunning);
         this.isRunning = isRunning;
     }
 
@@ -934,8 +913,7 @@ public abstract class DataCapturingService {
      * @return {@code true} if data capturing is running; {@code false} otherwise.
      */
     public boolean getIsRunning() {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Getting isRunning with value " + isRunning);
+        Log.d(TAG, "Getting isRunning with value " + isRunning);
         return isRunning;
     }
 
@@ -945,8 +923,7 @@ public abstract class DataCapturingService {
      *            process or being called, while no service is running.
      */
     private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
+        Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
         this.isStoppingOrHasStopped = isStoppingOrHasStopped;
     }
 
@@ -956,8 +933,7 @@ public abstract class DataCapturingService {
      *         no service is running.
      */
     private boolean getIsStoppingOrHasStopped() {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
+        Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
         return isStoppingOrHasStopped;
     }
 
@@ -973,8 +949,7 @@ public abstract class DataCapturingService {
 
         @Override
         public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "DataCapturingService connected to background service.");
+            Log.d(TAG, "DataCapturingService connected to background service.");
             toServiceMessenger = new Messenger(binder);
             Message registerClient = new Message();
             registerClient.replyTo = fromServiceMessenger;
@@ -985,14 +960,12 @@ public abstract class DataCapturingService {
                 throw new IllegalStateException(e);
             }
 
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "ServiceConnection established!");
+            Log.d(TAG, "ServiceConnection established!");
         }
 
         @Override
         public void onServiceDisconnected(final @NonNull ComponentName componentName) {
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "Service disconnected!");
+            Log.d(TAG, "Service disconnected!");
             toServiceMessenger = null;
 
         }
@@ -1042,8 +1015,7 @@ public abstract class DataCapturingService {
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, String.format("Service facade received message: %d", msg.what));
+            Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (final DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
@@ -1066,8 +1038,7 @@ public abstract class DataCapturingService {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
                         } else {
-                            if (BuildConfig.DEBUG)
-                                Log.d(TAG, "Captured some sensor data.");
+                            Log.d(TAG, "Captured some sensor data.");
                             listener.onNewSensorDataAcquired(capturedData);
                         }
                         break;

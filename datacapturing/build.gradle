@@ -3,7 +3,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
 
@@ -72,7 +72,7 @@ android {
     buildTypes {
         release {
             minifyEnabled true
-            proguardFiles getDefaultProguardFile('proguard-android.txt'), 'proguard-rules.pro'
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
 }

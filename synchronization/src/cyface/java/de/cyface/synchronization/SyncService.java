@@ -6,14 +6,14 @@ import android.os.IBinder;
 import android.util.Log;
 
 /**
- * The synchronistaion <code>Service</code> used to bind the synchronisation adapter to the Android framework.
+ * The synchronisation <code>Service</code> used to bind the synchronisation adapter to the Android framework.
  * <p>
  * Further details are described in the <a href=
  * "https://developer.android.com/training/sync-adapters/creating-sync-adapter.html#CreateSyncAdapterService">Android
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class SyncService extends Service {
@@ -46,7 +46,9 @@ public final class SyncService extends Service {
         Log.d(TAG, "sync service on create");
         synchronized (LOCK) {
             if (syncAdapter == null) {
-                syncAdapter = new CyfaceSyncAdapter(getApplicationContext(), true, new CyfaceHttpConnection(), Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE, Constants.ROTATIONS_UPLOAD_BATCH_SIZE, Constants.DIRECTIONS_UPLOAD_BATCH_SIZE);
+                syncAdapter = new CyfaceSyncAdapter(getApplicationContext(), true, new CyfaceHttpConnection(),
+                        Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE,
+                        Constants.ROTATIONS_UPLOAD_BATCH_SIZE, Constants.DIRECTIONS_UPLOAD_BATCH_SIZE);
             }
         }
     }
