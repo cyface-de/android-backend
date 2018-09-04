@@ -107,8 +107,7 @@ public class MeasurementPersistence {
     public int closeRecentMeasurement() {
         // For brevity we are closing all open measurements. If we would like to make sure, that no error has occured we
         // would need to check that there is only one such open measurement before closing anything.
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Closing recent measurements");
+        Log.d(TAG, "Closing recent measurements");
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
         synchronized (this) {
@@ -116,8 +115,7 @@ public class MeasurementPersistence {
                     new String[]{"0"});
             currentMeasurementIdentifier = null;
 
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, "Closed " + updatedRows + " measurements");
+            Log.d(TAG, "Closed " + updatedRows + " measurements");
             return updatedRows;
         }
     }
@@ -140,8 +138,7 @@ public class MeasurementPersistence {
                     @Override
                     public void writingDataCompleted() {
                         // TODO: Add some useful code here as soon as data capturing is activated again.
-                        if (BuildConfig.DEBUG)
-                            Log.d(TAG, "Completed writing data.");
+                        Log.d(TAG, "Completed writing data.");
                     }
                 }));*/
     }
@@ -175,8 +172,7 @@ public class MeasurementPersistence {
      *             impossible. The second case is probably a serious system issue and should not happen.
      */
     public boolean hasOpenMeasurement() throws DataCapturingException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Checking if app has an open measurement.");
+        Log.d(TAG, "Checking if app has an open measurement.");
         Cursor openMeasurementQueryCursor = null;
         try {
             synchronized (this) {
@@ -193,8 +189,7 @@ public class MeasurementPersistence {
                 }
 
                 boolean hasOpenMeasurement = openMeasurementQueryCursor.getCount() == 1;
-                if (BuildConfig.DEBUG)
-                    Log.d(TAG, hasOpenMeasurement ? "One measurement is open." : "No measurement is open.");
+                Log.d(TAG, hasOpenMeasurement ? "One measurement is open." : "No measurement is open.");
                 return hasOpenMeasurement;
             }
         } finally {
@@ -217,8 +212,7 @@ public class MeasurementPersistence {
      */
     private long refreshIdentifierOfCurrentlyCapturedMeasurement()
             throws DataCapturingException, NoSuchMeasurementException {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Trying to load measurement identifier from content provider!");
+        Log.d(TAG, "Trying to load measurement identifier from content provider!");
         Cursor measurementIdentifierQueryCursor = null;
         try {
             synchronized (this) {
@@ -241,8 +235,7 @@ public class MeasurementPersistence {
 
                 int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
                 long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
-                if (BuildConfig.DEBUG)
-                    Log.d(TAG, "Providing measurement identifier " + measurementIdentifier);
+                Log.d(TAG, "Providing measurement identifier " + measurementIdentifier);
                 return measurementIdentifier;
             }
         } finally {

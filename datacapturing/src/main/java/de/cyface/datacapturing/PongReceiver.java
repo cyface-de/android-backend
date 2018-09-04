@@ -23,7 +23,7 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -107,26 +107,24 @@ public class PongReceiver extends BroadcastReceiver {
         Intent broadcastIntent = new Intent(MessageCodes.ACTION_PING);
         final String pingPongIdentifier = UUID.randomUUID().toString();
         if (BuildConfig.DEBUG) {
-            Log.v(TAG, "PongReceiver.pongAndReceive(): Variable currentUptimeInMillis is " + currentUptimeInMillis);
-            Log.v(TAG, "PongReceiver.pongAndReceive(): Variable offest is " + offset);
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
-            Log.v(TAG, "PongReceiver.pongAndReceive(): Sending ping with identifier " + pingPongIdentifier);
         }
+        Log.v(TAG, "PongReceiver.pongAndReceive(): Variable currentUptimeInMillis is " + currentUptimeInMillis);
+        Log.v(TAG, "PongReceiver.pongAndReceive(): Variable offset is " + offset);
+        Log.v(TAG, "PongReceiver.pongAndReceive(): Sending ping with identifier " + pingPongIdentifier);
 
         Handler timeoutHandler = new Handler(pongReceiverThread.getLooper());
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
-                if (BuildConfig.DEBUG)
-                    Log.d(TAG,
+                Log.d(TAG,
                             "PongReceiver.pongAndReceive(): Timeout for pong " + pingPongIdentifier + " reached after "
                                     + unit.toMillis(timeout) + " milliseconds. Executed at: "
                                     + SystemClock.uptimeMillis());
                 lock.lock();
                 try {
                     if (!isRunning) {
-                        if (BuildConfig.DEBUG)
-                            Log.d(TAG, "PongReceiver.pongAndReceive(): Service seems not to be running. Timing out!");
+                        Log.d(TAG, "PongReceiver.pongAndReceive(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
@@ -139,20 +137,17 @@ public class PongReceiver extends BroadcastReceiver {
         }, currentUptimeInMillis + offset);
 
         context.sendBroadcast(broadcastIntent);
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
+        Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
     }
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "PongReceiver.onReceive(): Received pong with identifier "
+        Log.d(TAG, "PongReceiver.onReceive(): Received pong with identifier "
                     + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
             if (!isTimedOut && MessageCodes.ACTION_PONG.equals(intent.getAction())) {
-                if (BuildConfig.DEBUG)
-                    Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
+                Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
                 this.context.unregisterReceiver(this);

@@ -20,12 +20,12 @@
 # hide the original source file name.
 #-renamesourcefileattribute SourceFile
 
-
 # These lines prevent Proguard from doing anything but removing unwanted log statements.
 -dontwarn **
 -target 1.7
 -dontusemixedcaseclassnames
 -dontskipnonpubliclibraryclasses
+# The -dontpreverify must not be used for Validate to work (else the JBytecode is generated wrongly)
 -verbose
 
 -optimizations !code/simplification/arithmetic,!code/allocation/variable
@@ -33,11 +33,14 @@
 -keepclassmembers class *{*;}
 -keepattributes *
 
-# This will strip `Log.v`, `Log.d`, and `Log.i` statements and will leave `Log.w` and `Log.e` statements intact.
+# When using optimized proguard, see https://stackoverflow.com/a/45076261/5815054
+-optimizations !code/simplification/cast,!code/simplification/advanced,!field/*,!class/merging/*,!method/removal/parameter,!method/propagation/parameter
 
+# In order for this flag to work we need to use proguard-optimize, see e.g. https://goo.gl/1DpWh7
+# This will strip `Log.v`, `Log.d`, and `Log.i` statements and will leave `Log.w` and `Log.e` statements intact.
 -assumenosideeffects class android.util.Log {
     public static boolean isLoggable(java.lang.String, int);
-    public static int v(...);
-    public static int d(...);
-    public static int i(...);
+    public static *** v(...);
+    public static *** d(...);
+    public static *** i(...);
 }
