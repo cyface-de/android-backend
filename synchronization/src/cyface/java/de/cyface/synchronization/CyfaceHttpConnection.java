@@ -4,6 +4,7 @@ import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -19,12 +20,12 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.0.0
  */
 public class CyfaceHttpConnection implements Http {
 
-    private static final String TAG = "de.cyface.http";
+    static final String TAG = "de.cyface.http";
 
     @Override
     public String returnUrlWithTrailingSlash(final String url) {
@@ -128,38 +129,19 @@ public class CyfaceHttpConnection implements Http {
      * @throws DataTransmissionException If the response was a non-successful HTTP response.
      * @throws ResponseParsingException If the system fails in handling the HTTP response.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
+     * @throws SynchronisationException If a connection error occurred while reading the response code.
      */
-    private HttpResponse readResponse(final @NonNull HttpURLConnection con)
-            throws DataTransmissionException, ResponseParsingException, UnauthorizedException {
+    private HttpResponse readResponse(final @NonNull HttpURLConnection con) throws ResponseParsingException,
+            DataTransmissionException, UnauthorizedException, SynchronisationException {
 
-        StringBuilder responseString = new StringBuilder();
-        HttpResponse response;
-        try {
-            // We need to read the status code first, as a response with an error might not contain
-            // a response body but an error response body. This caused "response not readable" on Xpedia Z5 6.0.1
-            // int status = con.getResponseCode();
-            try { // if (status >= 400 && status <= 600) {
-                BufferedReader er = new BufferedReader(new InputStreamReader(con.getErrorStream()));
-                String errorLine;
-                while ((errorLine = er.readLine()) != null) {
-                    responseString.append(errorLine);
-                }
-                er.close();
-            } catch (NullPointerException e) { // } else {
-                BufferedReader in = new BufferedReader(new InputStreamReader(con.getInputStream()));
-                String inputLine;
-                while ((inputLine = in.readLine()) != null) {
-                    responseString.append(inputLine);
-                }
-                in.close();
+        final HttpResponse response = readResponseFromConnection(con);
+        if (response.is2xxSuccessful()) {
+            return response;
+        } else {
+            if (response.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
+                throw new UnauthorizedException("Server returned 401: UNAUTHORIZED.");
             }
-            response = new HttpResponse(con.getResponseCode(), responseString.toString());
-            if (response.is2xxSuccessful()) {
-                return response;
-            } else {
-                if (response.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                    throw new UnauthorizedException("Server returned 401: UNAUTHORIZED.");
-                }
+            try {
                 if (response.getBody().has("errorName")) {
                     throw new DataTransmissionException(response.getResponseCode(),
                             response.getBody().getString("errorName"), response.getBody().getString("errorMessage"));
@@ -172,10 +154,66 @@ public class CyfaceHttpConnection implements Http {
                     throw new DataTransmissionException(response.getResponseCode(), "unknown response attributes",
                             response.getBody().toString());
                 }
+            } catch (final JSONException e) {
+                throw new ResponseParsingException(
+                        String.format("'%s'. Unable to read the http response.", e.getMessage()), e);
             }
-        } catch (final IOException | JSONException e) {
-            throw new ResponseParsingException(
-                    String.format("Error: '%s'. Unable to read the http response.", e.getMessage()), e);
         }
+    }
+
+    /**
+     * Extracts the {@link HttpResponse} from the {@link HttpURLConnection}.
+     * <p>
+     * (deprecated, 1) We read the http code first to decide if we need to read the response body from the
+     * ErrorStream or the InputStream. Else, we got "response not readable" on Xpedia Z5 6.0.1.
+     * <p>
+     * (deprecated, 2) Before we tried to read the ErrorStream first and if this threw a NullPointerException,
+     * we read the InputStream but this lead to a false invalid credential handling, throwing a
+     * {@link ResponseParsingException) instead of a {@link UnauthorizedException} on HTC Desire 500.
+     * TODO: Remove those notes when the synchronization errors are recognized correctly.
+     *
+     * @param con the {@link HttpURLConnection} to read the response from
+     * @return the {@link HttpResponse}
+     * @throws {@link ResponseParsingException} when the server response was unreadable
+     * @throws {@link SynchronisationException} when a connection error occurred while reading the response code
+     */
+    private HttpResponse readResponseFromConnection(final HttpURLConnection con)
+            throws ResponseParsingException, SynchronisationException {
+        String responseString;
+        try {
+            responseString = readInputStream(con.getInputStream());
+        } catch (final IOException e) {
+            // This means that an error occurred, read the error from the ErrorStream
+            // see https://developer.android.com/reference/java/net/HttpURLConnection
+            try {
+                responseString = readInputStream(con.getErrorStream());
+            } catch (IOException e1) {
+                throw new IllegalStateException("Unable to read error body.", e);
+            }
+        }
+
+        try {
+            return new HttpResponse(con.getResponseCode(), responseString);
+        } catch (final IOException e) {
+            throw new SynchronisationException("A connection error occurred while reading the response code.", e);
+        }
+    }
+
+    /**
+     * Reads a String from an InputStream.
+     *
+     * @param inputStream the {@link InputStream} to read from
+     * @throws IOException if an IO error occurred
+     * @return the {@link String} read from the InputStream
+     */
+    private String readInputStream(final InputStream inputStream) throws IOException {
+        final BufferedReader bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+        final StringBuilder responseString = new StringBuilder();
+        String line;
+        while ((line = bufferedReader.readLine()) != null) {
+            responseString.append(line);
+        }
+        bufferedReader.close();
+        return responseString.toString();
     }
 }
