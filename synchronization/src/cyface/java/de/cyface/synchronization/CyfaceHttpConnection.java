@@ -163,19 +163,11 @@ public class CyfaceHttpConnection implements Http {
 
     /**
      * Extracts the {@link HttpResponse} from the {@link HttpURLConnection}.
-     * <p>
-     * (deprecated, 1) We read the http code first to decide if we need to read the response body from the
-     * ErrorStream or the InputStream. Else, we got "response not readable" on Xpedia Z5 6.0.1.
-     * <p>
-     * (deprecated, 2) Before we tried to read the ErrorStream first and if this threw a NullPointerException,
-     * we read the InputStream but this lead to a false invalid credential handling, throwing a
-     * {@link ResponseParsingException) instead of a {@link UnauthorizedException} on HTC Desire 500.
-     * TODO: Remove those notes when the synchronization errors are recognized correctly.
      *
      * @param con the {@link HttpURLConnection} to read the response from
      * @return the {@link HttpResponse}
-     * @throws {@link ResponseParsingException} when the server response was unreadable
-     * @throws {@link SynchronisationException} when a connection error occurred while reading the response code
+     * @throws ResponseParsingException when the server response was unreadable
+     * @throws SynchronisationException when a connection error occurred while reading the response code
      */
     private HttpResponse readResponseFromConnection(final HttpURLConnection con)
             throws ResponseParsingException, SynchronisationException {
