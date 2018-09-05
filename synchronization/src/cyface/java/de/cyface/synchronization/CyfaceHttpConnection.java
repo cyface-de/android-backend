@@ -8,12 +8,19 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.nio.charset.Charset;
+import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
 
 import org.json.JSONException;
 
 import android.support.annotation.NonNull;
 import android.util.Log;
+
+import de.cyface.utils.Validate;
+import de.cyface.utils.ValidationException;
+
+import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
@@ -48,7 +55,7 @@ public class CyfaceHttpConnection implements Http {
     public HttpURLConnection openHttpConnection(final @NonNull URL url) throws ServerUnavailableException {
         try {
             final HttpURLConnection con = (HttpURLConnection)url.openConnection();
-            con.setRequestProperty("Content-Type", "application/json; charset=UTF-8");
+            con.setRequestProperty("Content-Type", "application/json; charset=" + DEFAULT_CHARSET);
             con.setConnectTimeout(5000);
             con.setRequestMethod("POST");
             con.setRequestProperty("User-Agent", System.getProperty("http.agent"));
@@ -65,13 +72,13 @@ public class CyfaceHttpConnection implements Http {
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException {
 
-        BufferedOutputStream os = initOutputStream(con, compress);
+        final BufferedOutputStream os = initOutputStream(con, compress);
         try {
             Log.d(TAG, "Transmitting with compression " + compress + ".");
             if (compress) {
-                os.write(gzip(payload.toString().getBytes("UTF-8")));
+                os.write(gzip(payload.toString().getBytes(DEFAULT_CHARSET)));
             } else {
-                os.write(payload.toString().getBytes("UTF-8"));
+                os.write(payload.toString().getBytes(DEFAULT_CHARSET));
             }
             os.flush();
             os.close();
@@ -196,12 +203,14 @@ public class CyfaceHttpConnection implements Http {
      *
      * @param inputStream the {@link InputStream} to read from
      * @throws IOException if an IO error occurred
+     * @throws ValidationException if the connect() method was not executed on {@link HttpURLConnection}
      * @return the {@link String} read from the InputStream
      */
-    private String readInputStream(final InputStream inputStream) throws IOException {
+    private String readInputStream(@NonNull final InputStream inputStream) throws IOException {
         BufferedReader bufferedReader = null;
         try {
-            bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
+            Validate.notNull(inputStream);
+            bufferedReader = new BufferedReader(new InputStreamReader(inputStream, DEFAULT_CHARSET));
             StringBuilder responseString = new StringBuilder();
             String line;
             while ((line = bufferedReader.readLine()) != null) {

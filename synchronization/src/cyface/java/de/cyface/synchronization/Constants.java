@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.2.2
  * @since 2.0.0
  */
 public final class Constants {
@@ -24,6 +24,8 @@ public final class Constants {
 
     // This may be used by all implementing apps, thus, public
     public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
+
+    public final static String DEFAULT_CHARSET = "UTF-8";
 
     private Constants() {
         // Nothing to do here.
