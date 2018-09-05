@@ -15,10 +15,17 @@ import android.support.annotation.NonNull;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.SamplePointTable;
 
+/**
+ * Mapper used to parse acceleration points from an to {@link JSONObject}s.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
+ */
 final class AccelerationJsonMapper implements JsonMapper {
     @Override
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
-        JSONObject json = new JSONObject();
+        final JSONObject json = new JSONObject();
         json.put("ax", cursor.getDouble(cursor.getColumnIndex(SamplePointTable.COLUMN_AX)));
         json.put("ay", cursor.getDouble(cursor.getColumnIndex(SamplePointTable.COLUMN_AY)));
         json.put("az", cursor.getDouble(cursor.getColumnIndex(SamplePointTable.COLUMN_AZ)));
@@ -29,16 +36,17 @@ final class AccelerationJsonMapper implements JsonMapper {
     @Override
     public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice,
             final @NonNull String authority) throws SynchronisationException {
-        Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
-        Uri tableUri = new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH)
-                .build();
+        final Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
+        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
+                .appendPath(SamplePointTable.URI_PATH).build();
 
         try {
-            String measurementIdentifier = measurementSlice.getString("id");
-            JSONArray accelerationsArray = measurementSlice.getJSONArray("accelerationPoints");
+            final String measurementIdentifier = measurementSlice.getString("id");
+            final JSONArray accelerationsArray = measurementSlice.getJSONArray("accelerationPoints");
+
             for (int i = 0; i < accelerationsArray.length(); i++) {
-                JSONObject acceleration = accelerationsArray.getJSONObject(i);
-                ContentProviderOperation operation = ContentProviderOperation.newUpdate(tableUri)
+                final JSONObject acceleration = accelerationsArray.getJSONObject(i);
+                final ContentProviderOperation operation = ContentProviderOperation.newUpdate(tableUri)
                         .withSelection(
                                 SamplePointTable.COLUMN_MEASUREMENT_FK + "=? AND " + SamplePointTable.COLUMN_TIME
                                         + "=?",
@@ -47,7 +55,7 @@ final class AccelerationJsonMapper implements JsonMapper {
                         .build();
                 updateOperations.add(operation);
             }
-        } catch (JSONException e) {
+        } catch (final JSONException e) {
             throw new SynchronisationException(e);
         }
 

@@ -15,10 +15,17 @@ import android.support.annotation.NonNull;
 import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 
+/**
+ * Mapper used to parse direction points from an to {@link JSONObject}s.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
+ */
 final class DirectionJsonMapper implements JsonMapper {
     @Override
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
-        JSONObject json = new JSONObject();
+        final JSONObject json = new JSONObject();
         json.put("mX", cursor.getDouble(cursor.getColumnIndex(MagneticValuePointTable.COLUMN_MX)));
         json.put("mY", cursor.getDouble(cursor.getColumnIndex(MagneticValuePointTable.COLUMN_MY)));
         json.put("mZ", cursor.getDouble(cursor.getColumnIndex(MagneticValuePointTable.COLUMN_MZ)));
@@ -29,16 +36,16 @@ final class DirectionJsonMapper implements JsonMapper {
     @Override
     public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice,
             final @NonNull String authority) throws SynchronisationException {
-        Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
-        Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
+        final Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
+        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
                 .appendPath(MagneticValuePointTable.URI_PATH).build();
 
         try {
-            String measurementIdentifier = measurementSlice.getString("id");
-            JSONArray directionArray = measurementSlice.getJSONArray("magneticValuePoints");
+            final String measurementIdentifier = measurementSlice.getString("id");
+            final JSONArray directionArray = measurementSlice.getJSONArray("magneticValuePoints");
             for (int i = 0; i < directionArray.length(); i++) {
-                JSONObject direction = directionArray.getJSONObject(i);
-                ContentProviderOperation operation = ContentProviderOperation.newUpdate(tableUri)
+                final JSONObject direction = directionArray.getJSONObject(i);
+                final ContentProviderOperation operation = ContentProviderOperation.newUpdate(tableUri)
                         .withSelection(
                                 MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=? AND "
                                         + MagneticValuePointTable.COLUMN_TIME + "=?",
@@ -47,7 +54,7 @@ final class DirectionJsonMapper implements JsonMapper {
                         .build();
                 updateOperations.add(operation);
             }
-        } catch (JSONException e) {
+        } catch (final JSONException e) {
             throw new SynchronisationException(e);
         }
 

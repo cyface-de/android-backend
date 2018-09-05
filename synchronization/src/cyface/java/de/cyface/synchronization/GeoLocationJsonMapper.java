@@ -1,24 +1,31 @@
 package de.cyface.synchronization;
 
-import android.content.ContentProviderOperation;
-import android.database.Cursor;
-import android.net.Uri;
-import android.support.annotation.NonNull;
+import java.util.ArrayList;
+import java.util.Collection;
 
 import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.util.ArrayList;
-import java.util.Collection;
+import android.content.ContentProviderOperation;
+import android.database.Cursor;
+import android.net.Uri;
+import android.support.annotation.NonNull;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 
+/**
+ * Mapper used to parse geolocations from an to {@link JSONObject}s.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
+ */
 final class GeoLocationJsonMapper implements JsonMapper {
     @Override
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
-        JSONObject geoLocationJson = new JSONObject();
+        final JSONObject geoLocationJson = new JSONObject();
         geoLocationJson.put("lat", cursor.getDouble(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
         geoLocationJson.put("lon", cursor.getDouble(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
         geoLocationJson.put("timestamp", cursor.getLong(cursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME)));
@@ -28,28 +35,27 @@ final class GeoLocationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice, final @NonNull String authority)
-            throws SynchronisationException {
-        Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
+    public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice,
+            final @NonNull String authority) throws SynchronisationException {
+        final Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
+        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
+                .appendPath(GpsPointsTable.URI_PATH).build();
 
         try {
-            String measurementIdentifier = measurementSlice.getString("id");
-            JSONArray geoLocationsArray = measurementSlice.getJSONArray("gpsPoints");
-            Uri tableUri = new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
+            final String measurementIdentifier = measurementSlice.getString("id");
+            final JSONArray geoLocationsArray = measurementSlice.getJSONArray("gpsPoints");
 
             for (int i = 0; i < geoLocationsArray.length(); i++) {
-                JSONObject geoLocation = geoLocationsArray.getJSONObject(i);
-                ContentProviderOperation operation = ContentProviderOperation
-                        .newUpdate(tableUri)
+                final JSONObject geoLocation = geoLocationsArray.getJSONObject(i);
+                final ContentProviderOperation operation = ContentProviderOperation.newUpdate(tableUri)
                         .withSelection(
                                 GpsPointsTable.COLUMN_MEASUREMENT_FK + "=? AND " + GpsPointsTable.COLUMN_GPS_TIME
                                         + "=?",
-                                new String[] {measurementIdentifier,
-                                        geoLocation.getString("timestamp")})
+                                new String[] {measurementIdentifier, geoLocation.getString("timestamp")})
                         .withValue(GpsPointsTable.COLUMN_IS_SYNCED, MeasuringPointsContentProvider.SQLITE_TRUE).build();
                 updateOperations.add(operation);
             }
-        } catch (JSONException e) {
+        } catch (final JSONException e) {
             throw new SynchronisationException(e);
         }
 
