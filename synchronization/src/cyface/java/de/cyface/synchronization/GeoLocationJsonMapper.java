@@ -19,7 +19,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * Mapper used to parse geolocations from an to {@link JSONObject}s.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 final class GeoLocationJsonMapper implements JsonMapper {
@@ -27,7 +27,7 @@ final class GeoLocationJsonMapper implements JsonMapper {
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
         final JSONObject geoLocationJson = new JSONObject();
         geoLocationJson.put("lat", cursor.getDouble(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
-        geoLocationJson.put("lon", cursor.getDouble(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
+        geoLocationJson.put("lon", cursor.getDouble(cursor.getColumnIndex(GpsPointsTable.COLUMN_LON)));
         geoLocationJson.put("timestamp", cursor.getLong(cursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME)));
         geoLocationJson.put("speed", cursor.getDouble(cursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED)));
         geoLocationJson.put("accuracy", cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY)));
