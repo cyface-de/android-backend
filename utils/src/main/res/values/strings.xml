@@ -11,7 +11,7 @@
     <string name="error_message_url_unreadable">Server address unreadable</string>
     <string name="error_message_http_response_unreadable">Server response unreadable</string>
     <string name="error_message_server_unavailable">Server not available</string>
-    <string name="error_message_database_unaddressable">Data unaddressable</string>
+    <string name="error_message_data_access_error">Data not accessible</string>
     <string name="error_message_no_un_synchronized_data">No un-synchronized data available</string>
     <string name="error_message_logged_out_no_account">No account found for synchronization. Please log in again.</string>
     <string name="error_message_unknown_sync_error">Synchronisation error</string>

@@ -12,7 +12,7 @@ import android.support.annotation.NonNull;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
 public final class CyfaceSyncProgressListener implements SyncProgressListener {
@@ -62,7 +62,7 @@ public final class CyfaceSyncProgressListener implements SyncProgressListener {
     }
 
     @Override
-    public void onProgress(JSONObject measurementSlice) throws RequestParsingException {
+    public void onProgress(final JSONObject measurementSlice) throws RequestParsingException {
         try {
             countOfTransmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
                     + measurementSlice.getJSONArray("magneticValuePoints").length()
@@ -71,7 +71,7 @@ public final class CyfaceSyncProgressListener implements SyncProgressListener {
         } catch (final JSONException e) {
             throw new RequestParsingException("Unable to parse measurement data", e);
         }
-        Intent syncInProgressIntent = new Intent(SYNC_PROGRESS);
+        final Intent syncInProgressIntent = new Intent(SYNC_PROGRESS);
         syncInProgressIntent.putExtra(SYNC_PROGRESS_TRANSMITTED, countOfTransmittedPoints);
         syncInProgressIntent.putExtra(SYNC_PROGRESS_TOTAL, countOfPointsToTransmit);
         context.sendBroadcast(syncInProgressIntent);
