@@ -208,11 +208,11 @@ public class CyfaceHttpConnection implements Http {
             while ((line = bufferedReader.readLine()) != null) {
                 responseString.append(line);
             }
+            return responseString.toString();
         } finally {
             if (bufferedReader != null) {
                 bufferedReader.close();
             }
         }
-        return responseString.toString();
     }
 }
