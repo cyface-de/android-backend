@@ -5,6 +5,7 @@ import java.util.Locale;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.support.annotation.NonNull;
+import android.util.Log;
 
 import de.cyface.datacapturing.DataCapturingService;
 
@@ -12,10 +13,14 @@ import de.cyface.datacapturing.DataCapturingService;
  * A position captured by the {@link DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @version 1.2.1
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
+    /**
+     * The tag used to identify Logcat output from objects of this class.
+     */
+    private static final String TAG = "de.cyface.capturing";
     /**
      * The captured latitude of this {@code GeoLocation} in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
@@ -54,19 +59,18 @@ public class GeoLocation implements Parcelable {
             final float accuracy) {
         if (lat < -90. || lat > 90.) {
             throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %d.", lat));
+                    "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %f.", lat));
         }
         if (lon < -180. || lon > 180.) {
             throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %d.", lon));
+                    "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %f.", lon));
         }
         if (speed < 0.) {
-            throw new IllegalArgumentException(
-                    String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %d.", speed));
+            Log.w(TAG, String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
         }
         if (accuracy < 0.) {
             throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for accuracy. Is required to be positive but was %d.", accuracy));
+                    "Illegal value for accuracy. Is required to be positive but was %f.", accuracy));
         }
         if (timestamp < 0L) {
             throw new IllegalArgumentException(String.format(Locale.US,
