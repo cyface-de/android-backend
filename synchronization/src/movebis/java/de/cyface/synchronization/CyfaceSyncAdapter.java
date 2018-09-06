@@ -139,7 +139,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         } catch (SynchronisationException e) {
             Log.e(TAG, "Unable to synchronize data because of SynchronizationException!", e);
         } catch (IllegalStateException e) {
-            Log.e(TAG, "Unexpected Exception occured during synchronization!", e);
+            Log.e(TAG, "Unexpected Exception occurred during synchronization!", e);
         } finally {
             if (syncableMeasurementsCursor != null) {
                 syncableMeasurementsCursor.close();

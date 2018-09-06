@@ -378,8 +378,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param jsonMapper The mapped to parse data of a specific type from the measurement slice. E.g.
      *            {@link GeoLocationJsonMapper}, {@link AccelerationJsonMapper}
      */
-    void markAsSynced(final ContentProviderClient provider, final String authority, final JSONObject measurementSlice,
-            final JsonMapper jsonMapper)
+    private void markAsSynced(final ContentProviderClient provider, final String authority, final JSONObject measurementSlice,
+                              final JsonMapper jsonMapper)
             throws SynchronisationException, RemoteException, OperationApplicationException {
 
         ArrayList<ContentProviderOperation> markAsSyncedOperation = new ArrayList<>(
@@ -389,8 +389,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         provider.applyBatch(markAsSyncedOperation);
     }
 
-    JSONObject prepareMeasurementSliceTemplate(final long measurementIdentifier,
-            final Cursor unsyncedMeasurementsCursor, final String deviceIdentifier) throws RequestParsingException {
+    private JSONObject prepareMeasurementSliceTemplate(final long measurementIdentifier,
+                                                       final Cursor unsyncedMeasurementsCursor, final String deviceIdentifier) throws RequestParsingException {
 
         final String measurementContext = unsyncedMeasurementsCursor
                 .getString(unsyncedMeasurementsCursor.getColumnIndex(MeasurementTable.COLUMN_VEHICLE));
