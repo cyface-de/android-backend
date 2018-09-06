@@ -3,6 +3,16 @@ Cyface Android SDK
 
 This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
 
+Setup
+-----
+
+Geo location tracks such as those captured by the Cyface Android SDK, should only be transmitted via a secure HTTPS connection.
+To make this possible the SDK requires a truststore containing the key of the server you are transmitting to.
+Since we can not know which public key your server uses, this must be provided by you.
+To do so place a truststore containing your key in
+
+    src/main/res/raw/truststore.jks
+
 Known Issues
 ------------
 
