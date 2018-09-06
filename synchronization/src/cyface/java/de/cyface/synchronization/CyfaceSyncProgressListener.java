@@ -65,7 +65,7 @@ public final class CyfaceSyncProgressListener implements SyncProgressListener {
     public void onProgress(final JSONObject measurementSlice) throws RequestParsingException {
         try {
             countOfTransmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
-                    + measurementSlice.getJSONArray("magneticValuePoints").length()
+                    + measurementSlice.getJSONArray("directionPoints").length()
                     + measurementSlice.getJSONArray("rotationPoints").length()
                     + measurementSlice.getJSONArray("accelerationPoints").length();
         } catch (final JSONException e) {

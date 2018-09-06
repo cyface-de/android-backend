@@ -37,12 +37,12 @@ public class SamplePointTest extends ProviderTestCase2<MeasuringPointsContentPro
         Uri.Builder uriBuilder = new Uri.Builder();
 
         fixturePoint = new ContentValues();
-        fixturePoint.put(SamplePointTable.COLUMN_AX, 1.0);
-        fixturePoint.put(SamplePointTable.COLUMN_AY, 1.0);
-        fixturePoint.put(SamplePointTable.COLUMN_AZ, 1.0);
-        fixturePoint.put(SamplePointTable.COLUMN_TIME, 1L);
-        fixturePoint.put(SamplePointTable.COLUMN_MEASUREMENT_FK, 1);
-        fixturePoint.put(SamplePointTable.COLUMN_IS_SYNCED, 1);
+        fixturePoint.put(AccelerationPointTable.COLUMN_AX, 1.0);
+        fixturePoint.put(AccelerationPointTable.COLUMN_AY, 1.0);
+        fixturePoint.put(AccelerationPointTable.COLUMN_AZ, 1.0);
+        fixturePoint.put(AccelerationPointTable.COLUMN_TIME, 1L);
+        fixturePoint.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, 1);
+        fixturePoint.put(AccelerationPointTable.COLUMN_IS_SYNCED, 1);
     }
 
     @Test
@@ -59,7 +59,7 @@ public class SamplePointTest extends ProviderTestCase2<MeasuringPointsContentPro
     @Test
     public void testUpdateSuccessfully() {
         final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getAccelerationsUri(), fixturePoint);
-        TestUtils.update(getMockContentResolver(), TestUtils.getAccelerationsUri(), identifier, SamplePointTable.COLUMN_AX, 1.0);
+        TestUtils.update(getMockContentResolver(), TestUtils.getAccelerationsUri(), identifier, AccelerationPointTable.COLUMN_AX, 1.0);
     }
 
     @Test

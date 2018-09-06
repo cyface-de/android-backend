@@ -1,56 +1,41 @@
 package de.cyface.synchronization;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.content.ContentProviderClient;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.IntentFilter;
-import android.content.OperationApplicationException;
-import android.content.SharedPreferences;
-import android.content.SyncResult;
-import android.database.Cursor;
-import android.net.Uri;
-import android.os.Bundle;
-import android.os.RemoteException;
-import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
+import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
+import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.clearDatabase;
+import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
+import static de.cyface.synchronization.TestUtils.getMeasurementUri;
+import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
+import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
-import org.json.JSONException;
-import org.json.JSONObject;
+import java.util.UUID;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import java.util.ArrayList;
-import java.util.Collections;
-import java.util.List;
-import java.util.UUID;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SyncResult;
+import android.database.Cursor;
+import android.os.Bundle;
+import android.preference.PreferenceManager;
+import android.provider.BaseColumns;
+import android.support.test.InstrumentationRegistry;
+import android.support.test.runner.AndroidJUnit4;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.utils.Validate;
-
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS_TOTAL;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS_TRANSMITTED;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.clearDatabase;
-import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
-import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
-import static de.cyface.synchronization.TestUtils.insertTestDirection;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestRotation;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
 
 /**
  * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code> with the database.
@@ -78,8 +63,6 @@ public class CyfaceSyncAdapterTest {
         context = null;
     }
 
-
-
     /**
      * Tests whether points are correctly marked as synced.
      */
@@ -87,7 +70,8 @@ public class CyfaceSyncAdapterTest {
     public void testOnPerformSync() {
 
         // Arrange
-        final CyfaceSyncAdapter syncAdapter = new CyfaceSyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2, 2);
+        final CyfaceSyncAdapter syncAdapter = new CyfaceSyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2,
+                2);
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);
@@ -102,13 +86,24 @@ public class CyfaceSyncAdapterTest {
         insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055141000L, 49.9304133333333,
                 8.82831833333333, 0.0, 940);
         Cursor locationsCursor = null;
+        Cursor measurementsCursor;
         // Assert that data is in the database
         try {
+            measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
+            assertThat(measurementsCursor.getCount(), is(1));
+            measurementsCursor.moveToNext();
+            final int measurementIsFinished = measurementsCursor
+                    .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_FINISHED));
+            assertThat(measurementIsFinished, is(SQLITE_TRUE));
+            final int measurementIsSynced = measurementsCursor
+                    .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_SYNCED));
+            assertThat(measurementIsSynced, is(SQLITE_FALSE));
             locationsCursor = loadTrack(contentResolver, measurementIdentifier);
             assertThat(locationsCursor.getCount(), is(1));
             locationsCursor.moveToNext();
-            final int isSynced = locationsCursor.getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
-            assertThat(isSynced, is(SQLITE_FALSE));
+            final int gpsPointIsSynced = locationsCursor
+                    .getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
+            assertThat(gpsPointIsSynced, is(SQLITE_FALSE));
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();
@@ -117,7 +112,7 @@ public class CyfaceSyncAdapterTest {
 
         // Mock - nothing to do
 
-        // Act: Insert data to be synced
+        // Act: sync
         ContentProviderClient client = null;
         try {
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri());
@@ -130,13 +125,12 @@ public class CyfaceSyncAdapterTest {
             }
         }
 
-        // Assert: points are marked as sync in the database
+        // Assert: synced data is deleted
         try {
+            measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
+            assertThat(measurementsCursor.getCount(), is(0));
             locationsCursor = loadTrack(contentResolver, measurementIdentifier);
-            assertThat(locationsCursor.getCount(), is(1));
-            locationsCursor.moveToNext();
-            final int isSynced = locationsCursor.getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
-            assertThat(isSynced, is(SQLITE_TRUE));
+            assertThat(locationsCursor.getCount(), is(0));
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();
@@ -152,7 +146,17 @@ public class CyfaceSyncAdapterTest {
      */
     public Cursor loadTrack(final ContentResolver resolver, final long measurementId) {
         return resolver.query(getGeoLocationsUri(), null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {String.valueOf(measurementId)},
-                    GpsPointsTable.COLUMN_GPS_TIME + " ASC");
+                new String[] {String.valueOf(measurementId)}, GpsPointsTable.COLUMN_GPS_TIME + " ASC");
+    }
+
+    /**
+     * Loads the measurement for the provided measurement id.
+     *
+     * @param measurementId The measurement id of the measurement to load.
+     * @return The cursor for the loaded measurement.
+     */
+    public Cursor loadMeasurement(final ContentResolver resolver, final long measurementId) {
+        return resolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+                new String[] {String.valueOf(measurementId)}, null);
     }
 }

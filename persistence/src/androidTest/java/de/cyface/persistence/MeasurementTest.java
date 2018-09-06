@@ -11,8 +11,6 @@ import org.junit.runner.RunWith;
 
 import android.content.ContentValues;
 import android.database.Cursor;
-import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.runner.AndroidJUnit4;
 import android.test.ProviderTestCase2;
@@ -145,12 +143,12 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      */
     private ContentValues accelerationContentValues(final long measurementIdentifier) {
         final ContentValues ret = new ContentValues();
-        ret.put(SamplePointTable.COLUMN_TIME, 10000L);
-        ret.put(SamplePointTable.COLUMN_IS_SYNCED, false);
-        ret.put(SamplePointTable.COLUMN_AX, 1.0);
-        ret.put(SamplePointTable.COLUMN_AY, 1.0);
-        ret.put(SamplePointTable.COLUMN_AZ, 1.0);
-        ret.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        ret.put(AccelerationPointTable.COLUMN_TIME, 10000L);
+        ret.put(AccelerationPointTable.COLUMN_IS_SYNCED, false);
+        ret.put(AccelerationPointTable.COLUMN_AX, 1.0);
+        ret.put(AccelerationPointTable.COLUMN_AY, 1.0);
+        ret.put(AccelerationPointTable.COLUMN_AZ, 1.0);
+        ret.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         return ret;
     }
 
@@ -179,12 +177,12 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      */
     private ContentValues directionContentValues(final long measurementIdentifier) {
         final ContentValues ret = new ContentValues();
-        ret.put(MagneticValuePointTable.COLUMN_TIME, 10000L);
-        ret.put(MagneticValuePointTable.COLUMN_IS_SYNCED, false);
-        ret.put(MagneticValuePointTable.COLUMN_MX, 1.0);
-        ret.put(MagneticValuePointTable.COLUMN_MY, 1.0);
-        ret.put(MagneticValuePointTable.COLUMN_MZ, 1.0);
-        ret.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        ret.put(DirectionPointTable.COLUMN_TIME, 10000L);
+        ret.put(DirectionPointTable.COLUMN_IS_SYNCED, false);
+        ret.put(DirectionPointTable.COLUMN_MX, 1.0);
+        ret.put(DirectionPointTable.COLUMN_MY, 1.0);
+        ret.put(DirectionPointTable.COLUMN_MZ, 1.0);
+        ret.put(DirectionPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         return ret;
     }
 

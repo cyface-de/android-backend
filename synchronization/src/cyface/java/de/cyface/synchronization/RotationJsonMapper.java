@@ -16,10 +16,11 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 
 /**
- * Mapper used to parse rotation points from an to {@link JSONObject}s.
+ * Mapper used to parse rotation points from and to {@link JSONObject}s.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since 2.0.0
  */
 final class RotationJsonMapper implements JsonMapper {
@@ -59,5 +60,32 @@ final class RotationJsonMapper implements JsonMapper {
         }
 
         return updateOperations;
+    }
+
+    @Override
+    public Collection<ContentProviderOperation> buildDeleteOperation(JSONObject measurementSlice, String authority)
+            throws SynchronisationException {
+        final Collection<ContentProviderOperation> deleteOperations = new ArrayList<>();
+        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
+                .appendPath(RotationPointTable.URI_PATH).build();
+
+        try {
+            final String measurementIdentifier = measurementSlice.getString("id");
+            final JSONArray rotationsArray = measurementSlice.getJSONArray("rotationPoints");
+
+            for (int i = 0; i < rotationsArray.length(); i++) {
+                final JSONObject rotation = rotationsArray.getJSONObject(i);
+                final ContentProviderOperation operation = ContentProviderOperation.newDelete(tableUri)
+                        .withSelection(RotationPointTable.COLUMN_MEASUREMENT_FK + "=? AND "
+                                + RotationPointTable.COLUMN_TIME + "=?",
+                                new String[] {measurementIdentifier, rotation.getString("timestamp")})
+                        .build();
+                deleteOperations.add(operation);
+            }
+        } catch (final JSONException e) {
+            throw new SynchronisationException(e);
+        }
+
+        return deleteOperations;
     }
 }

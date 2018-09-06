@@ -1,35 +1,35 @@
 package de.cyface.synchronization;
 
-import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.DirectionPointTable;
 
 final class DirectionsSerializer implements Point3DSerializer {
     @Override
     public String getTableUriPathSegment() {
-        return MagneticValuePointTable.URI_PATH;
+        return DirectionPointTable.URI_PATH;
     }
 
     @Override
     public String getXColumnName() {
-        return MagneticValuePointTable.COLUMN_MX;
+        return DirectionPointTable.COLUMN_MX;
     }
 
     @Override
     public String getYColumnName() {
-        return MagneticValuePointTable.COLUMN_MY;
+        return DirectionPointTable.COLUMN_MY;
     }
 
     @Override
     public String getZColumnName() {
-        return MagneticValuePointTable.COLUMN_MZ;
+        return DirectionPointTable.COLUMN_MZ;
     }
 
     @Override
     public String getMeasurementKeyColumnName() {
-        return MagneticValuePointTable.COLUMN_MEASUREMENT_FK;
+        return DirectionPointTable.COLUMN_MEASUREMENT_FK;
     }
 
     @Override
     public String getTimestampColumnName() {
-        return MagneticValuePointTable.COLUMN_TIME;
+        return DirectionPointTable.COLUMN_TIME;
     }
 }

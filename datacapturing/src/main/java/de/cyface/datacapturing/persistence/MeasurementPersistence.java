@@ -16,19 +16,18 @@ import android.support.annotation.NonNull;
 import android.support.annotation.Nullable;
 import android.util.Log;
 
-import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * This class wraps the Cyface Android persistence API as required by the <code>DataCapturingListener</code> and its
@@ -371,9 +370,9 @@ public class MeasurementPersistence {
         String[] arrayWithMeasurementIdentifier = {Long.valueOf(measurement.getIdentifier()).toString()};
         resolver.delete(getRotationsUri(), RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
-        resolver.delete(getAccelerationsUri(), SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
+        resolver.delete(getAccelerationsUri(), AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
-        resolver.delete(getDirectionsUri(), MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+        resolver.delete(getDirectionsUri(), DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
         resolver.delete(getGeoLocationsUri(), GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
@@ -483,7 +482,7 @@ public class MeasurementPersistence {
      * @return The content provider URI for the accelerations table.
      */
     private Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH).build();
     }
 
     /**
@@ -497,7 +496,7 @@ public class MeasurementPersistence {
      * @return The content provider URI for the directions table.
      */
     private Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(MagneticValuePointTable.URI_PATH)
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
                 .build();
     }
 }

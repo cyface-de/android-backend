@@ -13,16 +13,16 @@ import android.provider.BaseColumns;
  * @version 1.2.0
  * @since 1.0.0
  */
-public class SamplePointTable extends AbstractCyfaceMeasurementTable {
+public class AccelerationPointTable extends AbstractCyfaceMeasurementTable {
 
     /**
      * The path segment in the table URI identifying the accelerations table.
      */
     public final static String URI_PATH = "sample";
     /**
-     * Creates a new completely initialized {@code SamplePointTable} using "sample_points" as table name.
+     * Creates a new completely initialized {@code AccelerationPointTable} using "sample_points" as table name.
      */
-    public SamplePointTable() {
+    public AccelerationPointTable() {
         super("sample_points");
     }
     /**

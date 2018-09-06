@@ -11,11 +11,11 @@ import android.util.Log;
  * @version 2.1.0
  * @since 1.0.0
  */
-public class MagneticValuePointTable extends AbstractCyfaceMeasurementTable {
+public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
     /**
-     * Creates a new completely initialized {@code MagneticValuePointTable} using "magnetic_value_points" as table name.
+     * Creates a new completely initialized {@code DirectionPointTable} using "magnetic_value_points" as table name.
      */
-    protected MagneticValuePointTable() {
+    protected DirectionPointTable() {
         super("magnetic_value_points");
     }
     /**
@@ -25,7 +25,7 @@ public class MagneticValuePointTable extends AbstractCyfaceMeasurementTable {
     /**
      * Logging tag for Android logging.
      */
-    static final String TAG = "MagneticValuePointTable";
+    static final String TAG = "DirectionPointTable";
     /**
      * Column name for the column storing the magnetometer value in X direction in μT using the device coordinate
      * system.

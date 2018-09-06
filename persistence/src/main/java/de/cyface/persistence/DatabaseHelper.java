@@ -51,7 +51,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
     /**
      * The table to store all the accelerations captured on the device.
      */
-    private final SamplePointTable accelerationsTable;
+    private final AccelerationPointTable accelerationsTable;
     /**
      * The table to store all the rotations captured on the device.
      */
@@ -59,7 +59,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
     /**
      * The table to store all the directions captured on the device.
      */
-    private final MagneticValuePointTable directionsTable;
+    private final DirectionPointTable directionsTable;
 
     /**
      * Creates a new completely initialized <code>DatabaseHelper</code>.
@@ -72,9 +72,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
         // Current database structure
         measurementTable = new MeasurementTable();
         geoLocationsTable = new GpsPointsTable();
-        accelerationsTable = new SamplePointTable();
+        accelerationsTable = new AccelerationPointTable();
         rotationsTable = new RotationPointTable();
-        directionsTable = new MagneticValuePointTable();
+        directionsTable = new DirectionPointTable();
     }
 
     /**
@@ -156,8 +156,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         ret += deleteDataForMeasurement(database, Long.parseLong(rowIdentifier));
                         // continues here until return ! -->
                     case GpsPointsTable.URI_PATH:
-                    case SamplePointTable.URI_PATH:
-                    case MagneticValuePointTable.URI_PATH:
+                    case AccelerationPointTable.URI_PATH:
+                    case DirectionPointTable.URI_PATH:
                     case RotationPointTable.URI_PATH:
                         // Add the id specified by the URI to implement expected behaviour of a content resolver, where
                         // the
@@ -185,9 +185,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
                             ret += rotationsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "<=?",
                                     selectionArgs);
                             ret += directionsTable.deleteRow(database,
-                                    MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
+                                    DirectionPointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
                             ret += accelerationsTable.deleteRow(database,
-                                    SamplePointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
+                                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
                         } else {
                             Cursor selectedMeasurementsCursor = null;
                             try {
@@ -205,8 +205,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         }
                         // continues here until return ! -->
                     case GpsPointsTable.URI_PATH:
-                    case SamplePointTable.URI_PATH:
-                    case MagneticValuePointTable.URI_PATH:
+                    case AccelerationPointTable.URI_PATH:
+                    case DirectionPointTable.URI_PATH:
                     case RotationPointTable.URI_PATH:
                         ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
                         database.setTransactionSuccessful();
@@ -236,9 +236,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
         ret += geoLocationsTable.deleteRow(database, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
         ret += rotationsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
-        ret += directionsTable.deleteRow(database, MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+        ret += directionsTable.deleteRow(database, DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 identifierAsArgs);
-        ret += accelerationsTable.deleteRow(database, SamplePointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
+        ret += accelerationsTable.deleteRow(database, AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
         return ret;
     }
 
@@ -349,13 +349,13 @@ class DatabaseHelper extends SQLiteOpenHelper {
         switch (firstPathSegment) {
             case MeasurementTable.URI_PATH:
                 return measurementTable;
-            case SamplePointTable.URI_PATH:
+            case AccelerationPointTable.URI_PATH:
                 return accelerationsTable;
             case GpsPointsTable.URI_PATH:
                 return geoLocationsTable;
             case RotationPointTable.URI_PATH:
                 return rotationsTable;
-            case MagneticValuePointTable.URI_PATH:
+            case DirectionPointTable.URI_PATH:
                 return directionsTable;
             default:
                 throw new IllegalStateException("Unknown table with URI: " + uri);

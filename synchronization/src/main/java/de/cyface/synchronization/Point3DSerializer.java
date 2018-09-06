@@ -1,10 +1,8 @@
 package de.cyface.synchronization;
 
-import android.net.Uri;
-
-import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * Serializes a point with 3 coordinates (i.e. acceleration, rotation, direction) into the Cyface binary format. An
@@ -14,9 +12,9 @@ import de.cyface.persistence.SamplePointTable;
  * @author Klemens Muthmann
  * @version 2.0.0
  * @since 2.0.0
- * @see SamplePointTable
+ * @see AccelerationPointTable
  * @see RotationPointTable
- * @see MagneticValuePointTable
+ * @see DirectionPointTable
  */
 interface Point3DSerializer {
 

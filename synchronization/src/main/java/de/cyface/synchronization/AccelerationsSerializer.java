@@ -1,35 +1,35 @@
 package de.cyface.synchronization;
 
-import de.cyface.persistence.SamplePointTable;
+import de.cyface.persistence.AccelerationPointTable;
 
 final class AccelerationsSerializer implements Point3DSerializer {
     @Override
     public String getTableUriPathSegment() {
-        return SamplePointTable.URI_PATH;
+        return AccelerationPointTable.URI_PATH;
     }
 
     @Override
     public String getXColumnName() {
-        return SamplePointTable.COLUMN_AX;
+        return AccelerationPointTable.COLUMN_AX;
     }
 
     @Override
     public String getYColumnName() {
-        return SamplePointTable.COLUMN_AY;
+        return AccelerationPointTable.COLUMN_AY;
     }
 
     @Override
     public String getZColumnName() {
-        return SamplePointTable.COLUMN_AZ;
+        return AccelerationPointTable.COLUMN_AZ;
     }
 
     @Override
     public String getMeasurementKeyColumnName() {
-        return SamplePointTable.COLUMN_MEASUREMENT_FK;
+        return AccelerationPointTable.COLUMN_MEASUREMENT_FK;
     }
 
     @Override
     public String getTimestampColumnName() {
-        return SamplePointTable.COLUMN_TIME;
+        return AccelerationPointTable.COLUMN_TIME;
     }
 }

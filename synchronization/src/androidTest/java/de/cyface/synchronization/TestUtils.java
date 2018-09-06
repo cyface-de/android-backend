@@ -5,11 +5,11 @@ import android.content.ContentValues;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * Contains utility methods and constants required by the tests within the synchronization project.
@@ -49,7 +49,7 @@ final class TestUtils {
     }
 
     static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(SamplePointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH).build();
     }
 
     static Uri getRotationsUri() {
@@ -57,7 +57,7 @@ final class TestUtils {
     }
 
     static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MagneticValuePointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH).build();
     }
 
     /**
@@ -73,12 +73,12 @@ final class TestUtils {
     static void insertTestDirection(final @NonNull ContentResolver resolver, final long measurementIdentifier,
                                     final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
-        values.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-        values.put(MagneticValuePointTable.COLUMN_IS_SYNCED, false);
-        values.put(MagneticValuePointTable.COLUMN_MX, x);
-        values.put(MagneticValuePointTable.COLUMN_MY, y);
-        values.put(MagneticValuePointTable.COLUMN_MZ, z);
-        values.put(MagneticValuePointTable.COLUMN_TIME, timestamp);
+        values.put(DirectionPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        values.put(DirectionPointTable.COLUMN_IS_SYNCED, false);
+        values.put(DirectionPointTable.COLUMN_MX, x);
+        values.put(DirectionPointTable.COLUMN_MY, y);
+        values.put(DirectionPointTable.COLUMN_MZ, z);
+        values.put(DirectionPointTable.COLUMN_TIME, timestamp);
         resolver.insert(getDirectionsUri(), values);
     }
 
@@ -117,12 +117,12 @@ final class TestUtils {
     static void insertTestAcceleration(final @NonNull ContentResolver resolver, final long measurementIdentifier,
                                        final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
-        values.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-        values.put(SamplePointTable.COLUMN_IS_SYNCED, false);
-        values.put(SamplePointTable.COLUMN_AX, x);
-        values.put(SamplePointTable.COLUMN_AY, y);
-        values.put(SamplePointTable.COLUMN_AZ, z);
-        values.put(SamplePointTable.COLUMN_TIME, timestamp);
+        values.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        values.put(AccelerationPointTable.COLUMN_IS_SYNCED, false);
+        values.put(AccelerationPointTable.COLUMN_AX, x);
+        values.put(AccelerationPointTable.COLUMN_AY, y);
+        values.put(AccelerationPointTable.COLUMN_AZ, z);
+        values.put(AccelerationPointTable.COLUMN_TIME, timestamp);
         resolver.insert(getAccelerationsUri(), values);
     }
 

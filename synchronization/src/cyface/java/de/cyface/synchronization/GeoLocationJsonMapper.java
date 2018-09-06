@@ -16,10 +16,11 @@ import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 
 /**
- * Mapper used to parse geolocations from an to {@link JSONObject}s.
+ * Mapper used to parse geolocations from and to {@link JSONObject}s.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since 2.0.0
  */
 final class GeoLocationJsonMapper implements JsonMapper {
@@ -60,5 +61,33 @@ final class GeoLocationJsonMapper implements JsonMapper {
         }
 
         return updateOperations;
+    }
+
+    @Override
+    public Collection<ContentProviderOperation> buildDeleteOperation(JSONObject measurementSlice, String authority)
+            throws SynchronisationException {
+        final Collection<ContentProviderOperation> deleteOperations = new ArrayList<>();
+        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
+                .appendPath(GpsPointsTable.URI_PATH).build();
+
+        try {
+            final String measurementIdentifier = measurementSlice.getString("id");
+            final JSONArray geoLocationsArray = measurementSlice.getJSONArray("gpsPoints");
+
+            for (int i = 0; i < geoLocationsArray.length(); i++) {
+                final JSONObject geoLocation = geoLocationsArray.getJSONObject(i);
+                final ContentProviderOperation operation = ContentProviderOperation.newDelete(tableUri)
+                        .withSelection(
+                                GpsPointsTable.COLUMN_MEASUREMENT_FK + "=? AND " + GpsPointsTable.COLUMN_GPS_TIME
+                                        + "=?",
+                                new String[] {measurementIdentifier, geoLocation.getString("timestamp")})
+                        .build();
+                deleteOperations.add(operation);
+            }
+        } catch (final JSONException e) {
+            throw new SynchronisationException(e);
+        }
+
+        return deleteOperations;
     }
 }

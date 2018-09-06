@@ -7,7 +7,6 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.test.MoreAsserts;
 import android.test.mock.MockContentResolver;
 
 import java.util.ArrayList;
@@ -100,7 +99,7 @@ class TestUtils {
     }
 
     static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(SamplePointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH).build();
     }
 
     static Uri getRotationsUri() {
@@ -108,6 +107,6 @@ class TestUtils {
     }
 
     static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MagneticValuePointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH).build();
     }
 }
