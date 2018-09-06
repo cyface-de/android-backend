@@ -1,6 +1,3 @@
-/*
- * Created on 03.12.15 at 20:58
- */
 package de.cyface.persistence;
 
 import org.junit.After;
@@ -18,7 +15,7 @@ import android.test.ProviderTestCase2;
  * Tests correct behaviour for database operations on sample points.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)

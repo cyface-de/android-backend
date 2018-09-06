@@ -19,7 +19,7 @@ import android.test.ProviderTestCase2;
  * Tests that CRUD operations on measurements and the measurements table are working correctly.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)

@@ -8,7 +8,7 @@ import android.util.Log;
  * A table for magnetic value points from the android magnetometer sensor (with hard iron calibration).
  *
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 2.1.1
  * @since 1.0.0
  */
 public class DirectionPointTable extends AbstractCyfaceMeasurementTable {

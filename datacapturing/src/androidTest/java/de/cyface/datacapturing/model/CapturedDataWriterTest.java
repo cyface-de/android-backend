@@ -50,7 +50,7 @@ import de.cyface.persistence.RotationPointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 4.0.0
+ * @version 4.0.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)

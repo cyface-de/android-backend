@@ -15,7 +15,7 @@ import de.cyface.persistence.RotationPointTable;
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.3
  * @since 2.1.0
  */
 final class TestUtils {

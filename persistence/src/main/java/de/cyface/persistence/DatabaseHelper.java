@@ -1,6 +1,3 @@
-/*
- * Created at 16:01:54 on 20.01.2015
- */
 package de.cyface.persistence;
 
 import java.util.List;
@@ -22,7 +19,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
