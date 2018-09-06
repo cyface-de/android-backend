@@ -18,7 +18,7 @@ import de.cyface.persistence.AccelerationPointTable;
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 public class ServiceTestUtils {
