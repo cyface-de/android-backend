@@ -89,6 +89,7 @@ public class CyfaceSyncAdapterTest {
         Cursor measurementsCursor;
         // Assert that data is in the database
         try {
+            // Measurement entry
             measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
             assertThat(measurementsCursor.getCount(), is(1));
             measurementsCursor.moveToNext();
@@ -98,6 +99,7 @@ public class CyfaceSyncAdapterTest {
             final int measurementIsSynced = measurementsCursor
                     .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_SYNCED));
             assertThat(measurementIsSynced, is(SQLITE_FALSE));
+            // GPS Point
             locationsCursor = loadTrack(contentResolver, measurementIdentifier);
             assertThat(locationsCursor.getCount(), is(1));
             locationsCursor.moveToNext();
@@ -125,12 +127,23 @@ public class CyfaceSyncAdapterTest {
             }
         }
 
-        // Assert: synced data is deleted
+        // Assert: synced data is marked as synced
+        // TODO: After fixing open bug #CY-4058 we need to check that the data and measurement is deleted instead
         try {
+            // Measurement entry
             measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
-            assertThat(measurementsCursor.getCount(), is(0));
+            assertThat(measurementsCursor.getCount(), is(1));
+            measurementsCursor.moveToNext();
+            final int measurementIsSynced = measurementsCursor
+                    .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_SYNCED));
+            assertThat(measurementIsSynced, is(SQLITE_TRUE));
+            // GPS Point
             locationsCursor = loadTrack(contentResolver, measurementIdentifier);
-            assertThat(locationsCursor.getCount(), is(0));
+            assertThat(locationsCursor.getCount(), is(1));
+            locationsCursor.moveToNext();
+            final int gpsPointIsSynced = locationsCursor
+                    .getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
+            assertThat(gpsPointIsSynced, is(SQLITE_TRUE));
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();
