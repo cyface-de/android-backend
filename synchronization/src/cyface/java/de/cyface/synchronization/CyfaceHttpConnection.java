@@ -200,10 +200,9 @@ public class CyfaceHttpConnection implements Http {
      */
     private String readInputStream(final InputStream inputStream) throws IOException {
         BufferedReader bufferedReader = null;
-        StringBuilder responseString;
         try {
             bufferedReader = new BufferedReader(new InputStreamReader(inputStream));
-            responseString = new StringBuilder();
+            StringBuilder responseString = new StringBuilder();
             String line;
             while ((line = bufferedReader.readLine()) != null) {
                 responseString.append(line);
