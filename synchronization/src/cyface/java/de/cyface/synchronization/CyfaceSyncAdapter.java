@@ -154,9 +154,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 final long measurementIdentifier = syncableMeasurementsCursor.getLong(identifierColumnIndex);
                 syncMeasurement(authority, provider, syncableMeasurementsCursor, deviceIdentifier, syncResult, context,
                         url, account, measurementIdentifier);
-                deleteMeasurement(provider, authority, measurementIdentifier);
-            }
 
+                // If there are no exceptions thrown mark the measurement as synced.
+                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+                        provider, authority);
+                loader.cleanMeasurement();
+                Log.d(TAG, "Measurement marked as synced.");
+            }
         } catch (final DatabaseException | RemoteException e) {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
@@ -173,20 +177,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             if (syncableMeasurementsCursor != null) {
                 syncableMeasurementsCursor.close();
             }
-        }
-    }
-
-    private void deleteMeasurement(final ContentProviderClient provider, final String authority,
-            final long measurementIdentifier) throws DatabaseException {
-        // If there are no exceptions thrown and the measurement was synced, delete it.
-        final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                provider, authority);
-        try {
-            loader.cleanMeasurement();
-            Log.d(TAG, "Measurement deleted.");
-        } catch (final RemoteException e) {
-            throw new DatabaseException("Failed to delete measurement " + measurementIdentifier + ". " + e.getMessage(),
-                    e);
         }
     }
 

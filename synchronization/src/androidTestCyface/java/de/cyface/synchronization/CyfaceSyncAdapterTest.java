@@ -134,7 +134,6 @@ public class CyfaceSyncAdapterTest {
         try {
             // Measurement entry
             measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
-            // TODO: After fixing open bug #CY-4058 we need to check that the measurement is deleted
             assertThat(measurementsCursor.getCount(), is(1));
             measurementsCursor.moveToNext();
             final int measurementIsSynced = measurementsCursor
