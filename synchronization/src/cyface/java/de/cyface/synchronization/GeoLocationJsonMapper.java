@@ -1,19 +1,15 @@
 package de.cyface.synchronization;
 
-import java.util.ArrayList;
 import java.util.Collection;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.ContentProviderOperation;
 import android.database.Cursor;
-import android.net.Uri;
 import android.support.annotation.NonNull;
 
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 
 /**
  * Mapper used to parse geolocations from and to {@link JSONObject}s.
@@ -24,6 +20,13 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * @since 2.0.0
  */
 final class GeoLocationJsonMapper implements JsonMapper {
+
+    private JsonDatabaseMapper jsonDatabaseMapper;
+
+    GeoLocationJsonMapper() {
+        this.jsonDatabaseMapper = new JsonDatabaseMapper();
+    }
+
     @Override
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
         final JSONObject geoLocationJson = new JSONObject();
@@ -36,58 +39,10 @@ final class GeoLocationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice,
-            final @NonNull String authority) throws SynchronisationException {
-        final Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
-        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
-                .appendPath(GpsPointsTable.URI_PATH).build();
+    public Collection<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
+            final String authority) throws SynchronisationException {
 
-        try {
-            final String measurementIdentifier = measurementSlice.getString("id");
-            final JSONArray geoLocationsArray = measurementSlice.getJSONArray("gpsPoints");
-
-            for (int i = 0; i < geoLocationsArray.length(); i++) {
-                final JSONObject geoLocation = geoLocationsArray.getJSONObject(i);
-                final ContentProviderOperation operation = ContentProviderOperation.newUpdate(tableUri)
-                        .withSelection(
-                                GpsPointsTable.COLUMN_MEASUREMENT_FK + "=? AND " + GpsPointsTable.COLUMN_GPS_TIME
-                                        + "=?",
-                                new String[] {measurementIdentifier, geoLocation.getString("timestamp")})
-                        .withValue(GpsPointsTable.COLUMN_IS_SYNCED, MeasuringPointsContentProvider.SQLITE_TRUE).build();
-                updateOperations.add(operation);
-            }
-        } catch (final JSONException e) {
-            throw new SynchronisationException(e);
-        }
-
-        return updateOperations;
-    }
-
-    @Override
-    public Collection<ContentProviderOperation> buildDeleteOperation(JSONObject measurementSlice, String authority)
-            throws SynchronisationException {
-        final Collection<ContentProviderOperation> deleteOperations = new ArrayList<>();
-        final Uri tableUri = new Uri.Builder().scheme("content").authority(authority)
-                .appendPath(GpsPointsTable.URI_PATH).build();
-
-        try {
-            final String measurementIdentifier = measurementSlice.getString("id");
-            final JSONArray geoLocationsArray = measurementSlice.getJSONArray("gpsPoints");
-
-            for (int i = 0; i < geoLocationsArray.length(); i++) {
-                final JSONObject geoLocation = geoLocationsArray.getJSONObject(i);
-                final ContentProviderOperation operation = ContentProviderOperation.newDelete(tableUri)
-                        .withSelection(
-                                GpsPointsTable.COLUMN_MEASUREMENT_FK + "=? AND " + GpsPointsTable.COLUMN_GPS_TIME
-                                        + "=?",
-                                new String[] {measurementIdentifier, geoLocation.getString("timestamp")})
-                        .build();
-                deleteOperations.add(operation);
-            }
-        } catch (final JSONException e) {
-            throw new SynchronisationException(e);
-        }
-
-        return deleteOperations;
+        return jsonDatabaseMapper.buildDeleteOperation(measurementSlice, authority, GpsPointsTable.URI_PATH,
+                "gpsPoints", GpsPointsTable.COLUMN_MEASUREMENT_FK, GpsPointsTable.COLUMN_GPS_TIME);
     }
 }

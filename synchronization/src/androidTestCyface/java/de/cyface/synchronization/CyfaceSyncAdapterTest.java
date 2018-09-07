@@ -131,10 +131,10 @@ public class CyfaceSyncAdapterTest {
         }
 
         // Assert: synced data is marked as synced
-        // TODO: After fixing open bug #CY-4058 we need to check that the data and measurement is deleted instead
         try {
             // Measurement entry
             measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
+            // TODO: After fixing open bug #CY-4058 we need to check that the measurement is deleted
             assertThat(measurementsCursor.getCount(), is(1));
             measurementsCursor.moveToNext();
             final int measurementIsSynced = measurementsCursor
@@ -142,11 +142,7 @@ public class CyfaceSyncAdapterTest {
             assertThat(measurementIsSynced, is(SQLITE_TRUE));
             // GPS Point
             locationsCursor = loadTrack(contentResolver, measurementIdentifier);
-            assertThat(locationsCursor.getCount(), is(1));
-            locationsCursor.moveToNext();
-            final int gpsPointIsSynced = locationsCursor
-                    .getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
-            assertThat(gpsPointIsSynced, is(SQLITE_TRUE));
+            assertThat(locationsCursor.getCount(), is(0));
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();
