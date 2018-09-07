@@ -86,7 +86,7 @@ public class CyfaceSyncAdapterTest {
         insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055141000L, 49.9304133333333,
                 8.82831833333333, 0.0, 940);
         Cursor locationsCursor = null;
-        Cursor measurementsCursor;
+        Cursor measurementsCursor = null;
         // Assert that data is in the database
         try {
             // Measurement entry
@@ -109,6 +109,9 @@ public class CyfaceSyncAdapterTest {
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();
+            }
+            if (measurementsCursor != null) {
+                measurementsCursor.close();
             }
         }
 
