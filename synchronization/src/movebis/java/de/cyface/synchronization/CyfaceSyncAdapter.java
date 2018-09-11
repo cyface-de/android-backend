@@ -84,7 +84,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
         final MeasurementSerializer serializer = new MeasurementSerializer();
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(getContext());
-        final Cursor syncableMeasurementsCursor = null;
+        Cursor syncableMeasurementsCursor = null;
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, Constants.AUTH_TOKEN_TYPE,
                 null, false, null, null);

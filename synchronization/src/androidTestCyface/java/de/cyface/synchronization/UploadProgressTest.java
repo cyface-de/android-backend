@@ -42,6 +42,8 @@ import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.utils.Validate;
+
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
@@ -114,6 +116,7 @@ public class UploadProgressTest {
 
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri());
             SyncResult result = new SyncResult();
+            Validate.notNull(client);
             syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
         } finally {
             if (client != null) {
