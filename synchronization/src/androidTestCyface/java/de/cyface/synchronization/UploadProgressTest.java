@@ -84,10 +84,6 @@ public class UploadProgressTest {
         filter.addAction(SYNC_POINTS_TRANSMITTED);
         filter.addAction(SYNC_POINTS_TO_TRANSMIT);
         filter.addAction(CyfaceConnectionListener.SYNC_STARTED);
-        filter.addAction(CyfaceConnectionListener.SYNC_ERROR_MESSAGE);
-        filter.addAction(CyfaceConnectionListener.SYNC_EXCEPTION_TYPE);
-        filter.addAction(CyfaceConnectionListener.SYNC_READ_ERROR);
-        filter.addAction(CyfaceConnectionListener.SYNC_TRANSMIT_ERROR);
         context.registerReceiver(receiver, filter);
 
         ContentProviderClient client = null;
@@ -165,18 +161,6 @@ class TestReceiver extends BroadcastReceiver {
                 break;
             case CyfaceConnectionListener.SYNC_STARTED:
                 Log.d(TAG, "SYNC STARTED");
-                break;
-            case CyfaceConnectionListener.SYNC_ERROR_MESSAGE:
-                Log.d(TAG, "SYNC ERROR MESSAGE");
-                break;
-            case CyfaceConnectionListener.SYNC_EXCEPTION_TYPE:
-                Log.d(TAG, "SYNC EXCEPTION TYPE");
-                break;
-            case CyfaceConnectionListener.SYNC_READ_ERROR:
-                Log.d(TAG, "SYNC READ ERROR");
-                break;
-            case CyfaceConnectionListener.SYNC_TRANSMIT_ERROR:
-                Log.d(TAG, "SYNC TRANSIT ERROR");
                 break;
             default:
                 throw new IllegalStateException(String.format("Invalid message %s", intent.getAction()));
