@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import java.util.Collection;
+import java.util.ArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,8 +38,8 @@ final class AccelerationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
-            final String authority) throws SynchronisationException {
+    public ArrayList<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
+                                                                              final String authority) throws SynchronisationException {
 
         return jsonDatabaseMapper.buildDeleteOperation(measurementSlice, authority, AccelerationPointTable.URI_PATH,
                 "accelerationPoints", AccelerationPointTable.COLUMN_MEASUREMENT_FK, AccelerationPointTable.COLUMN_TIME);

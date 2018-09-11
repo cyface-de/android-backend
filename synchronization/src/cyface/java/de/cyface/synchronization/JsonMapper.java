@@ -38,7 +38,7 @@ public interface JsonMapper {
      * @return A {@link Collection<ContentProviderOperation>}s which deletes the points.
      * @throws SynchronisationException When the data could not be mapped.
      */
-    Collection<ContentProviderOperation> buildDeleteDataPointsOperation(JSONObject measurementSlice, String authority)
+    ArrayList<ContentProviderOperation> buildDeleteDataPointsOperation(JSONObject measurementSlice, String authority)
             throws SynchronisationException;
 
     /**
@@ -49,11 +49,11 @@ public interface JsonMapper {
      * @since 2.4.0
      */
     class JsonDatabaseMapper {
-        public Collection<ContentProviderOperation> buildDeleteOperation(final JSONObject measurementSlice,
+        public ArrayList<ContentProviderOperation> buildDeleteOperation(final JSONObject measurementSlice,
                 final String authority, final String uriPath, final String dataPointArrayName,
                 final String columnMeasurementFk, final String columnTimestamp) throws SynchronisationException {
 
-            final Collection<ContentProviderOperation> deleteOperations = new ArrayList<>();
+            final ArrayList<ContentProviderOperation> deleteOperations = new ArrayList<>();
             final Uri tableUri = new Uri.Builder().scheme("content").authority(authority).appendPath(uriPath).build();
 
             try {

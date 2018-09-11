@@ -371,8 +371,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             final JSONObject measurementSlice, final JsonMapper jsonMapper)
             throws SynchronisationException, RemoteException, OperationApplicationException {
 
-        final ArrayList<ContentProviderOperation> deleteOperation = new ArrayList<>(
-                jsonMapper.buildDeleteDataPointsOperation(measurementSlice, authority));
+        final ArrayList<ContentProviderOperation> deleteOperation =
+                jsonMapper.buildDeleteDataPointsOperation(measurementSlice, authority);
         Log.d(TAG, String.format("Deleting %d points of type %s", deleteOperation.size(),
                 jsonMapper.getClass().getSimpleName()));
         provider.applyBatch(deleteOperation);

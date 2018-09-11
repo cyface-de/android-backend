@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import java.util.Collection;
+import java.util.ArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,8 +39,8 @@ final class GeoLocationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
-            final String authority) throws SynchronisationException {
+    public ArrayList<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
+                                                                              final String authority) throws SynchronisationException {
 
         return jsonDatabaseMapper.buildDeleteOperation(measurementSlice, authority, GpsPointsTable.URI_PATH,
                 "gpsPoints", GpsPointsTable.COLUMN_MEASUREMENT_FK, GpsPointsTable.COLUMN_GPS_TIME);

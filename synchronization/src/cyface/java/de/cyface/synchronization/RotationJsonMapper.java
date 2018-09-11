@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import java.util.Collection;
+import java.util.ArrayList;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -38,8 +38,8 @@ final class RotationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
-            final String authority) throws SynchronisationException {
+    public ArrayList<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
+                                                                              final String authority) throws SynchronisationException {
 
         return jsonDatabaseMapper.buildDeleteOperation(measurementSlice, authority, RotationPointTable.URI_PATH,
                 "rotationPoints", RotationPointTable.COLUMN_MEASUREMENT_FK, RotationPointTable.COLUMN_TIME);
