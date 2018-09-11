@@ -6,7 +6,7 @@ import android.support.annotation.NonNull;
 
 /**
  * Listener for interested parties to subscribe to synchronization status updates.
- * TODO: make the sync progress listeners listen to the error handler for errors
+ * Synchronization errors are broadcasted via the {@link de.cyface.utils.ErrorHandler}.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann

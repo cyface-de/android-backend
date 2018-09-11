@@ -154,14 +154,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             while (syncableMeasurementsCursor.moveToNext()) {
                 final int identifierColumnIndex = syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID);
                 final long measurementIdentifier = syncableMeasurementsCursor.getLong(identifierColumnIndex);
-                syncMeasurement(authority, provider, syncableMeasurementsCursor, deviceIdentifier, syncResult, context,
-                        url, account, measurementIdentifier);
-
-                // If there are no exceptions thrown mark the measurement as synced.
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
-                        measurementIdentifier, provider, authority);
-                loader.cleanMeasurement();
-                Log.d(TAG, "Measurement marked as synced.");
+                final boolean measurementTransmitted = syncMeasurement(authority, provider, syncableMeasurementsCursor,
+                        deviceIdentifier, syncResult, context, url, account, measurementIdentifier);
+                if (measurementTransmitted) {
+                    final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
+                            measurementIdentifier, provider, authority);
+                    loader.cleanMeasurement();
+                    Log.d(TAG, "Measurement marked as synced.");
+                }
             }
         } catch (final DatabaseException | RemoteException e) {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
@@ -180,7 +180,25 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    private void syncMeasurement(final String authority, final ContentProviderClient provider,
+    /**
+     * Transmits the selected measurement to the Cyface server.
+     *
+     * @param authority The authority to access the data
+     * @param provider The provider to access the data
+     * @param syncableMeasurementsCursor The cursor to access the measurement
+     * @param deviceIdentifier The device id
+     * @param syncResult The {@link SyncResult} to store sync error details
+     * @param context The context to access the {@link AccountManager}
+     * @param url The url to the Cyface API
+     * @param account The {@link Account} to use for synchronization
+     * @param measurementIdentifier The id of the measurement to transmit
+     * @return True if the transmission was successful
+     * @throws RequestParsingException When data could not be inserted or loaded into/from the JSON representation
+     * @throws DatabaseException When the data could not be loaded from the persistence layer or the delete operation
+     *             failed
+     * @throws SynchronisationException When the data could not be mapped
+     */
+    private boolean syncMeasurement(final String authority, final ContentProviderClient provider,
             final Cursor syncableMeasurementsCursor, final String deviceIdentifier, final SyncResult syncResult,
             final Context context, final String url, final Account account, final long measurementIdentifier)
             throws RequestParsingException, DatabaseException, SynchronisationException {
@@ -217,14 +235,18 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             // We delete the points in each iteration so we load always from cursor position 0
             final JSONObject measurementSlice = fillMeasurementSlice(measurementSliceTemplate, dataAccessLayer, 0, 0, 0,
                     0, geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper, directionJsonMapper);
-            postMeasurementSlice(syncResult, context, url, account, measurementSlice);
+            final boolean transmissionSuccessful = postMeasurementSlice(syncResult, context, url, account,
+                    measurementSlice);
+            if (!transmissionSuccessful) {
+                return false;
+            }
             try {
                 // TODO: This way of deleting points is probably rather slow when lots of data is
                 // stored on old devices (from experience). We had a faster but uglier workaround
                 // but won't reimplement this here in the SDK. Instead we'll use the Cyface Byte Format
                 // from the Movebis flavor and the file uploader which we'll implement before releasing this.
                 // TODO: We should probably remove the unused isSynced flag from the points after
-                // we implemented the Cyface Byte Format synchronization. #
+                // we implemented the Cyface Byte Format synchronization. #CY-3592
 
                 // We delete the data of each point type separately to avoid #CY-3859 parcel size error.
                 deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
@@ -232,11 +254,29 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
                 deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);
             } catch (final OperationApplicationException | RemoteException e) {
-                throw new DatabaseException("Failed to applyBatch: " + e.getMessage(), e);
+                throw new DatabaseException("Failed to apply the delete operation: " + e.getMessage(), e);
             }
         }
+        return true;
     }
 
+    /**
+     * Inserts a batch of points into a measurement slice template for transmission.
+     *
+     * @param measurementSliceTemplate The measurement slice template with the context details
+     * @param dataAccessLayer The layer to access the data
+     * @param geoLocationStartIndex The index from which points should be inserted from
+     * @param accelerationPointStartIndex The index from which points should be inserted from
+     * @param rotationPointStartIndex The index from which points should be inserted from
+     * @param directionPointStartIndex The index from which points should be inserted from
+     * @param geoLocationJsonMapper The {@link JsonMapper} used to parse the points
+     * @param accelerationJsonMapper The {@link JsonMapper} used to parse the points
+     * @param rotationJsonMapper The {@link JsonMapper} used to parse the points
+     * @param directionJsonMapper The {@link JsonMapper} used to parse the points
+     * @return the {@link JSONObject} containing a filled measurement slice
+     * @throws RequestParsingException When the data could not be inserted into the template.
+     * @throws DatabaseException When the data could not be loaded from the persistence layer.
+     */
     private JSONObject fillMeasurementSlice(final JSONObject measurementSliceTemplate,
             final MeasurementContentProviderClient dataAccessLayer, final int geoLocationStartIndex,
             final int accelerationPointStartIndex, final int rotationPointStartIndex,
@@ -290,7 +330,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
     /**
      * Posts a slice of a measurement to the responsible endpoint sitting behind the provided {@code url}.
-     * The posted points are marked as synced afterwards. The sync progress is broadcasted.
+     * Sync errors are broadcasted to the {@link de.cyface.utils.ErrorHandler}.
      *
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param context The {@link Context} to access the {@link AccountManager}.
@@ -299,8 +339,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param measurementSlice The measurement slice as {@link JSONObject}.
      * @throws RequestParsingException When the post request could not be generated or when data could not be parsed
      *             from the measurement slice.
+     * @return True of the transmission was successful.
      */
-    private void postMeasurementSlice(final SyncResult syncResult, final Context context, final String url,
+    private boolean postMeasurementSlice(final SyncResult syncResult, final Context context, final String url,
             final Account account, JSONObject measurementSlice) throws RequestParsingException {
         try {
             final URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
@@ -323,31 +364,41 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         catch (final ServerUnavailableException e) {
             syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
+            return false;
         } catch (final MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, MALFORMED_URL.getCode());
+            return false;
         } catch (final AuthenticatorException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode());
+            return false;
         } catch (final OperationCanceledException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_CANCELED.getCode());
+            return false;
         } catch (final ResponseParsingException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
+            return false;
         } catch (final DataTransmissionException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
+            return false;
         } catch (final SynchronisationException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
+            return false;
         } catch (final IOException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, NETWORK_ERROR.getCode());
+            return false;
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, UNAUTHORIZED.getCode());
+            return false;
         }
+        return true;
     }
 
     /**
@@ -358,6 +409,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param measurementSlice The measurement slice containing the data to be mark as synced.
      * @param jsonMapper The mapped to parse data of a specific type from the measurement slice. E.g.
      *            {@link GeoLocationJsonMapper}, {@link AccelerationJsonMapper}
+     * @throws SynchronisationException When the data could not be mapped
+     * @throws RemoteException When the delete operation failed
+     * @throws OperationApplicationException When the delete operation failed
      */
     private void deletePointsOfType(final ContentProviderClient provider, final String authority,
             final JSONObject measurementSlice, final JsonMapper jsonMapper)
@@ -370,6 +424,15 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         provider.applyBatch(deleteOperation);
     }
 
+    /**
+     * Prepares a measurement slice with the measurement context and details.
+     *
+     * @param measurementIdentifier The id of the measurement to prepare a slice of
+     * @param unsyncedMeasurementsCursor The cursor to access the measurement
+     * @param deviceIdentifier The device id
+     * @return The prepared measurement slice template
+     * @throws RequestParsingException When the measurement info could not be inserted into the template
+     */
     private JSONObject prepareMeasurementSliceTemplate(final long measurementIdentifier,
             final Cursor unsyncedMeasurementsCursor, final String deviceIdentifier) throws RequestParsingException {
 
