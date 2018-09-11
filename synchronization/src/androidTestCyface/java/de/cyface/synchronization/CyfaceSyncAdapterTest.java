@@ -146,6 +146,9 @@ public class CyfaceSyncAdapterTest {
             if (locationsCursor != null) {
                 locationsCursor.close();
             }
+            if (measurementsCursor != null) {
+                measurementsCursor.close();
+            }
         }
     }
 
