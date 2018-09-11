@@ -156,8 +156,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                         url, account, measurementIdentifier);
 
                 // If there are no exceptions thrown mark the measurement as synced.
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                        provider, authority);
+                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
+                        measurementIdentifier, provider, authority);
                 loader.cleanMeasurement();
                 Log.d(TAG, "Measurement marked as synced.");
             }
@@ -210,15 +210,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         final DirectionJsonMapper directionJsonMapper = new DirectionJsonMapper();
 
         // Sync all slices
-        for (int geoLocationStartIndex = 0, accelerationPointStartIndex = 0, rotationPointStartIndex = 0, directionPointStartIndex = 0; geoLocationStartIndex < numberOfGeolocations
-                || accelerationPointStartIndex < numberOfAccelerationPoints
-                || rotationPointStartIndex < numberOfRotationPoints
-                || directionPointStartIndex < numberOfDirectionPoints; geoLocationStartIndex += geoLocationsUploadBatchSize, accelerationPointStartIndex += accelerationsUploadBatchSize, rotationPointStartIndex += rotationsUploadBatchSize, directionPointStartIndex += directionsUploadBatchSize) {
+        for (int geoLocationsCounter = 0, accelerationsCounter = 0, rotationsCounter = 0, directionsCounter = 0; geoLocationsCounter < numberOfGeolocations
+                || accelerationsCounter < numberOfAccelerationPoints || rotationsCounter < numberOfRotationPoints
+                || directionsCounter < numberOfDirectionPoints; geoLocationsCounter += geoLocationsUploadBatchSize, accelerationsCounter += accelerationsUploadBatchSize, rotationsCounter += rotationsUploadBatchSize, directionsCounter += directionsUploadBatchSize) {
 
-            final JSONObject measurementSlice = fillMeasurementSlice(measurementSliceTemplate, dataAccessLayer,
-                    geoLocationStartIndex, accelerationPointStartIndex, rotationPointStartIndex,
-                    directionPointStartIndex, geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper,
-                    directionJsonMapper);
+            // We delete the points in each iteration so we load always from cursor position 0
+            final JSONObject measurementSlice = fillMeasurementSlice(measurementSliceTemplate, dataAccessLayer, 0, 0, 0,
+                    0, geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper, directionJsonMapper);
             postMeasurementSlice(syncResult, context, url, account, measurementSlice);
             try {
                 // TODO: This way of deleting points is probably rather slow when lots of data is
@@ -240,30 +238,33 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private JSONObject fillMeasurementSlice(final JSONObject measurementSliceTemplate,
-            final MeasurementContentProviderClient dataAccessLayer, final int g, final int a, final int r, final int d,
-            final GeoLocationJsonMapper geoLocationJsonMapper, final AccelerationJsonMapper accelerationJsonMapper,
-            final RotationJsonMapper rotationJsonMapper, final DirectionJsonMapper directionJsonMapper)
-            throws RequestParsingException, DatabaseException {
+            final MeasurementContentProviderClient dataAccessLayer, final int geoLocationStartIndex,
+            final int accelerationPointStartIndex, final int rotationPointStartIndex,
+            final int directionPointStartIndex, final GeoLocationJsonMapper geoLocationJsonMapper,
+            final AccelerationJsonMapper accelerationJsonMapper, final RotationJsonMapper rotationJsonMapper,
+            final DirectionJsonMapper directionJsonMapper) throws RequestParsingException, DatabaseException {
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
         Cursor rotationsCursor = null;
         Cursor directionsCursor = null;
         try {
-            geoLocationsCursor = dataAccessLayer.loadGeoLocations(g, g + geoLocationsUploadBatchSize);
+            geoLocationsCursor = dataAccessLayer.loadGeoLocations(geoLocationStartIndex,
+                    geoLocationStartIndex + geoLocationsUploadBatchSize);
             final JSONArray geoLocationsJsonArray = transformToJsonArray(geoLocationsCursor, geoLocationJsonMapper);
             measurementSliceTemplate.put("gpsPoints", geoLocationsJsonArray);
 
-            accelerationsCursor = dataAccessLayer.load3DPoint(new AccelerationsSerializer(), a,
-                    a + accelerationsUploadBatchSize);
+            accelerationsCursor = dataAccessLayer.load3DPoint(new AccelerationsSerializer(),
+                    accelerationPointStartIndex, accelerationPointStartIndex + accelerationsUploadBatchSize);
             final JSONArray accelerationPointsArray = transformToJsonArray(accelerationsCursor, accelerationJsonMapper);
             measurementSliceTemplate.put("accelerationPoints", accelerationPointsArray);
 
-            rotationsCursor = dataAccessLayer.load3DPoint(new RotationsSerializer(), r, r + rotationsUploadBatchSize);
+            rotationsCursor = dataAccessLayer.load3DPoint(new RotationsSerializer(), rotationPointStartIndex,
+                    rotationPointStartIndex + rotationsUploadBatchSize);
             final JSONArray rotationPointsArray = transformToJsonArray(rotationsCursor, rotationJsonMapper);
             measurementSliceTemplate.put("rotationPoints", rotationPointsArray);
 
-            directionsCursor = dataAccessLayer.load3DPoint(new DirectionsSerializer(), d,
-                    d + directionsUploadBatchSize);
+            directionsCursor = dataAccessLayer.load3DPoint(new DirectionsSerializer(), directionPointStartIndex,
+                    directionPointStartIndex + directionsUploadBatchSize);
             final JSONArray directionPointsArray = transformToJsonArray(directionsCursor, directionJsonMapper);
             measurementSliceTemplate.put("directionPoints", directionPointsArray);
         } catch (final JSONException e) {
@@ -371,8 +372,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             final JSONObject measurementSlice, final JsonMapper jsonMapper)
             throws SynchronisationException, RemoteException, OperationApplicationException {
 
-        final ArrayList<ContentProviderOperation> deleteOperation =
-                jsonMapper.buildDeleteDataPointsOperation(measurementSlice, authority);
+        final ArrayList<ContentProviderOperation> deleteOperation = jsonMapper
+                .buildDeleteDataPointsOperation(measurementSlice, authority);
         Log.d(TAG, String.format("Deleting %d points of type %s", deleteOperation.size(),
                 jsonMapper.getClass().getSimpleName()));
         provider.applyBatch(deleteOperation);
