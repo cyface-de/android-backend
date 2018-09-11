@@ -62,12 +62,14 @@ import de.cyface.utils.Validate;
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
     private final static String TAG = "de.cyface.sync";
-    private final Collection<SyncProgressListener> progressListener;
+    private final Collection<ConnectionListener> progressListener;
     private final Http http;
     private final int geoLocationsUploadBatchSize;
     private final int accelerationsUploadBatchSize;
     private final int rotationsUploadBatchSize;
     private final int directionsUploadBatchSize;
+    private long pointsToTransmit;
+    private long transmittedPoints;
 
     /**
      * Creates a new completely initialized {@code CyfaceSyncAdapter}.
@@ -114,7 +116,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         this.rotationsUploadBatchSize = rotationsUploadBatchSize;
         this.directionsUploadBatchSize = directionsUploadBatchSize;
         progressListener = new HashSet<>();
-        addSyncProgressListener(new CyfaceSyncProgressListener(context));
+        addSyncProgressListener(new CyfaceConnectionListener(context));
     }
 
     /**
@@ -165,12 +167,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode());
-            notifySyncReadError(context.getString(R.string.error_message_database), e);
         } catch (final RequestParsingException | SynchronisationException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_synchronization_error), e);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             notifySyncFinished();
@@ -323,39 +323,30 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         catch (final ServerUnavailableException e) {
             syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
-            notifySyncTransmitError(e.getMessage(), e);
         } catch (final MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, MALFORMED_URL.getCode());
-            notifySyncTransmitError(String.format(context.getString(R.string.error_message_url_parsing), url), e);
         } catch (final AuthenticatorException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_authentication_error), e);
         } catch (final OperationCanceledException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_CANCELED.getCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_authentication_canceled), e);
         } catch (final ResponseParsingException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_http_response_parsing), e);
         } catch (final DataTransmissionException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_data_transmission_error_with_code), e);
         } catch (final SynchronisationException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
-            notifySyncTransmitError(e.getMessage(), e);
         } catch (final IOException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, NETWORK_ERROR.getCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_network_error), e);
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, UNAUTHORIZED.getCode());
-            notifySyncTransmitError(context.getString(R.string.error_message_unauthorized), e);
         }
     }
 
@@ -406,49 +397,45 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         return jsonArray;
     }
 
-    private void addSyncProgressListener(final @NonNull SyncProgressListener listener) {
+    private void addSyncProgressListener(final @NonNull ConnectionListener listener) {
         progressListener.add(listener);
     }
 
-    private void notifySyncStarted(final long pointsToBeTransmitted) {
-        for (SyncProgressListener listener : progressListener) {
-            listener.onSyncStarted(pointsToBeTransmitted);
+    private void notifySyncStarted(final long pointsToTransmit) {
+        this.pointsToTransmit = pointsToTransmit;
+        for (final ConnectionListener listener : progressListener) {
+            listener.onSyncStarted(pointsToTransmit);
         }
     }
 
     private void notifySyncFinished() {
-        for (SyncProgressListener listener : progressListener) {
+        this.pointsToTransmit = -1L;
+        this.transmittedPoints = -1L;
+        for (final ConnectionListener listener : progressListener) {
             listener.onSyncFinished();
         }
     }
 
     /**
-     * Notifies about database access errors.
-     */
-    private void notifySyncReadError(final @NonNull String errorMessage, final Throwable errorType) {
-        for (SyncProgressListener listener : progressListener) {
-            listener.onSyncReadError(errorMessage, errorType);
-        }
-    }
-
-    /**
-     * Notifies about transmission errors.
-     */
-    private void notifySyncTransmitError(final @NonNull String errorMessage, final Throwable errorType) {
-        Log.e(TAG, "Unable to sync data.", errorType);
-        for (SyncProgressListener listener : progressListener) {
-            listener.onSyncTransmitError(errorMessage, errorType);
-        }
-    }
-
-    /**
-     * Notifies about sync progress.
-     * 
+     * Notifies about the sync progress.
+     *
+     * @param measurementSlice The {@link JSONObject} of the measurement slice transmitted.
      * @throws RequestParsingException when data could not be parsed from the measurement slice.
      */
     private void notifySyncProgress(final @NonNull JSONObject measurementSlice) throws RequestParsingException {
-        for (SyncProgressListener listener : progressListener) {
-            listener.onProgress(measurementSlice);
+        final long measurementId;
+        try {
+            this.transmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
+                    + measurementSlice.getJSONArray("directionPoints").length()
+                    + measurementSlice.getJSONArray("rotationPoints").length()
+                    + measurementSlice.getJSONArray("accelerationPoints").length();
+            measurementId = measurementSlice.getLong("id");
+        } catch (final JSONException e) {
+            throw new RequestParsingException("Unable to parse measurement data", e);
+        }
+
+        for (final ConnectionListener listener : progressListener) {
+            listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
         }
     }
 

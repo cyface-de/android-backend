@@ -1,13 +1,11 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_ERROR_MESSAGE;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_EXCEPTION_TYPE;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS_TOTAL;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS_TRANSMITTED;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_READ_ERROR;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_STARTED;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_TRANSMIT_ERROR;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_FINISHED;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_MEASUREMENT_ID;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TO_TRANSMIT;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TRANSMITTED;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_PROGRESS;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_STARTED;
 
 import java.util.Collection;
 import java.util.HashSet;
@@ -20,7 +18,7 @@ import android.content.IntentFilter;
 import de.cyface.utils.Validate;
 
 /**
- * {@link BroadcastReceiver} for the {@link ConnectionListener} events.
+ * {@link BroadcastReceiver} for the {@link CyfaceConnectionListener} events.
  *
  * @author Armin Schnabel
  * @version 1.0.0
@@ -29,7 +27,6 @@ import de.cyface.utils.Validate;
 public class ConnectionBroadcastReceiver extends BroadcastReceiver {
 
     static final String TAG = "de.cyface.sync";
-    public static final String SYNC_FINISHED = "de.cynav.cyface.sync_finished";
     /**
      * The interested parties for synchronization events.
      */
@@ -41,8 +38,6 @@ public class ConnectionBroadcastReceiver extends BroadcastReceiver {
         filter.addAction(SYNC_FINISHED);
         filter.addAction(SYNC_PROGRESS);
         filter.addAction(SYNC_STARTED);
-        filter.addAction(SYNC_READ_ERROR);
-        filter.addAction(SYNC_TRANSMIT_ERROR);
         context.registerReceiver(this, filter);
     }
 
@@ -51,8 +46,10 @@ public class ConnectionBroadcastReceiver extends BroadcastReceiver {
         Validate.notNull(intent.getAction());
         switch (intent.getAction()) {
             case SYNC_STARTED:
+                long pointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, -1L);
+                Validate.isTrue(pointsToTransmit >= 0L);
                 for (final ConnectionListener listener : connectionListener) {
-                    listener.onSyncStarted();
+                    listener.onSyncStarted(pointsToTransmit);
                 }
                 break;
             case SYNC_FINISHED:
@@ -61,18 +58,17 @@ public class ConnectionBroadcastReceiver extends BroadcastReceiver {
                 }
                 break;
             case SYNC_PROGRESS:
+                pointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, -1L);
+                final long transmittedPoints = intent.getLongExtra(SYNC_POINTS_TRANSMITTED, -1L);
+                final long measurementId = intent.getLongExtra(SYNC_MEASUREMENT_ID, -1L);
+                Validate.isTrue(pointsToTransmit > 0L);
+                Validate.isTrue(transmittedPoints > 0L);
+                Validate.isTrue(measurementId > 0L);
+
                 for (final ConnectionListener listener : connectionListener) {
                     if (listener != null) {
-                        listener.onProgressInfo(intent.getLongExtra(SYNC_PROGRESS_TRANSMITTED, 0),
-                                intent.getLongExtra(SYNC_PROGRESS_TOTAL, 1));
+                        listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
                     }
-                }
-                break;
-            case SYNC_READ_ERROR:
-            case SYNC_TRANSMIT_ERROR:
-                for (final ConnectionListener listener : connectionListener) {
-                    listener.onDisconnected(intent.getStringExtra(SYNC_EXCEPTION_TYPE),
-                            intent.getStringExtra(SYNC_ERROR_MESSAGE));
                 }
                 break;
         }
