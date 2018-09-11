@@ -65,7 +65,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 7.0.1
+ * @version 7.1.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -148,6 +148,11 @@ public abstract class DataCapturingService {
      * stop.
      */
     private final Lock lifecycleLock;
+    /**
+     * The identifier used to qualify measurements from this capturing service with the server receiving the
+     * measurements. This needs to be world wide unique.
+     */
+    private final String deviceIdentifier;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -175,8 +180,11 @@ public abstract class DataCapturingService {
         String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
         if (deviceIdentifier == null) {
-            sharedPreferencesEditor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+            deviceIdentifier = UUID.randomUUID().toString();
+            sharedPreferencesEditor.putString(SyncService.DEVICE_IDENTIFIER_KEY, deviceIdentifier);
         }
+        this.deviceIdentifier = deviceIdentifier;
+
         sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
@@ -474,6 +482,14 @@ public abstract class DataCapturingService {
      */
     public @NonNull List<Measurement> getFinishedMeasurements() {
         return persistenceLayer.loadFinishedMeasurements();
+    }
+
+    /**
+     * @return The identifier used to qualify measurements from this capturing service with the server receiving the
+     *         measurements. This needs to be world wide unique.
+     */
+    public @NonNull String getDeviceIdentifier() {
+        return deviceIdentifier;
     }
 
     /**
@@ -1015,7 +1031,8 @@ public abstract class DataCapturingService {
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            Log.v(TAG, String.format("Service facade received message: %d", msg.what));
+            if (BuildConfig.DEBUG)
+                Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (final DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
