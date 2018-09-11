@@ -30,18 +30,18 @@ import android.support.test.filters.MediumTest;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * Tests that instances of the <code>MeasurementContentProviderClient</code> do work correctly.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -186,12 +186,12 @@ public class MeasurementContentProviderClientTest {
             client.insert(getGeoLocationsUri(), geoLocationValues);
 
             ContentValues samplePointValues = new ContentValues();
-            samplePointValues.put(SamplePointTable.COLUMN_AX, 1.0);
-            samplePointValues.put(SamplePointTable.COLUMN_AY, 1.0);
-            samplePointValues.put(SamplePointTable.COLUMN_AZ, 1.0);
-            samplePointValues.put(SamplePointTable.COLUMN_TIME, 1L);
-            samplePointValues.put(SamplePointTable.COLUMN_IS_SYNCED, 0);
-            samplePointValues.put(SamplePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+            samplePointValues.put(AccelerationPointTable.COLUMN_AX, 1.0);
+            samplePointValues.put(AccelerationPointTable.COLUMN_AY, 1.0);
+            samplePointValues.put(AccelerationPointTable.COLUMN_AZ, 1.0);
+            samplePointValues.put(AccelerationPointTable.COLUMN_TIME, 1L);
+            samplePointValues.put(AccelerationPointTable.COLUMN_IS_SYNCED, 0);
+            samplePointValues.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
             client.insert(getAccelerationsUri(), samplePointValues);
             client.insert(getAccelerationsUri(), samplePointValues);
             client.insert(getAccelerationsUri(), samplePointValues);
@@ -208,12 +208,12 @@ public class MeasurementContentProviderClientTest {
             client.insert(getRotationsUri(), rotationPointValues);
 
             ContentValues directionPointValues = new ContentValues();
-            directionPointValues.put(MagneticValuePointTable.COLUMN_MX, 1.0);
-            directionPointValues.put(MagneticValuePointTable.COLUMN_MY, 1.0);
-            directionPointValues.put(MagneticValuePointTable.COLUMN_MZ, 1.0);
-            directionPointValues.put(MagneticValuePointTable.COLUMN_TIME, 1L);
-            directionPointValues.put(MagneticValuePointTable.COLUMN_IS_SYNCED, 0);
-            directionPointValues.put(MagneticValuePointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+            directionPointValues.put(DirectionPointTable.COLUMN_MX, 1.0);
+            directionPointValues.put(DirectionPointTable.COLUMN_MY, 1.0);
+            directionPointValues.put(DirectionPointTable.COLUMN_MZ, 1.0);
+            directionPointValues.put(DirectionPointTable.COLUMN_TIME, 1L);
+            directionPointValues.put(DirectionPointTable.COLUMN_IS_SYNCED, 0);
+            directionPointValues.put(DirectionPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
             client.insert(getDirectionsUri(), directionPointValues);
             client.insert(getDirectionsUri(), directionPointValues);
             client.insert(getDirectionsUri(), directionPointValues);

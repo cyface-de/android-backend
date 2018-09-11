@@ -16,9 +16,9 @@ import android.util.Log;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Point3D;
-import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * A class responsible for writing captured sensor data to the underlying database.
@@ -28,7 +28,7 @@ import de.cyface.persistence.SamplePointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {
@@ -106,11 +106,11 @@ public class CapturedDataWriter implements Runnable {
                 }
 
                 insert(client, data.getAccelerations(),
-                        new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH)
+                        new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH)
                                 .build(),
-                        SamplePointTable.COLUMN_AX, SamplePointTable.COLUMN_AY, SamplePointTable.COLUMN_AZ,
-                        SamplePointTable.COLUMN_IS_SYNCED, SamplePointTable.COLUMN_MEASUREMENT_FK,
-                        SamplePointTable.COLUMN_TIME);
+                        AccelerationPointTable.COLUMN_AX, AccelerationPointTable.COLUMN_AY, AccelerationPointTable.COLUMN_AZ,
+                        AccelerationPointTable.COLUMN_IS_SYNCED, AccelerationPointTable.COLUMN_MEASUREMENT_FK,
+                        AccelerationPointTable.COLUMN_TIME);
 
                 insert(client, data.getRotations(),
                         new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH)
@@ -121,10 +121,10 @@ public class CapturedDataWriter implements Runnable {
 
                 insert(client, data.getDirections(),
                         new Uri.Builder().scheme("content").authority(authority)
-                                .appendPath(MagneticValuePointTable.URI_PATH).build(),
-                        MagneticValuePointTable.COLUMN_MX, MagneticValuePointTable.COLUMN_MY,
-                        MagneticValuePointTable.COLUMN_MZ, MagneticValuePointTable.COLUMN_IS_SYNCED,
-                        MagneticValuePointTable.COLUMN_MEASUREMENT_FK, MagneticValuePointTable.COLUMN_TIME);
+                                .appendPath(DirectionPointTable.URI_PATH).build(),
+                        DirectionPointTable.COLUMN_MX, DirectionPointTable.COLUMN_MY,
+                        DirectionPointTable.COLUMN_MZ, DirectionPointTable.COLUMN_IS_SYNCED,
+                        DirectionPointTable.COLUMN_MEASUREMENT_FK, DirectionPointTable.COLUMN_TIME);
 
             } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);

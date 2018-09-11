@@ -36,12 +36,12 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
@@ -50,7 +50,7 @@ import de.cyface.persistence.SamplePointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 4.0.0
+ * @version 4.0.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -279,10 +279,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurement.getIdentifier())},
                     null);
             accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
-                    SamplePointTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurement.getIdentifier())},
+                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurement.getIdentifier())},
                     null);
             directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
-                    MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                    DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
@@ -388,10 +388,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
-                    SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
-                    MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                    DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",

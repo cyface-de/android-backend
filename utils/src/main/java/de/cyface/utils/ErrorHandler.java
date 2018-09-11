@@ -103,7 +103,7 @@ public class ErrorHandler extends BroadcastReceiver {
                 break;
 
             case DATABASE_ERROR:
-                errorMessage = context.getString(R.string.error_message_database_unaddressable);
+                errorMessage = context.getString(R.string.error_message_data_access_error);
                 break;
 
             case AUTHENTICATION_ERROR:

@@ -9,11 +9,14 @@ import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 
 import de.cyface.persistence.AbstractCyfaceMeasurementTable;
+import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
+
+import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
+import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
 
 /**
  * A wrapper for a <code>ContentProviderClient</code> used to provide access to one specific measurement.
@@ -185,8 +188,8 @@ public class MeasurementContentProviderClient {
                 values, BaseColumns._ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
         int ret = 0;
         ret += client.delete(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH).build(),
-                SamplePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH).build(),
+                AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(
                 new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH)
@@ -194,9 +197,9 @@ public class MeasurementContentProviderClient {
                 RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         ret += client.delete(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(MagneticValuePointTable.URI_PATH)
+                new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
                         .build(),
-                MagneticValuePointTable.COLUMN_MEASUREMENT_FK + "=?",
+                DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         return ret;
     }
@@ -217,11 +220,11 @@ public class MeasurementContentProviderClient {
      */
     static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider,
             final @NonNull String authority) throws RemoteException {
-        Uri measurementTableUri = new Uri.Builder().scheme("content").authority(authority)
+        final Uri measurementTableUri = new Uri.Builder().scheme("content").authority(authority)
                 .appendPath(MeasurementTable.URI_PATH).build();
-        Cursor ret = provider.query(measurementTableUri, null,
+        final Cursor ret = provider.query(measurementTableUri, null,
                 MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
-                new String[] {Integer.valueOf(1).toString(), Integer.valueOf(0).toString()}, null);
+                new String[] {String.valueOf(SQLITE_TRUE), String.valueOf(SQLITE_FALSE)}, null);
 
         if (ret == null) {
             throw new IllegalStateException("Unable to load measurement from content provider!");

@@ -1,6 +1,3 @@
-/*
- * Created on 03.12.15 at 20:58
- */
 package de.cyface.persistence;
 
 import org.junit.After;
@@ -18,7 +15,7 @@ import android.test.ProviderTestCase2;
  * Tests correct behaviour for database operations on sample points.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -37,12 +34,12 @@ public class SamplePointTest extends ProviderTestCase2<MeasuringPointsContentPro
         Uri.Builder uriBuilder = new Uri.Builder();
 
         fixturePoint = new ContentValues();
-        fixturePoint.put(SamplePointTable.COLUMN_AX, 1.0);
-        fixturePoint.put(SamplePointTable.COLUMN_AY, 1.0);
-        fixturePoint.put(SamplePointTable.COLUMN_AZ, 1.0);
-        fixturePoint.put(SamplePointTable.COLUMN_TIME, 1L);
-        fixturePoint.put(SamplePointTable.COLUMN_MEASUREMENT_FK, 1);
-        fixturePoint.put(SamplePointTable.COLUMN_IS_SYNCED, 1);
+        fixturePoint.put(AccelerationPointTable.COLUMN_AX, 1.0);
+        fixturePoint.put(AccelerationPointTable.COLUMN_AY, 1.0);
+        fixturePoint.put(AccelerationPointTable.COLUMN_AZ, 1.0);
+        fixturePoint.put(AccelerationPointTable.COLUMN_TIME, 1L);
+        fixturePoint.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, 1);
+        fixturePoint.put(AccelerationPointTable.COLUMN_IS_SYNCED, 1);
     }
 
     @Test
@@ -59,7 +56,7 @@ public class SamplePointTest extends ProviderTestCase2<MeasuringPointsContentPro
     @Test
     public void testUpdateSuccessfully() {
         final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getAccelerationsUri(), fixturePoint);
-        TestUtils.update(getMockContentResolver(), TestUtils.getAccelerationsUri(), identifier, SamplePointTable.COLUMN_AX, 1.0);
+        TestUtils.update(getMockContentResolver(), TestUtils.getAccelerationsUri(), identifier, AccelerationPointTable.COLUMN_AX, 1.0);
     }
 
     @Test

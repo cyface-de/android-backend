@@ -44,11 +44,11 @@ import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.persistence.AccelerationPointTable;
+import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
 import de.cyface.utils.Validate;
 
 /**
@@ -56,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
@@ -81,7 +81,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param rotationsUploadBatchSize the number of elements to transmit in one batch
      * @param directionsUploadBatchSize the number of elements to transmit in one batch
      */
-    public CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize, final @NonNull Http http,
+    CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize, final @NonNull Http http,
             final int geoLocationsUploadBatchSize, final int accelerationsUploadBatchSize,
             final int rotationsUploadBatchSize, final int directionsUploadBatchSize) {
         this(context, autoInitialize, false, http, geoLocationsUploadBatchSize, accelerationsUploadBatchSize,
@@ -103,7 +103,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param rotationsUploadBatchSize the number of elements to transmit in one batch
      * @param directionsUploadBatchSize the number of elements to transmit in one batch
      */
-    public CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize,
+    private CyfaceSyncAdapter(final @NonNull Context context, final boolean autoInitialize,
             final boolean allowParallelSyncs, final @NonNull Http http, int geoLocationsUploadBatchSize,
             int accelerationsUploadBatchSize, int rotationsUploadBatchSize, int directionsUploadBatchSize) {
         super(context, autoInitialize, allowParallelSyncs);
@@ -130,10 +130,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     @Override
     public void onPerformSync(final @NonNull Account account, Bundle extras, String authority,
             final @NonNull ContentProviderClient provider, final @NonNull SyncResult syncResult) {
-        final Context context = getContext();
         Log.d(TAG, "Sync started.");
+        final Context context = getContext();
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+
         final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         Validate.notNull(deviceIdentifier,
@@ -141,70 +142,108 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         Validate.notNull(url,
                 "Sync canceled: Server url not available. Please set the applications server url preference.");
 
-        Cursor unsyncedMeasurementsCursor = null;
+        Cursor syncableMeasurementsCursor = null;
         try {
-            unsyncedMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
-            final boolean atLeastOneMeasurementExists = unsyncedMeasurementsCursor.moveToNext();
-            if (!atLeastOneMeasurementExists) {
-                Log.i(TAG, "Unable to sync data: no unsynchronized data");
-                return;
-            }
-            notifySyncStarted(countUnsyncedDataPoints(provider, unsyncedMeasurementsCursor, authority));
-
-            final GeoLocationJsonMapper geoLocationJsonMapper = new GeoLocationJsonMapper();
-            final AccelerationJsonMapper accelerationJsonMapper = new AccelerationJsonMapper();
-            final RotationJsonMapper rotationJsonMapper = new RotationJsonMapper();
-            final DirectionJsonMapper directionJsonMapper = new DirectionJsonMapper();
+            // Load all Measurements that are finished capturing
+            syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
+            notifySyncStarted(countUnsyncedDataPoints(provider, syncableMeasurementsCursor, authority));
 
             // The cursor is reset to initial position (i.e. 0) by countUnsyncedDataPoints
-            do {
-                // Prepare slice template
-                final int identifierColumnIndex = unsyncedMeasurementsCursor.getColumnIndex(BaseColumns._ID);
-                final long measurementIdentifier = unsyncedMeasurementsCursor.getLong(identifierColumnIndex);
-                JSONObject measurementSlice = prepareMeasurementSliceTemplate(measurementIdentifier,
-                        unsyncedMeasurementsCursor, deviceIdentifier);
+            while (syncableMeasurementsCursor.moveToNext()) {
+                final int identifierColumnIndex = syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID);
+                final long measurementIdentifier = syncableMeasurementsCursor.getLong(identifierColumnIndex);
+                syncMeasurement(authority, provider, syncableMeasurementsCursor, deviceIdentifier, syncResult, context,
+                        url, account, measurementIdentifier);
 
-                // Process slices
-                final MeasurementContentProviderClient dataAccessLayer = new MeasurementContentProviderClient(
-                        measurementIdentifier, provider, authority);
-                for (int g = 0, a = 0, r = 0, d = 0; g < dataAccessLayer.countData(createGeoLocationsUri(authority),
-                        GpsPointsTable.COLUMN_MEASUREMENT_FK)
-                        || a < dataAccessLayer.countData(createAccelerationsUri(authority),
-                                SamplePointTable.COLUMN_MEASUREMENT_FK)
-                        || r < dataAccessLayer.countData(createRotationsUri(authority),
-                                RotationPointTable.COLUMN_MEASUREMENT_FK)
-                        || d < dataAccessLayer.countData(createDirectionsUri(authority),
-                                MagneticValuePointTable.COLUMN_MEASUREMENT_FK); g += geoLocationsUploadBatchSize, a += accelerationsUploadBatchSize, r += rotationsUploadBatchSize, d += directionsUploadBatchSize) {
-
-                    measurementSlice = fillMeasurementSlice(measurementSlice, dataAccessLayer, g, a, r, d,
-                            geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper, directionJsonMapper);
-                    postMeasurementSlice(authority, provider, syncResult, context, url, account, measurementSlice,
-                            geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper, directionJsonMapper);
-                }
-            } while (unsyncedMeasurementsCursor.moveToNext());
-
-        } catch (final RemoteException e) {
+                // If there are no exceptions thrown mark the measurement as synced.
+                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+                        provider, authority);
+                loader.cleanMeasurement();
+                Log.d(TAG, "Measurement marked as synced.");
+            }
+        } catch (final DatabaseException | RemoteException e) {
+            Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode());
             notifySyncReadError(context.getString(R.string.error_message_database), e);
-        } catch (final RequestParsingException e) {
+        } catch (final RequestParsingException | SynchronisationException e) {
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_synchronization_error), e);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             notifySyncFinished();
-            if (unsyncedMeasurementsCursor != null) {
-                unsyncedMeasurementsCursor.close();
+            if (syncableMeasurementsCursor != null) {
+                syncableMeasurementsCursor.close();
             }
         }
     }
 
-    private JSONObject fillMeasurementSlice(final JSONObject measurementSlice,
+    private void syncMeasurement(final String authority, final ContentProviderClient provider,
+            final Cursor syncableMeasurementsCursor, final String deviceIdentifier, final SyncResult syncResult,
+            final Context context, final String url, final Account account, final long measurementIdentifier)
+            throws RequestParsingException, DatabaseException, SynchronisationException {
+        final JSONObject measurementSliceTemplate = prepareMeasurementSliceTemplate(measurementIdentifier,
+                syncableMeasurementsCursor, deviceIdentifier);
+        final MeasurementContentProviderClient dataAccessLayer = new MeasurementContentProviderClient(
+                measurementIdentifier, provider, authority);
+        final long numberOfGeolocations;
+        final long numberOfAccelerationPoints;
+        final long numberOfRotationPoints;
+        final long numberOfDirectionPoints;
+        try {
+            numberOfGeolocations = dataAccessLayer.countData(createGeoLocationsUri(authority),
+                    GpsPointsTable.COLUMN_MEASUREMENT_FK);
+            numberOfAccelerationPoints = dataAccessLayer.countData(createAccelerationsUri(authority),
+                    AccelerationPointTable.COLUMN_MEASUREMENT_FK);
+            numberOfRotationPoints = dataAccessLayer.countData(createRotationsUri(authority),
+                    RotationPointTable.COLUMN_MEASUREMENT_FK);
+            numberOfDirectionPoints = dataAccessLayer.countData(createDirectionsUri(authority),
+                    DirectionPointTable.COLUMN_MEASUREMENT_FK);
+        } catch (final RemoteException e) {
+            throw new DatabaseException("Failed to sync measurement slices. " + e.getMessage(), e);
+        }
+        final GeoLocationJsonMapper geoLocationJsonMapper = new GeoLocationJsonMapper();
+        final AccelerationJsonMapper accelerationJsonMapper = new AccelerationJsonMapper();
+        final RotationJsonMapper rotationJsonMapper = new RotationJsonMapper();
+        final DirectionJsonMapper directionJsonMapper = new DirectionJsonMapper();
+
+        // Sync all slices
+        for (int geoLocationStartIndex = 0, accelerationPointStartIndex = 0, rotationPointStartIndex = 0, directionPointStartIndex = 0; geoLocationStartIndex < numberOfGeolocations
+                || accelerationPointStartIndex < numberOfAccelerationPoints
+                || rotationPointStartIndex < numberOfRotationPoints
+                || directionPointStartIndex < numberOfDirectionPoints; geoLocationStartIndex += geoLocationsUploadBatchSize, accelerationPointStartIndex += accelerationsUploadBatchSize, rotationPointStartIndex += rotationsUploadBatchSize, directionPointStartIndex += directionsUploadBatchSize) {
+
+            final JSONObject measurementSlice = fillMeasurementSlice(measurementSliceTemplate, dataAccessLayer,
+                    geoLocationStartIndex, accelerationPointStartIndex, rotationPointStartIndex,
+                    directionPointStartIndex, geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper,
+                    directionJsonMapper);
+            postMeasurementSlice(syncResult, context, url, account, measurementSlice);
+            try {
+                // TODO: This way of deleting points is probably rather slow when lots of data is
+                // stored on old devices (from experience). We had a faster but uglier workaround
+                // but won't reimplement this here in the SDK. Instead we'll use the Cyface Byte Format
+                // from the Movebis flavor and the file uploader which we'll implement before releasing this.
+                // TODO: We should probably remove the unused isSynced flag from the points after
+                // we implemented the Cyface Byte Format synchronization. #
+
+                // We delete the data of each point type separately to avoid #CY-3859 parcel size error.
+                deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
+                deletePointsOfType(provider, authority, measurementSlice, accelerationJsonMapper);
+                deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
+                deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);
+            } catch (final OperationApplicationException | RemoteException e) {
+                throw new DatabaseException("Failed to applyBatch: " + e.getMessage(), e);
+            }
+        }
+    }
+
+    private JSONObject fillMeasurementSlice(final JSONObject measurementSliceTemplate,
             final MeasurementContentProviderClient dataAccessLayer, final int g, final int a, final int r, final int d,
             final GeoLocationJsonMapper geoLocationJsonMapper, final AccelerationJsonMapper accelerationJsonMapper,
             final RotationJsonMapper rotationJsonMapper, final DirectionJsonMapper directionJsonMapper)
-            throws RemoteException, RequestParsingException {
+            throws RequestParsingException, DatabaseException {
         Cursor geoLocationsCursor = null;
         Cursor accelerationsCursor = null;
         Cursor rotationsCursor = null;
@@ -212,23 +251,25 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         try {
             geoLocationsCursor = dataAccessLayer.loadGeoLocations(g, g + geoLocationsUploadBatchSize);
             final JSONArray geoLocationsJsonArray = transformToJsonArray(geoLocationsCursor, geoLocationJsonMapper);
-            measurementSlice.put("gpsPoints", geoLocationsJsonArray);
+            measurementSliceTemplate.put("gpsPoints", geoLocationsJsonArray);
 
             accelerationsCursor = dataAccessLayer.load3DPoint(new AccelerationsSerializer(), a,
                     a + accelerationsUploadBatchSize);
             final JSONArray accelerationPointsArray = transformToJsonArray(accelerationsCursor, accelerationJsonMapper);
-            measurementSlice.put("accelerationPoints", accelerationPointsArray);
+            measurementSliceTemplate.put("accelerationPoints", accelerationPointsArray);
 
             rotationsCursor = dataAccessLayer.load3DPoint(new RotationsSerializer(), r, r + rotationsUploadBatchSize);
             final JSONArray rotationPointsArray = transformToJsonArray(rotationsCursor, rotationJsonMapper);
-            measurementSlice.put("rotationPoints", rotationPointsArray);
+            measurementSliceTemplate.put("rotationPoints", rotationPointsArray);
 
             directionsCursor = dataAccessLayer.load3DPoint(new DirectionsSerializer(), d,
                     d + directionsUploadBatchSize);
-            final JSONArray magneticValuePointsArray = transformToJsonArray(directionsCursor, directionJsonMapper);
-            measurementSlice.put("magneticValuePoints", magneticValuePointsArray);
+            final JSONArray directionPointsArray = transformToJsonArray(directionsCursor, directionJsonMapper);
+            measurementSliceTemplate.put("directionPoints", directionPointsArray);
         } catch (final JSONException e) {
             throw new RequestParsingException("Failed to parse measurement data.", e);
+        } catch (final RemoteException e) {
+            throw new DatabaseException("Failed to fillMeasurementSlice: " + e.getMessage(), e);
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
@@ -243,14 +284,23 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 directionsCursor.close();
             }
         }
-        return measurementSlice;
+        return measurementSliceTemplate;
     }
 
-    private void postMeasurementSlice(final String authority, final ContentProviderClient provider,
-            final SyncResult syncResult, final Context context, final String url, final Account account,
-            JSONObject measurementSlice, final GeoLocationJsonMapper geoLocationJsonMapper,
-            final AccelerationJsonMapper accelerationJsonMapper, final RotationJsonMapper rotationJsonMapper,
-            final DirectionJsonMapper directionJsonMapper) throws RequestParsingException, RemoteException {
+    /**
+     * Posts a slice of a measurement to the responsible endpoint sitting behind the provided {@code url}.
+     * The posted points are marked as synced afterwards. The sync progress is broadcasted.
+     *
+     * @param syncResult The {@link SyncResult} used to store sync error information.
+     * @param context The {@link Context} to access the {@link AccountManager}.
+     * @param url The URL of the Cyface Data Collector API to post the data to.
+     * @param account The {@link Account} used to post the data.
+     * @param measurementSlice The measurement slice as {@link JSONObject}.
+     * @throws RequestParsingException When the post request could not be generated or when data could not be parsed
+     *             from the measurement slice.
+     */
+    private void postMeasurementSlice(final SyncResult syncResult, final Context context, final String url,
+            final Account account, JSONObject measurementSlice) throws RequestParsingException {
         try {
             final URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
             final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
@@ -258,18 +308,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             HttpURLConnection con = null;
             try {
                 con = http.openHttpConnection(postUrl, jwtBearer);
+                Log.d(TAG, "Posing measurement slice ...");
                 http.post(con, measurementSlice, true);
-
-                ArrayList<ContentProviderOperation> markAsSyncedOperation = new ArrayList<>();
-                markAsSyncedOperation
-                        .addAll(geoLocationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
-                markAsSyncedOperation
-                        .addAll(accelerationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
-                markAsSyncedOperation.addAll(rotationJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
-                markAsSyncedOperation.addAll(directionJsonMapper.buildMarkSyncedOperation(measurementSlice, authority));
-                provider.applyBatch(markAsSyncedOperation);
-            } catch (final OperationApplicationException e) {
-                throw new DatabaseException("ApplyBatch operation failed", e);
             } finally {
                 if (con != null) {
                     con.disconnect();
@@ -311,15 +351,31 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, NETWORK_ERROR.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_network_error), e);
-        } catch (final DatabaseException e) {
-            syncResult.databaseError = true;
-            sendErrorIntent(context, DATABASE_ERROR.getCode());
-            notifySyncReadError(context.getString(R.string.error_message_database), e);
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, UNAUTHORIZED.getCode());
             notifySyncTransmitError(context.getString(R.string.error_message_unauthorized), e);
         }
+    }
+
+    /**
+     * Deletes the points of the type determined by the provided {@code jsonMapper} of the measurement slice.
+     *
+     * @param provider The provider to access the data.
+     * @param authority The authority to access the data.
+     * @param measurementSlice The measurement slice containing the data to be mark as synced.
+     * @param jsonMapper The mapped to parse data of a specific type from the measurement slice. E.g.
+     *            {@link GeoLocationJsonMapper}, {@link AccelerationJsonMapper}
+     */
+    private void deletePointsOfType(final ContentProviderClient provider, final String authority,
+            final JSONObject measurementSlice, final JsonMapper jsonMapper)
+            throws SynchronisationException, RemoteException, OperationApplicationException {
+
+        final ArrayList<ContentProviderOperation> deleteOperation =
+                jsonMapper.buildDeleteDataPointsOperation(measurementSlice, authority);
+        Log.d(TAG, String.format("Deleting %d points of type %s", deleteOperation.size(),
+                jsonMapper.getClass().getSimpleName()));
+        provider.applyBatch(deleteOperation);
     }
 
     private JSONObject prepareMeasurementSliceTemplate(final long measurementIdentifier,
@@ -365,13 +421,18 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
-    // TODO: Do we need to differentiate between a "read" and "transmission" error? What for?
+    /**
+     * Notifies about database access errors.
+     */
     private void notifySyncReadError(final @NonNull String errorMessage, final Throwable errorType) {
         for (SyncProgressListener listener : progressListener) {
             listener.onSyncReadError(errorMessage, errorType);
         }
     }
 
+    /**
+     * Notifies about transmission errors.
+     */
     private void notifySyncTransmitError(final @NonNull String errorMessage, final Throwable errorType) {
         Log.e(TAG, "Unable to sync data.", errorType);
         for (SyncProgressListener listener : progressListener) {
@@ -379,6 +440,11 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         }
     }
 
+    /**
+     * Notifies about sync progress.
+     * 
+     * @throws RequestParsingException when data could not be parsed from the measurement slice.
+     */
     private void notifySyncProgress(final @NonNull JSONObject measurementSlice) throws RequestParsingException {
         for (SyncProgressListener listener : progressListener) {
             listener.onProgress(measurementSlice);
@@ -389,7 +455,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             final @NonNull Cursor syncableMeasurements, final @NonNull String authority) throws RemoteException {
         long ret = 0L;
         int initialPosition = syncableMeasurements.getPosition();
-        syncableMeasurements.moveToFirst();
+        if (!syncableMeasurements.moveToFirst()) {
+            Log.d(TAG, "No syncable measurements exist.");
+            return 0L;
+        }
         do {
             long measurementIdentifier = syncableMeasurements
                     .getLong(syncableMeasurements.getColumnIndex(BaseColumns._ID));
@@ -397,9 +466,9 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                     provider, authority);
 
             ret += client.countData(createGeoLocationsUri(authority), GpsPointsTable.COLUMN_MEASUREMENT_FK);
-            ret += client.countData(createAccelerationsUri(authority), SamplePointTable.COLUMN_MEASUREMENT_FK);
+            ret += client.countData(createAccelerationsUri(authority), AccelerationPointTable.COLUMN_MEASUREMENT_FK);
             ret += client.countData(createRotationsUri(authority), RotationPointTable.COLUMN_MEASUREMENT_FK);
-            ret += client.countData(createDirectionsUri(authority), MagneticValuePointTable.COLUMN_MEASUREMENT_FK);
+            ret += client.countData(createDirectionsUri(authority), DirectionPointTable.COLUMN_MEASUREMENT_FK);
         } while (syncableMeasurements.moveToNext());
         final int offsetToInitialPosition = syncableMeasurements.getPosition() - initialPosition;
         syncableMeasurements.move(-offsetToInitialPosition);
@@ -411,7 +480,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static Uri createAccelerationsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(SamplePointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH)
+                .build();
     }
 
     private static Uri createRotationsUri(final @NonNull String authority) {
@@ -419,7 +489,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static Uri createDirectionsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(MagneticValuePointTable.URI_PATH)
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
                 .build();
     }
 }

@@ -10,7 +10,7 @@
     <string name="error_message_url_unreadable">Server Adresse unleserlich</string>
     <string name="error_message_http_response_unreadable">Server Antwort unleserlich</string>
     <string name="error_message_server_unavailable">Server nicht erreichbar</string>
-    <string name="error_message_database_unaddressable">Datenzugriff fehlgeschlagen</string>
+    <string name="error_message_data_access_error">Datenzugriff fehlgeschlagen</string>
     <string name="error_message_no_un_synchronized_data">Keine unsynchronisierten Daten vorhanden</string>
     <string name="error_message_logged_out_no_account">Kein Account zum Synchronisieren gefunden. Bitte erneut einloggen.</string>
     <string name="error_message_unknown_sync_error">Synchronisationsfehler</string>

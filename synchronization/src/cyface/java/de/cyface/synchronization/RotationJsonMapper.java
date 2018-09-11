@@ -1,24 +1,35 @@
 package de.cyface.synchronization;
 
 import java.util.ArrayList;
-import java.util.Collection;
 
-import org.json.JSONArray;
 import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.content.ContentProviderOperation;
 import android.database.Cursor;
-import android.net.Uri;
 import android.support.annotation.NonNull;
 
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
 
+/**
+ * Mapper used to parse rotation points from and to {@link JSONObject}s.
+ *
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.1.0
+ * @since 2.0.0
+ */
 final class RotationJsonMapper implements JsonMapper {
+
+    private JsonDatabaseMapper jsonDatabaseMapper;
+
+    RotationJsonMapper() {
+        this.jsonDatabaseMapper = new JsonDatabaseMapper();
+    }
+
     @Override
     public JSONObject map(final @NonNull Cursor cursor) throws JSONException {
-        JSONObject json = new JSONObject();
+        final JSONObject json = new JSONObject();
         json.put("rX", cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RX)));
         json.put("rY", cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RY)));
         json.put("rZ", cursor.getDouble(cursor.getColumnIndex(RotationPointTable.COLUMN_RZ)));
@@ -27,31 +38,10 @@ final class RotationJsonMapper implements JsonMapper {
     }
 
     @Override
-    public Collection<ContentProviderOperation> buildMarkSyncedOperation(final @NonNull JSONObject measurementSlice, final @NonNull String authority)
-            throws SynchronisationException {
-        Collection<ContentProviderOperation> updateOperations = new ArrayList<>();
+    public ArrayList<ContentProviderOperation> buildDeleteDataPointsOperation(final JSONObject measurementSlice,
+                                                                              final String authority) throws SynchronisationException {
 
-        try {
-            String measurementIdentifier = measurementSlice.getString("id");
-            JSONArray rotationsArray = measurementSlice.getJSONArray("rotationPoints");
-            Uri tableUri = new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH).build();
-
-            for (int i = 0; i < rotationsArray.length(); i++) {
-                JSONObject rotation = rotationsArray.getJSONObject(i);
-                ContentProviderOperation operation = ContentProviderOperation
-                        .newUpdate(tableUri)
-                        .withSelection(
-                                RotationPointTable.COLUMN_MEASUREMENT_FK + "=? AND " + RotationPointTable.COLUMN_TIME
-                                        + "=?",
-                                new String[] {measurementIdentifier,
-                                        rotation.getString("timestamp")})
-                        .withValue(RotationPointTable.COLUMN_IS_SYNCED, MeasuringPointsContentProvider.SQLITE_TRUE).build();
-                updateOperations.add(operation);
-            }
-        } catch (JSONException e) {
-            throw new SynchronisationException(e);
-        }
-
-        return updateOperations;
+        return jsonDatabaseMapper.buildDeleteOperation(measurementSlice, authority, RotationPointTable.URI_PATH,
+                "rotationPoints", RotationPointTable.COLUMN_MEASUREMENT_FK, RotationPointTable.COLUMN_TIME);
     }
 }
