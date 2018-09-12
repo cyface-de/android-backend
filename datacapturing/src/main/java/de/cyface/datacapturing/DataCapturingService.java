@@ -1,5 +1,6 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
@@ -33,6 +34,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
@@ -160,6 +162,10 @@ public abstract class DataCapturingService {
      * A receiver for synchronization events.
      */
     private final ConnectionBroadcastReceiver connectionBroadcastReceiver;
+    /**
+     * The strategy used to respond to selected events triggered by this service.
+     */
+    private final EventHandlingStrategy eventHandlingStrategy;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -172,16 +178,19 @@ public abstract class DataCapturingService {
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
+     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
+     *                              triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress) throws SetupException {
+                                final @NonNull String authority, final @NonNull String accountType,
+                                final @NonNull String dataUploadServerAddress, final @Nullable EventHandlingStrategy eventHandlingStrategy) throws SetupException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(resolver, authority);
         this.connectionBroadcastReceiver = new ConnectionBroadcastReceiver(context);
+        this.eventHandlingStrategy = eventHandlingStrategy;
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -705,15 +714,16 @@ public abstract class DataCapturingService {
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
-        Context context = getContext();
+        final Context context = getContext();
         Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
         Log.v(TAG, String.format("Starting using Intent with context %s.", context));
-        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
+        startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
 
-        ComponentName serviceComponentName;
+        final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             serviceComponentName = context.startForegroundService(startIntent);
         } else {
@@ -1081,7 +1091,7 @@ public abstract class DataCapturingService {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
                         } else {
-                            Log.d(TAG, "Captured some sensor data.");
+                            Log.v(TAG, "Captured some sensor data.");
                             listener.onNewSensorDataAcquired(capturedData);
                         }
                         break;

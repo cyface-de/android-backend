@@ -4,7 +4,8 @@ package de.cyface.datacapturing;
  * A utility class collecting all codes identifying extras used to transmit data via bundles in this application.
  *
  * @author Klemens Muthmann
- * @since 2.0.2
+ * @author Armin Schnabel
+ * @since 2.0.3
  * @version 2.1.0
  */
 public class BundlesExtrasCodes {
@@ -28,6 +29,10 @@ public class BundlesExtrasCodes {
      * also contain the measurement id as an extra identified by {@link #MEASUREMENT_ID}.
      */
     public static final String STOPPED_SUCCESSFULLY = "de.cyface.extra.stopped_successfully";
+    /**
+     * Code that identifies the {@link EventHandlingStrategy} if transmitted via an Android bundle.
+     */
+    public static final String EVENT_HANDLING_STRATEGY_ID = "de.cyface.event_handling_strategy.id";
 
     /**
      * Constructor is private to prevent creation of utility class.

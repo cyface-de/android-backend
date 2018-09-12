@@ -1,6 +1,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.DiskConsumption.bytesAvailable;
@@ -27,6 +28,7 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
+import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
@@ -36,6 +38,8 @@ import android.util.Log;
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DiskConsumption;
+import de.cyface.datacapturing.EventHandlingStrategy;
+import de.cyface.datacapturing.IgnoreEverythingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -97,7 +101,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private final Messenger callerMessenger = new Messenger(new MessageHandler(this));
     /**
-     * The list of clients receiving messages from this service as well as sending controll messages.
+     * The list of clients receiving messages from this service as well as sending control messages.
      */
     private final Set<Messenger> clients = new HashSet<>();
     /**
@@ -117,6 +121,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The identifier of the measurement to save all the captured data to.
      */
     private long currentMeasurementIdentifier;
+    /**
+     * The strategy used to respond to selected events triggered by this service.
+     */
+    private EventHandlingStrategy eventHandlingStrategy;
 
     /*
      * MARK: Service Lifecycle Methods
@@ -214,6 +222,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
             persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
 
+            // Loads EventHandlingStrategy
+            this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
+            if (eventHandlingStrategy == null) {
+                this.eventHandlingStrategy = new IgnoreEverythingStrategy();
+            }
+
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
             dataCapturing.addCapturingProcessListener(this);
@@ -285,7 +299,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        Log.d(TAG, "Data captured with #accelerations: " + data.getAccelerations().size());
         final List<Point3D> accelerations = data.getAccelerations();
         final List<Point3D> rotations = data.getRotations();
         final List<Point3D> directions = data.getDirections();
@@ -325,6 +338,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");
+            eventHandlingStrategy.handleSpaceWarning();
+
+            // TODO: Do we still want to inform the CapturingListeners about this event?
             final long bytesAvailable = bytesAvailable();
             informCaller(MessageCodes.WARNING_SPACE,
                     new DiskConsumption(storageSize() - bytesAvailable, bytesAvailable));

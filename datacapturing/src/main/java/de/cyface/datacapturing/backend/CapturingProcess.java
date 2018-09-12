@@ -205,7 +205,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     @Override
     public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
-        Log.d(TAG, "onSensorChanged");
         // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
         // been the other way around.
         if (eventTimeOffset == 0) {
