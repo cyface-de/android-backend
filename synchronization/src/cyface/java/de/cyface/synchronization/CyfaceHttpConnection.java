@@ -27,7 +27,7 @@ import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 public class CyfaceHttpConnection implements Http {
@@ -186,8 +186,11 @@ public class CyfaceHttpConnection implements Http {
             // see https://developer.android.com/reference/java/net/HttpURLConnection
             try {
                 responseString = readInputStream(con.getErrorStream());
-            } catch (IOException e1) {
-                throw new IllegalStateException("Unable to read error body.", e);
+            } catch (final IOException e1) {
+                throw new IllegalStateException("Unable to read error body.", e1);
+            } catch (final NullPointerException e1) {
+                // Occurred on Xaomi Mi A1 after disabling WiFi instantly after sync start
+                throw new SynchronisationException("Failed to read error. Connection interrupted?", e1);
             }
         }
 

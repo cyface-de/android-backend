@@ -47,6 +47,8 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.synchronization.ConnectionBroadcastReceiver;
+import de.cyface.synchronization.ConnectionListener;
 import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -65,7 +67,8 @@ import de.cyface.synchronization.WiFiSurveyor;
  * <code>Activity</code> lifecycle.
  *
  * @author Klemens Muthmann
- * @version 7.1.0
+ * @author Armin Schnabel
+ * @version 7.1.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -153,6 +156,10 @@ public abstract class DataCapturingService {
      * measurements. This needs to be world wide unique.
      */
     private final String deviceIdentifier;
+    /**
+     * A receiver for synchronization events.
+     */
+    private final ConnectionBroadcastReceiver connectionBroadcastReceiver;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -174,6 +181,7 @@ public abstract class DataCapturingService {
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(resolver, authority);
+        this.connectionBroadcastReceiver = new ConnectionBroadcastReceiver(context);
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -954,6 +962,25 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * Adds a new listener interested in events from the synchronization service.
+     *
+     * @param listener A listener that is notified of important events during synchronization.
+     */
+    public void addConnectionListener(final @NonNull ConnectionListener listener) {
+        this.connectionBroadcastReceiver.addListener(listener);
+    }
+
+    /**
+     * Removes the provided object as <code>ConnectionListener</code> from the list of listeners notified by this
+     * object.
+     *
+     * @param listener A listener that is notified of important events during synchronization.
+     */
+    public void removeConnectionListener(final @NonNull ConnectionListener listener) {
+        this.connectionBroadcastReceiver.removeListener(listener);
+    }
+
+    /**
      * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
      * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
      *
@@ -1099,5 +1126,4 @@ public abstract class DataCapturingService {
             this.listener.remove(listener);
         }
     }
-
 }

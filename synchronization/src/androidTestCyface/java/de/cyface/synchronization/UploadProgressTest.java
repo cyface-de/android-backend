@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS_TOTAL;
-import static de.cyface.synchronization.CyfaceSyncProgressListener.SYNC_PROGRESS_TRANSMITTED;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TO_TRANSMIT;
+import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TRANSMITTED;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.clearDatabase;
@@ -44,6 +44,13 @@ import android.util.Log;
 
 import de.cyface.utils.Validate;
 
+/**
+ * Tests if the upload progress is broadcasted as expected.
+ *
+ * @author Klemens Muthmann
+ * @version 1.0.0
+ * @since 2.0.0
+ */
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
@@ -79,15 +86,11 @@ public class UploadProgressTest {
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(CyfaceSyncProgressListener.SYNC_FINISHED);
-        filter.addAction(CyfaceSyncProgressListener.SYNC_PROGRESS);
-        filter.addAction(SYNC_PROGRESS_TRANSMITTED);
-        filter.addAction(SYNC_PROGRESS_TOTAL);
-        filter.addAction(CyfaceSyncProgressListener.SYNC_STARTED);
-        filter.addAction(CyfaceSyncProgressListener.SYNC_ERROR_MESSAGE);
-        filter.addAction(CyfaceSyncProgressListener.SYNC_EXCEPTION_TYPE);
-        filter.addAction(CyfaceSyncProgressListener.SYNC_READ_ERROR);
-        filter.addAction(CyfaceSyncProgressListener.SYNC_TRANSMIT_ERROR);
+        filter.addAction(CyfaceConnectionListener.SYNC_FINISHED);
+        filter.addAction(CyfaceConnectionListener.SYNC_PROGRESS);
+        filter.addAction(SYNC_POINTS_TRANSMITTED);
+        filter.addAction(SYNC_POINTS_TO_TRANSMIT);
+        filter.addAction(CyfaceConnectionListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);
 
         ContentProviderClient client = null;
@@ -147,36 +150,24 @@ class TestReceiver extends BroadcastReceiver {
         }
 
         switch (intent.getAction()) {
-            case CyfaceSyncProgressListener.SYNC_FINISHED:
+            case CyfaceConnectionListener.SYNC_FINISHED:
                 Log.d(TAG, "SYNC FINISHED");
                 break;
-            case CyfaceSyncProgressListener.SYNC_PROGRESS:
-                final long countOfTransmittedPoints = intent.getLongExtra(SYNC_PROGRESS_TRANSMITTED, 0);
-                final long countOfPointsToTransmit = intent.getLongExtra(SYNC_PROGRESS_TOTAL, 0);
+            case CyfaceConnectionListener.SYNC_PROGRESS:
+                final long countOfTransmittedPoints = intent.getLongExtra(SYNC_POINTS_TRANSMITTED, 0);
+                final long countOfPointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, 0);
                 collectedProgress.add(countOfTransmittedPoints);
                 collectedTotalProgress.add(countOfPointsToTransmit);
                 Log.d(TAG, "SYNC PROGRESS: " + countOfTransmittedPoints + " / " + countOfPointsToTransmit);
                 break;
-            case SYNC_PROGRESS_TRANSMITTED:
+            case SYNC_POINTS_TRANSMITTED:
                 Log.d(TAG, "SYNC PROGRESS TRANSMITTED");
                 break;
-            case SYNC_PROGRESS_TOTAL:
+            case SYNC_POINTS_TO_TRANSMIT:
                 Log.d(TAG, "SYNC PROGRESS TOTAL");
                 break;
-            case CyfaceSyncProgressListener.SYNC_STARTED:
+            case CyfaceConnectionListener.SYNC_STARTED:
                 Log.d(TAG, "SYNC STARTED");
-                break;
-            case CyfaceSyncProgressListener.SYNC_ERROR_MESSAGE:
-                Log.d(TAG, "SYNC ERROR MESSAGE");
-                break;
-            case CyfaceSyncProgressListener.SYNC_EXCEPTION_TYPE:
-                Log.d(TAG, "SYNC EXCEPTION TYPE");
-                break;
-            case CyfaceSyncProgressListener.SYNC_READ_ERROR:
-                Log.d(TAG, "SYNC READ ERROR");
-                break;
-            case CyfaceSyncProgressListener.SYNC_TRANSMIT_ERROR:
-                Log.d(TAG, "SYNC TRANSIT ERROR");
                 break;
             default:
                 throw new IllegalStateException(String.format("Invalid message %s", intent.getAction()));
