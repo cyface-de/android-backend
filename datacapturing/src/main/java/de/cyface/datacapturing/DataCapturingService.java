@@ -68,7 +68,7 @@ import de.cyface.synchronization.WiFiSurveyor;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.1
+ * @version 7.1.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1058,8 +1058,7 @@ public abstract class DataCapturingService {
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            if (BuildConfig.DEBUG)
-                Log.v(TAG, String.format("Service facade received message: %d", msg.what));
+            Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (final DataCapturingListener listener : this.listener) {
                 switch (msg.what) {
@@ -1093,7 +1092,15 @@ public abstract class DataCapturingService {
                         listener.onFixLost();
                         break;
                     case MessageCodes.WARNING_SPACE:
-                        listener.onLowDiskSpace(null);
+                        final Bundle data = msg.getData();
+                        data.setClassLoader(getClass().getClassLoader());
+                        final DiskConsumption diskConsumption = data.getParcelable("data");
+                        if (diskConsumption == null) {
+                            listener.onErrorState(
+                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
+                        } else {
+                            listener.onLowDiskSpace(diskConsumption);
+                        }
                         break;
                     case MessageCodes.ERROR_PERMISSION:
                         listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(

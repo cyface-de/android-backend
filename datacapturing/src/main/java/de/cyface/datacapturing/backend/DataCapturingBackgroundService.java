@@ -3,6 +3,9 @@ package de.cyface.datacapturing.backend;
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.DiskConsumption.bytesAvailable;
+import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
+import static de.cyface.datacapturing.DiskConsumption.storageSize;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
@@ -32,6 +35,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.datacapturing.DiskConsumption;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -49,7 +53,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.8
+ * @version 4.0.9
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -69,7 +73,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Reference to the R files identifier for the notification title.
      */
-    private final static int NOTIFICATION_TITEL_ID = BuildConfig.NOTIFICATION_TITLE;
+    private final static int NOTIFICATION_TITLE_ID = BuildConfig.NOTIFICATION_TITLE;
     /**
      * Reference to the R files identifier for the notification text.
      */
@@ -147,7 +151,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          * This must be placed in onCreate or it will be called to late from time to time!
          */
         final CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
-                NOTIFICATION_TITEL_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
+                NOTIFICATION_TITLE_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
         startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
 
         // Prevents this process from being killed by the system.
@@ -318,6 +322,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
         persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
+
+        if (!spaceAvailable()) {
+            Log.d(TAG, "Space warning event triggered.");
+            final long bytesAvailable = bytesAvailable();
+            informCaller(MessageCodes.WARNING_SPACE,
+                    new DiskConsumption(storageSize() - bytesAvailable, bytesAvailable));
+        }
     }
 
     @Override
