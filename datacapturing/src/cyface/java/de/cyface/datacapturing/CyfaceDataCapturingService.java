@@ -1,14 +1,16 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
+
 import android.accounts.Account;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.support.annotation.NonNull;
+import android.support.annotation.Nullable;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.synchronization.SynchronisationException;
-
-import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
@@ -31,12 +33,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
+     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
+     *                              triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      */
     public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver contentResolver,
             final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress) throws SetupException {
-        super(context, contentResolver, authority, accountType, dataUploadServerAddress);
+            final @NonNull String dataUploadServerAddress, final @Nullable EventHandlingStrategy eventHandlingStrategy)
+            throws SetupException {
+        super(context, contentResolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
