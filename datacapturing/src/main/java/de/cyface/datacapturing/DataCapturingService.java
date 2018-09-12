@@ -16,7 +16,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
 import android.accounts.Account;
-import android.content.BroadcastReceiver;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -158,7 +157,7 @@ public abstract class DataCapturingService {
      */
     private final String deviceIdentifier;
     /**
-     * A {@link BroadcastReceiver} for synchronization events.
+     * A receiver for synchronization events.
      */
     private final ConnectionBroadcastReceiver connectionBroadcastReceiver;
 

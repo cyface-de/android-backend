@@ -116,7 +116,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         this.rotationsUploadBatchSize = rotationsUploadBatchSize;
         this.directionsUploadBatchSize = directionsUploadBatchSize;
         progressListener = new HashSet<>();
-        addSyncProgressListener(new CyfaceConnectionListener(context));
+        addConnectionListener(new CyfaceConnectionListener(context));
     }
 
     /**
@@ -359,8 +359,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             }
             notifySyncProgress(measurementSlice);
         }
-        // We currently inform two groups of listeners: the error intent listeners (to show the
-        // error) and the syncProgress listeners to upgrade the sync progress UI
         catch (final ServerUnavailableException e) {
             syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
@@ -460,7 +458,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         return jsonArray;
     }
 
-    private void addSyncProgressListener(final @NonNull ConnectionListener listener) {
+    private void addConnectionListener(final @NonNull ConnectionListener listener) {
         progressListener.add(listener);
     }
 

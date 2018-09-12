@@ -66,9 +66,7 @@ public class ConnectionBroadcastReceiver extends BroadcastReceiver {
                 Validate.isTrue(measurementId > 0L);
 
                 for (final ConnectionListener listener : connectionListener) {
-                    if (listener != null) {
-                        listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
-                    }
+                    listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
                 }
                 break;
         }

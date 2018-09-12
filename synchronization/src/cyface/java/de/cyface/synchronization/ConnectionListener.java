@@ -25,5 +25,8 @@ public interface ConnectionListener {
      */
     void onProgress(final long transmittedPoints, final long pointsToTransmit, final long measurementId);
 
+    /**
+     * Is called when the synchronization ended.
+     */
     void onSyncFinished();
 }
