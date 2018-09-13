@@ -1,9 +1,5 @@
 package de.cyface.synchronization;
 
-import java.io.File;
-
-import android.os.Environment;
-
 /**
  * Final static constants used by multiple classes.
  *
@@ -13,6 +9,11 @@ import android.os.Environment;
  * @since 2.0.0
  */
 public final class Constants {
+
+    /**
+     * Tag used to identify Logcat messages issued by instances of this package.
+     */
+    public final static String TAG = "de.cyface.sync";
 
     /**
      * Increasing the _total batch size_ (i.e. sum of all data type batch sizes) leads to more data
@@ -35,22 +36,6 @@ public final class Constants {
      * The charset used to parse Strings (e.g. for JSON data)
      */
     public final static String DEFAULT_CHARSET = "UTF-8";
-
-    /**
-     * The disk where data can be stored by the SDK, e.g. image material.
-     */
-    public final static String BASE_PATH = Environment.getExternalStorageDirectory().getPath();
-
-    /**
-     * The path where files can be stored by the SDK, e.g. image material.
-     */
-    public final static String CYFACE_FOLDER_PATH = BASE_PATH + File.separator + "Cyface";
-
-    /**
-     * The minimum space required for capturing. We don't want to use the space full up as this would
-     * slow down the device and could get unusable.
-     */
-    public final static long MINIMUM_MEGABYTES_REQUIRED = 100L;
 
     private Constants() {
         // Nothing to do here.

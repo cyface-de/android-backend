@@ -1,17 +1,16 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.Constants.BASE_PATH;
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.Constants.BASE_PATH;
+import static de.cyface.datacapturing.Constants.MINIMUM_MEGABYTES_REQUIRED;
 
 import java.util.Locale;
-import java.util.Objects;
 
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.StatFs;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
-import de.cyface.synchronization.Constants;
 
 /**
  * Objects of this class represent the current disk (or rather SD card) space used and available. This space is mostly
@@ -20,12 +19,15 @@ import de.cyface.synchronization.Constants;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {
 
-    private final static String TAG = "de.cyface.background";
+    /**
+     * The tag used to identify log messages send to logcat.
+     */
+    private final static String TAG = BACKGROUND_TAG;
     /**
      * The count of bytes currently used by the {@link DataCapturingService}.
      */
@@ -167,6 +169,6 @@ public final class DiskConsumption implements Parcelable {
      * @return True if enough space is available.
      */
     public static boolean spaceAvailable() {
-        return (bytesAvailable() / (1024 * 1024)) > Constants.MINIMUM_MEGABYTES_REQUIRED;
+        return (bytesAvailable() / (1024 * 1024)) > MINIMUM_MEGABYTES_REQUIRED;
     }
 }

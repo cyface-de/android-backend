@@ -4,6 +4,7 @@ import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TO_
 import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TRANSMITTED;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.clearDatabase;
 import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
 import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
@@ -139,7 +140,6 @@ public class UploadProgressTest {
 
 class TestReceiver extends BroadcastReceiver {
 
-    private final static String TAG = "de.cyface.sync.test";
     private final List<Long> collectedProgress = new LinkedList<>();
     private final List<Long> collectedTotalProgress = new LinkedList<>();
 

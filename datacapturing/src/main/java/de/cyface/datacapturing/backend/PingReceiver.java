@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PONG;
 
@@ -18,7 +19,7 @@ import de.cyface.utils.Validate;
  * This can be used to check if the service is alive.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -26,16 +27,17 @@ public class PingReceiver extends BroadcastReceiver {
     /**
      * The tag used to identify Logcat messages.
      */
-    private static final String TAG = "de.cyface.background";
+    private static final String TAG = BACKGROUND_TAG;
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
         if (intent.getAction().equals(ACTION_PING)) {
             Intent pongIntent = new Intent(ACTION_PONG);
-            if(BuildConfig.DEBUG) {
+            if (BuildConfig.DEBUG) {
                 String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
-                Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier "+ pingPongIdentifier +". Sending Pong.");
+                Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
+                        + ". Sending Pong.");
                 pongIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
             }
             context.sendBroadcast(pongIntent);

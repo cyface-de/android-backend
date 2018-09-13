@@ -1,5 +1,7 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 import android.util.Log;
@@ -8,7 +10,7 @@ import android.util.Log;
  * A table for magnetic value points from the android magnetometer sensor (with hard iron calibration).
  *
  * @author Klemens Muthmann
- * @version 2.1.1
+ * @version 2.1.2
  * @since 1.0.0
  */
 public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
@@ -18,14 +20,11 @@ public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
     protected DirectionPointTable() {
         super("magnetic_value_points");
     }
+
     /**
      * The path segment in the table URI identifying the directions table.
      */
     public final static String URI_PATH = "magnetic_value";
-    /**
-     * Logging tag for Android logging.
-     */
-    static final String TAG = "DirectionPointTable";
     /**
      * Column name for the column storing the magnetometer value in X direction in μT using the device coordinate
      * system.

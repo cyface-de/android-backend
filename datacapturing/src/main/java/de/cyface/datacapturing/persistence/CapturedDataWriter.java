@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.persistence;
 
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+
 import java.util.Arrays;
 import java.util.List;
 
@@ -28,7 +30,7 @@ import de.cyface.persistence.RotationPointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.0.2
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {
@@ -36,7 +38,7 @@ public class CapturedDataWriter implements Runnable {
     /**
      * The tag used to identify Logcat messages from this class.
      */
-    private static final String TAG = CapturedDataWriter.class.getName();
+    private static final String TAG = BACKGROUND_TAG;
     /**
      * The data to write.
      */
@@ -106,11 +108,11 @@ public class CapturedDataWriter implements Runnable {
                 }
 
                 insert(client, data.getAccelerations(),
-                        new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH)
-                                .build(),
-                        AccelerationPointTable.COLUMN_AX, AccelerationPointTable.COLUMN_AY, AccelerationPointTable.COLUMN_AZ,
-                        AccelerationPointTable.COLUMN_IS_SYNCED, AccelerationPointTable.COLUMN_MEASUREMENT_FK,
-                        AccelerationPointTable.COLUMN_TIME);
+                        new Uri.Builder().scheme("content").authority(authority)
+                                .appendPath(AccelerationPointTable.URI_PATH).build(),
+                        AccelerationPointTable.COLUMN_AX, AccelerationPointTable.COLUMN_AY,
+                        AccelerationPointTable.COLUMN_AZ, AccelerationPointTable.COLUMN_IS_SYNCED,
+                        AccelerationPointTable.COLUMN_MEASUREMENT_FK, AccelerationPointTable.COLUMN_TIME);
 
                 insert(client, data.getRotations(),
                         new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH)
@@ -122,9 +124,9 @@ public class CapturedDataWriter implements Runnable {
                 insert(client, data.getDirections(),
                         new Uri.Builder().scheme("content").authority(authority)
                                 .appendPath(DirectionPointTable.URI_PATH).build(),
-                        DirectionPointTable.COLUMN_MX, DirectionPointTable.COLUMN_MY,
-                        DirectionPointTable.COLUMN_MZ, DirectionPointTable.COLUMN_IS_SYNCED,
-                        DirectionPointTable.COLUMN_MEASUREMENT_FK, DirectionPointTable.COLUMN_TIME);
+                        DirectionPointTable.COLUMN_MX, DirectionPointTable.COLUMN_MY, DirectionPointTable.COLUMN_MZ,
+                        DirectionPointTable.COLUMN_IS_SYNCED, DirectionPointTable.COLUMN_MEASUREMENT_FK,
+                        DirectionPointTable.COLUMN_TIME);
 
             } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);

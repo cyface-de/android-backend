@@ -13,7 +13,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -55,11 +54,6 @@ import de.cyface.utils.Validate;
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
-
-    /**
-     * The tag used to identify log messages.
-     */
-    private static final String TAG = "de.cyface.test";
 
     /**
      * Rule used to run

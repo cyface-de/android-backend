@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.TAG;
+
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -23,15 +25,11 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
 
-    /**
-     * The tag used to identify messages in Logcat.
-     */
-    private static final String TAG = "de.cyface.capturing";
     /**
      * The human readable name for the background thread handling response and timeout of the ping pong process between
      * background service and foreground facade.
@@ -45,7 +43,7 @@ public class PongReceiver extends BroadcastReceiver {
     /**
      * Flag that is set if the <code>MessageCodes.PONG</code> event was received. This flag is required to synchronize
      * with
-     * the timeout if both happen simulatenously.
+     * the timeout if both happen simultaneously.
      */
     private boolean isRunning;
     /**
@@ -117,10 +115,8 @@ public class PongReceiver extends BroadcastReceiver {
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG,
-                            "PongReceiver.pongAndReceive(): Timeout for pong " + pingPongIdentifier + " reached after "
-                                    + unit.toMillis(timeout) + " milliseconds. Executed at: "
-                                    + SystemClock.uptimeMillis());
+                Log.d(TAG, "PongReceiver.pongAndReceive(): Timeout for pong " + pingPongIdentifier + " reached after "
+                        + unit.toMillis(timeout) + " milliseconds. Executed at: " + SystemClock.uptimeMillis());
                 lock.lock();
                 try {
                     if (!isRunning) {
@@ -143,7 +139,7 @@ public class PongReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Log.d(TAG, "PongReceiver.onReceive(): Received pong with identifier "
-                    + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
+                + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
             if (!isTimedOut && MessageCodes.ACTION_PONG.equals(intent.getAction())) {

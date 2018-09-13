@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.persistence;
 
+import static de.cyface.datacapturing.Constants.TAG;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -40,10 +42,6 @@ import de.cyface.persistence.RotationPointTable;
  */
 public class MeasurementPersistence {
 
-    /**
-     * Tag used to identify messages on logcat.
-     */
-    private static final String TAG = "de.cyface.capturing";
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -111,7 +109,7 @@ public class MeasurementPersistence {
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
         synchronized (this) {
             int updatedRows = resolver.update(getMeasurementUri(), values, MeasurementTable.COLUMN_FINISHED + "=?",
-                    new String[]{"0"});
+                    new String[] {"0"});
             currentMeasurementIdentifier = null;
 
             Log.d(TAG, "Closed " + updatedRows + " measurements");
@@ -124,7 +122,8 @@ public class MeasurementPersistence {
      *
      * @param data The data to store.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier, final @NonNull WritingDataCompletedCallback callback) {
+    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier,
+            final @NonNull WritingDataCompletedCallback callback) {
         if (threadPool.isShutdown()) {
             return;
         }
@@ -132,14 +131,16 @@ public class MeasurementPersistence {
         CapturedDataWriter writer = new CapturedDataWriter(data, resolver, authority, measurementIdentifier, callback);
 
         threadPool.submit(writer);
-        /*threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
-                new WritingDataCompletedCallback() {
-                    @Override
-                    public void writingDataCompleted() {
-                        // TODO: Add some useful code here as soon as data capturing is activated again.
-                        Log.d(TAG, "Completed writing data.");
-                    }
-                }));*/
+        /*
+         * threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
+         * new WritingDataCompletedCallback() {
+         * @Override
+         * public void writingDataCompleted() {
+         * // TODO: Add some useful code here as soon as data capturing is activated again.
+         * Log.d(TAG, "Completed writing data.");
+         * }
+         * }));
+         */
     }
 
     /**
@@ -176,7 +177,8 @@ public class MeasurementPersistence {
         try {
             synchronized (this) {
                 openMeasurementQueryCursor = resolver.query(getMeasurementUri(), null,
-                        MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null, null);
+                        MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
+                        null);
 
                 if (openMeasurementQueryCursor == null) {
                     throw new DataCapturingException(
@@ -216,7 +218,7 @@ public class MeasurementPersistence {
         try {
             synchronized (this) {
                 measurementIdentifierQueryCursor = resolver.query(getMeasurementUri(),
-                        new String[]{BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
+                        new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
                         MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
                         BaseColumns._ID + " DESC");
                 if (measurementIdentifierQueryCursor == null) {
@@ -232,8 +234,10 @@ public class MeasurementPersistence {
                     throw new NoSuchMeasurementException("Unable to get measurement to store captured data to!");
                 }
 
-                int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor.getColumnIndex(BaseColumns._ID);
-                long measurementIdentifier = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
+                int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
+                        .getColumnIndex(BaseColumns._ID);
+                long measurementIdentifier = measurementIdentifierQueryCursor
+                        .getLong(indexOfMeasurementIdentifierColumn);
                 Log.d(TAG, "Providing measurement identifier " + measurementIdentifier);
                 return measurementIdentifier;
             }
@@ -363,7 +367,7 @@ public class MeasurementPersistence {
      * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
      */
     public void delete(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        if(measurement==null) {
+        if (measurement == null) {
             throw new NoSuchMeasurementException("Unable to delete null measurement!");
         }
 
@@ -388,7 +392,7 @@ public class MeasurementPersistence {
      * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
      */
     public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        if(measurement==null) {
+        if (measurement == null) {
             throw new NoSuchMeasurementException("Unable to load track for null measurement!");
         }
 
@@ -482,7 +486,8 @@ public class MeasurementPersistence {
      * @return The content provider URI for the accelerations table.
      */
     private Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH)
+                .build();
     }
 
     /**

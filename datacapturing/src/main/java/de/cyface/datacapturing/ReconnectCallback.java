@@ -1,10 +1,12 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.NonNull;
-import android.util.Log;
+import static de.cyface.datacapturing.Constants.TAG;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 /**
  * Callback used for reconnecting the foreground service controlled by an Android application, with a probably running
@@ -12,16 +14,12 @@ import java.util.concurrent.locks.Lock;
  * This class is used by a {@link PongReceiver} to inform a reconnection process about the status and wake it up.
  * 
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.3
  * @since 2.0.1
  * @see DataCapturingService#reconnect()
  */
 abstract class ReconnectCallback implements IsRunningCallback {
 
-    /**
-     * The tag used to mark Logcat messages from this class.
-     */
-    private final static String TAG = "de.cyface.capturing";
     /**
      * Flag indicating whether the background service was running after the callback has returned. This is
      * <code>true</code> if the service was running and <code>false</code> otherwise.

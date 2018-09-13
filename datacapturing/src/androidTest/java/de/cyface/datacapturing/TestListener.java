@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.ServiceTestUtils.TAG;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
@@ -18,14 +20,11 @@ import de.cyface.datacapturing.ui.Reason;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.2.2
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
-    /**
-     * The tag used to log messages to Logcat.
-     */
-    private final static String TAG = "de.cyface.test";
+
     /**
      * Lock used to secure the <code>Condition</code>, prior to sending a signal.
      */

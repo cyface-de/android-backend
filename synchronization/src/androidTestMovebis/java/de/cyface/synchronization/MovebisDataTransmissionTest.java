@@ -1,6 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
 import static de.cyface.synchronization.TestUtils.insertTestDirection;
 import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
@@ -34,7 +35,7 @@ import android.util.Log;
  * that server, it is a flaky test and a large test.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -44,11 +45,6 @@ import android.util.Log;
 @FlakyTest
 @Ignore
 public class MovebisDataTransmissionTest {
-
-    /**
-     * The tag used to identify messages from logcat.
-     */
-    private static final String TAG = "de.cyface.test";
 
     /**
      * Tests the basic transmission code to a Movebis backend. This is based on some code from stackoverflow. An example
@@ -150,9 +146,9 @@ public class MovebisDataTransmissionTest {
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] content = new byte[stream.available()];
         stream.read(content);
-        byte[] thedigest = md.digest(content);
-        StringBuilder sb = new StringBuilder(thedigest.length * 2);
-        for (byte b : thedigest)
+        byte[] theDigest = md.digest(content);
+        StringBuilder sb = new StringBuilder(theDigest.length * 2);
+        for (byte b : theDigest)
             sb.append(String.format("%02x", b));
         Log.i(TAG, sb.toString());
     }

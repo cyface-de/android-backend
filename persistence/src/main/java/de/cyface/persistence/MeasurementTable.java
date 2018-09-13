@@ -1,7 +1,6 @@
-/*
- * Created on 23.01.15.
- */
 package de.cyface.persistence;
+
+import static de.cyface.persistence.Constants.TAG;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
@@ -11,15 +10,11 @@ import android.util.Log;
  * This class represents the table containing all the measurements currently stored on this device.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
-    /**
-     * Logging tag for Android logging.
-     */
-    static final String TAG = "MeasurementTable";
     /**
      * The path segment in the table URI identifying the measurements table.
      */

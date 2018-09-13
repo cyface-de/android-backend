@@ -1,26 +1,25 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.TAG;
+
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
 import android.util.Log;
 
 /**
- * The synchronistaion <code>Service</code> used to bind the synchronisation adapter to the Android framework.
+ * The synchronisation <code>Service</code> used to bind the synchronisation adapter to the Android framework.
  * <p>
  * Further details are described in the <a href=
  * "https://developer.android.com/training/sync-adapters/creating-sync-adapter.html#CreateSyncAdapterService">Android
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class SyncService extends Service {
-    /**
-     * The tag used to display log messages.
-     */
-    private final static String TAG = "de.cyface.sync";
+
     /**
      * The settings key used to identify the settings storing the device or rather installation identifier of the
      * current app. This identifier is used to anonymously group measurements from the same device together.
