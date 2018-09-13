@@ -14,11 +14,11 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  * @version 1.0.0
  * @since 2.5.0
  */
-public class IgnoreEverythingStrategy implements EventHandlingStrategy {
+public class IgnoreEventsStrategy implements EventHandlingStrategy {
 
     private final static String TAG = "de.cyface.background";
 
-    public IgnoreEverythingStrategy() {
+    public IgnoreEventsStrategy() {
     }
 
     @Override
@@ -33,23 +33,23 @@ public class IgnoreEverythingStrategy implements EventHandlingStrategy {
     /**
      * Constructor as required by <code>Parcelable</code> implementation.
      *
-     * @param in A <code>Parcel</code> that is a serialized version of a <code>IgnoreEverythingStrategy</code>.
+     * @param in A <code>Parcel</code> that is a serialized version of a <code>IgnoreEventsStrategy</code>.
      */
-    private IgnoreEverythingStrategy(final @NonNull Parcel in) {
+    private IgnoreEventsStrategy(final @NonNull Parcel in) {
     }
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
      */
-    public static final Creator<IgnoreEverythingStrategy> CREATOR = new Creator<IgnoreEverythingStrategy>() {
+    public static final Creator<IgnoreEventsStrategy> CREATOR = new Creator<IgnoreEventsStrategy>() {
         @Override
-        public IgnoreEverythingStrategy createFromParcel(final Parcel in) {
-            return new IgnoreEverythingStrategy(in);
+        public IgnoreEventsStrategy createFromParcel(final Parcel in) {
+            return new IgnoreEventsStrategy(in);
         }
 
         @Override
-        public IgnoreEverythingStrategy[] newArray(final int size) {
-            return new IgnoreEverythingStrategy[size];
+        public IgnoreEventsStrategy[] newArray(final int size) {
+            return new IgnoreEventsStrategy[size];
         }
     };
 

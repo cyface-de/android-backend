@@ -35,7 +35,7 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.1.3
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
