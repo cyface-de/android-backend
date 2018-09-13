@@ -2,7 +2,6 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -71,12 +70,14 @@ public class MeasurementSerializerTest {
     private Cursor pointsCursor;
 
     private final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
-            + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
+            + 3 * 3 * BYTES_IN_ONE_POINT_ENTRY;
     private final int SERIALIZED_COMPRESSED_SIZE = 30;
 
     @Before
     public void setUp() throws RemoteException {
-        when(loader.countData(any(Uri.class), anyString())).thenReturn(3L);
+        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(TestUtils.AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+        when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
+        when(loader.countData(geoLocationUri, GpsPointsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3L);
         when(loader.loadGeoLocations(anyInt(),anyInt())).thenReturn(geoLocationsCursor);
         when(loader.load3DPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor);
         when(geoLocationsCursor.getCount()).thenReturn(3);
@@ -95,7 +96,6 @@ public class MeasurementSerializerTest {
         when(geoLocationsCursor.getLong(0)).thenReturn(1L);
         when(pointsCursor.getLong(0)).thenReturn(1L);
         when(geoLocationsCursor.getInt(0)).thenReturn(1);
-        when(pointsCursor.getInt(0)).thenReturn(1);
     }
 
     /**
