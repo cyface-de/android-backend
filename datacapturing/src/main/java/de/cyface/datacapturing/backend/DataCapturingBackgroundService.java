@@ -35,7 +35,7 @@ import android.util.Log;
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.EventHandlingStrategy;
-import de.cyface.datacapturing.IgnoreEverythingStrategy;
+import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -53,7 +53,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.9
+ * @version 4.0.10
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -226,7 +226,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             // Loads EventHandlingStrategy
             this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
             if (eventHandlingStrategy == null) {
-                this.eventHandlingStrategy = new IgnoreEverythingStrategy();
+                this.eventHandlingStrategy = new IgnoreEventsStrategy();
             }
 
             // Init capturing process

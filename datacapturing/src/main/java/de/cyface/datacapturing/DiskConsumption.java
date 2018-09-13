@@ -20,7 +20,7 @@ import de.cyface.synchronization.Constants;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {
