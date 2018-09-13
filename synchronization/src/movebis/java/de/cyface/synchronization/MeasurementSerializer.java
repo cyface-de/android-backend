@@ -10,6 +10,7 @@ import java.nio.ByteBuffer;
 import java.util.zip.Deflater;
 
 import android.database.Cursor;
+import android.net.Uri;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -43,7 +44,7 @@ import de.cyface.persistence.GpsPointsTable;
  */
 public final class MeasurementSerializer {
 
-    public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
+    static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
 
     private final static String TAG = "de.cyface.sync";
 
@@ -61,22 +62,20 @@ public final class MeasurementSerializer {
     final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
 
-    final static int BYTES_IN_ONE_POINT_3D_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
-
     /**
      * Serializer for transforming acceleration points into a byte representation.
      */
-    final static Point3DSerializer accelerationsSerializer = new AccelerationsSerializer();
+    private final static Point3DSerializer accelerationsSerializer = new AccelerationsSerializer();
 
     /**
      * Serializer for transforming rotation points into a byte representation.
      */
-    final static Point3DSerializer rotationsSerializer = new RotationsSerializer();
+    private final static Point3DSerializer rotationsSerializer = new RotationsSerializer();
 
     /**
      * Serializer for transforming direction points into a byte representation.
      */
-    public final static Point3DSerializer directionsSerializer = new DirectionsSerializer();
+    private final static Point3DSerializer directionsSerializer = new DirectionsSerializer();
 
     /**
      * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
@@ -186,7 +185,8 @@ public final class MeasurementSerializer {
         Cursor directionsCursor = null;
 
         try {
-            final long geoLocationCount = loader.countData(loader.createGeoLocationTableUri(),
+            Uri geoLocationTableUri = loader.createGeoLocationTableUri();
+            final long geoLocationCount = loader.countData(geoLocationTableUri,
                     GpsPointsTable.COLUMN_MEASUREMENT_FK);
             accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
@@ -246,7 +246,7 @@ public final class MeasurementSerializer {
      * @param serializer Wrapped information about the points to serialize.
      * @return A <code>byte</code> array containing all the data.
      */
-    byte[] serialize(final @NonNull Cursor pointCursor, final @NonNull Point3DSerializer serializer) {
+    private byte[] serialize(final @NonNull Cursor pointCursor, final @NonNull Point3DSerializer serializer) {
         Log.d(TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
         ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
         while (pointCursor.moveToNext()) {

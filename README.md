@@ -11,7 +11,7 @@ To make this possible the SDK requires a truststore containing the key of the se
 Since we can not know which public key your server uses, this must be provided by you.
 To do so place a truststore containing your key in
 
-    src/main/res/raw/truststore.jks
+    synchronization/src/main/res/raw/truststore.jks
 
 Known Issues
 ------------

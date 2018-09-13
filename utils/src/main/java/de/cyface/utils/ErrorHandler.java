@@ -10,13 +10,13 @@ import android.support.v4.content.LocalBroadcastManager;
 
 /**
  * Maintains and informs {@link ErrorListener}. This class is responsible for Cyface Errors.
- *
+ * <p>
  * Best practices: When an unspecified error is reported by a user add an extras to the error which
  * the user can then report to us in addition or throw a more specific Exception. This helps to reduce
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
@@ -51,9 +51,9 @@ public class ErrorHandler extends BroadcastReceiver {
     /**
      * Informs listeners, e.g. a SDK implementing app, about errors.
      *
-     * @param context the {@link Context}
+     * @param context   the {@link Context}
      * @param errorCode the Cyface error code
-     * @param httpCode the HTTP error returned by the server
+     * @param httpCode  the HTTP error returned by the server
      */
     public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode) {
         final Intent intent = new Intent(ERROR_INTENT);
@@ -65,7 +65,7 @@ public class ErrorHandler extends BroadcastReceiver {
     /**
      * Informs listeners, e.g. a SDK implementing app, about errors.
      *
-     * @param context the {@link Context}
+     * @param context   the {@link Context}
      * @param errorCode the Cyface error code
      */
     public static void sendErrorIntent(final Context context, final int errorCode) {
@@ -143,7 +143,7 @@ public class ErrorHandler extends BroadcastReceiver {
     public enum ErrorCode {
         UNKNOWN(0), UNAUTHORIZED(1), MALFORMED_URL(2), UNREADABLE_HTTP_RESPONSE(3), SERVER_UNAVAILABLE(
                 4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(
-                        7), AUTHENTICATION_CANCELED(8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10);
+                7), AUTHENTICATION_CANCELED(8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;
