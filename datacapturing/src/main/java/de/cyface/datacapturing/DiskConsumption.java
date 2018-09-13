@@ -1,7 +1,9 @@
 package de.cyface.datacapturing;
 
+import static android.content.ContentValues.TAG;
+import static de.cyface.synchronization.Constants.BASE_PATH;
+
 import java.util.Locale;
-import java.util.Objects;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -10,9 +12,6 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.synchronization.Constants;
-
-import static android.content.ContentValues.TAG;
-import static de.cyface.synchronization.Constants.BASE_PATH;
 
 /**
  * Objects of this class represent the current disk (or rather SD card) space used and available. This space is mostly
@@ -110,11 +109,12 @@ public final class DiskConsumption implements Parcelable {
 
     @Override
     public boolean equals(Object o) {
-        if (this == o) return true;
-        if (o == null || getClass() != o.getClass()) return false;
-        DiskConsumption that = (DiskConsumption) o;
-        return consumedBytes == that.consumedBytes &&
-                availableBytes == that.availableBytes;
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        DiskConsumption that = (DiskConsumption)o;
+        return consumedBytes == that.consumedBytes && availableBytes == that.availableBytes;
     }
 
     @Override
