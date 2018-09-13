@@ -791,34 +791,23 @@ public abstract class DataCapturingService {
      * @param finishedHandler The handler to call after receiving the stop message from the
      *            <code>DataCapturingBackgroundService</code>. There are some cases where this never happens, so be
      *            careful when using this method.
-     *
-     * @throws DataCapturingException In case the service was not stopped successfully.
      */
     private void stopService(final @NonNull Measurement measurement,
-            final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+            final @NonNull ShutDownFinishedHandler finishedHandler) {
         Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
 
-        Context context = getContext();
+        final Context context = getContext();
         Log.v(TAG, "Registering receiver for service stop broadcast.");
         context.registerReceiver(finishedHandler, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
-        boolean serviceWasActive;
-        try {
-            unbind();
-        } catch (IllegalArgumentException e) {
-            throw new DataCapturingException(e);
-        } catch (DataCapturingException e) {
-            Log.w(TAG, "Service was either paused or already stopped, so I was unable to unbind from it.");
-        } finally {
-            Log.v(TAG, String.format("Stopping using Intent with context %s", context));
-            Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
-            serviceWasActive = context.stopService(stopIntent);
-        }
+
+        Log.v(TAG, String.format("Stopping using Intent with context %s", context));
+        final Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
+        final boolean serviceWasActive = context.stopService(stopIntent);
 
         if (!serviceWasActive) {
             // The background service was not running so we need to inform the caller of this method ourselves.
             Intent stoppedBroadcastIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
-
             stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, false);
             context.sendBroadcast(stoppedBroadcastIntent);
         }
@@ -1118,7 +1107,7 @@ public abstract class DataCapturingService {
                         try {
                             dataCapturingService.unbind();
                         } catch (final DataCapturingException e) {
-                            Log.d(TAG, "The service seems to be already unbound. Ignoring unbind().");
+                            throw new IllegalStateException(e);
                         }
                         dataCapturingService.setIsRunning(false);
                         listener.onCapturingStopped();
