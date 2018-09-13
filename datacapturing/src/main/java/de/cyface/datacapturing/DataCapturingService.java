@@ -179,12 +179,13 @@ public abstract class DataCapturingService {
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
-     *                              triggered by the {@link DataCapturingBackgroundService}.
+     *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-                                final @NonNull String authority, final @NonNull String accountType,
-                                final @NonNull String dataUploadServerAddress, final @Nullable EventHandlingStrategy eventHandlingStrategy) throws SetupException {
+            final @NonNull String authority, final @NonNull String accountType,
+            final @NonNull String dataUploadServerAddress, final @Nullable EventHandlingStrategy eventHandlingStrategy)
+            throws SetupException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
@@ -212,7 +213,7 @@ public abstract class DataCapturingService {
             throw new SetupException("Android connectivity manager is not available!");
         }
         surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
-        this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
+        this.fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         lifecycleLock = new ReentrantLock();
         setIsRunning(false);
@@ -1059,11 +1060,18 @@ public abstract class DataCapturingService {
         private final Context context;
 
         /**
+         * The service which calls this handler.
+         */
+        private final DataCapturingService dataCapturingService;
+
+        /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
          */
-        FromServiceMessageHandler(final @NonNull Context context) {
+        FromServiceMessageHandler(final @NonNull Context context,
+                @NonNull final DataCapturingService dataCapturingService) {
             this.context = context;
             this.listener = new HashSet<>();
+            this.dataCapturingService = dataCapturingService;
         }
 
         @Override
@@ -1101,20 +1109,19 @@ public abstract class DataCapturingService {
                     case MessageCodes.NO_GPS_FIX:
                         listener.onFixLost();
                         break;
-                    case MessageCodes.WARNING_SPACE:
-                        final Bundle data = msg.getData();
-                        data.setClassLoader(getClass().getClassLoader());
-                        final DiskConsumption diskConsumption = data.getParcelable("data");
-                        if (diskConsumption == null) {
-                            listener.onErrorState(
-                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
-                        } else {
-                            listener.onLowDiskSpace(diskConsumption);
-                        }
-                        break;
                     case MessageCodes.ERROR_PERMISSION:
                         listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
                                 "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
+                        break;
+                    case MessageCodes.SERVICE_STOPPED:
+                        // The service is not stopped until all clients are unbound.
+                        try {
+                            dataCapturingService.unbind();
+                        } catch (final DataCapturingException e) {
+                            Log.d(TAG, "The service seems to be already unbound. Ignoring unbind().");
+                        }
+                        dataCapturingService.setIsRunning(false);
+                        listener.onCapturingStopped();
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(
