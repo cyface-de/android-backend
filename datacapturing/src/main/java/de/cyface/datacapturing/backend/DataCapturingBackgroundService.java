@@ -4,9 +4,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.DiskConsumption.bytesAvailable;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.datacapturing.DiskConsumption.storageSize;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
@@ -28,7 +26,6 @@ import android.os.Handler;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
-import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
@@ -37,7 +34,6 @@ import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
-import de.cyface.datacapturing.DiskConsumption;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.IgnoreEverythingStrategy;
 import de.cyface.datacapturing.MessageCodes;
@@ -191,9 +187,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (persistenceLayer != null) {
             persistenceLayer.shutdown();
         }
-        // Since on some devices the broadcast seems not to work we are sending a message here.
-        // informCaller(MessageCodes.SERVICE_STOPPED,null);
+
+        // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
+
+        // This is the cleaner solution than the broadcast below
+        informCaller(MessageCodes.SERVICE_STOPPED, null);
+
+        // This broadcast is only used for synchronization. TODO should be replaced with MessageHandler
         Log.v(TAG, "Sending broadcast service stopped.");
         final Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
         serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
@@ -338,12 +339,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");
-            eventHandlingStrategy.handleSpaceWarning();
-
-            // TODO: Do we still want to inform the CapturingListeners about this event?
-            final long bytesAvailable = bytesAvailable();
-            informCaller(MessageCodes.WARNING_SPACE,
-                    new DiskConsumption(storageSize() - bytesAvailable, bytesAvailable));
+            eventHandlingStrategy.handleSpaceWarning(this);
         }
     }
 

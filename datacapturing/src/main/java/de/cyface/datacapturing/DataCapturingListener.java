@@ -10,7 +10,7 @@ import de.cyface.datacapturing.ui.Reason;
  * {@link DataCapturingService#startSync(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @version 1.2.1
  * @since 1.0.0
  */
 public interface DataCapturingListener {
@@ -67,4 +67,9 @@ public interface DataCapturingListener {
      * @return <code>true</code> if the permission was granted; <code>false</code> otherwise.
      */
     boolean onRequiresPermission(String permission, Reason reason);
+
+    /**
+     * This method is called when the capturing stopped.
+     */
+    void onCapturingStopped();
 }

@@ -4,6 +4,8 @@ import android.os.Parcel;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+
 /**
  * A default implementation of the {@link EventHandlingStrategy} used if not strategy was provided.
  * This does practically nothing and just allows the strategy to be optional.
@@ -20,7 +22,7 @@ public class IgnoreEverythingStrategy implements EventHandlingStrategy {
     }
 
     @Override
-    public void handleSpaceWarning(final DataCapturingService dataCapturingService) {
+    public void handleSpaceWarning(final DataCapturingBackgroundService dataCapturingBackgroundService) {
         Log.d(TAG, "No strategy provided for the handleSpaceWarning event. Ignoring.");
     }
 

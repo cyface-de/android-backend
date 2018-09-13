@@ -18,6 +18,9 @@ public interface EventHandlingStrategy extends Parcelable {
 
     /**
      * Implement a strategy to react to a low space warning.
+     *
+     * @param dataCapturingBackgroundService A reference to the background service to allow operations
+     *                                       on it like stopping the capturing.
      */
-    void handleSpaceWarning(final DataCapturingService dataCapturingService);
+    void handleSpaceWarning(final DataCapturingBackgroundService dataCapturingBackgroundService);
 }
