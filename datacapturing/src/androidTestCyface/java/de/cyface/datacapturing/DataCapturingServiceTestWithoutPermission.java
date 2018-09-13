@@ -1,19 +1,23 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
+
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import android.content.ContentResolver;
 import android.content.Context;
 import android.location.Location;
 import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
 import android.support.test.filters.MediumTest;
-import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
-
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -24,18 +28,11 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 
-import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 /**
  * Checks if missing permissions are correctly detected before starting a service.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -62,7 +59,7 @@ public class DataCapturingServiceTestWithoutPermission {
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
-                            dataUploadServerAddress);
+                            dataUploadServerAddress, new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -105,7 +102,7 @@ public class DataCapturingServiceTestWithoutPermission {
      * A <code>DataCapturingListener</code> that can be used for testing, which is not synchronized with the test.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
+     * @version 1.0.1
      * @since 2.0.0
      */
     private static class NonSynchronizedTestListener implements DataCapturingListener {
@@ -148,6 +145,11 @@ public class DataCapturingServiceTestWithoutPermission {
         @Override
         public boolean onRequiresPermission(String permission, Reason reason) {
             return false;
+        }
+
+        @Override
+        public void onCapturingStopped() {
+
         }
     }
 

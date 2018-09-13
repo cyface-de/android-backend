@@ -47,7 +47,7 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -127,7 +127,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
-                            ACCOUNT_TYPE, "http://localhost:8080");
+                            ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }

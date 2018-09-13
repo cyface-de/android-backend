@@ -32,7 +32,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * expected.
  *
  * @author Klemens Muthmann
- * @since 2.3.0
+ * @since 2.3.1
  * @version 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -95,7 +95,8 @@ public class PingPongTest {
             public void run() {
                 try {
                     dcs = new CyfaceDataCapturingService(context, context.getContentResolver(),
-                            ServiceTestUtils.AUTHORITY, ServiceTestUtils.ACCOUNT_TYPE, "https://fake.fake/");
+                            ServiceTestUtils.AUTHORITY, ServiceTestUtils.ACCOUNT_TYPE, "https://fake.fake/",
+                            new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
