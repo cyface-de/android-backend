@@ -34,7 +34,6 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.support.v4.app.ActivityCompat;
 import android.util.Log;
 
@@ -184,7 +183,7 @@ public abstract class DataCapturingService {
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @Nullable EventHandlingStrategy eventHandlingStrategy)
+            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
             throws SetupException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
@@ -218,6 +217,25 @@ public abstract class DataCapturingService {
         lifecycleLock = new ReentrantLock();
         setIsRunning(false);
         setIsStoppingOrHasStopped(false);
+    }
+
+    /**
+     * Creates a new completely initialized {@link DataCapturingService}.
+     *
+     * @param context The context (i.e. <code>Activity</code>) handling this service.
+     * @param resolver The <code>ContentResolver</code> used to access the data layer.
+     * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
+     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
+     *            avoid collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data with.
+     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+     *            this service.
+     * @throws SetupException If writing the components preferences fails.
+     */
+    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String authority, final @NonNull String accountType,
+            final @NonNull String dataUploadServerAddress) throws SetupException {
+        this(context, resolver, authority, accountType, dataUploadServerAddress, new IgnoreEventsStrategy());
     }
 
     /**

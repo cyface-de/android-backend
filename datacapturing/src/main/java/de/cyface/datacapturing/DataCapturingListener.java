@@ -1,5 +1,6 @@
 package de.cyface.datacapturing;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.ui.Reason;
@@ -60,6 +61,7 @@ public interface DataCapturingListener {
 
     /**
      * Called if the service notices missing permissions required to run.
+     * 
      * @param permission The permission the service requires in the form of an Android permission {@link String}.
      * @param reason A reason for why the service requires that permission. You may show the reason to the user before
      *            asking for the permission or create your own message from it.
@@ -69,7 +71,8 @@ public interface DataCapturingListener {
     boolean onRequiresPermission(String permission, Reason reason);
 
     /**
-     * This method is called when the capturing stopped.
+     * This method is called when the capturing stopped. This can occurs when a {@link EventHandlingStrategy}
+     * was implemented which stops the {@link DataCapturingBackgroundService} when the space is low.
      */
     void onCapturingStopped();
 }

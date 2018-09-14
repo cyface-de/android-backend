@@ -35,7 +35,6 @@ import android.util.Log;
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.EventHandlingStrategy;
-import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -43,6 +42,7 @@ import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.datacapturing.ui.CapturingNotification;
+import de.cyface.utils.Validate;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -225,9 +225,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
             // Loads EventHandlingStrategy
             this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
-            if (eventHandlingStrategy == null) {
-                this.eventHandlingStrategy = new IgnoreEventsStrategy();
-            }
+            Validate.notNull(eventHandlingStrategy);
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
