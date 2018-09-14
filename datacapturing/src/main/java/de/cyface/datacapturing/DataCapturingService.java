@@ -1018,6 +1018,7 @@ public abstract class DataCapturingService {
                 throw new IllegalStateException("Unable to rebind. Context was null.");
             }
 
+            Log.d(TAG, "Binding died, unbinding ...");
             try {
                 unbind();
             } catch (DataCapturingException e) {
