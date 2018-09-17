@@ -34,6 +34,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
@@ -195,8 +196,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     /**
      * Sends an IPC message to interested parties that the service stopped successfully.
-     *  @param currentMeasurementIdentifier The id of the measurement which was stopped.
-     *
+     * 
+     * @param currentMeasurementIdentifier The id of the measurement which was stopped.
      */
     private void sendStoppedMessage(final long currentMeasurementIdentifier) {
         Log.v(TAG, "Sending IPC message: service stopped.");
@@ -205,6 +206,19 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
         bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
         informCaller(MessageCodes.SERVICE_STOPPED, bundle);
+    }
+
+    /**
+     * Sends an IPC message to interested parties that the service stopped itself. This must be called
+     * when the {@code stopSelf()} method is called on this service to unbind the {@link DataCapturingService},
+     * e.g. from an {@link EventHandlingStrategy} implementation.
+     */
+    public void sendStoppedItselfMessage() {
+        Log.v(TAG, "Sending IPC message: service stopped itself.");
+        // Attention: the bundle is bundled again by informCaller !
+        final Bundle bundle = new Bundle();
+        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
     @Override
