@@ -42,9 +42,16 @@ public class MessageCodes {
     public static final int ERROR_PERMISSION = 9;
     /**
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
-     * {@link DataCapturingService} if the background service stopped.
+     * {@link DataCapturingService} if the background service stopped (after being asked to from outside).
      */
     public static final int SERVICE_STOPPED = 10;
+    /**
+     * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
+     * {@link DataCapturingService} when the background service stopped itself. This can happen when
+     * a {@link EventHandlingStrategy} was passed which stops the DataCapturingBackgroundService
+     * when it notices that only little space is left.
+     */
+    public static final int SERVICE_STOPPED_ITSELF = 11;
 
     // TODO This needs to be qualified. We should for example add the application id.
     /**
