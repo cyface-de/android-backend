@@ -144,10 +144,15 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         testListener = new TestListener(lock, condition);
         runningStatusCallback = new TestCallback("Default Callback", lock, condition);
 
-        // Makes sure a previous test did not forget to stop the capturing
         ensureThatDataCapturingServiceIsNotRunning();
     }
 
+    /**
+     * Makes sure a previous test did not forget to stop the capturing.
+     * <p>
+     * We do this here instead of in a tearDown method because this messes up the test result:
+     * it shows always the failed tearDown result instead of the actually failed assert
+     */
     private void ensureThatDataCapturingServiceIsNotRunning() {
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -179,8 +184,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.pauseAsync(shutDownFinishedHandler);
 
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
     }
 
@@ -195,8 +198,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resumeAsync(startUpFinishedHandler);
 
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
         assertThat(resumedMeasurementId, is(measurementIdentifier));
     }
@@ -228,7 +229,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        //ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
@@ -251,9 +252,9 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
-        // TODO: why are the following two checks not working?
-        //assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-        //assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
+        // FIXME: why are the following two checks not working? Are they bond to the sync calls?
+        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        // assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
 
         assertThat(shutDownFinishedHandler.receivedMeasurementIdentifier, is(equalTo(measurementIdentifier)));
     }
@@ -284,7 +285,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testDisconnectReconnect()
             throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
 
         oocut.disconnect();
@@ -293,8 +293,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        // oocut.stopSync();
-        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         stopAsyncAndCheckThatStopped(measurementIdentifier);
     }
 
@@ -310,11 +308,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testDoubleStart()
             throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
 
         // Second start - should not launch anything
@@ -323,7 +316,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
 
-        // oocut.stopSync();
         stopAsyncAndCheckThatStopped(measurementIdentifier);
     }
 
@@ -353,7 +345,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testDoubleDisconnect()
             throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
 
         oocut.disconnect();
@@ -361,7 +352,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
             oocut.disconnect(); // must throw DataCapturingException
         } finally {
             // must always be executed to avoid collusion with following tests
-            // oocut.stopSync();
             stopAsyncAndCheckThatStopped(measurementIdentifier);
         }
     }
@@ -445,23 +435,11 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     @Test
     public void testRestart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
-        // oocut.stopSync();
         stopAsyncAndCheckThatStopped(measurementIdentifier);
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         final long measurementIdentifier2 = startAsyncAndCheckThatLaunched();
         assertTrue(measurementIdentifier2 != measurementIdentifier);
-        // oocut.stopSync();
         stopAsyncAndCheckThatStopped(measurementIdentifier2);
     }
 
@@ -517,29 +495,14 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testStartPauseResumeStop()
             throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
-        // ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        // ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
-        // assertThat(runningStatusCallback.isRunning, is(equalTo(true)));
-        // assertThat(runningStatusCallback.timedOut, is(equalTo(false)));
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
 
         // Check measurements
         final List<Measurement> measurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
 
-        // oocut.pauseSync();
-        // ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        // ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
-        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-        // assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
         pauseAsyncAndCheckThatStopped(measurementIdentifier);
 
-        // oocut.resumeSync();
-        // ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        // ServiceTestUtils.lockAndWait(2L, TimeUnit.SECONDS, lock, condition);
-        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
-        // assertThat(runningStatusCallback.didTimeOut(), is(equalTo(false)));
         resumeAsyncAndCheckThatLaunched(measurementIdentifier);
 
         // Check measurements again
