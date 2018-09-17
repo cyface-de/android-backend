@@ -66,7 +66,7 @@ public class MessageCodes {
      * Broadcast action identifier sent by the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
      * after it has successfully stopped.
      */
-    public static final String BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
+    public static final String FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
 
     /**
      * Private constructor for utility class.

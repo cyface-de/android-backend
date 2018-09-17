@@ -190,16 +190,21 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
+        sendStoppedMessage(currentMeasurementIdentifier);
+    }
 
-        // This is the cleaner solution than the broadcast below
-        informCaller(MessageCodes.SERVICE_STOPPED, null);
-
-        // This broadcast is only used for synchronization. TODO should be replaced with MessageHandler
-        Log.v(TAG, "Sending broadcast service stopped.");
-        final Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
-        serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
-        serviceStoppedIntent.putExtra(STOPPED_SUCCESSFULLY, true);
-        sendBroadcast(serviceStoppedIntent);
+    /**
+     * Sends an IPC message to interested parties that the service stopped successfully.
+     *  @param currentMeasurementIdentifier The id of the measurement which was stopped.
+     *
+     */
+    private void sendStoppedMessage(final long currentMeasurementIdentifier) {
+        Log.v(TAG, "Sending IPC message: service stopped.");
+        // Attention: the bundle is bundled again by informCaller !
+        final Bundle bundle = new Bundle();
+        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
+        informCaller(MessageCodes.SERVICE_STOPPED, bundle);
     }
 
     @Override
@@ -275,7 +280,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
-        // FIXME: Why do we make a copy of this set to iterate over it when we modify the original set anyway?
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
             try {

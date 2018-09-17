@@ -29,7 +29,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     private static final String TAG = "de.cyface.capturing";
 
     /**
-     * This is set to <code>true</code> if either a <code>MessageCodes.BROADCAST_SERVICE_STOPPED</code> broadcast has
+     * This is set to <code>true</code> if either a <code>MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED</code> broadcast has
      * been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code> otherwise.
      */
     private boolean receivedServiceStopped;
@@ -49,7 +49,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
             throw new IllegalStateException("Received broadcast with null action.");
         }
         switch (intent.getAction()) {
-            case MessageCodes.BROADCAST_SERVICE_STOPPED:
+            case MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED:
                 Log.v(TAG, "Received Service stopped broadcast!");
                 receivedServiceStopped = true;
                 boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY,false);
@@ -75,7 +75,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     }
 
     /**
-     * @return This is set to <code>true</code> if either a <code>MessageCodes.BROADCAST_SERVICE_STOPPED</code>
+     * @return This is set to <code>true</code> if either a <code>MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED</code>
      *         broadcast has
      *         been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code>
      *         otherwise.
