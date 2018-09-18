@@ -31,7 +31,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * The <code>SyncAdapter</code> implementation used by the framework to transmit measured data to a server.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
@@ -126,7 +126,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                                 Intent syncProgressIntent = new Intent();
                                 syncProgressIntent.setAction(SYNC_PROGRESS_BROADCAST_ACTION);
                                 syncProgressIntent.putExtra(SYNC_PROGRESS_KEY, percent);
-                                getContext().sendBroadcast(syncProgressIntent);
+                                LocalBroadcastManager.getInstance(getContext()).sendBroadcast(syncProgressIntent);
                             }
                         }, jwtAuthToken);
                 if (responseStatus == 201 || responseStatus == 409) {

@@ -35,6 +35,7 @@ import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
@@ -843,7 +844,7 @@ public abstract class DataCapturingService {
             stoppedBroadcastIntent.putExtra(MEASUREMENT_ID, measurementIdentifier);
         }
         stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, stoppedSuccessfully);
-        context.sendBroadcast(stoppedBroadcastIntent);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(stoppedBroadcastIntent);
     }
 
     /**

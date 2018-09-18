@@ -3,6 +3,7 @@ package de.cyface.synchronization;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 
 /**
  * Listener for interested parties to subscribe to synchronization status updates.
@@ -10,7 +11,7 @@ import android.support.annotation.NonNull;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 1.0.0
  */
 public final class CyfaceConnectionListener implements ConnectionListener {
@@ -31,7 +32,7 @@ public final class CyfaceConnectionListener implements ConnectionListener {
     public void onSyncStarted(final long pointsToTransmitted) {
         final Intent intent = new Intent(SYNC_STARTED);
         intent.putExtra(SYNC_POINTS_TO_TRANSMIT, pointsToTransmitted);
-        context.sendBroadcast(intent);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 
     @Override
@@ -40,12 +41,12 @@ public final class CyfaceConnectionListener implements ConnectionListener {
         intent.putExtra(SYNC_POINTS_TRANSMITTED, transmittedPoints);
         intent.putExtra(SYNC_POINTS_TO_TRANSMIT, pointsToTransmit);
         intent.putExtra(SYNC_MEASUREMENT_ID, measurementId);
-        context.sendBroadcast(intent);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 
     @Override
     public void onSyncFinished() {
         final Intent intent = new Intent(SYNC_FINISHED);
-        context.sendBroadcast(intent);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
     }
 }
