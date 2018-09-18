@@ -1163,12 +1163,13 @@ public abstract class DataCapturingService {
                         Validate.notNull(stoppedItselfInfoBundle);
                         final long measurementId = stoppedItselfInfoBundle.getLong(MEASUREMENT_ID);
 
-                        // The service is not stopped until all clients are unbound, thus, we unbind:
                         final Lock lock = new ReentrantLock();
                         final Condition condition = lock.newCondition();
                         final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
                         try {
-                            // The background service stopped itself in advance, we expect no active service:
+                            // To make sure the background service is stopped, we unbind this service
+                            // from it via the stopService method (to reduce code duplicity). As the
+                            // background service stopped itself in advance, we expect no active service:
                             Validate.isTrue(!dataCapturingService.stopService(new Measurement(measurementId),
                                     synchronizationReceiver));
 
