@@ -14,6 +14,7 @@ import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 /**
@@ -22,7 +23,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.1
+ * @version 3.1.2
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -127,7 +128,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         IntentFilter intentFilter = new IntentFilter();
         intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
         currentSynchronizationAccount = account;
-        context.get().registerReceiver(this, intentFilter);
+        LocalBroadcastManager.getInstance(context.get()).registerReceiver(this, intentFilter);
     }
 
     /**
@@ -140,7 +141,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             throw new SynchronisationException("No valid context available!");
         }
         try {
-            context.get().unregisterReceiver(this);
+            LocalBroadcastManager.getInstance(context.get()).unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             throw new SynchronisationException(e);
         }

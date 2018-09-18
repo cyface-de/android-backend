@@ -40,6 +40,7 @@ import android.support.test.InstrumentationRegistry;
 import android.support.test.filters.FlakyTest;
 import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.utils.Validate;
@@ -48,7 +49,7 @@ import de.cyface.utils.Validate;
  * Tests if the upload progress is broadcasted as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -91,7 +92,7 @@ public class UploadProgressTest {
         filter.addAction(SYNC_POINTS_TRANSMITTED);
         filter.addAction(SYNC_POINTS_TO_TRANSMIT);
         filter.addAction(CyfaceConnectionListener.SYNC_STARTED);
-        context.registerReceiver(receiver, filter);
+        LocalBroadcastManager.getInstance(context).registerReceiver(receiver, filter);
 
         ContentProviderClient client = null;
         try {
@@ -125,7 +126,7 @@ public class UploadProgressTest {
             if (client != null) {
                 client.close();
             }
-            context.unregisterReceiver(receiver);
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(receiver);
         }
 
         assertThat(receiver.getCollectedProgress().size(), is(equalTo(2)));

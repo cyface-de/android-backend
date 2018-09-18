@@ -4,6 +4,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
@@ -17,7 +18,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  * @see DataCapturingService#pauseAsync(ShutDownFinishedHandler)
  * @see DataCapturingService#stopAsync(ShutDownFinishedHandler)
@@ -67,7 +68,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
         }
 
         try {
-            context.unregisterReceiver(this);
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
         }
