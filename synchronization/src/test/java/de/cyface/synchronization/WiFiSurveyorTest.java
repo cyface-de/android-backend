@@ -22,14 +22,13 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
-import android.support.v4.content.LocalBroadcastManager;
 
 /**
  * Tests the correct functionality of the <code>WiFiSurveyor</code> class. This test requires an active WiFi connection
  * and thus is a <code>FlakyTest</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -118,7 +117,7 @@ public class WiFiSurveyorTest {
         }
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
         broadcastIntent.putExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, enabled);
-        LocalBroadcastManager.getInstance(RuntimeEnvironment.application).sendBroadcast(broadcastIntent);
+        RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
     }
 
     /**
@@ -139,7 +138,7 @@ public class WiFiSurveyorTest {
             shadowConnectivityManager.setActiveNetworkInfo(null);
         }
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
-        LocalBroadcastManager.getInstance(RuntimeEnvironment.application).sendBroadcast(broadcastIntent);
+        RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
     }
 
 }
