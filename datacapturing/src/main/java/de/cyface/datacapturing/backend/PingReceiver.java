@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
@@ -18,7 +19,7 @@ import de.cyface.utils.Validate;
  * This can be used to check if the service is alive.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -38,7 +39,7 @@ public class PingReceiver extends BroadcastReceiver {
                 Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier "+ pingPongIdentifier +". Sending Pong.");
                 pongIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
             }
-            context.sendBroadcast(pongIntent);
+            LocalBroadcastManager.getInstance(context).sendBroadcast(pongIntent);
         }
     }
 }

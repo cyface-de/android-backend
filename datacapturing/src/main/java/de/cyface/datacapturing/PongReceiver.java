@@ -15,6 +15,7 @@ import android.os.HandlerThread;
 import android.os.Process;
 import android.os.SystemClock;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 /**
@@ -23,7 +24,7 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -44,8 +45,7 @@ public class PongReceiver extends BroadcastReceiver {
     private IsRunningCallback callback;
     /**
      * Flag that is set if the <code>MessageCodes.PONG</code> event was received. This flag is required to synchronize
-     * with
-     * the timeout if both happen simulatenously.
+     * with the timeout if both happen simultaneously.
      */
     private boolean isRunning;
     /**
@@ -136,7 +136,7 @@ public class PongReceiver extends BroadcastReceiver {
             }
         }, currentUptimeInMillis + offset);
 
-        context.sendBroadcast(broadcastIntent);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(broadcastIntent);
         Log.v(TAG, "PongReceiver.pongAndReceive(): Ping was sent!");
     }
 

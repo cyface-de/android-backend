@@ -30,6 +30,7 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
@@ -255,7 +256,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.v(TAG, "Sending broadcast service started.");
         final Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
-        sendBroadcast(serviceStartedIntent);
+        LocalBroadcastManager.getInstance(this).sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
     }
 
