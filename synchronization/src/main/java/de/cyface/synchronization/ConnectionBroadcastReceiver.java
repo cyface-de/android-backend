@@ -14,7 +14,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.support.v4.content.LocalBroadcastManager;
 
 import de.cyface.utils.Validate;
 
@@ -22,7 +21,7 @@ import de.cyface.utils.Validate;
  * {@link BroadcastReceiver} for the {@link CyfaceConnectionListener} events.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.0
  * @since 2.5.0
  */
 public class ConnectionBroadcastReceiver extends BroadcastReceiver {
@@ -39,7 +38,7 @@ public class ConnectionBroadcastReceiver extends BroadcastReceiver {
         filter.addAction(SYNC_FINISHED);
         filter.addAction(SYNC_PROGRESS);
         filter.addAction(SYNC_STARTED);
-        LocalBroadcastManager.getInstance(context).registerReceiver(this, filter);
+        context.registerReceiver(this, filter);
     }
 
     @Override
