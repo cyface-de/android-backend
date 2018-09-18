@@ -4,7 +4,6 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
-import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.Vehicle;
@@ -19,7 +18,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>..
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.1
  * @since 2.0.0
  * @see DataCapturingService#resumeAsync(StartUpFinishedHandler)
  * @see DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)
@@ -62,7 +61,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
                 throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
         }
         try {
-            LocalBroadcastManager.getInstance(context).unregisterReceiver(this);
+            context.unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
         }
