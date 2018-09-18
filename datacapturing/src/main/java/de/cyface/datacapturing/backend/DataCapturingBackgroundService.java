@@ -55,7 +55,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.10
+ * @version 4.0.11
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -171,7 +171,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Allows other parties to ping this service to see if it is running
         Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
+        LocalBroadcastManager.getInstance(this).registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
         Log.d(TAG, "finishedOnCreate");
     }
 
@@ -179,7 +179,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public void onDestroy() {
         Log.d(TAG, "onDestroy");
         Log.v(TAG, "Unregistering Ping receiver.");
-        unregisterReceiver(pingReceiver);
+        LocalBroadcastManager.getInstance(this).unregisterReceiver(pingReceiver);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }

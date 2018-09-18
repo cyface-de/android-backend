@@ -71,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.2
+ * @version 7.1.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -699,7 +699,7 @@ public abstract class DataCapturingService {
         } finally {
             lock.unlock();
             try {
-                getContext().unregisterReceiver(synchronizationReceiver);
+                LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(synchronizationReceiver);
             } catch (IllegalArgumentException e) {
                 Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
             }
@@ -719,7 +719,8 @@ public abstract class DataCapturingService {
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Context context = getContext();
         Log.v(TAG, "Registering receiver for service start broadcast.");
-        context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
+        LocalBroadcastManager.getInstance(context).registerReceiver(startedMessageReceiver,
+                new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
         Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
@@ -780,7 +781,7 @@ public abstract class DataCapturingService {
         } finally {
             lock.unlock();
             try {
-                getContext().unregisterReceiver(synchronizationReceiver);
+                LocalBroadcastManager.getInstance(getContext()).unregisterReceiver(synchronizationReceiver);
             } catch (IllegalArgumentException e) {
                 Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
             }
@@ -804,7 +805,7 @@ public abstract class DataCapturingService {
         setIsRunning(false);
         final Context context = getContext();
         Log.v(TAG, "Registering finishedHandler for service stop synchronization broadcast.");
-        context.registerReceiver(finishedHandler,
+        LocalBroadcastManager.getInstance(context).registerReceiver(finishedHandler,
                 new IntentFilter(MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED));
 
         boolean serviceWasActive;

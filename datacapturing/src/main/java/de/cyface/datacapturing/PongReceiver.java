@@ -24,7 +24,7 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.1.3
+ * @version 1.1.5
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -98,8 +98,8 @@ public class PongReceiver extends BroadcastReceiver {
         // Run receiver on a different thread so it runs even if calling thread waits for it to return:
 
         pongReceiverThread.start();
-        Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.registerReceiver(this, new IntentFilter(MessageCodes.ACTION_PONG), null, receiverHandler);
+        //Handler receiverHandler = new Handler(pongReceiverThread.getLooper()); FIXME: do we need this?
+        LocalBroadcastManager.getInstance(context).registerReceiver(this, new IntentFilter(MessageCodes.ACTION_PONG)/*, null, receiverHandler*/);
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);
@@ -127,7 +127,7 @@ public class PongReceiver extends BroadcastReceiver {
                         Log.d(TAG, "PongReceiver.pongAndReceive(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
-                        context.unregisterReceiver(PongReceiver.this);
+                        LocalBroadcastManager.getInstance(context).unregisterReceiver(PongReceiver.this);
                         quitBackgroundHandlerThread();
                     }
                 } finally {
@@ -150,7 +150,7 @@ public class PongReceiver extends BroadcastReceiver {
                 Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
-                this.context.unregisterReceiver(this);
+                LocalBroadcastManager.getInstance(this.context).unregisterReceiver(this);
                 quitBackgroundHandlerThread();
             }
         } finally {
