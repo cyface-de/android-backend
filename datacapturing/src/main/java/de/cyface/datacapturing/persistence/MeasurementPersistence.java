@@ -35,7 +35,7 @@ import de.cyface.persistence.RotationPointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.1
+ * @version 5.0.2
  * @since 2.0.0
  */
 public class MeasurementPersistence {
@@ -104,8 +104,8 @@ public class MeasurementPersistence {
      * @return The number of rows successfully updated.
      */
     public int closeRecentMeasurement() {
-        // For brevity we are closing all open measurements. If we would like to make sure, that no error has occured we
-        // would need to check that there is only one such open measurement before closing anything.
+        // For brevity we are closing all open measurements. In order to make sure, that no error occurred
+        // we need to check that there is only one such open measurement before closing anything.
         Log.d(TAG, "Closing recent measurements");
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);

@@ -50,7 +50,7 @@ import de.cyface.persistence.RotationPointTable;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 4.0.1
+ * @version 4.0.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -133,8 +133,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
             }
         }
 
-        int numberOfClosedMeasurements = oocut.closeRecentMeasurement();
-        assertThat(numberOfClosedMeasurements > 0, is(equalTo(true)));
+        oocut.closeRecentMeasurement();
         Cursor closingResult = null;
         try {
             closingResult = getMockContentResolver().query(getMeasurementUri(), null, BaseColumns._ID + "=?",
