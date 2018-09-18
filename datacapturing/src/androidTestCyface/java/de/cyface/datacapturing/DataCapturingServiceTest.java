@@ -13,6 +13,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -39,6 +40,7 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.synchronization.CyfaceAuthenticator;
+import de.cyface.utils.Validate;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
@@ -144,20 +146,28 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         testListener = new TestListener(lock, condition);
         runningStatusCallback = new TestCallback("Default Callback", lock, condition);
 
-        ensureThatDataCapturingServiceIsNotRunning();
+        // Making sure there is no service instance of a previous test running
+        Validate.isTrue(!isDataCapturingServiceRunning());
     }
 
     /**
-     * Makes sure a previous test did not forget to stop the capturing.
-     * <p>
-     * We do this here instead of in a tearDown method because this messes up the test result:
-     * it shows always the failed tearDown result instead of the actually failed assert
+     * Tries to stop the DataCapturingService if a test failed to do so.
      */
-    private void ensureThatDataCapturingServiceIsNotRunning() {
+    @After
+    public void tearDown() throws Exception {
+        if (isDataCapturingServiceRunning()) {
+            oocut.stopAsync(new TestShutdownFinishedHandler(lock, condition));
+        }
+        super.tearDown();
+    }
+
+    /**
+     * Makes sure a test did not forget to stop the capturing.
+     */
+    private boolean isDataCapturingServiceRunning() {
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-        assertThat(runningStatusCallback.timedOut, is(equalTo(true)));
+        return runningStatusCallback.wasRunning() && !runningStatusCallback.timedOut;
     }
 
     /**
@@ -320,18 +330,21 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
-     * Tests that stopping a stopped service causes no problems.
+     * Tests that stopping a stopped service throws the expected exception.
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
-    @Test
-    public void testDoubleStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    @Test(expected = NoSuchMeasurementException.class)
+    public void testDoubleStop()
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
         final long measurementId = startAsyncAndCheckThatLaunched();
+
         stopAsyncAndCheckThatStopped(measurementId);
-        stopAsyncAndCheckThatStopped(-1); // probably -1 expected?
+        // must throw NoSuchMeasurementException
+        oocut.stopAsync(new TestShutdownFinishedHandler(lock, condition));
     }
 
     /**
@@ -348,12 +361,8 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
 
         oocut.disconnect();
-        try {
-            oocut.disconnect(); // must throw DataCapturingException
-        } finally {
-            // must always be executed to avoid collusion with following tests
-            stopAsyncAndCheckThatStopped(measurementIdentifier);
-        }
+        oocut.disconnect(); // must throw DataCapturingException
+        stopAsyncAndCheckThatStopped(measurementIdentifier); // is called by tearDown
     }
 
     /**
@@ -385,7 +394,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     public void testDoubleReconnect()
             throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
-        // oocut.startSync(testListener, Vehicle.UNKNOWN);
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
         oocut.disconnect();
 
@@ -395,7 +403,6 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        // oocut.stopSync();
         stopAsyncAndCheckThatStopped(measurementIdentifier);
     }
 
@@ -546,7 +553,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
     /**
      * Tests whether reconnect throws no exception when called without a running background service and leaves the
-     * DataCapturingService in the correct state (<code>isRunning</code> is <code>false</code>.
+     * DataCapturingService in the correct state (<code>isDataCapturingServiceRunning</code> is <code>false</code>.
      *
      * @throws DataCapturingException Fails the test if anything goes wrong.
      */

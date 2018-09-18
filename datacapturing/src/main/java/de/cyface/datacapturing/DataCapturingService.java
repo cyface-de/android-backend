@@ -322,8 +322,7 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Stops the currently running data capturing process. It throws an exception if this instance of
-     * <code>DataCapturingService</code> is not bound to the underlying <code>DataCapturingBackgroundService</code>.
+     * Stops the currently running data capturing process.
      * <p>
      * This is the asynchronous version of the <code>stopSync()</code> method. You should not assume that the
      * service has been stopped after the method returns. The provided <code>finishedHandler</code> is called after the
@@ -337,8 +336,9 @@ public abstract class DataCapturingService {
      *
      * @param finishedHandler A handler that gets called after the process of finishing the current measurement has
      *            completed.
-     * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
-     *             occurs, but you have to handle it anyways to prevent your application from crashing.
+     * @throws DataCapturingException If <code>DataCapturingBackgroundService</code> is not bound to this service.
+     *             The service will still be stopped if the exception occurs, but you have to handle it anyways to
+     *             prevent your application from crashing.
      * @throws NoSuchMeasurementException If no measurement was open while pausing the service. This usually occurs if
      *             there was no call to {@link #startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to pausing.
@@ -356,15 +356,15 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(true);
             Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
-            // TODO: This should throw an exception. But since we need to handle double stop gracefully it is impossible
-            // at the moment.
-            /*
-             * if (measurement == null) {
-             * throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
-             * }
-             */
+            if (measurement == null) {
+                throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
+            }
 
-            stopService(measurement, finishedHandler);
+            if (!stopService(measurement, finishedHandler)) {
+                // The background service was not active. This can happen when the measurement was paused.
+                // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
+                sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
+            }
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
         } finally {
@@ -421,7 +421,9 @@ public abstract class DataCapturingService {
                     "There seems to be no open measurement, we can pause the capturing for.");
         }
 
-        stopService(currentMeasurement, finishedHandler);
+        if (!stopService(currentMeasurement, finishedHandler)) {
+            throw new DataCapturingException("No active service found to be paused.");
+        }
     }
 
     /**
@@ -758,7 +760,9 @@ public abstract class DataCapturingService {
         if (measurement == null) {
             throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement.");
         }
-        stopService(measurement, synchronizationReceiver);
+        if (!stopService(measurement, synchronizationReceiver)) {
+            throw new DataCapturingException("No active service found to be stopped.");
+        }
 
         lock.lock();
         try {
@@ -790,9 +794,10 @@ public abstract class DataCapturingService {
      * @param finishedHandler The handler to call after receiving the stop message from the
      *            <code>DataCapturingBackgroundService</code>. There are some cases where this never happens, so be
      *            careful when using this method.
+     * @return True if there was a service running which was stopped
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
-    private void stopService(final @NonNull Measurement measurement,
+    private boolean stopService(final @NonNull Measurement measurement,
             final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
         Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
@@ -819,22 +824,7 @@ public abstract class DataCapturingService {
             serviceWasActive = context.stopService(stopIntent);
         }
 
-        if (!serviceWasActive) {
-            // The background service was *not* running so we need to inform the caller of this method ourselves.
-            // This can happen when we stop a "paused" DataCapturingBackgroundService (which is already stopped).
-            sendServiceStoppedUnsuccessfullyCallback(context);
-        }
-    }
-
-    /**
-     * This message is sent to the {@link ShutDownFinishedHandler} to inform callers that the async stop
-     * command was executed and that the {@link DataCapturingBackgroundService} was not active when the
-     * stop command was received which can happen when the pause command was executed before.
-     *
-     * @param context The {@link Context} used to send the broadcast from
-     */
-    private void sendServiceStoppedUnsuccessfullyCallback(final Context context) {
-        sendServiceStoppedBroadcast(context, -1, false);
+        return serviceWasActive;
     }
 
     /**
@@ -846,7 +836,7 @@ public abstract class DataCapturingService {
      * @param stoppedSuccessfully True if the background service was still alive before stopped
      */
     private void sendServiceStoppedBroadcast(final Context context, final long measurementIdentifier,
-                                             final boolean stoppedSuccessfully) {
+            final boolean stoppedSuccessfully) {
         final Intent stoppedBroadcastIntent = new Intent(MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED);
         if (stoppedSuccessfully) {
             Validate.isTrue(measurementIdentifier > 0L);
@@ -1161,8 +1151,7 @@ public abstract class DataCapturingService {
                         Validate.isTrue(stoppedSuccessfully);
 
                         // Inform interested parties
-                        dataCapturingService.sendServiceStoppedBroadcast(context, measurementIdentifier,
-                                true);
+                        dataCapturingService.sendServiceStoppedBroadcast(context, measurementIdentifier, true);
                         listener.onCapturingStopped();
                         break;
                     case MessageCodes.SERVICE_STOPPED_ITSELF:
@@ -1179,10 +1168,12 @@ public abstract class DataCapturingService {
                         final Condition condition = lock.newCondition();
                         final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
                         try {
-                            // This will send a broadcast to the ShutDownFinishedHandler that no measurement
-                            // was closed which is sort of ok as the measurement was not actively closed
-                            // from outside but the BackgroundService closed itself.
-                            dataCapturingService.stopService(new Measurement(measurementId), synchronizationReceiver);
+                            // The background service stopped itself in advance, we expect no active service:
+                            Validate.isTrue(!dataCapturingService.stopService(new Measurement(measurementId),
+                                    synchronizationReceiver));
+
+                            // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
+                            dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
                         } catch (final DataCapturingException e) {
                             throw new IllegalStateException(e);
                         }
