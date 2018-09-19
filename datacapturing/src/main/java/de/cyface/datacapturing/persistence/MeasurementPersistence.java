@@ -131,16 +131,6 @@ public class MeasurementPersistence {
         CapturedDataWriter writer = new CapturedDataWriter(data, resolver, authority, measurementIdentifier, callback);
 
         threadPool.submit(writer);
-        /*
-         * threadPool.submit(new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
-         * new WritingDataCompletedCallback() {
-         * @Override
-         * public void writingDataCompleted() {
-         * // TODO: Add some useful code here as soon as data capturing is activated again.
-         * Log.d(TAG, "Completed writing data.");
-         * }
-         * }));
-         */
     }
 
     /**

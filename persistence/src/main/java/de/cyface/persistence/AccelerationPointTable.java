@@ -7,7 +7,7 @@ import android.provider.BaseColumns;
  * A table for sample points (acceleration) from the android acceleration sensor.
  *
  * @author Klemens Muthmann
- * @version 1.2.2
+ * @version 1.2.3
  * @since 1.0.0
  */
 public class AccelerationPointTable extends AbstractCyfaceMeasurementTable {
@@ -74,12 +74,6 @@ public class AccelerationPointTable extends AbstractCyfaceMeasurementTable {
             case 3:
                 // nothing to do here
                 // no break, thus, the upgrade process continues with the next incremental upgrade step ->
-                /*
-                 * case X:
-                 * Log.w(TAG, "Upgrading " + getName() + " from version X to {X+1}"); // For some reason this does not
-                 * show up in log even though it's called
-                 * db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_X_to_X+1);
-                 */
         }
     }
 

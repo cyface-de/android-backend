@@ -10,7 +10,7 @@ import android.util.Log;
  * A table for magnetic value points from the android magnetometer sensor (with hard iron calibration).
  *
  * @author Klemens Muthmann
- * @version 2.1.2
+ * @version 2.1.3
  * @since 1.0.0
  */
 public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
@@ -73,16 +73,10 @@ public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
         Log.w(TAG, "Upgrading " + getName() + " from version " + oldVersion + " to " + newVersion + " ...");
         switch (oldVersion) {
             case 3:
-                Log.w(TAG, "Upgrading " + getName() + " from version 3 to 4"); // For some reason this does not show up
-                                                                               // in log even though it's called
+                // For some reason this does not show up in log even though it's called
+                Log.w(TAG, "Upgrading " + getName() + " from version 3 to 4");
                 onCreate(database);
                 // no break, thus, the upgrade process continues with the next incremental upgrade step ->
-                /*
-                 * case X:
-                 * Log.w(TAG, "Upgrading " + getName() + " from version X to {X+1}"); // For some reason this does not
-                 * show up in log even though it's called
-                 * db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_X_to_X+1);
-                 */
         }
     }
 
