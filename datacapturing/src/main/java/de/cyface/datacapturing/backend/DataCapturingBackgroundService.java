@@ -1,11 +1,10 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.DiskConsumption.bytesAvailable;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.datacapturing.DiskConsumption.storageSize;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
 import java.lang.ref.WeakReference;
@@ -35,7 +34,8 @@ import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
-import de.cyface.datacapturing.DiskConsumption;
+import de.cyface.datacapturing.DataCapturingService;
+import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -43,6 +43,7 @@ import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.datacapturing.ui.CapturingNotification;
+import de.cyface.utils.Validate;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -53,7 +54,7 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.9
+ * @version 4.0.10
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -97,7 +98,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private final Messenger callerMessenger = new Messenger(new MessageHandler(this));
     /**
-     * The list of clients receiving messages from this service as well as sending controll messages.
+     * The list of clients receiving messages from this service as well as sending control messages.
      */
     private final Set<Messenger> clients = new HashSet<>();
     /**
@@ -117,6 +118,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The identifier of the measurement to save all the captured data to.
      */
     private long currentMeasurementIdentifier;
+    /**
+     * The strategy used to respond to selected events triggered by this service.
+     */
+    private EventHandlingStrategy eventHandlingStrategy;
 
     /*
      * MARK: Service Lifecycle Methods
@@ -183,14 +188,37 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (persistenceLayer != null) {
             persistenceLayer.shutdown();
         }
-        // Since on some devices the broadcast seems not to work we are sending a message here.
-        // informCaller(MessageCodes.SERVICE_STOPPED,null);
+
+        // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
-        Log.v(TAG, "Sending broadcast service stopped.");
-        final Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
-        serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
-        serviceStoppedIntent.putExtra(STOPPED_SUCCESSFULLY, true);
-        sendBroadcast(serviceStoppedIntent);
+        sendStoppedMessage(currentMeasurementIdentifier);
+    }
+
+    /**
+     * Sends an IPC message to interested parties that the service stopped successfully.
+     * 
+     * @param currentMeasurementIdentifier The id of the measurement which was stopped.
+     */
+    private void sendStoppedMessage(final long currentMeasurementIdentifier) {
+        Log.v(TAG, "Sending IPC message: service stopped.");
+        // Attention: the bundle is bundled again by informCaller !
+        final Bundle bundle = new Bundle();
+        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
+        informCaller(MessageCodes.SERVICE_STOPPED, bundle);
+    }
+
+    /**
+     * Sends an IPC message to interested parties that the service stopped itself. This must be called
+     * when the {@code stopSelf()} method is called on this service to unbind the {@link DataCapturingService},
+     * e.g. from an {@link EventHandlingStrategy} implementation.
+     */
+    public void sendStoppedItselfMessage() {
+        Log.v(TAG, "Sending IPC message: service stopped itself.");
+        // Attention: the bundle is bundled again by informCaller !
+        final Bundle bundle = new Bundle();
+        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
     @Override
@@ -213,6 +241,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             }
             final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
             persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
+
+            // Loads EventHandlingStrategy
+            this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
+            Validate.notNull(eventHandlingStrategy);
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
@@ -262,7 +294,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
-        // FIXME: Why do we make a copy of this set to iterate over it when we modify the original set anyway?
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
             try {
@@ -285,7 +316,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        Log.d(TAG, "Data captured with #accelerations: " + data.getAccelerations().size());
         final List<Point3D> accelerations = data.getAccelerations();
         final List<Point3D> rotations = data.getRotations();
         final List<Point3D> directions = data.getDirections();
@@ -325,9 +355,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");
-            final long bytesAvailable = bytesAvailable();
-            informCaller(MessageCodes.WARNING_SPACE,
-                    new DiskConsumption(storageSize() - bytesAvailable, bytesAvailable));
+            eventHandlingStrategy.handleSpaceWarning(this);
         }
     }
 

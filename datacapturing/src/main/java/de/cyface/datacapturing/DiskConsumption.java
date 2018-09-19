@@ -1,9 +1,9 @@
 package de.cyface.datacapturing;
 
-import static android.content.ContentValues.TAG;
 import static de.cyface.synchronization.Constants.BASE_PATH;
 
 import java.util.Locale;
+import java.util.Objects;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -20,10 +20,12 @@ import de.cyface.synchronization.Constants;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {
+
+    private final static String TAG = "de.cyface.background";
     /**
      * The count of bytes currently used by the {@link DataCapturingService}.
      */

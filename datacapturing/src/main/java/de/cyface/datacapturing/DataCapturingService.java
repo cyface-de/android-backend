@@ -1,5 +1,6 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
@@ -52,6 +53,7 @@ import de.cyface.synchronization.ConnectionListener;
 import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
+import de.cyface.utils.Validate;
 
 /**
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
@@ -160,6 +162,10 @@ public abstract class DataCapturingService {
      * A receiver for synchronization events.
      */
     private final ConnectionBroadcastReceiver connectionBroadcastReceiver;
+    /**
+     * The strategy used to respond to selected events triggered by this service.
+     */
+    private final EventHandlingStrategy eventHandlingStrategy;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -172,16 +178,20 @@ public abstract class DataCapturingService {
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
+     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
+     *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences fails.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress) throws SetupException {
+            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
+            throws SetupException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(resolver, authority);
         this.connectionBroadcastReceiver = new ConnectionBroadcastReceiver(context);
+        this.eventHandlingStrategy = eventHandlingStrategy;
 
         // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -203,7 +213,7 @@ public abstract class DataCapturingService {
             throw new SetupException("Android connectivity manager is not available!");
         }
         surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
-        this.fromServiceMessageHandler = new FromServiceMessageHandler(context);
+        this.fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         lifecycleLock = new ReentrantLock();
         setIsRunning(false);
@@ -312,8 +322,7 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Stops the currently running data capturing process. It throws an exception if this instance of
-     * <code>DataCapturingService</code> is not bound to the underlying <code>DataCapturingBackgroundService</code>.
+     * Stops the currently running data capturing process.
      * <p>
      * This is the asynchronous version of the <code>stopSync()</code> method. You should not assume that the
      * service has been stopped after the method returns. The provided <code>finishedHandler</code> is called after the
@@ -327,8 +336,9 @@ public abstract class DataCapturingService {
      *
      * @param finishedHandler A handler that gets called after the process of finishing the current measurement has
      *            completed.
-     * @throws DataCapturingException If service was not connected. The service will still be stopped if the exception
-     *             occurs, but you have to handle it anyways to prevent your application from crashing.
+     * @throws DataCapturingException If <code>DataCapturingBackgroundService</code> is not bound to this service.
+     *             The service will still be stopped if the exception occurs, but you have to handle it anyways to
+     *             prevent your application from crashing.
      * @throws NoSuchMeasurementException If no measurement was open while pausing the service. This usually occurs if
      *             there was no call to {@link #startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to pausing.
@@ -346,15 +356,15 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(true);
             Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
-            // TODO: This should throw an exception. But since we need to handle double stop gracefully it is impossible
-            // at the moment.
-            /*
-             * if (measurement == null) {
-             * throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
-             * }
-             */
+            if (measurement == null) {
+                throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
+            }
 
-            stopService(measurement, finishedHandler);
+            if (!stopService(measurement, finishedHandler)) {
+                // The background service was not active. This can happen when the measurement was paused.
+                // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
+                sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
+            }
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
         } finally {
@@ -386,9 +396,8 @@ public abstract class DataCapturingService {
     /**
      * Pauses the current data capturing, but does not finish the current measurement.
      * <p>
-     * This is the not asynchronous version of the <code>stopSync</code> method. You should not assume that the service
-     * has been stopped
-     * after the method returns. The provided <code>finishedHandler</code> is called after the
+     * This is the asynchronous version of the <code>stopSync</code> method. You should not assume that the service
+     * has been stopped after the method returns. The provided <code>finishedHandler</code> is called after the
      * <code>DataCapturingBackgroundService</code> has successfully shutdown.
      * <p>
      * ATTENTION: It seems to be possible, that the service stopped signal is never received. Under these circumstances
@@ -412,7 +421,9 @@ public abstract class DataCapturingService {
                     "There seems to be no open measurement, we can pause the capturing for.");
         }
 
-        stopService(currentMeasurement, finishedHandler);
+        if (!stopService(currentMeasurement, finishedHandler)) {
+            throw new DataCapturingException("No active service found to be paused.");
+        }
     }
 
     /**
@@ -705,15 +716,16 @@ public abstract class DataCapturingService {
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
-        Context context = getContext();
+        final Context context = getContext();
         Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
         Log.v(TAG, String.format("Starting using Intent with context %s.", context));
-        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
+        startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
 
-        ComponentName serviceComponentName;
+        final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
             serviceComponentName = context.startForegroundService(startIntent);
         } else {
@@ -748,7 +760,9 @@ public abstract class DataCapturingService {
         if (measurement == null) {
             throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement.");
         }
-        stopService(measurement, synchronizationReceiver);
+        if (!stopService(measurement, synchronizationReceiver)) {
+            throw new DataCapturingException("No active service found to be stopped.");
+        }
 
         lock.lock();
         try {
@@ -780,19 +794,25 @@ public abstract class DataCapturingService {
      * @param finishedHandler The handler to call after receiving the stop message from the
      *            <code>DataCapturingBackgroundService</code>. There are some cases where this never happens, so be
      *            careful when using this method.
-     *
+     * @return True if there was a service running which was stopped
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
-    private void stopService(final @NonNull Measurement measurement,
+    private boolean stopService(final @NonNull Measurement measurement,
             final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
         Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
+        final Context context = getContext();
+        Log.v(TAG, "Registering finishedHandler for service stop synchronization broadcast.");
+        context.registerReceiver(finishedHandler,
+                new IntentFilter(MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED));
 
-        Context context = getContext();
-        Log.v(TAG, "Registering receiver for service stop broadcast.");
-        context.registerReceiver(finishedHandler, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STOPPED));
         boolean serviceWasActive;
         try {
+            // For some reasons we have to call the unbind here.
+            // We tried to send the stopIntent to the BackgroundService first which calls it's onDestroy
+            // method which sends an SERVICE_STOPPED message back to this service where we executed
+            // the unbind method. This should have worked for both - stopping the BackgroundService from
+            // this service and by itself (via eventHandlerStrategyImpl.handleSpaceWarning())
             unbind();
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
@@ -804,13 +824,26 @@ public abstract class DataCapturingService {
             serviceWasActive = context.stopService(stopIntent);
         }
 
-        if (!serviceWasActive) {
-            // The background service was not running so we need to inform the caller of this method ourselves.
-            Intent stoppedBroadcastIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
+        return serviceWasActive;
+    }
 
-            stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, false);
-            context.sendBroadcast(stoppedBroadcastIntent);
+    /**
+     * This message is sent to the {@link ShutDownFinishedHandler} to inform callers that the async stop
+     * command was executed.
+     *
+     * @param context The {@link Context} used to send the broadcast from
+     * @param measurementIdentifier The id of the stopped measurement if {@code #stoppedSuccessfully}
+     * @param stoppedSuccessfully True if the background service was still alive before stopped
+     */
+    private void sendServiceStoppedBroadcast(final Context context, final long measurementIdentifier,
+            final boolean stoppedSuccessfully) {
+        final Intent stoppedBroadcastIntent = new Intent(MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED);
+        if (stoppedSuccessfully) {
+            Validate.isTrue(measurementIdentifier > 0L);
+            stoppedBroadcastIntent.putExtra(MEASUREMENT_ID, measurementIdentifier);
         }
+        stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, stoppedSuccessfully);
+        context.sendBroadcast(stoppedBroadcastIntent);
     }
 
     /**
@@ -1019,6 +1052,7 @@ public abstract class DataCapturingService {
                 throw new IllegalStateException("Unable to rebind. Context was null.");
             }
 
+            Log.d(TAG, "Binding died, unbinding & rebinding ...");
             try {
                 unbind();
             } catch (DataCapturingException e) {
@@ -1049,11 +1083,18 @@ public abstract class DataCapturingService {
         private final Context context;
 
         /**
+         * The service which calls this handler.
+         */
+        private final DataCapturingService dataCapturingService;
+
+        /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
          */
-        FromServiceMessageHandler(final @NonNull Context context) {
+        FromServiceMessageHandler(final @NonNull Context context,
+                @NonNull final DataCapturingService dataCapturingService) {
             this.context = context;
             this.listener = new HashSet<>();
+            this.dataCapturingService = dataCapturingService;
         }
 
         @Override
@@ -1061,11 +1102,12 @@ public abstract class DataCapturingService {
             Log.v(TAG, String.format("Service facade received message: %d", msg.what));
 
             for (final DataCapturingListener listener : this.listener) {
+                final Bundle parcel;
                 switch (msg.what) {
                     case MessageCodes.LOCATION_CAPTURED:
-                        final Bundle dataBundle = msg.getData();
-                        dataBundle.setClassLoader(getClass().getClassLoader());
-                        final GeoLocation location = dataBundle.getParcelable("data");
+                        parcel = msg.getData();
+                        parcel.setClassLoader(getClass().getClassLoader());
+                        final GeoLocation location = parcel.getParcelable("data");
                         if (location == null) {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
@@ -1074,14 +1116,14 @@ public abstract class DataCapturingService {
                         }
                         break;
                     case MessageCodes.DATA_CAPTURED:
-                        final Bundle bundleData = msg.getData();
-                        bundleData.setClassLoader(getClass().getClassLoader());
-                        CapturedData capturedData = bundleData.getParcelable("data");
+                        parcel = msg.getData();
+                        parcel.setClassLoader(getClass().getClassLoader());
+                        CapturedData capturedData = parcel.getParcelable("data");
                         if (capturedData == null) {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
                         } else {
-                            Log.d(TAG, "Captured some sensor data.");
+                            Log.v(TAG, "Captured some sensor data.");
                             listener.onNewSensorDataAcquired(capturedData);
                         }
                         break;
@@ -1091,20 +1133,51 @@ public abstract class DataCapturingService {
                     case MessageCodes.NO_GPS_FIX:
                         listener.onFixLost();
                         break;
-                    case MessageCodes.WARNING_SPACE:
-                        final Bundle data = msg.getData();
-                        data.setClassLoader(getClass().getClassLoader());
-                        final DiskConsumption diskConsumption = data.getParcelable("data");
-                        if (diskConsumption == null) {
-                            listener.onErrorState(
-                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
-                        } else {
-                            listener.onLowDiskSpace(diskConsumption);
-                        }
-                        break;
                     case MessageCodes.ERROR_PERMISSION:
                         listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
                                 "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
+                        break;
+                    case MessageCodes.SERVICE_STOPPED:
+                        parcel = msg.getData();
+                        parcel.setClassLoader(getClass().getClassLoader());
+                        // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
+                        // the bundle is bundled twice for re-usability
+                        final Bundle stoppedInfoBundle = parcel.getParcelable("data");
+                        Validate.notNull(stoppedInfoBundle);
+                        final long measurementIdentifier = stoppedInfoBundle.getLong(MEASUREMENT_ID);
+                        final boolean stoppedSuccessfully = stoppedInfoBundle.getBoolean(STOPPED_SUCCESSFULLY);
+                        // Success means the background service was still alive. As this is the private
+                        // IPC to the background service this must always be true.
+                        Validate.isTrue(stoppedSuccessfully);
+
+                        // Inform interested parties
+                        dataCapturingService.sendServiceStoppedBroadcast(context, measurementIdentifier, true);
+                        listener.onCapturingStopped();
+                        break;
+                    case MessageCodes.SERVICE_STOPPED_ITSELF:
+                        parcel = msg.getData();
+                        parcel.setClassLoader(getClass().getClassLoader());
+                        // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
+                        // the bundle is bundled twice for re-usability
+                        final Bundle stoppedItselfInfoBundle = parcel.getParcelable("data");
+                        Validate.notNull(stoppedItselfInfoBundle);
+                        final long measurementId = stoppedItselfInfoBundle.getLong(MEASUREMENT_ID);
+
+                        final Lock lock = new ReentrantLock();
+                        final Condition condition = lock.newCondition();
+                        final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
+                        try {
+                            // To make sure the background service is stopped, we unbind this service
+                            // from it via the stopService method (to reduce code duplicity). As the
+                            // background service stopped itself in advance, we expect no active service:
+                            Validate.isTrue(!dataCapturingService.stopService(new Measurement(measurementId),
+                                    synchronizationReceiver));
+
+                            // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
+                            dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
+                        } catch (final DataCapturingException e) {
+                            throw new IllegalStateException(e);
+                        }
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(

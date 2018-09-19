@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -27,6 +28,7 @@ import android.support.test.rule.ServiceTestRule;
 import android.support.test.runner.AndroidJUnit4;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.model.Vehicle;
@@ -37,7 +39,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.3
+ * @version 2.0.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -119,6 +121,7 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
+        startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
 
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
@@ -157,6 +160,7 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
+        startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 

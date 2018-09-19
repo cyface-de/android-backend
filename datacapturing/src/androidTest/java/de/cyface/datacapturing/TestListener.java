@@ -18,7 +18,7 @@ import de.cyface.datacapturing.ui.Reason;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.1
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
@@ -97,6 +97,11 @@ class TestListener implements DataCapturingListener {
     @Override
     public boolean onRequiresPermission(String permission, Reason reason) {
         return false;
+    }
+
+    @Override
+    public void onCapturingStopped() {
+        // Nothing to do here
     }
 
     /**

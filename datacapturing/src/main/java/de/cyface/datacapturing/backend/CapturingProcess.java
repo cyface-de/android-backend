@@ -32,7 +32,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.1
+ * @version 1.3.2
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -205,7 +205,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     @Override
     public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
-        Log.d(TAG, "onSensorChanged");
         // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
         // been the other way around.
         if (eventTimeOffset == 0) {

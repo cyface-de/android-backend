@@ -12,8 +12,8 @@ import android.location.LocationManager;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.util.Log;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
@@ -35,7 +35,7 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 2.1.3
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -92,12 +92,16 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param uiListener A listener for events which the UI might be interested in.
      * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
      *            if you would like to be notified as often as possible.
+     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
+     *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      */
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
-        super(context, context.getContentResolver(), "de.cyface.provider", "de.cyface", dataUploadServerAddress);
+            final @NonNull UIListener uiListener, final long locationUpdateRate,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException {
+        super(context, context.getContentResolver(), "de.cyface.provider", "de.cyface", dataUploadServerAddress,
+                eventHandlingStrategy);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
@@ -105,6 +109,23 @@ public class MovebisDataCapturingService extends DataCapturingService {
             throw new SetupException("Unable to load location manager. Only got null!");
         }
         this.setUiListener(uiListener);
+    }
+
+    /**
+     * Creates a new completely initialized {@link MovebisDataCapturingService}.
+     *
+     * @param context The context (i.e. <code>Activity</code>) handling this service.
+     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+     *            this service.
+     * @param uiListener A listener for events which the UI might be interested in.
+     * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
+     *            if you would like to be notified as often as possible.
+     * @throws SetupException If initialization of this service facade fails or writing the components preferences
+     *             fails.
+     */
+    public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
+            final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
+        this(context, dataUploadServerAddress, uiListener, locationUpdateRate, new IgnoreEventsStrategy());
     }
 
     /**
