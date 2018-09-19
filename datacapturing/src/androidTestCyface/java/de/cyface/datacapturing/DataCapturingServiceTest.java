@@ -13,6 +13,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -48,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.0
+ * @version 4.2.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -331,8 +332,7 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      */
     @Test(expected = NoSuchMeasurementException.class)
-    public void testDoubleStop()
-            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void testDoubleStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
 
         final long measurementId = startAsyncAndCheckThatLaunched();
 
