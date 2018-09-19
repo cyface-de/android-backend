@@ -4,6 +4,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
 
@@ -54,14 +55,14 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.10
+ * @version 4.0.11
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
     /**
      * The tag used to identify logging messages send to logcat.
      */
-    private final static String TAG = "de.cyface.background";
+    private final static String TAG = BACKGROUND_TAG;
     /**
      * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
      * points they are split into multiple messages.

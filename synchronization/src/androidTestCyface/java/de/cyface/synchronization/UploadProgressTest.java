@@ -4,6 +4,7 @@ import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TO_
 import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TRANSMITTED;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.clearDatabase;
 import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
 import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
@@ -48,7 +49,7 @@ import de.cyface.utils.Validate;
  * Tests if the upload progress is broadcasted as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -139,7 +140,6 @@ public class UploadProgressTest {
 
 class TestReceiver extends BroadcastReceiver {
 
-    private final static String TAG = "de.cyface.sync.test";
     private final List<Long> collectedProgress = new LinkedList<>();
     private final List<Long> collectedTotalProgress = new LinkedList<>();
 

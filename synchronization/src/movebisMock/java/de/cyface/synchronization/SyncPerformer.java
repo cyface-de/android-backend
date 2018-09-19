@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.TAG;
+
 import java.io.InputStream;
 
 import android.content.Context;
@@ -13,19 +15,14 @@ import android.util.Log;
  * Use it in test scenarios where you have no access to a Movebis server.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 class SyncPerformer {
 
     /**
-     * The tag used to print messages to Logcat.
-     */
-    private static final String TAG = "de.cyface.sync";
-
-    /**
-     * Creates a new completely initilized <code>SyncPerformer</code> with an Android context. If you implement an
-     * Anroid synchronization adapter, this can be the synchronisation service.
+     * Creates a new completely initialized <code>SyncPerformer</code> with an Android context. If you implement an
+     * Android synchronization adapter, this can be the synchronisation service.
      *
      * @param context The Android context to use.
      * @throws SynchronisationException Never, but required to be in sync with the other implementation in the other

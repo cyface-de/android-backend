@@ -8,24 +8,24 @@ import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
 
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
+import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.AccelerationPointTable;
 
 /**
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 public class ServiceTestUtils {
     /**
      * The tag used to identify log messages send to logcat.
      */
-    public static final String TAG = "de.cyface.datacapturing.test";
+    public static final String TAG = Constants.TAG + ".test";
     /**
      * The authority used to identify the content provider for testing.
      */
@@ -91,7 +91,8 @@ public class ServiceTestUtils {
     }
 
     public static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH)
+                .build();
     }
 
     public static Uri getRotationsUri() {
@@ -99,6 +100,7 @@ public class ServiceTestUtils {
     }
 
     public static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH)
+                .build();
     }
 }

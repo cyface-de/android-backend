@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.HashSet;
@@ -20,7 +22,6 @@ import android.os.HandlerThread;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
@@ -32,7 +33,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.2
+ * @version 1.3.3
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -40,7 +41,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * The tag used to identify log messages send to logcat.
      */
-    private final static String TAG = "de.cyface.background";
+    private final static String TAG = BACKGROUND_TAG;
     /**
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */
@@ -128,7 +129,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
 
         locationEventHandlerThread.start();
-        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this, locationEventHandlerThread.getLooper());
+        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,
+                locationEventHandlerThread.getLooper());
 
         // Registering Sensors
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);

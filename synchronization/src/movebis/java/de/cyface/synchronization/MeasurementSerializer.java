@@ -1,6 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+import static de.cyface.synchronization.Constants.TAG;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
@@ -39,14 +40,12 @@ import de.cyface.persistence.GpsPointsTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
 
     static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
-
-    private final static String TAG = "de.cyface.sync";
 
     /**
      * The current version of the data format. This is always specified by the first two bytes and allows to process

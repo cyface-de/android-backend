@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.TAG;
+
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.concurrent.TimeUnit;
@@ -16,7 +18,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
@@ -24,21 +25,15 @@ import android.provider.BaseColumns;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
-
 /**
  * The <code>SyncAdapter</code> implementation used by the framework to transmit measured data to a server.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
-    /**
-     * Tag used for log messages to logcat.
-     */
-    private static final String TAG = "de.cyface.sync";
+
     /**
      * Key for the system broadcast action issued to report about the current upload progress.
      */
@@ -113,14 +108,14 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             while (syncableMeasurementsCursor.moveToNext()) {
                 final long measurementIdentifier = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                        provider, authority);
+                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
+                        measurementIdentifier, provider, authority);
 
                 Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.",
                         measurementIdentifier));
                 final InputStream data = serializer.serializeCompressed(loader);
-                final int responseStatus = syncPerformer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier, data,
-                        new UploadProgressListener() {
+                final int responseStatus = syncPerformer.sendData(endPointUrl, measurementIdentifier, deviceIdentifier,
+                        data, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 Intent syncProgressIntent = new Intent();

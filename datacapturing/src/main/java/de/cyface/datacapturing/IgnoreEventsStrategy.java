@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+
 import android.os.Parcel;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -11,12 +13,15 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  * This does practically nothing and just allows the strategy to be optional.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.5.0
  */
 public class IgnoreEventsStrategy implements EventHandlingStrategy {
 
-    private final static String TAG = "de.cyface.background";
+    /**
+     * The tag used to identify log messages send to logcat.
+     */
+    private final static String TAG = BACKGROUND_TAG;
 
     public IgnoreEventsStrategy() {
     }

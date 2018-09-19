@@ -1,5 +1,8 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.Constants.TAG;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
@@ -7,8 +10,6 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.Vehicle;
-
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 
 /**
  * Handler for start up finished events. Just implement the {@link #startUpFinished(long)} method with the code you
@@ -18,16 +19,13 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>..
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  * @see DataCapturingService#resumeAsync(StartUpFinishedHandler)
  * @see DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)
  */
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {
-    /**
-     * The tag used to identify Logcat messages from objects of this class.
-     */
-    private static final String TAG = "de.cyface.capturing";
+
     /**
      * This is set to <code>true</code> if a <code>MessageCodes.BROADCAST_SERVICE_STARTED</code> broadcast has been
      * received and is <code>false</code> otherwise.

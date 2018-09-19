@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_CANCELED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
@@ -56,12 +57,11 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @version 1.2.1
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
-    private final static String TAG = "de.cyface.sync";
     private final Collection<ConnectionListener> progressListener;
     private final Http http;
     private final int geoLocationsUploadBatchSize;

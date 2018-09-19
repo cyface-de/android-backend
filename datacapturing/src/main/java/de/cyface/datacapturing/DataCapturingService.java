@@ -3,6 +3,7 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.Constants.TAG;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -70,14 +71,10 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.2
+ * @version 7.1.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
-    /**
-     * Tag used to identify Logcat messages issued by instances of this class.
-     */
-    private static final String TAG = "de.cyface.capturing";
     /**
      * The time in milliseconds after which this object stops waiting for the system to start or stop the Android
      * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check

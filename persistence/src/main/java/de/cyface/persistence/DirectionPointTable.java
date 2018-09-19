@@ -1,5 +1,7 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 import android.util.Log;
@@ -8,7 +10,7 @@ import android.util.Log;
  * A table for magnetic value points from the android magnetometer sensor (with hard iron calibration).
  *
  * @author Klemens Muthmann
- * @version 2.1.1
+ * @version 2.1.3
  * @since 1.0.0
  */
 public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
@@ -18,14 +20,11 @@ public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
     protected DirectionPointTable() {
         super("magnetic_value_points");
     }
+
     /**
      * The path segment in the table URI identifying the directions table.
      */
     public final static String URI_PATH = "magnetic_value";
-    /**
-     * Logging tag for Android logging.
-     */
-    static final String TAG = "DirectionPointTable";
     /**
      * Column name for the column storing the magnetometer value in X direction in μT using the device coordinate
      * system.
@@ -74,16 +73,10 @@ public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
         Log.w(TAG, "Upgrading " + getName() + " from version " + oldVersion + " to " + newVersion + " ...");
         switch (oldVersion) {
             case 3:
-                Log.w(TAG, "Upgrading " + getName() + " from version 3 to 4"); // For some reason this does not show up
-                                                                               // in log even though it's called
+                // For some reason this does not show up in log even though it's called
+                Log.w(TAG, "Upgrading " + getName() + " from version 3 to 4");
                 onCreate(database);
                 // no break, thus, the upgrade process continues with the next incremental upgrade step ->
-                /*
-                 * case X:
-                 * Log.w(TAG, "Upgrading " + getName() + " from version X to {X+1}"); // For some reason this does not
-                 * show up in log even though it's called
-                 * db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_X_to_X+1);
-                 */
         }
     }
 

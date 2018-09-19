@@ -15,16 +15,17 @@ import de.cyface.persistence.RotationPointTable;
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.1.0
  */
 final class TestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */
-    final static String TAG = "de.cyface.synchronization.test";
+    final static String TAG = Constants.TAG + ".test";
     /**
-     * The content provider authority used during tests. This must be the same as in the manifest and the authenticator configuration.
+     * The content provider authority used during tests. This must be the same as in the manifest and the authenticator
+     * configuration.
      */
     final static String AUTHORITY = "de.cyface.synchronization.test.provider";
     /**
@@ -49,7 +50,8 @@ final class TestUtils {
     }
 
     static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH)
+                .build();
     }
 
     static Uri getRotationsUri() {
@@ -57,7 +59,8 @@ final class TestUtils {
     }
 
     static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH)
+                .build();
     }
 
     /**
@@ -71,7 +74,7 @@ final class TestUtils {
      * @param z A fake test z coordinate of the direction.
      */
     static void insertTestDirection(final @NonNull ContentResolver resolver, final long measurementIdentifier,
-                                    final long timestamp, final double x, final double y, final double z) {
+            final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
         values.put(DirectionPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(DirectionPointTable.COLUMN_IS_SYNCED, false);
@@ -93,7 +96,7 @@ final class TestUtils {
      * @param z A fake test z coordinate of the direction.
      */
     static void insertTestRotation(final @NonNull ContentResolver resolver, final long measurementIdentifier,
-                                   final long timestamp, final double x, final double y, final double z) {
+            final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
         values.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(RotationPointTable.COLUMN_IS_SYNCED, false);
@@ -115,7 +118,7 @@ final class TestUtils {
      * @param z A fake test z coordinate of the acceleration.
      */
     static void insertTestAcceleration(final @NonNull ContentResolver resolver, final long measurementIdentifier,
-                                       final long timestamp, final double x, final double y, final double z) {
+            final long timestamp, final double x, final double y, final double z) {
         ContentValues values = new ContentValues();
         values.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(AccelerationPointTable.COLUMN_IS_SYNCED, false);
@@ -138,7 +141,7 @@ final class TestUtils {
      * @param accuracy The fake test accuracy of the geo location.
      */
     static void insertTestGeoLocation(final @NonNull ContentResolver resolver, final long measurementIdentifier,
-                                      final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
+            final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
         ContentValues values = new ContentValues();
         values.put(GpsPointsTable.COLUMN_ACCURACY, accuracy);
         values.put(GpsPointsTable.COLUMN_GPS_TIME, timestamp);
@@ -176,7 +179,7 @@ final class TestUtils {
 
     static int clearDatabase(final @NonNull ContentResolver resolver) {
         int ret = 0;
-        ret += resolver.delete(getDirectionsUri(),null,null);
+        ret += resolver.delete(getDirectionsUri(), null, null);
         ret += resolver.delete(getRotationsUri(), null, null);
         ret += resolver.delete(getAccelerationsUri(), null, null);
         ret += resolver.delete(getGeoLocationsUri(), null, null);

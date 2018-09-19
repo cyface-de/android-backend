@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.model;
 
+import static android.content.ContentValues.TAG;
+
 import java.util.Locale;
 
 import android.os.Parcel;
@@ -13,14 +15,11 @@ import de.cyface.datacapturing.DataCapturingService;
  * A position captured by the {@link DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.2.1
+ * @version 1.2.2
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
-    /**
-     * The tag used to identify Logcat output from objects of this class.
-     */
-    private static final String TAG = "de.cyface.capturing";
+
     /**
      * The captured latitude of this {@code GeoLocation} in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
@@ -66,7 +65,8 @@ public class GeoLocation implements Parcelable {
                     "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %f.", lon));
         }
         if (speed < 0.) {
-            Log.w(TAG, String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
+            Log.w(TAG,
+                    String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
         }
         if (accuracy < 0.) {
             throw new IllegalArgumentException(String.format(Locale.US,

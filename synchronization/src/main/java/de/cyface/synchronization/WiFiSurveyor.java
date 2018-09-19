@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.TAG;
+
 import java.lang.ref.WeakReference;
 
 import android.accounts.Account;
@@ -22,14 +24,11 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.1
+ * @version 3.1.2
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
-    /**
-     * The tag used to identify Logcat messages from this class.
-     */
-    private static final String TAG = "de.cyface.sync";
+
     /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
      */

@@ -1,5 +1,7 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
 import java.util.List;
 
 import android.content.ContentValues;
@@ -19,15 +21,11 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.0.2
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
 
-    /**
-     * The tag used to identify messages in Logcat.
-     */
-    private final static String TAG = DatabaseHelper.class.getName();
     /**
      * Name of the database used by the content provider to store data.
      */
@@ -233,9 +231,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
         ret += geoLocationsTable.deleteRow(database, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
         ret += rotationsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
-        ret += directionsTable.deleteRow(database, DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
+        ret += directionsTable.deleteRow(database, DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
+        ret += accelerationsTable.deleteRow(database, AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                 identifierAsArgs);
-        ret += accelerationsTable.deleteRow(database, AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
         return ret;
     }
 
@@ -301,7 +299,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
      *            '?' and arguments needs to match.
      * @return The number of updated rows.
      */
-    public int update(final @NonNull Uri uri, final @NonNull ContentValues values, final String selection, final String[] selectionArgs) {
+    public int update(final @NonNull Uri uri, final @NonNull ContentValues values, final String selection,
+            final String[] selectionArgs) {
         CyfaceMeasurementTable table = matchTable(uri);
         if (uri.getPathSegments().size() == 1) {
             return table.update(getWritableDatabase(), values, selection, selectionArgs);
