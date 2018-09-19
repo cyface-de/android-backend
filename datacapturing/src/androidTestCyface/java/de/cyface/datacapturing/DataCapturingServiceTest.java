@@ -279,6 +279,29 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
     }
 
     /**
+     * Tests that a double start-stop combination without waiting for the callback does not break the service.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     */
+    @Test
+    public void testMultipleStartStopWithoutWaiting() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+
+        // First Start/stop without waiting
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.stopAsync(shutDownFinishedHandler);
+        // Second start/stop without waiting
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.stopAsync(shutDownFinishedHandler);
+        // Another start/stop, this time we make sure the service still responds as expected
+        final long measurementId = startAsyncAndCheckThatLaunched();
+        stopAsyncAndCheckThatStopped(measurementId);
+    }
+
+    /**
      * Tests a common service run with an intermediate disconnect and reconnect by the application. No problems should
      * occur and some points should be captured.
      *
