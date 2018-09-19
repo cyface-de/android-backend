@@ -13,7 +13,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  * This does practically nothing and just allows the strategy to be optional.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.5.0
  */
 public class IgnoreEventsStrategy implements EventHandlingStrategy {

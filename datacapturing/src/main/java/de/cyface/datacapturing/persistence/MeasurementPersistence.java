@@ -37,7 +37,7 @@ import de.cyface.persistence.RotationPointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 5.0.3
  * @since 2.0.0
  */
 public class MeasurementPersistence {

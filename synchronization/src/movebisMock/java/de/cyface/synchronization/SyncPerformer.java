@@ -15,7 +15,7 @@ import android.util.Log;
  * Use it in test scenarios where you have no access to a Movebis server.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.1
  * @since 2.0.0
  */
 class SyncPerformer {

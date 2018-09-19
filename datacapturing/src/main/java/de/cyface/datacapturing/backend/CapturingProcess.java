@@ -33,7 +33,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.2
+ * @version 1.3.3
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {

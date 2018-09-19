@@ -31,7 +31,7 @@ import android.util.Log;
  * measurements.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.1
  * @since 2.0.0
  */
 class SyncPerformer {
