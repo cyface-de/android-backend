@@ -1,6 +1,5 @@
 package de.cyface.datacapturing;
 
-import static android.content.Context.NOTIFICATION_SERVICE;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -19,11 +18,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
 import android.accounts.Account;
-import android.app.Activity;
-import android.app.Notification;
-import android.app.NotificationChannel;
-import android.app.NotificationManager;
-import android.app.PendingIntent;
 import android.content.ComponentName;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -32,10 +26,7 @@ import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.graphics.Color;
-import android.media.RingtoneManager;
 import android.net.ConnectivityManager;
-import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -45,7 +36,6 @@ import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
-import android.support.v4.app.NotificationCompat;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
@@ -81,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.3
+ * @version 7.1.4
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1174,11 +1164,10 @@ public abstract class DataCapturingService {
                         final Condition condition = lock.newCondition();
                         final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
                         try {
-                            // To make sure the background service is stopped, we unbind this service
-                            // from it via the stopService method (to reduce code duplicity). As the
-                            // background service stopped itself in advance, we expect no active service:
-                            /*Validate.isTrue(!*/dataCapturingService.stopService(new Measurement(measurementId),
-                                    synchronizationReceiver);//);
+                            // The background service already received a stopSelf command but as it's still
+                            // bound it's likely that it's still alive. We unbind it from this service via the
+                            // stopService method (to reduce code duplicity).
+                            dataCapturingService.stopService(new Measurement(measurementId), synchronizationReceiver);
 
                             // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
                             dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
