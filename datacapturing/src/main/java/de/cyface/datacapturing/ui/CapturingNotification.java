@@ -24,6 +24,12 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 public class CapturingNotification {
 
     /**
+     * Identifies the capturing ongoing {@link android.app.Notification} which can be implemented by sdk using apps.
+     * These ids should be placed centrally to avoid duplicate entries.
+     */
+    public final static int CAPTURING_NOTIFICATION_ID = 1;
+
+    /**
      * The Android <code>Notification</code> wrapped by this class.
      */
     private Notification wrappedNotification;
@@ -67,13 +73,6 @@ public class CapturingNotification {
         this.notificationText = notificationText;
         this.notificationLogo = notificationLogo;
         this.notificationLargeLogo = notificationLargeLogo;
-    }
-
-    /**
-     * @return An identifier required by the Android system to display the notification.
-     */
-    public int getNotificationId() {
-        return 1;
     }
 
     /**

@@ -7,6 +7,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
+import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -158,7 +159,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          */
         final CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
                 NOTIFICATION_TITLE_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
-        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
+        startForeground(CAPTURING_NOTIFICATION_ID, capturingNotification.getNotification(this));
 
         // Prevents this process from being killed by the system.
         final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
