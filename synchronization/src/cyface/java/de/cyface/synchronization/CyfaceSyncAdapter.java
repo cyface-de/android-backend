@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.2.1
+ * @version 1.2.2
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
@@ -360,7 +360,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             notifySyncProgress(measurementSlice);
         }
         catch (final ServerUnavailableException e) {
-            syncResult.stats.numAuthExceptions++; // TODO: Do we use those statistics ?
+            // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
+            syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
             return false;
         } catch (final MalformedURLException e) {

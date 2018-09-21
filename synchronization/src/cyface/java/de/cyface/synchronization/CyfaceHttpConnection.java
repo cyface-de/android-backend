@@ -175,9 +175,10 @@ public class CyfaceHttpConnection implements Http {
      * @return the {@link HttpResponse}
      * @throws ResponseParsingException when the server response was unreadable
      * @throws SynchronisationException when a connection error occurred while reading the response code
+     * @throws UnauthorizedException when the login was not successful and returned a 401 code.
      */
     private HttpResponse readResponseFromConnection(final HttpURLConnection con)
-            throws ResponseParsingException, SynchronisationException {
+            throws ResponseParsingException, SynchronisationException, UnauthorizedException {
         String responseString;
         try {
             responseString = readInputStream(con.getInputStream());
