@@ -15,6 +15,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -49,7 +50,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.1
+ * @version 4.2.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -276,6 +277,50 @@ public class DataCapturingServiceTest extends ProviderTestCase2<MeasuringPointsC
 
         final long receivedMeasurementIdentifier = startAsyncAndCheckThatLaunched();
         stopAsyncAndCheckThatStopped(receivedMeasurementIdentifier);
+    }
+
+    /**
+     * Tests that a double start-stop combination without waiting for the callback does not break the service.
+     *
+     * IGNORED: This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.
+     * To fix this we need to re-use a handler for a sequential execution. See CY-4098, MOV-378
+     * We should consider refactoring the code before to use startCommandReceived as intended CY-4097.
+     *
+     * @throws DataCapturingException On any error during running the capturing process.
+     * @throws MissingPermissionException If an Android permission is missing.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     */
+    @Test
+    @Ignore
+    public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+        final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock, condition);
+
+        // First Start/stop without waiting
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler1);
+        oocut.stopAsync(shutDownFinishedHandler1);
+        // Second start/stop without waiting
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler2);
+        oocut.stopAsync(shutDownFinishedHandler2);
+        // Second start/stop without waiting
+        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler3);
+        oocut.stopAsync(shutDownFinishedHandler3);
+
+        // Now let's make sure all measurements started and stopped as expected
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        final long measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier;
+        assertThat(measurementId1, is(not(equalTo(-1L))));
+        assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
+        final long measurementId2 = startUpFinishedHandler2.receivedMeasurementIdentifier;
+        assertThat(measurementId2, is(not(equalTo(-1L))));
+        assertThat(shutDownFinishedHandler2.receivedMeasurementIdentifier, is(equalTo(measurementId2)));
+        final long measurementId3 = startUpFinishedHandler3.receivedMeasurementIdentifier;
+        assertThat(measurementId3, is(not(equalTo(-1L))));
+        assertThat(shutDownFinishedHandler3.receivedMeasurementIdentifier, is(equalTo(measurementId3)));
     }
 
     /**
