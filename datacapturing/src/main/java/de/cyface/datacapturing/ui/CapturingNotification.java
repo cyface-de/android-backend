@@ -26,7 +26,10 @@ public class CapturingNotification {
     /**
      * Identifies the capturing ongoing {@link android.app.Notification} which can be implemented by sdk using apps.
      * These ids should be placed centrally to avoid duplicate entries.
+     * 
+     * @deprecated because this is UI related and should be implemented as StrategyImplementation by the sdk using app
      */
+    @Deprecated
     public final static int CAPTURING_NOTIFICATION_ID = 1;
 
     /**
