@@ -1,6 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.CyfaceAuthenticator.initSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_CANCELED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
@@ -20,6 +21,8 @@ import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
+
+import javax.net.ssl.SSLContext;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -136,7 +139,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         final Context context = getContext();
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-
         final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         Validate.notNull(deviceIdentifier,
@@ -148,14 +150,28 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         try {
             // Load all Measurements that are finished capturing
             syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
-            notifySyncStarted(countUnsyncedDataPoints(provider, syncableMeasurementsCursor, authority));
+            final long unsyncedDataPoints = countUnsyncedDataPoints(provider, syncableMeasurementsCursor, authority);
+            notifySyncStarted(unsyncedDataPoints);
+            if (unsyncedDataPoints == 0) {
+                return; // nothing to sync
+            }
+
+            // Load SSLContext
+            final SSLContext sslContext;
+            try {
+                sslContext = initSslContext(context);
+            } catch (final IOException e) {
+                throw new IllegalStateException("Trust store file failed while closing", e);
+            } catch (final SynchronisationException e) {
+                throw new IllegalStateException(e);
+            }
 
             // The cursor is reset to initial position (i.e. 0) by countUnsyncedDataPoints
             while (syncableMeasurementsCursor.moveToNext()) {
                 final int identifierColumnIndex = syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID);
                 final long measurementIdentifier = syncableMeasurementsCursor.getLong(identifierColumnIndex);
                 final boolean measurementTransmitted = syncMeasurement(authority, provider, syncableMeasurementsCursor,
-                        deviceIdentifier, syncResult, context, url, account, measurementIdentifier);
+                        deviceIdentifier, syncResult, context, url, account, measurementIdentifier, sslContext);
                 if (measurementTransmitted) {
                     final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                             measurementIdentifier, provider, authority);
@@ -192,6 +208,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param url The url to the Cyface API
      * @param account The {@link Account} to use for synchronization
      * @param measurementIdentifier The id of the measurement to transmit
+     * @param sslContext The {@link SSLContext} to open a HTTPS connection with a custom certificate
      * @return True if the transmission was successful
      * @throws RequestParsingException When data could not be inserted or loaded into/from the JSON representation
      * @throws DatabaseException When the data could not be loaded from the persistence layer or the delete operation
@@ -200,8 +217,8 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      */
     private boolean syncMeasurement(final String authority, final ContentProviderClient provider,
             final Cursor syncableMeasurementsCursor, final String deviceIdentifier, final SyncResult syncResult,
-            final Context context, final String url, final Account account, final long measurementIdentifier)
-            throws RequestParsingException, DatabaseException, SynchronisationException {
+            final Context context, final String url, final Account account, final long measurementIdentifier,
+            final SSLContext sslContext) throws RequestParsingException, DatabaseException, SynchronisationException {
         final JSONObject measurementSliceTemplate = prepareMeasurementSliceTemplate(measurementIdentifier,
                 syncableMeasurementsCursor, deviceIdentifier);
         final MeasurementContentProviderClient dataAccessLayer = new MeasurementContentProviderClient(
@@ -236,7 +253,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             final JSONObject measurementSlice = fillMeasurementSlice(measurementSliceTemplate, dataAccessLayer, 0, 0, 0,
                     0, geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper, directionJsonMapper);
             final boolean transmissionSuccessful = postMeasurementSlice(syncResult, context, url, account,
-                    measurementSlice);
+                    measurementSlice, sslContext);
             if (!transmissionSuccessful) {
                 return false;
             }
@@ -337,18 +354,21 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
      * @param url The URL of the Cyface Data Collector API to post the data to.
      * @param account The {@link Account} used to post the data.
      * @param measurementSlice The measurement slice as {@link JSONObject}.
+     * @param sslContext the {@link SSLContext} to open a HTTPS connection with a custom certificate
      * @throws RequestParsingException When the post request could not be generated or when data could not be parsed
      *             from the measurement slice.
      * @return True of the transmission was successful.
      */
     private boolean postMeasurementSlice(final SyncResult syncResult, final Context context, final String url,
-            final Account account, JSONObject measurementSlice) throws RequestParsingException {
+            final Account account, JSONObject measurementSlice, final SSLContext sslContext)
+            throws RequestParsingException {
         try {
             final URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
             final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
                     Constants.AUTH_TOKEN_TYPE, false);
             HttpURLConnection con = null;
             try {
+                // FIXME: implement SyncPerformer from movebis flavour which handles the sslContext during sync
                 con = http.openHttpConnection(postUrl, jwtBearer);
                 Log.d(TAG, "Posing measurement slice ...");
                 http.post(con, measurementSlice, true);
@@ -358,8 +378,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             }
             notifySyncProgress(measurementSlice);
-        }
-        catch (final ServerUnavailableException e) {
+        } catch (final ServerUnavailableException e) {
             // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
