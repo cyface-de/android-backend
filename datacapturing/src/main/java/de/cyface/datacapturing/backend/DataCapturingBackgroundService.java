@@ -214,6 +214,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Sends an IPC message to interested parties that the service stopped itself. This must be called
      * when the {@code stopSelf()} method is called on this service to unbind the {@link DataCapturingService},
      * e.g. from an {@link EventHandlingStrategy} implementation.
+     *
+     * Attention: This method is very rarely executed and so be careful when you change it's logic.
+     * The task for the missing test is CY-4111. Currently only tested manually.
      */
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
