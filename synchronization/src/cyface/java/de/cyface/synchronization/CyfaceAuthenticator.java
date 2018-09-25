@@ -187,20 +187,20 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      */
     static SSLContext initSslContext(final Context context) throws SynchronisationException, IOException {
         final SSLContext sslContext;
-        final File f = context.getFileStreamPath(R.raw.truststore);
-        if (f.length() == 0) {
-            Log.d(TAG, "Trust store is empty, loading default sslContext ...");
-            try {
-                sslContext = SSLContext.getInstance("TLSv1");
-                sslContext.init(null, null, null);
-                return sslContext;
-            } catch (NoSuchAlgorithmException | KeyManagementException e) {
-                throw new SynchronisationException("Unable to load SSLContext", e);
-            }
-        }
 
         InputStream trustStoreFile = null;
         try {
+            // If no self-signed certificate is used and an empty trust store is provided:
+            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
+            if (trustStoreFile.read() == -1) {
+                Log.d(TAG, "Trust store is empty, loading default sslContext ...");
+                sslContext = SSLContext.getInstance("TLSv1");
+                sslContext.init(null, null, null);
+                return sslContext;
+            }
+
+            // Add trust store to sslContext
+            trustStoreFile.close();
             trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
             final KeyStore trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(trustStoreFile, "Mv8vLFF3".toCharArray());
