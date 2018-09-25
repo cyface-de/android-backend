@@ -1,6 +1,5 @@
 package de.cyface.synchronization;
 
-import static de.cyface.utils.ErrorHandler.ErrorCode.SSL_CERTIFICATE_UNKNOWN;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
@@ -9,6 +8,7 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -177,7 +177,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     /**
-     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}.
+     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}. If the trust
+     * store file is empty, the default context is used.
      *
      * @param context The {@link Context} to use to load the trust store file.
      * @return the {@link SSLContext} to be used for HTTPS connections.
@@ -185,18 +186,30 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws IOException if the trustStoreFile failed while closing.
      */
     static SSLContext initSslContext(final Context context) throws SynchronisationException, IOException {
-        InputStream trustStoreFile = null;
         final SSLContext sslContext;
+        final File f = context.getFileStreamPath(R.raw.truststore);
+        if (f.length() == 0) {
+            Log.d(TAG, "Trust store is empty, loading default sslContext ...");
+            try {
+                sslContext = SSLContext.getInstance("TLSv1");
+                sslContext.init(null, null, null);
+                return sslContext;
+            } catch (NoSuchAlgorithmException | KeyManagementException e) {
+                throw new SynchronisationException("Unable to load SSLContext", e);
+            }
+        }
+
+        InputStream trustStoreFile = null;
         try {
             trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
             trustStore.load(trustStoreFile, "Mv8vLFF3".toCharArray());
-            TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
             tmf.init(trustStore);
 
             // Create an SSLContext that uses our TrustManager
             sslContext = SSLContext.getInstance("TLSv1");
-            byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
+            final byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
             sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
 
         } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
