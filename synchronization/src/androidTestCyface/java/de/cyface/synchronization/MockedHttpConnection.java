@@ -12,7 +12,7 @@ import android.support.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
@@ -38,7 +38,8 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress) throws ResponseParsingException {
+    public <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress)
+            throws ResponseParsingException, UnauthorizedException {
         return new HttpResponse(201, "");
     }
 }
