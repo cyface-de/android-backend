@@ -27,7 +27,7 @@ import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 public class CyfaceHttpConnection implements Http {
