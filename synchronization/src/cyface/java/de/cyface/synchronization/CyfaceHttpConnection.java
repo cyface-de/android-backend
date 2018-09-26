@@ -188,7 +188,7 @@ public class CyfaceHttpConnection implements Http {
      * @throws UnauthorizedException when the login was not successful and returned a 401 code.
      */
     private HttpResponse readResponseFromConnection(final HttpURLConnection con)
-            throws ResponseParsingException, SynchronisationException, UnauthorizedException {
+            throws SynchronisationException, ResponseParsingException, UnauthorizedException {
         String responseString;
         try {
             responseString = readInputStream(con.getInputStream());
@@ -206,7 +206,18 @@ public class CyfaceHttpConnection implements Http {
         }
 
         try {
-            return new HttpResponse(con.getResponseCode(), responseString);
+            final HttpResponse response;
+            try {
+                response = new HttpResponse(con.getResponseCode(), responseString);
+            } catch (final ResponseParsingException e) {
+                if (con.getResponseCode() == 401) {
+                    // Occurred in the RadVerS project
+                    throw new UnauthorizedException(String.format(
+                            "401 Unauthorized Error: '%s'. Unable to read the http response.", e.getMessage()), e);
+                }
+                throw e;
+            }
+            return response;
         } catch (final IOException e) {
             throw new SynchronisationException("A connection error occurred while reading the response code.", e);
         }

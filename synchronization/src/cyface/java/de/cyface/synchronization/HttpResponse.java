@@ -23,10 +23,8 @@ class HttpResponse {
      * @param responseBody the HTTP response body returned by the server. Can be null when the login
      *            was successful and there was nothing to return (defined by the Spring API).
      * @throws ResponseParsingException when the server returned something not parsable.
-     * @throws UnauthorizedException when the login was not successful and returned a 401 code.
      */
-    HttpResponse(final int responseCode, final String responseBody)
-            throws ResponseParsingException, UnauthorizedException {
+    HttpResponse(final int responseCode, final String responseBody) throws ResponseParsingException {
         this.responseCode = responseCode;
         try {
             this.body = new JSONObject(responseBody);
@@ -34,11 +32,6 @@ class HttpResponse {
             if (is2xxSuccessful()) {
                 this.body = null; // Nothing to complain, the login was successful
                 return;
-            }
-            if (responseCode == 401) {
-                // Occurred in the RadVerS project
-                throw new UnauthorizedException(String
-                        .format("401 Unauthorized Error: '%s'. Unable to read the http response.", e.getMessage()), e);
             }
             throw new ResponseParsingException(
                     String.format("Error: '%s'. Unable to read the http response.", e.getMessage()), e);
