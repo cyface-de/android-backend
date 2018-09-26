@@ -7,6 +7,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
+import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -55,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.11
+ * @version 4.0.12
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -158,7 +159,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          */
         final CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
                 NOTIFICATION_TITLE_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
-        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
+        startForeground(CAPTURING_NOTIFICATION_ID, capturingNotification.getNotification(this));
 
         // Prevents this process from being killed by the system.
         final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
@@ -213,6 +214,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Sends an IPC message to interested parties that the service stopped itself. This must be called
      * when the {@code stopSelf()} method is called on this service to unbind the {@link DataCapturingService},
      * e.g. from an {@link EventHandlingStrategy} implementation.
+     *
+     * Attention: This method is very rarely executed and so be careful when you change it's logic.
+     * The task for the missing test is CY-4111. Currently only tested manually.
      */
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");

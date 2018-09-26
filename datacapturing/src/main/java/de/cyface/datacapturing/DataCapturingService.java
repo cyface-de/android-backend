@@ -71,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.3
+ * @version 7.1.4
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1152,6 +1152,8 @@ public abstract class DataCapturingService {
                         listener.onCapturingStopped();
                         break;
                     case MessageCodes.SERVICE_STOPPED_ITSELF:
+                        // Attention: This method is very rarely executed and so be careful when you change it's logic.
+                        // The task for the missing test is CY-4111. Currently only tested manually.
                         parcel = msg.getData();
                         parcel.setClassLoader(getClass().getClassLoader());
                         // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
@@ -1164,10 +1166,10 @@ public abstract class DataCapturingService {
                         final Condition condition = lock.newCondition();
                         final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
                         try {
-                            // To make sure the background service is stopped, we unbind this service
-                            // from it via the stopService method (to reduce code duplicity). As the
-                            // background service stopped itself in advance, we expect no active service:
-                            Validate.isTrue(!dataCapturingService.stopService(new Measurement(measurementId),
+                            // The background service already received a stopSelf command but as it's still
+                            // bound to this service it should be still alive. We unbind it from this service via the
+                            // stopService method (to reduce code duplicity).
+                            Validate.isTrue(dataCapturingService.stopService(new Measurement(measurementId),
                                     synchronizationReceiver));
 
                             // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:

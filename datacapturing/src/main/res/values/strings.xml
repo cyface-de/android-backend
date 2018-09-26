@@ -5,7 +5,7 @@
     <string name="cyface_notification_channel_id" translatable="false">Cyface</string>
     <string name="notification_channel_id" translatable="false">STADTRADELN</string>
     <string name="notification_title">Capturing in progress</string>
-    <string name="notification_channel_description_running">Notification which showns that there is a measurement running.</string>
+    <string name="notification_channel_description_running">Notification which shows that there is a measurement running.</string>
     <string name="ticker_text" translatable="false">Ticker</string>
 
     <string name="missing_data_error">Captured data was missing from message!</string>
