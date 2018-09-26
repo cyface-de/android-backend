@@ -8,7 +8,6 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
-import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.HttpURLConnection;
@@ -287,7 +286,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         }
 
         final String jwtBearer = connection.getHeaderField("Authorization");
-        registerDevice(url, installationIdentifier, jwtBearer);
+        registerDevice(url, installationIdentifier, jwtBearer, sslContext);
         return jwtBearer;
     }
 
@@ -297,6 +296,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @param url The URL or the Server API
      * @param installationIdentifier The device id
      * @param authToken The authentication token to prove that the user is who is says he is
+     * @param sslContext The {@link SSLContext} to open a secure connection
      * @throws MalformedURLException If the used server URL is not well formed
      * @throws ServerUnavailableException When there seems to be no server at the URL
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
@@ -306,12 +306,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
     private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier,
-            final @NonNull String authToken)
+                                final @NonNull String authToken, SSLContext sslContext)
             throws MalformedURLException, ServerUnavailableException, SynchronisationException,
             ResponseParsingException, RequestParsingException, DataTransmissionException, UnauthorizedException {
 
         final HttpURLConnection con = http
-                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken);
+                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken, sslContext);
         final JSONObject device = new JSONObject();
         try {
             device.put("id", installationIdentifier);

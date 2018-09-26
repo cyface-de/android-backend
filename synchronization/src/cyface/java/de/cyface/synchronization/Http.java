@@ -3,6 +3,8 @@ package de.cyface.synchronization;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
+import javax.net.ssl.SSLContext;
+
 import android.support.annotation.NonNull;
 
 /**
@@ -10,7 +12,7 @@ import android.support.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 3.0.0
  */
 interface Http {
@@ -27,10 +29,12 @@ interface Http {
      *
      * @param url The URL of the cyface backend's REST API.
      * @param jwtBearer A String in the format "Bearer TOKEN".
+     * @param sslContext The {@link SSLContext} to open a secure connection to the server
      * @return the HTTPURLConnection
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      */
-    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer) throws ServerUnavailableException;
+    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, @NonNull SSLContext sslContext)
+            throws ServerUnavailableException;
 
     /**
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API

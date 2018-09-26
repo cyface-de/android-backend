@@ -6,6 +6,8 @@ import java.net.URL;
 
 import android.support.annotation.NonNull;
 
+import javax.net.ssl.SSLContext;
+
 /**
  * An HTTP connection that does not actually connect to the server. This is useful for testing code requiring a
  * connection.
@@ -23,7 +25,7 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer)
+    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, SSLContext sslContext)
             throws ServerUnavailableException {
         return openHttpConnection(url);
     }

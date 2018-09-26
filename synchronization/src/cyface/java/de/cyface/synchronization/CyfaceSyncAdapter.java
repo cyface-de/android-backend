@@ -1,28 +1,16 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.synchronization.CyfaceAuthenticator.initSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_CANCELED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
-import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
-import java.net.HttpURLConnection;
-import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
-
-import javax.net.ssl.SSLContext;
+import java.util.concurrent.TimeUnit;
 
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -30,6 +18,7 @@ import org.json.JSONObject;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.content.AbstractThreadedSyncAdapter;
@@ -139,39 +128,45 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         final Context context = getContext();
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
-        final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
-        Validate.notNull(deviceIdentifier,
-                "Sync canceled: No installation identifier for this application set in its preferences.");
-        Validate.notNull(url,
-                "Sync canceled: Server url not available. Please set the applications server url preference.");
-
         Cursor syncableMeasurementsCursor = null;
+        final AccountManager accountManager = AccountManager.get(getContext());
+        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, Constants.AUTH_TOKEN_TYPE,
+                null, false, null, null);
+
         try {
+            final SyncPerformer syncPerformer = new SyncPerformer(context);
+
+            final Bundle result = future.getResult(1, TimeUnit.SECONDS);
+            final String jwtAuthToken = result.getString(AccountManager.KEY_AUTHTOKEN);
+            if (jwtAuthToken == null) {
+                throw new IllegalStateException("No valid auth token supplied. Aborting data synchronization!");
+            }
+
+            final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+            Validate.notNull(endPointUrl,
+                    "Sync canceled: Server url not available. Please set the applications server url preference.");
+
+            final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+            Validate.notNull(deviceIdentifier,
+                    "Sync canceled: No installation identifier for this application set in its preferences.");
+
             // Load all Measurements that are finished capturing
             syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
+
             final long unsyncedDataPoints = countUnsyncedDataPoints(provider, syncableMeasurementsCursor, authority);
             notifySyncStarted(unsyncedDataPoints);
             if (unsyncedDataPoints == 0) {
                 return; // nothing to sync
             }
 
-            // Load SSLContext
-            final SSLContext sslContext;
-            try {
-                sslContext = initSslContext(context);
-            } catch (final IOException e) {
-                throw new IllegalStateException("Trust store file failed while closing", e);
-            } catch (final SynchronisationException e) {
-                throw new IllegalStateException(e);
-            }
-
             // The cursor is reset to initial position (i.e. 0) by countUnsyncedDataPoints
             while (syncableMeasurementsCursor.moveToNext()) {
-                final int identifierColumnIndex = syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID);
-                final long measurementIdentifier = syncableMeasurementsCursor.getLong(identifierColumnIndex);
-                final boolean measurementTransmitted = syncMeasurement(authority, provider, syncableMeasurementsCursor,
-                        deviceIdentifier, syncResult, context, url, account, measurementIdentifier, sslContext);
+                final long measurementIdentifier = syncableMeasurementsCursor
+                        .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
+                final boolean measurementTransmitted = syncMeasurement(syncPerformer, authority, provider,
+                        syncableMeasurementsCursor, deviceIdentifier, syncResult, endPointUrl,
+                        measurementIdentifier, jwtAuthToken);
+
                 if (measurementTransmitted) {
                     final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                             measurementIdentifier, provider, authority);
@@ -187,6 +182,10 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
+        } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+            syncResult.stats.numAuthExceptions++;
+            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode());
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             notifySyncFinished();
@@ -199,26 +198,26 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     /**
      * Transmits the selected measurement to the Cyface server.
      *
+     * @param syncPerformer The {@link SyncPerformer} to upload data to the server
      * @param authority The authority to access the data
      * @param provider The provider to access the data
      * @param syncableMeasurementsCursor The cursor to access the measurement
      * @param deviceIdentifier The device id
      * @param syncResult The {@link SyncResult} to store sync error details
-     * @param context The context to access the {@link AccountManager}
      * @param url The url to the Cyface API
-     * @param account The {@link Account} to use for synchronization
      * @param measurementIdentifier The id of the measurement to transmit
-     * @param sslContext The {@link SSLContext} to open a HTTPS connection with a custom certificate
+     * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True if the transmission was successful
      * @throws RequestParsingException When data could not be inserted or loaded into/from the JSON representation
      * @throws DatabaseException When the data could not be loaded from the persistence layer or the delete operation
      *             failed
      * @throws SynchronisationException When the data could not be mapped
      */
-    private boolean syncMeasurement(final String authority, final ContentProviderClient provider,
-            final Cursor syncableMeasurementsCursor, final String deviceIdentifier, final SyncResult syncResult,
-            final Context context, final String url, final Account account, final long measurementIdentifier,
-            final SSLContext sslContext) throws RequestParsingException, DatabaseException, SynchronisationException {
+    private boolean syncMeasurement(final SyncPerformer syncPerformer, final String authority,
+                                    final ContentProviderClient provider, final Cursor syncableMeasurementsCursor,
+                                    final String deviceIdentifier, final SyncResult syncResult, final String url,
+                                    final long measurementIdentifier, String jwtAuthToken)
+            throws RequestParsingException, DatabaseException, SynchronisationException {
         final JSONObject measurementSliceTemplate = prepareMeasurementSliceTemplate(measurementIdentifier,
                 syncableMeasurementsCursor, deviceIdentifier);
         final MeasurementContentProviderClient dataAccessLayer = new MeasurementContentProviderClient(
@@ -252,11 +251,12 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             // We delete the points in each iteration so we load always from cursor position 0
             final JSONObject measurementSlice = fillMeasurementSlice(measurementSliceTemplate, dataAccessLayer, 0, 0, 0,
                     0, geoLocationJsonMapper, accelerationJsonMapper, rotationJsonMapper, directionJsonMapper);
-            final boolean transmissionSuccessful = postMeasurementSlice(syncResult, context, url, account,
-                    measurementSlice, sslContext);
+            final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, url, measurementIdentifier, deviceIdentifier,
+                    measurementSlice, jwtAuthToken);
             if (!transmissionSuccessful) {
                 return false;
             }
+            notifySyncProgress(measurementSlice);
             try {
                 // TODO: This way of deleting points is probably rather slow when lots of data is
                 // stored on old devices (from experience). We had a faster but uglier workaround
@@ -275,6 +275,29 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         }
         return true;
+    }
+
+    /**
+     * Notifies about the sync progress.
+     *
+     * @param measurementSlice The {@link JSONObject} of the measurement slice transmitted.
+     * @throws RequestParsingException when data could not be parsed from the measurement slice.
+     */
+    private void notifySyncProgress(final @NonNull JSONObject measurementSlice) throws RequestParsingException {
+        final long measurementId;
+        try {
+            this.transmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
+                    + measurementSlice.getJSONArray("directionPoints").length()
+                    + measurementSlice.getJSONArray("rotationPoints").length()
+                    + measurementSlice.getJSONArray("accelerationPoints").length();
+            measurementId = measurementSlice.getLong("id");
+        } catch (final JSONException e) {
+            throw new RequestParsingException("Unable to parse measurement data", e);
+        }
+
+        for (final ConnectionListener listener : progressListener) {
+            listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
+        }
     }
 
     /**
@@ -343,80 +366,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             }
         }
         return measurementSliceTemplate;
-    }
-
-    /**
-     * Posts a slice of a measurement to the responsible endpoint sitting behind the provided {@code url}.
-     * Sync errors are broadcasted to the {@link de.cyface.utils.ErrorHandler}.
-     *
-     * @param syncResult The {@link SyncResult} used to store sync error information.
-     * @param context The {@link Context} to access the {@link AccountManager}.
-     * @param url The URL of the Cyface Data Collector API to post the data to.
-     * @param account The {@link Account} used to post the data.
-     * @param measurementSlice The measurement slice as {@link JSONObject}.
-     * @param sslContext the {@link SSLContext} to open a HTTPS connection with a custom certificate
-     * @throws RequestParsingException When the post request could not be generated or when data could not be parsed
-     *             from the measurement slice.
-     * @return True of the transmission was successful.
-     */
-    private boolean postMeasurementSlice(final SyncResult syncResult, final Context context, final String url,
-            final Account account, JSONObject measurementSlice, final SSLContext sslContext)
-            throws RequestParsingException {
-        try {
-            final URL postUrl = new URL(http.returnUrlWithTrailingSlash(url) + "/measurements/");
-            final String jwtBearer = AccountManager.get(context).blockingGetAuthToken(account,
-                    Constants.AUTH_TOKEN_TYPE, false);
-            HttpURLConnection con = null;
-            try {
-                // FIXME: implement SyncPerformer from movebis flavour which handles the sslContext during sync
-                con = http.openHttpConnection(postUrl, jwtBearer);
-                Log.d(TAG, "Posing measurement slice ...");
-                http.post(con, measurementSlice, true);
-            } finally {
-                if (con != null) {
-                    con.disconnect();
-                }
-            }
-            notifySyncProgress(measurementSlice);
-        } catch (final ServerUnavailableException e) {
-            // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
-            return false;
-        } catch (final MalformedURLException e) {
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, MALFORMED_URL.getCode());
-            return false;
-        } catch (final AuthenticatorException e) {
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode());
-            return false;
-        } catch (final OperationCanceledException e) {
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, AUTHENTICATION_CANCELED.getCode());
-            return false;
-        } catch (final ResponseParsingException e) {
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
-            return false;
-        } catch (final DataTransmissionException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
-            return false;
-        } catch (final SynchronisationException e) {
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
-            return false;
-        } catch (final IOException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, NETWORK_ERROR.getCode());
-            return false;
-        } catch (final UnauthorizedException e) {
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, UNAUTHORIZED.getCode());
-            return false;
-        }
-        return true;
     }
 
     /**
@@ -494,29 +443,6 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         this.transmittedPoints = -1L;
         for (final ConnectionListener listener : progressListener) {
             listener.onSyncFinished();
-        }
-    }
-
-    /**
-     * Notifies about the sync progress.
-     *
-     * @param measurementSlice The {@link JSONObject} of the measurement slice transmitted.
-     * @throws RequestParsingException when data could not be parsed from the measurement slice.
-     */
-    private void notifySyncProgress(final @NonNull JSONObject measurementSlice) throws RequestParsingException {
-        final long measurementId;
-        try {
-            this.transmittedPoints += measurementSlice.getJSONArray("gpsPoints").length()
-                    + measurementSlice.getJSONArray("directionPoints").length()
-                    + measurementSlice.getJSONArray("rotationPoints").length()
-                    + measurementSlice.getJSONArray("accelerationPoints").length();
-            measurementId = measurementSlice.getLong("id");
-        } catch (final JSONException e) {
-            throw new RequestParsingException("Unable to parse measurement data", e);
-        }
-
-        for (final ConnectionListener listener : progressListener) {
-            listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
         }
     }
 

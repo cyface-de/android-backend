@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
+
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
@@ -8,9 +10,12 @@ import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
-import java.nio.charset.Charset;
-import java.nio.charset.StandardCharsets;
 import java.util.zip.GZIPOutputStream;
+
+import javax.net.ssl.HostnameVerifier;
+import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLSession;
 
 import org.json.JSONException;
 
@@ -20,14 +25,12 @@ import android.util.Log;
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
 
-import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
-
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.2.0
  * @since 2.0.0
  */
 public class CyfaceHttpConnection implements Http {
@@ -44,9 +47,16 @@ public class CyfaceHttpConnection implements Http {
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(final @NonNull URL url, final @NonNull String jwtBearer)
-            throws ServerUnavailableException {
-        final HttpURLConnection con = openHttpConnection(url);
+    public HttpURLConnection openHttpConnection(final @NonNull URL url, final @NonNull String jwtBearer,
+            final @NonNull SSLContext sslContext) throws ServerUnavailableException {
+        final HttpsURLConnection con = (HttpsURLConnection)openHttpConnection(url);
+        con.setSSLSocketFactory(sslContext.getSocketFactory());
+        con.setHostnameVerifier(new HostnameVerifier() {
+            @Override
+            public boolean verify(final String hostname, final SSLSession session) {
+                return true;
+            }
+        });
         con.setRequestProperty("Authorization", jwtBearer);
         return con;
     }
