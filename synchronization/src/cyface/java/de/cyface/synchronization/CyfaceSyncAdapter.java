@@ -54,7 +54,7 @@ import de.cyface.utils.Validate;
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
 
-    private final Collection<ConnectionListener> progressListener;
+    private final Collection<ConnectionStatusListener> progressListener;
     private final Http http;
     private final int geoLocationsUploadBatchSize;
     private final int accelerationsUploadBatchSize;
@@ -108,7 +108,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         this.rotationsUploadBatchSize = rotationsUploadBatchSize;
         this.directionsUploadBatchSize = directionsUploadBatchSize;
         progressListener = new HashSet<>();
-        addConnectionListener(new CyfaceConnectionListener(context));
+        addConnectionListener(new CyfaceConnectionStatusListener(context));
     }
 
     /**
@@ -295,7 +295,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
             throw new RequestParsingException("Unable to parse measurement data", e);
         }
 
-        for (final ConnectionListener listener : progressListener) {
+        for (final ConnectionStatusListener listener : progressListener) {
             listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
         }
     }
@@ -427,13 +427,13 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
         return jsonArray;
     }
 
-    private void addConnectionListener(final @NonNull ConnectionListener listener) {
+    private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {
         progressListener.add(listener);
     }
 
     private void notifySyncStarted(final long pointsToTransmit) {
         this.pointsToTransmit = pointsToTransmit;
-        for (final ConnectionListener listener : progressListener) {
+        for (final ConnectionStatusListener listener : progressListener) {
             listener.onSyncStarted(pointsToTransmit);
         }
     }
@@ -441,7 +441,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     private void notifySyncFinished() {
         this.pointsToTransmit = -1L;
         this.transmittedPoints = -1L;
-        for (final ConnectionListener listener : progressListener) {
+        for (final ConnectionStatusListener listener : progressListener) {
             listener.onSyncFinished();
         }
     }

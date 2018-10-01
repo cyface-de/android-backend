@@ -8,7 +8,7 @@ package de.cyface.synchronization;
  * @version 1.0.2
  * @since 1.0.0
  */
-public interface ConnectionListener {
+public interface ConnectionStatusListener {
     /**
      * Is called when the synchronization starts.
      *

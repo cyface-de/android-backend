@@ -13,7 +13,7 @@ import android.support.annotation.NonNull;
  * @version 2.0.2
  * @since 1.0.0
  */
-public final class CyfaceConnectionListener implements ConnectionListener {
+public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {
 
     public final static String SYNC_FINISHED = "de.cynav.cyface.sync_finished";
     public final static String SYNC_PROGRESS = "de.cynav.cyface.sync_progress";
@@ -23,7 +23,7 @@ public final class CyfaceConnectionListener implements ConnectionListener {
     public final static String SYNC_STARTED = "de.cynav.cyface.sync_started";
     private final Context context;
 
-    public CyfaceConnectionListener(final @NonNull Context context) {
+    public CyfaceConnectionStatusListener(final @NonNull Context context) {
         this.context = context;
     }
 

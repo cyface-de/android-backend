@@ -49,8 +49,8 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.synchronization.ConnectionBroadcastReceiver;
-import de.cyface.synchronization.ConnectionListener;
+import de.cyface.synchronization.ConnectionStatusListener;
+import de.cyface.synchronization.CyfaceConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -158,7 +158,7 @@ public abstract class DataCapturingService {
     /**
      * A receiver for synchronization events.
      */
-    private final ConnectionBroadcastReceiver connectionBroadcastReceiver;
+    private final CyfaceConnectionStatusReceiver connectionBroadcastReceiver;
     /**
      * The strategy used to respond to selected events triggered by this service.
      */
@@ -187,7 +187,7 @@ public abstract class DataCapturingService {
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(resolver, authority);
-        this.connectionBroadcastReceiver = new ConnectionBroadcastReceiver(context);
+        this.connectionBroadcastReceiver = new CyfaceConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
 
         // Setup required preferences including the device identifier, if not generated previously.
@@ -996,18 +996,25 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    public void addConnectionListener(final @NonNull ConnectionListener listener) {
+    public void addConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionBroadcastReceiver.addListener(listener);
     }
 
     /**
-     * Removes the provided object as <code>ConnectionListener</code> from the list of listeners notified by this
+     * Removes the provided object as <code>ConnectionStatusListener</code> from the list of listeners notified by this
      * object.
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    public void removeConnectionListener(final @NonNull ConnectionListener listener) {
+    public void removeConnectionListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionBroadcastReceiver.removeListener(listener);
+    }
+
+    /**
+     * Unregisters the {@link CyfaceConnectionStatusReceiver} when not more needed.
+     */
+    public void shutdownConnectionStatusReceiver() {
+        this.connectionBroadcastReceiver.shutdown(getContext());
     }
 
     /**
