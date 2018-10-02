@@ -158,7 +158,7 @@ public abstract class DataCapturingService {
     /**
      * A receiver for synchronization events.
      */
-    private final ConnectionStatusReceiver connectionBroadcastReceiver;
+    private final ConnectionStatusReceiver connectionStatusReceiver;
     /**
      * The strategy used to respond to selected events triggered by this service.
      */
@@ -187,7 +187,7 @@ public abstract class DataCapturingService {
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(resolver, authority);
-        this.connectionBroadcastReceiver = new ConnectionStatusReceiver(context);
+        this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
 
         // Setup required preferences including the device identifier, if not generated previously.
@@ -997,7 +997,7 @@ public abstract class DataCapturingService {
      * @param listener A listener that is notified of important events during synchronization.
      */
     public void addConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
-        this.connectionBroadcastReceiver.addListener(listener);
+        this.connectionStatusReceiver.addListener(listener);
     }
 
     /**
@@ -1007,14 +1007,14 @@ public abstract class DataCapturingService {
      * @param listener A listener that is notified of important events during synchronization.
      */
     public void removeConnectionListener(final @NonNull ConnectionStatusListener listener) {
-        this.connectionBroadcastReceiver.removeListener(listener);
+        this.connectionStatusReceiver.removeListener(listener);
     }
 
     /**
      * Unregisters the {@link ConnectionStatusReceiver} when not more needed.
      */
     public void shutdownConnectionStatusReceiver() {
-        this.connectionBroadcastReceiver.shutdown(getContext());
+        this.connectionStatusReceiver.shutdown(getContext());
     }
 
     /**
