@@ -15,7 +15,7 @@ import de.cyface.datacapturing.DataCapturingService;
  * A position captured by the {@link DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.2.2
+ * @version 1.2.3
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
@@ -65,6 +65,7 @@ public class GeoLocation implements Parcelable {
                     "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %f.", lon));
         }
         if (speed < 0.) {
+            // Occurred on Huawai 10 Mate Pro (RAD-51)
             Log.w(TAG,
                     String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
         }

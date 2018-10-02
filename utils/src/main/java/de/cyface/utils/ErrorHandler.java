@@ -124,6 +124,10 @@ public class ErrorHandler extends BroadcastReceiver {
                         .format(context.getString(R.string.error_message_data_transmission_error_with_code), httpCode);
                 break;
 
+            case SSL_CERTIFICATE_UNKNOWN:
+                errorMessage = context.getString(R.string.error_message_ssl_certificate);
+                break;
+
             default:
                 errorMessage = context.getString(R.string.error_message_unknown_error);
         }
@@ -137,13 +141,14 @@ public class ErrorHandler extends BroadcastReceiver {
      * A list of known Errors which are thrown by the Cyface SDK.
      *
      * @author Armin Schnabel
-     * @version 1.1.0
+     * @version 1.1.1
      * @since 1.0.0
      */
     public enum ErrorCode {
         UNKNOWN(0), UNAUTHORIZED(1), MALFORMED_URL(2), UNREADABLE_HTTP_RESPONSE(3), SERVER_UNAVAILABLE(
                 4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(
-                7), AUTHENTICATION_CANCELED(8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10);
+                7), AUTHENTICATION_CANCELED(8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10),
+                SSL_CERTIFICATE_UNKNOWN(11);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;

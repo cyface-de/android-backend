@@ -9,13 +9,21 @@ import org.json.JSONObject;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 1.0.0
  */
 class HttpResponse {
     private int responseCode;
     private JSONObject body;
 
+    /**
+     * Checks the responseCode and responseBody before constructing the {@link HttpResponse}.
+     *
+     * @param responseCode the HTTP status code returned by the server
+     * @param responseBody the HTTP response body returned by the server. Can be null when the login
+     *            was successful and there was nothing to return (defined by the Spring API).
+     * @throws ResponseParsingException when the server returned something not parsable.
+     */
     HttpResponse(final int responseCode, final String responseBody) throws ResponseParsingException {
         this.responseCode = responseCode;
         try {
@@ -26,7 +34,7 @@ class HttpResponse {
                 return;
             }
             throw new ResponseParsingException(
-                    "Http request returned http code " + responseCode + " and has a non-JSON body: " + responseBody, e);
+                    String.format("Error: '%s'. Unable to read the http response.", e.getMessage()), e);
         }
     }
 
@@ -38,7 +46,12 @@ class HttpResponse {
         return responseCode;
     }
 
+    /**
+     * Checks if the HTTP response code says "successful".
+     *
+     * @return true if the code is a 200er code
+     */
     boolean is2xxSuccessful() {
-        return (responseCode >= 200 && responseCode <= 300);
+        return (responseCode >= 200 && responseCode < 300);
     }
 }

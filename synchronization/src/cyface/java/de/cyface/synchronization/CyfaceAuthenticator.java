@@ -8,9 +8,21 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
+import java.nio.ByteBuffer;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
+import java.security.cert.CertificateException;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -39,7 +51,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.2.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -95,9 +107,21 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
             final String password = am.getPassword(account);
             Log.v(TAG, String.format("Password: %s", password));
+
             if (password != null) {
+                // Load SSLContext
+                final SSLContext sslContext;
                 try {
-                    authToken = initSync(account.name, password);
+                    sslContext = initSslContext(context);
+                } catch (final IOException e) {
+                    throw new IllegalStateException("Trust store file failed while closing", e);
+                } catch (final SynchronisationException e) {
+                    throw new IllegalStateException(e);
+                }
+
+                // Get Auth token
+                try {
+                    authToken = initSync(account.name, password, sslContext);
                     Log.v(TAG, String.format("Auth token: %s", authToken));
                 } catch (final ServerUnavailableException e) {
                     sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
@@ -151,6 +175,53 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         return bundle;
     }
 
+    /**
+     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}. If the trust
+     * store file is empty, the default context is used.
+     *
+     * @param context The {@link Context} to use to load the trust store file.
+     * @return the {@link SSLContext} to be used for HTTPS connections.
+     * @throws SynchronisationException when the SSLContext could not be loaded
+     * @throws IOException if the trustStoreFile failed while closing.
+     */
+    static SSLContext initSslContext(final Context context) throws SynchronisationException, IOException {
+        final SSLContext sslContext;
+
+        InputStream trustStoreFile = null;
+        try {
+            // If no self-signed certificate is used and an empty trust store is provided:
+            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
+            if (trustStoreFile.read() == -1) {
+                Log.d(TAG, "Trust store is empty, loading default sslContext ...");
+                sslContext = SSLContext.getInstance("TLSv1");
+                sslContext.init(null, null, null);
+                return sslContext;
+            }
+
+            // Add trust store to sslContext
+            trustStoreFile.close();
+            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
+            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
+            trustStore.load(trustStoreFile, "Mv8vLFF3".toCharArray());
+            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
+            tmf.init(trustStore);
+
+            // Create an SSLContext that uses our TrustManager
+            sslContext = SSLContext.getInstance("TLSv1");
+            final byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
+            sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
+
+        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
+                | KeyManagementException e) {
+            throw new SynchronisationException("Unable to load SSLContext", e);
+        } finally {
+            if (trustStoreFile != null) {
+                trustStoreFile.close();
+            }
+        }
+        return sslContext;
+    }
+
     @Override
     public String getAuthTokenLabel(String authTokenType) {
         return "JWT Token";
@@ -175,6 +246,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      *            server.
      * @param password The password belonging to the account with the {@code username}
      *            logging in to the Cyface server.
+     * @param sslContext
      * @return The currently valid auth token to be used by further requests from this application.
      * @throws JSONException Thrown if the returned JSON message is not parsable.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
@@ -185,7 +257,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
-    private String initSync(final @NonNull String username, final @NonNull String password)
+    private String initSync(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
             DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException {
         Log.v(TAG, "Init Sync!");
@@ -214,7 +286,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         }
 
         final String jwtBearer = connection.getHeaderField("Authorization");
-        registerDevice(url, installationIdentifier, jwtBearer);
+        registerDevice(url, installationIdentifier, jwtBearer, sslContext);
         return jwtBearer;
     }
 
@@ -224,6 +296,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @param url The URL or the Server API
      * @param installationIdentifier The device id
      * @param authToken The authentication token to prove that the user is who is says he is
+     * @param sslContext The {@link SSLContext} to open a secure connection
      * @throws MalformedURLException If the used server URL is not well formed
      * @throws ServerUnavailableException When there seems to be no server at the URL
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
@@ -233,12 +306,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
     private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier,
-            final @NonNull String authToken)
+                                final @NonNull String authToken, SSLContext sslContext)
             throws MalformedURLException, ServerUnavailableException, SynchronisationException,
             ResponseParsingException, RequestParsingException, DataTransmissionException, UnauthorizedException {
 
         final HttpURLConnection con = http
-                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken);
+                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken, sslContext);
         final JSONObject device = new JSONObject();
         try {
             device.put("id", installationIdentifier);
