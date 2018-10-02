@@ -24,7 +24,7 @@ import de.cyface.utils.Validate;
  * @version 1.0.1
  * @since 2.5.0
  */
-public class CyfaceConnectionStatusReceiver extends BroadcastReceiver {
+public class ConnectionStatusReceiver extends BroadcastReceiver {
 
     /**
      * The interested parties for synchronization events.
@@ -33,12 +33,12 @@ public class CyfaceConnectionStatusReceiver extends BroadcastReceiver {
 
     /**
      * Registers this {@link BroadcastReceiver} to {@link CyfaceConnectionStatusListener} events.
-     * Don't forget to call the {@code CyfaceConnectionStatusReceiver#shutdown()} method at some point
+     * Don't forget to call the {@code ConnectionStatusReceiver#shutdown()} method at some point
      * in the future.
      *
      * @param context The {@link Context} to use to register this {@link BroadcastReceiver}.
      */
-    public CyfaceConnectionStatusReceiver(final Context context) {
+    public ConnectionStatusReceiver(final Context context) {
         this.connectionStatusListener = new HashSet<>();
         final IntentFilter filter = new IntentFilter();
         filter.addAction(SYNC_FINISHED);

@@ -50,7 +50,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.ConnectionStatusListener;
-import de.cyface.synchronization.CyfaceConnectionStatusReceiver;
+import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -158,7 +158,7 @@ public abstract class DataCapturingService {
     /**
      * A receiver for synchronization events.
      */
-    private final CyfaceConnectionStatusReceiver connectionBroadcastReceiver;
+    private final ConnectionStatusReceiver connectionBroadcastReceiver;
     /**
      * The strategy used to respond to selected events triggered by this service.
      */
@@ -187,7 +187,7 @@ public abstract class DataCapturingService {
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
         this.persistenceLayer = new MeasurementPersistence(resolver, authority);
-        this.connectionBroadcastReceiver = new CyfaceConnectionStatusReceiver(context);
+        this.connectionBroadcastReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
 
         // Setup required preferences including the device identifier, if not generated previously.
@@ -1011,7 +1011,7 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Unregisters the {@link CyfaceConnectionStatusReceiver} when not more needed.
+     * Unregisters the {@link ConnectionStatusReceiver} when not more needed.
      */
     public void shutdownConnectionStatusReceiver() {
         this.connectionBroadcastReceiver.shutdown(getContext());
