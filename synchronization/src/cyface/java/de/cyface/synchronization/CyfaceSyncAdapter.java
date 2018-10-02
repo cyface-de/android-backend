@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.2.2
+ * @version 1.2.3
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {

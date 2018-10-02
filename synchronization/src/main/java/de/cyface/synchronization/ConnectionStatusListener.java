@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 1.0.0
  */
 public interface ConnectionStatusListener {

@@ -71,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.4
+ * @version 7.1.5
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1011,7 +1011,7 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Unregisters the {@link ConnectionStatusReceiver} when not more needed.
+     * Unregisters the {@link ConnectionStatusReceiver} when no more needed.
      */
     public void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());

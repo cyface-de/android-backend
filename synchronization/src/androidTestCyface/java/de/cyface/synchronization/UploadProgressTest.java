@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  * Tests if the upload progress is broadcasted as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
