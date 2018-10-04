@@ -24,15 +24,6 @@ manifest also is required to override the default content provider as
 declared by the persistence project. This needs to be done by each using
 application separately.
 
-How to build the SDK
--------------------------
-* build project with Build Variant CyfaceFullRelease
-* copy the following aar files to your app's "./libs" folder:
- * persistence/build/outputs/aar/persistence-cyface-full-release.aar
- * datacapturing/build/outputs/aar/datacapturing-cyface-full-release.aar
- * synchronization/build/outputs/aar/synchronization-cyface-full-release.aar
-* For more details see: https://stackoverflow.com/a/27565045/5815054
-
 How to integrate the SDK
 --------------------------
 * Define which Activity should be launched to request the user to log in 
