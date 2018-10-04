@@ -17,7 +17,7 @@ import de.cyface.synchronization.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.0.1
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -69,10 +69,11 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     /**
      * Frees up resources used by CyfaceDataCapturingService
      * 
-     * @throws SynchronisationException
+     * @throws SynchronisationException if no current Android {@link Context} is available
      */
     public void shutdownDataCapturingService() throws SynchronisationException {
         getWiFiSurveyor().stopSurveillance();
+        shutdownConnectionStatusReceiver();
     }
 
     /**
