@@ -24,11 +24,64 @@ manifest also is required to override the default content provider as
 declared by the persistence project. This needs to be done by each using
 application separately.
 
-How to build the SDK
--------------------------
-* build project with Build Variant CyfaceFullRelease
-* copy the following aar files to your app's "./libs" folder:
- * persistence/build/outputs/aar/persistence-cyface-full-release.aar
- * datacapturing/build/outputs/aar/datacapturing-cyface-full-release.aar
- * synchronization/build/outputs/aar/synchronization-cyface-full-release.aar
-* For more details see: https://stackoverflow.com/a/27565045/5815054
+How to integrate the SDK
+--------------------------
+* Define which Activity should be launched to request the user to log in 
+
+```
+CyfaceAuthenticator.LOGIN_ACTIVITY = LoginActivity.class;
+```
+
+* Start the DataCapturingService to communicate with the SDK
+
+```
+CyfaceDataCapturingService cyfaceDataCapturingService = new CyfaceDataCapturingService(...,
+AUTHORITY, ACCOUNT_TYPE, apiUrl, yourEventHandlingStrategyImplementation);
+```
+
+* Create an account for synchronization & start WifiSurveyor
+
+```
+createAccountIfNoneExists(...);
+
+public void createAccountIfNoneExists(final Context context) {
+    if (!accountManager.peekAuthToken(account, de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE) != null)) {
+        cyfaceDataCapturingService.startWifiSurveyor();
+        return;
+    }
+
+    accountManager.addAccount(ACCOUNT_TYPE, de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE, null,
+            null, getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
+                @Override
+                public void run(AccountManagerFuture<Bundle> future) {
+                    final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
+                    ContentResolver.setIsSyncable(account, AUTHORITY, 1);
+                    ContentResolver.setSyncAutomatically(account, AUTHORITY, true);
+                    cyfaceDataCapturingService.startWifiSurveyor();
+                }
+            }, null);
+}
+```
+          
+* Start / stop Capturing and register your implementation of a DataCapturingListener
+
+```
+cyfaceDataCapturingService.startAsync(dataCapturingListener, vehicle, new StartUpFinishedHandler() {...});
+cyfaceDataCapturingService.stopAsync(new ShutDownFinishedHandler() {..});
+```
+
+* To check if the capturing is running  
+
+```
+cyfaceDataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {});
+```
+
+### TODO: add code sample for the usage of:
+
+* ErrorHandler
+* Force Synchronization
+* ConnectionStatusListener
+* Disable synchronization
+* Show Measurements and GpsTraces
+* Delete measurements manually
+* Usage of Camera, Bluetooth
