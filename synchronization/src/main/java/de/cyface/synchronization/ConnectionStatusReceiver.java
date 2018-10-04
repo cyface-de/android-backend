@@ -18,7 +18,8 @@ import android.content.IntentFilter;
 import de.cyface.utils.Validate;
 
 /**
- * A {@link BroadcastReceiver} for the {@link CyfaceConnectionStatusListener} events.
+ * A {@link BroadcastReceiver} for the {@link CyfaceConnectionStatusListener} events. We use this receiver
+ * to populate received broadcasts about synchronization events to registered {@link ConnectionStatusListener}s.
  *
  * @author Armin Schnabel
  * @version 1.0.1
