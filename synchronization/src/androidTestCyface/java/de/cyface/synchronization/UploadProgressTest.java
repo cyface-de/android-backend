@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TO_TRANSMIT;
-import static de.cyface.synchronization.CyfaceConnectionListener.SYNC_POINTS_TRANSMITTED;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TO_TRANSMIT;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TRANSMITTED;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  * Tests if the upload progress is broadcasted as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -87,11 +87,11 @@ public class UploadProgressTest {
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
-        filter.addAction(CyfaceConnectionListener.SYNC_FINISHED);
-        filter.addAction(CyfaceConnectionListener.SYNC_PROGRESS);
+        filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
+        filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
         filter.addAction(SYNC_POINTS_TRANSMITTED);
         filter.addAction(SYNC_POINTS_TO_TRANSMIT);
-        filter.addAction(CyfaceConnectionListener.SYNC_STARTED);
+        filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);
 
         ContentProviderClient client = null;
@@ -150,10 +150,10 @@ class TestReceiver extends BroadcastReceiver {
         }
 
         switch (intent.getAction()) {
-            case CyfaceConnectionListener.SYNC_FINISHED:
+            case CyfaceConnectionStatusListener.SYNC_FINISHED:
                 Log.d(TAG, "SYNC FINISHED");
                 break;
-            case CyfaceConnectionListener.SYNC_PROGRESS:
+            case CyfaceConnectionStatusListener.SYNC_PROGRESS:
                 final long countOfTransmittedPoints = intent.getLongExtra(SYNC_POINTS_TRANSMITTED, 0);
                 final long countOfPointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, 0);
                 collectedProgress.add(countOfTransmittedPoints);
@@ -166,7 +166,7 @@ class TestReceiver extends BroadcastReceiver {
             case SYNC_POINTS_TO_TRANSMIT:
                 Log.d(TAG, "SYNC PROGRESS TOTAL");
                 break;
-            case CyfaceConnectionListener.SYNC_STARTED:
+            case CyfaceConnectionStatusListener.SYNC_STARTED:
                 Log.d(TAG, "SYNC STARTED");
                 break;
             default:
