@@ -36,6 +36,7 @@ import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.support.v4.app.ActivityCompat;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
@@ -571,7 +572,7 @@ public abstract class DataCapturingService {
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
-        pongReceiver.pongAndReceive(timeout, unit, callback);
+        pongReceiver.asyncIsRunningCheck(timeout, unit, callback);
     }
 
     /**
@@ -707,15 +708,16 @@ public abstract class DataCapturingService {
      * <code>startedMessageReceiver</code>, after it successfully started.
      *
      * @param measurement The measurement to store the captured data to.
-     * @param startedMessageReceiver A handler called if the service started successfully.
+     * @param startUpFinishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If service could not be started.
      */
     private synchronized void runService(final Measurement measurement,
-            final @NonNull StartUpFinishedHandler startedMessageReceiver) throws DataCapturingException {
+            final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Context context = getContext();
         Log.v(TAG, "Registering receiver for service start broadcast.");
-        context.registerReceiver(startedMessageReceiver, new IntentFilter(MessageCodes.BROADCAST_SERVICE_STARTED));
+        context.registerReceiver(startUpFinishedHandler, new IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED));
+        LocalBroadcastManager.getInstance(context).unregisterReceiver(startUpFinishedHandler);
         Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
@@ -800,8 +802,8 @@ public abstract class DataCapturingService {
         setIsRunning(false);
         final Context context = getContext();
         Log.v(TAG, "Registering finishedHandler for service stop synchronization broadcast.");
-        context.registerReceiver(finishedHandler,
-                new IntentFilter(MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED));
+        LocalBroadcastManager.getInstance(context).registerReceiver(finishedHandler,
+                new IntentFilter(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED));
 
         boolean serviceWasActive;
         try {
@@ -834,13 +836,13 @@ public abstract class DataCapturingService {
      */
     private void sendServiceStoppedBroadcast(final Context context, final long measurementIdentifier,
             final boolean stoppedSuccessfully) {
-        final Intent stoppedBroadcastIntent = new Intent(MessageCodes.FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED);
+        final Intent stoppedBroadcastIntent = new Intent(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         if (stoppedSuccessfully) {
             Validate.isTrue(measurementIdentifier > 0L);
             stoppedBroadcastIntent.putExtra(MEASUREMENT_ID, measurementIdentifier);
         }
         stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, stoppedSuccessfully);
-        context.sendBroadcast(stoppedBroadcastIntent);
+        LocalBroadcastManager.getInstance(context).sendBroadcast(stoppedBroadcastIntent);
     }
 
     /**

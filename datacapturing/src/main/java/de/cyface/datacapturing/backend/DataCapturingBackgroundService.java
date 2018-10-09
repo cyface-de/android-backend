@@ -6,7 +6,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
 
 import java.lang.ref.WeakReference;
@@ -172,7 +172,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Allows other parties to ping this service to see if it is running
         Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
+        registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING));
         Log.d(TAG, "finishedOnCreate");
     }
 
@@ -258,7 +258,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
+        final Intent serviceStartedIntent = new Intent(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;

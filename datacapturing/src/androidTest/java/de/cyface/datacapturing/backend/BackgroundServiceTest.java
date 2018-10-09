@@ -170,7 +170,7 @@ public class BackgroundServiceTest {
             @Override
             public void run() {
                 PongReceiver isRunningChecker = new PongReceiver(context);
-                isRunningChecker.pongAndReceive(2, TimeUnit.SECONDS, testCallback);
+                isRunningChecker.asyncIsRunningCheck(2, TimeUnit.SECONDS, testCallback);
             }
         });
 

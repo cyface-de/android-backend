@@ -1,11 +1,16 @@
 package de.cyface.datacapturing;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+
 /**
- * This class is a wrapper for all message codes used by the Cyface backend to send inter process communication (IPC)
- * messages.
+ * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
+ * communication (IPC) messages. For safety and efficiency we use LocalBroadcasts for inner process communication
+ * as they are very easy to use and {@link android.os.Message}s for inter-process communication as the
+ * LocalBroadcasts can't be passed between processes.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @author Armin Schnabel
+ * @version 1.2.0
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -53,27 +58,40 @@ public class MessageCodes {
      */
     public static final int SERVICE_STOPPED_ITSELF = 11;
 
-    // TODO This needs to be qualified. We should for example add the application id.
     /**
-     * Broadcast action identifier for ping messages sent to the
-     * {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}, to check if it is alive.
+     * Global Broadcast (inter-process) action identifier for ping messages sent by the
+     * {@link DataCapturingService}'s {@link PongReceiver} to the
+     * {@link DataCapturingBackgroundService#pingReceiver}, to check if the {@link DataCapturingBackgroundService} is
+     * alive.
+     *
+     * @deprecated because global broadcasts are a security risk and interfere with multiply apps integrating
+     *             out SDK ! FIXME in CY-3575 !
      */
-    public static final String ACTION_PING = "de.cyface.ping";
+    public static final String GLOBAL_BROADCAST_PING = "de.cyface.ping";
     /**
-     * Broadcast action identifier for pong messages sent from the
-     * {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} as answer to a received ping.
+     * Global Broadcast (inter-process) action identifier for pong messages sent by the
+     * {@link DataCapturingBackgroundService#pingReceiver} as answer to a received ping.
+     *
+     *
+     * @deprecated because global broadcasts are a security risk and interfere with multiply apps integrating
+     *             out SDK ! FIXME in CY-3575 !
      */
-    public static final String ACTION_PONG = "de.cyface.pong";
+    public static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
     /**
-     * Broadcast action identifier sent by the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
-     * after it has successfully started.
+     * Global Broadcast action identifier sent by the {@link DataCapturingBackgroundService} to the
+     * {@link DataCapturingService}'s {@link StartUpFinishedHandler} after it
+     * has successfully started.
+     * 
+     * @deprecated because global broadcasts are a security risk and interfere with multiply apps integrating
+     *             out SDK ! FIXME in CY-3575 !
      */
-    public static final String BROADCAST_SERVICE_STARTED = "de.cyface.service_started";
+    public static final String GLOBAL_BROADCAST_SERVICE_STARTED = "de.cyface.service_started";
     /**
-     * Broadcast action identifier sent by the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
-     * after it has successfully stopped.
+     * Local (i.e. inner process communication) Broadcast action identifier sent by the {@link DataCapturingService}
+     * after it has received a inter-process {@link MessageCodes#SERVICE_STOPPED} from the
+     * {@link DataCapturingBackgroundService} that it has successfully stopped.
      */
-    public static final String FINISHED_HANDLER_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
+    public static final String LOCAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
 
     /**
      * Private constructor for utility class.

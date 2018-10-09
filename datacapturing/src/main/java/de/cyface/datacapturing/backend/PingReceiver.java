@@ -1,8 +1,8 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
-import static de.cyface.datacapturing.MessageCodes.ACTION_PONG;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -32,8 +32,8 @@ public class PingReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(ACTION_PING)) {
-            Intent pongIntent = new Intent(ACTION_PONG);
+        if (intent.getAction().equals(GLOBAL_BROADCAST_PING)) {
+            Intent pongIntent = new Intent(GLOBAL_BROADCAST_PONG);
             if (BuildConfig.DEBUG) {
                 String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
