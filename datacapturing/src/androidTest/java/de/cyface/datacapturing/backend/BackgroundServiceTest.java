@@ -39,7 +39,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.4
+ * @version 2.0.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

@@ -25,7 +25,7 @@ import android.util.Log;
  * tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {

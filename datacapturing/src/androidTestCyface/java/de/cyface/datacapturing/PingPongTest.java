@@ -32,7 +32,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * expected.
  *
  * @author Klemens Muthmann
- * @since 2.3.1
+ * @since 2.3.2
  * @version 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
