@@ -717,7 +717,6 @@ public abstract class DataCapturingService {
         final Context context = getContext();
         Log.v(TAG, "Registering receiver for service start broadcast.");
         context.registerReceiver(startUpFinishedHandler, new IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED));
-        LocalBroadcastManager.getInstance(context).unregisterReceiver(startUpFinishedHandler);
         Log.v(TAG, String.format("Starting using Intent with context %s.", context));
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
