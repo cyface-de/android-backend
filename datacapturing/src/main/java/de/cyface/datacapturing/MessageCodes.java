@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import android.os.Message;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 
 /**
@@ -55,6 +57,11 @@ public class MessageCodes {
      * when it notices that only little space is left.
      */
     public static final int SERVICE_STOPPED_ITSELF = 11;
+    /**
+     * The code for inter-process {@link Message}s sent from the {@link DataCapturingBackgroundService} to the
+     * {@link DataCapturingService} when the background service started.
+     */
+    public static final int SERVICE_STARTED = 12;
 
     /**
      * Global Broadcast (inter-process) action identifier for ping messages sent by the

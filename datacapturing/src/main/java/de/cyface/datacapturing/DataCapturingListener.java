@@ -3,15 +3,17 @@ package de.cyface.datacapturing;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
  * {@link DataCapturingService} via
- * {@link DataCapturingService#startSync(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
+ * {@link DataCapturingService#startSync(DataCapturingListener, Vehicle)}.
  *
  * @author Klemens Muthmann
- * @version 1.2.1
+ * @author Armin Schnabel
+ * @version 1.3.0
  * @since 1.0.0
  */
 public interface DataCapturingListener {
@@ -75,4 +77,11 @@ public interface DataCapturingListener {
      * was implemented which stops the {@link DataCapturingBackgroundService} when the space is low.
      */
     void onCapturingStopped();
+
+    /**
+     * This method is called when the capturing started.
+     *
+     * @param measurementIdentifier The id of the started measurement
+     */
+    void onCapturingStarted(long measurementIdentifier);
 }
