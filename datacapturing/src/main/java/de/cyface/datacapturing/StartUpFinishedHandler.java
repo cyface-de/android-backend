@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
+import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.Vehicle;
@@ -19,7 +20,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>..
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.0.0
  * @see DataCapturingService#resumeAsync(StartUpFinishedHandler)
  * @see DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)
@@ -27,7 +28,7 @@ import de.cyface.datacapturing.model.Vehicle;
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 
     /**
-     * This is set to <code>true</code> if a <code>MessageCodes.BROADCAST_SERVICE_STARTED</code> broadcast has been
+     * This is set to <code>true</code> if a <code>MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED</code> broadcast has been
      * received and is <code>false</code> otherwise.
      */
     private boolean receivedServiceStarted;
@@ -46,7 +47,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
             throw new IllegalStateException("Received broadcast with null action.");
         }
         switch (intent.getAction()) {
-            case MessageCodes.BROADCAST_SERVICE_STARTED:
+            case MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED:
                 Log.v(TAG, "Received Service started broadcast!");
                 receivedServiceStarted = true;
                 long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
@@ -66,7 +67,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
     }
 
     /**
-     * @return This is set to <code>true</code> if a <code>MessageCodes.BROADCAST_SERVICE_STARTED</code> broadcast has
+     * @return This is set to <code>true</code> if a <code>MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED</code> broadcast has
      *         been
      *         received and is <code>false</code> otherwise.
      */

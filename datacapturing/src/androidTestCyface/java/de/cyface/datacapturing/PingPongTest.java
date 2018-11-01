@@ -32,7 +32,7 @@ import de.cyface.datacapturing.model.Vehicle;
  * expected.
  *
  * @author Klemens Muthmann
- * @since 2.3.1
+ * @since 2.3.2
  * @version 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -117,7 +117,7 @@ public class PingPongTest {
         }
 
         TestCallback testCallback = new TestCallback("testWithRunningService", lock, condition);
-        oocut.pongAndReceive(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
+        oocut.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
 
         lock.lock();
         try {
@@ -151,7 +151,7 @@ public class PingPongTest {
     public void testWithNonRunningService() {
         TestCallback testCallback = new TestCallback("testWithNonRunningService", lock, condition);
 
-        oocut.pongAndReceive(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
+        oocut.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
 
         lock.lock();
         try {

@@ -21,7 +21,7 @@ import static de.cyface.datacapturing.ServiceTestUtils.TAG;
  * Connection from the test to the capturing service.
  *
  * @author Klemens Muthmann
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 class ToServiceConnection implements ServiceConnection {
@@ -64,7 +64,7 @@ class ToServiceConnection implements ServiceConnection {
         }
 
         PongReceiver isRunningChecker = new PongReceiver(context);
-        isRunningChecker.pongAndReceive(1, TimeUnit.MINUTES, callback);
+        isRunningChecker.checkIsRunningAsync(1, TimeUnit.MINUTES, callback);
     }
 
     @Override
