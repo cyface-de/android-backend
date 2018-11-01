@@ -64,7 +64,7 @@ class ToServiceConnection implements ServiceConnection {
         }
 
         PongReceiver isRunningChecker = new PongReceiver(context);
-        isRunningChecker.asyncIsRunningCheck(1, TimeUnit.MINUTES, callback);
+        isRunningChecker.checkIsRunningAsync(1, TimeUnit.MINUTES, callback);
     }
 
     @Override

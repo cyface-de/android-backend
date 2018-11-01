@@ -89,7 +89,7 @@ public class PongReceiver extends BroadcastReceiver {
      * @param callback The callback to inform about either the timeout or the successful reception of the
      *            <code>MessageCodes.PONG</code> message.
      */
-    public void asyncIsRunningCheck(final long timeout, final @NonNull TimeUnit unit,
+    public void checkIsRunningAsync(final long timeout, final @NonNull TimeUnit unit,
                                     final @NonNull IsRunningCallback callback) {
         this.callback = callback;
 
@@ -103,20 +103,20 @@ public class PongReceiver extends BroadcastReceiver {
         long offset = unit.toMillis(timeout);
 
         final String pingPongIdentifier = UUID.randomUUID().toString();
-        Log.v(TAG, "PongReceiver.asyncIsRunningCheck(): Variable currentUptimeInMillis is " + currentUptimeInMillis);
-        Log.v(TAG, "PongReceiver.asyncIsRunningCheck(): Variable offset is " + offset);
-        Log.v(TAG, "PongReceiver.asyncIsRunningCheck(): Sending ping with identifier " + pingPongIdentifier);
+        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Variable currentUptimeInMillis is " + currentUptimeInMillis);
+        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Variable offset is " + offset);
+        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Sending ping with identifier " + pingPongIdentifier);
 
         Handler timeoutHandler = new Handler(pongReceiverThread.getLooper());
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG, "PongReceiver.asyncIsRunningCheck(): Timeout for pong " + pingPongIdentifier + " reached after "
+                Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Timeout for pong " + pingPongIdentifier + " reached after "
                         + unit.toMillis(timeout) + " milliseconds. Executed at: " + SystemClock.uptimeMillis());
                 lock.lock();
                 try {
                     if (!isRunning) {
-                        Log.d(TAG, "PongReceiver.asyncIsRunningCheck(): Service seems not to be running. Timing out!");
+                        Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
@@ -133,7 +133,7 @@ public class PongReceiver extends BroadcastReceiver {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
         context.sendBroadcast(broadcastIntent);
-        Log.v(TAG, "PongReceiver.asyncIsRunningCheck(): Ping was sent!");
+        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 
     @Override

@@ -117,7 +117,7 @@ public class PingPongTest {
         }
 
         TestCallback testCallback = new TestCallback("testWithRunningService", lock, condition);
-        oocut.asyncIsRunningCheck(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
+        oocut.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
 
         lock.lock();
         try {
@@ -151,7 +151,7 @@ public class PingPongTest {
     public void testWithNonRunningService() {
         TestCallback testCallback = new TestCallback("testWithNonRunningService", lock, condition);
 
-        oocut.asyncIsRunningCheck(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
+        oocut.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
 
         lock.lock();
         try {

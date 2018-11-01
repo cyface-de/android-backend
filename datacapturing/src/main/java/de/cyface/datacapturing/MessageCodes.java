@@ -4,9 +4,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
- * communication (IPC) messages. For safety and efficiency we use LocalBroadcasts for inner process communication
- * as they are very easy to use and {@link android.os.Message}s for inter-process communication as the
- * LocalBroadcasts can't be passed between processes.
+ * communication (IPC) messages.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel

@@ -572,7 +572,7 @@ public abstract class DataCapturingService {
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
-        pongReceiver.asyncIsRunningCheck(timeout, unit, callback);
+        pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
     /**
