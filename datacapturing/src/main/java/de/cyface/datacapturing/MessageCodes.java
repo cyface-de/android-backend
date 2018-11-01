@@ -1,8 +1,12 @@
 package de.cyface.datacapturing;
 
+import android.content.Context;
+import android.content.SharedPreferences;
 import android.os.Message;
+import android.preference.PreferenceManager;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.synchronization.SyncService;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
@@ -10,7 +14,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -67,36 +71,42 @@ public class MessageCodes {
      * Global Broadcast (inter-process) action identifier for ping messages sent by the
      * {@link DataCapturingService}'s {@link PongReceiver} to the
      * {@link DataCapturingBackgroundService#pingReceiver}, to check if the {@link DataCapturingBackgroundService} is
-     * alive.
-     *
-     * @deprecated because global broadcasts are a security risk and interfere with multiply apps integrating
-     *             out SDK ! FIXME in CY-3575 !
+     * alive. TODO use a message handler instead #CY-4091
      */
-    public static final String GLOBAL_BROADCAST_PING = "de.cyface.ping";
+    private static final String GLOBAL_BROADCAST_PING = "de.cyface.ping";
     /**
      * Global Broadcast (inter-process) action identifier for pong messages sent by the
      * {@link DataCapturingBackgroundService#pingReceiver} as answer to a received ping.
-     *
-     *
-     * @deprecated because global broadcasts are a security risk and interfere with multiply apps integrating
-     *             out SDK ! FIXME in CY-3575 !
+     * TODO use a message handler instead #CY-4091
      */
-    public static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
+    private static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
+
     /**
-     * Global Broadcast action identifier sent by the {@link DataCapturingBackgroundService} to the
-     * {@link DataCapturingService}'s {@link StartUpFinishedHandler} after it
-     * has successfully started.
-     * 
-     * @deprecated because global broadcasts are a security risk and interfere with multiply apps integrating
-     *             out SDK ! FIXME in CY-3575 !
+     * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
+     * this a action identifier for global broadcasts (for inter process communication)
      */
-    public static final String GLOBAL_BROADCAST_SERVICE_STARTED = "de.cyface.service_started";
+    public static String getGlobalBroadcastPing(final Context context) {
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        return deviceIdentifier + "_" + GLOBAL_BROADCAST_PING;
+    }
+
+    /**
+     * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
+     * this a action identifier for global broadcasts (for inter process communication)
+     */
+    public static String getGlobalBroadcastPong(final Context context) {
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        return deviceIdentifier + "_" + GLOBAL_BROADCAST_PONG;
+    }
+
     /**
      * Local (i.e. inner process communication) Broadcast action identifier sent by the {@link DataCapturingService}
      * after it has received a inter-process {@link MessageCodes#SERVICE_STOPPED} from the
      * {@link DataCapturingBackgroundService} that it has successfully stopped.
      */
-    public static final String LOCAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
+    static final String LOCAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
 
     /**
      * Private constructor for utility class.

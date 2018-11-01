@@ -6,7 +6,6 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
 
 import java.lang.ref.WeakReference;
@@ -56,7 +55,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.13
+ * @version 4.0.14
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -178,7 +177,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Allows other parties to ping this service to see if it is running
         Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING));
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getGlobalBroadcastPing(getApplicationContext())));
         Log.d(TAG, "finishedOnCreate");
     }
 

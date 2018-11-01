@@ -1007,7 +1007,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    public void removeConnectionListener(final @NonNull ConnectionStatusListener listener) {
+    public void removeConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionStatusReceiver.removeListener(listener);
     }
 
