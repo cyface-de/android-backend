@@ -28,7 +28,8 @@ public class StartSynchronizer extends StartUpFinishedHandler {
      * @param lock The lock used for synchronization. Usually a <code>ReentrantLock</code>.
      * @param condition The condition waiting for a signal from this <code>StartSynchronizer</code>.
      */
-    public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition) {
+    public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition, final DataCapturingService.FromServiceMessageHandler fromServiceMessageHandler) {
+        super(fromServiceMessageHandler);
         synchronizer = new Synchronizer(lock, condition);
     }
 

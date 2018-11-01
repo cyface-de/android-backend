@@ -35,6 +35,8 @@ public abstract class StartUpFinishedHandler implements DataCapturingListener {
      */
     private boolean receivedServiceStarted;
 
+    private DataCapturingService.FromServiceMessageHandler fromServiceMessageHandler;
+
     /**
      * Method called if start up has been finished.
      *
@@ -42,15 +44,22 @@ public abstract class StartUpFinishedHandler implements DataCapturingListener {
      */
     public abstract void startUpFinished(final long measurementIdentifier);
 
+    public StartUpFinishedHandler(final DataCapturingService.FromServiceMessageHandler fromServiceMessageHandler) {
+        this.fromServiceMessageHandler = fromServiceMessageHandler;
+    }
+
     @Override
     public void onCapturingStarted(final long measurementIdentifier) {
         Log.v(TAG, "Received Service started message, mid: " + measurementIdentifier);
         receivedServiceStarted = true;
         startUpFinished(measurementIdentifier);
         try {
-            //unregisterReceiver(this); FIXME
+            // This is only required until we throw out the sync start methods
+            if (fromServiceMessageHandler != null) {
+                fromServiceMessageHandler.removeListener(this);
+            }
         } catch (IllegalArgumentException e) {
-            Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
+            Log.w(TAG, "Probably tried to remove start up finished listener twice.", e);
         }
     }
 

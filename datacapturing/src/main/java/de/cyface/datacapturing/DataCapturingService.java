@@ -678,7 +678,7 @@ public abstract class DataCapturingService {
             throws DataCapturingException {
         Lock lock = new ReentrantLock();
         Condition condition = lock.newCondition();
-        StartSynchronizer synchronizationReceiver = new StartSynchronizer(lock, condition);
+        StartSynchronizer synchronizationReceiver = new StartSynchronizer(lock, condition, fromServiceMessageHandler);
         runService(measurement, synchronizationReceiver);
 
         lock.lock();
@@ -696,9 +696,9 @@ public abstract class DataCapturingService {
         } finally {
             lock.unlock();
             try {
-                //getContext().unregisterReceiver(synchronizationReceiver); FIXME
+                fromServiceMessageHandler.removeListener(synchronizationReceiver);
             } catch (IllegalArgumentException e) {
-                Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
+                Log.w(TAG, "Probably tried to remove start up finished listener twice.", e);
             }
         }
     }
@@ -1075,7 +1075,7 @@ public abstract class DataCapturingService {
      * @version 1.0.0
      * @since 2.0.0
      */
-    private static class FromServiceMessageHandler extends Handler {
+    public static class FromServiceMessageHandler extends Handler {
 
         /**
          * A listener that is notified of important events during data capturing.
