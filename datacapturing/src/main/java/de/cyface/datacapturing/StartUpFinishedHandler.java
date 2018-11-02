@@ -3,15 +3,14 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.Constants.TAG;
 
+import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Vehicle;
-import de.cyface.datacapturing.ui.Reason;
+import de.cyface.utils.Validate;
 
 /**
  * Handler for start up finished events. Just implement the {@link #startUpFinished(long)} method with the code you
@@ -27,7 +26,7 @@ import de.cyface.datacapturing.ui.Reason;
  * @see DataCapturingService#resumeAsync(StartUpFinishedHandler)
  * @see DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)
  */
-public abstract class StartUpFinishedHandler implements DataCapturingListener {
+public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 
     /**
      * This is set to <code>true</code> if a <code>MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED</code> broadcast has
@@ -43,12 +42,20 @@ public abstract class StartUpFinishedHandler implements DataCapturingListener {
     public abstract void startUpFinished(final long measurementIdentifier);
 
     @Override
-    public void onCapturingStarted(final long measurementIdentifier) {
-        Log.v(TAG, "Received Service started message, mid: " + measurementIdentifier);
-        receivedServiceStarted = true;
-        startUpFinished(measurementIdentifier);
+    public void onReceive(@NonNull Context context, @NonNull Intent intent) {
+        Validate.notNull(intent.getAction());
+        if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(context))) {
+            receivedServiceStarted = true;
+            long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
+            Log.v(TAG, "Received Service started broadcast, mid: " + measurementIdentifier);
+            if (measurementIdentifier == -1) {
+                throw new IllegalStateException("No measurement identifier provided on service started message.");
+            }
+            startUpFinished(measurementIdentifier);
+        }
+
         try {
-            //unregisterReceiver(this); FIXME
+            context.unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
         }
@@ -60,50 +67,5 @@ public abstract class StartUpFinishedHandler implements DataCapturingListener {
      */
     public boolean receivedServiceStarted() {
         return receivedServiceStarted;
-    }
-
-    @Override
-    public void onFixAcquired() {
-        // Nothing to do
-    }
-
-    @Override
-    public void onFixLost() {
-        // Nothing to do
-    }
-
-    @Override
-    public void onNewGeoLocationAcquired(GeoLocation position) {
-        // Nothing to do
-    }
-
-    @Override
-    public void onNewSensorDataAcquired(CapturedData data) {
-        // Nothing to do
-    }
-
-    @Override
-    public void onLowDiskSpace(DiskConsumption allocation) {
-        // Nothing to do
-    }
-
-    @Override
-    public void onSynchronizationSuccessful() {
-        // Nothing to do
-    }
-
-    @Override
-    public void onErrorState(Exception e) {
-        // Nothing to do
-    }
-
-    @Override
-    public boolean onRequiresPermission(String permission, Reason reason) {
-        return false; // Nothing to do
-    }
-
-    @Override
-    public void onCapturingStopped() {
-        // Nothing to do
     }
 }

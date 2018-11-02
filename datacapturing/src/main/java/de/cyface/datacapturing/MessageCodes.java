@@ -61,23 +61,21 @@ public class MessageCodes {
      * when it notices that only little space is left.
      */
     public static final int SERVICE_STOPPED_ITSELF = 11;
-    /**
-     * The code for inter-process {@link Message}s sent from the {@link DataCapturingBackgroundService} to the
-     * {@link DataCapturingService} when the background service started.
-     */
-    public static final int SERVICE_STARTED = 12;
 
+    /**
+     * Global Broadcast (inter-process) action identifier for service started messages sent by the
+     * {@link DataCapturingBackgroundService} to the {@link DataCapturingService}.
+     */
+    private static final String GLOBAL_BROADCAST_SERVICE_STARTED = "de.cyface.service_started";
     /**
      * Global Broadcast (inter-process) action identifier for ping messages sent by the
      * {@link DataCapturingService}'s {@link PongReceiver} to the
      * {@link DataCapturingBackgroundService#pingReceiver}, to check if the {@link DataCapturingBackgroundService} is
-     * alive. TODO use a message handler instead #CY-4091
      */
     private static final String GLOBAL_BROADCAST_PING = "de.cyface.ping";
     /**
      * Global Broadcast (inter-process) action identifier for pong messages sent by the
      * {@link DataCapturingBackgroundService#pingReceiver} as answer to a received ping.
-     * TODO use a message handler instead #CY-4091
      */
     private static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
 
@@ -85,7 +83,17 @@ public class MessageCodes {
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
      */
-    public static String getGlobalBroadcastPing(final Context context) {
+    public static String getServiceStartedActionId(final Context context) {
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        return deviceIdentifier + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
+    }
+
+    /**
+     * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
+     * this a action identifier for global broadcasts (for inter process communication)
+     */
+    public static String getPingActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PING;
@@ -95,7 +103,7 @@ public class MessageCodes {
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
      */
-    public static String getGlobalBroadcastPong(final Context context) {
+    public static String getPongActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PONG;

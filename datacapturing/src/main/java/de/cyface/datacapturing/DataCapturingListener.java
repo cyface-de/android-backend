@@ -77,11 +77,4 @@ public interface DataCapturingListener {
      * was implemented which stops the {@link DataCapturingBackgroundService} when the space is low.
      */
     void onCapturingStopped();
-
-    /**
-     * This method is called when the capturing started.
-     *
-     * @param measurementIdentifier The id of the started measurement
-     */
-    void onCapturingStarted(long measurementIdentifier);
 }

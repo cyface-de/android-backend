@@ -124,7 +124,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private EventHandlingStrategy eventHandlingStrategy;
     /**
-     * A flag which shows if the {@link MessageCodes#SERVICE_STARTED} was already sent. We need this as
+     * A flag which shows if the {@link MessageCodes#getServiceStartedActionId(Context)}} was already sent. We need this
+     * as
      * we cannot send the message directly after start but have to wait for the caller to be registered.
      * This flag avoids duplicate started calls when the caller re-registers/binds.
      */
@@ -177,7 +178,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Allows other parties to ping this service to see if it is running
         Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getGlobalBroadcastPing(getApplicationContext())));
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(getApplicationContext())));
         Log.d(TAG, "finishedOnCreate");
     }
 
@@ -418,12 +419,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     service.clients.add(msg.replyTo);
 
                     if (!service.startedMessageSent) {
-                        // Informs the caller about the service start
-                        Log.v(TAG, "Sending message: service started.");
-                        // Attention: the bundle is bundled again by informCaller !
-                        final Bundle bundle = new Bundle();
-                        bundle.putLong(MEASUREMENT_ID, service.currentMeasurementIdentifier);
-                        service.informCaller(MessageCodes.SERVICE_STARTED, bundle);
+                        // Informs about the service start
+                        Log.v(TAG, "Sending broadcast service started.");
+                        final Intent serviceStartedIntent = new Intent(
+                                MessageCodes.getServiceStartedActionId(context.get()));
+                        serviceStartedIntent.putExtra(MEASUREMENT_ID, service.currentMeasurementIdentifier);
+                        service.sendBroadcast(serviceStartedIntent);
                         service.startedMessageSent = true;
                     }
                     break;

@@ -11,17 +11,13 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
-import android.content.SharedPreferences;
 import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
 import android.os.SystemClock;
-import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
-import de.cyface.synchronization.SyncService;
 
 /**
  * A <code>BroadcastReceiver</code> and sender that send a <code>MessageCodes.PING</code> event to the system and
@@ -101,7 +97,7 @@ public class PongReceiver extends BroadcastReceiver {
 
         pongReceiverThread.start();
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.registerReceiver(this, new IntentFilter(MessageCodes.getGlobalBroadcastPong(context)), null, receiverHandler);
+        context.registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(context)), null, receiverHandler);
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);
@@ -132,7 +128,7 @@ public class PongReceiver extends BroadcastReceiver {
             }
         }, currentUptimeInMillis + offset);
 
-        final Intent broadcastIntent = new Intent(MessageCodes.getGlobalBroadcastPing(context));
+        final Intent broadcastIntent = new Intent(MessageCodes.getPingActionId(context));
         if (BuildConfig.DEBUG) {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
@@ -146,7 +142,7 @@ public class PongReceiver extends BroadcastReceiver {
                 + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
-            if (!isTimedOut && MessageCodes.getGlobalBroadcastPong(context).equals(intent.getAction())) {
+            if (!isTimedOut && MessageCodes.getPongActionId(context).equals(intent.getAction())) {
                 Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();

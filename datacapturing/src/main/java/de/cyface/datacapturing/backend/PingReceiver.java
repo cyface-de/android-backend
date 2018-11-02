@@ -31,8 +31,8 @@ public class PingReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(MessageCodes.getGlobalBroadcastPing(context))) {
-            Intent pongIntent = new Intent(MessageCodes.getGlobalBroadcastPong(context));
+        if (intent.getAction().equals(MessageCodes.getPingActionId(context))) {
+            Intent pongIntent = new Intent(MessageCodes.getPongActionId(context));
             if (BuildConfig.DEBUG) {
                 String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier

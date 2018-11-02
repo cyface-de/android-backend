@@ -696,7 +696,7 @@ public abstract class DataCapturingService {
         } finally {
             lock.unlock();
             try {
-                //getContext().unregisterReceiver(synchronizationReceiver); FIXME
+                getContext().unregisterReceiver(synchronizationReceiver);
             } catch (IllegalArgumentException e) {
                 Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
             }
@@ -714,8 +714,9 @@ public abstract class DataCapturingService {
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
         final Context context = getContext();
-        Log.v(TAG, "Registering startUpFinishedHandler as capturing listener.");
-        fromServiceMessageHandler.addListener(startUpFinishedHandler);
+        Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
+        context.registerReceiver(startUpFinishedHandler,
+                new IntentFilter(MessageCodes.getServiceStartedActionId(context)));
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -1142,19 +1143,6 @@ public abstract class DataCapturingService {
                         listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
                                 "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
                         break;
-                    case MessageCodes.SERVICE_STARTED:
-                        Log.d(TAG, "Message received: BackgroundService started!");
-                        parcel = msg.getData();
-                        parcel.setClassLoader(getClass().getClassLoader());
-                        // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
-                        // the bundle is bundled twice for re-usability
-                        final Bundle startedInfoBundle = parcel.getParcelable("data");
-                        Validate.notNull(startedInfoBundle);
-                        long measurementIdentifier = startedInfoBundle.getLong(MEASUREMENT_ID);
-
-                        // Inform interested parties
-                        listener.onCapturingStarted(measurementIdentifier);
-                        break;
                     case MessageCodes.SERVICE_STOPPED:
                         parcel = msg.getData();
                         parcel.setClassLoader(getClass().getClassLoader());
@@ -1162,7 +1150,7 @@ public abstract class DataCapturingService {
                         // the bundle is bundled twice for re-usability
                         final Bundle stoppedInfoBundle = parcel.getParcelable("data");
                         Validate.notNull(stoppedInfoBundle);
-                        measurementIdentifier = stoppedInfoBundle.getLong(MEASUREMENT_ID);
+                        final long measurementIdentifier = stoppedInfoBundle.getLong(MEASUREMENT_ID);
                         final boolean stoppedSuccessfully = stoppedInfoBundle.getBoolean(STOPPED_SUCCESSFULLY);
                         // Success means the background service was still alive. As this is the private
                         // IPC to the background service this must always be true.
