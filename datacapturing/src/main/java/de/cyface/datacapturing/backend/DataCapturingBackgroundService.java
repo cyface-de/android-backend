@@ -123,13 +123,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to respond to selected events triggered by this service.
      */
     private EventHandlingStrategy eventHandlingStrategy;
-    /**
-     * A flag which shows if the {@link MessageCodes#getServiceStartedActionId(Context)}} was already sent. We need this
-     * as
-     * we cannot send the message directly after start but have to wait for the caller to be registered.
-     * This flag avoids duplicate started calls when the caller re-registers/binds.
-     */
-    private boolean startedMessageSent = false;
 
     /*
      * MARK: Service Lifecycle Methods
@@ -261,6 +254,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             dataCapturing = initializeCapturingProcess();
             dataCapturing.addCapturingProcessListener(this);
         }
+
+        // Informs about the service start
+        Log.v(TAG, "Sending broadcast service started.");
+        final Intent serviceStartedIntent = new Intent(
+                MessageCodes.getServiceStartedActionId(this));
+        serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
     }
 
@@ -417,16 +417,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                         Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }
                     service.clients.add(msg.replyTo);
-
-                    if (!service.startedMessageSent) {
-                        // Informs about the service start
-                        Log.v(TAG, "Sending broadcast service started.");
-                        final Intent serviceStartedIntent = new Intent(
-                                MessageCodes.getServiceStartedActionId(context.get()));
-                        serviceStartedIntent.putExtra(MEASUREMENT_ID, service.currentMeasurementIdentifier);
-                        service.sendBroadcast(serviceStartedIntent);
-                        service.startedMessageSent = true;
-                    }
                     break;
                 default:
                     super.handleMessage(msg);
