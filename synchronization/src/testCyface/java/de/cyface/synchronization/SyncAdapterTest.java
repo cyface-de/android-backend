@@ -29,7 +29,7 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 
 /**
- * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code>.
+ * Tests the correct internal workings of the <code>SyncAdapter</code>.
  *
  * @author Klemens Muthmann
  * @version 1.0.1
@@ -37,7 +37,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = 16, manifest = Config.NONE)
-public class CyfaceSyncAdapterTest {
+public class SyncAdapterTest {
 
     /**
      * The Android context to use for this test case.
@@ -64,7 +64,7 @@ public class CyfaceSyncAdapterTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws RemoteException {
-        CyfaceSyncAdapter oocut = new CyfaceSyncAdapter(context, false, httpConnection, 10_000, 10_000, 10_000, 10_000);
+        SyncAdapter oocut = new SyncAdapter(context, false, httpConnection, 10_000, 10_000, 10_000, 10_000);
         ContentProviderClient client = null;
         Uri measurementUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
                 .appendPath(MeasurementTable.URI_PATH).build();

@@ -38,14 +38,14 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.utils.Validate;
 
 /**
- * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code> with the database.
+ * Tests the correct internal workings of the <code>SyncAdapter</code> with the database.
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
-public class CyfaceSyncAdapterTest {
+public class SyncAdapterTest {
     Context context;
     ContentResolver contentResolver;
 
@@ -70,7 +70,7 @@ public class CyfaceSyncAdapterTest {
     public void testOnPerformSync() {
 
         // Arrange
-        final CyfaceSyncAdapter syncAdapter = new CyfaceSyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2,
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2,
                 2);
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);

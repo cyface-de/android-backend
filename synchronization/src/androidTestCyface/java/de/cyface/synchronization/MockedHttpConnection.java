@@ -1,6 +1,7 @@
 package de.cyface.synchronization;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -25,13 +26,13 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, SSLContext sslContext)
+    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, SSLContext sslContext, boolean hasBinaryContent)
             throws ServerUnavailableException {
-        return openHttpConnection(url);
+        return openHttpConnection(url, hasBinaryContent);
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url) throws ServerUnavailableException {
+    public HttpURLConnection openHttpConnection(@NonNull URL url, boolean hasBinaryContent) throws ServerUnavailableException {
         try {
             return (HttpURLConnection)url.openConnection();
         } catch (IOException e) {
@@ -42,6 +43,11 @@ final class MockedHttpConnection implements Http {
     @Override
     public <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress)
             throws ResponseParsingException, UnauthorizedException {
+        return new HttpResponse(201, "");
+    }
+
+    @Override
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId, long measurementId, @NonNull String fileName, UploadProgressListener progressListener) throws RequestParsingException, DataTransmissionException, SynchronisationException, ResponseParsingException, UnauthorizedException {
         return new HttpResponse(201, "");
     }
 }

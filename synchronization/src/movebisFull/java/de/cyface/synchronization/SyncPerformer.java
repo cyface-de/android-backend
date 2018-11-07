@@ -105,12 +105,15 @@ class SyncPerformer {
             final @NonNull UploadProgressListener progressListener, final @NonNull String jwtAuthToken) {
         Log.i(TAG, String.format(Locale.US, "Uploading data from device %s with identifier %s to server %s",
                 deviceIdentifier, measurementIdentifier, dataServerUrl));
+
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
 
         try {
-            connection = (HttpsURLConnection)new URL(String.format("%s/measurements", dataServerUrl)).openConnection();
+            // openHttpConnection
+            connection = (HttpsURLConnection)new URL(String.format("%s/measurements", dataServerUrl))
+                    .openConnection();
             connection.setSSLSocketFactory(sslContext.getSocketFactory());
             connection.setHostnameVerifier(new HostnameVerifier() {
                 @Override
@@ -123,23 +126,22 @@ class SyncPerformer {
             } catch (ProtocolException e) {
                 throw new IllegalStateException(e);
             }
-            connection.setRequestProperty("Authorization", "Bearer " + jwtAuthToken);
             String boundary = "---------------------------boundary";
-            String tail = "\r\n--" + boundary + "--\r\n";
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + boundary);
-            connection.setUseCaches(false);
+            connection.setRequestProperty("Authorization", "Bearer " + jwtAuthToken);
+            String tail = "\r\n--" + boundary + "--\r\n";
             connection.setDoOutput(true);
+            connection.setUseCaches(false);
 
+            // setContentLength
             String userIdPart = addPart("deviceId", deviceIdentifier, boundary);
             String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
                     boundary);
             String deviceTypePart = addPart("deviceType", android.os.Build.MODEL, boundary);
             String androidVersion = addPart("osVersion", "Android " + Build.VERSION.RELEASE, boundary);
-
             String fileHeader1 = "--" + boundary + "\r\n"
                     + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
                     + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n";
-
             // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
             // returns only the data currently in memory or something similar.
             int dataSize = 0;
@@ -147,12 +149,12 @@ class SyncPerformer {
             String fileHeader2 = "Content-length: " + dataSize + "\r\n";
             String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
             String stringData = userIdPart + measurementIdPart + deviceTypePart + androidVersion + fileHeader;
-
             long requestLength = stringData.length() + dataSize;
             connection.setRequestProperty("Content-length", "" + requestLength);
             connection.setFixedLengthStreamingMode((int)requestLength);
-            connection.connect();
 
+            // post
+            connection.connect();
             DataOutputStream out = null;
             try {
                 out = new DataOutputStream(connection.getOutputStream());

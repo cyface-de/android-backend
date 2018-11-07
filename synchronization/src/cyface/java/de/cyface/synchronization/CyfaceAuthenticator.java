@@ -277,12 +277,19 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         final JSONObject loginPayload = new JSONObject();
         loginPayload.put("login", username);
         loginPayload.put("password", password);
-        final HttpURLConnection connection = http
-                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "login"));
-        final HttpResponse loginResponse = http.post(connection, loginPayload, false);
-        connection.disconnect();
-        if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
-            throw new IllegalStateException("Login successful but response does not contain a token");
+        HttpURLConnection connection = null;
+        try {
+            connection = http
+                    .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "login"), false);
+            final HttpResponse loginResponse = http.post(connection, loginPayload, false);
+            connection.disconnect();
+            if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
+                throw new IllegalStateException("Login successful but response does not contain a token");
+            }
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
 
         final String jwtBearer = connection.getHeaderField("Authorization");
@@ -310,26 +317,34 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             throws MalformedURLException, ServerUnavailableException, SynchronisationException,
             ResponseParsingException, RequestParsingException, DataTransmissionException, UnauthorizedException {
 
-        final HttpURLConnection con = http
-                .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken, sslContext);
-        final JSONObject device = new JSONObject();
+        HttpURLConnection connection = null;
         try {
-            device.put("id", installationIdentifier);
-            device.put("name", Build.DEVICE);
-        } catch (final JSONException e) {
-            throw new IllegalStateException(e);
-        }
-        final HttpResponse registerDeviceResponse = http.post(con, device, false);
-        con.disconnect();
-
-        try {
-            if (registerDeviceResponse.is2xxSuccessful() && !registerDeviceResponse.getBody().isNull("errorName")
-                    && registerDeviceResponse.getBody().get("errorName").equals("Duplicate Device")) {
-                Log.w(TAG,
-                        String.format(context.getString(R.string.error_message_device_exists), installationIdentifier));
+            connection = http
+                    .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken, sslContext, false);
+            final JSONObject device = new JSONObject();
+            try {
+                device.put("id", installationIdentifier);
+                device.put("name", Build.DEVICE);
+            } catch (final JSONException e) {
+                throw new IllegalStateException(e);
             }
-        } catch (final JSONException e) {
-            throw new ResponseParsingException("Unable to read error from response", e);
+            final HttpResponse registerDeviceResponse = http.post(connection, device, false);
+            connection.disconnect();
+
+            try {
+                if (registerDeviceResponse.is2xxSuccessful() && !registerDeviceResponse.getBody().isNull("errorName")
+                        && registerDeviceResponse.getBody().get("errorName").equals("Duplicate Device")) {
+                    Log.w(TAG,
+                            String.format(context.getString(R.string.error_message_device_exists), installationIdentifier));
+                }
+            } catch (final JSONException e) {
+                throw new ResponseParsingException("Unable to read error from response", e);
+            }
+        } finally {
+            if (connection != null) {
+                connection.disconnect();
+            }
         }
+
     }
 }

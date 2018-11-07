@@ -11,11 +11,13 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
@@ -31,7 +33,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -87,21 +89,24 @@ class SyncPerformer {
      *             from the measurement slice.
      */
     boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl, final long measurementIdentifier,
-                 final @NonNull String deviceIdentifier, final @NonNull JSONObject data,
-                 final @NonNull String jwtAuthToken) throws RequestParsingException {
+                 final @NonNull String deviceIdentifier, final @NonNull InputStream data,
+                     final @NonNull UploadProgressListener progressListener, final @NonNull String jwtAuthToken) throws RequestParsingException {
         Log.i(TAG, String.format(Locale.US, "Uploading data from device %s with identifier %s to server %s",
                 deviceIdentifier, measurementIdentifier, dataServerUrl));
 
+        HttpsURLConnection.setFollowRedirects(false);
+        HttpsURLConnection connection = null;
+        final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
+
         try {
-            final URL postUrl = new URL(http.returnUrlWithTrailingSlash(dataServerUrl) + "/measurements/");
-            HttpURLConnection con = null;
+            final URL url = new URL(String.format("%s/measurements", dataServerUrl));
             try {
-                con = http.openHttpConnection(postUrl, jwtAuthToken, sslContext);
-                Log.d(TAG, "Posing measurement slice ...");
-                http.post(con, data, true);
+                connection = (HttpsURLConnection) http.openHttpConnection(url, jwtAuthToken, sslContext, true);
+                Log.d(TAG, "Transmitting measurement ...");
+                http.post(connection, data, deviceIdentifier, measurementIdentifier, fileName, progressListener);
             } finally {
-                if (con != null) {
-                    con.disconnect();
+                if (connection != null) {
+                    connection.disconnect();
                 }
             }
         } catch (final ServerUnavailableException e) {

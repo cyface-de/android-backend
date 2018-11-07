@@ -11,7 +11,7 @@
  * <a href="https://developer.android.com/training/sync-adapters/creating-sync-adapter.html">Android documentation</a>.
  * The synchronization adapter is the service running in the background to upload data to a server. It is realised by
  * the two classes {@link de.cyface.synchronization.SyncService} and
- * {@link de.cyface.synchronization.CyfaceSyncAdapter}. The former is required to run the adapter independent of the
+ * {@link de.cyface.synchronization.SyncAdapter}. The former is required to run the adapter independent of the
  * application using the framework, while the later does the actual synchronisation work.
  * The <code>ContentProvider</code> used by the synchronisation adapter is the
  * <code>MeasuringPointsContentProvider</code> provided via the persistence module.

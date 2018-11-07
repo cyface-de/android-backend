@@ -1,11 +1,14 @@
 package de.cyface.synchronization;
 
+import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 import javax.net.ssl.SSLContext;
 
 import android.support.annotation.NonNull;
+
+import org.json.JSONObject;
 
 /**
  * An interface for http connections.
@@ -30,35 +33,48 @@ interface Http {
      * @param url The URL of the cyface backend's REST API.
      * @param jwtBearer A String in the format "Bearer TOKEN".
      * @param sslContext The {@link SSLContext} to open a secure connection to the server
+     * @param hasBinaryContent True if binary content is to be transmitted
      * @return the HTTPURLConnection
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      */
-    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, @NonNull SSLContext sslContext)
+    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, @NonNull SSLContext sslContext, boolean hasBinaryContent)
             throws ServerUnavailableException;
 
     /**
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
      *
      * @param url The URL of the cyface backend's REST API.
+     * @param hasBinaryContent True if binary content is to be transmitted
      * @return the HTTPURLConnection
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      */
-    HttpURLConnection openHttpConnection(@NonNull URL url) throws ServerUnavailableException;
+    HttpURLConnection openHttpConnection(@NonNull URL url, boolean hasBinaryContent) throws ServerUnavailableException;
 
     /**
      * The compressed post request which transmits a measurement batch through an existing http
      * connection
      *
      * @param payload The measurement batch in json format
-     * @param <T> Json string
      * @throws DataTransmissionException When the server returned a non-successful status code.
      * @throws RequestParsingException When the request could not be generated.
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
-    <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress)
-            throws DataTransmissionException, RequestParsingException, ServerUnavailableException,
-            ResponseParsingException, SynchronisationException, UnauthorizedException;
+    HttpResponse post(HttpURLConnection connection, JSONObject payload, boolean compress)
+            throws RequestParsingException, DataTransmissionException, SynchronisationException,
+            ResponseParsingException, UnauthorizedException;
+
+    /**
+     * The serialized post request which transmits a measurement through an existing http connection
+     *
+     * @throws DataTransmissionException When the server returned a non-successful status code.
+     * @throws RequestParsingException When the request could not be generated.
+     * @throws ResponseParsingException When the http response could not be parsed.
+     * @throws SynchronisationException When the new data output for the http connection failed to be created.
+     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
+     */
+    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId, long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+            throws RequestParsingException, DataTransmissionException, SynchronisationException,
+            ResponseParsingException, UnauthorizedException;
 }

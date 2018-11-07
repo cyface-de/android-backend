@@ -26,10 +26,11 @@ import android.support.annotation.NonNull;
 import android.util.Log;
 
 /**
- * The <code>SyncAdapter</code> implementation used by the framework to transmit measured data to a server.
+ * An Android SyncAdapter implementation to transmit data to a Cyface server.
  *
+ * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
@@ -47,7 +48,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     private static final String SYNC_PROGRESS_KEY = "de.cyface.broadcast.sync.progress.key";
 
     /**
-     * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
+     * Creates a new completely initialized <code>SyncAdapter</code>. See the documentation of
      * <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
      *
      * @param context The current context this adapter is running under.
@@ -59,7 +60,7 @@ public final class CyfaceSyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
-     * Creates a new completely initialized <code>CyfaceSyncAdapter</code>. See the documentation of
+     * Creates a new completely initialized <code>SyncAdapter</code>. See the documentation of
      * <code>AbstractThreadedSyncAdapter</code> from the Android framework for further information.
      *
      * @param context The current context this adapter is running under.

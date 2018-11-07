@@ -2,8 +2,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_FINISHED;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_MEASUREMENT_ID;
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TO_TRANSMIT;
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TRANSMITTED;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PROGRESS;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_STARTED;
 
@@ -22,7 +21,7 @@ import de.cyface.utils.Validate;
  * to populate received broadcasts about synchronization events to registered {@link ConnectionStatusListener}s.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 2.5.0
  */
 public class ConnectionStatusReceiver extends BroadcastReceiver {
@@ -53,10 +52,8 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
         Validate.notNull(intent.getAction());
         switch (intent.getAction()) {
             case SYNC_STARTED:
-                long pointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, -1L);
-                Validate.isTrue(pointsToTransmit >= 0L);
                 for (final ConnectionStatusListener listener : connectionStatusListener) {
-                    listener.onSyncStarted(pointsToTransmit);
+                    listener.onSyncStarted();
                 }
                 break;
             case SYNC_FINISHED:
@@ -65,15 +62,13 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
                 }
                 break;
             case SYNC_PROGRESS:
-                pointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, -1L);
-                final long transmittedPoints = intent.getLongExtra(SYNC_POINTS_TRANSMITTED, -1L);
+                final float percent = intent.getFloatExtra(SYNC_PERCENTAGE, -1.0f);
                 final long measurementId = intent.getLongExtra(SYNC_MEASUREMENT_ID, -1L);
-                Validate.isTrue(pointsToTransmit > 0L);
-                Validate.isTrue(transmittedPoints > 0L);
+                Validate.isTrue(percent > 0.0f);
                 Validate.isTrue(measurementId > 0L);
 
                 for (final ConnectionStatusListener listener : connectionStatusListener) {
-                    listener.onProgress(transmittedPoints, pointsToTransmit, measurementId);
+                    listener.onProgress(percent, measurementId);
                 }
                 break;
         }

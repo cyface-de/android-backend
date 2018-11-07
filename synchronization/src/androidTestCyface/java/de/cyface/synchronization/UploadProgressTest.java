@@ -75,7 +75,7 @@ public class UploadProgressTest {
 
     @Test
     public void testUploadProgressHappyPath() {
-        CyfaceSyncAdapter syncAdapter = new CyfaceSyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2, 2);
+        SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2, 2);
         AccountManager manager = AccountManager.get(context);
         Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);

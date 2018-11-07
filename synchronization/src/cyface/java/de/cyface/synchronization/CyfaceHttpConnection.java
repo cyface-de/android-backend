@@ -2,13 +2,16 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
 
+import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
+import java.io.DataOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
+import java.net.ProtocolException;
 import java.net.URL;
 import java.util.zip.GZIPOutputStream;
 
@@ -18,7 +21,9 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 
 import org.json.JSONException;
+import org.json.JSONObject;
 
+import android.os.Build;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -36,6 +41,8 @@ import de.cyface.utils.ValidationException;
 public class CyfaceHttpConnection implements Http {
 
     static final String TAG = "de.cyface.http";
+    private final static String BOUNDARY = "---------------------------boundary";
+    private final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
 
     @Override
     public String returnUrlWithTrailingSlash(final String url) {
@@ -48,13 +55,13 @@ public class CyfaceHttpConnection implements Http {
 
     @Override
     public HttpURLConnection openHttpConnection(final @NonNull URL url, final @NonNull String jwtBearer,
-            final @NonNull SSLContext sslContext) throws ServerUnavailableException {
-        final HttpsURLConnection con = (HttpsURLConnection)openHttpConnection(url);
+            final @NonNull SSLContext sslContext, final boolean hasBinaryContent) throws ServerUnavailableException {
+        final HttpsURLConnection con = (HttpsURLConnection)openHttpConnection(url, hasBinaryContent);
         con.setSSLSocketFactory(sslContext.getSocketFactory());
         con.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(final String hostname, final SSLSession session) {
-                return true;
+                return true; // FIXME: create or attach task id
             }
         });
         con.setRequestProperty("Authorization", jwtBearer);
@@ -62,30 +69,43 @@ public class CyfaceHttpConnection implements Http {
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(final @NonNull URL url) throws ServerUnavailableException {
+    public HttpURLConnection openHttpConnection(final @NonNull URL url, final boolean hasBinaryContent) throws ServerUnavailableException {
+        HttpURLConnection connection;
         try {
-            final HttpURLConnection con = (HttpURLConnection)url.openConnection();
-            con.setRequestProperty("Content-Type", "application/json; charset=" + DEFAULT_CHARSET);
-            con.setConnectTimeout(5000);
-            con.setRequestMethod("POST");
-            con.setRequestProperty("User-Agent", System.getProperty("http.agent"));
-            con.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
-            return con;
+            connection = (HttpURLConnection)url.openConnection();
         } catch (final IOException e) {
             throw new ServerUnavailableException(
                     String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
         }
+
+        if (hasBinaryContent) {
+            connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
+        } else {
+            connection.setRequestProperty("Content-Type", "application/json; charset=" + DEFAULT_CHARSET);
+        }
+        //connection.setConnectTimeout(5000);
+        try {
+            connection.setRequestMethod("POST");
+        } catch (final ProtocolException e) {
+            throw new IllegalStateException(e);
+        }
+        //connection.setRequestProperty("User-Agent", System.getProperty("http.agent"));
+        //connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+        return connection;
     }
 
     @Override
-    public <T> HttpResponse post(final HttpURLConnection con, final T payload, boolean compress)
+    public HttpResponse post(final HttpURLConnection connection, final JSONObject payload, final boolean compress)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException {
 
-        final BufferedOutputStream os = initOutputStream(con, compress);
+        connection.setChunkedStreamingMode(0); // not calculated content length
+        final BufferedOutputStream os = initOutputStream(connection);
+
         try {
             Log.d(TAG, "Transmitting with compression " + compress + ".");
             if (compress) {
+                connection.setRequestProperty("Content-Encoding", "gzip");
                 os.write(gzip(payload.toString().getBytes(DEFAULT_CHARSET)));
             } else {
                 os.write(payload.toString().getBytes(DEFAULT_CHARSET));
@@ -96,7 +116,66 @@ public class CyfaceHttpConnection implements Http {
             throw new RequestParsingException(String.format("Error %s. Unable to parse http request.", e.getMessage()),
                     e);
         }
-        return readResponse(con);
+        return readResponse(connection);
+    }
+
+    @Override
+    public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull InputStream data, @NonNull final String deviceId, final long measurementId, @NonNull final String fileName, UploadProgressListener progressListener)
+            throws RequestParsingException, SynchronisationException,
+            ResponseParsingException {
+
+        // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
+        // returns only the data currently in memory or something similar.
+        final int dataSize;
+        try {
+            dataSize = data.available() + TAIL.length();
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
+        final String stringData = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
+        //connection.setUseCaches(true); // from movebis but this is the default setting
+        final BufferedOutputStream outputStream = initOutputStream(connection);
+
+        try {
+            connection.connect();
+            DataOutputStream out = null;
+            try {
+                out = new DataOutputStream(outputStream);
+                out.writeBytes(stringData);
+                out.flush();
+
+                int progress = 0;
+                int bytesRead;
+                byte buf[] = new byte[1024];
+                BufferedInputStream bufInput = new BufferedInputStream(data);
+                while ((bytesRead = bufInput.read(buf)) != -1) {
+                    // write output
+                    out.write(buf, 0, bytesRead);
+                    out.flush();
+                    progress += bytesRead; // Here progress is total uploaded bytes
+                    progressListener.updatedProgress((progress * 100) / dataSize);
+                }
+
+                // Write closing boundary and close stream
+                out.writeBytes(TAIL);
+                out.flush();
+            } finally {
+                if (out != null) {
+                    out.close();
+                }
+            }
+        } catch (final IOException e) {
+            throw new RequestParsingException(String.format("Error %s. Unable to parse http request.", e.getMessage()),
+                    e);
+        }
+
+        // Get server response
+        try {
+            return new HttpResponse(connection.getResponseCode(), connection.getResponseMessage());
+        } catch (final IOException e) {
+            Log.w(TAG, "Server closed stream. Request was not successful!");
+            throw new ResponseParsingException("Server closed stream?", e);
+        }
     }
 
     private byte[] gzip(byte[] input) {
@@ -121,12 +200,8 @@ public class CyfaceHttpConnection implements Http {
         }
     }
 
-    private BufferedOutputStream initOutputStream(final HttpURLConnection con, final boolean compress)
+    private BufferedOutputStream initOutputStream(final HttpURLConnection con)
             throws SynchronisationException {
-        if (compress) {
-            con.setRequestProperty("Content-Encoding", "gzip");
-        }
-        con.setChunkedStreamingMode(0);
         con.setDoOutput(true);
         try {
             return new BufferedOutputStream(con.getOutputStream());
@@ -135,6 +210,31 @@ public class CyfaceHttpConnection implements Http {
                     "OutputStream failed: Error %s. Unable to create new data output for the http connection.",
                     e.getMessage()), e);
         }
+    }
+
+    private String setContentLength(final HttpURLConnection connection, final int dataSize, final String deviceIdentifier, final long measurementIdentifier, final String fileName) {
+        final String userIdPart = addPart("deviceId", deviceIdentifier, BOUNDARY);
+        final String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
+                BOUNDARY);
+        final String deviceTypePart = addPart("deviceType", android.os.Build.MODEL, BOUNDARY);
+        final String androidVersion = addPart("osVersion", "Android " + Build.VERSION.RELEASE, BOUNDARY);
+
+        final String fileHeader1 = "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
+                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n";
+
+        final String fileHeader2 = "Content-length: " + dataSize + "\r\n";
+        final String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
+        final String stringData = userIdPart + measurementIdPart + deviceTypePart + androidVersion + fileHeader;
+
+        final long requestLength = stringData.length() + dataSize;
+        connection.setRequestProperty("Content-length", "" + requestLength);
+        connection.setFixedLengthStreamingMode((int)requestLength);
+        return stringData;
+    }
+
+    private String addPart(final @NonNull String key, final @NonNull String value, final @NonNull String boundary) {
+        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n", boundary, key, value);
     }
 
     /**
