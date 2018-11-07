@@ -713,11 +713,12 @@ public abstract class DataCapturingService {
      */
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
-        Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Context context = getContext();
-        Log.v(TAG, "Registering receiver for service start broadcast.");
-        context.registerReceiver(startUpFinishedHandler, new IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED));
-        Log.v(TAG, String.format("Starting using Intent with context %s.", context));
+        Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
+        context.registerReceiver(startUpFinishedHandler,
+                new IntentFilter(MessageCodes.getServiceStartedActionId(context)));
+
+        Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
@@ -1007,7 +1008,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    public void removeConnectionListener(final @NonNull ConnectionStatusListener listener) {
+    public void removeConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionStatusReceiver.removeListener(listener);
     }
 
