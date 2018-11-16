@@ -12,15 +12,12 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
-
-import org.json.JSONObject;
 
 import android.content.Context;
 import android.content.SyncResult;
@@ -88,21 +85,19 @@ class SyncPerformer {
      * @throws RequestParsingException When the post request could not be generated or when data could not be parsed
      *             from the measurement slice.
      */
-    boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl, final long measurementIdentifier,
-                 final @NonNull String deviceIdentifier, final @NonNull InputStream data,
-                     final @NonNull UploadProgressListener progressListener, final @NonNull String jwtAuthToken) throws RequestParsingException {
-        Log.i(TAG, String.format(Locale.US, "Uploading data from device %s with identifier %s to server %s",
-                deviceIdentifier, measurementIdentifier, dataServerUrl));
-
+    boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl,
+            final long measurementIdentifier, final @NonNull String deviceIdentifier, final @NonNull InputStream data,
+            final @NonNull UploadProgressListener progressListener, final @NonNull String jwtAuthToken)
+            throws RequestParsingException, BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
+            Log.i(TAG, String.format(Locale.US, "Uploading %s to %s", fileName, url.toString()));
             try {
-                connection = (HttpsURLConnection) http.openHttpConnection(url, jwtAuthToken, sslContext, true);
-                Log.d(TAG, "Transmitting measurement ...");
+                connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
                 http.post(connection, data, deviceIdentifier, measurementIdentifier, fileName, progressListener);
             } finally {
                 if (connection != null) {
@@ -112,27 +107,27 @@ class SyncPerformer {
         } catch (final ServerUnavailableException e) {
             // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
+            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
             return false;
         } catch (final MalformedURLException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, MALFORMED_URL.getCode());
+            sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
             return false;
         } catch (final ResponseParsingException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
+            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
             return false;
         } catch (final DataTransmissionException e) {
             syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
+            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
             return false;
         } catch (final SynchronisationException e) {
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
+            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
             return false;
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, UNAUTHORIZED.getCode());
+            sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
             return false;
         }
         return true;

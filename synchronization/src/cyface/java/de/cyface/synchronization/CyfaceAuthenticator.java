@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
@@ -10,7 +11,6 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
 import java.io.InputStream;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -21,6 +21,7 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -36,7 +37,6 @@ import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
-import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.support.annotation.NonNull;
@@ -98,14 +98,18 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
         // Extract the username and password from the Account Manager, and ask
         // the server for an appropriate AuthToken.
-        final AccountManager am = AccountManager.get(context);
+        final AccountManager accountManager = AccountManager.get(context);
 
-        String authToken = am.peekAuthToken(account, authTokenType);
+        // Check if there is an existing token. As they expire after 60 seconds currently it's takes less
+        // resources to invalidate old ones and request a new one instead of checking the old one via request.
+        String authToken = accountManager.peekAuthToken(account, authTokenType);
+        accountManager.invalidateAuthToken(account.type, authToken);
+        authToken = ""; // To request a new token
 
         // Lets give another try to authenticate the user
         if (TextUtils.isEmpty(authToken)) {
             Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
-            final String password = am.getPassword(account);
+            final String password = accountManager.getPassword(account);
             Log.v(TAG, String.format("Password: %s", password));
 
             if (password != null) {
@@ -124,26 +128,28 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                     authToken = initSync(account.name, password, sslContext);
                     Log.v(TAG, String.format("Auth token: %s", authToken));
                 } catch (final ServerUnavailableException e) {
-                    sendErrorIntent(context, SERVER_UNAVAILABLE.getCode());
+                    sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 } catch (final MalformedURLException e) {
-                    sendErrorIntent(context, MALFORMED_URL.getCode());
+                    sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 } catch (final JSONException e) {
-                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
+                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 } catch (final SynchronisationException | RequestParsingException e) {
-                    sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
+                    sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 } catch (final DataTransmissionException e) {
-                    sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode());
+                    sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 } catch (final ResponseParsingException e) {
-                    Log.d(TAG, String.format("GetAuthToken failed: Error %s.", e.getMessage()));
-                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode());
+                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 } catch (final UnauthorizedException e) {
-                    sendErrorIntent(context, UNAUTHORIZED.getCode());
+                    sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+                    throw new NetworkErrorException(e);
+                } catch (final BadRequestException e) {
+                    sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
                 }
             }
@@ -202,7 +208,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             trustStoreFile.close();
             trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
             final KeyStore trustStore = KeyStore.getInstance("PKCS12");
-            trustStore.load(trustStoreFile, "Mv8vLFF3".toCharArray());
+            trustStore.load(trustStoreFile, "secret".toCharArray());
             final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
             tmf.init(trustStore);
 
@@ -259,7 +265,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      */
     private String initSync(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
-            DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException {
+            DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
+            BadRequestException {
         Log.v(TAG, "Init Sync!");
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
@@ -271,16 +278,16 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             throw new IllegalStateException(
                     "Server url not available. Please set the applications server url preference.");
         }
+        final URL authUrl = new URL(http.returnUrlWithTrailingSlash(url) + "login");
 
         // Login to get JWT token
-        Log.d(TAG, "Authenticating at " + url + " as " + username);
         final JSONObject loginPayload = new JSONObject();
-        loginPayload.put("login", username);
+        loginPayload.put("username", username);
         loginPayload.put("password", password);
-        HttpURLConnection connection = null;
+        Log.d(TAG, "Authenticating at " + authUrl + " with " + loginPayload);
+        HttpsURLConnection connection = null;
         try {
-            connection = http
-                    .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "login"), false);
+            connection = http.openHttpConnection(authUrl, sslContext, false);
             final HttpResponse loginResponse = http.post(connection, loginPayload, false);
             connection.disconnect();
             if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
@@ -292,59 +299,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             }
         }
 
-        final String jwtBearer = connection.getHeaderField("Authorization");
-        registerDevice(url, installationIdentifier, jwtBearer, sslContext);
-        return jwtBearer;
-    }
-
-    /**
-     * Registers device to the Cyface Server as only registered devices can push data.
-     *
-     * @param url The URL or the Server API
-     * @param installationIdentifier The device id
-     * @param authToken The authentication token to prove that the user is who is says he is
-     * @param sslContext The {@link SSLContext} to open a secure connection
-     * @throws MalformedURLException If the used server URL is not well formed
-     * @throws ServerUnavailableException When there seems to be no server at the URL
-     * @throws SynchronisationException When the new data output for the http connection failed to be created.
-     * @throws ResponseParsingException When the http response could not be parsed.
-     * @throws RequestParsingException When the request could not be generated.
-     * @throws DataTransmissionException When the server returned a non-successful status code.
-     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
-     */
-    private void registerDevice(final @NonNull String url, final @NonNull String installationIdentifier,
-                                final @NonNull String authToken, SSLContext sslContext)
-            throws MalformedURLException, ServerUnavailableException, SynchronisationException,
-            ResponseParsingException, RequestParsingException, DataTransmissionException, UnauthorizedException {
-
-        HttpURLConnection connection = null;
-        try {
-            connection = http
-                    .openHttpConnection(new URL(http.returnUrlWithTrailingSlash(url) + "devices/"), authToken, sslContext, false);
-            final JSONObject device = new JSONObject();
-            try {
-                device.put("id", installationIdentifier);
-                device.put("name", Build.DEVICE);
-            } catch (final JSONException e) {
-                throw new IllegalStateException(e);
-            }
-            final HttpResponse registerDeviceResponse = http.post(connection, device, false);
-            connection.disconnect();
-
-            try {
-                if (registerDeviceResponse.is2xxSuccessful() && !registerDeviceResponse.getBody().isNull("errorName")
-                        && registerDeviceResponse.getBody().get("errorName").equals("Duplicate Device")) {
-                    Log.w(TAG,
-                            String.format(context.getString(R.string.error_message_device_exists), installationIdentifier));
-                }
-            } catch (final JSONException e) {
-                throw new ResponseParsingException("Unable to read error from response", e);
-            }
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-
+        return connection.getHeaderField("Authorization");
     }
 }

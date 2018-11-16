@@ -18,6 +18,7 @@
     <string name="error_message_ssl_certificate">SSL Zertifikat unbekannt</string>
     <string name="error_message_unknown_network_error">Netzwerkfehler</string>
     <string name="error_message_data_transmission_error_with_code">Übertragungsfehler (%1$d)</string>
+    <string name="error_message_bad_request">Anfrage fehlerhaft</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

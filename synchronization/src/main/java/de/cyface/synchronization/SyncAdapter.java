@@ -1,6 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
@@ -171,15 +172,19 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         } catch (final DatabaseException | RemoteException e) {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
-            sendErrorIntent(context, DATABASE_ERROR.getCode());
+            sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
         } catch (final RequestParsingException/* | SynchronisationException*/ e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode());
+            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
+        } catch (final BadRequestException e) {
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+            syncResult.stats.numConflictDetectedExceptions++;
+            sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
         } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode());
+            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             for (final ConnectionStatusListener listener : progressListener) {

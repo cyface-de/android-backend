@@ -7,6 +7,7 @@ import java.net.URL;
 
 import android.support.annotation.NonNull;
 
+import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 /**
@@ -28,11 +29,11 @@ final class MockedHttpConnection implements Http {
     @Override
     public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, SSLContext sslContext, boolean hasBinaryContent)
             throws ServerUnavailableException {
-        return openHttpConnection(url, hasBinaryContent);
+        return openHttpConnection(url, hasBinaryContent, sslContext);
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url, boolean hasBinaryContent) throws ServerUnavailableException {
+    public HttpsURLConnection openHttpConnection(@NonNull URL url, boolean hasBinaryContent, SSLContext sslContext) throws ServerUnavailableException {
         try {
             return (HttpURLConnection)url.openConnection();
         } catch (IOException e) {

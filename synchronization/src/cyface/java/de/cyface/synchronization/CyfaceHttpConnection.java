@@ -54,29 +54,31 @@ public class CyfaceHttpConnection implements Http {
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(final @NonNull URL url, final @NonNull String jwtBearer,
-            final @NonNull SSLContext sslContext, final boolean hasBinaryContent) throws ServerUnavailableException {
-        final HttpsURLConnection con = (HttpsURLConnection)openHttpConnection(url, hasBinaryContent);
-        con.setSSLSocketFactory(sslContext.getSocketFactory());
-        con.setHostnameVerifier(new HostnameVerifier() {
+    public HttpsURLConnection openHttpConnection(final @NonNull URL url,
+            final @NonNull SSLContext sslContext, final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
+        final HttpsURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
+        connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
+        return connection;
+    }
+
+    @Override
+    public HttpsURLConnection openHttpConnection(final @NonNull URL url, final @NonNull SSLContext sslContext, final boolean hasBinaryContent) throws ServerUnavailableException {
+        HttpsURLConnection connection;
+        try {
+            connection = (HttpsURLConnection)url.openConnection();
+        } catch (final IOException e) {
+            throw new ServerUnavailableException(
+                    String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
+        }
+
+        // Without verifying the hostname we receive the "Trust Anchor..." Error
+        connection.setSSLSocketFactory(sslContext.getSocketFactory());
+        connection.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(final String hostname, final SSLSession session) {
                 return true; // FIXME: create or attach task id
             }
         });
-        con.setRequestProperty("Authorization", jwtBearer);
-        return con;
-    }
-
-    @Override
-    public HttpURLConnection openHttpConnection(final @NonNull URL url, final boolean hasBinaryContent) throws ServerUnavailableException {
-        HttpURLConnection connection;
-        try {
-            connection = (HttpURLConnection)url.openConnection();
-        } catch (final IOException e) {
-            throw new ServerUnavailableException(
-                    String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
-        }
 
         if (hasBinaryContent) {
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
@@ -97,9 +99,10 @@ public class CyfaceHttpConnection implements Http {
     @Override
     public HttpResponse post(final HttpURLConnection connection, final JSONObject payload, final boolean compress)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException {
+            ResponseParsingException, UnauthorizedException, BadRequestException {
 
-        connection.setChunkedStreamingMode(0); // not calculated content length
+        // For performance reasons (docu) set ether fixedLength (known length) or chunked streaming mode
+        connection.setChunkedStreamingMode(0); // we could also calculate the length here
         final BufferedOutputStream os = initOutputStream(connection);
 
         try {
@@ -122,7 +125,7 @@ public class CyfaceHttpConnection implements Http {
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull InputStream data, @NonNull final String deviceId, final long measurementId, @NonNull final String fileName, UploadProgressListener progressListener)
             throws RequestParsingException, SynchronisationException,
-            ResponseParsingException {
+            ResponseParsingException, BadRequestException, UnauthorizedException {
 
         // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
         // returns only the data currently in memory or something similar.
@@ -132,8 +135,8 @@ public class CyfaceHttpConnection implements Http {
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
-        final String stringData = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
         //connection.setUseCaches(true); // from movebis but this is the default setting
+        final String stringData = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
@@ -200,14 +203,14 @@ public class CyfaceHttpConnection implements Http {
         }
     }
 
-    private BufferedOutputStream initOutputStream(final HttpURLConnection con)
+    private BufferedOutputStream initOutputStream(final HttpURLConnection connection)
             throws SynchronisationException {
-        con.setDoOutput(true);
+        connection.setDoOutput(true); // To upload data to the server
         try {
-            return new BufferedOutputStream(con.getOutputStream());
+            return new BufferedOutputStream(connection.getOutputStream());
         } catch (final IOException e) {
             throw new SynchronisationException(String.format(
-                    "OutputStream failed: Error %s. Unable to create new data output for the http connection.",
+                    "getOutputStream failed: %s",
                     e.getMessage()), e);
         }
     }
@@ -249,7 +252,7 @@ public class CyfaceHttpConnection implements Http {
      * @throws SynchronisationException If a connection error occurred while reading the response code.
      */
     private HttpResponse readResponse(final @NonNull HttpURLConnection con) throws ResponseParsingException,
-            DataTransmissionException, UnauthorizedException, SynchronisationException {
+            DataTransmissionException, UnauthorizedException, SynchronisationException, BadRequestException {
 
         final HttpResponse response = readResponseFromConnection(con);
         if (response.is2xxSuccessful()) {
@@ -273,7 +276,7 @@ public class CyfaceHttpConnection implements Http {
                 }
             } catch (final JSONException e) {
                 throw new ResponseParsingException(
-                        String.format("'%s'. Unable to read the http response.", e.getMessage()), e);
+                        String.format("readResponse() failed: '%s'. Unable to read the http response.", e.getMessage()), e);
             }
         }
     }
@@ -288,7 +291,7 @@ public class CyfaceHttpConnection implements Http {
      * @throws UnauthorizedException when the login was not successful and returned a 401 code.
      */
     private HttpResponse readResponseFromConnection(final HttpURLConnection con)
-            throws SynchronisationException, ResponseParsingException, UnauthorizedException {
+            throws SynchronisationException, ResponseParsingException, UnauthorizedException, BadRequestException {
         String responseString;
         try {
             responseString = readInputStream(con.getInputStream());
@@ -307,16 +310,7 @@ public class CyfaceHttpConnection implements Http {
 
         try {
             final HttpResponse response;
-            try {
                 response = new HttpResponse(con.getResponseCode(), responseString);
-            } catch (final ResponseParsingException e) {
-                if (con.getResponseCode() == 401) {
-                    // Occurred in the RadVerS project
-                    throw new UnauthorizedException(String.format(
-                            "401 Unauthorized Error: '%s'. Unable to read the http response.", e.getMessage()), e);
-                }
-                throw e;
-            }
             return response;
         } catch (final IOException e) {
             throw new SynchronisationException("A connection error occurred while reading the response code.", e);
