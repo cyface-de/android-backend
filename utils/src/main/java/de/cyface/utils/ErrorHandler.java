@@ -19,7 +19,7 @@ import android.util.Log;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.1.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {

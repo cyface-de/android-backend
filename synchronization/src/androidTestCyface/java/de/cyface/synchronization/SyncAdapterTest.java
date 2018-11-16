@@ -41,7 +41,7 @@ import de.cyface.utils.Validate;
  * Tests the correct internal workings of the <code>SyncAdapter</code> with the database.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.2
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -70,8 +70,7 @@ public class SyncAdapterTest {
     public void testOnPerformSync() {
 
         // Arrange
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2,
-                2);
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);

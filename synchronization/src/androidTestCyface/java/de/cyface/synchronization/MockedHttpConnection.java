@@ -5,10 +5,12 @@ import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import android.support.annotation.NonNull;
-
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+
+import org.json.JSONObject;
+
+import android.support.annotation.NonNull;
 
 /**
  * An HTTP connection that does not actually connect to the server. This is useful for testing code requiring a
@@ -16,7 +18,7 @@ import javax.net.ssl.SSLContext;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.1.0
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
@@ -27,28 +29,33 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull String jwtBearer, SSLContext sslContext, boolean hasBinaryContent)
-            throws ServerUnavailableException {
-        return openHttpConnection(url, hasBinaryContent, sslContext);
+    public HttpsURLConnection openHttpConnection(@NonNull URL url, SSLContext sslContext, boolean hasBinaryContent,
+            @NonNull String jwtBearer) throws ServerUnavailableException {
+        return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull URL url, boolean hasBinaryContent, SSLContext sslContext) throws ServerUnavailableException {
+    public HttpsURLConnection openHttpConnection(@NonNull URL url, SSLContext sslContext, boolean hasBinaryContent)
+            throws ServerUnavailableException {
         try {
-            return (HttpURLConnection)url.openConnection();
+            return (HttpsURLConnection)url.openConnection();
         } catch (IOException e) {
             throw new ServerUnavailableException("Mocked Err", e);
         }
     }
 
     @Override
-    public <T> HttpResponse post(HttpURLConnection con, T payload, boolean compress)
-            throws ResponseParsingException, UnauthorizedException {
+    public HttpResponse post(HttpURLConnection connection, JSONObject payload, boolean compress)
+            throws RequestParsingException, DataTransmissionException, SynchronisationException,
+            ResponseParsingException, UnauthorizedException, BadRequestException {
         return new HttpResponse(201, "");
     }
 
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId, long measurementId, @NonNull String fileName, UploadProgressListener progressListener) throws RequestParsingException, DataTransmissionException, SynchronisationException, ResponseParsingException, UnauthorizedException {
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId,
+            long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+            throws RequestParsingException, DataTransmissionException, SynchronisationException,
+            ResponseParsingException, UnauthorizedException, BadRequestException {
         return new HttpResponse(201, "");
     }
 }

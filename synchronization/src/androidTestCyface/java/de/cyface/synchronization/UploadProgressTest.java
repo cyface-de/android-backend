@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TO_TRANSMIT;
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TRANSMITTED;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
@@ -49,7 +48,8 @@ import de.cyface.utils.Validate;
  * Tests if the upload progress is broadcasted as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 1.0.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,7 +75,7 @@ public class UploadProgressTest {
 
     @Test
     public void testUploadProgressHappyPath() {
-        SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2, 2);
+        SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         AccountManager manager = AccountManager.get(context);
         Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);
@@ -89,8 +89,6 @@ public class UploadProgressTest {
         IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
-        filter.addAction(SYNC_POINTS_TRANSMITTED);
-        filter.addAction(SYNC_POINTS_TO_TRANSMIT);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);
 
@@ -129,19 +127,15 @@ public class UploadProgressTest {
             context.unregisterReceiver(receiver);
         }
 
-        assertThat(receiver.getCollectedProgress().size(), is(equalTo(2)));
-        assertThat(receiver.getCollectedProgress().get(0), is(equalTo(8L)));
-        assertThat(receiver.getCollectedProgress().get(1), is(equalTo(11L)));
-        assertThat(receiver.getCollectedTotalProgress().size(), is(equalTo(2)));
-        assertThat(receiver.getCollectedTotalProgress().get(0), is(equalTo(11L)));
-        assertThat(receiver.getCollectedTotalProgress().get(1), is(equalTo(11L)));
+        assertThat(receiver.getCollectedPercentages().size(), is(equalTo(2)));
+        assertThat(receiver.getCollectedPercentages().get(0), is(equalTo(8L / 11L)));
+        assertThat(receiver.getCollectedPercentages().get(1), is(equalTo(11L / 11L)));
     }
 }
 
 class TestReceiver extends BroadcastReceiver {
 
-    private final List<Long> collectedProgress = new LinkedList<>();
-    private final List<Long> collectedTotalProgress = new LinkedList<>();
+    private final List<Long> collectedPercentages = new LinkedList<>();
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -154,17 +148,9 @@ class TestReceiver extends BroadcastReceiver {
                 Log.d(TAG, "SYNC FINISHED");
                 break;
             case CyfaceConnectionStatusListener.SYNC_PROGRESS:
-                final long countOfTransmittedPoints = intent.getLongExtra(SYNC_POINTS_TRANSMITTED, 0);
-                final long countOfPointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, 0);
-                collectedProgress.add(countOfTransmittedPoints);
-                collectedTotalProgress.add(countOfPointsToTransmit);
-                Log.d(TAG, "SYNC PROGRESS: " + countOfTransmittedPoints + " / " + countOfPointsToTransmit);
-                break;
-            case SYNC_POINTS_TRANSMITTED:
-                Log.d(TAG, "SYNC PROGRESS TRANSMITTED");
-                break;
-            case SYNC_POINTS_TO_TRANSMIT:
-                Log.d(TAG, "SYNC PROGRESS TOTAL");
+                final long percentage = intent.getLongExtra(SYNC_PERCENTAGE, 0);
+                collectedPercentages.add(percentage);
+                Log.d(TAG, "SYNC PROGRESS: " + percentage + " % ");
                 break;
             case CyfaceConnectionStatusListener.SYNC_STARTED:
                 Log.d(TAG, "SYNC STARTED");
@@ -174,11 +160,7 @@ class TestReceiver extends BroadcastReceiver {
         }
     }
 
-    public List<Long> getCollectedProgress() {
-        return collectedProgress;
-    }
-
-    public List<Long> getCollectedTotalProgress() {
-        return collectedTotalProgress;
+    public List<Long> getCollectedPercentages() {
+        return collectedPercentages;
     }
 }

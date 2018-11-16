@@ -11,7 +11,7 @@ import java.net.HttpURLConnection;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.4
+ * @version 1.1.0
  * @since 1.0.0
  */
 class HttpResponse {
