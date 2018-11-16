@@ -2,6 +2,7 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 
+import android.app.Notification;
 import android.os.Parcel;
 import android.support.annotation.NonNull;
 import android.util.Log;
@@ -29,6 +30,18 @@ public class IgnoreEventsStrategy implements EventHandlingStrategy {
     @Override
     public void handleSpaceWarning(final DataCapturingBackgroundService dataCapturingBackgroundService) {
         Log.d(TAG, "No strategy provided for the handleSpaceWarning event. Ignoring.");
+    }
+
+    @Override
+    public Notification buildCapturingNotification(DataCapturingBackgroundService context) {
+        Log.d(TAG, "No strategy provided for building a capturing notification. Ignoring.");
+        return null;
+    }
+
+    @Override
+    public int getCapturingNotificationId() {
+        Log.d(TAG, "No strategy provided for building a capturing notification. Ignoring.");
+        return 0;
     }
 
     /*
