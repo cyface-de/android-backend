@@ -13,7 +13,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to

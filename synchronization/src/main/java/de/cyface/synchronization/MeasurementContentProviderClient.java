@@ -6,7 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import de.cyface.persistence.AbstractCyfaceMeasurementTable;
 import de.cyface.persistence.AccelerationPointTable;

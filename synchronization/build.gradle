@@ -78,10 +78,10 @@ dependencies {
     //implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(":utils")
     implementation project(":persistence")
-    implementation "androidx.annotation:annotation:$rootProject.ext.supportLibVersion"
+    implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
     // Dependencies for instrumentation tests
-    implementation "androidx.appcompat:appcompat:$rootProject.ext.supportLibVersion"
+    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     androidTestImplementation "androidx.test:runner:$rootProject.ext.runnerVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 

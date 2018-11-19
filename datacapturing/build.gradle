@@ -78,8 +78,8 @@ android {
 }
 
 dependencies {
-    implementation "androidx.annotation:support-annotations:$rootProject.ext.supportLibVersion"
-    implementation "androidx.appcompat:appcompat:$rootProject.ext.supportLibVersion"
+    implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
+    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation project(":utils")
     implementation project(":persistence")
     implementation project(":synchronization")

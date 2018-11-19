@@ -8,8 +8,9 @@ import java.util.Collection;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
+import androidx.annotation.Nullable;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.Log;
 
 /**

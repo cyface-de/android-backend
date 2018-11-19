@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An <code>Exception</code> thrown each time data synchronisation with a Cyface/Movebis server fails. It provides

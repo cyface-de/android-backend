@@ -6,7 +6,7 @@ import java.util.List;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * Immutable data handling object for captured data.

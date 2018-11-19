@@ -12,7 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.DeadObjectException;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;

@@ -3,7 +3,7 @@ package de.cyface.datacapturing;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * Synchronizes the calling thread with the startup of the

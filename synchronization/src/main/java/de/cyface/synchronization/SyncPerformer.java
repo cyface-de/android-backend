@@ -21,7 +21,7 @@ import javax.net.ssl.SSLContext;
 
 import android.content.Context;
 import android.content.SyncResult;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 /**

@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.Nullable;
+import androidx.annotation.Nullable;
 
 import de.cyface.datacapturing.model.Vehicle;
 

@@ -5,9 +5,9 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import android.net.Uri;
-import android.support.annotation.NonNull;
-import android.support.test.InstrumentationRegistry;
 
+import androidx.annotation.NonNull;
+import androidx.test.InstrumentationRegistry;
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;

@@ -5,9 +5,8 @@ import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 import android.accounts.Account;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.synchronization.SynchronisationException;
