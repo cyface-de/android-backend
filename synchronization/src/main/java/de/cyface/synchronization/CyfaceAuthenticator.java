@@ -68,7 +68,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     public CyfaceAuthenticator(final @NonNull Context context) {
         super(context);
         this.context = context;
-        this.http = new CyfaceHttpConnection();
+        this.http = new HttpConnection();
     }
 
     @Override

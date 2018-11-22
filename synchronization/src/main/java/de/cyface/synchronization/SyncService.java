@@ -46,7 +46,7 @@ public final class SyncService extends Service {
         Log.d(TAG, "sync service on create");
         synchronized (LOCK) {
             if (syncAdapter == null) {
-                syncAdapter = new SyncAdapter(getApplicationContext(), true, new CyfaceHttpConnection());
+                syncAdapter = new SyncAdapter(getApplicationContext(), true, new HttpConnection());
             }
         }
     }

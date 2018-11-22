@@ -32,7 +32,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
  * Tests the correct internal workings of the <code>SyncAdapter</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -64,7 +64,7 @@ public class SyncAdapterTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws RemoteException {
-        SyncAdapter oocut = new SyncAdapter(context, false, httpConnection, 10_000, 10_000, 10_000, 10_000);
+        SyncAdapter oocut = new SyncAdapter(context, false, httpConnection);
         ContentProviderClient client = null;
         Uri measurementUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
                 .appendPath(MeasurementTable.URI_PATH).build();

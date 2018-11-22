@@ -38,7 +38,7 @@ import de.cyface.utils.ValidationException;
  * @version 1.3.0
  * @since 2.0.0
  */
-public class CyfaceHttpConnection implements Http {
+public class HttpConnection implements Http {
 
     static final String TAG = "de.cyface.http";
     private final static String BOUNDARY = "---------------------------boundary";

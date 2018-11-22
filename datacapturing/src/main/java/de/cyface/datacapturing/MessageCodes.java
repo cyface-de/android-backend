@@ -2,11 +2,9 @@ package de.cyface.datacapturing;
 
 import android.content.Context;
 import android.content.SharedPreferences;
-import android.os.Message;
 import android.preference.PreferenceManager;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
-import de.cyface.synchronization.SyncService;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
