@@ -50,10 +50,7 @@ import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.synchronization.ConnectionStatusListener;
-import de.cyface.synchronization.ConnectionStatusReceiver;
-import de.cyface.synchronization.SynchronisationException;
-import de.cyface.synchronization.WiFiSurveyor;
+import de.cyface.synchronization.*;
 import de.cyface.utils.Validate;
 
 /**

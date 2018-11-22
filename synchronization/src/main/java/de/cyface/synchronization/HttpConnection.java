@@ -1,7 +1,5 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -29,6 +27,8 @@ import android.util.Log;
 
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
+
+import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.

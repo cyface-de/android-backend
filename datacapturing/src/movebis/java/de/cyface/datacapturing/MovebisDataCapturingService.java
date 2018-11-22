@@ -19,6 +19,8 @@ import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.SynchronisationException;
 
+import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
+
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
  * <p>
@@ -180,7 +182,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
         Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
 
-        accountManager.setAuthToken(synchronizationAccount, Constants.AUTH_TOKEN_TYPE, token);
+        accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
     }
 
