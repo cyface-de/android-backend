@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.SharedConstants.TAG;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
@@ -93,7 +93,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         Cursor syncableMeasurementsCursor = null;
         final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, Constants.AUTH_TOKEN_TYPE,
+        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, SharedConstants.AUTH_TOKEN_TYPE,
                 null, false, null, null);
 
         try {

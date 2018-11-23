@@ -4,6 +4,8 @@ import android.content.Context;
 import android.content.Intent;
 import android.support.annotation.NonNull;
 
+import static de.cyface.synchronization.SharedConstants.TAG;
+
 /**
  * Listener for interested parties to subscribe to synchronization status updates.
  * Synchronization errors are broadcasted via the {@link de.cyface.utils.ErrorHandler}.
@@ -15,11 +17,11 @@ import android.support.annotation.NonNull;
  */
 public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {
 
-    public final static String SYNC_STARTED = Constants.TAG + ".started";
-    public final static String SYNC_FINISHED = Constants.TAG + ".finished";
-    public final static String SYNC_PROGRESS = Constants.TAG + ".progress";
-    public final static String SYNC_PERCENTAGE = Constants.TAG + ".percentage";
-    public final static String SYNC_MEASUREMENT_ID = Constants.TAG + ".measurement_id";
+    public final static String SYNC_STARTED = TAG + ".started";
+    public final static String SYNC_FINISHED = TAG + ".finished";
+    public final static String SYNC_PROGRESS = TAG + ".progress";
+    public final static String SYNC_PERCENTAGE = TAG + ".percentage";
+    public final static String SYNC_MEASUREMENT_ID = TAG + ".measurement_id";
     private final Context context;
 
     public CyfaceConnectionStatusListener(final @NonNull Context context) {

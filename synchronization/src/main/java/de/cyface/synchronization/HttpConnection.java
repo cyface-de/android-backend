@@ -28,7 +28,7 @@ import android.util.Log;
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
 
-import static de.cyface.synchronization.Constants.DEFAULT_CHARSET;
+import static de.cyface.synchronization.SharedConstants.DEFAULT_CHARSET;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
