@@ -182,9 +182,11 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             syncResult.stats.numConflictDetectedExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
         } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+            // OperationCanceledException is thrown with error message = null which leads to an NPE
+            final String errorMessage = e.getMessage() != null ? e.getMessage() : "onPerformSync threw "+ e.getClass().getSimpleName();
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + errorMessage);
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
+            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), errorMessage);
         } finally {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             for (final ConnectionStatusListener listener : progressListener) {

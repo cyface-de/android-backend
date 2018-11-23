@@ -101,7 +101,7 @@ public class HttpConnection implements Http {
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException, BadRequestException {
 
-        // For performance reasons (docu) set ether fixedLength (known length) or chunked streaming mode
+        // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         connection.setChunkedStreamingMode(0); // we could also calculate the length here
         final BufferedOutputStream os = initOutputStream(connection);
 
@@ -156,7 +156,7 @@ public class HttpConnection implements Http {
                     out.write(buf, 0, bytesRead);
                     out.flush();
                     progress += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((progress * 100) / dataSize);
+                    progressListener.updatedProgress((progress * 100.0f) / dataSize);
                 }
 
                 // Write closing boundary and close stream

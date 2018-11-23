@@ -7,7 +7,7 @@ import android.os.Environment;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.0.3
  * @since 2.0.0
  */
 public final class Constants {
@@ -17,8 +17,8 @@ public final class Constants {
      */
     public final static String TAG = "de.cyface.sync";
 
-    // They may be used by all implementing apps, thus, public
     // TODO: Change these strings between two (STADTRADELN) campaigns.
+
     /**
      * The Cyface account type used to identify all Cyface system accounts.
      */
@@ -35,11 +35,6 @@ public final class Constants {
      * slow down the device and could get unusable.
      */
     public final static long MINIMUM_MEGABYTES_REQUIRED = 100L;
-
-    /**
-     * The charset used to parse Strings (e.g. for JSON data)
-     */
-    public final static String DEFAULT_CHARSET = "UTF-8";
 
     private Constants() {
         // Nothing to do here.

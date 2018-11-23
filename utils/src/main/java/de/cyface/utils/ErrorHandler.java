@@ -8,6 +8,7 @@ import java.util.Collection;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
 import android.util.Log;
 
@@ -73,11 +74,12 @@ public class ErrorHandler extends BroadcastReceiver {
      * @param context the {@link Context}
      * @param errorCode the Cyface error code
      */
-    public static void sendErrorIntent(final Context context, final int errorCode, final String message) {
+    public static void sendErrorIntent(final Context context, final int errorCode, @Nullable final String message) {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         Log.d(TAG, message);
+        //Log.d(TAG, (message != null && message.length() > 0 ? message : "no error message provide"));
     }
 
     @Override

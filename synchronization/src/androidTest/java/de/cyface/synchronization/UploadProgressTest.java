@@ -1,16 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.clearDatabase;
-import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
-import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
-import static de.cyface.synchronization.TestUtils.insertTestDirection;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestRotation;
+import static de.cyface.synchronization.TestUtils.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -49,7 +40,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.0.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -77,17 +68,18 @@ public class UploadProgressTest {
     public void testUploadProgressHappyPath() {
         SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         AccountManager manager = AccountManager.get(context);
-        Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);
+        Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, "https://s1.cyface.de/v1/dcs");
+        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
+        filter.addAction(CyfaceConnectionStatusListener.SYNC_PERCENTAGE); // FIXME: drop
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);
@@ -127,15 +119,14 @@ public class UploadProgressTest {
             context.unregisterReceiver(receiver);
         }
 
-        assertThat(receiver.getCollectedPercentages().size(), is(equalTo(2)));
-        assertThat(receiver.getCollectedPercentages().get(0), is(equalTo(8L / 11L)));
-        assertThat(receiver.getCollectedPercentages().get(1), is(equalTo(11L / 11L)));
+        assertThat(receiver.getCollectedPercentages().size(), is(equalTo(1)));
+        assertThat(receiver.getCollectedPercentages().get(0), is(equalTo(1.0f)));
     }
 }
 
 class TestReceiver extends BroadcastReceiver {
 
-    private final List<Long> collectedPercentages = new LinkedList<>();
+    private final List<Float> collectedPercentages = new LinkedList<>();
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -148,7 +139,7 @@ class TestReceiver extends BroadcastReceiver {
                 Log.d(TAG, "SYNC FINISHED");
                 break;
             case CyfaceConnectionStatusListener.SYNC_PROGRESS:
-                final long percentage = intent.getLongExtra(SYNC_PERCENTAGE, 0);
+                final float percentage = intent.getFloatExtra(SYNC_PERCENTAGE, -1.0f);
                 collectedPercentages.add(percentage);
                 Log.d(TAG, "SYNC PROGRESS: " + percentage + " % ");
                 break;
@@ -160,7 +151,7 @@ class TestReceiver extends BroadcastReceiver {
         }
     }
 
-    public List<Long> getCollectedPercentages() {
+    public List<Float> getCollectedPercentages() {
         return collectedPercentages;
     }
 }

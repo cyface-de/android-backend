@@ -56,6 +56,7 @@ final class MockedHttpConnection implements Http {
             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException, BadRequestException {
+        progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }
 }

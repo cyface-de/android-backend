@@ -36,7 +36,7 @@ import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {

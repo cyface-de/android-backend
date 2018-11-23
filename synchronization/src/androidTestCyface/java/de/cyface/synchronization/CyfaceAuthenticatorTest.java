@@ -24,10 +24,19 @@ import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
+
+/**
+ *
+ * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 1.0.1
+ * @since 2.0.0
+ */
 
 @RunWith(AndroidJUnit4.class)
 @LargeTest
@@ -40,8 +49,8 @@ public class CyfaceAuthenticatorTest {
     public void testAuthenticationHappyPath() throws AuthenticatorException, OperationCanceledException, IOException {
         Context context = InstrumentationRegistry.getTargetContext();
         AccountManager manager = AccountManager.get(context);
-        Account requestAccount = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_FREE_PASSWORD, null);
+        Account requestAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
         AccountManagerCallback callback = new AccountManagerCallback() {
             @Override
@@ -60,7 +69,7 @@ public class CyfaceAuthenticatorTest {
         };
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, "https://s1.cyface.de/v1/dcs");
+        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
@@ -73,7 +82,7 @@ public class CyfaceAuthenticatorTest {
         String authToken = bundle.getString("authtoken");
         assertThat(authToken, not(nullValue()));
         assertThat(authToken.isEmpty(), is(false));
-        assertThat(authToken.startsWith("Bearer "), is(true));
+        assertThat(authToken.startsWith("ey"), is(true)); // Not 100% sure if the token really always starts with ey...
     }
 
 }
