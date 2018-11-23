@@ -19,7 +19,7 @@ import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.SynchronisationException;
 
-import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
+import static de.cyface.synchronization.SharedConstants.AUTH_TOKEN_TYPE;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
