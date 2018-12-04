@@ -1,9 +1,11 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
@@ -52,6 +54,11 @@ import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3D;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.RotationsFile;
 import de.cyface.utils.Validate;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
@@ -65,7 +72,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.16
+ * @version 4.1.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -112,9 +119,22 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to respond to selected events triggered by this service.
      */
     private EventHandlingStrategy eventHandlingStrategy;
-
+    /**
+     * Counter to write the number of points stored in the {@link GeoLocationsFile} to the {@link MetaFile}.
+     */
     private int geoLocationCounter = 0;
+    /**
+     * Counter to write the number of points stored in the {@link AccelerationsFile} to the {@link MetaFile}.
+     */
     private int accelerationPointCounter = 0;
+    /**
+     * Counter to write the number of points stored in the {@link RotationsFile} to the {@link MetaFile}.
+     */
+    private int rotationPointCounter = 0;
+    /**
+     * Counter to write the number of points stored in the {@link DirectionsFile} to the {@link MetaFile}.
+     */
+    private int directionPointCounter = 0;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -188,6 +208,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
         bundle.putInt(GEOLOCATION_COUNT, geoLocationCounter);
         bundle.putInt(ACCELERATION_POINT_COUNT, accelerationPointCounter);
+        bundle.putInt(ROTATION_POINT_COUNT, rotationPointCounter);
+        bundle.putInt(DIRECTION_POINT_COUNT, directionPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED, bundle);
     }
 
@@ -206,6 +228,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
         bundle.putInt(GEOLOCATION_COUNT, geoLocationCounter);
         bundle.putInt(ACCELERATION_POINT_COUNT, accelerationPointCounter);
+        bundle.putInt(ROTATION_POINT_COUNT, rotationPointCounter);
+        bundle.putInt(DIRECTION_POINT_COUNT, directionPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
@@ -232,11 +256,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             }
             this.currentMeasurementIdentifier = measurementIdentifier;
 
-            // Restore counter state (if resume)
+            // Restore counter state after (if counts are provided, i.e. resuming capturing)
             geoLocationCounter = intent.getIntExtra(BundlesExtrasCodes.GEOLOCATION_COUNT, -1);
             accelerationPointCounter = intent.getIntExtra(BundlesExtrasCodes.ACCELERATION_POINT_COUNT, -1);
-            Log.d(TAG, "Restored Counters: " + geoLocationCounter + " and " + accelerationPointCounter);
-            Validate.isTrue(geoLocationCounter >= 0 && accelerationPointCounter >= 0);
+            rotationPointCounter = intent.getIntExtra(BundlesExtrasCodes.ROTATION_POINT_COUNT, -1);
+            directionPointCounter = intent.getIntExtra(BundlesExtrasCodes.DIRECTION_POINT_COUNT, -1);
+            Validate.isTrue(geoLocationCounter >= 0 && accelerationPointCounter >= 0 && rotationPointCounter >= 0
+                    && directionPointCounter >= 0);
 
             // Load persistence layer
             persistenceLayer = new MeasurementPersistence();
@@ -329,7 +355,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 }
             });
             accelerationPointCounter += data.getAccelerations().size();
-            Log.d(TAG, "accelerationPointCounter " + accelerationPointCounter);
+            rotationPointCounter += data.getRotations().size();
+            directionPointCounter += data.getDirections().size();
         }
     }
 
