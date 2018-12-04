@@ -36,9 +36,9 @@ import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.model.AccelerationsSerializer;
-import de.cyface.persistence.model.DirectionsSerializer;
-import de.cyface.persistence.model.RotationsSerializer;
+import de.cyface.persistence.serialization.AccelerationsSerializer;
+import de.cyface.persistence.serialization.DirectionsSerializer;
+import de.cyface.persistence.serialization.RotationsSerializer;
 
 /**
  * Tests that instances of the <code>MeasurementContentProviderClient</code> do work correctly.

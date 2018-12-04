@@ -6,7 +6,7 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.AccelerationsFile;
+import de.cyface.persistence.serialization.AccelerationsFile;
 
 /**
  * A class responsible for writing captured sensor data to the underlying persistence layer.

@@ -1,8 +1,8 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNTER_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNTER_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
@@ -49,7 +49,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.persistence.MetaFile;
+import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.ConnectionStatusListener;
@@ -603,8 +603,8 @@ public abstract class DataCapturingService {
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
-        startIntent.putExtra(GEOLOCATION_COUNTER_ID, metaData.countOfGeoLocations);
-        startIntent.putExtra(ACCELERATION_POINT_COUNTER_ID, metaData.countOfAccelerations);
+        startIntent.putExtra(GEOLOCATION_COUNT, metaData.countOfGeoLocations);
+        startIntent.putExtra(ACCELERATION_POINT_COUNT, metaData.countOfAccelerations);
 
         final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -1034,8 +1034,8 @@ public abstract class DataCapturingService {
         }
 
         private void persistPointMetaData(Bundle stoppedInfoBundle, long measurementIdentifier) {
-            final int geoLocationCounter = stoppedInfoBundle.getInt(GEOLOCATION_COUNTER_ID);
-            final int accelerationPointCounter = stoppedInfoBundle.getInt(ACCELERATION_POINT_COUNTER_ID);
+            final int geoLocationCounter = stoppedInfoBundle.getInt(GEOLOCATION_COUNT);
+            final int accelerationPointCounter = stoppedInfoBundle.getInt(ACCELERATION_POINT_COUNT);
             Log.d(TAG, "Counter: " + geoLocationCounter + " " + accelerationPointCounter);
             MetaFile.append(measurementIdentifier,
                     new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter, 0, 0));

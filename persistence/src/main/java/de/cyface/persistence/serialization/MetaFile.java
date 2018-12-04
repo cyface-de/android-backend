@@ -1,7 +1,7 @@
-package de.cyface.persistence;
+package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.MeasurementSerializer.DATA_FORMAT_VERSION;
+import static de.cyface.persistence.serialization.MeasurementSerializer.DATA_FORMAT_VERSION;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -13,16 +13,17 @@ import java.io.IOException;
 
 import android.util.Log;
 
+import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.Vehicle;
 
 public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
 
     private final File file;
-    public static final String fileName = "m";
-    public static final String fileExtension = "cyfm";
+    public static final String FILE_NAME = "m";
+    public static final String FILE_EXTENSION = "cyfm";
 
     public MetaFile(final long measurementId, final Vehicle vehicle) {
-        this.file = Constants.createFile(measurementId, fileName, fileExtension);
+        this.file = Utils.createFile(measurementId, FILE_NAME, FILE_EXTENSION);
         // In case the PointMetaData is not persisted as the end of the capturing, appending the
         // vehicle at the beginning of the capturing allows to restore the corrupted data later on
         write(vehicle);
@@ -57,9 +58,9 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
 
     private static File loadFile(final long measurementId) {
         final File fileFinished = new File(
-                Constants.getFolderName(false, measurementId) + File.separator + fileName + "." + fileExtension);
+                Utils.getFolderName(false, measurementId) + File.separator + FILE_NAME + "." + FILE_EXTENSION);
         final File fileOpen = new File(
-                Constants.getFolderName(true, measurementId) + File.separator + fileName + "." + fileExtension);
+                Utils.getFolderName(true, measurementId) + File.separator + FILE_NAME + "." + FILE_EXTENSION);
         if (!fileFinished.exists() && !fileOpen.exists()) {
             throw new IllegalStateException("Cannot append PointMetaData to MetaFile because it does not yet exist");
         }
@@ -112,7 +113,10 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
     }
 
     public static class PointMetaData {
-        final int countOfGeoLocations, countOfAccelerations, countOfRotations, countOfDirections;
+        private final int countOfGeoLocations;
+        private final int countOfAccelerations;
+        private final int countOfRotations;
+        private final int countOfDirections;
 
         public PointMetaData(int countOfGeoLocations, int countOfAccelerations, int countOfRotations,
                 int countOfDirections) {
@@ -128,15 +132,39 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
                     + countOfAccelerations + ", countOfRotations=" + countOfRotations + ", countOfDirections="
                     + countOfDirections + '}';
         }
+
+        int getCountOfGeoLocations() {
+            return countOfGeoLocations;
+        }
+
+        int getCountOfAccelerations() {
+            return countOfAccelerations;
+        }
+
+        int getCountOfRotations() {
+            return countOfRotations;
+        }
+
+        int getCountOfDirections() {
+            return countOfDirections;
+        }
     }
 
     public static class MetaData {
-        public final Vehicle vehicle;
-        public final PointMetaData pointMetaData;
+        private final Vehicle vehicle;
+        private final PointMetaData pointMetaData;
 
         MetaData(Vehicle vehicle, PointMetaData pointMetaData) {
             this.vehicle = vehicle;
             this.pointMetaData = pointMetaData;
+        }
+
+        public Vehicle getVehicle() {
+            return vehicle;
+        }
+
+        public PointMetaData getPointMetaData() {
+            return pointMetaData;
         }
     }
 }

@@ -1,11 +1,15 @@
 package de.cyface.datacapturing;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+
 /**
  * A utility class collecting all codes identifying extras used to transmit data via bundles in this application.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @since 2.0.3
+ * @since 2.1.0
  * @version 2.1.0
  */
 public class BundlesExtrasCodes {
@@ -33,8 +37,30 @@ public class BundlesExtrasCodes {
      * Code that identifies the {@link EventHandlingStrategy} if transmitted via an Android bundle.
      */
     public static final String EVENT_HANDLING_STRATEGY_ID = "de.cyface.event_handling_strategy.id";
-    public static final String GEOLOCATION_COUNTER_ID = "de.cyface.extra.geolocation_counter";
-    public static final String ACCELERATION_POINT_COUNTER_ID = "de.cyface.extra.acceleration_point_counter";
+    /**
+     * Code that contains the number of entries stored in the {@link GeoLocationsFile} captured. This allows the
+     * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
+     * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
+     */
+    public static final String GEOLOCATION_COUNT = "de.cyface.extra.geolocation.count";
+    /**
+     * Code that contains the number of entries stored in the {@link AccelerationsFile} captured. This allows the
+     * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
+     * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
+     */
+    public static final String ACCELERATION_POINT_COUNT = "de.cyface.extra.acceleration_point.count";
+    /**
+     * Code that contains the number of entries stored in the {@link RotationsFile} captured. This allows the
+     * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
+     * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
+     */
+    public static final String ROTATION_POINT_COUNT = "de.cyface.extra.rotation_point.count";
+    /**
+     * Code that contains the number of entries stored in the {@link DirectionsFile} captured. This allows the
+     * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
+     * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
+     */
+    public static final String DIRECTION_POINT_COUNT = "de.cyface.extra.direction_point.count";
 
     /**
      * Constructor is private to prevent creation of utility class.

@@ -1,7 +1,7 @@
-package de.cyface.persistence;
+package de.cyface.persistence.serialization;
 
-import static de.cyface.persistence.ByteSizes.LONG_BYTES;
-import static de.cyface.persistence.ByteSizes.SHORT_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.Constants.TAG;
 
@@ -13,13 +13,9 @@ import java.util.List;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.persistence.model.AccelerationsSerializer;
-import de.cyface.persistence.model.DirectionsSerializer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3D;
-import de.cyface.persistence.model.Point3DSerializer;
-import de.cyface.persistence.model.RotationsSerializer;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
 
@@ -55,7 +51,7 @@ public final class MeasurementSerializer {
      * The current version of the data format. This is always specified by the first two bytes and allows to process
      * different version in parallel.
      */
-    final static short DATA_FORMAT_VERSION = 1;
+    public final static short DATA_FORMAT_VERSION = 1;
 
     public final static int BYTES_IN_HEADER = 2 + 4 * 4;
 
@@ -108,24 +104,24 @@ public final class MeasurementSerializer {
      * @param metaData Number of data points in the serialized measurement.
      * @return The header byte array.
      */
-    static byte[] serialize(final MetaFile.PointMetaData metaData) {
+    public static byte[] serialize(final MetaFile.PointMetaData metaData) {
         byte[] ret = new byte[16];
-        ret[0] = (byte)(metaData.countOfGeoLocations >> 24);
-        ret[1] = (byte)(metaData.countOfGeoLocations >> 16);
-        ret[2] = (byte)(metaData.countOfGeoLocations >> 8);
-        ret[3] = (byte)metaData.countOfGeoLocations;
-        ret[4] = (byte)(metaData.countOfAccelerations >> 24);
-        ret[5] = (byte)(metaData.countOfAccelerations >> 16);
-        ret[6] = (byte)(metaData.countOfAccelerations >> 8);
-        ret[7] = (byte)metaData.countOfAccelerations;
-        ret[8] = (byte)(metaData.countOfRotations >> 24);
-        ret[9] = (byte)(metaData.countOfRotations >> 16);
-        ret[10] = (byte)(metaData.countOfRotations >> 8);
-        ret[11] = (byte)metaData.countOfRotations;
-        ret[12] = (byte)(metaData.countOfDirections >> 24);
-        ret[13] = (byte)(metaData.countOfDirections >> 16);
-        ret[14] = (byte)(metaData.countOfDirections >> 8);
-        ret[15] = (byte)metaData.countOfDirections;
+        ret[0] = (byte)(metaData.getCountOfGeoLocations() >> 24);
+        ret[1] = (byte)(metaData.getCountOfGeoLocations() >> 16);
+        ret[2] = (byte)(metaData.getCountOfGeoLocations() >> 8);
+        ret[3] = (byte)metaData.getCountOfGeoLocations();
+        ret[4] = (byte)(metaData.getCountOfAccelerations() >> 24);
+        ret[5] = (byte)(metaData.getCountOfAccelerations() >> 16);
+        ret[6] = (byte)(metaData.getCountOfAccelerations() >> 8);
+        ret[7] = (byte)metaData.getCountOfAccelerations();
+        ret[8] = (byte)(metaData.getCountOfRotations() >> 24);
+        ret[9] = (byte)(metaData.getCountOfRotations() >> 16);
+        ret[10] = (byte)(metaData.getCountOfRotations() >> 8);
+        ret[11] = (byte)metaData.getCountOfRotations();
+        ret[12] = (byte)(metaData.getCountOfDirections() >> 24);
+        ret[13] = (byte)(metaData.getCountOfDirections() >> 16);
+        ret[14] = (byte)(metaData.getCountOfDirections() >> 8);
+        ret[15] = (byte)metaData.getCountOfDirections();
         return ret;
     }
 
@@ -135,7 +131,7 @@ public final class MeasurementSerializer {
      * @param location The {@code GeoLocation} to serialize.
      * @return A <code>byte</code> array containing all the data.
      */
-    static byte[] serialize(final @NonNull GeoLocation location) {
+    public static byte[] serialize(final @NonNull GeoLocation location) {
         // Allocate enough space for all geo locations
         Log.d(TAG, "Serializing 1 geo location.");
         final ByteBuffer buffer = ByteBuffer.allocate(BYTES_IN_ONE_GEO_LOCATION_ENTRY);
@@ -158,7 +154,7 @@ public final class MeasurementSerializer {
      *
      * @return A <code>byte</code> array containing all the data.
      */
-    static byte[] serialize(final @NonNull List<Point3D> dataPoints) {
+    public static byte[] serialize(final @NonNull List<Point3D> dataPoints) {
         Log.d(TAG, String.format("Serializing %d data points!", dataPoints.size()));
         final ByteBuffer buffer = ByteBuffer.allocate(dataPoints.size() * BYTES_IN_ONE_POINT_ENTRY);
         for (Point3D point : dataPoints) {
@@ -181,7 +177,7 @@ public final class MeasurementSerializer {
      * @param vehicle A {@code Vehicle} context to serialize
      * @return A <code>byte</code> array containing the data
      */
-    static byte[] serialize(final @NonNull Vehicle vehicle) {
+    public static byte[] serialize(final @NonNull Vehicle vehicle) {
         Log.d(TAG, "Serializing vehicle " + vehicle.name());
         final byte[] bytes;
         try {
@@ -211,7 +207,7 @@ public final class MeasurementSerializer {
      * @param event The {@code Event} to serialize.
      * @return A <code>byte</code> array containing all the data.
      */
-    static byte[] serialize(final @NonNull Event event) {
+    public static byte[] serialize(final @NonNull Event event) {
         Log.d(TAG, "Serializing event of type: " + event.name());
         final byte[] bytes;
         try {
@@ -233,7 +229,7 @@ public final class MeasurementSerializer {
         return payload;
     }
 
-    static MetaFile.MetaData deserialize(final byte[] metaFileBytes) {
+    public static MetaFile.MetaData deserialize(final byte[] metaFileBytes) {
 
         final ByteBuffer buffer = ByteBuffer.wrap(metaFileBytes); // FIXME big-endian by default
         final short dataFormatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort();

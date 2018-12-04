@@ -1,8 +1,8 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNTER_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNTER_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
@@ -186,8 +186,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
         bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
-        bundle.putInt(GEOLOCATION_COUNTER_ID, geoLocationCounter);
-        bundle.putInt(ACCELERATION_POINT_COUNTER_ID, accelerationPointCounter);
+        bundle.putInt(GEOLOCATION_COUNT, geoLocationCounter);
+        bundle.putInt(ACCELERATION_POINT_COUNT, accelerationPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED, bundle);
     }
 
@@ -204,8 +204,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
-        bundle.putInt(GEOLOCATION_COUNTER_ID, geoLocationCounter);
-        bundle.putInt(ACCELERATION_POINT_COUNTER_ID, accelerationPointCounter);
+        bundle.putInt(GEOLOCATION_COUNT, geoLocationCounter);
+        bundle.putInt(ACCELERATION_POINT_COUNT, accelerationPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
@@ -233,8 +233,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             this.currentMeasurementIdentifier = measurementIdentifier;
 
             // Restore counter state (if resume)
-            geoLocationCounter = intent.getIntExtra(BundlesExtrasCodes.GEOLOCATION_COUNTER_ID, -1);
-            accelerationPointCounter = intent.getIntExtra(BundlesExtrasCodes.ACCELERATION_POINT_COUNTER_ID, -1);
+            geoLocationCounter = intent.getIntExtra(BundlesExtrasCodes.GEOLOCATION_COUNT, -1);
+            accelerationPointCounter = intent.getIntExtra(BundlesExtrasCodes.ACCELERATION_POINT_COUNT, -1);
             Log.d(TAG, "Restored Counters: " + geoLocationCounter + " and " + accelerationPointCounter);
             Validate.isTrue(geoLocationCounter >= 0 && accelerationPointCounter >= 0);
 

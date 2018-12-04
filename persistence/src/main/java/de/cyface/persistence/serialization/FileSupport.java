@@ -1,4 +1,4 @@
-package de.cyface.persistence;
+package de.cyface.persistence.serialization;
 
 /**
  * The protocol for writing accelerations to a file.

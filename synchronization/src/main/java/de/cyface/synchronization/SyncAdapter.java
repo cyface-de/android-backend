@@ -9,7 +9,6 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.concurrent.TimeUnit;
@@ -38,7 +37,7 @@ import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.MeasurementSerializer;
+import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exceptions.BadRequestException;
 import de.cyface.synchronization.exceptions.DatabaseException;
 import de.cyface.synchronization.exceptions.RequestParsingException;

@@ -1,7 +1,6 @@
-package de.cyface.persistence.model;
+package de.cyface.persistence.serialization;
 
 import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.model.Point3DSerializer;
 
 public final class DirectionsSerializer implements Point3DSerializer {
     @Override

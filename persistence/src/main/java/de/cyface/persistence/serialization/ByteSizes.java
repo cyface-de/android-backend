@@ -1,4 +1,4 @@
-package de.cyface.persistence;
+package de.cyface.persistence.serialization;
 
 /**
  * This class encapsulates some constants required to serialize measurement data into the Cyface binary format.

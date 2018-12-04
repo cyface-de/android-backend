@@ -1,6 +1,5 @@
-package de.cyface.persistence.model;
+package de.cyface.persistence.serialization;
 
-import de.cyface.persistence.model.Point3DSerializer;
 import de.cyface.persistence.RotationPointTable;
 
 public final class RotationsSerializer implements Point3DSerializer {

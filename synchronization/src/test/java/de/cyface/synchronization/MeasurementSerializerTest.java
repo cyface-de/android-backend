@@ -1,8 +1,8 @@
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.MeasurementSerializer.BYTES_IN_HEADER;
-import static de.cyface.persistence.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-import static de.cyface.persistence.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -36,8 +36,8 @@ import android.os.RemoteException;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.MeasurementSerializer;
-import de.cyface.persistence.model.Point3DSerializer;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.Point3DSerializer;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.

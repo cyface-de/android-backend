@@ -1,4 +1,4 @@
-package de.cyface.persistence;
+package de.cyface.persistence.serialization;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -6,16 +6,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
+import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.Point3D;
 
-public class AccelerationsFile implements FileSupport<List<Point3D>> {
+public class RotationsFile implements FileSupport<List<Point3D>> {
 
     private final File file;
-    public final String fileName = "a";
-    public final String fileExtension = "cyfa";
+    public final String FILE_NAME = "r";
+    public final String FILE_EXTENSION = "cyfr";
 
-    public AccelerationsFile(final long measurementId) {
-        this.file = Constants.createFile(measurementId, fileName, fileExtension);
+    public RotationsFile(final long measurementId) {
+        this.file = Utils.createFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 
     @Override

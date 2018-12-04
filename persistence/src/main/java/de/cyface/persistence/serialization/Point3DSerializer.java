@@ -1,4 +1,4 @@
-package de.cyface.persistence.model;
+package de.cyface.persistence.serialization;
 
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;

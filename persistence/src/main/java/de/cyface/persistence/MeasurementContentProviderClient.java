@@ -8,13 +8,7 @@ import android.os.RemoteException;
 import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.AbstractCyfaceMeasurementTable;
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.model.Point3DSerializer;
-import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.serialization.Point3DSerializer;
 
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;

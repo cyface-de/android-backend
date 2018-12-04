@@ -1,20 +1,21 @@
-package de.cyface.persistence;
+package de.cyface.persistence.serialization;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
+import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.GeoLocation;
 
 public class GeoLocationsFile implements FileSupport<GeoLocation> {
 
     private final File file;
-    public final String fileName = "g";
-    public final String fileExtension = "cyfg";
+    public final String FILE_NAME = "g";
+    public final String FILE_EXTENSION = "cyfg";
 
     public GeoLocationsFile(final long measurementId) {
-        this.file = Constants.createFile(measurementId, fileName, fileExtension);
+        this.file = Utils.createFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 
     @Override
