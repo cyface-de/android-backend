@@ -71,12 +71,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * for further information.
      */
     private final String authority;
-
     /**
      * A <code>String</code> identifying the account type of the accounts to use for data synchronization.
      */
     private final String accountType;
-
     /**
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
      */

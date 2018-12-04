@@ -3,7 +3,8 @@ package de.cyface.datacapturing.persistence;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.Constants.FINISHED_MEASUREMENTS_PATH;
 import static de.cyface.persistence.Constants.OPEN_MEASUREMENTS_PATH;
-import static de.cyface.persistence.Constants.getAndCreateDirectory;
+import static de.cyface.persistence.Utils.getAndCreateDirectory;
+import static de.cyface.persistence.Utils.getFolderName;
 
 import java.io.File;
 import java.io.FileFilter;
@@ -21,12 +22,11 @@ import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.Constants;
-import de.cyface.persistence.serialization.GeoLocationsFile;
-import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -87,8 +87,8 @@ public class MeasurementPersistence {
         Log.d(TAG, "Closing recent measurements");
         synchronized (this) {
             Validate.notNull(currentMeasurementIdentifier);
-            final File openMeasurementDir = new File(Constants.getFolderName(true, currentMeasurementIdentifier));
-            final File closedMeasurementDir = new File(Constants.getFolderName(false, currentMeasurementIdentifier));
+            final File openMeasurementDir = new File(getFolderName(true, currentMeasurementIdentifier));
+            final File closedMeasurementDir = new File(getFolderName(false, currentMeasurementIdentifier));
 
             if (!closedMeasurementDir.getParentFile().exists()) {
                 if (!closedMeasurementDir.getParentFile().mkdirs()) {
@@ -341,7 +341,7 @@ public class MeasurementPersistence {
      */
     public void delete(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
 
-        final File measurementDir = new File(Constants.getFolderName(false, measurement.getIdentifier()));
+        final File measurementDir = new File(getFolderName(false, measurement.getIdentifier()));
         if (!measurementDir.exists()) {
             throw new IllegalStateException(
                     "Failed to remove non existent finished measurement: " + measurement.getIdentifier());

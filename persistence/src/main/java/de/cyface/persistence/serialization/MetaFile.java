@@ -133,19 +133,19 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
                     + countOfDirections + '}';
         }
 
-        int getCountOfGeoLocations() {
+        public int getCountOfGeoLocations() {
             return countOfGeoLocations;
         }
 
-        int getCountOfAccelerations() {
+        public int getCountOfAccelerations() {
             return countOfAccelerations;
         }
 
-        int getCountOfRotations() {
+        public int getCountOfRotations() {
             return countOfRotations;
         }
 
-        int getCountOfDirections() {
+        public int getCountOfDirections() {
             return countOfDirections;
         }
     }

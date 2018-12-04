@@ -1,9 +1,11 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
@@ -20,7 +22,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import android.Manifest;
 import android.accounts.Account;
 import android.content.ComponentName;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -49,9 +50,10 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.MetaFile.PointMetaData;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
@@ -74,23 +76,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.8
+ * @version 8.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
-    /**
-     * The time in milliseconds after which this object stops waiting for the system to start or stop the Android
-     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
-     * what works under real world conditions.
-     */
-    private static final long START_STOP_TIMEOUT_MILLIS = 10_000L;
 
-    /**
-     * The time in milliseconds after which this object stops waiting for the system to pause or resume the Android
-     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
-     * what works under real world conditions.
-     */
-    private final static long PAUSE_RESUME_TIMEOUT_TIME_MILLIS = 10_000L;
     /*
      * MARK: Properties
      */
@@ -143,9 +133,9 @@ public abstract class DataCapturingService {
      */
     private UIListener uiListener;
     /**
-     * The <code>ContentProvider</code> authority used to identify the content provider used by this
-     * <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
-     * avoid collisions between different apps using the Cyface SDK.
+     * The <code>ContentProvider</code> authority required to request a sync operation in the {@link WiFiSurveyor}.
+     * You should use something world wide unique, like your domain, to avoid collisions between different apps using
+     * the Cyface SDK.
      */
     private String authority;
     /**
@@ -171,10 +161,10 @@ public abstract class DataCapturingService {
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param resolver The <code>ContentResolver</code> used to access the data layer.
-     * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
-     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
-     *            avoid collisions between different apps using the Cyface SDK.
+     * @param authority The <code>ContentProvider</code> authority required to request a sync operation in the
+     *            {@link WiFiSurveyor}.
+     *            You should use something world wide unique, like your domain, to avoid collisions between different
+     *            apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
@@ -182,10 +172,9 @@ public abstract class DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences fails.
      */
-    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
-            throws SetupException {
+    public DataCapturingService(final @NonNull Context context, final @NonNull String authority,
+            final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
+            final @NonNull EventHandlingStrategy eventHandlingStrategy) throws SetupException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
@@ -377,7 +366,7 @@ public abstract class DataCapturingService {
         }
         final Measurement currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
         final MetaFile.MetaData metaData = MetaFile.resume(currentlyOpenMeasurement.getIdentifier());
-        runService(currentlyOpenMeasurement, finishedHandler, metaData.pointMetaData);
+        runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
     }
 
     // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
@@ -431,8 +420,6 @@ public abstract class DataCapturingService {
         Account account = getWiFiSurveyor().getOrCreateAccount(username);
         getWiFiSurveyor().scheduleSyncNow(account);
     }
-
-    // TODO provide a custom list implementation that loads only small portions into memory.
 
     /**
      * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
@@ -571,6 +558,8 @@ public abstract class DataCapturingService {
     /**
      * Starts the associated {@link DataCapturingBackgroundService} and calls the provided
      * <code>startedMessageReceiver</code>, after it successfully started.
+     * Call {@link DataCapturingService#runService(Measurement, StartUpFinishedHandler, PointMetaData)}
+     * instead if you resume a measurement to provide the {@link PointMetaData} from when you paused.
      *
      * @param measurement The measurement to store the captured data to.
      * @param startUpFinishedHandler A handler called if the service started successfully.
@@ -578,20 +567,22 @@ public abstract class DataCapturingService {
      */
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
-        runService(measurement, startUpFinishedHandler, new MetaFile.PointMetaData(0, 0, 0, 0));
+        runService(measurement, startUpFinishedHandler, new PointMetaData(0, 0, 0, 0));
     }
 
     /**
      * Starts the associated {@link DataCapturingBackgroundService} and calls the provided
      * <code>startedMessageReceiver</code>, after it successfully started.
+     * Call {@link DataCapturingService#runService(Measurement, StartUpFinishedHandler)} instead if you
+     * don't resume a measurement to reset the point counters.
      *
      * @param measurement The measurement to store the captured data to.
      * @param startUpFinishedHandler A handler called if the service started successfully.
-     * @param metaData
+     * @param metaData The {@link PointMetaData} from when your paused the measurement to continue the counters.
      * @throws DataCapturingException If service could not be started.
      */
     private synchronized void runService(final Measurement measurement,
-            final @NonNull StartUpFinishedHandler startUpFinishedHandler, MetaFile.PointMetaData metaData)
+            final @NonNull StartUpFinishedHandler startUpFinishedHandler, PointMetaData metaData)
             throws DataCapturingException {
         final Context context = getContext();
         Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
@@ -603,8 +594,10 @@ public abstract class DataCapturingService {
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
-        startIntent.putExtra(GEOLOCATION_COUNT, metaData.countOfGeoLocations);
-        startIntent.putExtra(ACCELERATION_POINT_COUNT, metaData.countOfAccelerations);
+        startIntent.putExtra(GEOLOCATION_COUNT, metaData.getCountOfGeoLocations());
+        startIntent.putExtra(ACCELERATION_POINT_COUNT, metaData.getCountOfAccelerations());
+        startIntent.putExtra(ROTATION_POINT_COUNT, metaData.getCountOfRotations());
+        startIntent.putExtra(DIRECTION_POINT_COUNT, metaData.getCountOfDirections());
 
         final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -1034,11 +1027,12 @@ public abstract class DataCapturingService {
         }
 
         private void persistPointMetaData(Bundle stoppedInfoBundle, long measurementIdentifier) {
-            final int geoLocationCounter = stoppedInfoBundle.getInt(GEOLOCATION_COUNT);
-            final int accelerationPointCounter = stoppedInfoBundle.getInt(ACCELERATION_POINT_COUNT);
-            Log.d(TAG, "Counter: " + geoLocationCounter + " " + accelerationPointCounter);
-            MetaFile.append(measurementIdentifier,
-                    new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter, 0, 0));
+            final int geoLocationCount = stoppedInfoBundle.getInt(GEOLOCATION_COUNT);
+            final int accelerationPointCount = stoppedInfoBundle.getInt(ACCELERATION_POINT_COUNT);
+            final int rotationPointCount = stoppedInfoBundle.getInt(ROTATION_POINT_COUNT);
+            final int directionPointCount = stoppedInfoBundle.getInt(DIRECTION_POINT_COUNT);
+            MetaFile.append(measurementIdentifier, new PointMetaData(geoLocationCount, accelerationPointCount,
+                    rotationPointCount, directionPointCount));
         }
 
         /**
