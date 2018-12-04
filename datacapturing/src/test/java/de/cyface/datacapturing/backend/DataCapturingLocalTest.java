@@ -16,7 +16,7 @@ import java.util.Random;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.Point3D;
+import de.cyface.persistence.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;

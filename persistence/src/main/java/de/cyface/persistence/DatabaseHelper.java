@@ -145,7 +145,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 String rowIdentifier = pathSegments.get(1);
                 switch (pathSegments.get(0)) {
                     case MeasurementTable.URI_PATH:
-                        // Measurement requires to also delete all dependend entries and then call table.deleteRow
+                        // Measurement requires to also delete all dependent entries and then call table.deleteRow
                         // All other database entries just call table.deleteRow directly.
 
                         ret += deleteDataForMeasurement(database, Long.parseLong(rowIdentifier));
@@ -157,7 +157,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         // Add the id specified by the URI to implement expected behaviour of a content resolver, where
                         // the
                         // last element
-                        // of the path is the identifier of the element requested. This is only necessary for single row
+                        // of the createFile is the identifier of the element requested. This is only necessary for single row
                         // deletions.
                         String adaptedSelection = BaseColumns._ID + "=" + rowIdentifier
                                 + (selection == null ? "" : " AND " + selection);
@@ -211,7 +211,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                                 + ". There seems to be no such table.");
                 }
             } else {
-                throw new IllegalStateException("Invalid path in content provider URI: " + uri);
+                throw new IllegalStateException("Invalid createFile in content provider URI: " + uri);
             }
         } finally {
             database.endTransaction();

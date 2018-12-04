@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.model;
+package de.cyface.persistence.model;
 
 import android.os.Parcel;
 import android.os.Parcelable;
@@ -14,7 +14,7 @@ import android.os.Parcelable;
 public abstract class DataPoint implements Parcelable {
     /**
      * The system wide unique identifier for this {@code DataPoint}. If the point was not saved yet it may be
-     * {@code null}, since the persistence layers assigns a unqiue identifier on saving a data point.
+     * {@code null}, since the persistence layers assigns a unique identifier on saving a data point.
      * For AndroidDataAccessLayer.getIdOfNextUnSyncedMeasurement() to work the id must be long ASC
      */
     private Long identifier;
@@ -40,7 +40,7 @@ public abstract class DataPoint implements Parcelable {
 
     /**
      * @return The system wide unique identifier for this {@code DataPoint}. If the point was not saved yet it may be
-     *         {@code null}, since the persistence layers assigns a unqiue identifier on saving a data point.
+     *         {@code null}, since the persistence layers assigns a unique identifier on saving a data point.
      */
     public long getIdentifier() {
         return identifier;

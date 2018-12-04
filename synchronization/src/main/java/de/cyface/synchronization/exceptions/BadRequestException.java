@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.synchronization.exceptions;
 
 /**
  * An {@code Exception} thrown when the server returns an 400 error. The {@code Exception} contains

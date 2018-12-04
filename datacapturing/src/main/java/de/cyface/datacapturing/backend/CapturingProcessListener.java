@@ -4,7 +4,7 @@ import android.location.LocationManager;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 
 /**
  * Interface for all classes that need to listen to events sent by a <code>CapturingProcess</code>.

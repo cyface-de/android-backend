@@ -2,18 +2,18 @@ package de.cyface.datacapturing;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
  * {@link DataCapturingService} via
- * {@link DataCapturingService#startSync(DataCapturingListener, Vehicle)}.
+ * {@link DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} .
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.1
  * @since 1.0.0
  */
 public interface DataCapturingListener {

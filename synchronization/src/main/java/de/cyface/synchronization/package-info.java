@@ -17,7 +17,7 @@
  * <code>MeasuringPointsContentProvider</code> provided via the persistence module.
  * <p>
  * The {@link de.cyface.synchronization.SyncPerformer} is a class containing the actual synchronisation code.
- * {@link de.cyface.synchronization.MeasurementSerializer} transforms data from the
+ * {@link de.cyface.persistence.MeasurementSerializer} transforms data from the
  * <code>MeasuringPointsContentProvider</code> into the Cyface binary format.
  *
  * @author Klemens Muthmann

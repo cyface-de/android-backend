@@ -44,6 +44,9 @@ import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Point3D;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses

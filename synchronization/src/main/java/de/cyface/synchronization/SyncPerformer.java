@@ -24,6 +24,15 @@ import android.content.SyncResult;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.persistence.Constants;
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.DataTransmissionException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
+import de.cyface.synchronization.exceptions.ResponseParsingException;
+import de.cyface.synchronization.exceptions.ServerUnavailableException;
+import de.cyface.synchronization.exceptions.SynchronisationException;
+import de.cyface.synchronization.exceptions.UnauthorizedException;
+
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
  * measurements.
@@ -91,7 +100,7 @@ class SyncPerformer {
             throws RequestParsingException, BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
-        final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
+        final String fileName = String.format(Locale.GERMAN, "%s_%d.%s", deviceIdentifier, measurementIdentifier, Constants.FILE_EXTENSION);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));

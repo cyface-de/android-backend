@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.persistence;
 
 import android.content.ContentProviderClient;
 import android.content.ContentValues;
@@ -13,6 +13,7 @@ import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.model.Point3DSerializer;
 import de.cyface.persistence.RotationPointTable;
 
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
@@ -58,8 +59,8 @@ public class MeasurementContentProviderClient {
      *            not possible to retrieve this from the <code>client</code> itself. To communicate with the client this
      *            information is required and so needs to be injected explicitly.
      */
-    MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client,
-            final String authority) {
+    public MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client,
+                                            final String authority) {
         this.measurementIdentifier = measurementIdentifier;
         this.client = client;
         this.authority = authority;
@@ -110,7 +111,7 @@ public class MeasurementContentProviderClient {
      * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
-    long countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName)
+    public int countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName)
             throws RemoteException {
         Cursor cursor = null;
 
@@ -137,7 +138,7 @@ public class MeasurementContentProviderClient {
      * @return A <code>Cursor</code> on one kind of data points stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
-    Cursor load3DPoint(final @NonNull Point3DSerializer serializer) throws RemoteException {
+    public Cursor load3DPoint(final @NonNull Point3DSerializer serializer) throws RemoteException {
         final Uri contentProviderUri = new Uri.Builder().scheme("content").authority(authority)
                 .appendPath(serializer.getTableUriPathSegment()).build();
         return client.query(contentProviderUri,
@@ -180,7 +181,7 @@ public class MeasurementContentProviderClient {
      * @return The amount of deleted data points.
      * @throws RemoteException If the content provider is not accessible.
      */
-    int cleanMeasurement() throws RemoteException {
+    public int cleanMeasurement() throws RemoteException {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_SYNCED, true);
         client.update(
@@ -227,8 +228,8 @@ public class MeasurementContentProviderClient {
      * @throws RemoteException If the query to the content provider has not been successful.
      * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
      */
-    static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider,
-            final @NonNull String authority) throws RemoteException {
+    public static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider,
+                                                  final @NonNull String authority) throws RemoteException {
         final Uri measurementTableUri = new Uri.Builder().scheme("content").authority(authority)
                 .appendPath(MeasurementTable.URI_PATH).build();
         final Cursor ret = provider.query(measurementTableUri, null,

@@ -16,7 +16,7 @@ import android.util.Log;
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
     /**
-     * The path segment in the table URI identifying the measurements table.
+     * The createFile segment in the table URI identifying the measurements table.
      */
     public final static String URI_PATH = "measurement";
     /**

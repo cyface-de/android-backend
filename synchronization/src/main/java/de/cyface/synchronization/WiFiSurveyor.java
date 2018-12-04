@@ -18,6 +18,8 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.synchronization.exceptions.SynchronisationException;
+
 /**
  * An instance of this class is responsible for surveying the state of the devices WiFi connection. If WiFi is active,
  * data is going to be synchronized continuously.

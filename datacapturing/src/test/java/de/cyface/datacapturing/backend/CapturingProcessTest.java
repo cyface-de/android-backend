@@ -28,7 +28,7 @@ import android.os.HandlerThread;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.utils.Validate;
 
 /**
@@ -95,7 +95,7 @@ public class CapturingProcessTest {
     }
 
     /**
-     * Tests the happy path of capturing accelerometer data with 200 Hz and geo locations with 1 Hz.
+     * Tests the happy createFile of capturing accelerometer data with 200 Hz and geo locations with 1 Hz.
      */
     @Test
     public void testCaptureSensorDataAlongWithGeoLocation() {

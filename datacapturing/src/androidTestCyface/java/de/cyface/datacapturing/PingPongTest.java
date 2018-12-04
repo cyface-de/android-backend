@@ -25,7 +25,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * This test checks that the ping pong mechanism, which is used to check if a service is running or not, works as

@@ -1,5 +1,20 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNTER_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNTER_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
+import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
+
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.Service;
@@ -32,18 +47,14 @@ import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.datacapturing.ui.CapturingNotification;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Point3D;
 import de.cyface.utils.Validate;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -101,6 +112,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to respond to selected events triggered by this service.
      */
     private EventHandlingStrategy eventHandlingStrategy;
+
+    private int geoLocationCounter = 0;
+    private int accelerationPointCounter = 0;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -172,6 +186,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
         bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
+        bundle.putInt(GEOLOCATION_COUNTER_ID, geoLocationCounter);
+        bundle.putInt(ACCELERATION_POINT_COUNTER_ID, accelerationPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED, bundle);
     }
 
@@ -188,6 +204,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        bundle.putInt(GEOLOCATION_COUNTER_ID, geoLocationCounter);
+        bundle.putInt(ACCELERATION_POINT_COUNTER_ID, accelerationPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
@@ -214,14 +232,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             }
             this.currentMeasurementIdentifier = measurementIdentifier;
 
-            // Loads authority / persistence layer
-            if (!intent.hasExtra(AUTHORITY_ID)) {
-                throw new IllegalStateException(
-                        "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
-                                + AUTHORITY_ID);
-            }
-            final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-            persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
+            // Restore counter state (if resume)
+            geoLocationCounter = intent.getIntExtra(BundlesExtrasCodes.GEOLOCATION_COUNTER_ID, -1);
+            accelerationPointCounter = intent.getIntExtra(BundlesExtrasCodes.ACCELERATION_POINT_COUNTER_ID, -1);
+            Log.d(TAG, "Restored Counters: " + geoLocationCounter + " and " + accelerationPointCounter);
+            Validate.isTrue(geoLocationCounter >= 0 && accelerationPointCounter >= 0);
+
+            // Load persistence layer
+            persistenceLayer = new MeasurementPersistence();
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
@@ -230,8 +248,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(
-                MessageCodes.getServiceStartedActionId(this));
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
@@ -311,6 +328,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     // Nothing to do here!
                 }
             });
+            accelerationPointCounter += data.getAccelerations().size();
+            Log.d(TAG, "accelerationPointCounter " + accelerationPointCounter);
         }
     }
 
@@ -332,6 +351,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
         persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
+        geoLocationCounter++;
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");

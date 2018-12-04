@@ -16,16 +16,11 @@ import android.util.Log;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.0
  */
 public final class SyncService extends Service {
 
-    /**
-     * The settings key used to identify the settings storing the device or rather installation identifier of the
-     * current app. This identifier is used to anonymously group measurements from the same device together.
-     */
-    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
     /**
      * The settings key used to identify the settings storing the URL of the server to upload data to.
      */

@@ -12,7 +12,7 @@ import android.provider.BaseColumns;
  */
 public class RotationPointTable extends AbstractCyfaceMeasurementTable {
     /**
-     * The path segment in the table URI identifying the rotations table.
+     * The createFile segment in the table URI identifying the rotations table.
      */
     public final static String URI_PATH = "rotation";
 

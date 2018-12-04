@@ -23,8 +23,8 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 

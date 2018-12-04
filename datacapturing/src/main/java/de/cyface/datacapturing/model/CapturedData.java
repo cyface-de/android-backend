@@ -8,6 +8,8 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
 
+import de.cyface.persistence.model.Point3D;
+
 /**
  * Immutable data handling object for captured data.
  *

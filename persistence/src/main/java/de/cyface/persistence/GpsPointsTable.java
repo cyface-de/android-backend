@@ -17,7 +17,7 @@ import android.util.Log;
 public class GpsPointsTable extends AbstractCyfaceMeasurementTable {
 
     /**
-     * The path segment in the table URI identifying the geo locations table.
+     * The createFile segment in the table URI identifying the geo locations table.
      */
     public final static String URI_PATH = "measuring";
     /**

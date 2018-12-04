@@ -1,9 +1,10 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.SharedConstants.TAG;
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
@@ -35,7 +36,12 @@ import android.util.Log;
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.MeasurementSerializer;
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.DatabaseException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
 import de.cyface.utils.Validate;
 
 /**
@@ -73,8 +79,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @param allowParallelSyncs For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @see AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context, boolean)
      */
-    private SyncAdapter(final @NonNull Context context, final boolean autoInitialize,
-                        final boolean allowParallelSyncs, final @NonNull Http http) {
+    private SyncAdapter(final @NonNull Context context, final boolean autoInitialize, final boolean allowParallelSyncs,
+            final @NonNull Http http) {
         super(context, autoInitialize, allowParallelSyncs);
 
         this.http = http;
@@ -84,8 +90,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     @Override
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
-                              final @NonNull String authority, final @NonNull ContentProviderClient provider,
-                              final @NonNull SyncResult syncResult) {
+            final @NonNull String authority, final @NonNull ContentProviderClient provider,
+            final @NonNull SyncResult syncResult) {
         Log.d(TAG, "Sync started.");
 
         final Context context = getContext();
@@ -93,8 +99,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         Cursor syncableMeasurementsCursor = null;
         final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, SharedConstants.AUTH_TOKEN_TYPE,
-                null, false, null, null);
+        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account,
+                SharedConstants.AUTH_TOKEN_TYPE, null, false, null, null);
 
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
@@ -110,7 +116,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
 
-            final String deviceId = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+            final String deviceId = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
             Validate.notNull(deviceId,
                     "Sync canceled: No installation identifier for this application set in its preferences.");
 
@@ -131,15 +137,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 // Load serialized measurement
                 final long measurementId = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
-                        measurementId, provider, authority);
-                Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.",
-                        measurementId));
-                final InputStream data = serializer.serializeCompressed(loader);
+                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementId,
+                        provider, authority);
+                Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.", measurementId));
+                // FIXME: final InputStream data = serializer.serializeCompressed(loader);
 
                 // Synchronize measurement
-                final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl, measurementId, deviceId,
-                        data, new UploadProgressListener() {
+                final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
+                        measurementId, deviceId, null, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 for (final ConnectionStatusListener listener : progressListener) {
@@ -157,14 +162,16 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         // we implemented the Cyface Byte Format synchronization. #CY-3592
 
                         // We delete the data of each point type separately to avoid #CY-3859 parcel size error.
-                        /*deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
-                        deletePointsOfType(provider, authority, measurementSlice, accelerationJsonMapper);
-                        deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
-                        deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);*/
+                        /*
+                         * deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
+                         * deletePointsOfType(provider, authority, measurementSlice, accelerationJsonMapper);
+                         * deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
+                         * deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);
+                         */
 
                         loader.cleanMeasurement();
                         Log.d(TAG, "Measurement marked as synced.");
-                    } catch (/*final OperationApplicationException | */RemoteException e) {
+                    } catch (/* final OperationApplicationException | */RemoteException e) {
                         throw new DatabaseException("Failed to apply the delete operation: " + e.getMessage(), e);
                     }
                 } // FIXME: else maybe reset sync progress
@@ -173,7 +180,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
-        } catch (final RequestParsingException/* | SynchronisationException*/ e) {
+        } catch (final RequestParsingException/* | SynchronisationException */ e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
@@ -183,7 +190,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
         } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
             // OperationCanceledException is thrown with error message = null which leads to an NPE
-            final String errorMessage = e.getMessage() != null ? e.getMessage() : "onPerformSync threw "+ e.getClass().getSimpleName();
+            final String errorMessage = e.getMessage() != null ? e.getMessage()
+                    : "onPerformSync threw " + e.getClass().getSimpleName();
             Log.w(TAG, e.getClass().getSimpleName() + ": " + errorMessage);
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), errorMessage);

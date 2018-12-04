@@ -1,7 +1,8 @@
 package de.cyface.synchronization;
 
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
@@ -43,6 +44,14 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.DataTransmissionException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
+import de.cyface.synchronization.exceptions.ResponseParsingException;
+import de.cyface.synchronization.exceptions.ServerUnavailableException;
+import de.cyface.synchronization.exceptions.SynchronisationException;
+import de.cyface.synchronization.exceptions.UnauthorizedException;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -269,7 +278,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             BadRequestException {
         Log.v(TAG, "Init Sync!");
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String installationIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         if (installationIdentifier == null) {
             throw new IllegalStateException("No installation identifier for this application set in its preferences.");
         }

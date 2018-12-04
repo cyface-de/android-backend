@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.persistence.model;
 
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
@@ -10,16 +10,16 @@ import de.cyface.persistence.RotationPointTable;
  * serialization.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  * @see AccelerationPointTable
  * @see RotationPointTable
  * @see DirectionPointTable
  */
-interface Point3DSerializer {
+public interface Point3DSerializer {
 
     /**
-     * @return The path segment from the <code>ContentProvider</code> URI, which identifies the table containing the data points.
+     * @return The createFile segment from the <code>ContentProvider</code> URI, which identifies the table containing the data points.
      */
     String getTableUriPathSegment();
 

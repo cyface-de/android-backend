@@ -12,7 +12,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
-import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowConnectivityManager;
 import org.robolectric.shadows.ShadowNetworkInfo;
 
@@ -22,6 +21,8 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+
+import de.cyface.synchronization.exceptions.SynchronisationException;
 
 /**
  * Tests the correct functionality of the <code>WiFiSurveyor</code> class. This test requires an active WiFi connection

@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.model;
+package de.cyface.persistence.model;
 
 /**
  * The vehicle context to choose from when starting a measurement.

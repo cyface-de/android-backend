@@ -11,6 +11,14 @@ import javax.net.ssl.SSLContext;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.DataTransmissionException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
+import de.cyface.synchronization.exceptions.ResponseParsingException;
+import de.cyface.synchronization.exceptions.ServerUnavailableException;
+import de.cyface.synchronization.exceptions.SynchronisationException;
+import de.cyface.synchronization.exceptions.UnauthorizedException;
+
 /**
  * An interface for http connections.
  *

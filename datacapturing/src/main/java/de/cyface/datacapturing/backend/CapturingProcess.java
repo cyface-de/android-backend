@@ -24,8 +24,8 @@ import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Point3D;
 import de.cyface.utils.Validate;
 
 /**

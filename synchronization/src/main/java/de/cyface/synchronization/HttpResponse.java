@@ -5,6 +5,10 @@ import org.json.JSONObject;
 
 import java.net.HttpURLConnection;
 
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.ResponseParsingException;
+import de.cyface.synchronization.exceptions.UnauthorizedException;
+
 /**
  * Internal value object class for the attributes of an HTTP response. It wrappers the HTTP
  * status code as well as a JSON body object.

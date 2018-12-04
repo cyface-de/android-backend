@@ -9,7 +9,7 @@ import android.content.Intent;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
 
 /**

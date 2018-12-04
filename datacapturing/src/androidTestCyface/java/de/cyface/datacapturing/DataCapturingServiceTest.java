@@ -39,7 +39,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.Validate;

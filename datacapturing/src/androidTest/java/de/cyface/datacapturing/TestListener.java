@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.datacapturing.ui.Reason;
 
 /**

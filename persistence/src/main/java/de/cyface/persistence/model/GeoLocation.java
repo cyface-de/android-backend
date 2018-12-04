@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.model;
+package de.cyface.persistence.model;
 
 import static android.content.ContentValues.TAG;
 
@@ -9,10 +9,8 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.datacapturing.DataCapturingService;
-
 /**
- * A position captured by the {@link DataCapturingService}.
+ * A position captured.
  *
  * @author Klemens Muthmann
  * @version 1.2.4

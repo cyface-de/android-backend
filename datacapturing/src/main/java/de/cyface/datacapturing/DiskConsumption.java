@@ -1,8 +1,8 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.Constants.BASE_PATH;
 import static de.cyface.datacapturing.Constants.MINIMUM_MEGABYTES_REQUIRED;
+import static de.cyface.persistence.Constants.EXTERNAL_ROOT_PATH;
 
 import java.util.Locale;
 
@@ -135,7 +135,7 @@ public final class DiskConsumption implements Parcelable {
      * @return The number of bytes of space available.
      */
     public static long bytesAvailable() {
-        final StatFs stat = new StatFs(BASE_PATH);
+        final StatFs stat = new StatFs(EXTERNAL_ROOT_PATH);
         final long bytesAvailable;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) {
             bytesAvailable = stat.getBlockSizeLong() * stat.getAvailableBlocksLong();
@@ -152,7 +152,7 @@ public final class DiskConsumption implements Parcelable {
      * @return The number of bytes of storage.
      */
     public static long storageSize() {
-        final StatFs stat = new StatFs(BASE_PATH);
+        final StatFs stat = new StatFs(EXTERNAL_ROOT_PATH);
         final long bytesStorage;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) {
             bytesStorage = stat.getBlockSizeLong() * stat.getBlockCountLong();

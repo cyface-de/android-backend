@@ -18,7 +18,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * Tests the correct workings of the <code>MeasurementPersistence</code> class.

@@ -1,11 +1,12 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
-import de.cyface.synchronization.SyncService;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
@@ -84,7 +85,7 @@ public class MessageCodes {
      */
     public static String getServiceStartedActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
     }
 
@@ -94,7 +95,7 @@ public class MessageCodes {
      */
     public static String getPingActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PING;
     }
 
@@ -104,7 +105,7 @@ public class MessageCodes {
      */
     public static String getPongActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PONG;
     }
 

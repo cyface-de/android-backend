@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.synchronization.exceptions;
 
 /**
  * An {@code Exception} thrown on errors while submitting data to the Cyface server. The {@code Exception} contains

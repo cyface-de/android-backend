@@ -25,6 +25,7 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 

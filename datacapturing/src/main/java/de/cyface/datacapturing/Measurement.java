@@ -2,12 +2,13 @@ package de.cyface.datacapturing;
 
 import androidx.annotation.Nullable;
 
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * An object of this class represents a single measurement captured by the {@link DataCapturingService}. This usually
- * happens between complementary calls to {@link DataCapturingService#startSync(DataCapturingListener, Vehicle)} )} and
- * {@link DataCapturingService#stopSync()}.
+ * happens between complementary calls to
+ * {@link DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} and
+ * {@link DataCapturingService#stopAsync(ShutDownFinishedHandler)}.
  *
  * @author Klemens Muthmann
  * @version 1.1.3

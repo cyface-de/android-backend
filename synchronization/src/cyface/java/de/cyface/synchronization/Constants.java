@@ -1,4 +1,5 @@
 package de.cyface.synchronization;
+
 /**
  * Final static constants used by multiple classes.
  *
@@ -13,24 +14,16 @@ public final class Constants {
      */
     public final static String TAG = "de.cyface.sync";
     /**
-     * Increasing the _total batch size_ (i.e. sum of all data type batch sizes) leads to more data
-     * loaded into the memory.
-     *
-     * Increasing _on of the batch sizes_ can lead to a "FAILED BINDER TRANSACTION". *
-     * In #CY-3859 this occurred with a parcel size of ~1_380_000 (batch size 6_000).
-     */
-    final static int GEO_LOCATIONS_UPLOAD_BATCH_SIZE = 1_500;
-    final static int ACCELERATIONS_UPLOAD_BATCH_SIZE = 2_000;
-    final static int ROTATIONS_UPLOAD_BATCH_SIZE = 2_000;
-    final static int DIRECTIONS_UPLOAD_BATCH_SIZE = 2_000;
-    /**
      * This may be used by all implementing apps, thus, public
      */
     public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
+
     /**
-     * The charset used to parse Strings (e.g. for JSON data)
+     * The settings key used to identify the settings storing the device or rather installation identifier of the
+     * current app. This identifier is used to anonymously group measurements from the same device together.
      */
-    public final static String DEFAULT_CHARSET = "UTF-8";
+    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
+
     private Constants() {
         // Nothing to do here.
     }

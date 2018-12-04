@@ -9,7 +9,7 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.exceptions.SynchronisationException;
 
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.

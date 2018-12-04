@@ -33,6 +33,8 @@ public class BundlesExtrasCodes {
      * Code that identifies the {@link EventHandlingStrategy} if transmitted via an Android bundle.
      */
     public static final String EVENT_HANDLING_STRATEGY_ID = "de.cyface.event_handling_strategy.id";
+    public static final String GEOLOCATION_COUNTER_ID = "de.cyface.extra.geolocation_counter";
+    public static final String ACCELERATION_POINT_COUNTER_ID = "de.cyface.extra.acceleration_point_counter";
 
     /**
      * Constructor is private to prevent creation of utility class.

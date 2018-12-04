@@ -1,8 +1,9 @@
-package de.cyface.synchronization;
+package de.cyface.persistence.model;
 
 import de.cyface.persistence.DirectionPointTable;
+import de.cyface.persistence.model.Point3DSerializer;
 
-final class DirectionsSerializer implements Point3DSerializer {
+public final class DirectionsSerializer implements Point3DSerializer {
     @Override
     public String getTableUriPathSegment() {
         return DirectionPointTable.URI_PATH;

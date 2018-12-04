@@ -22,11 +22,6 @@ public final class SharedConstants {
     public final static String ACCOUNT_TYPE = "de.cyface";
     public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
 
-    /**
-     * The charset used to parse Strings (e.g. for JSON data)
-     */
-    public final static String DEFAULT_CHARSET = "UTF-8";
-
     private SharedConstants() {
         // Nothing to do here.
     }
