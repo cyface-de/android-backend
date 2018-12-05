@@ -26,5 +26,6 @@ public final class ByteSizes {
      */
     public final static int DOUBLE_BYTES = Double.SIZE / Byte.SIZE;
 
-    public static final int CHARACTER_BYTES = Character.SIZE / Byte.SIZE;
+    // FIXME: why are MOTORBIKE 9 * 1 B instead of 9 * (Character.SIZE / Byte.SIZE = 2B) ?
+    public static final int CHARACTER_BYTES = 1;//Character.SIZE / Byte.SIZE;
 }

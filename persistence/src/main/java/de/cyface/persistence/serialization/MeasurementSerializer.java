@@ -1,13 +1,16 @@
 package de.cyface.persistence.serialization;
 
-import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
-import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.serialization.ByteSizes.CHARACTER_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.INT_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
+import java.util.ArrayList;
 import java.util.List;
 
 import android.support.annotation.NonNull;
@@ -60,21 +63,6 @@ public final class MeasurementSerializer {
      */
     public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
-
-    /**
-     * Serializer for transforming acceleration points into a byte representation.
-     */
-    private final static Point3DSerializer accelerationsSerializer = new AccelerationsSerializer();
-
-    /**
-     * Serializer for transforming rotation points into a byte representation.
-     */
-    private final static Point3DSerializer rotationsSerializer = new RotationsSerializer();
-
-    /**
-     * Serializer for transforming direction points into a byte representation.
-     */
-    private final static Point3DSerializer directionsSerializer = new DirectionsSerializer();
 
     /**
      * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
@@ -229,13 +217,14 @@ public final class MeasurementSerializer {
         return payload;
     }
 
-    public static MetaFile.MetaData deserialize(final byte[] metaFileBytes) {
+    static MetaFile.MetaData deserializeMetaFile(final byte[] metaFileBytes) {
 
-        final ByteBuffer buffer = ByteBuffer.wrap(metaFileBytes); // FIXME big-endian by default
+        final ByteBuffer buffer = ByteBuffer.wrap(metaFileBytes);
         final short dataFormatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort();
         Validate.isTrue(dataFormatVersion == 1, "DATA_FORMAT_VERSION != 1 not yet supported");
 
         final short vehicleIdLength = buffer.order(ByteOrder.BIG_ENDIAN).getShort();
+        Validate.isTrue(metaFileBytes.length == SHORT_BYTES * 2 + vehicleIdLength * CHARACTER_BYTES + 4 * INT_BYTES);
         final byte[] vehicleIdBytes = new byte[vehicleIdLength];
         for (int i = 0; i < vehicleIdLength; i++) {
             vehicleIdBytes[i] = buffer.order(ByteOrder.BIG_ENDIAN).get();
@@ -254,5 +243,30 @@ public final class MeasurementSerializer {
                 buffer.order(ByteOrder.BIG_ENDIAN).getInt(), buffer.order(ByteOrder.BIG_ENDIAN).getInt());
         Log.d(TAG, "Restored PointMetaData: " + pointMetaData);
         return new MetaFile.MetaData(vehicle, pointMetaData);
+    }
+
+    static List<GeoLocation> deserializeGeoLocationFile(final byte[] geoLocationFileBytes, final long measurementId) {
+
+        final MetaFile.MetaData metaData = MetaFile.deserialize(measurementId);
+        final int geoLocationCount = metaData.getPointMetaData().getCountOfGeoLocations();
+        Validate.isTrue(geoLocationFileBytes.length == geoLocationCount * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
+        if (geoLocationCount == 0) {
+            return new ArrayList<>();
+        }
+
+        // Deserialize bytes
+        final List<GeoLocation> geoLocations = new ArrayList<>();
+        final ByteBuffer buffer = ByteBuffer.wrap(geoLocationFileBytes);
+        for (int i = 0; i < geoLocationCount; i++) {
+            final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
+            final double lat = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final double lon = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final double speed = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final float accuracyInMeter = buffer.order(ByteOrder.BIG_ENDIAN).getInt() / 100.0f;
+            geoLocations.add(new GeoLocation(lat, lon, timestamp, speed, accuracyInMeter));
+        }
+
+        Log.d(TAG, "Deserialized GeoLocations: " + geoLocations.size());
+        return geoLocations;
     }
 }

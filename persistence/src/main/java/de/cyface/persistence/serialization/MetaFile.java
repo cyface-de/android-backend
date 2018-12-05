@@ -3,11 +3,8 @@ package de.cyface.persistence.serialization;
 import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.serialization.MeasurementSerializer.DATA_FORMAT_VERSION;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
-import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -57,35 +54,22 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
     }
 
     private static File loadFile(final long measurementId) {
-        final File fileFinished = new File(
-                Utils.getFolderName(false, measurementId) + File.separator + FILE_NAME + "." + FILE_EXTENSION);
-        final File fileOpen = new File(
-                Utils.getFolderName(true, measurementId) + File.separator + FILE_NAME + "." + FILE_EXTENSION);
-        if (!fileFinished.exists() && !fileOpen.exists()) {
-            throw new IllegalStateException("Cannot append PointMetaData to MetaFile because it does not yet exist");
-        }
-        return fileFinished.exists() ? fileFinished : fileOpen;
+        return Utils.loadFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 
     public static MetaData resume(final long measurementId) {
+        final MetaData metaData = deserialize(measurementId);
+
+        // Remove counters from MetaFile by creating a new MetaFile
+        new MetaFile(measurementId, metaData.vehicle);
+
+        return metaData;
+    }
+
+    public static MetaData deserialize(final long measurementId) {
         final File file = loadFile(measurementId);
-        try {
-            final byte bytes[] = new byte[(int)file.length()];
-            final BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
-            final DataInputStream inputStream = new DataInputStream(bufferedInputStream);
-            inputStream.readFully(bytes);
-            Log.d(TAG, "Read " + bytes.length + " bytes (from MetaFile)");
-            inputStream.close();
-            bufferedInputStream.close();
-            final MetaData metaData = MeasurementSerializer.deserialize(bytes);
-
-            // Remove counters from MetaFile by creating a new MetaFile
-            new MetaFile(measurementId, metaData.vehicle);
-
-            return metaData;
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to read MetaFile.");
-        }
+        final byte[] bytes = Utils.loadBytes(file);
+        return MeasurementSerializer.deserializeMetaFile(bytes);
     }
 
     @Override
@@ -93,6 +77,8 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         return MeasurementSerializer.serialize(metaData);
     }
 
+    // FIXME: the DATA_FORMAT_VERSION should be written to the transfer file as this defines the transfer format
+    // here we should define another file format type for the decompressed persistence layer file format
     private void write(final Vehicle vehicle) {
 
         final byte[] dataFormatVersionBytes = new byte[2];
