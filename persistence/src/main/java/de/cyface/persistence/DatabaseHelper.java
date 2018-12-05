@@ -21,7 +21,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.3
+ * @version 4.0.0
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -34,27 +34,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      */
-    private final static int DATABASE_VERSION = 8;
+    private final static int DATABASE_VERSION = 9;
     /**
-     * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
+     * The table containing all the measurement-independent identifiers.
      */
-    private final MeasurementTable measurementTable;
-    /**
-     * The table to store all the geo locations captured on the device.
-     */
-    private final GpsPointsTable geoLocationsTable;
-    /**
-     * The table to store all the accelerations captured on the device.
-     */
-    private final AccelerationPointTable accelerationsTable;
-    /**
-     * The table to store all the rotations captured on the device.
-     */
-    private final RotationPointTable rotationsTable;
-    /**
-     * The table to store all the directions captured on the device.
-     */
-    private final DirectionPointTable directionsTable;
+    private final IdentifierTable identifierTable;
 
     /**
      * Creates a new completely initialized <code>DatabaseHelper</code>.
@@ -65,11 +49,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
 
         // Current database structure
-        measurementTable = new MeasurementTable();
-        geoLocationsTable = new GpsPointsTable();
-        accelerationsTable = new AccelerationPointTable();
-        rotationsTable = new RotationPointTable();
-        directionsTable = new DirectionPointTable();
+        identifierTable = new IdentifierTable();
     }
 
     /**
@@ -80,11 +60,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      */
     @Override
     public void onCreate(final SQLiteDatabase db) {
-        measurementTable.onCreate(db);
-        geoLocationsTable.onCreate(db);
-        accelerationsTable.onCreate(db);
-        rotationsTable.onCreate(db);
-        directionsTable.onCreate(db);
+        identifierTable.onCreate(db);
     }
 
     /**
@@ -101,28 +77,30 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
         // Incremental upgrades for existing tables
         // tables contains each table 2 times. We do need to call onUpgrade only once per table
-        measurementTable.onUpgrade(db, oldVersion, newVersion);
-        geoLocationsTable.onUpgrade(db, oldVersion, newVersion);
-        accelerationsTable.onUpgrade(db, oldVersion, newVersion);
-        rotationsTable.onUpgrade(db, oldVersion, newVersion);
-        directionsTable.onUpgrade(db, oldVersion, newVersion);
+        identifierTable.onUpgrade(db, oldVersion, newVersion);
 
         // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
         switch (oldVersion) {
-            case 3:
-                Log.w(TAG, "Upgrading gravity_points from version 3 to 4: dropping table");
-                db.execSQL("DELETE FROM gravity_points; DROP TABLE gravity_points; ");
-                // no break, thus, the upgrade process continues with the next incremental upgrade step ->
-                /*
-                 * case 4:
-                 * db.execSQL(SQL_QUERY_HERE_FOR_UPGRADES_FROM_4_to_5);
-                 */
+            // no break, thus, the upgrade process continues with the next incremental upgrade step ->
+            case 8:
+                Log.w(TAG, "Dropping old tables from version <= 8");
+                db.execSQL("DELETE FROM sample_points; ");
+                db.execSQL("DROP TABLE sample_points; ");
+                db.execSQL("DELETE FROM rotation_points; ");
+                db.execSQL("DROP TABLE rotation_points; ");
+                db.execSQL("DELETE FROM magnetic_value_points; ");
+                db.execSQL("DROP TABLE magnetic_value_points; ");
+                db.execSQL("DELETE FROM gps_points; ");
+                db.execSQL("DROP TABLE gps_points; ");
+                db.execSQL("DELETE FROM measurement; ");
+                db.execSQL("DROP TABLE measurement; ");
+                Log.w(TAG, "Creating identifiers table");
+                identifierTable.onCreate(db); // FIXME: test this before !
         }
     }
 
     /**
-     * Deletes a row or multiple rows (depending on the format of the provided URI) from the database. If you delete a
-     * measurement all corresponding data is cascadingly deleted as well.
+     * Deletes a row or multiple rows (depending on the format of the provided URI) from the database.
      *
      * @param uri The URI specifying the table to delete from. If this ends with a single numeric identifier that row is
      *            deleted otherwise multiple rows might be deleted depending on the <code>selection</code> and
@@ -136,71 +114,14 @@ class DatabaseHelper extends SQLiteOpenHelper {
         List<String> pathSegments = uri.getPathSegments();
         SQLiteDatabase database = getWritableDatabase();
 
-        CyfaceMeasurementTable table = matchTable(uri);
+        CyfaceTable table = matchTable(uri);
 
         int ret = 0;
         database.beginTransaction();
         try {
-            if (pathSegments.size() == 2) {
-                String rowIdentifier = pathSegments.get(1);
+            if (pathSegments.size() == 1) {
                 switch (pathSegments.get(0)) {
-                    case MeasurementTable.URI_PATH:
-                        // Measurement requires to also delete all dependent entries and then call table.deleteRow
-                        // All other database entries just call table.deleteRow directly.
-
-                        ret += deleteDataForMeasurement(database, Long.parseLong(rowIdentifier));
-                        // continues here until return ! -->
-                    case GpsPointsTable.URI_PATH:
-                    case AccelerationPointTable.URI_PATH:
-                    case DirectionPointTable.URI_PATH:
-                    case RotationPointTable.URI_PATH:
-                        // Add the id specified by the URI to implement expected behaviour of a content resolver, where
-                        // the last element of the path is the identifier of the element requested. This is only
-                        // necessary for single row deletions.
-                        String adaptedSelection = BaseColumns._ID + "=" + rowIdentifier
-                                + (selection == null ? "" : " AND " + selection);
-                        ret += table.deleteRow(getWritableDatabase(), adaptedSelection, selectionArgs);
-                        database.setTransactionSuccessful();
-                        return ret;
-                    default:
-                        throw new IllegalStateException("Unknown table identified by content provider URI: " + uri);
-                }
-            } else if (pathSegments.size() == 1) {
-                switch (pathSegments.get(0)) {
-                    case MeasurementTable.URI_PATH:
-                        /*
-                         * TODO: The first part of the following "if" is only required in a very special scenario and
-                         * should not be part of this call.
-                         */
-                        if ((BaseColumns._ID + "<=?").equals(selection)) {
-                            ret += geoLocationsTable.deleteRow(database, GpsPointsTable.COLUMN_MEASUREMENT_FK + "<=?",
-                                    selectionArgs);
-                            ret += rotationsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "<=?",
-                                    selectionArgs);
-                            ret += directionsTable.deleteRow(database,
-                                    DirectionPointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
-                            ret += accelerationsTable.deleteRow(database,
-                                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "<=?", selectionArgs);
-                        } else {
-                            Cursor selectedMeasurementsCursor = null;
-                            try {
-                                selectedMeasurementsCursor = query(uri, new String[] {BaseColumns._ID}, selection,
-                                        selectionArgs, null);
-                                while (selectedMeasurementsCursor.moveToNext()) {
-                                    ret += deleteDataForMeasurement(database, selectedMeasurementsCursor
-                                            .getLong(selectedMeasurementsCursor.getColumnIndex(BaseColumns._ID)));
-                                }
-                            } finally {
-                                if (selectedMeasurementsCursor != null) {
-                                    selectedMeasurementsCursor.close();
-                                }
-                            }
-                        }
-                        // continues here until return ! -->
-                    case GpsPointsTable.URI_PATH:
-                    case AccelerationPointTable.URI_PATH:
-                    case DirectionPointTable.URI_PATH:
-                    case RotationPointTable.URI_PATH:
+                    case IdentifierTable.URI_PATH:
                         ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
                         database.setTransactionSuccessful();
                         return ret;
@@ -217,25 +138,6 @@ class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Cascadingly deletes all data for a single measurement from the database.
-     *
-     * @param database The database object to delete from.
-     * @param measurementIdentifier The device wide unique identifier of the measurement to delete.
-     * @return The number of rows deleted.
-     */
-    private int deleteDataForMeasurement(final @NonNull SQLiteDatabase database, final long measurementIdentifier) {
-        final String[] identifierAsArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
-        int ret = 0;
-
-        ret += geoLocationsTable.deleteRow(database, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
-        ret += rotationsTable.deleteRow(database, RotationPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
-        ret += directionsTable.deleteRow(database, DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
-        ret += accelerationsTable.deleteRow(database, AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                identifierAsArgs);
-        return ret;
-    }
-
-    /**
      * Inserts a single row into a table.
      *
      * @param uri The table to insert the row into.
@@ -243,7 +145,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * @return The identifier of the new row.
      */
     long insertRow(final @NonNull Uri uri, final @NonNull ContentValues values) {
-        final CyfaceMeasurementTable table = matchTable(uri);
+        final CyfaceTable table = matchTable(uri);
         return table.insertRow(getWritableDatabase(), values);
     }
 
@@ -255,7 +157,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * @return An array of identifiers for the newly created table rows.
      */
     long[] bulkInsert(final @NonNull Uri uri, final @NonNull List<ContentValues> values) {
-        CyfaceMeasurementTable table = matchTable(uri);
+        CyfaceTable table = matchTable(uri);
         return table.insertBatch(getWritableDatabase(), values);
     }
 
@@ -270,11 +172,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
      *            '?' and arguments needs to match.
      * @param sortOrder This is either <code>ASC</code> for ascending or <code>DESC</code> for descending.
      * @return A <code>Cursor</code> over the resulting rows. Do not forget to close this cursor after you finished
-     *         reading from it. Preferrably use <code>finally</code> to close the cursor to avoid memory leaks.
+     *         reading from it. Preferably use <code>finally</code> to close the cursor to avoid memory leaks.
      */
     public Cursor query(final @NonNull Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
-        final CyfaceMeasurementTable table = matchTable(uri);
+        final CyfaceTable table = matchTable(uri);
         if (uri.getPathSegments().size() == 1) {
             return table.query(getReadableDatabase(), projection, selection, selectionArgs, sortOrder);
         } else if (uri.getPathSegments().size() == 2) {
@@ -299,7 +201,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      */
     public int update(final @NonNull Uri uri, final @NonNull ContentValues values, final String selection,
             final String[] selectionArgs) {
-        CyfaceMeasurementTable table = matchTable(uri);
+        CyfaceTable table = matchTable(uri);
         if (uri.getPathSegments().size() == 1) {
             return table.update(getWritableDatabase(), values, selection, selectionArgs);
         } else if (uri.getPathSegments().size() == 2) {
@@ -337,20 +239,12 @@ class DatabaseHelper extends SQLiteOpenHelper {
      *            not valid an <code>IllegalArgumentException</code> is thrown.
      * @return The table corresponding to the provided <code>uri</code>.
      */
-    private CyfaceMeasurementTable matchTable(final @NonNull Uri uri) {
+    private CyfaceTable matchTable(final @NonNull Uri uri) {
         String firstPathSegment = uri.getPathSegments().get(0);
 
         switch (firstPathSegment) {
-            case MeasurementTable.URI_PATH:
-                return measurementTable;
-            case AccelerationPointTable.URI_PATH:
-                return accelerationsTable;
-            case GpsPointsTable.URI_PATH:
-                return geoLocationsTable;
-            case RotationPointTable.URI_PATH:
-                return rotationsTable;
-            case DirectionPointTable.URI_PATH:
-                return directionsTable;
+            case IdentifierTable.URI_PATH:
+                return identifierTable;
             default:
                 throw new IllegalStateException("Unknown table with URI: " + uri);
         }

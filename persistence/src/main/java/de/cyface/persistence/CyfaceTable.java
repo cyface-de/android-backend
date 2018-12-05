@@ -15,7 +15,7 @@ import android.database.sqlite.SQLiteDatabase;
  * @version 1.0.0
  * @since 1.0.0
  */
-public interface CyfaceMeasurementTable {
+public interface CyfaceTable {
     /**
      * Called during creation of the database if not already present. This should execute some SQL statements to
      * actually create the table with the correct schema.

@@ -1,6 +1,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
@@ -264,8 +265,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             Validate.isTrue(geoLocationCounter >= 0 && accelerationPointCounter >= 0 && rotationPointCounter >= 0
                     && directionPointCounter >= 0);
 
-            // Load persistence layer
-            persistenceLayer = new MeasurementPersistence();
+            // Load authority / persistence layer
+            if (!intent.hasExtra(AUTHORITY_ID)) {
+                throw new IllegalStateException(
+                        "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
+                                + AUTHORITY_ID);
+            }
+            final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+            persistenceLayer = new MeasurementPersistence(this, this.getContentResolver(), authority);
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();

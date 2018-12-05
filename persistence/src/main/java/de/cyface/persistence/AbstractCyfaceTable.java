@@ -17,19 +17,14 @@ import java.util.Set;
  * @version 1.1.0
  * @since 1.0.0
  */
-public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasurementTable {
-
-    /**
-     * Loading all entries at once seems slower than loading it in chunks of 10k entries (#MOV-248).
-     */
-    public static final int DATABASE_QUERY_LIMIT = 10_000;
+public abstract class AbstractCyfaceTable implements CyfaceTable {
 
     /**
      * The database table name.
      */
     private final String name;
 
-    AbstractCyfaceMeasurementTable(final String name) {
+    AbstractCyfaceTable(final String name) {
         if (name.isEmpty()) {
             throw new IllegalStateException("Database table name may not be empty.");
         }

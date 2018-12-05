@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+import static de.cyface.persistence.AbstractCyfaceTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.getAccelerationsUri;

@@ -24,7 +24,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
@@ -32,14 +31,8 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exceptions.BadRequestException;
-import de.cyface.synchronization.exceptions.DatabaseException;
 import de.cyface.synchronization.exceptions.RequestParsingException;
 import de.cyface.utils.Validate;
 
@@ -120,7 +113,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     "Sync canceled: No installation identifier for this application set in its preferences.");
 
             // Load all Measurements that are finished capturing
-            syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider, authority);
+            // syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider,
+            // authority);
 
             final long unsyncedDataPoints = countUnsyncedDataPoints(provider, syncableMeasurementsCursor, authority);
             for (final ConnectionStatusListener listener : progressListener) {
@@ -136,8 +130,10 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 // Load serialized measurement
                 final long measurementId = syncableMeasurementsCursor
                         .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementId,
-                        provider, authority);
+                /*
+                 * final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementId,
+                 * provider, authority); FIXME
+                 */
                 Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.", measurementId));
                 // FIXME: final InputStream data = serializer.serializeCompressed(loader);
 
@@ -152,30 +148,32 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                             }
                         }, jwtAuthToken);
                 if (transmissionSuccessful) {
-                    try {
-                        // TODO: This way of deleting points is probably rather slow when lots of data is
-                        // stored on old devices (from experience). We had a faster but uglier workaround
-                        // but won't reimplement this here in the SDK. Instead we'll use the Cyface Byte Format
-                        // from the Movebis flavor and the file uploader which we'll implement before releasing this.
-                        // TODO: We should probably remove the unused isSynced flag from the points after
-                        // we implemented the Cyface Byte Format synchronization. #CY-3592
+                    // try {
+                    // TODO: This way of deleting points is probably rather slow when lots of data is
+                    // stored on old devices (from experience). We had a faster but uglier workaround
+                    // but won't reimplement this here in the SDK. Instead we'll use the Cyface Byte Format
+                    // from the Movebis flavor and the file uploader which we'll implement before releasing this.
+                    // TODO: We should probably remove the unused isSynced flag from the points after
+                    // we implemented the Cyface Byte Format synchronization. #CY-3592
 
-                        // We delete the data of each point type separately to avoid #CY-3859 parcel size error.
-                        /*
-                         * deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
-                         * deletePointsOfType(provider, authority, measurementSlice, accelerationJsonMapper);
-                         * deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
-                         * deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);
-                         */
+                    // We delete the data of each point type separately to avoid #CY-3859 parcel size error.
+                    /*
+                     * deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
+                     * deletePointsOfType(provider, authority, measurementSlice, accelerationJsonMapper);
+                     * deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
+                     * deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);
+                     */
 
-                        loader.cleanMeasurement();
-                        Log.d(TAG, "Measurement marked as synced.");
-                    } catch (/* final OperationApplicationException | */RemoteException e) {
-                        throw new DatabaseException("Failed to apply the delete operation: " + e.getMessage(), e);
-                    }
+                    // loader.cleanMeasurement(); FIXME
+                    Log.d(TAG, "Measurement marked as synced.");
+                    /*
+                     * } catch ( final OperationApplicationException | RemoteException e) {
+                     * throw new DatabaseException("Failed to apply the delete operation: " + e.getMessage(), e);
+                     * }
+                     */
                 } // FIXME: else maybe reset sync progress
             }
-        } catch (final DatabaseException | RemoteException e) {
+        } catch (final /* DatabaseException | */RemoteException e) {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
@@ -220,34 +218,20 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         do {
             long measurementIdentifier = syncableMeasurements
                     .getLong(syncableMeasurements.getColumnIndex(BaseColumns._ID));
-            MeasurementContentProviderClient client = new MeasurementContentProviderClient(measurementIdentifier,
-                    provider, authority);
+            /*
+             * MeasurementContentProviderClient client = new MeasurementContentProviderClient(measurementIdentifier,
+             * provider, authority); FIXME
+             */
 
-            ret += client.countData(createGeoLocationsUri(authority), GpsPointsTable.COLUMN_MEASUREMENT_FK);
-            ret += client.countData(createAccelerationsUri(authority), AccelerationPointTable.COLUMN_MEASUREMENT_FK);
-            ret += client.countData(createRotationsUri(authority), RotationPointTable.COLUMN_MEASUREMENT_FK);
-            ret += client.countData(createDirectionsUri(authority), DirectionPointTable.COLUMN_MEASUREMENT_FK);
+            /*
+             * ret += client.countData(createGeoLocationsUri(authority), GpsPointsTable.COLUMN_MEASUREMENT_FK);
+             * ret += client.countData(createAccelerationsUri(authority), AccelerationPointTable.COLUMN_MEASUREMENT_FK);
+             * ret += client.countData(createRotationsUri(authority), RotationPointTable.COLUMN_MEASUREMENT_FK);
+             * ret += client.countData(createDirectionsUri(authority), DirectionPointTable.COLUMN_MEASUREMENT_FK);
+             */ // FIXME
         } while (syncableMeasurements.moveToNext());
         final int offsetToInitialPosition = syncableMeasurements.getPosition() - initialPosition;
         syncableMeasurements.move(-offsetToInitialPosition);
         return ret;
-    }
-
-    private static Uri createGeoLocationsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
-    }
-
-    private static Uri createAccelerationsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH)
-                .build();
-    }
-
-    private static Uri createRotationsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH).build();
-    }
-
-    private static Uri createDirectionsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
-                .build();
     }
 }

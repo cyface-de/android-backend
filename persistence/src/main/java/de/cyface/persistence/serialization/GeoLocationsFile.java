@@ -74,6 +74,6 @@ public class GeoLocationsFile implements FileSupport<GeoLocation> {
     public static List<GeoLocation> deserialize(final Context context, final long measurementId) {
         final File file = loadFile(context, measurementId);
         final byte[] bytes = FileUtils.loadBytes(file);
-        return MeasurementSerializer.deserializeGeoLocationFile(bytes, measurementId);
+        return MeasurementSerializer.deserializeGeoLocationFile(context, bytes, measurementId);
     }
 }

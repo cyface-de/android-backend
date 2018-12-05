@@ -4,7 +4,6 @@
 package de.cyface.persistence;
 
 import java.util.Arrays;
-import java.util.Map;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -26,11 +25,13 @@ import androidx.annotation.NonNull;
 public final class MeasuringPointsContentProvider extends ContentProvider {
 
     /**
-     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant contains the integer value used to represent <code>false</code> values in an SQLite database.
+     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant
+     * contains the integer value used to represent <code>false</code> values in an SQLite database.
      */
     public static final int SQLITE_FALSE = 0;
     /**
-     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant contains the integer value used to represent <code>true</code> values in an SQLite database.
+     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant
+     * contains the integer value used to represent <code>true</code> values in an SQLite database.
      */
     public static final int SQLITE_TRUE = 1;
 
@@ -52,7 +53,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
 
     /**
      * When only one element should be deleted (by id) this method adjusts the url accordingly (i.e. ../ids to ../#id)
-     * 
+     *
      * @param uri The uri identifies the type ob object which should be deleted
      * @param selection The selection defines by which column the deleted object is to be found (e.g. id)
      * @param selectionArgs The selectionArgs contain the column values (e.g. the id(s) of the targeted objects)

@@ -145,7 +145,7 @@ public class FileUtils {
         final File fileOpen = new File(
                 getOpenFolderName(measurementId) + File.separator + fileName + "." + fileExtension);
         final File fileSynced = new File(
-                getOpenFolderName(measurementId) + File.separator + fileName + "." + fileExtension);
+                getSyncedFolderName(measurementId) + File.separator + fileName + "." + fileExtension);
         if (!fileFinished.exists() && !fileOpen.exists() && !fileSynced.exists()) {
             throw new IllegalStateException("Cannot load file because it does not yet exist");
         }

@@ -9,7 +9,11 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
 import android.content.Context;
+import android.database.Cursor;
+import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
@@ -19,6 +23,8 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.FileUtils;
+import de.cyface.persistence.IdentifierTable;
+import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.AccelerationsFile;
@@ -40,9 +46,17 @@ import de.cyface.utils.Validate;
 public class MeasurementPersistence {
 
     /**
+     * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
+     */
+    private final ContentResolver resolver;
+    /**
      * A threadPool to execute operations on their own background threads.
      */
     private ExecutorService threadPool;
+    /**
+     * The authority used to identify the Android content provider to persist data to or load it from.
+     */
+    private final String authority;
     /**
      * Caching the current measurement identifier, so we do not need to ask the database each time we require the
      * current measurement identifier. This is <code>null</code> if there is no running measurement or if we lost the
@@ -77,14 +91,25 @@ public class MeasurementPersistence {
      * Utility class to locate the directory and file paths used for persistence.
      */
     private final FileUtils fileUtils;
+    /**
+     * The {@link Context} required to access the persistence layer.
+     */
+    private final Context context;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
+     * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
+     * @param authority The authority used to identify the Android content provider to persist data to or load it from.
      * @param context The {@link Context} required to locate the app's internal storage directory.
      */
-    public MeasurementPersistence(@NonNull final Context context) {
+    public MeasurementPersistence(@NonNull final Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String authority) {
+        this.resolver = resolver;
         this.threadPool = Executors.newCachedThreadPool();
+        this.authority = authority; // FIXME: this way the SDK implementing app has to provide an authority when
+                                    // delete(measurement)
+        this.context = context;
         this.fileUtils = new FileUtils(context);
         this.openMeasurementsDir = new File(fileUtils.getOpenMeasurementsDirPath());
         this.finishedMeasurementsDir = new File(fileUtils.getFinishedMeasurementsDirPath());
@@ -103,13 +128,52 @@ public class MeasurementPersistence {
      *
      * @param vehicle The vehicle to create a new measurement for.
      * @return The newly created <code>Measurement</code>.
-     */
-    public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
-        final long measurementId = System.currentTimeMillis(); // FIXME: workaround for testing
-        final File dir = fileUtils.getAndCreateDirectory(measurementId);
+     */// FIXME :clean up
+    public Measurement newMeasurement(final @NonNull Vehicle vehicle) throws DataCapturingException {
+        synchronized (this) {
+            Log.d(TAG, "Trying to load measurement identifier from content provider!");
+            Cursor measurementIdentifierQueryCursor = null;
+            try {
+                // Read get measurement id from database
+                synchronized (this) {
+                    measurementIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
+                            new String[] {IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID}, null, null, null);
+                    // This can be null, see documentation
+                    // noinspection ConstantConditions
+                    if (measurementIdentifierQueryCursor == null) {
+                        throw new DataCapturingException("Unable to query for next measurement identifier!");
+                    }
+                    if (measurementIdentifierQueryCursor.getCount() > 1) {
+                        throw new IllegalStateException("More entries than expected");
+                    }
+                    if (!measurementIdentifierQueryCursor.moveToFirst()) {
+                        throw new IllegalStateException("Unable to get next measurement id!");
+                    }
+                    final int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
+                            .getColumnIndex(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID);
+                    currentMeasurementIdentifier = measurementIdentifierQueryCursor
+                            .getLong(indexOfMeasurementIdentifierColumn);
+                    Log.d(TAG, "Providing measurement identifier " + currentMeasurementIdentifier);
+                }
+
+                // Update measurement id counter
+                final ContentValues values = new ContentValues();
+                values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, currentMeasurementIdentifier + 1);
+                final int updatedRows = resolver.update(getIdentifierUri(authority), values, null, null);
+                Validate.isTrue(updatedRows == 1);
+                Log.d(TAG, "Incremented mid counter to " + currentMeasurementIdentifier);
+            } finally {
+                // This can be null, see documentation
+                // noinspection ConstantConditions
+                if (measurementIdentifierQueryCursor != null) {
+                    measurementIdentifierQueryCursor.close();
+                }
+            }
+        }
+
+        final File dir = fileUtils.getAndCreateDirectory(currentMeasurementIdentifier);
         Validate.isTrue(dir.exists(), "Measurement directory not created");
-        new MetaFile(measurementId, vehicle);
-        currentMeasurementIdentifier = measurementId;
+        new MetaFile(context, currentMeasurementIdentifier, vehicle);
         return new Measurement(currentMeasurementIdentifier);
     }
 
@@ -124,7 +188,7 @@ public class MeasurementPersistence {
             Validate.isTrue(openMeasurementsDir.listFiles(FileUtils.directoryFilter()).length == 1);
 
             // Ensure closed measurement dir exists
-            final File closedMeasurement = new File(fileUtils.getFolderName(false, currentMeasurementIdentifier));
+            final File closedMeasurement = new File(fileUtils.getFinishedFolderName(currentMeasurementIdentifier));
             if (!closedMeasurement.getParentFile().exists()) {
                 if (!closedMeasurement.getParentFile().mkdirs()) {
                     throw new IllegalStateException("Unable to create directory for finished measurement data: "
@@ -133,7 +197,7 @@ public class MeasurementPersistence {
             }
 
             // Move measurement to closed dir
-            final File openMeasurement = new File(fileUtils.getFolderName(true, currentMeasurementIdentifier));
+            final File openMeasurement = new File(fileUtils.getOpenFolderName(currentMeasurementIdentifier));
             if (!openMeasurement.renameTo(closedMeasurement)) {
                 throw new IllegalStateException("Failed to finish measurement by moving dir: "
                         + openMeasurement.getAbsolutePath() + " -> " + closedMeasurement.getAbsolutePath());
@@ -154,13 +218,13 @@ public class MeasurementPersistence {
             return;
         }
         if (accelerationsFile == null) {
-            accelerationsFile = new AccelerationsFile(measurementIdentifier);
+            accelerationsFile = new AccelerationsFile(context, measurementIdentifier);
         }
         if (rotationsFile == null) {
-            rotationsFile = new RotationsFile(measurementIdentifier);
+            rotationsFile = new RotationsFile(context, measurementIdentifier);
         }
         if (directionsFile == null) {
-            directionsFile = new DirectionsFile(measurementIdentifier);
+            directionsFile = new DirectionsFile(context, measurementIdentifier);
         }
 
         CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
@@ -176,7 +240,7 @@ public class MeasurementPersistence {
      */
     public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
         if (geoLocationsFile == null) {
-            geoLocationsFile = new GeoLocationsFile(measurementIdentifier);
+            geoLocationsFile = new GeoLocationsFile(context, measurementIdentifier);
         }
 
         geoLocationsFile.append(location);
@@ -323,7 +387,7 @@ public class MeasurementPersistence {
      */
     public void delete(final @NonNull Measurement measurement) {
 
-        final File measurementDir = new File(fileUtils.getFolderName(false, measurement.getIdentifier()));
+        final File measurementDir = new File(fileUtils.getFinishedFolderName(measurement.getIdentifier()));
         if (!measurementDir.exists()) {
             throw new IllegalStateException(
                     "Failed to remove non existent finished measurement: " + measurement.getIdentifier());
@@ -359,7 +423,7 @@ public class MeasurementPersistence {
         }
 
         // Load file with geolocations
-        return GeoLocationsFile.deserialize(measurement.getIdentifier());
+        return GeoLocationsFile.deserialize(context, measurement.getIdentifier());
     }
 
     /**
@@ -402,5 +466,12 @@ public class MeasurementPersistence {
                 throw new IllegalStateException(e);
             }
         }
+    }
+
+    /**
+     * @return The content provider URI for the {@link IdentifierTable}
+     */
+    public static Uri getIdentifierUri(final String authority) {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
     }
 }

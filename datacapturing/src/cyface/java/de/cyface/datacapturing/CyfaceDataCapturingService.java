@@ -40,7 +40,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
             throws SetupException {
-        super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy);
+        super(context, contentResolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
