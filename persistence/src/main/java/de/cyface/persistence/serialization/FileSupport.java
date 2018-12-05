@@ -5,7 +5,7 @@ package de.cyface.persistence.serialization;
  *
  * @author Armin Schnabel
  * @version 1.0.0
- * @since 2.5.0
+ * @since 3.0.0
  */
 public interface FileSupport<T> {
 

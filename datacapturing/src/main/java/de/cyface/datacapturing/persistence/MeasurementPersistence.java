@@ -1,10 +1,6 @@
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.Constants.TAG;
-import static de.cyface.persistence.Constants.FINISHED_MEASUREMENTS_PATH;
-import static de.cyface.persistence.Constants.OPEN_MEASUREMENTS_PATH;
-import static de.cyface.persistence.Utils.getAndCreateDirectory;
-import static de.cyface.persistence.Utils.getFolderName;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -13,6 +9,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
@@ -21,7 +18,7 @@ import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.Utils;
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.AccelerationsFile;
@@ -68,12 +65,37 @@ public class MeasurementPersistence {
      * The file to write the direction points to.
      */
     private DirectionsFile directionsFile;
+    /**
+     * The {@link File} pointing to the directory containing open measurements.
+     */
+    private final File openMeasurementsDir;
+    /**
+     * The {@link File} pointing to the directory containing finished measurements.
+     */
+    private final File finishedMeasurementsDir;
+    /**
+     * Utility class to locate the directory and file paths used for persistence.
+     */
+    private final FileUtils fileUtils;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
+     *
+     * @param context The {@link Context} required to locate the app's internal storage directory.
      */
-    public MeasurementPersistence() {
+    public MeasurementPersistence(@NonNull final Context context) {
         this.threadPool = Executors.newCachedThreadPool();
+        this.fileUtils = new FileUtils(context);
+        this.openMeasurementsDir = new File(fileUtils.getOpenMeasurementsDirPath());
+        this.finishedMeasurementsDir = new File(fileUtils.getFinishedMeasurementsDirPath());
+
+        // Ensure open and finished measurements dir exist
+        if (!openMeasurementsDir.exists()) {
+            Validate.isTrue(openMeasurementsDir.mkdirs(), "Unable to create directory");
+        }
+        if (!finishedMeasurementsDir.exists()) {
+            Validate.isTrue(finishedMeasurementsDir.mkdirs(), "Unable to create directory");
+        }
     }
 
     /**
@@ -84,7 +106,7 @@ public class MeasurementPersistence {
      */
     public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
         final long measurementId = System.currentTimeMillis(); // FIXME: workaround for testing
-        final File dir = getAndCreateDirectory(measurementId);
+        final File dir = fileUtils.getAndCreateDirectory(measurementId);
         Validate.isTrue(dir.exists(), "Measurement directory not created");
         new MetaFile(measurementId, vehicle);
         currentMeasurementIdentifier = measurementId;
@@ -97,13 +119,12 @@ public class MeasurementPersistence {
     public void closeRecentMeasurement() {
         Log.d(TAG, "Closing recent measurements");
         synchronized (this) {
-            final File openMeasurementDir = new File(OPEN_MEASUREMENTS_PATH);
             Validate.notNull(currentMeasurementIdentifier);
-            Validate.isTrue(openMeasurementDir.exists());
-            Validate.isTrue(openMeasurementDir.listFiles(Utils.directoryFilter()).length == 1);
+            Validate.isTrue(openMeasurementsDir.exists());
+            Validate.isTrue(openMeasurementsDir.listFiles(FileUtils.directoryFilter()).length == 1);
 
             // Ensure closed measurement dir exists
-            final File closedMeasurement = new File(getFolderName(false, currentMeasurementIdentifier));
+            final File closedMeasurement = new File(fileUtils.getFolderName(false, currentMeasurementIdentifier));
             if (!closedMeasurement.getParentFile().exists()) {
                 if (!closedMeasurement.getParentFile().mkdirs()) {
                     throw new IllegalStateException("Unable to create directory for finished measurement data: "
@@ -112,7 +133,7 @@ public class MeasurementPersistence {
             }
 
             // Move measurement to closed dir
-            final File openMeasurement = new File(getFolderName(true, currentMeasurementIdentifier));
+            final File openMeasurement = new File(fileUtils.getFolderName(true, currentMeasurementIdentifier));
             if (!openMeasurement.renameTo(closedMeasurement)) {
                 throw new IllegalStateException("Failed to finish measurement by moving dir: "
                         + openMeasurement.getAbsolutePath() + " -> " + closedMeasurement.getAbsolutePath());
@@ -171,8 +192,7 @@ public class MeasurementPersistence {
     public boolean hasOpenMeasurement() throws DataCapturingException {
         Log.d(TAG, "Checking if app has an open measurement.");
 
-        final File openMeasurementsDir = new File(OPEN_MEASUREMENTS_PATH);
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(Utils.directoryFilter());
+        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
 
         boolean hasOpenMeasurement = false;
         if (openMeasurementDirs != null) {
@@ -199,8 +219,7 @@ public class MeasurementPersistence {
      */
     private long refreshIdentifierOfCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
         Log.d(TAG, "Trying to load measurement identifier from persistence layer!");
-        final File openMeasurementsDir = new File(OPEN_MEASUREMENTS_PATH);
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(Utils.directoryFilter());
+        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
 
         if (openMeasurementDirs.length == 0) {
             throw new NoSuchMeasurementException("No open measurement found!");
@@ -220,8 +239,7 @@ public class MeasurementPersistence {
     public @NonNull List<Measurement> loadMeasurements() {
         final List<Measurement> measurements = new ArrayList<>();
 
-        final File openMeasurementsDir = new File(OPEN_MEASUREMENTS_PATH);
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(Utils.directoryFilter());
+        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
 
         for (File measurement : openMeasurementDirs) {
             final long measurementId = Long.parseLong(measurement.getName());
@@ -267,8 +285,7 @@ public class MeasurementPersistence {
     public List<Measurement> loadFinishedMeasurements() {
         final List<Measurement> measurements = new ArrayList<>();
 
-        final File finishedMeasurementsDir = new File(FINISHED_MEASUREMENTS_PATH);
-        final File[] finishedMeasurementDirs = finishedMeasurementsDir.listFiles(Utils.directoryFilter());
+        final File[] finishedMeasurementDirs = finishedMeasurementsDir.listFiles(FileUtils.directoryFilter());
 
         for (File measurement : finishedMeasurementDirs) {
             final long measurementId = Long.parseLong(measurement.getName());
@@ -286,10 +303,8 @@ public class MeasurementPersistence {
      */
     public int clear() {
         int ret = 0;
-        final File finishedMeasurementsDir = new File(FINISHED_MEASUREMENTS_PATH);
-        final File openMeasurementsDir = new File(OPEN_MEASUREMENTS_PATH);
-        final File[] finishedMeasurementDirs = finishedMeasurementsDir.listFiles(Utils.directoryFilter());
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(Utils.directoryFilter());
+        final File[] finishedMeasurementDirs = finishedMeasurementsDir.listFiles(FileUtils.directoryFilter());
+        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
         for (File finishedMeasurementDir : finishedMeasurementDirs) {
             Validate.isTrue(finishedMeasurementDir.delete());
         }
@@ -308,7 +323,7 @@ public class MeasurementPersistence {
      */
     public void delete(final @NonNull Measurement measurement) {
 
-        final File measurementDir = new File(getFolderName(false, measurement.getIdentifier()));
+        final File measurementDir = new File(fileUtils.getFolderName(false, measurement.getIdentifier()));
         if (!measurementDir.exists()) {
             throw new IllegalStateException(
                     "Failed to remove non existent finished measurement: " + measurement.getIdentifier());

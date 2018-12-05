@@ -1,14 +1,10 @@
 package de.cyface.utils;
 
-import android.os.Environment;
-
-import java.io.File;
-
 /**
  * Final static constants used by multiple classes.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.0.1
  * @since 2.5.0
  */
 public final class Constants {

@@ -155,10 +155,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
                     case DirectionPointTable.URI_PATH:
                     case RotationPointTable.URI_PATH:
                         // Add the id specified by the URI to implement expected behaviour of a content resolver, where
-                        // the
-                        // last element
-                        // of the createFile is the identifier of the element requested. This is only necessary for single row
-                        // deletions.
+                        // the last element of the path is the identifier of the element requested. This is only
+                        // necessary for single row deletions.
                         String adaptedSelection = BaseColumns._ID + "=" + rowIdentifier
                                 + (selection == null ? "" : " AND " + selection);
                         ret += table.deleteRow(getWritableDatabase(), adaptedSelection, selectionArgs);
@@ -211,7 +209,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                                 + ". There seems to be no such table.");
                 }
             } else {
-                throw new IllegalStateException("Invalid createFile in content provider URI: " + uri);
+                throw new IllegalStateException("Invalid path in content provider URI: " + uri);
             }
         } finally {
             database.endTransaction();

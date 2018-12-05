@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 
 /**
- * A position captured.
+ * A position captured by the SDK's capturing module.
  *
  * @author Klemens Muthmann
  * @version 1.2.4

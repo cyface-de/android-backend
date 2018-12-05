@@ -2,10 +2,10 @@ package de.cyface.synchronization;
 
 /**
  * Final static constants used by multiple classes.
- * FIXME: until tests run through again I wont merge the constants of both flavours, thus we have  a 3rd shared const file
+ * FIXME: until tests run through again I wont merge the constants of both flavours, thus we have a 3rd shared const file
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.2
  * @since 2.5.0
  */
 public final class SharedConstants {

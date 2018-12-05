@@ -1,17 +1,13 @@
 package de.cyface.persistence.model;
 
+/**
+ * Events are user interactions which we need to log, e.g.:
+ * - to split a GPS track when the track is paused into sub-tracks without the pauses
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 3.0.0
+ */
 public enum Event {
-    CAPTURING_STARTED("CAPTURING_STARTED"), CAPTURING_PAUSED("CAPTURING_PAUSED"), CAPTURING_RESUMED(
-            "CAPTURING_RESUMED"), CAPTURING_STOPPED("CAPTURING_STOPPED"), UNKNOWN("UNKNOWN");
-
-    private String databaseIdentifier;
-
-    // FIXME: what's this useful for? (from vehicle)
-    Event(final String databaseIdentifier) {
-        this.databaseIdentifier = databaseIdentifier;
-    }
-
-    public String getDatabaseIdentifier() {
-        return databaseIdentifier;
-    }
+    CAPTURING_STARTED, CAPTURING_PAUSED, CAPTURING_RESUMED, CAPTURING_STOPPED
 }

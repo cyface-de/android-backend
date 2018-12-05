@@ -22,7 +22,7 @@ public class DirectionPointTable extends AbstractCyfaceMeasurementTable {
     }
 
     /**
-     * The createFile segment in the table URI identifying the directions table.
+     * The path segment in the table URI identifying the directions table.
      */
     public final static String URI_PATH = "magnetic_value";
     /**

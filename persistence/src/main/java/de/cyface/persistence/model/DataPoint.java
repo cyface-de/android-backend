@@ -8,7 +8,7 @@ import android.os.Parcelable;
  * to be unique on this device and to have a Unix timestamp associated with it.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public abstract class DataPoint implements Parcelable {
@@ -30,7 +30,7 @@ public abstract class DataPoint implements Parcelable {
      * @param timestamp The Unix timestamp at which this {@code DataPoint} was measured in milliseconds.
      */
     public DataPoint(final Long identifier, final long timestamp) {
-        if(timestamp<0L) {
+        if (timestamp < 0L) {
             throw new IllegalArgumentException("Illegal argument: timestamp was less than 0L!");
         }
 

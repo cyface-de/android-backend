@@ -13,7 +13,7 @@ import android.provider.BaseColumns;
 public class AccelerationPointTable extends AbstractCyfaceMeasurementTable {
 
     /**
-     * The createFile segment in the table URI identifying the accelerations table.
+     * The path segment in the table URI identifying the accelerations table.
      */
     public final static String URI_PATH = "sample";
 

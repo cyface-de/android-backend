@@ -2,15 +2,17 @@ package de.cyface.datacapturing;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.RotationsFile;
 
 /**
  * A utility class collecting all codes identifying extras used to transmit data via bundles in this application.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @since 2.1.0
  * @version 2.1.0
+ * @since 2.1.0
  */
 public class BundlesExtrasCodes {
     /**

@@ -8,24 +8,24 @@ package de.cyface.persistence.serialization;
  * @version 1.1.0
  * @since 2.0.0
  */
-public final class ByteSizes {
+final class ByteSizes {
     /**
      * Since our current API Level does not support <code>Long.Bytes</code>.
      */
-    public final static int LONG_BYTES = Long.SIZE / Byte.SIZE;
+    final static int LONG_BYTES = Long.SIZE / Byte.SIZE;
     /**
      * Since our current API Level does not support <code>Integer.Bytes</code>.
      */
-    public final static int INT_BYTES = Integer.SIZE / Byte.SIZE;
+    final static int INT_BYTES = Integer.SIZE / Byte.SIZE;
     /**
      * Since our current API Level does not support <code>Short.Bytes</code>.
      */
-    public final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
+    final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
     /**
      * Since our current API Level does not support <code>Double.Bytes</code>.
      */
-    public final static int DOUBLE_BYTES = Double.SIZE / Byte.SIZE;
+    final static int DOUBLE_BYTES = Double.SIZE / Byte.SIZE;
 
     // FIXME: why are MOTORBIKE 9 * 1 B instead of 9 * (Character.SIZE / Byte.SIZE = 2B) ?
-    public static final int CHARACTER_BYTES = 1;//Character.SIZE / Byte.SIZE;
+    static final int CHARACTER_BYTES = 1;//Character.SIZE / Byte.SIZE;
 }

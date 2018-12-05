@@ -13,6 +13,7 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.content.Context;
 import android.support.annotation.NonNull;
 import android.util.Log;
 
@@ -51,10 +52,16 @@ public final class MeasurementSerializer {
     public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
 
     /**
-     * The current version of the data format. This is always specified by the first two bytes and allows to process
-     * different version in parallel.
+     * The current version of the transferred file. This is always specified by the first two bytes of the file
+     * transferred and helps compatible APIs to process data from different client versions.
      */
-    public final static short DATA_FORMAT_VERSION = 1;
+    public final static short TRANSFER_FILE_FORMAT_VERSION = 1;
+    /**
+     * The current version of the file format used to persist captured data.
+     * This is always specified by the first two bytes of the {@link MetaFile} and allows to have stored and
+     * process different version at the same time.
+     */
+    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1;
 
     public final static int BYTES_IN_HEADER = 2 + 4 * 4;
 
@@ -217,11 +224,20 @@ public final class MeasurementSerializer {
         return payload;
     }
 
+    /**
+     * Attention: the {@code PERSISTENCE_FILE_FORMAT_VERSION} only tells in which format the stored data
+     * is serialized. During synchronisation this data can be reassembled to match a
+     * {@code TRANSFER_FILE_FORMAT_VERSION}
+     * so you need to make sure to write the TRANSFER_FILE_FORMAT_VERSION to the header of the file transferred.
+     *
+     * @param metaFileBytes The bytes of a {@link MetaFile}
+     * @return the {@link MetaFile.MetaData} of the file
+     */
     static MetaFile.MetaData deserializeMetaFile(final byte[] metaFileBytes) {
 
         final ByteBuffer buffer = ByteBuffer.wrap(metaFileBytes);
         final short dataFormatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort();
-        Validate.isTrue(dataFormatVersion == 1, "DATA_FORMAT_VERSION != 1 not yet supported");
+        Validate.isTrue(dataFormatVersion == 1, "PERSISTENCE_FILE_FORMAT_VERSION != 1 not yet supported");
 
         final short vehicleIdLength = buffer.order(ByteOrder.BIG_ENDIAN).getShort();
         Validate.isTrue(metaFileBytes.length == SHORT_BYTES * 2 + vehicleIdLength * CHARACTER_BYTES + 4 * INT_BYTES);
@@ -245,9 +261,18 @@ public final class MeasurementSerializer {
         return new MetaFile.MetaData(vehicle, pointMetaData);
     }
 
-    static List<GeoLocation> deserializeGeoLocationFile(final byte[] geoLocationFileBytes, final long measurementId) {
+    /**
+     * Allows to load a stored track.
+     *
+     * @param context The {@link Context} required to access the persistence layer
+     * @param geoLocationFileBytes The bytes loaded from the {@link GeoLocationsFile}
+     * @param measurementId The id of the measurement of the file
+     * @return The {@link GeoLocation} loaded from the file
+     */
+    static List<GeoLocation> deserializeGeoLocationFile(final Context context, final byte[] geoLocationFileBytes,
+            final long measurementId) {
 
-        final MetaFile.MetaData metaData = MetaFile.deserialize(measurementId);
+        final MetaFile.MetaData metaData = MetaFile.deserialize(context, measurementId);
         final int geoLocationCount = metaData.getPointMetaData().getCountOfGeoLocations();
         Validate.isTrue(geoLocationFileBytes.length == geoLocationCount * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
         if (geoLocationCount == 0) {

@@ -95,7 +95,7 @@ public class CapturingProcessTest {
     }
 
     /**
-     * Tests the happy createFile of capturing accelerometer data with 200 Hz and geo locations with 1 Hz.
+     * Tests the happy path of capturing accelerometer data with 200 Hz and geo locations with 1 Hz.
      */
     @Test
     public void testCaptureSensorDataAlongWithGeoLocation() {

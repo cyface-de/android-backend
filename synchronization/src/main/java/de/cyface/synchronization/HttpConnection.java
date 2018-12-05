@@ -87,14 +87,11 @@ public class HttpConnection implements Http {
         } else {
             connection.setRequestProperty("Content-Type", "application/json; charset=" + DEFAULT_CHARSET);
         }
-        // connection.setConnectTimeout(5000);
         try {
             connection.setRequestMethod("POST");
         } catch (final ProtocolException e) {
             throw new IllegalStateException(e);
         }
-        // connection.setRequestProperty("User-Agent", System.getProperty("http.agent"));
-        // connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
         return connection;
     }
 

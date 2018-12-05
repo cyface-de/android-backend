@@ -5,17 +5,35 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import de.cyface.persistence.Utils;
+import android.content.Context;
+
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.model.Event;
 
+/**
+ * The file format to persist user interactions like pausing and resumung a measurement.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 3.0.0
+ */
 public class EventsFile implements FileSupport<Event> {
 
+    /**
+     * The {@link File} pointer to the actual file.
+     */
     private final File file;
+    /**
+     * The name of the file containing the data
+     */
     public final String FILE_NAME = "e";
+    /**
+     * The name of the file containing the data
+     */
     public final String FILE_EXTENSION = "cyfe";
 
-    public EventsFile(final long measurementId) {
-        this.file = Utils.createFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    public EventsFile(final Context context, final long measurementId) {
+        this.file = new FileUtils(context).createFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 
     @Override

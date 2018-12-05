@@ -100,7 +100,7 @@ class SyncPerformer {
             throws RequestParsingException, BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
-        final String fileName = String.format(Locale.GERMAN, "%s_%d.%s", deviceIdentifier, measurementIdentifier, Constants.FILE_EXTENSION);
+        final String fileName = String.format(Locale.GERMAN, "%s_%d.%s", deviceIdentifier, measurementIdentifier, Constants.TRANSFER_FILE_EXTENSION);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));

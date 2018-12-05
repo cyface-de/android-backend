@@ -6,17 +6,39 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
-import de.cyface.persistence.Utils;
+import android.content.Context;
+
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.model.GeoLocation;
 
+/**
+ * The file format to persist the captured geolocation points.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 3.0.0
+ */
 public class GeoLocationsFile implements FileSupport<GeoLocation> {
 
+    /**
+     * The {@link File} pointer to the actual file.
+     */
     private final File file;
+    /**
+     * The name of the file containing the data
+     */
     public static final String FILE_NAME = "g";
+    /**
+     * The name of the file containing the data
+     */
     public static final String FILE_EXTENSION = "cyfg";
 
-    public GeoLocationsFile(final long measurementId) {
-        this.file = Utils.createFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    /**
+     * @param context The {@link Context} required to access the persistence layer.
+     * @param measurementId The identifier of the measurement
+     */
+    public GeoLocationsFile(final Context context, final long measurementId) {
+        this.file = new FileUtils(context).createFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 
     @Override
@@ -38,13 +60,20 @@ public class GeoLocationsFile implements FileSupport<GeoLocation> {
         return MeasurementSerializer.serialize(location);
     }
 
-    public static File loadFile(final long measurementId) {
-        return Utils.loadFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    private static File loadFile(final Context context, final long measurementId) {
+        return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 
-    public static List<GeoLocation> deserialize(final long measurementId) {
-        final File file = loadFile(measurementId);
-        final byte[] bytes = Utils.loadBytes(file);
+    /**
+     * In order to display geolocations this method helps to load the stored track from {@link GeoLocationsFile}.
+     *
+     * @param context The {@link Context} required to access the persistence layer.
+     * @param measurementId The identifier of the measurement to resume
+     * @return the {@link GeoLocation}s restored from the {@code GeoLocationFile}
+     */
+    public static List<GeoLocation> deserialize(final Context context, final long measurementId) {
+        final File file = loadFile(context, measurementId);
+        final byte[] bytes = FileUtils.loadBytes(file);
         return MeasurementSerializer.deserializeGeoLocationFile(bytes, measurementId);
     }
 }
