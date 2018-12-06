@@ -232,15 +232,24 @@ public final class MeasurementSerializer {
      *
      * @param metaFileBytes The bytes of a {@link MetaFile}
      * @return the {@link MetaFile.MetaData} of the file
+     * @throws FileCorruptedException when the DataCapturingBackgroundService did not finish a measurement by writing
+     *             the <code>PointMetaData</code> to the <code>MetaFile</code>
      */
-    static MetaFile.MetaData deserializeMetaFile(final byte[] metaFileBytes) {
+    static MetaFile.MetaData deserializeMetaFile(final byte[] metaFileBytes) throws FileCorruptedException {
 
         final ByteBuffer buffer = ByteBuffer.wrap(metaFileBytes);
         final short dataFormatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort();
         Validate.isTrue(dataFormatVersion == 1, "PERSISTENCE_FILE_FORMAT_VERSION != 1 not yet supported");
-
         final short vehicleIdLength = buffer.order(ByteOrder.BIG_ENDIAN).getShort();
-        Validate.isTrue(metaFileBytes.length == SHORT_BYTES * 2 + vehicleIdLength * CHARACTER_BYTES + 4 * INT_BYTES);
+        if (metaFileBytes.length != SHORT_BYTES * 2 + vehicleIdLength * CHARACTER_BYTES + 4 * INT_BYTES) {
+            if (metaFileBytes.length == SHORT_BYTES * 2 + vehicleIdLength * CHARACTER_BYTES) {
+                throw new FileCorruptedException(
+                        "MetaFile is missing the PointMetaData. Did the DataCapturingBackgroundService end with an Exception?");
+            }
+            throw new IllegalStateException("Unknown file corruption cause");
+        }
+
+        // Deserialize vehicle_id
         final byte[] vehicleIdBytes = new byte[vehicleIdLength];
         for (int i = 0; i < vehicleIdLength; i++) {
             vehicleIdBytes[i] = buffer.order(ByteOrder.BIG_ENDIAN).get();
@@ -272,7 +281,12 @@ public final class MeasurementSerializer {
     static List<GeoLocation> deserializeGeoLocationFile(final Context context, final byte[] geoLocationFileBytes,
             final long measurementId) {
 
-        final MetaFile.MetaData metaData = MetaFile.deserialize(context, measurementId);
+        final MetaFile.MetaData metaData;
+        try {
+            metaData = MetaFile.deserialize(context, measurementId);
+        } catch (FileCorruptedException e) {
+            throw new IllegalStateException(e); // Should not happen
+        }
         final int geoLocationCount = metaData.getPointMetaData().getCountOfGeoLocations();
         Validate.isTrue(geoLocationFileBytes.length == geoLocationCount * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
         if (geoLocationCount == 0) {

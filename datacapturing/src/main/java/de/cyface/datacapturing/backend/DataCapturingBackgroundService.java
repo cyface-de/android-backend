@@ -203,14 +203,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private void sendStoppedMessage(final long currentMeasurementIdentifier) {
         Log.v(TAG, "Sending IPC message: service stopped.");
+        // Write point counters to MetaFile
+        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
+                rotationPointCounter, directionPointCounter));
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
         bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
-        bundle.putInt(GEOLOCATION_COUNT, geoLocationCounter);
-        bundle.putInt(ACCELERATION_POINT_COUNT, accelerationPointCounter);
-        bundle.putInt(ROTATION_POINT_COUNT, rotationPointCounter);
-        bundle.putInt(DIRECTION_POINT_COUNT, directionPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED, bundle);
     }
 
@@ -224,13 +223,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
+        // Write point counters to MetaFile
+        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
+                rotationPointCounter, directionPointCounter));
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
-        bundle.putInt(GEOLOCATION_COUNT, geoLocationCounter);
-        bundle.putInt(ACCELERATION_POINT_COUNT, accelerationPointCounter);
-        bundle.putInt(ROTATION_POINT_COUNT, rotationPointCounter);
-        bundle.putInt(DIRECTION_POINT_COUNT, directionPointCounter);
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 

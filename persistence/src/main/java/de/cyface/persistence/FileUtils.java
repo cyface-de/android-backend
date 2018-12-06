@@ -38,6 +38,11 @@ public class FileUtils {
      * This directory is deleted when the app is uninstalled and can only be accessed by the app.
      */
     private String synchronizedMeasurementsDirPath;
+    /**
+     * Returns the path of the parent directory containing all folders of corrupted measurements.
+     * This directory is deleted when the app is uninstalled and can only be accessed by the app.
+     */
+    private String corruptedMeasurementsDirPath;
 
     /**
      * @param context The {@link Context} required to locate the app's internal storage directory.
@@ -47,6 +52,7 @@ public class FileUtils {
         this.openMeasurementsDirPath = measurementsDirPath + File.separator + "open";
         this.finishedMeasurementsDirPath = measurementsDirPath + File.separator + "finished";
         this.synchronizedMeasurementsDirPath = measurementsDirPath + File.separator + "synced";
+        this.corruptedMeasurementsDirPath = measurementsDirPath + File.separator + "corrupted";
     }
 
     /**
@@ -67,6 +73,16 @@ public class FileUtils {
      */
     public String getFinishedFolderName(final long measurementId) {
         return finishedMeasurementsDirPath + File.separator + measurementId;
+    }
+
+    /**
+     * Returns the path to the folder containing the corrupted measurement data.
+     *
+     * @param measurementId The identifier of the measurement.
+     * @return The folder path.
+     */
+    public String getCorruptedFolderName(final long measurementId) {
+        return corruptedMeasurementsDirPath + File.separator + measurementId;
     }
 
     /**
@@ -187,6 +203,10 @@ public class FileUtils {
 
     public String getFinishedMeasurementsDirPath() {
         return finishedMeasurementsDirPath;
+    }
+
+    public String getCorruptedMeasurementsDirPath() {
+        return corruptedMeasurementsDirPath;
     }
 
     public String getSynchronizedMeasurementsDirPath() {

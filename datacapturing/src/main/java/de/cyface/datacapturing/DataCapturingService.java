@@ -40,7 +40,6 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -291,6 +290,17 @@ public abstract class DataCapturingService {
             // stopping the service.
             setIsStoppingOrHasStopped(false);
 
+            // Ensure there are no dead measurements in the open measurement folder
+            persistenceLayer.cleanCorruptedOpenMeasurements();
+
+            // Ignore start command for paused measurements (wrong life-cycle call)
+            if (persistenceLayer.hasOpenMeasurement()) {
+                Log.w(TAG,
+                        "Ignoring startAsync() as there is a paused measurement which needs to be resumed by resumeAsync().");
+                return;
+            }
+
+            // Start new measurement
             Measurement measurement = prepareStart(listener, vehicle);
             runService(measurement, finishedHandler);
         } finally {
@@ -342,6 +352,10 @@ public abstract class DataCapturingService {
                 // The background service was not active. This can happen when the measurement was paused.
                 // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
                 sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
+                // This can probably also happen when the DCBS died (exception) before or dies when
+                // receiving this stop command. Thus, the closeRecentMeasurement() below would move it
+                // to finish folder without the DCBS having completed the MetaFile. For this reason we
+                // need to add another corruption test into the synchronization #MOV-453
             }
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
@@ -411,6 +425,18 @@ public abstract class DataCapturingService {
             persistenceLayer.closeRecentMeasurement();
             throw new MissingPermissionException();
         }
+
+        // Ensure there are no dead measurements in the open measurement folder
+        persistenceLayer.cleanCorruptedOpenMeasurements();
+
+        // Ignore pause command if there are no paused measurements (wrong life-cycle call)
+        if (!persistenceLayer.hasOpenMeasurement()) {
+            Log.w(TAG,
+                    "Ignoring resumeAsync() as there is no paused measurement. A startAsync() would be expected by the life-cycle.");
+            return;
+        }
+
+        // Resume paused measurement
         final Measurement currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
         final MetaFile.MetaData metaData = MetaFile.resume(this.getContext(), currentlyOpenMeasurement.getIdentifier());
         runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
@@ -767,15 +793,8 @@ public abstract class DataCapturingService {
         if (!checkFineLocationAccess(getContext())) {
             throw new MissingPermissionException();
         }
-        Measurement measurement;
-        // FIXME: Do we really always want to continue with the open file after the app crashed?
-        // maybe it's better to mark this measurement as corrupted (by moving it to such a folder)
-        if (!persistenceLayer.hasOpenMeasurement()) {
-            measurement = persistenceLayer.newMeasurement(vehicle);
-        } else {
-            measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            Validate.notNull("Failed to load open measurement", measurement);
-        }
+        Validate.isTrue(!persistenceLayer.hasOpenMeasurement());
+        final Measurement measurement = persistenceLayer.newMeasurement(vehicle);
         fromServiceMessageHandler.addListener(listener);
         return measurement;
     }
@@ -1028,7 +1047,6 @@ public abstract class DataCapturingService {
                         Validate.notNull(stoppedInfoBundle);
                         final long measurementIdentifier = stoppedInfoBundle.getLong(MEASUREMENT_ID);
                         final boolean stoppedSuccessfully = stoppedInfoBundle.getBoolean(STOPPED_SUCCESSFULLY);
-                        persistPointMetaData(stoppedInfoBundle, measurementIdentifier);
                         // Success means the background service was still alive. As this is the private
                         // IPC to the background service this must always be true.
                         Validate.isTrue(stoppedSuccessfully);
@@ -1047,7 +1065,6 @@ public abstract class DataCapturingService {
                         final Bundle stoppedItselfInfoBundle = parcel.getParcelable("data");
                         Validate.notNull(stoppedItselfInfoBundle);
                         final long measurementId = stoppedItselfInfoBundle.getLong(MEASUREMENT_ID);
-                        persistPointMetaData(stoppedItselfInfoBundle, measurementId);
 
                         final Lock lock = new ReentrantLock();
                         final Condition condition = lock.newCondition();
@@ -1071,15 +1088,6 @@ public abstract class DataCapturingService {
 
                 }
             }
-        }
-
-        private void persistPointMetaData(Bundle stoppedInfoBundle, long measurementIdentifier) {
-            final int geoLocationCount = stoppedInfoBundle.getInt(GEOLOCATION_COUNT);
-            final int accelerationPointCount = stoppedInfoBundle.getInt(ACCELERATION_POINT_COUNT);
-            final int rotationPointCount = stoppedInfoBundle.getInt(ROTATION_POINT_COUNT);
-            final int directionPointCount = stoppedInfoBundle.getInt(DIRECTION_POINT_COUNT);
-            MetaFile.append(context, measurementIdentifier, new PointMetaData(geoLocationCount, accelerationPointCount,
-                    rotationPointCount, directionPointCount));
         }
 
         /**

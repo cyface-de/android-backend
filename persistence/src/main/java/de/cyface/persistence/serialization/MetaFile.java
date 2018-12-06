@@ -92,7 +92,12 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
      * @return the {@link MetaData} containing the point counters
      */
     public static MetaData resume(final Context context, final long measurementId) {
-        final MetaData metaData = deserialize(context, measurementId);
+        final MetaData metaData;
+        try {
+            metaData = deserialize(context, measurementId);
+        } catch (FileCorruptedException e) {
+            throw new IllegalStateException(e); // should not happen
+        }
 
         // Remove counters from MetaFile by creating a new MetaFile
         new MetaFile(context, measurementId, metaData.vehicle);
@@ -105,8 +110,10 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
      * @param context The {@link Context} required to access the persistence layer.
      * @param measurementId The identifier of the measurement to resume
      * @return the {@link MetaData} restored from the {@code MetaFile}
+     * @throws FileCorruptedException when the DataCapturingBackgroundService did not finish a measurement by writing
+     *             the <code>PointMetaData</code> to the <code>MetaFile</code>
      */
-    public static MetaData deserialize(final Context context, final long measurementId) {
+    public static MetaData deserialize(final Context context, final long measurementId) throws FileCorruptedException {
         final File file = loadFile(context, measurementId);
         final byte[] bytes = FileUtils.loadBytes(file);
         return MeasurementSerializer.deserializeMetaFile(bytes);

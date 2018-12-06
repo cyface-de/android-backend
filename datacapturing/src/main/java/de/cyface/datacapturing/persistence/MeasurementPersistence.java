@@ -19,6 +19,7 @@ import androidx.annotation.Nullable;
 import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
@@ -29,6 +30,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.AccelerationsFile;
 import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.serialization.RotationsFile;
@@ -88,6 +90,10 @@ public class MeasurementPersistence {
      */
     private final File finishedMeasurementsDir;
     /**
+     * The {@link File} pointing to the directory containing corrupted measurements.
+     */
+    private final File corruptedMeasurementsDir;
+    /**
      * Utility class to locate the directory and file paths used for persistence.
      */
     private final FileUtils fileUtils;
@@ -113,6 +119,7 @@ public class MeasurementPersistence {
         this.fileUtils = new FileUtils(context);
         this.openMeasurementsDir = new File(fileUtils.getOpenMeasurementsDirPath());
         this.finishedMeasurementsDir = new File(fileUtils.getFinishedMeasurementsDirPath());
+        this.corruptedMeasurementsDir = new File(fileUtils.getCorruptedMeasurementsDirPath());
 
         // Ensure open and finished measurements dir exist
         if (!openMeasurementsDir.exists()) {
@@ -120,6 +127,9 @@ public class MeasurementPersistence {
         }
         if (!finishedMeasurementsDir.exists()) {
             Validate.isTrue(finishedMeasurementsDir.mkdirs(), "Unable to create directory");
+        }
+        if (!corruptedMeasurementsDir.exists()) {
+            Validate.isTrue(corruptedMeasurementsDir.mkdirs(), "Unable to create directory");
         }
     }
 
@@ -473,5 +483,36 @@ public class MeasurementPersistence {
      */
     public static Uri getIdentifierUri(final String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
+    }
+
+    /**
+     * Before starting or resuming a measurement we need to make sure that there are no corrupted measurements
+     * left in the /open/ folder. This can happen when the {@link DataCapturingBackgroundService} dies a devastating
+     * Exception-death and was not able to append the {@link MetaFile.PointMetaData} to the {@link MetaFile}.
+     */
+    public void cleanCorruptedOpenMeasurements() {
+        final File[] openMeasurements = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
+        for (File currentMeasurementDir : openMeasurements) {
+            final int measurementId = Integer.parseInt(currentMeasurementDir.getName());
+            try {
+                MetaFile.deserialize(context, measurementId);
+            } catch (final FileCorruptedException e) {
+                // Expected, we want to move such measurements to the corrupted folder
+
+                Log.d(TAG, "Moving corrupted measurements: " + measurementId);
+                Validate.isTrue(corruptedMeasurementsDir.exists());
+
+                // Move measurement to corrupted dir
+                final File corruptedMeasurement = new File(
+                        fileUtils.getCorruptedFolderName(currentMeasurementIdentifier));
+                if (!currentMeasurementDir.renameTo(corruptedMeasurement)) {
+                    throw new IllegalStateException("Failed to clean up corrupted measurement by moving dir: "
+                            + currentMeasurementDir.getAbsolutePath() + " -> "
+                            + corruptedMeasurement.getAbsolutePath());
+                }
+                return;
+            }
+            // Ignore non-broken measurements in open dir (e.g. paused measurements)
+        }
     }
 }
