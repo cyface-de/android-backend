@@ -27,11 +27,11 @@ public class DirectionsFile implements FileSupport<List<Point3D>> {
     /**
      * The name of the file containing the data
      */
-    public final String FILE_NAME = "d";
+    public static final String FILE_NAME = "d";
     /**
      * The name of the file containing the data
      */
-    public final String FILE_EXTENSION = "cyfd";
+    public static final String FILE_EXTENSION = "cyfd";
 
     /**
      * @param context The {@link Context} required to access the persistence layer.
@@ -58,5 +58,9 @@ public class DirectionsFile implements FileSupport<List<Point3D>> {
     @Override
     public byte[] serialize(final List<Point3D> dataPoints) {
         return MeasurementSerializer.serialize(dataPoints);
+    }
+
+    public static File loadFile(final Context context, final long measurementId) {
+        return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 }

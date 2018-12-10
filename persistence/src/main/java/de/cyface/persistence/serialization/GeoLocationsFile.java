@@ -60,7 +60,7 @@ public class GeoLocationsFile implements FileSupport<GeoLocation> {
         return MeasurementSerializer.serialize(location);
     }
 
-    private static File loadFile(final Context context, final long measurementId) {
+    public static File loadFile(final Context context, final long measurementId) {
         return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
 

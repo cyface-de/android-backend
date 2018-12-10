@@ -5,6 +5,7 @@ import static de.cyface.datacapturing.Constants.TAG;
 import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -18,15 +19,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
 
-import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.persistence.Constants;
 import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.AccelerationsFile;
 import de.cyface.persistence.serialization.DirectionsFile;
@@ -121,7 +123,7 @@ public class MeasurementPersistence {
         this.finishedMeasurementsDir = new File(fileUtils.getFinishedMeasurementsDirPath());
         this.corruptedMeasurementsDir = new File(fileUtils.getCorruptedMeasurementsDirPath());
 
-        // Ensure open and finished measurements dir exist
+        // Ensure measurements dir exist
         if (!openMeasurementsDir.exists()) {
             Validate.isTrue(openMeasurementsDir.mkdirs(), "Unable to create directory");
         }
@@ -393,6 +395,8 @@ public class MeasurementPersistence {
     /**
      * Removes one finished {@link Measurement} from the local persistent data storage.
      *
+     * FIXME: duplicate in other M.P. class
+     * 
      * @param measurement The measurement to remove.
      */
     public void delete(final @NonNull Measurement measurement) {
@@ -513,6 +517,56 @@ public class MeasurementPersistence {
                 return;
             }
             // Ignore non-broken measurements in open dir (e.g. paused measurements)
+        }
+    }
+
+    /**
+     * We want to make sure the device id is stored at the same location as the next measurement id counter.
+     * This way we ensure ether both or none of both is reset upon re-installation or app reset.
+     *
+     * @param resolver The {@link ContentResolver} to access the {@link IdentifierTable}.
+     * @return The device is as string
+     */
+    public final String restoreOrCreateDeviceId(final ContentResolver resolver) {
+        Log.d(Constants.TAG, "Trying to load device identifier from content provider!");
+        Cursor deviceIdentifierQueryCursor = null;
+        try {
+            synchronized (this) {
+                // Try to get device id from database
+                deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
+                        new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
+                // This can be null, see documentation
+                // noinspection ConstantConditions
+                if (deviceIdentifierQueryCursor == null) {
+                    throw new IllegalStateException("Unable to query for device identifier!");
+                }
+                if (deviceIdentifierQueryCursor.getCount() > 1) {
+                    throw new IllegalStateException("More entries than expected");
+                }
+                if (deviceIdentifierQueryCursor.moveToFirst()) {
+                    final int indexOfMeasurementIdentifierColumn = deviceIdentifierQueryCursor
+                            .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
+                    final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
+                    Log.d(Constants.TAG, "Providing device identifier " + did);
+                    return did;
+                }
+
+                // Update measurement id counter
+                final String deviceId = UUID.randomUUID().toString();
+                final ContentValues values = new ContentValues();
+                values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
+                values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, 1);
+                final Uri resultUri = resolver.insert(getIdentifierUri(authority), values);
+                Validate.notNull("New device id and measurement id counter could not be created!", resultUri);
+                Log.d(Constants.TAG, "Created new device id " + deviceId + " and reset measurement id counter");
+                return deviceId;
+            }
+        } finally {
+            // This can be null, see documentation
+            // noinspection ConstantConditions
+            if (deviceIdentifierQueryCursor != null) {
+                deviceIdentifierQueryCursor.close();
+            }
         }
     }
 }

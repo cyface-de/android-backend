@@ -1,10 +1,12 @@
-package de.cyface.datacapturing.exception;
+package de.cyface.persistence;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.persistence.model.Measurement;
+
 /**
  * An <code>Exception</code> which occurs every time someone wants to execute an action on a
- * {@link de.cyface.datacapturing.Measurement}, that does not exist on this device.
+ * {@link Measurement}, that does not exist on this device.
  *
  * @author Klemens Muthmann
  * @since 2.0.0

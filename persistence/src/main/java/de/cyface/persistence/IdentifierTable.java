@@ -1,10 +1,10 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 import android.util.Log;
-
-import static de.cyface.persistence.Constants.TAG;
 
 /**
  * This class represents the table containing the measurement-independent identifiers stored on this device.

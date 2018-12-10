@@ -8,12 +8,11 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
-import static de.cyface.datacapturing.persistence.MeasurementPersistence.getIdentifierUri;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -23,16 +22,13 @@ import android.Manifest;
 import android.accounts.Account;
 import android.content.ComponentName;
 import android.content.ContentResolver;
-import android.content.ContentValues;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.content.ServiceConnection;
 import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
-import android.database.Cursor;
 import android.net.ConnectivityManager;
-import android.net.Uri;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
@@ -48,14 +44,14 @@ import android.util.Log;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
-import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.persistence.IdentifierTable;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.serialization.MetaFile.PointMetaData;
@@ -188,12 +184,17 @@ public abstract class DataCapturingService {
         this.persistenceLayer = new MeasurementPersistence(context, resolver, authority);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
-
-        // Setup required preferences including the device identifier, if not generated previously.
-        this.deviceIdentifier = getOrCreateDeviceId(resolver);
-
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
+
+        // Setup required device identifier, if not generated previously
+        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId(resolver);
+        sharedPreferencesEditor.putString(DEVICE_IDENTIFIER_KEY, deviceIdentifier);
+        Validate.notNull(deviceIdentifier,
+                "Sync canceled: No installation identifier for this application set in its preferences.");
+        // We cache the did in the preferences as it's hard or not possible to access the database
+        // where it's persisted, e.g. in the getAuthToken method.
+
         sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
@@ -209,50 +210,6 @@ public abstract class DataCapturingService {
         lifecycleLock = new ReentrantLock();
         setIsRunning(false);
         setIsStoppingOrHasStopped(false);
-    }
-
-    // FIXME :clean up
-    private String getOrCreateDeviceId(final ContentResolver resolver) {
-        Log.d(TAG, "Trying to load device identifier from content provider!");
-        Cursor deviceIdentifierQueryCursor = null;
-        try {
-            synchronized (this) {
-                // Try to get device id from database
-                deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
-                        new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
-                // This can be null, see documentation
-                // noinspection ConstantConditions
-                if (deviceIdentifierQueryCursor == null) {
-                    throw new IllegalStateException("Unable to query for device identifier!");
-                }
-                if (deviceIdentifierQueryCursor.getCount() > 1) {
-                    throw new IllegalStateException("More entries than expected");
-                }
-                if (deviceIdentifierQueryCursor.moveToFirst()) {
-                    final int indexOfMeasurementIdentifierColumn = deviceIdentifierQueryCursor
-                            .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
-                    final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
-                    Log.d(TAG, "Providing device identifier " + did);
-                    return did;
-                }
-
-                // Update measurement id counter
-                final String deviceId = UUID.randomUUID().toString();
-                final ContentValues values = new ContentValues();
-                values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
-                values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, 1);
-                final Uri resultUri = resolver.insert(getIdentifierUri(authority), values);
-                Validate.notNull("New device id and measurement id counter could not be created!", resultUri);
-                Log.d(TAG, "Created new device id " + deviceId + " and reset measurement id counter");
-                return deviceId;
-            }
-        } finally {
-            // This can be null, see documentation
-            // noinspection ConstantConditions
-            if (deviceIdentifierQueryCursor != null) {
-                deviceIdentifierQueryCursor.close();
-            }
-        }
     }
 
     /**

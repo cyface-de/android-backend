@@ -23,7 +23,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
-import de.cyface.datacapturing.exception.NoSuchMeasurementException;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.model.Vehicle;
 

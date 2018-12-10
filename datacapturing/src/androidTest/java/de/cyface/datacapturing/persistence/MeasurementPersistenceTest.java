@@ -16,7 +16,7 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import de.cyface.datacapturing.Measurement;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.persistence.model.Vehicle;
 

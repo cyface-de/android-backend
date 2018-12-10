@@ -9,8 +9,10 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 
 import android.accounts.Account;
@@ -20,6 +22,7 @@ import android.accounts.AuthenticatorException;
 import android.accounts.OperationCanceledException;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
@@ -31,6 +34,9 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.persistence.MeasurementPersistence;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exceptions.BadRequestException;
 import de.cyface.synchronization.exceptions.RequestParsingException;
@@ -87,9 +93,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(TAG, "Sync started.");
 
         final Context context = getContext();
-        final MeasurementSerializer serializer = new MeasurementSerializer();
+        final ContentResolver resolver = context.getContentResolver();
+        final MeasurementPersistence persistence = new MeasurementPersistence(context, resolver, authority);
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        Cursor syncableMeasurementsCursor = null;
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account,
                 SharedConstants.AUTH_TOKEN_TYPE, null, false, null, null);
@@ -113,33 +119,32 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     "Sync canceled: No installation identifier for this application set in its preferences.");
 
             // Load all Measurements that are finished capturing
-            // syncableMeasurementsCursor = MeasurementContentProviderClient.loadSyncableMeasurements(provider,
-            // authority);
+            final List<Measurement> syncableMeasurements = persistence.loadFinishedMeasurements();
 
-            final long unsyncedDataPoints = countUnsyncedDataPoints(provider, syncableMeasurementsCursor, authority);
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncStarted();
             }
-            if (unsyncedDataPoints == 0) {
+            if (syncableMeasurements.size() == 0) {
                 return; // nothing to sync
             }
 
-            // The cursor is reset to initial position (i.e. 0) by countUnsyncedDataPoints
-            while (syncableMeasurementsCursor.moveToNext()) {
+            for (Measurement measurement : syncableMeasurements) {
 
                 // Load serialized measurement
-                final long measurementId = syncableMeasurementsCursor
-                        .getLong(syncableMeasurementsCursor.getColumnIndex(BaseColumns._ID));
-                /*
-                 * final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementId,
-                 * provider, authority); FIXME
-                 */
-                Log.d(TAG, String.format("Measurement with identifier %d is about to be serialized.", measurementId));
-                // FIXME: final InputStream data = serializer.serializeCompressed(loader);
+                final long measurementId = measurement.getIdentifier();
+
+                Log.d(TAG, String.format("Measurement with identifier %d is about to be loaded for transmission.",
+                        measurementId));
+                final InputStream data;
+                try {
+                    data = persistence.loadSerializedCompressed(measurementId);
+                } catch (FileCorruptedException e) {
+                    throw new IllegalStateException(e);
+                }
 
                 // Synchronize measurement
                 final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                        measurementId, deviceId, null, new UploadProgressListener() {
+                        measurementId, deviceId, data, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 for (final ConnectionStatusListener listener : progressListener) {
@@ -148,35 +153,10 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                             }
                         }, jwtAuthToken);
                 if (transmissionSuccessful) {
-                    // try {
-                    // TODO: This way of deleting points is probably rather slow when lots of data is
-                    // stored on old devices (from experience). We had a faster but uglier workaround
-                    // but won't reimplement this here in the SDK. Instead we'll use the Cyface Byte Format
-                    // from the Movebis flavor and the file uploader which we'll implement before releasing this.
-                    // TODO: We should probably remove the unused isSynced flag from the points after
-                    // we implemented the Cyface Byte Format synchronization. #CY-3592
-
-                    // We delete the data of each point type separately to avoid #CY-3859 parcel size error.
-                    /*
-                     * deletePointsOfType(provider, authority, measurementSlice, geoLocationJsonMapper);
-                     * deletePointsOfType(provider, authority, measurementSlice, accelerationJsonMapper);
-                     * deletePointsOfType(provider, authority, measurementSlice, rotationJsonMapper);
-                     * deletePointsOfType(provider, authority, measurementSlice, directionJsonMapper);
-                     */
-
-                    // loader.cleanMeasurement(); FIXME
+                    persistence.markAsSynchronized(measurement);
                     Log.d(TAG, "Measurement marked as synced.");
-                    /*
-                     * } catch ( final OperationApplicationException | RemoteException e) {
-                     * throw new DatabaseException("Failed to apply the delete operation: " + e.getMessage(), e);
-                     * }
-                     */
                 } // FIXME: else maybe reset sync progress
             }
-        } catch (final /* DatabaseException | */RemoteException e) {
-            Log.w(TAG, "DatabaseException: " + e.getMessage());
-            syncResult.databaseError = true;
-            sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
         } catch (final RequestParsingException/* | SynchronisationException */ e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
@@ -196,9 +176,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();
-            }
-            if (syncableMeasurementsCursor != null) {
-                syncableMeasurementsCursor.close();
             }
         }
     }

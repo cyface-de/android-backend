@@ -134,7 +134,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
                 // Get Auth token
                 try {
-                    authToken = initSync(account.name, password, sslContext);
+                    authToken = initSync(account.name, password, sslContext); // HOW TO GET THE AUTHORITY HERE ?
                     Log.v(TAG, String.format("Auth token: %s", authToken));
                 } catch (final ServerUnavailableException e) {
                     sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
@@ -277,11 +277,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
             BadRequestException {
         Log.v(TAG, "Init Sync!");
+
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String installationIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         if (installationIdentifier == null) {
             throw new IllegalStateException("No installation identifier for this application set in its preferences.");
         }
+
         final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         if (url == null) {
             throw new IllegalStateException(

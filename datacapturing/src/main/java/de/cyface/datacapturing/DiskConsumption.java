@@ -12,6 +12,8 @@ import android.os.StatFs;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
+import de.cyface.persistence.model.Measurement;
+
 /**
  * Objects of this class represent the current disk (or rather SD card) space used and available. This space is mostly
  * filled with unsynchronized {@link Measurement}s. To avoid filling up the users SD card it is advisable to delete

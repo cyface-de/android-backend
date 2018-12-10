@@ -7,11 +7,14 @@ import static de.cyface.persistence.serialization.ByteSizes.INT_BYTES;
 import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
 import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 
+import java.io.ByteArrayInputStream;
+import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.zip.Deflater;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -70,27 +73,6 @@ public final class MeasurementSerializer {
      */
     public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
-
-    /**
-     * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
-     * client given to the constructor and serializes it, using standard Android GZIP compression on the described
-     * binary
-     * format to an <code>InputStream</code>.
-     * 
-     * @param loader The device wide unique identifier of the measurement to serialize.
-     * @return An <code>InputStream</code> containing the serialized compressed data.
-     *         /
-     *         public InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
-     *         Deflater compressor = new Deflater();
-     *         byte[] data = serializeToByteArray(loader);
-     *         compressor.setInput(data);
-     *         compressor.finish();
-     *         byte[] output = new byte[data.length];
-     *         int lengthOfCompressedData = compressor.deflate(output);
-     *         Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
-     *         return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
-     *         }
-     */
 
     /**
      * Creates the later part of the header field for a serialized measurement in big endian format.
