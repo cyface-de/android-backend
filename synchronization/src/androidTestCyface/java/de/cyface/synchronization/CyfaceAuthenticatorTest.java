@@ -1,5 +1,19 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
+import static org.junit.Assert.assertThat;
+
+import java.io.IOException;
+import java.util.UUID;
+import java.util.concurrent.TimeUnit;
+
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.AccountManagerCallback;
@@ -16,25 +30,11 @@ import android.support.test.filters.LargeTest;
 import android.support.test.runner.AndroidJUnit4;
 import android.util.Log;
 
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.io.IOException;
-import java.util.UUID;
-import java.util.concurrent.TimeUnit;
-
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
-import static org.junit.Assert.assertThat;
-
 /**
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 2.0.0
  */
 
@@ -43,8 +43,11 @@ import static org.junit.Assert.assertThat;
 @FlakyTest
 public class CyfaceAuthenticatorTest {
 
-    private static final String TAG ="de.cyface.auth.test";
+    private static final String TAG = "de.cyface.auth.test";
 
+    /**
+     * This test calls an actual api to test if the client can log in and request an authentication token correctly.
+     */
     @Test
     public void testAuthenticationHappyPath() throws AuthenticatorException, OperationCanceledException, IOException {
         Context context = InstrumentationRegistry.getTargetContext();
@@ -73,8 +76,8 @@ public class CyfaceAuthenticatorTest {
         editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
-
-        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE, null, false, callback,null);
+        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE, null,
+                false, callback, null);
         Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
 
         Log.i(TAG, bundle.toString());
@@ -82,7 +85,7 @@ public class CyfaceAuthenticatorTest {
         String authToken = bundle.getString("authtoken");
         assertThat(authToken, not(nullValue()));
         assertThat(authToken.isEmpty(), is(false));
-        assertThat(authToken.startsWith("ey"), is(true)); // Not 100% sure if the token really always starts with ey...
+        assertThat(authToken.startsWith("ey"), is(true));
     }
 
 }
