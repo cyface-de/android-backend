@@ -16,6 +16,8 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
+import android.content.SyncRequest;
+import android.content.SyncResult;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -35,7 +37,8 @@ import android.util.Log;
  * that server, it is a flaky test and a large test.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -44,7 +47,7 @@ import android.util.Log;
 @LargeTest
 @FlakyTest
 @Ignore
-public class MovebisDataTransmissionTest {
+public class DataTransmissionTest {
 
     /**
      * Tests the basic transmission code to a Movebis backend. This is based on some code from stackoverflow. An example
@@ -83,7 +86,8 @@ public class MovebisDataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart() throws SynchronisationException {
+    public void testUploadSomeBytesViaMultiPart()
+            throws SynchronisationException, BadRequestException, RequestParsingException {
         ContentResolver resolver = InstrumentationRegistry.getTargetContext().getContentResolver();
         long measurementIdentifier = insertTestMeasurement(resolver, "UNKNOWN");
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
@@ -116,14 +120,15 @@ public class MovebisDataTransmissionTest {
 
             String jwtAuthToken = "replace me";
             SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getTargetContext());
-            int result = performer.sendData("https://localhost:8080", measurementIdentifier, "garbage", measurementData,
-                    new UploadProgressListener() {
+            SyncResult syncResult = new SyncResult();
+            boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
+                    measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {
                         @Override
                         public void updatedProgress(float percent) {
                             Log.d(TAG, String.format("Upload Progress %f", percent));
                         }
                     }, jwtAuthToken);
-            assertThat(result, is(equalTo(201)));
+            assertThat(result, is(equalTo(true)));
         } finally {
             if (client != null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {

@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.SharedConstants.TAG;
 
 import java.lang.ref.WeakReference;
 

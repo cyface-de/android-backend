@@ -27,7 +27,7 @@ import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 public class MeasurementContentProviderClient {
@@ -174,8 +174,8 @@ public class MeasurementContentProviderClient {
     }
 
     /**
-     * Cleans the measurement by deleting all data points (accelerations, rotations and directions). This operation can
-     * not be revoked. Your data will be lost afterwards.
+     * Cleans the measurement by deleting all data points (accelerations, rotations and directions). And marking the measurement
+     * and the gps points as synced. This operation can not be revoked. Your data will be lost afterwards.
      *
      * @return The amount of deleted data points.
      * @throws RemoteException If the content provider is not accessible.
@@ -186,6 +186,15 @@ public class MeasurementContentProviderClient {
         client.update(
                 new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build(),
                 values, BaseColumns._ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
+        values.clear();
+
+        // gps points
+        values.put(GpsPointsTable.COLUMN_IS_SYNCED, true);
+        client.update(new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build(),
+                values, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+
+        // data points
         int ret = 0;
         ret += client.delete(
                 new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH).build(),

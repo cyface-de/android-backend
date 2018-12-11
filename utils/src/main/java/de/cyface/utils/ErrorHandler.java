@@ -1,12 +1,16 @@
 package de.cyface.utils;
 
+import static de.cyface.utils.Constants.TAG;
+
 import java.util.ArrayList;
 import java.util.Collection;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
+import android.support.annotation.Nullable;
 import android.support.v4.content.LocalBroadcastManager;
+import android.util.Log;
 
 /**
  * Maintains and informs {@link ErrorListener}. This class is responsible for Cyface Errors.
@@ -16,7 +20,7 @@ import android.support.v4.content.LocalBroadcastManager;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
@@ -51,27 +55,31 @@ public class ErrorHandler extends BroadcastReceiver {
     /**
      * Informs listeners, e.g. a SDK implementing app, about errors.
      *
-     * @param context   the {@link Context}
+     * @param context the {@link Context}
      * @param errorCode the Cyface error code
-     * @param httpCode  the HTTP error returned by the server
+     * @param httpCode the HTTP error returned by the server
      */
-    public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode) {
+    public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode,
+            final String message) {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(HTTP_CODE_EXTRA, httpCode);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+        Log.d(TAG, String.format("ErrorHandler (err %s, httpErr %s): %s", errorCode, httpCode, message));
     }
 
     /**
      * Informs listeners, e.g. a SDK implementing app, about errors.
      *
-     * @param context   the {@link Context}
+     * @param context the {@link Context}
      * @param errorCode the Cyface error code
      */
-    public static void sendErrorIntent(final Context context, final int errorCode) {
+    public static void sendErrorIntent(final Context context, final int errorCode, @Nullable final String message) {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
+        Log.d(TAG, message);
+        //Log.d(TAG, (message != null && message.length() > 0 ? message : "no error message provide"));
     }
 
     @Override
@@ -128,6 +136,10 @@ public class ErrorHandler extends BroadcastReceiver {
                 errorMessage = context.getString(R.string.error_message_ssl_certificate);
                 break;
 
+            case BAD_REQUEST:
+                errorMessage = context.getString(R.string.error_message_bad_request);
+                break;
+
             default:
                 errorMessage = context.getString(R.string.error_message_unknown_error);
         }
@@ -141,14 +153,14 @@ public class ErrorHandler extends BroadcastReceiver {
      * A list of known Errors which are thrown by the Cyface SDK.
      *
      * @author Armin Schnabel
-     * @version 1.1.1
+     * @version 1.1.2
      * @since 1.0.0
      */
     public enum ErrorCode {
         UNKNOWN(0), UNAUTHORIZED(1), MALFORMED_URL(2), UNREADABLE_HTTP_RESPONSE(3), SERVER_UNAVAILABLE(
-                4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(
-                7), AUTHENTICATION_CANCELED(8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10),
-                SSL_CERTIFICATE_UNKNOWN(11);
+                4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(7), AUTHENTICATION_CANCELED(
+                        8), SYNCHRONIZATION_ERROR(
+                                9), DATA_TRANSMISSION_ERROR(10), SSL_CERTIFICATE_UNKNOWN(11), BAD_REQUEST(12);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;

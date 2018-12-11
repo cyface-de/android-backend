@@ -1,12 +1,13 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
+
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -14,14 +15,14 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.content.ContentResolver;
+import android.content.SyncInfo;
+import android.content.SyncStatusObserver;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.content.ContentResolver;
-import android.content.SyncInfo;
-import android.content.SyncStatusObserver;
 import android.os.Bundle;
 import android.support.annotation.NonNull;
 import android.support.test.InstrumentationRegistry;
@@ -41,13 +42,14 @@ import android.util.Log;
  * 
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
 public final class SyncAdapterTest {
+
     /**
      * This test case tests whether the sync adapter is called after a request for a direct synchronization.
      *
@@ -56,8 +58,8 @@ public final class SyncAdapterTest {
     @Test
     public void testRequestSync() throws InterruptedException {
         AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
-        Account newAccount = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_FREE_PASSWORD, Bundle.EMPTY)) {
+        Account newAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_PASSWORD, Bundle.EMPTY)) {
             ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
             ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
         }
@@ -94,7 +96,7 @@ public final class SyncAdapterTest {
 
     /**
      * A <code>SyncStatusObserver</code> used to get information about the synchronization adapter. This observer waits
-     * for the sync adapter to start synchronization and stop it again befor waking up the actual test case.
+     * for the sync adapter to start synchronization and stop it again before waking up the actual test case.
      * 
      * @author Klemens Muthmann
      * @version 1.0.0
@@ -172,4 +174,5 @@ public final class SyncAdapterTest {
             return didSync;
         }
     }
+
 }

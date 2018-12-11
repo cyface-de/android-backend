@@ -2,13 +2,8 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.clearDatabase;
-import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
-import static de.cyface.synchronization.TestUtils.getMeasurementUri;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
+
+import static de.cyface.synchronization.TestUtils.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
@@ -45,7 +40,7 @@ import de.cyface.utils.Validate;
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
-public class CyfaceSyncAdapterTest {
+public final class SyncAdapterTest {
     Context context;
     ContentResolver contentResolver;
 
@@ -70,14 +65,13 @@ public class CyfaceSyncAdapterTest {
     public void testOnPerformSync() {
 
         // Arrange
-        final CyfaceSyncAdapter syncAdapter = new CyfaceSyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2,
-                2);
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
-        final Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);
+        final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, "https://s1.cyface.de/v1/dcs");
+        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         // Insert data to be synced
@@ -139,9 +133,16 @@ public class CyfaceSyncAdapterTest {
             final int measurementIsSynced = measurementsCursor
                     .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_SYNCED));
             assertThat(measurementIsSynced, is(SQLITE_TRUE));
+
             // GPS Point
             locationsCursor = loadTrack(contentResolver, measurementIdentifier);
-            assertThat(locationsCursor.getCount(), is(0));
+            assertThat(locationsCursor.getCount(), is(1));
+            locationsCursor.moveToNext();
+            final int gpsPointIsSynced = locationsCursor
+                    .getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
+            //TODO: currently we only mark gps points as synced and don't delete them
+            assertThat(gpsPointIsSynced, is(SQLITE_TRUE));
+            //assertThat(locationsCursor.getCount(), is(0));
         } finally {
             if (locationsCursor != null) {
                 locationsCursor.close();

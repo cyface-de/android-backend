@@ -19,6 +19,7 @@
     <string name="error_message_ssl_certificate">SSL certificate unknown</string>
     <string name="error_message_unknown_network_error">Network error</string>
     <string name="error_message_data_transmission_error_with_code">Transmission error (%1$d)</string>
+    <string name="error_message_bad_request">Bad request</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unexpected error</string>

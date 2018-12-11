@@ -17,8 +17,9 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.synchronization.Constants;
 import de.cyface.synchronization.SynchronisationException;
+
+import static de.cyface.synchronization.SharedConstants.AUTH_TOKEN_TYPE;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
@@ -35,7 +36,7 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -181,7 +182,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
         Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
 
-        accountManager.setAuthToken(synchronizationAccount, Constants.AUTH_TOKEN_TYPE, token);
+        accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
     }
 

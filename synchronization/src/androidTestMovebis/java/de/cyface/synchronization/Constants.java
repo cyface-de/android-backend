@@ -7,7 +7,7 @@ import android.os.Environment;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public final class Constants {
@@ -17,7 +17,8 @@ public final class Constants {
      */
     public final static String TAG = "de.cyface.sync";
 
-    // TODO: Change these strings between two STADTRADELN Campaigns.
+    // TODO: Change these strings between two (STADTRADELN) campaigns.
+
     /**
      * The Cyface account type used to identify all Cyface system accounts.
      */

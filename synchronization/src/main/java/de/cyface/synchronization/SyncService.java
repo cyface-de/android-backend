@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.SharedConstants.TAG;
 
 import android.app.Service;
 import android.content.Intent;
@@ -14,8 +14,9 @@ import android.util.Log;
  * "https://developer.android.com/training/sync-adapters/creating-sync-adapter.html#CreateSyncAdapterService">Android
  * documentation</a>.
  *
+ * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public final class SyncService extends Service {
@@ -34,7 +35,7 @@ public final class SyncService extends Service {
      */
     // TODO Ugh. Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to
     // change this after it runs.
-    private static CyfaceSyncAdapter syncAdapter = null;
+    private static SyncAdapter syncAdapter = null;
     /**
      * Lock object used to synchronize synchronisation adapter creation as described in the Android documentation.
      */
@@ -45,9 +46,7 @@ public final class SyncService extends Service {
         Log.d(TAG, "sync service on create");
         synchronized (LOCK) {
             if (syncAdapter == null) {
-                syncAdapter = new CyfaceSyncAdapter(getApplicationContext(), true, new CyfaceHttpConnection(),
-                        Constants.GEO_LOCATIONS_UPLOAD_BATCH_SIZE, Constants.ACCELERATIONS_UPLOAD_BATCH_SIZE,
-                        Constants.ROTATIONS_UPLOAD_BATCH_SIZE, Constants.DIRECTIONS_UPLOAD_BATCH_SIZE);
+                syncAdapter = new SyncAdapter(getApplicationContext(), true, new HttpConnection());
             }
         }
     }

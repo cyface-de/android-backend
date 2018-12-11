@@ -1,17 +1,7 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TO_TRANSMIT;
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_POINTS_TRANSMITTED;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.clearDatabase;
-import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
-import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
-import static de.cyface.synchronization.TestUtils.insertTestDirection;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestRotation;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
+import static de.cyface.synchronization.TestUtils.*;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -49,7 +39,8 @@ import de.cyface.utils.Validate;
  * Tests if the upload progress is broadcasted as expected.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 1.0.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,22 +66,21 @@ public class UploadProgressTest {
 
     @Test
     public void testUploadProgressHappyPath() {
-        CyfaceSyncAdapter syncAdapter = new CyfaceSyncAdapter(context, false, new MockedHttpConnection(), 2, 2, 2, 2);
+        SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         AccountManager manager = AccountManager.get(context);
-        Account account = new Account(TestUtils.DEFAULT_FREE_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, TestUtils.DEFAULT_FREE_PASSWORD, null);
+        Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, "https://s1.cyface.de/v1/dcs");
+        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
+        filter.addAction(CyfaceConnectionStatusListener.SYNC_PERCENTAGE); // FIXME: drop
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
-        filter.addAction(SYNC_POINTS_TRANSMITTED);
-        filter.addAction(SYNC_POINTS_TO_TRANSMIT);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);
 
@@ -129,19 +119,14 @@ public class UploadProgressTest {
             context.unregisterReceiver(receiver);
         }
 
-        assertThat(receiver.getCollectedProgress().size(), is(equalTo(2)));
-        assertThat(receiver.getCollectedProgress().get(0), is(equalTo(8L)));
-        assertThat(receiver.getCollectedProgress().get(1), is(equalTo(11L)));
-        assertThat(receiver.getCollectedTotalProgress().size(), is(equalTo(2)));
-        assertThat(receiver.getCollectedTotalProgress().get(0), is(equalTo(11L)));
-        assertThat(receiver.getCollectedTotalProgress().get(1), is(equalTo(11L)));
+        assertThat(receiver.getCollectedPercentages().size(), is(equalTo(1)));
+        assertThat(receiver.getCollectedPercentages().get(0), is(equalTo(1.0f)));
     }
 }
 
 class TestReceiver extends BroadcastReceiver {
 
-    private final List<Long> collectedProgress = new LinkedList<>();
-    private final List<Long> collectedTotalProgress = new LinkedList<>();
+    private final List<Float> collectedPercentages = new LinkedList<>();
 
     @Override
     public void onReceive(Context context, Intent intent) {
@@ -154,17 +139,9 @@ class TestReceiver extends BroadcastReceiver {
                 Log.d(TAG, "SYNC FINISHED");
                 break;
             case CyfaceConnectionStatusListener.SYNC_PROGRESS:
-                final long countOfTransmittedPoints = intent.getLongExtra(SYNC_POINTS_TRANSMITTED, 0);
-                final long countOfPointsToTransmit = intent.getLongExtra(SYNC_POINTS_TO_TRANSMIT, 0);
-                collectedProgress.add(countOfTransmittedPoints);
-                collectedTotalProgress.add(countOfPointsToTransmit);
-                Log.d(TAG, "SYNC PROGRESS: " + countOfTransmittedPoints + " / " + countOfPointsToTransmit);
-                break;
-            case SYNC_POINTS_TRANSMITTED:
-                Log.d(TAG, "SYNC PROGRESS TRANSMITTED");
-                break;
-            case SYNC_POINTS_TO_TRANSMIT:
-                Log.d(TAG, "SYNC PROGRESS TOTAL");
+                final float percentage = intent.getFloatExtra(SYNC_PERCENTAGE, -1.0f);
+                collectedPercentages.add(percentage);
+                Log.d(TAG, "SYNC PROGRESS: " + percentage + " % ");
                 break;
             case CyfaceConnectionStatusListener.SYNC_STARTED:
                 Log.d(TAG, "SYNC STARTED");
@@ -174,11 +151,7 @@ class TestReceiver extends BroadcastReceiver {
         }
     }
 
-    public List<Long> getCollectedProgress() {
-        return collectedProgress;
-    }
-
-    public List<Long> getCollectedTotalProgress() {
-        return collectedTotalProgress;
+    public List<Float> getCollectedPercentages() {
+        return collectedPercentages;
     }
 }

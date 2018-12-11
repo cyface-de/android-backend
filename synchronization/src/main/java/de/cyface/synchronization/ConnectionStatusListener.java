@@ -5,25 +5,22 @@ package de.cyface.synchronization;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @version 1.0.4
  * @since 1.0.0
  */
 public interface ConnectionStatusListener {
     /**
      * Is called when the synchronization starts.
-     *
-     * @param pointsToTransmitted The number of point to be transmitted.
      */
-    void onSyncStarted(final long pointsToTransmitted);
+    void onSyncStarted();
 
     /**
      * This event is called when the sync progress changed.
      *
-     * @param transmittedPoints The number of points transmitted so far.
-     * @param pointsToTransmit The number of points to transmit.
+     * @param percent How much of the currently uploading measurement is transmitted
      * @param measurementId The measurement id of the measurement which is currently transmitted.
      */
-    void onProgress(final long transmittedPoints, final long pointsToTransmit, final long measurementId);
+    void onProgress(final float percent, final long measurementId);
 
     /**
      * Is called when the synchronization ended.
