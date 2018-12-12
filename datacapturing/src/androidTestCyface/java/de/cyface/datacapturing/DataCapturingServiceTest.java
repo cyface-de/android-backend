@@ -108,9 +108,9 @@ public class DataCapturingServiceTest {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         // Add test account
-        final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_FREE_USERNAME,
+        final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_USERNAME,
                 ServiceTestUtils.ACCOUNT_TYPE);
-        AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_FREE_PASSWORD, null);
+        AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_PASSWORD, null);
 
         // Start DataCapturingService
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {

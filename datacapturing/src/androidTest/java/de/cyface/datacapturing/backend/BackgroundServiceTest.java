@@ -29,17 +29,18 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.datacapturing.PongReceiver;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.5
+ * @version 2.0.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -83,9 +84,9 @@ public class BackgroundServiceTest {
     private Condition condition;
 
     @Before
-    public void setUp() {
+    public void setUp() throws DataCapturingException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        persistence = new MeasurementPersistence(context.getContentResolver(), AUTHORITY);
+        persistence = new MeasurementPersistence(context, context.getContentResolver(), AUTHORITY);
         testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
@@ -99,7 +100,7 @@ public class BackgroundServiceTest {
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
-     * 
+     *
      * @throws InterruptedException If test execution is interrupted externally. This should never really happen, but we
      *             need to throw the exception anyways.
      */

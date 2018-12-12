@@ -8,16 +8,13 @@ import android.net.Uri;
 
 import androidx.annotation.NonNull;
 import androidx.test.InstrumentationRegistry;
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.IdentifierTable;
 
 /**
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Klemens Muthmann
+ * @author Armin Schnabel
  * @version 1.1.3
  * @since 2.0.0
  */
@@ -34,8 +31,8 @@ public class ServiceTestUtils {
      * Account type used by all accounts created during testing.
      */
     public static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
-    public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
-    public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
+    public final static String DEFAULT_USERNAME = "admin";
+    public final static String DEFAULT_PASSWORD = "secret";
 
     /**
      * Private constructor so no one tries to instantiate the utility class.
@@ -82,25 +79,7 @@ public class ServiceTestUtils {
         });
     }
 
-    public static Uri getMeasurementUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
-    }
-
-    public static Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
-    }
-
-    public static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH)
-                .build();
-    }
-
-    public static Uri getRotationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(RotationPointTable.URI_PATH).build();
-    }
-
-    public static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH)
-                .build();
+    public static Uri getIdentifierUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
     }
 }

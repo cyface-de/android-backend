@@ -43,7 +43,7 @@ public class MeasurementPersistenceTest {
     public void setUp() {
         Context context = InstrumentationRegistry.getTargetContext();
         ContentResolver resolver = context.getContentResolver();
-        oocut = new MeasurementPersistence(resolver, AUTHORITY);
+        oocut = new MeasurementPersistence(context, resolver, AUTHORITY);
     }
 
     /**

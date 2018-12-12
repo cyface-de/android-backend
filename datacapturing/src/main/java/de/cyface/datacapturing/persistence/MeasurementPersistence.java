@@ -96,6 +96,10 @@ public class MeasurementPersistence {
      */
     private final File corruptedMeasurementsDir;
     /**
+     * The {@link File} pointing to the directory containing synchronized measurements.
+     */
+    private final File synchronizedMeasurementsDir;
+    /**
      * Utility class to locate the directory and file paths used for persistence.
      */
     private final FileUtils fileUtils;
@@ -122,6 +126,7 @@ public class MeasurementPersistence {
         this.openMeasurementsDir = new File(fileUtils.getOpenMeasurementsDirPath());
         this.finishedMeasurementsDir = new File(fileUtils.getFinishedMeasurementsDirPath());
         this.corruptedMeasurementsDir = new File(fileUtils.getCorruptedMeasurementsDirPath());
+        this.synchronizedMeasurementsDir = new File(fileUtils.getSynchronizedMeasurementsDirPath());
 
         // Ensure measurements dir exist
         if (!openMeasurementsDir.exists()) {
@@ -132,6 +137,9 @@ public class MeasurementPersistence {
         }
         if (!corruptedMeasurementsDir.exists()) {
             Validate.isTrue(corruptedMeasurementsDir.mkdirs(), "Unable to create directory");
+        }
+        if (!synchronizedMeasurementsDir.exists()) {
+            Validate.isTrue(synchronizedMeasurementsDir.mkdirs(), "Unable to create directory");
         }
     }
 
@@ -314,14 +322,7 @@ public class MeasurementPersistence {
      */
     public @NonNull List<Measurement> loadMeasurements() {
         final List<Measurement> measurements = new ArrayList<>();
-
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
-
-        for (File measurement : openMeasurementDirs) {
-            final long measurementId = Long.parseLong(measurement.getName());
-            measurements.add(new Measurement(measurementId));
-        }
-
+        measurements.addAll(loadOpenMeasurements());
         measurements.addAll(loadFinishedMeasurements());
         return measurements;
     }
@@ -372,23 +373,54 @@ public class MeasurementPersistence {
     }
 
     /**
+     * Loads only the open {@link Measurement} instances from the local persistent data storage. Open
+     * measurements are the ones currently capturing or paused. If the {@link DataCapturingBackgroundService}
+     * stopped unexpectedly there can also be corrupted open measurements, see
+     * {@link MeasurementPersistence#cleanCorruptedOpenMeasurements()}
+     *
+     * @return All the open measurements from the local persistent data storage.
+     */
+    public List<Measurement> loadOpenMeasurements() {
+        final List<Measurement> measurements = new ArrayList<>();
+
+        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
+
+        for (File measurement : openMeasurementDirs) {
+            final long measurementId = Long.parseLong(measurement.getName());
+            measurements.add(new Measurement(measurementId));
+        }
+
+        return measurements;
+    }
+
+    /**
      * Removes everything from the local persistent data storage.
      * Attention: This currently does not reset the device id and measurement id counter.
      *
-     * @return number of rows removed from the database.
+     * @return number of measurement directories removed.
      */
     public int clear() {
         int ret = 0;
         final File[] finishedMeasurementDirs = finishedMeasurementsDir.listFiles(FileUtils.directoryFilter());
         final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        for (File finishedMeasurementDir : finishedMeasurementDirs) {
-            Validate.isTrue(finishedMeasurementDir.delete());
+        final File[] corruptedMeasurementDirs = corruptedMeasurementsDir.listFiles(FileUtils.directoryFilter());
+        final File[] syncedMeasurementDirs = synchronizedMeasurementsDir.listFiles(FileUtils.directoryFilter());
+        for (File dir : finishedMeasurementDirs) {
+            Validate.isTrue(dir.delete());
         }
         ret += finishedMeasurementDirs.length;
-        for (File openMeasurementDir : openMeasurementDirs) {
-            Validate.isTrue(openMeasurementDir.delete());
+        for (File dir : openMeasurementDirs) {
+            Validate.isTrue(dir.delete());
         }
         ret += openMeasurementDirs.length;
+        for (File dir : corruptedMeasurementDirs) {
+            Validate.isTrue(dir.delete());
+        }
+        ret += corruptedMeasurementDirs.length;
+        for (File dir : syncedMeasurementDirs) {
+            Validate.isTrue(dir.delete());
+        }
+        ret += syncedMeasurementDirs.length;
         return ret;
     }
 

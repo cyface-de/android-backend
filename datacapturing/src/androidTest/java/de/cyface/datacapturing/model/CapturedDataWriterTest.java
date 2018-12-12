@@ -1,14 +1,9 @@
 package de.cyface.datacapturing.model;
 
-import static android.content.ContentValues.TAG;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static de.cyface.datacapturing.ServiceTestUtils.getAccelerationsUri;
-import static de.cyface.datacapturing.ServiceTestUtils.getDirectionsUri;
-import static de.cyface.datacapturing.ServiceTestUtils.getGeoLocationsUri;
-import static de.cyface.datacapturing.ServiceTestUtils.getMeasurementUri;
-import static de.cyface.datacapturing.ServiceTestUtils.getRotationsUri;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -24,9 +19,6 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import android.database.Cursor;
-import android.provider.BaseColumns;
-import android.util.Log;
 
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -34,18 +26,20 @@ import androidx.test.filters.MediumTest;
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.RotationsFile;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
@@ -54,7 +48,8 @@ import de.cyface.persistence.model.Vehicle;
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 4.0.3
+ * @author Armin Schnabel
+ * @version 5.0.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -84,7 +79,7 @@ public class CapturedDataWriterTest {
     public void setUp() {
         mockResolver = providerRule.getResolver();
 
-        oocut = new MeasurementPersistence(mockResolver, AUTHORITY);
+        oocut = new MeasurementPersistence(InstrumentationRegistry.getTargetContext(), mockResolver, AUTHORITY);
     }
 
     /**
@@ -99,63 +94,40 @@ public class CapturedDataWriterTest {
      * Tests whether creating and closing a measurement works as expected.
      */
     @Test
-    public void testCreateNewMeasurement() {
+    public void testCreateNewMeasurement() throws DataCapturingException, FileCorruptedException {
+        // Create a measurement
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(measurement.getIdentifier() >= 0L, is(equalTo(true)));
-        String identifierString = Long.valueOf(measurement.getIdentifier()).toString();
-        Log.d(TAG, identifierString);
 
-        Cursor result = null;
-        try {
-            result = mockResolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
-                    new String[] {identifierString}, null);
-            if (result == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from content provider.");
-            }
+        // Try to load the created measurement and check its properties
+        List<Measurement> openMeasurements = oocut.loadOpenMeasurements();
+        Measurement loadedOpenMeasurement = oocut.loadCurrentlyCapturedMeasurement();
+        assertThat(loadedOpenMeasurement, notNullValue());
+        assertThat(loadedOpenMeasurement.getIdentifier(), is(measurement.getIdentifier()));
+        assertThat(openMeasurements.size(), is(equalTo(1)));
+        MetaFile.MetaData metaData = MetaFile.deserialize(getMockContext(), measurement.getIdentifier());
+        assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
 
-            assertThat(result.getCount(), is(equalTo(1)));
-            assertThat(result.moveToFirst(), is(equalTo(true)));
-
-            assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
-                    is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_FINISHED)), is(equalTo(0)));
-
-        } finally {
-            if (result != null) {
-                result.close();
-            }
-        }
-
+        // Close the measurement, load the closed measurement and check its properties
         oocut.closeRecentMeasurement();
-        Cursor closingResult = null;
-        try {
-            closingResult = mockResolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
-                    new String[] {identifierString}, null);
-            if (closingResult == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from content provider.");
-            }
-
-            assertThat(closingResult.getCount(), is(equalTo(1)));
-            assertThat(closingResult.moveToFirst(), is(equalTo(true)));
-
-            assertThat(closingResult.getString(closingResult.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
-                    is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
-            assertThat(closingResult.getInt(closingResult.getColumnIndex(MeasurementTable.COLUMN_FINISHED)),
-                    is(equalTo(1)));
-        } finally {
-            if (closingResult != null) {
-                closingResult.close();
-            }
+        Measurement closedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        if (closedMeasurement == null) {
+            throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
         }
+        openMeasurements = oocut.loadOpenMeasurements();
+        List<Measurement> finishedMeasurements = oocut.loadFinishedMeasurements();
+        assertThat(finishedMeasurements.size(), is(equalTo(1)));
+        assertThat(openMeasurements.size(), is(equalTo(0)));
+        metaData = MetaFile.deserialize(getMockContext(), measurement.getIdentifier());
+        assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
     }
 
     /**
      * Tests whether data is stored correctly via the <code>MeasurementPersistence</code>.
      */
     @Test
-    public void testStoreData() {
+    public void testStoreData() throws DataCapturingException, FileCorruptedException {
+        // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
@@ -185,47 +157,23 @@ public class CapturedDataWriterTest {
 
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
 
-        Cursor geoLocationsCursor = null;
-        Cursor accelerationsCursor = null;
-        Cursor directionsCursor = null;
-        Cursor rotationsCursor = null;
+        // Check if the captured data was persisted
+        List<GeoLocation> geoLocations = GeoLocationsFile.deserialize(getMockContext(), measurement.getIdentifier());
+        List<Point3D> accelerations = AccelerationsFile.deserialize(getMockContext(), measurement.getIdentifier());
+        List<Point3D> rotations = RotationsFile.deserialize(getMockContext(), measurement.getIdentifier());
+        List<Point3D> directions = DirectionsFile.deserialize(getMockContext(), measurement.getIdentifier());
 
-        try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null, null, null, null);
-            accelerationsCursor = mockResolver.query(getAccelerationsUri(), null, null, null, null);
-            directionsCursor = mockResolver.query(getDirectionsUri(), null, null, null, null);
-            rotationsCursor = mockResolver.query(getRotationsUri(), null, null, null, null);
-            if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
-                    || rotationsCursor == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from the content provider.");
-            }
-
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(1)));
-            assertThat(accelerationsCursor.getCount(), is(equalTo(3)));
-            assertThat(directionsCursor.getCount(), is(equalTo(3)));
-            assertThat(rotationsCursor.getCount(), is(equalTo(3)));
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
-            if (accelerationsCursor != null) {
-                accelerationsCursor.close();
-            }
-            if (directionsCursor != null) {
-                directionsCursor.close();
-            }
-            if (rotationsCursor != null) {
-                rotationsCursor.close();
-            }
-        }
+        assertThat(geoLocations.size(), is(equalTo(1)));
+        assertThat(accelerations.size(), is(equalTo(3)));
+        assertThat(rotations.size(), is(equalTo(3)));
+        assertThat(directions.size(), is(equalTo(3)));
     }
 
     /**
      * Tests whether cascading deletion of measurements together with all data is working correctly.
      */
     @Test
-    public void testCascadingClearMeasurements() {
+    public void testCascadingClearMeasurements() throws DataCapturingException {
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
@@ -261,54 +209,7 @@ public class CapturedDataWriterTest {
         assertThat(removedRows, is(equalTo(12)));
 
         // make sure nothing is left.
-        Cursor geoLocationsCursor = null;
-        Cursor accelerationsCursor = null;
-        Cursor directionsCursor = null;
-        Cursor rotationsCursor = null;
-        Cursor measurementsCursor = null;
-
-        try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.toString(measurement.getIdentifier())}, null);
-            accelerationsCursor = mockResolver.query(getAccelerationsUri(), null,
-                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.toString(measurement.getIdentifier())}, null);
-            directionsCursor = mockResolver.query(getDirectionsUri(), null,
-                    DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.toString(measurement.getIdentifier())}, null);
-            rotationsCursor = mockResolver.query(getRotationsUri(), null,
-                    RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.toString(measurement.getIdentifier())}, null);
-            measurementsCursor = mockResolver.query(getMeasurementUri(), null, null, null, null);
-            if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
-                    || rotationsCursor == null || measurementsCursor == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from the content provider.");
-            }
-
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-            assertThat(accelerationsCursor.getCount(), is(equalTo(0)));
-            assertThat(directionsCursor.getCount(), is(equalTo(0)));
-            assertThat(rotationsCursor.getCount(), is(equalTo(0)));
-            assertThat(measurementsCursor.getCount(), is(equalTo(0)));
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
-            if (accelerationsCursor != null) {
-                accelerationsCursor.close();
-            }
-            if (directionsCursor != null) {
-                directionsCursor.close();
-            }
-            if (rotationsCursor != null) {
-                rotationsCursor.close();
-            }
-            if (measurementsCursor != null) {
-                measurementsCursor.close();
-            }
-        }
+        assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
     }
 
     /**
@@ -319,7 +220,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testLoadMeasurements() throws NoSuchMeasurementException {
+    public void testLoadMeasurements() throws NoSuchMeasurementException, DataCapturingException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
@@ -338,7 +239,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testDeleteMeasurement() throws NoSuchMeasurementException {
+    public void testDeleteMeasurement() throws NoSuchMeasurementException, DataCapturingException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
@@ -370,49 +271,6 @@ public class CapturedDataWriterTest {
         oocut.delete(measurement);
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
-
-        Cursor geoLocationsCursor = null;
-        Cursor accelerationsCursor = null;
-        Cursor directionsCursor = null;
-        Cursor rotationsCursor = null;
-
-        try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            accelerationsCursor = mockResolver.query(getAccelerationsUri(), null,
-                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            directionsCursor = mockResolver.query(getDirectionsUri(), null,
-                    DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            rotationsCursor = mockResolver.query(getRotationsUri(), null,
-                    RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
-                    || rotationsCursor == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from the content provider.");
-            }
-
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-            assertThat(accelerationsCursor.getCount(), is(equalTo(0)));
-            assertThat(directionsCursor.getCount(), is(equalTo(0)));
-            assertThat(rotationsCursor.getCount(), is(equalTo(0)));
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
-            if (accelerationsCursor != null) {
-                accelerationsCursor.close();
-            }
-            if (directionsCursor != null) {
-                directionsCursor.close();
-            }
-            if (rotationsCursor != null) {
-                rotationsCursor.close();
-            }
-        }
     }
 
     /**
@@ -421,7 +279,7 @@ public class CapturedDataWriterTest {
      * @throws NoSuchMeasurementException if the created measurement is null for some unexpected reason.
      */
     @Test
-    public void testLoadTrack() throws NoSuchMeasurementException {
+    public void testLoadTrack() throws NoSuchMeasurementException, DataCapturingException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();

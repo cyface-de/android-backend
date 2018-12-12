@@ -7,14 +7,11 @@ import static de.cyface.persistence.serialization.ByteSizes.INT_BYTES;
 import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
 import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 
-import java.io.ByteArrayInputStream;
-import java.io.InputStream;
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
-import java.util.zip.Deflater;
 
 import android.content.Context;
 import android.support.annotation.NonNull;
@@ -289,5 +286,36 @@ public final class MeasurementSerializer {
 
         Log.d(TAG, "Deserialized GeoLocations: " + geoLocations.size());
         return geoLocations;
+    }
+
+    /**
+     * Deserialized {@link Point3D} data.
+     *
+     * @param point3dFileBytes The bytes loaded from the {@link AccelerationsFile}, {@link RotationsFile} or
+     *            {@link DirectionsFile}
+     * @return The {@link Point3D} loaded from the file
+     */
+    static List<Point3D> deserializePoint3dData(final byte[] point3dFileBytes,
+                                                final int pointCount) {
+
+        Validate.isTrue(point3dFileBytes.length == pointCount * BYTES_IN_ONE_POINT_ENTRY);
+        if (pointCount == 0) {
+            return new ArrayList<>();
+        }
+
+        // Deserialize bytes
+        final List<Point3D> points = new ArrayList<>();
+        final ByteBuffer buffer = ByteBuffer.wrap(point3dFileBytes);
+        for (int i = 0; i < pointCount; i++) {
+            final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
+            final double x = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final double y = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final double z = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            // final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
+            points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
+        }
+
+        Log.d(TAG, "Deserialized Points: " + points.size());
+        return points;
     }
 }

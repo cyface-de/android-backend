@@ -63,4 +63,19 @@ public class AccelerationsFile implements FileSupport<List<Point3D>> {
     public static File loadFile(final Context context, final long measurementId) {
         return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
     }
+
+    /**
+     * For testing this method helps to load the stored data from a {@link AccelerationsFile}.
+     *
+     * @param context The {@link Context} required to access the persistence layer.
+     * @param measurementId The identifier of the measurement to resume
+     * @return the {@link Point3D} data restored from the {@code AccelerationsFile}
+     * @throws FileCorruptedException when the {@link MetaFile} is corrupted
+     */
+    public static List<Point3D> deserialize(final Context context, final long measurementId) throws FileCorruptedException {
+        final File file = loadFile(context, measurementId);
+        final byte[] bytes = FileUtils.loadBytes(file);
+        final int pointCount = MetaFile.deserialize(context, measurementId).getPointMetaData().getCountOfAccelerations();
+        return MeasurementSerializer.deserializePoint3dData(bytes, pointCount);
+    }
 }
