@@ -87,7 +87,7 @@ class SyncPerformer {
      * @param dataServerUrl The server URL to send the data to.
      * @param measurementIdentifier The measurement identifier of the transmitted measurement.
      * @param deviceIdentifier The device identifier of the device transmitting the measurement.
-     * @param data The data to transmit as JSON measurement slice.
+     * @param data The data to transmit
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      *

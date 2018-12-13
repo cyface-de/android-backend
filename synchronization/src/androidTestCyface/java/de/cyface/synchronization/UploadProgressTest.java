@@ -44,8 +44,10 @@ import androidx.test.filters.LargeTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -116,6 +118,11 @@ public class UploadProgressTest {
             insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
             insertTestDirection(context, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
             insertTestDirection(context, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
+
+            // Write point counters to MetaFile
+            MetaFile.append(context, measurementIdentifier, new MetaFile.PointMetaData(2, 3, 3, 3));
+            // Finish measurement
+            new Persistence(context, contentResolver, AUTHORITY).closeMeasurement(measurement);
 
             client = contentResolver.acquireContentProviderClient(getIdentifierUri());
             SyncResult result = new SyncResult();

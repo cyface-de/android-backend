@@ -156,6 +156,7 @@ public class HttpConnection implements Http {
                     out.write(buf, 0, bytesRead);
                     out.flush();
                     progress += bytesRead; // Here progress is total uploaded bytes
+                    Log.d(TAG, "progress: " + (progress * 100.0f) / dataSize);
                     progressListener.updatedProgress((progress * 100.0f) / dataSize);
                 }
 

@@ -181,32 +181,4 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {
         progressListener.add(listener);
     }
-
-    private long countUnsyncedDataPoints(final @NonNull ContentProviderClient provider,
-            final @NonNull Cursor syncableMeasurements, final @NonNull String authority) throws RemoteException {
-        long ret = 0L;
-        int initialPosition = syncableMeasurements.getPosition();
-        if (!syncableMeasurements.moveToFirst()) {
-            Log.d(TAG, "No syncable measurements exist.");
-            return 0L;
-        }
-        do {
-            long measurementIdentifier = syncableMeasurements
-                    .getLong(syncableMeasurements.getColumnIndex(BaseColumns._ID));
-            /*
-             * MeasurementContentProviderClient client = new MeasurementContentProviderClient(measurementIdentifier,
-             * provider, authority); FIXME
-             */
-
-            /*
-             * ret += client.countData(createGeoLocationsUri(authority), GpsPointsTable.COLUMN_MEASUREMENT_FK);
-             * ret += client.countData(createAccelerationsUri(authority), AccelerationPointTable.COLUMN_MEASUREMENT_FK);
-             * ret += client.countData(createRotationsUri(authority), RotationPointTable.COLUMN_MEASUREMENT_FK);
-             * ret += client.countData(createDirectionsUri(authority), DirectionPointTable.COLUMN_MEASUREMENT_FK);
-             */ // FIXME
-        } while (syncableMeasurements.moveToNext());
-        final int offsetToInitialPosition = syncableMeasurements.getPosition() - initialPosition;
-        syncableMeasurements.move(-offsetToInitialPosition);
-        return ret;
-    }
 }
