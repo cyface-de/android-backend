@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+/*package de.cyface.synchronization;
 
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
@@ -34,39 +34,36 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.persistence.serialization.Point3DSerializer;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.1.0
  * @since 2.0.0
- */
+ * /
 @RunWith(RobolectricTestRunner.class)
 public class MeasurementSerializerTest {
     /**
      * Used to mock Android API objects.
-     */
+     * /
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
     /**
      * A mock loader, not accessing any database
-     */
+     * /
     @Mock
     private MeasurementContentProviderClient loader;
     /**
      * A mocked cursor for geo locations.
-     */
+     * /
     @Mock
     private Cursor geoLocationsCursor;
     /**
      * A mocked cursor for 3D points like accelerations, rotations and directions.
-     */
+     * /
     @Mock
     private Cursor pointsCursor;
 
@@ -103,7 +100,7 @@ public class MeasurementSerializerTest {
      * Tests if serialization of a measurement is successful.
      *
      * @throws IOException Should not happen as long as serialization depends on ByteArrayInputStream.
-     */
+     * /
     @Test
     public void testSerializeMeasurement() throws IOException {
         MeasurementSerializer serializer = new MeasurementSerializer();
@@ -119,7 +116,7 @@ public class MeasurementSerializerTest {
      *
      * @throws IOException Thrown on streaming errors. Since this only uses ByteArrayStreams the exception should not
      *             occur.
-     */
+     * /
     @Test
     public void testDeserializeMeasurement() throws IOException {
         MeasurementSerializer serializer = new MeasurementSerializer();
@@ -170,7 +167,7 @@ public class MeasurementSerializerTest {
      *
      * @throws IOException Thrown on streaming errors. Since this only uses ByteArrayStreams the exception should not
      *             occur.
-     */
+     * /
     @Test
     public void testSerializeCompressedMeasurement() throws IOException {
         MeasurementSerializer serializer = new MeasurementSerializer();
@@ -188,7 +185,7 @@ public class MeasurementSerializerTest {
      * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 4 entrys for x, y, z and timestamp
      *         with the corresponding values. A timestamp is a <code>long</code>, all other values are
      *         <code>double</code>.
-     */
+     * /
     private List<Map<String, ?>> deserializePoint3D(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
 
@@ -211,10 +208,10 @@ public class MeasurementSerializerTest {
      * Deserializes a list of geo locations from an array of bytes in Cyface binary format.
      *
      * @param bytes The bytes array to deserialize the geo locations from.
-     * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 5 entrys keyed with "timestamp",
+     * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 5 entries keyed with "timestamp",
      *         "lat", "lon", "speed" and "accuracy" with the appropriate values. The timestamp is a <code>long</code>,
      *         accuracy is an <code>int</code> and all other values are <code>double</code> values.
-     */
+     * /
     private List<Map<String, ?>> deserializeGeoLocations(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
         for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_GEO_LOCATION_ENTRY) {
@@ -231,4 +228,4 @@ public class MeasurementSerializerTest {
         }
         return ret;
     }
-}
+}*/

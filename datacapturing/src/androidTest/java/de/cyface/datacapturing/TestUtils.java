@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.datacapturing;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -7,7 +7,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.net.Uri;
-import androidx.annotation.NonNull;
+import android.support.annotation.NonNull;
 
 import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -26,10 +26,10 @@ import de.cyface.utils.Validate;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
 
 /**
- * Contains utility methods and constants required by the tests within the synchronization project.
+ * Contains utility methods and constants required by the tests within the persistence project.
+ * FIXME: this is a duplicate of synchronization/androidTest/TestUtils because IntelliJ somehow cannot find the symbol although it should be visible
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -38,34 +38,10 @@ import static org.junit.Assert.fail;
  */
 public final class TestUtils {
     /**
-     * The tag used to identify Logcat messages from this module.
-     */
-    final static String TAG = Constants.TAG + ".test";
-    /**
      * The content provider authority used during tests. This must be the same as in the manifest and the authenticator
      * configuration.
      */
-    final static String AUTHORITY = "de.cyface.synchronization.test.provider";
-    /**
-     * The account type used during testing. This must be the same as in the authenticator configuration.
-     */
-    final static String ACCOUNT_TYPE = "de.cyface.synchronization.test";
-    /**
-     * An username used by the tests to set up a Cyface account for synchronization.
-     */
-    public final static String DEFAULT_USERNAME = "admin";
-    /**
-     * A password used by the tests to set up a Cyface account for synchronization.
-     */
-    public final static String DEFAULT_PASSWORD = "secret";
-
-    /**
-     * Path to an API available for testing.
-     * (!) s1 url proxy /api/v2 didn't work with local https destination, thus we're using the port:
-     * // testing: https://s1.cyface.de:9090/api/v2
-     * // local: https://192.168.1.146:8080/api/v2
-     */
-    public final static String TEST_API_URL = "https://s1.cyface.de:9090/api/v2";
+    final static String AUTHORITY = "de.cyface.persistence.test.provider";
 
     static Uri getIdentifierUri() {
         return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
@@ -97,7 +73,7 @@ public final class TestUtils {
      * @param z A fake test z coordinate of the direction.
      */
     public static void insertTestDirection(final @NonNull Context context, final long measurementIdentifier,
-            final long timestamp, final double x, final double y, final double z) {
+                                           final long timestamp, final double x, final double y, final double z) {
         DirectionsFile directionsFile = new DirectionsFile(context, measurementIdentifier);
         List<Point3D> points = new ArrayList<>();
         points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
@@ -115,7 +91,7 @@ public final class TestUtils {
      * @param z A fake test z coordinate of the direction.
      */
     public static void insertTestRotation(final @NonNull Context context, final long measurementIdentifier,
-            final long timestamp, final double x, final double y, final double z) {
+                                          final long timestamp, final double x, final double y, final double z) {
         RotationsFile rotationsFile = new RotationsFile(context, measurementIdentifier);
         List<Point3D> points = new ArrayList<>();
         points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
@@ -133,7 +109,7 @@ public final class TestUtils {
      * @param z A fake test z coordinate of the acceleration.
      */
     public static void insertTestAcceleration(final @NonNull Context context, final long measurementIdentifier,
-            final long timestamp, final double x, final double y, final double z) {
+                                              final long timestamp, final double x, final double y, final double z) {
         AccelerationsFile accelerationsFile = new AccelerationsFile(context, measurementIdentifier);
         List<Point3D> points = new ArrayList<>();
         points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
@@ -152,7 +128,7 @@ public final class TestUtils {
      * @param accuracy The fake test accuracy of the geo location.
      */
     public static void insertTestGeoLocation(final @NonNull Context context, final long measurementIdentifier,
-            final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
+                                             final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
         GeoLocationsFile geoLocationsFile = new GeoLocationsFile(context, measurementIdentifier);
         geoLocationsFile.append(new GeoLocation(lat, lon, timestamp, speed, accuracy));
     }
@@ -169,7 +145,7 @@ public final class TestUtils {
      * @return The database identifier of the created measurement.
      */
     public static Measurement insertTestMeasurement(final @NonNull Persistence persistence,
-            @NonNull final ContentResolver resolver, final @NonNull Vehicle vehicle) {
+                                                    @NonNull final ContentResolver resolver, final @NonNull Vehicle vehicle) {
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId(resolver);
 
@@ -190,8 +166,8 @@ public final class TestUtils {
         return ret;
     }
 
-    static Measurement insertSampleMeasurement(final boolean finished, final boolean synced,
-            final Persistence persistence) throws NoSuchMeasurementException {
+    public static Measurement insertSampleMeasurement(final boolean finished, final boolean synced,
+                                               final Persistence persistence) throws NoSuchMeasurementException {
         Validate.isTrue(!synced || finished,
                 "You can only create a finished synced measurement, not a unfinished synced one.");
 

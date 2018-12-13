@@ -1,10 +1,22 @@
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.insertSampleMeasurement;
+import static de.cyface.datacapturing.TestUtils.insertTestAcceleration;
+import static de.cyface.datacapturing.TestUtils.insertTestDirection;
+import static de.cyface.datacapturing.TestUtils.insertTestGeoLocation;
+import static de.cyface.datacapturing.TestUtils.insertTestMeasurement;
+import static de.cyface.datacapturing.TestUtils.insertTestRotation;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.List;
 
 import org.junit.After;
@@ -23,9 +35,11 @@ import android.util.Log;
 import de.cyface.datacapturing.ServiceTestUtils;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MetaFile;
 
@@ -34,7 +48,7 @@ import de.cyface.persistence.serialization.MetaFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.1.0
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -45,14 +59,16 @@ public class PersistenceTest {
      * An object of the class under test. It is setup prior to each test execution.
      */
     private MeasurementPersistence oocut;
+    private Context context;
+    private ContentResolver resolver;
 
     /**
      * Initializes the <code>oocut</code> with the Android persistence stack.
      */
     @Before
     public void setUp() {
-        Context context = InstrumentationRegistry.getTargetContext();
-        ContentResolver resolver = context.getContentResolver();
+        context = InstrumentationRegistry.getTargetContext();
+        resolver = context.getContentResolver();
         oocut = new MeasurementPersistence(context, resolver, AUTHORITY);
     }
 
@@ -153,5 +169,71 @@ public class PersistenceTest {
 
         // Assert
         assertThat(numberOftestEntries, is(equalTo(locationList.size())));
+    }
+
+    @Test
+    public void testLoadSerializedCompressed() throws NoSuchMeasurementException, FileCorruptedException, IOException {
+
+        final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
+                + 3 * 3 * BYTES_IN_ONE_POINT_ENTRY;
+        final int SERIALIZED_COMPRESSED_SIZE = 30;
+
+        // Insert sample measurement data
+        Persistence persistence = new Persistence(context, resolver, AUTHORITY);
+        final ContentResolver contentResolver = context.getContentResolver();
+        final Measurement measurement = insertTestMeasurement(persistence, contentResolver, Vehicle.UNKNOWN);
+        final long measurementIdentifier = measurement.getIdentifier();
+        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
+                940);
+        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
+                940);
+        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
+                940);
+        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
+        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
+        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
+        // Write point counters to MetaFile
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
+        // Finish measurement
+        persistence.closeMeasurement(measurement);
+        // Assert that data is in the database
+        final Measurement finishedMeasurement = persistence.loadFinishedMeasurement(measurementIdentifier);
+        assertThat(finishedMeasurement, notNullValue());
+        List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
+        assertThat(geoLocations.size(), is(1));
+
+        // Assert: load measurement serialized compressed
+        InputStream data = oocut.loadSerializedCompressed(measurementIdentifier);
+        assertThat(data.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+    }
+
+    /**
+     * Tests whether the sync adapter loads the correct measurements for synchronization.
+     *
+     */
+    @Test
+    public void testGetSyncableMeasurement() throws NoSuchMeasurementException {
+        Persistence persistence = new Persistence(context, context.getContentResolver(), AUTHORITY);
+
+        // Create a not finished measurement
+        insertSampleMeasurement(false, false, persistence);
+
+        // Create a not synced finished measurement
+        Measurement finishedMeasurement = insertSampleMeasurement(true, false, persistence);
+
+        // Create a synchronized measurement
+        insertSampleMeasurement(true, true, persistence);
+
+        final List<Measurement> loadedMeasurements = persistence.loadFinishedMeasurements();
+
+        assertThat(loadedMeasurements.size(), is(1));
+        assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
+
     }
 }

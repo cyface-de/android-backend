@@ -389,6 +389,31 @@ public class Persistence {
     }
 
     /**
+     * Provide one specific measurement from the data storage if it exists.
+     *
+     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
+     * @return The loaded measurement if it exists; <code>null</code> otherwise.
+     */
+    public Measurement loadOpenMeasurement(final long measurementIdentifier) {
+        final List<Measurement> measurements = new ArrayList<>();
+        for (Measurement measurement : loadOpenMeasurements()) {
+            if (measurement.getIdentifier() == measurementIdentifier) {
+                measurements.add(measurement);
+            }
+        }
+
+        if (measurements.size() > 1) {
+            throw new IllegalStateException("Too many measurements loaded with id: " + measurementIdentifier);
+        }
+
+        if (measurements.size() == 1) {
+            return measurements.get(0);
+        } else {
+            return null;
+        }
+    }
+
+    /**
      * Loads only the synchronized {@link Measurement} instances from the local persistent data storage.
      *
      * @return All the synchronized measurements from the local persistent data storage.
@@ -644,5 +669,13 @@ public class Persistence {
 
         // Load file with geolocations
         return GeoLocationsFile.deserialize(context, measurement.getIdentifier());
+    }
+
+    public ContentResolver getResolver() {
+        return resolver;
+    }
+
+    public Context getContext() {
+        return context;
     }
 }

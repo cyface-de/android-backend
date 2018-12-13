@@ -8,6 +8,7 @@ import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.synchronization.TestUtils.clear;
 import static de.cyface.synchronization.TestUtils.getIdentifierUri;
+import static de.cyface.synchronization.TestUtils.insertSampleMeasurement;
 import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
 import static de.cyface.synchronization.TestUtils.insertTestDirection;
 import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
@@ -28,6 +29,7 @@ import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -44,6 +46,7 @@ import androidx.test.filters.LargeTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -80,7 +83,7 @@ public class UploadProgressTest {
     }
 
     @Test
-    public void testUploadProgressHappyPath() {
+    public void testUploadProgressHappyPath() throws NoSuchMeasurementException {
         SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         AccountManager manager = AccountManager.get(context);
         Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
@@ -101,28 +104,9 @@ public class UploadProgressTest {
 
         ContentProviderClient client = null;
         try {
+            Persistence persistence = new Persistence(context, contentResolver, AUTHORITY);
             ContentResolver contentResolver = context.getContentResolver();
-            final Measurement measurement = insertTestMeasurement(context, contentResolver, Vehicle.UNKNOWN);
-            final long measurementIdentifier = measurement.getIdentifier();
-            insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333,
-                    0.0, 940);
-            insertTestGeoLocation(context, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
-                    8.78270530700684, 840);
-            insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-            insertTestAcceleration(context, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-            insertTestAcceleration(context, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-            insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833,
-                    -0.0010279021);
-            insertTestRotation(context, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-            insertTestRotation(context, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-            insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-            insertTestDirection(context, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
-            insertTestDirection(context, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
-
-            // Write point counters to MetaFile
-            MetaFile.append(context, measurementIdentifier, new MetaFile.PointMetaData(2, 3, 3, 3));
-            // Finish measurement
-            new Persistence(context, contentResolver, AUTHORITY).closeMeasurement(measurement);
+            insertSampleMeasurement(true, false, persistence);
 
             client = contentResolver.acquireContentProviderClient(getIdentifierUri());
             SyncResult result = new SyncResult();

@@ -6,8 +6,7 @@ import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.synchronization.TestUtils.clear;
 import static de.cyface.synchronization.TestUtils.getIdentifierUri;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
+import static de.cyface.synchronization.TestUtils.insertSampleMeasurement;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
@@ -38,8 +37,6 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -89,19 +86,8 @@ public final class SyncAdapterTest {
         editor.apply();
         // Insert data to be synced
         final ContentResolver contentResolver = context.getContentResolver();
-        final Measurement insertedMeasurement = insertTestMeasurement(context, contentResolver, Vehicle.UNKNOWN);
+        final Measurement insertedMeasurement = insertSampleMeasurement(true, false, persistence);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
-        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
-                940);
-        // Write point counters to MetaFile
-        MetaFile.append(context, insertedMeasurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
-        // Finish measurement
-        persistence.closeMeasurement(insertedMeasurement);
-        // Assert that data is in the database
-        final Measurement finishedMeasurement = persistence.loadFinishedMeasurement(measurementIdentifier);
-        assertThat(finishedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
-        assertThat(geoLocations.size(), is(1));
 
         // Mock - nothing to do
 
@@ -124,7 +110,7 @@ public final class SyncAdapterTest {
         assertThat(syncedMeasurement, notNullValue());
 
         // GPS Point
-        geoLocations = persistence.loadTrack(syncedMeasurement);
+        List<GeoLocation> geoLocations = persistence.loadTrack(syncedMeasurement);
         assertThat(geoLocations.size(), is(1));
         // TODO: currently we only mark gps points as synced and don't delete them
         // assertThat(locationsCursor.getCount(), is(0));

@@ -298,23 +298,19 @@ public class CapturedDataWriterTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                try {
-                    if (!oocut.hasOpenMeasurement()) {
-                        oocut.newMeasurement(Vehicle.BICYCLE);
-                    }
-                    if (!oocut.hasOpenMeasurement()) {
-                        oocut.newMeasurement(Vehicle.BICYCLE);
-                    }
+                if (!oocut.hasOpenMeasurement()) {
+                    oocut.newMeasurement(Vehicle.BICYCLE);
+                }
+                if (!oocut.hasOpenMeasurement()) {
+                    oocut.newMeasurement(Vehicle.BICYCLE);
+                }
 
-                    if (oocut.hasOpenMeasurement()) {
-                        try {
-                            oocut.closeRecentMeasurement();
-                        } catch (NoSuchMeasurementException e) {
-                            throw new IllegalStateException(e);
-                        }
+                if (oocut.hasOpenMeasurement()) {
+                    try {
+                        oocut.closeRecentMeasurement();
+                    } catch (NoSuchMeasurementException e) {
+                        throw new IllegalStateException(e);
                     }
-                } catch (DataCapturingException e) {
-                    e.printStackTrace();
                 }
             }
         });
