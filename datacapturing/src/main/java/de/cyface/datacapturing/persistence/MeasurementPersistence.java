@@ -181,7 +181,7 @@ public class MeasurementPersistence {
                 values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, currentMeasurementIdentifier + 1);
                 final int updatedRows = resolver.update(getIdentifierUri(authority), values, null, null);
                 Validate.isTrue(updatedRows == 1);
-                Log.d(TAG, "Incremented mid counter to " + currentMeasurementIdentifier);
+                Log.d(TAG, "Incremented mid counter to " + (currentMeasurementIdentifier + 1));
             } finally {
                 // This can be null, see documentation
                 // noinspection ConstantConditions
@@ -200,15 +200,17 @@ public class MeasurementPersistence {
     /**
      * Close the currently active {@link Measurement}.
      */
-    public void closeRecentMeasurement() {
+    public void closeRecentMeasurement() throws NoSuchMeasurementException {
         Log.d(TAG, "Closing recent measurements");
         synchronized (this) {
-            Validate.notNull(currentMeasurementIdentifier);
+            final Measurement openMeasurement = loadCurrentlyCapturedMeasurement();
+            if (openMeasurement == null) {
+                throw new NoSuchMeasurementException("Unable to close measurement as there is no open measurement");
+            }
             Validate.isTrue(openMeasurementsDir.exists());
-            Validate.isTrue(openMeasurementsDir.listFiles(FileUtils.directoryFilter()).length == 1);
 
             // Ensure closed measurement dir exists
-            final File closedMeasurement = new File(fileUtils.getFinishedFolderName(currentMeasurementIdentifier));
+            final File closedMeasurement = new File(fileUtils.getFinishedFolderName(openMeasurement.getIdentifier()));
             if (!closedMeasurement.getParentFile().exists()) {
                 if (!closedMeasurement.getParentFile().mkdirs()) {
                     throw new IllegalStateException("Unable to create directory for finished measurement data: "
@@ -217,10 +219,10 @@ public class MeasurementPersistence {
             }
 
             // Move measurement to closed dir
-            final File openMeasurement = new File(fileUtils.getOpenFolderName(currentMeasurementIdentifier));
-            if (!openMeasurement.renameTo(closedMeasurement)) {
+            final File openMeasurementDir = new File(fileUtils.getOpenFolderName(openMeasurement.getIdentifier()));
+            if (!openMeasurementDir.renameTo(closedMeasurement)) {
                 throw new IllegalStateException("Failed to finish measurement by moving dir: "
-                        + openMeasurement.getAbsolutePath() + " -> " + closedMeasurement.getAbsolutePath());
+                        + openMeasurementDir.getAbsolutePath() + " -> " + closedMeasurement.getAbsolutePath());
             }
 
             currentMeasurementIdentifier = null;
@@ -406,18 +408,30 @@ public class MeasurementPersistence {
         final File[] corruptedMeasurementDirs = corruptedMeasurementsDir.listFiles(FileUtils.directoryFilter());
         final File[] syncedMeasurementDirs = synchronizedMeasurementsDir.listFiles(FileUtils.directoryFilter());
         for (File dir : finishedMeasurementDirs) {
+            for (File file: dir.listFiles()) {
+                Validate.isTrue(file.delete());
+            }
             Validate.isTrue(dir.delete());
         }
         ret += finishedMeasurementDirs.length;
         for (File dir : openMeasurementDirs) {
+            for (File file: dir.listFiles()) {
+                Validate.isTrue(file.delete());
+            }
             Validate.isTrue(dir.delete());
         }
         ret += openMeasurementDirs.length;
         for (File dir : corruptedMeasurementDirs) {
+            for (File file: dir.listFiles()) {
+                Validate.isTrue(file.delete());
+            }
             Validate.isTrue(dir.delete());
         }
         ret += corruptedMeasurementDirs.length;
         for (File dir : syncedMeasurementDirs) {
+            for (File file: dir.listFiles()) {
+                Validate.isTrue(file.delete());
+            }
             Validate.isTrue(dir.delete());
         }
         ret += syncedMeasurementDirs.length;
@@ -525,28 +539,33 @@ public class MeasurementPersistence {
      * Before starting or resuming a measurement we need to make sure that there are no corrupted measurements
      * left in the /open/ folder. This can happen when the {@link DataCapturingBackgroundService} dies a devastating
      * Exception-death and was not able to append the {@link MetaFile.PointMetaData} to the {@link MetaFile}.
+     *
+     * FIXME: If we want to support double start/resume calls this method needs to be adjusted
+     * so that it does not clean open measurements when there is capturing going on, else we kill
+     * an ongoing measurement! We could also make sure this method is not called when capturing is
+     * taking place. But how do we synchronize this? The capturing could be in progress of starting,
+     * i.e. created the folder but the BGS is not yet launched? #MOV-460
      */
     public void cleanCorruptedOpenMeasurements() {
         final File[] openMeasurements = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        for (File currentMeasurementDir : openMeasurements) {
-            final int measurementId = Integer.parseInt(currentMeasurementDir.getName());
+        for (File measurementDir : openMeasurements) {
+            final int measurementId = Integer.parseInt(measurementDir.getName());
             try {
                 MetaFile.deserialize(context, measurementId);
             } catch (final FileCorruptedException e) {
-                // Expected, we want to move such measurements to the corrupted folder
+                // Expected, we want to mark such measurements as corrupted
 
-                Log.d(TAG, "Moving corrupted measurements: " + measurementId);
+                Log.d(TAG, "Moving corrupted measurement: " + measurementId);
                 Validate.isTrue(corruptedMeasurementsDir.exists());
 
                 // Move measurement to corrupted dir
-                final File corruptedMeasurement = new File(
-                        fileUtils.getCorruptedFolderName(currentMeasurementIdentifier));
-                if (!currentMeasurementDir.renameTo(corruptedMeasurement)) {
+                final File corruptedMeasurementDir = new File(
+                        fileUtils.getCorruptedFolderName(measurementId));
+                if (!measurementDir.renameTo(corruptedMeasurementDir)) {
                     throw new IllegalStateException("Failed to clean up corrupted measurement by moving dir: "
-                            + currentMeasurementDir.getAbsolutePath() + " -> "
-                            + corruptedMeasurement.getAbsolutePath());
+                            + measurementDir.getAbsolutePath() + " -> "
+                            + corruptedMeasurementDir.getAbsolutePath());
                 }
-                return;
             }
             // Ignore non-broken measurements in open dir (e.g. paused measurements)
         }

@@ -109,7 +109,11 @@ public class CapturedDataWriterTest {
         assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
 
         // Close the measurement, load the closed measurement and check its properties
-        oocut.closeRecentMeasurement();
+        try {
+            oocut.closeRecentMeasurement();
+        } catch (NoSuchMeasurementException e) {
+            throw new IllegalStateException(e);
+        }
         Measurement closedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         if (closedMeasurement == null) {
             throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
@@ -303,7 +307,11 @@ public class CapturedDataWriterTest {
                     }
 
                     if (oocut.hasOpenMeasurement()) {
-                        oocut.closeRecentMeasurement();
+                        try {
+                            oocut.closeRecentMeasurement();
+                        } catch (NoSuchMeasurementException e) {
+                            throw new IllegalStateException(e);
+                        }
                     }
                 } catch (DataCapturingException e) {
                     e.printStackTrace();

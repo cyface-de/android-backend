@@ -13,6 +13,7 @@ import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -379,7 +380,11 @@ public abstract class DataCapturingService {
             throws DataCapturingException, MissingPermissionException {
         Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
-            persistenceLayer.closeRecentMeasurement();
+            try {
+                persistenceLayer.closeRecentMeasurement();
+            } catch (NoSuchMeasurementException e) {
+                throw new IllegalStateException(e);
+            }
             throw new MissingPermissionException();
         }
 
@@ -400,26 +405,36 @@ public abstract class DataCapturingService {
     }
 
     // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
-    // the interface of PersistenceLayer (like on iOS).
+    // the interface of PersistenceLayer (like on iOS). *renames to load* for now. All FIXME and TODOs should be taken care #MOV-459
     /**
      * Returns ALL measurements currently on this device. This includes currently running ones as well as paused and
      * finished measurements.
      *
      * @return A list containing all measurements currently stored on this device by this application. An empty list if
      *         there are no such measurements, but never <code>null</code>.
-     *         /
-     *         public @NonNull List<Measurement> getCachedMeasurements() {
-     *         return persistenceLayer.loadMeasurements();
-     *         }
-     * 
-     *         /**
+     */
+    public @NonNull
+    List<Measurement> loadMeasurements() {
+        return persistenceLayer.loadMeasurements();
+    }
+
+    /**
      * @return A list containing all the finished (i.e. not running and not paused) but not yet uploaded measurements on
      *         this device. An empty list if there are no such measurements, but never <code>null</code>.
-     *         /
-     *         public @NonNull List<Measurement> getFinishedMeasurements() {
-     *         return persistenceLayer.loadFinishedMeasurements();
-     *         }
      */
+    public @NonNull List<Measurement> loadFinishedMeasurements() {
+        return persistenceLayer.loadFinishedMeasurements();
+    }
+    /**
+     * Returns open measurements currently on this device.
+     *
+     * @return A list containing all open measurements currently stored on this device by this application. An empty list if
+     *         there are no such measurements, but never <code>null</code>.
+     */
+    public @NonNull
+    List<Measurement> loadOpenMeasurements() {
+        return persistenceLayer.loadOpenMeasurements();
+    }
 
     /**
      * @return The identifier used to qualify measurements from this capturing service with the server receiving the

@@ -3,6 +3,7 @@ package de.cyface.synchronization;
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.*;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -30,8 +31,6 @@ import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasurementTable;
 import de.cyface.utils.Validate;
 
 /**
@@ -76,7 +75,7 @@ public final class SyncAdapterTest {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         // Insert data to be synced
         final ContentResolver contentResolver = context.getContentResolver();
