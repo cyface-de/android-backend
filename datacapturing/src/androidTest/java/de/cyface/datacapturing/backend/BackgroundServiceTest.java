@@ -1,6 +1,10 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -87,6 +91,8 @@ public class BackgroundServiceTest {
     public void setUp() throws DataCapturingException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         persistence = new MeasurementPersistence(context, context.getContentResolver(), AUTHORITY);
+        // This is normally called in the <code>DataCapturingService#Constructor</code>
+        persistence.restoreOrCreateDeviceId(context.getContentResolver());
         testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
@@ -122,6 +128,10 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
+        startIntent.putExtra(GEOLOCATION_COUNT, 0);
+        startIntent.putExtra(ACCELERATION_POINT_COUNT, 0);
+        startIntent.putExtra(ROTATION_POINT_COUNT, 0);
+        startIntent.putExtra(DIRECTION_POINT_COUNT, 0);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
 
         serviceTestRule.startService(startIntent);
@@ -161,6 +171,10 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
+        startIntent.putExtra(GEOLOCATION_COUNT, 0);
+        startIntent.putExtra(ACCELERATION_POINT_COUNT, 0);
+        startIntent.putExtra(ROTATION_POINT_COUNT, 0);
+        startIntent.putExtra(DIRECTION_POINT_COUNT, 0);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
