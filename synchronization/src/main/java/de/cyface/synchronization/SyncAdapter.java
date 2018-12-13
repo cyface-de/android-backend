@@ -5,7 +5,6 @@ import static de.cyface.synchronization.SharedConstants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
 import java.io.IOException;
@@ -34,10 +33,9 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.persistence.MeasurementPersistence;
+import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.FileCorruptedException;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exceptions.BadRequestException;
 import de.cyface.synchronization.exceptions.RequestParsingException;
 import de.cyface.utils.Validate;
@@ -94,7 +92,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         final Context context = getContext();
         final ContentResolver resolver = context.getContentResolver();
-        final MeasurementPersistence persistence = new MeasurementPersistence(context, resolver, authority);
+        final Persistence persistence = new Persistence(context, resolver, authority);
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account,

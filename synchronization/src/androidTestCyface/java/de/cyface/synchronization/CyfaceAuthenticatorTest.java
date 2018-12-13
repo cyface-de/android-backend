@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
@@ -34,7 +35,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 
@@ -73,7 +74,7 @@ public class CyfaceAuthenticatorTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
         AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE, null,

@@ -1,7 +1,18 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
-import static de.cyface.synchronization.TestUtils.*;
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
+import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.synchronization.TestUtils.getIdentifierUri;
+import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
+import static de.cyface.synchronization.TestUtils.insertTestDirection;
+import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
+import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
+import static de.cyface.synchronization.TestUtils.insertTestRotation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -33,6 +44,8 @@ import androidx.test.filters.LargeTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
 
 /**
@@ -40,26 +53,26 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.5
+ * @version 1.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @FlakyTest
 @LargeTest
 public class UploadProgressTest {
-    Context context;
-    ContentResolver contentResolver;
+    private Context context;
+    private ContentResolver contentResolver;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
-        clearDatabase(contentResolver);
+        clear(context, contentResolver);
     }
 
     @After
     public void tearDown() {
-        clearDatabase(contentResolver);
+        clear(context, contentResolver);
         contentResolver = null;
         context = null;
     }
@@ -74,7 +87,7 @@ public class UploadProgressTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
@@ -87,28 +100,24 @@ public class UploadProgressTest {
         ContentProviderClient client = null;
         try {
             ContentResolver contentResolver = context.getContentResolver();
-            long measurementIdentifier = insertTestMeasurement(contentResolver, "UNKNOWN");
-            insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055141000L, 49.9304133333333,
-                    8.82831833333333, 0.0, 940);
-            insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
+            final Measurement measurement = insertTestMeasurement(context, contentResolver, Vehicle.UNKNOWN);
+            final long measurementIdentifier = measurement.getIdentifier();
+            insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333,
+                    0.0, 940);
+            insertTestGeoLocation(context, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
                     8.78270530700684, 840);
-            insertTestAcceleration(contentResolver, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624,
-                    0.2921924);
-            insertTestAcceleration(contentResolver, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137,
-                    0.3544629);
-            insertTestAcceleration(contentResolver, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924,
-                    0.3784131);
-            insertTestRotation(contentResolver, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833,
+            insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+            insertTestAcceleration(context, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
+            insertTestAcceleration(context, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
+            insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833,
                     -0.0010279021);
-            insertTestRotation(contentResolver, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833,
-                    -0.016474236);
-            insertTestRotation(contentResolver, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587,
-                    -0.014343708);
-            insertTestDirection(contentResolver, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-            insertTestDirection(contentResolver, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
-            insertTestDirection(contentResolver, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
+            insertTestRotation(context, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
+            insertTestRotation(context, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
+            insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
+            insertTestDirection(context, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
+            insertTestDirection(context, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
 
-            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri());
+            client = contentResolver.acquireContentProviderClient(getIdentifierUri());
             SyncResult result = new SyncResult();
             Validate.notNull(client);
             syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);

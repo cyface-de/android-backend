@@ -39,7 +39,7 @@ import de.cyface.persistence.serialization.MetaFile;
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
-public class MeasurementPersistenceTest {
+public class PersistenceTest {
 
     /**
      * An object of the class under test. It is setup prior to each test execution.
