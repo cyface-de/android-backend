@@ -94,7 +94,7 @@ public class PingPongTest {
             @Override
             public void run() {
                 try {
-                    dcs = new CyfaceDataCapturingService(context, context.getContentResolver(),
+                    dcs = new CyfaceDataCapturingService(context,
                             ServiceTestUtils.AUTHORITY, ServiceTestUtils.ACCOUNT_TYPE, "https://fake.fake/",
                             new IgnoreEventsStrategy());
                 } catch (SetupException e) {

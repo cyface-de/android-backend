@@ -63,13 +63,12 @@ public class DataCapturingServiceTestWithoutPermission {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getTargetContext();
-        final ContentResolver contentResolver = context.getContentResolver();
         final String dataUploadServerAddress = "https://localhost:8080";
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
+                    oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE,
                             dataUploadServerAddress, new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);

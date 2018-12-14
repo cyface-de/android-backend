@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -88,7 +90,7 @@ public final class MovebisTest {
             @Override
             public void run() {
                 try {
-                    oocut = new MovebisDataCapturingService(context, "https://localhost:8080", testUIListener, 0L);
+                    oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080", testUIListener, 0L, new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -100,13 +102,13 @@ public final class MovebisTest {
     /**
      * Tests if one lifecycle of starting and stopping location updates works as expected.
      * FlakyTest: This integration test may be dependent on position / GPS updates on real devices.
-     * Ignored: Currently this test only runs on Pixel 2 emulators which is not available on our CI
      *
      * @throws SetupException Should not happen. For further details look at the documentation of
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
-    @Ignore
+    //@Ignore - seems to work now on Nexus 5X API 26 emulator, too.
+    //Ignored: Currently this test only runs on Pixel 2 emulators which is not available on our CI
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override

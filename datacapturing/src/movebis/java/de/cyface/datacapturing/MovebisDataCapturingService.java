@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.synchronization.SharedConstants.AUTH_TOKEN_TYPE;
+
 import android.Manifest;
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -17,9 +19,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.synchronization.SynchronisationException;
-
-import static de.cyface.synchronization.SharedConstants.AUTH_TOKEN_TYPE;
+import de.cyface.synchronization.exceptions.SynchronisationException;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
@@ -101,7 +101,38 @@ public class MovebisDataCapturingService extends DataCapturingService {
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException {
-        super(context, context.getContentResolver(), "de.cyface.provider", "de.cyface", dataUploadServerAddress,
+        this(context, "de.cyface.provider", "de.cyface", dataUploadServerAddress, uiListener, locationUpdateRate,
+                eventHandlingStrategy);
+    }
+
+    /**
+     * Creates a new completely initialized {@link MovebisDataCapturingService}.
+     * This variant is required to test the ContentProvider.
+     *
+     * @param context The context (i.e. <code>Activity</code>) handling this service.
+     * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
+     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
+     *            avoid collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data.
+     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+     *            this service.
+     * @param uiListener A listener for events which the UI might be interested in.
+     * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
+     *            if you would like to be notified as often as possible.
+     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
+     *            triggered by the {@link DataCapturingBackgroundService}.
+     * @throws SetupException If initialization of this service facade fails or writing the components preferences
+     *             fails.
+     *
+     * @deprecated because the authority and account type should only be changes for testing. Use
+     *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
+     *             instead.
+     */
+    public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String authority,
+            final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
+            final @NonNull UIListener uiListener, final long locationUpdateRate,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException {
+        super(context, context.getContentResolver(), authority, accountType, dataUploadServerAddress,
                 eventHandlingStrategy);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
@@ -131,7 +162,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
     /**
      * Starts the reception of location updates for the user interface. No tracking is started with this method. This is
-     * purely intended for display purposes. The received locations are forwared to the {@link UIListener} provided to
+     * purely intended for display purposes. The received locations are forwarded to the {@link UIListener} provided to
      * the constructor.
      */
     @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.

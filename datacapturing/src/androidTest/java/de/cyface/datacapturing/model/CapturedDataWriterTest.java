@@ -19,7 +19,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-
+import android.content.Context;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
@@ -42,10 +42,7 @@ import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.serialization.RotationsFile;
 
 /**
- * Tests whether captured data is correctly saved to the underlying content provider. This test uses
- * <code>ProviderTestRule</code> to get a mocked content provider. Implementation details are explained in the
- * <a href="https://developer.android.com/reference/android/support/test/rule/provider/ProviderTestRule">Android
- * documentation</a>.
+ * Tests whether captured data is correctly saved to the underlying content provider.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -65,6 +62,7 @@ public class CapturedDataWriterTest {
      * The object of the class under test.
      */
     private MeasurementPersistence oocut;
+    private Context context;
     /**
      * An Android <code>ContentResolver</code> provided for executing tests.
      */
@@ -78,8 +76,9 @@ public class CapturedDataWriterTest {
     @Before
     public void setUp() {
         mockResolver = providerRule.getResolver();
+        context = InstrumentationRegistry.getTargetContext();
 
-        oocut = new MeasurementPersistence(InstrumentationRegistry.getTargetContext(), mockResolver, AUTHORITY);
+        oocut = new MeasurementPersistence(context, mockResolver, AUTHORITY);
     }
 
     /**
@@ -94,7 +93,7 @@ public class CapturedDataWriterTest {
      * Tests whether creating and closing a measurement works as expected.
      */
     @Test
-    public void testCreateNewMeasurement() throws DataCapturingException, FileCorruptedException {
+    public void testCreateNewMeasurement() throws FileCorruptedException, NoSuchMeasurementException {
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(measurement.getIdentifier() >= 0L, is(equalTo(true)));
@@ -105,24 +104,25 @@ public class CapturedDataWriterTest {
         assertThat(loadedOpenMeasurement, notNullValue());
         assertThat(loadedOpenMeasurement.getIdentifier(), is(measurement.getIdentifier()));
         assertThat(openMeasurements.size(), is(equalTo(1)));
-        MetaFile.MetaData metaData = MetaFile.deserialize(getMockContext(), measurement.getIdentifier());
-        assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
+
+        // Write point counters to MetaFile
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
 
         // Close the measurement, load the closed measurement and check its properties
-        try {
-            oocut.closeRecentMeasurement();
-        } catch (NoSuchMeasurementException e) {
-            throw new IllegalStateException(e);
-        }
+        oocut.closeRecentMeasurement();
         Measurement closedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         if (closedMeasurement == null) {
             throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
         }
+
+        MetaFile.MetaData metaData = MetaFile.deserialize(context, measurement.getIdentifier());
+        assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
+
         openMeasurements = oocut.loadOpenMeasurements();
         List<Measurement> finishedMeasurements = oocut.loadFinishedMeasurements();
         assertThat(finishedMeasurements.size(), is(equalTo(1)));
         assertThat(openMeasurements.size(), is(equalTo(0)));
-        metaData = MetaFile.deserialize(getMockContext(), measurement.getIdentifier());
+        metaData = MetaFile.deserialize(context, measurement.getIdentifier());
         assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
     }
 
@@ -130,7 +130,7 @@ public class CapturedDataWriterTest {
      * Tests whether data is stored correctly via the <code>MeasurementPersistence</code>.
      */
     @Test
-    public void testStoreData() throws DataCapturingException, FileCorruptedException {
+    public void testStoreData() throws FileCorruptedException {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
@@ -161,11 +161,14 @@ public class CapturedDataWriterTest {
 
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
 
+        // Write point counters to MetaFile
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 3, 3, 3));
+
         // Check if the captured data was persisted
-        List<GeoLocation> geoLocations = GeoLocationsFile.deserialize(getMockContext(), measurement.getIdentifier());
-        List<Point3D> accelerations = AccelerationsFile.deserialize(getMockContext(), measurement.getIdentifier());
-        List<Point3D> rotations = RotationsFile.deserialize(getMockContext(), measurement.getIdentifier());
-        List<Point3D> directions = DirectionsFile.deserialize(getMockContext(), measurement.getIdentifier());
+        List<GeoLocation> geoLocations = GeoLocationsFile.deserialize(context, measurement.getIdentifier());
+        List<Point3D> accelerations = AccelerationsFile.deserialize(context, measurement.getIdentifier());
+        List<Point3D> rotations = RotationsFile.deserialize(context, measurement.getIdentifier());
+        List<Point3D> directions = DirectionsFile.deserialize(context, measurement.getIdentifier());
 
         assertThat(geoLocations.size(), is(equalTo(1)));
         assertThat(accelerations.size(), is(equalTo(3)));
@@ -177,7 +180,7 @@ public class CapturedDataWriterTest {
      * Tests whether cascading deletion of measurements together with all data is working correctly.
      */
     @Test
-    public void testCascadingClearMeasurements() throws DataCapturingException {
+    public void testCascadingClearMeasurements() {
         // Insert some test data
         oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
@@ -210,7 +213,7 @@ public class CapturedDataWriterTest {
 
         // clear the test data
         int removedRows = oocut.clear();
-        assertThat(removedRows, is(equalTo(12)));
+        assertThat(removedRows, is(equalTo(2)));
 
         // make sure nothing is left.
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
@@ -225,8 +228,13 @@ public class CapturedDataWriterTest {
      */
     @Test
     public void testLoadMeasurements() throws NoSuchMeasurementException, DataCapturingException {
-        oocut.newMeasurement(Vehicle.UNKNOWN);
-        oocut.newMeasurement(Vehicle.CAR);
+        Measurement measurement1 = oocut.newMeasurement(Vehicle.UNKNOWN);
+        MetaFile.append(context, measurement1.getIdentifier(), new MetaFile.PointMetaData(0, 0, 0, 0));
+        oocut.closeRecentMeasurement();
+
+        Measurement measurement2 = oocut.newMeasurement(Vehicle.CAR);
+        MetaFile.append(context, measurement2.getIdentifier(), new MetaFile.PointMetaData(0, 0, 0, 0));
+        oocut.closeRecentMeasurement();
 
         List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(2)));
@@ -272,6 +280,10 @@ public class CapturedDataWriterTest {
         }
 
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
+
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 3, 3, 3));
+        oocut.closeRecentMeasurement();
+
         oocut.delete(measurement);
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
@@ -283,9 +295,11 @@ public class CapturedDataWriterTest {
      * @throws NoSuchMeasurementException if the created measurement is null for some unexpected reason.
      */
     @Test
-    public void testLoadTrack() throws NoSuchMeasurementException, DataCapturingException {
+    public void testLoadTrack() throws NoSuchMeasurementException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0,0, 0));
+        oocut.closeRecentMeasurement();
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement loadedMeasurement : measurements) {

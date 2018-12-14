@@ -16,14 +16,14 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import android.content.SyncRequest;
-import android.content.SyncResult;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
+import android.content.Context;
+import android.content.SyncResult;
 import android.os.Build;
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -31,6 +31,14 @@ import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
+
+import de.cyface.persistence.Persistence;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -87,22 +95,27 @@ public class DataTransmissionTest {
      */
     @Test
     public void testUploadSomeBytesViaMultiPart()
-            throws SynchronisationException, BadRequestException, RequestParsingException {
+            throws BadRequestException, RequestParsingException, FileCorruptedException, IOException {
         ContentResolver resolver = InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver();
-        long measurementIdentifier = insertTestMeasurement(resolver, "UNKNOWN");
-        insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
+        Persistence persistence = new Persistence(context, resolver, AUTHORITY);
+        Measurement measurement = insertTestMeasurement(persistence, resolver, Vehicle.UNKNOWN);
+        long measurementIdentifier = measurement.getIdentifier();
+        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
                 940);
-        insertTestGeoLocation(resolver, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
+        insertTestGeoLocation(context, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
                 8.78270530700684, 840);
-        insertTestAcceleration(resolver, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestAcceleration(resolver, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-        insertTestAcceleration(resolver, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-        insertTestRotation(resolver, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestRotation(resolver, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-        insertTestRotation(resolver, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-        insertTestDirection(resolver, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-        insertTestDirection(resolver, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
-        insertTestDirection(resolver, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
+        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertTestAcceleration(context, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
+        insertTestAcceleration(context, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
+        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertTestRotation(context, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
+        insertTestRotation(context, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
+        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
+        insertTestDirection(context, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
+        insertTestDirection(context, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
+
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 3, 3, 3));
+        persistence.closeMeasurement(measurement);
 
         ContentProviderClient client = null;
         try {
@@ -112,10 +125,8 @@ public class DataTransmissionTest {
                 throw new IllegalStateException(
                         String.format("Unable to acquire client for content provider %s", AUTHORITY));
 
-            MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                    client, AUTHORITY);
-            MeasurementSerializer serializer = new MeasurementSerializer();
-            InputStream measurementData = serializer.serialize(loader);
+            InputStream measurementData = persistence.loadSerializedCompressed(measurementIdentifier);
+            ;
             // printMD5(measurementData);
 
             String jwtAuthToken = "replace me";

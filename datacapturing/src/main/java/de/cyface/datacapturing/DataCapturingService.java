@@ -8,7 +8,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -405,7 +405,8 @@ public abstract class DataCapturingService {
     }
 
     // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
-    // the interface of PersistenceLayer (like on iOS). *renames to load* for now. All FIXME and TODOs should be taken care #MOV-459
+    // the interface of PersistenceLayer (like on iOS). *renames to load* for now. All FIXME and TODOs should be taken
+    // care #MOV-459
     /**
      * Returns ALL measurements currently on this device. This includes currently running ones as well as paused and
      * finished measurements.
@@ -413,8 +414,7 @@ public abstract class DataCapturingService {
      * @return A list containing all measurements currently stored on this device by this application. An empty list if
      *         there are no such measurements, but never <code>null</code>.
      */
-    public @NonNull
-    List<Measurement> loadMeasurements() {
+    public @NonNull List<Measurement> loadMeasurements() {
         return persistenceLayer.loadMeasurements();
     }
 
@@ -425,14 +425,15 @@ public abstract class DataCapturingService {
     public @NonNull List<Measurement> loadFinishedMeasurements() {
         return persistenceLayer.loadFinishedMeasurements();
     }
+
     /**
      * Returns open measurements currently on this device.
      *
-     * @return A list containing all open measurements currently stored on this device by this application. An empty list if
+     * @return A list containing all open measurements currently stored on this device by this application. An empty
+     *         list if
      *         there are no such measurements, but never <code>null</code>.
      */
-    public @NonNull
-    List<Measurement> loadOpenMeasurements() {
+    public @NonNull List<Measurement> loadOpenMeasurements() {
         return persistenceLayer.loadOpenMeasurements();
     }
 

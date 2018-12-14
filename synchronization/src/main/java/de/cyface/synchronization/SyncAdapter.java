@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.SharedConstants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
@@ -25,11 +25,8 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
-import android.database.Cursor;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
@@ -45,7 +42,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {

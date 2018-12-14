@@ -77,7 +77,7 @@ public class CyfaceAuthenticatorTest {
         editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
-        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE, null,
+        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, CyfaceConstants.AUTH_TOKEN_TYPE, null,
                 false, callback, null);
         Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
 

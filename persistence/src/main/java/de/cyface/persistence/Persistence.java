@@ -635,7 +635,7 @@ public class Persistence {
         final File measurementDir = new File(fileUtils.getFinishedFolderName(measurement.getIdentifier()));
         if (!measurementDir.exists()) {
             throw new IllegalStateException(
-                    "Failed to remove non existent finished measurement: " + measurement.getIdentifier());
+                    "Failed to remove non existent *finished* measurement: " + measurement.getIdentifier());
         }
 
         final File[] files = measurementDir.listFiles();

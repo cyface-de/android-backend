@@ -200,12 +200,14 @@ public final class TestUtils {
             } else {
                 loadedMeasurement = persistence.loadSyncedMeasurement(measurementIdentifier);
             }
+            // We cannot check this for an open, un-paused measurement because the deserialization does
+            // not work without the point counts been written to the MetaFile
+            List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
+            assertThat(geoLocations.size(), is(1));
         } else {
             loadedMeasurement = persistence.loadOpenMeasurement(measurementIdentifier);
         }
         assertThat(loadedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
-        assertThat(geoLocations.size(), is(1));
         return measurement;
     }
 }

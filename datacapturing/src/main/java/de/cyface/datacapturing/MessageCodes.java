@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 
 import android.content.Context;
 import android.content.SharedPreferences;

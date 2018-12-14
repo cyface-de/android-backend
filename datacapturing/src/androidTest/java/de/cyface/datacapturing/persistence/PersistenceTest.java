@@ -183,34 +183,31 @@ public class PersistenceTest {
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement measurement = insertTestMeasurement(persistence, contentResolver, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
-                940);
-        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
-                940);
-        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
-                940);
-        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
+        insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestAcceleration(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestAcceleration(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestAcceleration(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
         // Write point counters to MetaFile
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(3, 3, 3, 3));
         // Finish measurement
         persistence.closeMeasurement(measurement);
         // Assert that data is in the database
         final Measurement finishedMeasurement = persistence.loadFinishedMeasurement(measurementIdentifier);
         assertThat(finishedMeasurement, notNullValue());
         List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
-        assertThat(geoLocations.size(), is(1));
+        assertThat(geoLocations.size(), is(3));
 
         // Assert: load measurement serialized compressed
         InputStream data = oocut.loadSerializedCompressed(measurementIdentifier);
-        assertThat(data.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+        assertThat(data.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE))); // unclear why this is not 30 but 31 Bytes now - check via decompression test
     }
 
     /**

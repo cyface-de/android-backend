@@ -56,7 +56,8 @@ import de.cyface.utils.Validate;
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@MediumTest
+@FlakyTest
+@LargeTest
 public class DataCapturingServiceTest {
     /**
      * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
@@ -83,6 +84,11 @@ public class DataCapturingServiceTest {
      * Listener for messages from the service. This is used to assert correct service startup and shutdown.
      */
     private TestListener testListener;
+    /**
+     * A listener catching messages send to the UI in real applications.
+     */
+    private TestUIListener testUIListener;
+
     /**
      * Callback triggered if the test successfully establishes a connection with the background service or times out.
      */
@@ -116,7 +122,7 @@ public class DataCapturingServiceTest {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
+                    oocut = new CyfaceDataCapturingService(context, AUTHORITY,
                             ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
@@ -128,6 +134,7 @@ public class DataCapturingServiceTest {
         lock = new ReentrantLock();
         condition = lock.newCondition();
         testListener = new TestListener(lock, condition);
+        testUIListener = new TestUIListener(lock, condition);
         runningStatusCallback = new TestCallback("Default Callback", lock, condition);
 
         // Making sure there is no service instance of a previous test running
