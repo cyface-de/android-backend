@@ -378,6 +378,12 @@ public abstract class DataCapturingService {
      */
     public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
+
+        if (getIsRunning()) {
+            Log.w(TAG, "Ignoring duplicate resume call because service is already running");
+            return;
+        }
+
         Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             try {

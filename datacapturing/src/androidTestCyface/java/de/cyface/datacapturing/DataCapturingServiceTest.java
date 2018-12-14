@@ -5,6 +5,7 @@ import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -40,6 +41,7 @@ import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
@@ -494,7 +496,7 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If permission to access geo location sensor is missing.
      * @throws DataCapturingException If any unexpected error occurs during the test.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * / FIXME: Wait for feedback MOV-460
+     */
     @Test
     public void testResumeTwice()
             throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
@@ -505,13 +507,20 @@ public class DataCapturingServiceTest {
 
         // Resume 1
         resumeAsyncAndCheckThatLaunched(measurementIdentifier);
+        Persistence persistence = new Persistence(getContext(), getContext().getContentResolver(), AUTHORITY);
+        assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
 
-        // Resume 2, should just be ignored
+        // Resume 2, should just be ignored, but the service should still be running and the measurement dir open
+        // this ensures, that the first resumed measurement is not marked as corrupted by the second resume #MOV-460
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resumeAsync(startUpFinishedHandler);
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
 
         stopAsyncAndCheckThatStopped(measurementIdentifier);
-    }*/
+    }
 
     /**
      * Tests that stopping a paused service does work successfully.
