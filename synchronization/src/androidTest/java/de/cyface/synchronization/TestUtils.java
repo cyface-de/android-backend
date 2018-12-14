@@ -1,5 +1,9 @@
 package de.cyface.synchronization;
 
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
+
 import java.util.ArrayList;
 import java.util.List;
 
@@ -23,11 +27,6 @@ import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.persistence.serialization.RotationsFile;
 import de.cyface.utils.Validate;
 
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.fail;
-
 /**
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
@@ -40,7 +39,7 @@ public final class TestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */
-    final static String TAG = Constants.TAG + ".test";
+    final static String TAG = SharedConstants.TAG + ".test";
     /**
      * The content provider authority used during tests. This must be the same as in the manifest and the authenticator
      * configuration.

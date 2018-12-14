@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
@@ -77,8 +77,8 @@ public class CyfaceAuthenticatorTest {
         editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
-        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, CyfaceConstants.AUTH_TOKEN_TYPE, null,
-                false, callback, null);
+        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, CyfaceConstants.AUTH_TOKEN_TYPE,
+                null, false, callback, null);
         Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
 
         Log.i(TAG, bundle.toString());

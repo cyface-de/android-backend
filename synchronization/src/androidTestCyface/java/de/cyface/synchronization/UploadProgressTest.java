@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
+import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
@@ -9,11 +9,6 @@ import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.synchronization.TestUtils.clear;
 import static de.cyface.synchronization.TestUtils.getIdentifierUri;
 import static de.cyface.synchronization.TestUtils.insertSampleMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
-import static de.cyface.synchronization.TestUtils.insertTestDirection;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestRotation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -29,7 +24,6 @@ import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.app.ActivityManager;
 import android.content.BroadcastReceiver;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -48,9 +42,6 @@ import android.util.Log;
 
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
-import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.utils.Validate;
 
 /**
