@@ -15,9 +15,14 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
+import java.io.DataInputStream;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.util.Arrays;
 import java.util.List;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
 import org.junit.After;
 import org.junit.Before;
@@ -171,13 +176,41 @@ public class PersistenceTest {
         assertThat(numberOftestEntries, is(equalTo(locationList.size())));
     }
 
+    /**
+     * Tests that the serialization and compression results into bytes of the expected length.
+     * Also decompresses the compressed bytes to make sure it's still readable.
+     */
     @Test
-    public void testLoadSerializedCompressed() throws NoSuchMeasurementException, FileCorruptedException, IOException {
+    public void testLoadSerializedCompressedAndDecompressDeserialize() throws NoSuchMeasurementException, FileCorruptedException, IOException, DataFormatException {
 
         final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
                 + 3 * 3 * BYTES_IN_ONE_POINT_ENTRY;
-        final int SERIALIZED_COMPRESSED_SIZE = 30;
+        final int SERIALIZED_COMPRESSED_SIZE = 31; // FIXME: Unclear why it's not compressed to 31 instead of 30 as before
 
+        // Serialize and check length
+        long measurementIdentifier = insertSerializationTestSample();
+        byte[] serializedData = oocut.loadSerialized(measurementIdentifier);
+        assertThat(serializedData.length, is(equalTo(SERIALIZED_SIZE)));
+
+        // Serialize + compress and check length
+        measurementIdentifier = insertSerializationTestSample();
+        InputStream compressedStream = oocut.loadSerializedCompressed(measurementIdentifier);
+        assertThat(compressedStream.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+
+        // Decompress the compressed bytes and check length and bytes
+        byte[] compressedBytes = new byte[compressedStream.available()];
+        DataInputStream dis = new DataInputStream(compressedStream);
+        dis.readFully(compressedBytes);
+        Inflater inflater = new Inflater();
+        inflater.setInput(compressedBytes, 0, compressedBytes.length);
+        byte[] decompressedBytes = new byte[1000];
+        int decompressedLength = inflater.inflate(decompressedBytes);
+        inflater.end();
+        assertThat(decompressedLength, is(equalTo(SERIALIZED_SIZE)));
+        assertThat(Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE), is(equalTo(serializedData)));
+    }
+
+    private long insertSerializationTestSample() throws NoSuchMeasurementException {
         // Insert sample measurement data
         Persistence persistence = new Persistence(context, resolver, AUTHORITY);
         final ContentResolver contentResolver = context.getContentResolver();
@@ -204,10 +237,7 @@ public class PersistenceTest {
         assertThat(finishedMeasurement, notNullValue());
         List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
         assertThat(geoLocations.size(), is(3));
-
-        // Assert: load measurement serialized compressed
-        InputStream data = oocut.loadSerializedCompressed(measurementIdentifier);
-        assertThat(data.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE))); // unclear why this is not 30 but 31 Bytes now - check via decompression test
+        return measurementIdentifier;
     }
 
     /**

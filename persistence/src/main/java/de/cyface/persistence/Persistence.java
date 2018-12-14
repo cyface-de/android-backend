@@ -439,17 +439,15 @@ public class Persistence {
     }
 
     /**
-     * Loads a measurement with the provided id from the persistence layer as compressed and serialized in
-     * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
-     * As compression the standard Android GZIP compression is used
-     *
+     * Loads a measurement with the provided id from the persistence layer as uncompressed and serialized in
+     * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
      *
      * @param measurementId The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
      * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
      * @throws IOException If the byte array could not be assembled.
      */
-    public InputStream loadSerializedCompressed(final long measurementId) throws FileCorruptedException, IOException {
+    public byte[] loadSerialized(final long measurementId) throws FileCorruptedException, IOException {
         final byte[] transferFileFormat = new byte[2];
         transferFileFormat[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         transferFileFormat[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
@@ -475,7 +473,22 @@ public class Persistence {
         outputStream.write(accelerationData);
         outputStream.write(rotationData);
         outputStream.write(directionData);
-        final byte[] data = outputStream.toByteArray();
+        return outputStream.toByteArray();
+    }
+
+    /**
+     * Loads a measurement with the provided id from the persistence layer as compressed and serialized in
+     * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
+     * As compression the standard Android GZIP compression is used
+     *
+     *
+     * @param measurementId The identifier of the measurement to load.
+     * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
+     * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
+     * @throws IOException If the byte array could not be assembled.
+     */
+    public InputStream loadSerializedCompressed(final long measurementId) throws FileCorruptedException, IOException {
+        final byte[] data = loadSerialized(measurementId);
 
         final Deflater compressor = new Deflater();
         compressor.setInput(data);
