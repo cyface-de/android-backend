@@ -102,7 +102,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             final Bundle result = future.getResult(1, TimeUnit.SECONDS);
             final String jwtAuthToken = result.getString(AccountManager.KEY_AUTHTOKEN);
             if (jwtAuthToken == null) {
-                throw new IllegalStateException("No valid auth token supplied. Aborting data synchronization!");
+                // Because of Movebis we don't throw an IllegalStateException if there is no auth token
+                throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
             }
 
             final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);

@@ -254,8 +254,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     /**
-     * Initializes the synchronisation by logging in to the server and creating this device if
-     * necessary.
+     * Initializes the synchronisation by logging in to the server.
      *
      * @param username The username that is used by the application to login to the
      *            server.
