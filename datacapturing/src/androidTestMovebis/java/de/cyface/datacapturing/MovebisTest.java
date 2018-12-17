@@ -107,8 +107,8 @@ public final class MovebisTest {
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
-    //@Ignore - seems to work now on Nexus 5X API 26 emulator, too.
-    //Ignored: Currently this test only runs on Pixel 2 emulators which is not available on our CI
+    @Ignore
+    //Ignored: Currently this test only runs on Pixel 2 API 28 emulators which is not available on our CI (workaround)
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
