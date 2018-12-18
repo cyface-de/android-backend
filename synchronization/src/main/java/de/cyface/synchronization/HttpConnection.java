@@ -73,12 +73,12 @@ public class HttpConnection implements Http {
                     String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
         }
 
-        // Without verifying the hostname we receive the "Trust Anchor..." Error
         connection.setSSLSocketFactory(sslContext.getSocketFactory());
         connection.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(final String hostname, final SSLSession session) {
-                return true; // FIXME: create or attach task id
+                HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+                return hv.verify(url.getHost(), session);
             }
         });
 
