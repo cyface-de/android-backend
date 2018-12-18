@@ -59,12 +59,9 @@ public final class TestUtils {
     public final static String DEFAULT_PASSWORD = "secret";
 
     /**
-     * Path to an API available for testing.
-     * (!) s1 url proxy /api/v2 didn't work with local https destination, thus we're using the port:
-     * // testing: https://s1.cyface.de:9090/api/v2
-     * // local: https://192.168.1.146:8080/api/v2
+     * Path to an API available for testing
      */
-    public final static String TEST_API_URL = "https://s1.cyface.de:9090/api/v2";
+    public final static String TEST_API_URL = "https://s1.cyface.de/api/v2";
 
     static Uri getIdentifierUri() {
         return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
