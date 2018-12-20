@@ -1,14 +1,14 @@
 package de.cyface.persistence;
 
+import android.content.Context;
+import android.util.Log;
+
 import java.io.BufferedInputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.IOException;
-
-import android.content.Context;
-import android.util.Log;
 
 /**
  * Methods to access and find data in the filesystem.
@@ -57,7 +57,7 @@ public class FileUtils {
 
     /**
      * Returns the path to the folder containing the open measurement data.
-     * 
+     *
      * @param measurementId The identifier of the measurement.
      * @return The folder path.
      */
@@ -151,7 +151,7 @@ public class FileUtils {
      * is open or finished as there is only one such file allowed at all times.
      *
      * @param measurementId The identifier of the measurement of which the file is part of
-     * @param fileName The name of the file
+     * @param fileName      The name of the file
      * @param fileExtension The file extension of the file
      * @return A File pointer to the file.
      */
@@ -180,7 +180,7 @@ public class FileUtils {
      */
     public static byte[] loadBytes(final File file) {
         try {
-            final byte[] bytes = new byte[(int)file.length()];
+            final byte[] bytes = new byte[(int) file.length()];
             final BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
             final DataInputStream inputStream = new DataInputStream(bufferedInputStream);
             inputStream.readFully(bytes);
@@ -193,7 +193,7 @@ public class FileUtils {
         }
     }
 
-    public String getMeasurementsDirPath() {
+    public String getMeasurementsRootPath() {
         return measurementsDirPath;
     }
 
