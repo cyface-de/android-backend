@@ -11,6 +11,8 @@
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <!-- Required to authenticate Cyface accounts with a Cyface server -->
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
+    <!-- Required to start a foreground service sind SDK 28 (Android 9 / Pie) -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application>
         <!-- Declares the data capturing service which is not exported to other applications. Most important is the android:process declaration with the ":" in the beginning. It tells the system to run the service in its own process. -->
