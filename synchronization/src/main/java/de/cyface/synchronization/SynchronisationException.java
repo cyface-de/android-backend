@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
  * further information either via a message or another wrapped <code>Exception</code>.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 public final class SynchronisationException extends Exception {

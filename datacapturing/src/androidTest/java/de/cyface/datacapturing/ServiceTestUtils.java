@@ -18,7 +18,7 @@ import de.cyface.persistence.RotationPointTable;
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Klemens Muthmann
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 public class ServiceTestUtils {

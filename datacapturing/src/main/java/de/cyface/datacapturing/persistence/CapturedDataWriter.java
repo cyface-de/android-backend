@@ -30,7 +30,7 @@ import de.cyface.persistence.RotationPointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.2
+ * @version 3.0.3
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {

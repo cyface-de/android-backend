@@ -12,7 +12,7 @@ import java.util.concurrent.locks.Lock;
  *
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 class Synchronizer {

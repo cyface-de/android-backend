@@ -15,7 +15,7 @@ import android.util.Log;
  * Android documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 public final class AuthenticatorService extends Service {

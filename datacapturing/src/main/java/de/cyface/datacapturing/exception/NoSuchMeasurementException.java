@@ -8,7 +8,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @since 2.0.0
- * @version 1.0.0
+ * @version 1.0.1
  */
 public final class NoSuchMeasurementException extends Exception {
     /**

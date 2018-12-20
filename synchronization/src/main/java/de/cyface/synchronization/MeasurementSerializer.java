@@ -40,7 +40,7 @@ import de.cyface.persistence.GpsPointsTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.0
  */
 public final class MeasurementSerializer {

@@ -12,7 +12,7 @@ import androidx.annotation.NonNull;
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 public class CapturedData implements Parcelable {

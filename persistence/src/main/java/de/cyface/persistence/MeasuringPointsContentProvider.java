@@ -20,7 +20,7 @@ import androidx.annotation.NonNull;
  * transferring the data to the server.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 1.0.0
  */
 public final class MeasuringPointsContentProvider extends ContentProvider {

@@ -13,7 +13,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.1.0
  * @since 2.5.0
  */
 public interface EventHandlingStrategy extends Parcelable {

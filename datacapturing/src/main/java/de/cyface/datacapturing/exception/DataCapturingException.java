@@ -6,7 +6,7 @@ import androidx.annotation.NonNull;
  * A wrapper <code>Exception</code> for code thrown by the <code>DataCapturingService</code> facade.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class DataCapturingException extends Exception {

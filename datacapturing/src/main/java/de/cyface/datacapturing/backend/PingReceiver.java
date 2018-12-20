@@ -18,7 +18,7 @@ import de.cyface.utils.Validate;
  * This can be used to check if the service is alive.
  *
  * @author Klemens Muthmann
- * @version 1.0.6
+ * @version 1.0.7
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {

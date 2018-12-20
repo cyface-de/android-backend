@@ -14,7 +14,7 @@ import android.util.Log;
  * This class is used by a {@link PongReceiver} to inform a reconnection process about the status and wake it up.
  * 
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.1
  * @see DataCapturingService#reconnect()
  */

@@ -12,7 +12,7 @@ import static de.cyface.synchronization.SharedConstants.TAG;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 2.1.1
  * @since 1.0.0
  */
 public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {

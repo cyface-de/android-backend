@@ -19,7 +19,7 @@ import android.util.Log;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>.
  *
  * @author Klemens Muthmann
- * @version 2.0.3
+ * @version 2.0.4
  * @since 2.0.0
  * @see DataCapturingService#pauseAsync(ShutDownFinishedHandler)
  * @see DataCapturingService#stopAsync(ShutDownFinishedHandler)

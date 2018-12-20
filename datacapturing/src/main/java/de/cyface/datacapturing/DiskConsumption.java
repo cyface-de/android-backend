@@ -19,7 +19,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {

@@ -53,7 +53,7 @@ import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.14
+ * @version 4.0.15
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {

@@ -24,7 +24,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.2
+ * @version 3.1.3
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
