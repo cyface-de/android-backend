@@ -82,7 +82,7 @@ dependencies {
 
     // Dependencies for instrumentation tests
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
-    androidTestImplementation "androidx.test:runner:$rootProject.ext.runnerVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
     // Dependencies for local unit tests

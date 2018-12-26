@@ -48,6 +48,6 @@ dependencies {
 
     // Dependencies for instrumentation tests
     // Force usage of support annotations in the test app, since it is internally used by the runner module.
-    androidTestImplementation "androidx.test:runner:$rootProject.ext.runnerVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 }

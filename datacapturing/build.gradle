@@ -85,7 +85,7 @@ dependencies {
     implementation project(":synchronization")
 
     // Dependencies for instrumentation tests
-    androidTestImplementation "androidx.test:runner:$rootProject.ext.runnerVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
     // Dependencies for local unit tests
@@ -96,5 +96,4 @@ dependencies {
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
-    testImplementation "org.robolectric:robolectric:$rootProject.ext.robolectricVersion"
 }

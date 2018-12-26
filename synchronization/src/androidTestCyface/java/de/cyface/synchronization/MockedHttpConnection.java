@@ -10,7 +10,7 @@ import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An HTTP connection that does not actually connect to the server. This is useful for testing code requiring a

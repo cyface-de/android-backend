@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
  * @version 3.0.1
  * @since 1.0.0
  */
-public class CapturedData implements Parcelable {
+public final class CapturedData implements Parcelable {
     /**
      * All accelerations captured since the last position was captured.
      */

@@ -25,9 +25,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.RemoteException;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.MediumTest;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.filters.MediumTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
 import de.cyface.persistence.AccelerationPointTable;
@@ -66,7 +66,7 @@ public class MeasurementContentProviderClientTest {
     @Ignore
     public void testLoadGeoLocations(int numberOftestEntries) throws RemoteException {
         // Arrange
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentProviderClient client = null;
         Cursor locationsCursor = null;
         int numberOfLoadedGeoLocations = 0;
@@ -149,7 +149,7 @@ public class MeasurementContentProviderClientTest {
 
     @Test
     public void test() throws RemoteException {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentProviderClient client = null;
         Cursor loadedAccelerations = null;
         Cursor loadedRotations = null;

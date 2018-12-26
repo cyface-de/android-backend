@@ -21,11 +21,11 @@ import org.junit.runner.RunWith;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.MediumTest;
-import android.support.test.rule.GrantPermissionRule;
-import android.support.test.rule.ServiceTestRule;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.filters.MediumTest;
+import androidx.test.rule.GrantPermissionRule;
+import androidx.test.rule.ServiceTestRule;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
@@ -84,7 +84,7 @@ public class BackgroundServiceTest {
 
     @Before
     public void setUp() {
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         persistence = new MeasurementPersistence(context.getContentResolver(), AUTHORITY);
         testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
@@ -105,7 +105,7 @@ public class BackgroundServiceTest {
      */
     @Test
     public void testStartDataCapturing() throws InterruptedException, TimeoutException {
-        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
@@ -155,7 +155,7 @@ public class BackgroundServiceTest {
      */
     @Test
     public void testStartDataCapturingTwice() throws InterruptedException, TimeoutException {
-        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());

@@ -3,25 +3,23 @@ package de.cyface.datacapturing.backend;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
-import org.robolectric.RobolectricTestRunner;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
+import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -38,7 +36,6 @@ import static org.mockito.Mockito.verify;
  * @version 2.0.2
  * @since 2.0.0
  */
-@RunWith(RobolectricTestRunner.class)
 public class DataCapturingLocalTest {
 
     /**
@@ -61,7 +58,6 @@ public class DataCapturingLocalTest {
 
     @Before
     public void setUp() throws NoSuchFieldException, IllegalAccessException {
-        //oocut = new DataCapturingBackgroundService();
         Field persistenceLayer = DataCapturingBackgroundService.class.getDeclaredField("persistenceLayer");
         persistenceLayer.setAccessible(true);
         persistenceLayer.set(oocut, mockPersistence);
@@ -69,11 +65,9 @@ public class DataCapturingLocalTest {
 
     /**
      * Tests if splitting large data sets works as intended. This is required to avoid the infamous <code>TransactionTooLargeException</code>.
-     *
-     * @throws DataCapturingException Should not happen, since the relevant methods are mocked.
      */
     @Test
-    public void testSplitOfLargeCapturedDataInstances() throws DataCapturingException {
+    public void testSplitOfLargeCapturedDataInstances() {
         int someLargeOddNumber = 1247;
         Random random = new Random();
         int accelerationsSize = someLargeOddNumber*2;
@@ -97,14 +91,14 @@ public class DataCapturingLocalTest {
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);
 
         // Hide call to actual Android message service methods.
-        doNothing().when(oocut).informCaller(eq(MessageCodes.DATA_CAPTURED), any(CapturedData.class));
+        doNothing().when(oocut).informCaller(eq(DATA_CAPTURED), any(CapturedData.class));
         // Call test method.
         oocut.onDataCaptured(data);
         // 1247*2 / 800 = 3,1 --> 4
          int times = Math.max(accelerationsSize,Math.max(rotationsSize,directionsSize)) / DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
          int remainder = Math.max(accelerationsSize,Math.max(rotationsSize,directionsSize)) % DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
          times = remainder>0 ? ++times : times;
-        verify(oocut, times(times)).informCaller(eq(MessageCodes.DATA_CAPTURED), captor.capture());
+        verify(oocut, times(times)).informCaller(eq(DATA_CAPTURED), captor.capture());
 
         int receivedAccelerations = 0;
         int receivedRotations = 0;

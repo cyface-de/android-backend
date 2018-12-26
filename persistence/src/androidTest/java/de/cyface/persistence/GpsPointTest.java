@@ -3,81 +3,75 @@
  */
 package de.cyface.persistence;
 
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.net.Uri;
+import android.provider.BaseColumns;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.rule.provider.ProviderTestRule;
+
+import static de.cyface.persistence.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.net.Uri;
-import android.provider.BaseColumns;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
-import android.test.ProviderTestCase2;
-import android.test.mock.MockContentResolver;
-
 /**
  * Tests whether the content provider for measuring points works or not.
  *
  * @author Klemens Muthmann
- *
- * @version 1.1.0
+ * @version 1.1.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
-public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
-
+public final class GpsPointTest {
+    /**
+     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
+     */
+    @Rule
+    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
+            .build();
     /**
      * A mock content resolver provided by the Android test environment to work on a simulated content provider.
      */
-    private MockContentResolver mockResolver;
-
-    /**
-     * Required by <code>ProviderTestCase2</code> to completely initialize a test instance.
-     */
-    public GpsPointTest() {
-        super(MeasuringPointsContentProvider.class, TestUtils.AUTHORITY);
-    }
+    private ContentResolver mockResolver;
 
     /**
      * Compares a cursor from the database with a set of content values via JUnit assertions.
      *
      * @param message Error message to show if cursor contains multiple elements.
-     * @param cursor The cursor to compare
-     * @param values The values to compare to
+     * @param cursor  The cursor to compare
+     * @param values  The values to compare to
      */
     private void cursorEqualsValues(final String message, final Cursor cursor, final ContentValues values) {
-        assertEquals(message, 1, cursor.getCount());
+        assertThat(message, 1, is(cursor.getCount()));
         cursor.moveToFirst();
 
-        assertEquals(values.get(GpsPointsTable.COLUMN_GPS_TIME),
-                cursor.getLong(cursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME)));
-        assertEquals(values.get(GpsPointsTable.COLUMN_LAT),
-                cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
-        assertEquals(values.get(GpsPointsTable.COLUMN_LON),
-                cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LON)));
-        assertEquals(values.get(GpsPointsTable.COLUMN_MEASUREMENT_FK),
-                cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_MEASUREMENT_FK)));
-        assertEquals(values.get(GpsPointsTable.COLUMN_SPEED),
-                cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED)));
-        assertEquals(values.get(GpsPointsTable.COLUMN_ACCURACY),
-                cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY)));
+        assertThat(values.getAsLong(GpsPointsTable.COLUMN_GPS_TIME),
+                is(cursor.getLong(cursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME))));
+        assertThat(values.getAsFloat(GpsPointsTable.COLUMN_LAT),
+                is(cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT))));
+        assertThat(values.getAsFloat(GpsPointsTable.COLUMN_LON),
+                is(cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LON))));
+        assertThat(values.getAsInteger(GpsPointsTable.COLUMN_MEASUREMENT_FK),
+                is(cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_MEASUREMENT_FK))));
+        assertThat(values.getAsFloat(GpsPointsTable.COLUMN_SPEED),
+                is(cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED))));
+        assertThat(values.getAsInteger(GpsPointsTable.COLUMN_ACCURACY),
+                is(cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY))));
     }
 
-    @Override
     @Before
-    public void setUp() throws Exception {
-        // WARNING: Never change the order of the following two lines, even though the Google documentation tells you
-        // something different!
-        setContext(InstrumentationRegistry.getTargetContext());
-        super.setUp();
-        mockResolver = getMockContentResolver();
+    public void setUp() {
+        mockResolver = providerRule.getResolver();
     }
 
     /**
@@ -114,8 +108,7 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         Uri createdRowUri = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertEquals(1,
-                mockResolver.delete(TestUtils.getGeoLocationsUri(), BaseColumns._ID + "= ?", new String[] {createdId}));
+        assertThat(mockResolver.delete(TestUtils.getGeoLocationsUri(), BaseColumns._ID + "= ?", new String[]{createdId}), is(1));
     }
 
     /**
@@ -126,9 +119,7 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         Uri createdRowUri = mockResolver.insert(TestUtils.getGeoLocationsUri(), getTextFixture());
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertEquals(1,
-                mockResolver.delete(TestUtils.getGeoLocationsUri().buildUpon().appendPath(createdId).build(),
-                        null, null));
+        assertThat(mockResolver.delete(TestUtils.getGeoLocationsUri().buildUpon().appendPath(createdId).build(), null, null), is(1));
     }
 
     /**
@@ -140,7 +131,7 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         String lastPathSegment = insert.getLastPathSegment();
         assertThat(lastPathSegment, not(equalTo("-1")));
         long identifier = Long.parseLong(lastPathSegment);
-        assertTrue(identifier > 0L);
+        assertThat(identifier > 0L, is(true));
     }
 
     /**
@@ -153,10 +144,10 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
 
         try (Cursor urlQuery = mockResolver.query(TestUtils.getGeoLocationsUri().buildUpon().appendPath(lastPathSegment).build(),
                 null, null, null, null);
-                Cursor selectionQuery = mockResolver.query(TestUtils.getGeoLocationsUri(), null,
-                        BaseColumns._ID + "=?", new String[] {lastPathSegment}, null);
-                Cursor allQuery = mockResolver.query(TestUtils.getGeoLocationsUri(), null, null,
-                        null, null);) {
+             Cursor selectionQuery = mockResolver.query(TestUtils.getGeoLocationsUri(), null,
+                     BaseColumns._ID + "=?", new String[]{lastPathSegment}, null);
+             Cursor allQuery = mockResolver.query(TestUtils.getGeoLocationsUri(), null, null,
+                     null, null);) {
             // Select
             cursorEqualsValues("Unable to load all measuring points via URI.", urlQuery, getTextFixture());
             cursorEqualsValues("Unable to load measuring point via selection.", selectionQuery, getTextFixture());
@@ -176,27 +167,23 @@ public final class GpsPointTest extends ProviderTestCase2<MeasuringPointsContent
         newValues.put(GpsPointsTable.COLUMN_LAT, 10.34f);
 
         Uri dataPointUri = TestUtils.getGeoLocationsUri().buildUpon().appendPath(lastPathSegment).build();
-        assertEquals(1, mockResolver.update(dataPointUri, newValues, null, null));
+        assertThat(mockResolver.update(dataPointUri, newValues, null, null), is(1));
 
         try (Cursor query = mockResolver.query(dataPointUri, null, null, null, null);) {
 
-            assertEquals(1, query.getCount());
+            assertThat(query.getCount(), is(1));
             query.moveToFirst();
             int columnIndex = query.getColumnIndex(GpsPointsTable.COLUMN_LAT);
-            assertEquals(10.34f, query.getFloat(columnIndex));
+            assertThat(query.getFloat(columnIndex), is(10.34F));
         }
     }
 
     /**
      * Clean the database after each test.
-     *
-     * @throws Exception In case anything unexpected happens in the super class.
      */
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         mockResolver.delete(TestUtils.getGeoLocationsUri(), null, null);
-        super.tearDown();
-        getProvider().shutdown();
     }
 
 }

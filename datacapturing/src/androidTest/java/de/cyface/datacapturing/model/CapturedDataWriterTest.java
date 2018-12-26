@@ -20,17 +20,19 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.provider.BaseColumns;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.MediumTest;
-import android.support.test.runner.AndroidJUnit4;
-import android.test.ProviderTestCase2;
 import android.util.Log;
 
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.MediumTest;
+import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.NoSuchMeasurementException;
@@ -45,60 +47,50 @@ import de.cyface.persistence.RotationPointTable;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
- * <code>ProviderTestCase2</code> to get a mocked content provider. Implementation details are explained in the
- * <a href="https://developer.android.com/training/testing/integration-testing/content-provider-testing.html">Android
+ * <code>ProviderTestRule</code> to get a mocked content provider. Implementation details are explained in the
+ * <a href="https://developer.android.com/reference/android/support/test/rule/provider/ProviderTestRule">Android
  * documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 4.0.2
+ * @version 4.0.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
-public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
+public class CapturedDataWriterTest {
+    /**
+     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
+     */
+    @Rule
+    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
+            .build();
     /**
      * The object of the class under test.
      */
     private MeasurementPersistence oocut;
-
     /**
-     * The Constructor which needs to be overwritten for classes inheriting from <code>ProviderTestCase2</code>.
+     * An Android <code>ContentResolver</code> provided for executing tests.
      */
-    public CapturedDataWriterTest() {
-        super(MeasuringPointsContentProvider.class, AUTHORITY);
-    }
+    private ContentResolver mockResolver;
 
     /**
      * Initializes the test case as explained in the <a href=
      * "https://developer.android.com/training/testing/integration-testing/content-provider-testing.html#build">Android
      * documentation</a>.
-     *
-     * @throws Exception For further details see the <a href=
-     *             "https://developer.android.com/reference/android/test/ProviderTestCase2.html">documentation</a> of
-     *             the parent class <code>ProviderTestCase2</code>.
      */
     @Before
-    public void setUp() throws Exception {
-        // WARNING: Never change the order of the following two lines, even though the Google documentation tells you
-        // something different!
-        setContext(InstrumentationRegistry.getTargetContext());
-        super.setUp();
+    public void setUp() {
+        mockResolver = providerRule.getResolver();
 
-        oocut = new MeasurementPersistence(getMockContentResolver(), AUTHORITY);
+        oocut = new MeasurementPersistence(mockResolver, AUTHORITY);
     }
 
     /**
      * Deletes all content from the database to make sure it is empty for the next test.
-     *
-     * @throws Exception Fur further details see the <a href=
-     *             "https://developer.android.com/reference/android/test/ProviderTestCase2.html">documentation</a> of
-     *             the parent class <code>ProviderTestCase2</code>.
      */
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() {
         oocut.clear();
-        super.tearDown();
-        getProvider().shutdown();
     }
 
     /**
@@ -113,7 +105,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
 
         Cursor result = null;
         try {
-            result = getMockContentResolver().query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+            result = mockResolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
                     new String[] {identifierString}, null);
             if (result == null) {
                 throw new IllegalStateException(
@@ -136,7 +128,7 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         oocut.closeRecentMeasurement();
         Cursor closingResult = null;
         try {
-            closingResult = getMockContentResolver().query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+            closingResult = mockResolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
                     new String[] {identifierString}, null);
             if (closingResult == null) {
                 throw new IllegalStateException(
@@ -197,10 +189,10 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor rotationsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null, null, null, null);
-            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null, null, null, null);
-            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null, null, null, null);
-            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null, null, null, null);
+            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null, null, null, null);
+            accelerationsCursor = mockResolver.query(getAccelerationsUri(), null, null, null, null);
+            directionsCursor = mockResolver.query(getDirectionsUri(), null, null, null, null);
+            rotationsCursor = mockResolver.query(getRotationsUri(), null, null, null, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
                     || rotationsCursor == null) {
                 throw new IllegalStateException(
@@ -274,19 +266,19 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor measurementsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurement.getIdentifier())},
-                    null);
-            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
-                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?", new String[] {Long.toString(measurement.getIdentifier())},
-                    null);
-            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
+            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
+                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.toString(measurement.getIdentifier())}, null);
+            accelerationsCursor = mockResolver.query(getAccelerationsUri(), null,
+                    AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.toString(measurement.getIdentifier())}, null);
+            directionsCursor = mockResolver.query(getDirectionsUri(), null,
                     DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
-            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
+            rotationsCursor = mockResolver.query(getRotationsUri(), null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
-            measurementsCursor = getMockContentResolver().query(getMeasurementUri(), null, null, null, null);
+            measurementsCursor = mockResolver.query(getMeasurementUri(), null, null, null, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null
                     || rotationsCursor == null || measurementsCursor == null) {
                 throw new IllegalStateException(
@@ -383,16 +375,16 @@ public class CapturedDataWriterTest extends ProviderTestCase2<MeasuringPointsCon
         Cursor rotationsCursor = null;
 
         try {
-            geoLocationsCursor = getMockContentResolver().query(getGeoLocationsUri(), null,
+            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
                     GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            accelerationsCursor = getMockContentResolver().query(getAccelerationsUri(), null,
+            accelerationsCursor = mockResolver.query(getAccelerationsUri(), null,
                     AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            directionsCursor = getMockContentResolver().query(getDirectionsUri(), null,
+            directionsCursor = mockResolver.query(getDirectionsUri(), null,
                     DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            rotationsCursor = getMockContentResolver().query(getRotationsUri(), null,
+            rotationsCursor = mockResolver.query(getRotationsUri(), null,
                     RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             if (geoLocationsCursor == null || accelerationsCursor == null || directionsCursor == null

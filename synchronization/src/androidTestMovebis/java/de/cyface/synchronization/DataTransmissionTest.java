@@ -25,11 +25,11 @@ import org.junit.runner.RunWith;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.os.Build;
-import android.support.annotation.NonNull;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.FlakyTest;
-import android.support.test.filters.LargeTest;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.annotation.NonNull;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.filters.FlakyTest;
+import androidx.test.filters.LargeTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
 /**
@@ -88,7 +88,7 @@ public class DataTransmissionTest {
     @Test
     public void testUploadSomeBytesViaMultiPart()
             throws SynchronisationException, BadRequestException, RequestParsingException {
-        ContentResolver resolver = InstrumentationRegistry.getTargetContext().getContentResolver();
+        ContentResolver resolver = InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver();
         long measurementIdentifier = insertTestMeasurement(resolver, "UNKNOWN");
         insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
                 940);
@@ -119,7 +119,7 @@ public class DataTransmissionTest {
             // printMD5(measurementData);
 
             String jwtAuthToken = "replace me";
-            SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getTargetContext());
+            SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getInstrumentation().getTargetContext());
             SyncResult syncResult = new SyncResult();
             boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
                     measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {

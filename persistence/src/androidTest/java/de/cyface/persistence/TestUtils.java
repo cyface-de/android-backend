@@ -3,11 +3,11 @@
  */
 package de.cyface.persistence;
 
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.test.mock.MockContentResolver;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,14 +17,14 @@ import static junit.framework.Assert.assertFalse;
 import static junit.framework.Assert.fail;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
 
 /**
  * A utility class with static methods for supporting tests on the persistence code.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 class TestUtils {
@@ -56,15 +56,15 @@ class TestUtils {
 
     }
 
-    static long create(final MockContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
+    static long create(final ContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
         final Uri result = mockResolver.insert(contentUri, entry);
-        assertFalse("Unable to create new entry.", result.getLastPathSegment().equals("-1"));
+        assertThat("Unable to create new entry.", result.getLastPathSegment(), is(not("-1")));
         long identifier = Long.parseLong(result.getLastPathSegment());
         assertThat("Entry inserted under wrong id.",identifier > 0L,is(true));
         return identifier;
     }
 
-    static void read(final MockContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
+    static void read(final ContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
         try (Cursor cursor = mockResolver.query(contentUri, null, null, null, null);) {
             List<ContentValues> fixture = new ArrayList<>();
             fixture.add(entry);
@@ -72,7 +72,7 @@ class TestUtils {
         }
     }
 
-    static void update(final MockContentResolver mockResolver, final Uri contentUri, final long identifier, final String columnName, final double changedValue) {
+    static void update(final ContentResolver mockResolver, final Uri contentUri, final long identifier, final String columnName, final double changedValue) {
         ContentValues changedValues = new ContentValues();
         changedValues.put(columnName, changedValue);
 
@@ -81,12 +81,12 @@ class TestUtils {
         assertEquals("Update of rotation point was unsuccessful.", 1, rowsUpdated);
     }
 
-    static void delete(final MockContentResolver mockResolver, final Uri contentUri, final long identifier) {
+    static void delete(final ContentResolver mockResolver, final Uri contentUri, final long identifier) {
         final int rowsDeleted = mockResolver.delete(contentUri,BaseColumns._ID+ "=?", new String[]{String.valueOf(identifier)});
         assertEquals("Delete was unsuccessful for uri "+contentUri,1,rowsDeleted);
     }
 
-    static int count(final MockContentResolver mockResolver, final Uri contentUri) {
+    static int count(final ContentResolver mockResolver, final Uri contentUri) {
         return mockResolver.query(contentUri,null,null,null,null).getCount();
     }
 

@@ -11,6 +11,7 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
@@ -53,7 +54,7 @@ import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.15
+ * @version 4.0.16
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -101,10 +102,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private EventHandlingStrategy eventHandlingStrategy;
 
-    /*
-     * MARK: Service Lifecycle Methods
-     */
-
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
         Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
@@ -132,7 +129,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Prevents this process from being killed by the system.
         final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
         if (powerManager != null) {
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface:wakelock");
             wakeLock.acquire();
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
@@ -196,7 +193,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Log.d(TAG, "Starting DataCapturingBackgroundService.");
+        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: "+intent);
 
         if (intent != null) { // i.e. this is the initial start command call init.
             // Loads EventHandlingStrategy
@@ -256,7 +253,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
+        final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
+        final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
+        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread, sensorEventHandlerThread);
     }
 
     /**
