@@ -21,12 +21,12 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SyncResult;
 import android.os.Build;
+import android.util.Log;
 import androidx.annotation.NonNull;
-import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import android.util.Log;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -41,7 +41,7 @@ import de.cyface.synchronization.exceptions.RequestParsingException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -91,7 +91,8 @@ public class DataTransmissionTest {
     @Test
     public void testUploadSomeBytesViaMultiPart()
             throws BadRequestException, RequestParsingException, FileCorruptedException, IOException {
-        ContentResolver resolver = InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        ContentResolver resolver = context.getContentResolver();
         Persistence persistence = new Persistence(context, resolver, AUTHORITY);
         Measurement measurement = insertTestMeasurement(persistence, resolver, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
@@ -125,7 +126,8 @@ public class DataTransmissionTest {
             // printMD5(measurementData);
 
             String jwtAuthToken = "replace me";
-            SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getInstrumentation().getTargetContext());
+            SyncPerformer performer = new SyncPerformer(
+                    InstrumentationRegistry.getInstrumentation().getTargetContext());
             SyncResult syncResult = new SyncResult();
             boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
                     measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {

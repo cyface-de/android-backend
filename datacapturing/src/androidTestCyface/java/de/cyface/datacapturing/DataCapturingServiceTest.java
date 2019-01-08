@@ -19,14 +19,12 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.Context;
-import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
-import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -47,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.3
+ * @version 4.2.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -496,7 +494,8 @@ public class DataCapturingServiceTest {
 
         // Resume 1
         resumeAsyncAndCheckThatLaunched(measurementIdentifier);
-        Persistence persistence = new Persistence(getContext(), getContext().getContentResolver(), AUTHORITY);
+        Persistence persistence = new Persistence(InstrumentationRegistry.getInstrumentation().getTargetContext(),
+                InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver(), AUTHORITY);
         assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
 
         // Resume 2, should just be ignored, but the service should still be running and the measurement dir open

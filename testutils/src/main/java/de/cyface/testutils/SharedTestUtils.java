@@ -9,7 +9,7 @@ import java.util.List;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
@@ -24,7 +24,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 3.0.0
  */
 public class SharedTestUtils {

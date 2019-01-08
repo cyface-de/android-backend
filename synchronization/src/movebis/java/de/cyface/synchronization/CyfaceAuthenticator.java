@@ -1,29 +1,24 @@
 package de.cyface.synchronization;
 
+import java.io.IOException;
+import java.io.InputStream;
+import java.nio.ByteBuffer;
+import java.security.*;
+import java.security.cert.CertificateException;
+
+import javax.net.ssl.SSLContext;
+import javax.net.ssl.TrustManagerFactory;
+
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.content.Context;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
-
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.cyface.synchronization.exceptions.SynchronisationException;
 
 /**
@@ -32,7 +27,7 @@ import de.cyface.synchronization.exceptions.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 3.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {

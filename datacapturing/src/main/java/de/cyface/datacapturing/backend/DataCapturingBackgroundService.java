@@ -3,7 +3,6 @@ package de.cyface.datacapturing.backend;
 import static de.cyface.datacapturing.BundlesExtrasCodes.*;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -20,24 +19,19 @@ import android.content.IntentFilter;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
 import android.os.*;
-import android.support.annotation.NonNull;
 import android.util.Log;
-import de.cyface.datacapturing.*;
-import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
+import androidx.annotation.NonNull;
+import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.datacapturing.DataCapturingService;
+import de.cyface.datacapturing.EventHandlingStrategy;
+import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.serialization.*;
 import de.cyface.utils.Validate;
-
-import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -48,7 +42,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.1
+ * @version 4.1.2
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -209,16 +203,17 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: "+intent);
+        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
 
         if (intent != null) { // i.e. this is the initial start command call init.
             // Loads EventHandlingStrategy
             this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
             Validate.notNull(eventHandlingStrategy);
             final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
-            if(notification!=null) {
+            if (notification != null) {
                 /*
-                 * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate. However this might cause problems if the service has already been killed at this stage.
+                 * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
+                 * However this might cause problems if the service has already been killed at this stage.
                  */
                 startForeground(eventHandlingStrategy.getCapturingNotificationId(), notification);
             }
@@ -278,7 +273,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
-        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread, sensorEventHandlerThread);
+        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread,
+                sensorEventHandlerThread);
     }
 
     /**

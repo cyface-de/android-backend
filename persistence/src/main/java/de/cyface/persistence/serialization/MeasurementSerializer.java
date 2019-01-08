@@ -2,10 +2,7 @@ package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.serialization.ByteSizes.CHARACTER_BYTES;
-import static de.cyface.persistence.serialization.ByteSizes.INT_BYTES;
-import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
-import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.*;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -14,9 +11,8 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
-import android.support.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3D;
@@ -44,7 +40,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -295,8 +291,7 @@ public final class MeasurementSerializer {
      *            {@link DirectionsFile}
      * @return The {@link Point3D} loaded from the file
      */
-    static List<Point3D> deserializePoint3dData(final byte[] point3dFileBytes,
-                                                final int pointCount) {
+    static List<Point3D> deserializePoint3dData(final byte[] point3dFileBytes, final int pointCount) {
 
         Validate.isTrue(point3dFileBytes.length == pointCount * BYTES_IN_ONE_POINT_ENTRY);
         if (pointCount == 0) {

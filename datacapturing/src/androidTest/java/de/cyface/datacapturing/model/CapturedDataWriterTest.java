@@ -17,13 +17,15 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import android.content.ContentResolver;
 import android.content.Context;
-import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -36,7 +38,7 @@ import de.cyface.persistence.serialization.*;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 5.0.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -53,10 +55,6 @@ public class CapturedDataWriterTest {
      */
     private MeasurementPersistence oocut;
     private Context context;
-    /**
-     * An Android <code>ContentResolver</code> provided for executing tests.
-     */
-    private ContentResolver mockResolver;
 
     /**
      * Initializes the test case as explained in the <a href=
@@ -65,8 +63,8 @@ public class CapturedDataWriterTest {
      */
     @Before
     public void setUp() {
-        mockResolver = providerRule.getResolver();
-        context = InstrumentationRegistry.getTargetContext();
+        ContentResolver mockResolver = providerRule.getResolver();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         oocut = new MeasurementPersistence(context, mockResolver, AUTHORITY);
     }

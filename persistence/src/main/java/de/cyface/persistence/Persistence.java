@@ -15,8 +15,8 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.support.annotation.NonNull;
 import android.util.Log;
+import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -29,7 +29,7 @@ import de.cyface.utils.Validate;
  * delegate objects.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 3.0.0
  */
 public class Persistence {
