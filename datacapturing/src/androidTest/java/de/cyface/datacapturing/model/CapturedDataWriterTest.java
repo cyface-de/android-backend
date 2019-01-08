@@ -67,6 +67,8 @@ public class CapturedDataWriterTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         oocut = new MeasurementPersistence(context, mockResolver, AUTHORITY);
+        // This is normally called in the <code>DataCapturingService#Constructor</code>
+        oocut.restoreOrCreateDeviceId(mockResolver);
     }
 
     /**
