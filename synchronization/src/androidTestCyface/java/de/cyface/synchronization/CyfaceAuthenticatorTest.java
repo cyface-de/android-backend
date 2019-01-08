@@ -35,7 +35,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 
@@ -77,7 +77,7 @@ public class CyfaceAuthenticatorTest {
         editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
-        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, CyfaceConstants.AUTH_TOKEN_TYPE,
+        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE,
                 null, false, callback, null);
         Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
 

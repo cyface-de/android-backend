@@ -1,10 +1,6 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.*;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -44,7 +40,8 @@ import de.cyface.persistence.model.Vehicle;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.6
+ * @author Armin Schnabel
+ * @version 2.0.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

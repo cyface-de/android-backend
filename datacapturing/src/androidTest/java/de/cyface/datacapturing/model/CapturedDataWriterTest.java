@@ -1,9 +1,7 @@
 package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -24,29 +22,21 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.rule.provider.ProviderTestRule;
-import de.cyface.persistence.model.Measurement;
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
-import de.cyface.persistence.serialization.FileCorruptedException;
-import de.cyface.persistence.serialization.GeoLocationsFile;
-import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.*;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.0.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -227,7 +217,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testLoadMeasurements() throws NoSuchMeasurementException, DataCapturingException {
+    public void testLoadMeasurements() throws NoSuchMeasurementException {
         Measurement measurement1 = oocut.newMeasurement(Vehicle.UNKNOWN);
         MetaFile.append(context, measurement1.getIdentifier(), new MetaFile.PointMetaData(0, 0, 0, 0));
         oocut.closeRecentMeasurement();
@@ -251,7 +241,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testDeleteMeasurement() throws NoSuchMeasurementException, DataCapturingException {
+    public void testDeleteMeasurement() throws NoSuchMeasurementException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
@@ -298,7 +288,7 @@ public class CapturedDataWriterTest {
     public void testLoadTrack() throws NoSuchMeasurementException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.storeLocation(testLocation(), measurement.getIdentifier());
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0,0, 0));
+        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
         oocut.closeRecentMeasurement();
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));

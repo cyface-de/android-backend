@@ -83,6 +83,7 @@ dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
     // Dependencies for instrumentation tests
+    androidTestImplementation project(":testutils")
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"

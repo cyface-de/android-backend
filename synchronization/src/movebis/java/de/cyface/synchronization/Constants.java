@@ -1,7 +1,5 @@
 package de.cyface.synchronization;
 
-import android.os.Environment;
-
 /**
  * Final static constants used by multiple classes.
  *
@@ -9,6 +7,8 @@ import android.os.Environment;
  * @author Armin Schnabel
  * @version 1.0.3
  * @since 2.0.0
+ *
+ * * FIXME: Check in pull request if the AUTH_TOKEN_TYPE was moved since dev or even since before the BINARY epic. They must be the same as before but are differently defined for each project
  */
 public final class Constants {
 
@@ -24,17 +24,6 @@ public final class Constants {
      */
     public final static String ACCOUNT_TYPE = "de.cyface";
     public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
-
-    /**
-     * The disk where data can be stored by the SDK, e.g. image material.
-     */
-    public final static String BASE_PATH = Environment.getExternalStorageDirectory().getPath();
-
-    /**
-     * The minimum space required for capturing. We don't want to use the space full up as this would
-     * slow down the device and could get unusable.
-     */
-    public final static long MINIMUM_MEGABYTES_REQUIRED = 100L;
 
     private Constants() {
         // Nothing to do here.

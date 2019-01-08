@@ -2,13 +2,8 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
-import static de.cyface.synchronization.TestUtils.clear;
-import static de.cyface.synchronization.TestUtils.getIdentifierUri;
-import static de.cyface.synchronization.TestUtils.insertSampleMeasurement;
+import static de.cyface.synchronization.TestUtils.*;
+import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurement;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -24,14 +19,7 @@ import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.content.BroadcastReceiver;
-import android.content.ContentProviderClient;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.SharedPreferences;
-import android.content.SyncResult;
+import android.content.*;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -39,7 +27,6 @@ import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
-
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.utils.Validate;
@@ -49,7 +36,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

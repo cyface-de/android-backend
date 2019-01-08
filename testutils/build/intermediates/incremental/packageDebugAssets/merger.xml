@@ -1,0 +1,2 @@
+<?xml version="1.0" encoding="utf-8"?>
+<merger version="3"><dataSet config="main"><source path="/home/user/workspace/android-backend/testutils/src/main/assets"/><source path="/home/user/workspace/android-backend/testutils/build/generated/assets/shaders/debug"/></dataSet><dataSet config="debug"><source path="/home/user/workspace/android-backend/testutils/src/debug/assets"/></dataSet></merger>

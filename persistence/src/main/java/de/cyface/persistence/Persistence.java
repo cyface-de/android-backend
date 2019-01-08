@@ -4,11 +4,7 @@ import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.serialization.MeasurementSerializer.serialize;
 
-import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.*;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -21,17 +17,10 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.support.annotation.NonNull;
 import android.util.Log;
-
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
-import de.cyface.persistence.serialization.FileCorruptedException;
-import de.cyface.persistence.serialization.GeoLocationsFile;
-import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.*;
 import de.cyface.utils.Validate;
 
 /**
@@ -40,7 +29,7 @@ import de.cyface.utils.Validate;
  * delegate objects.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 3.0.0
  */
 public class Persistence {
@@ -81,15 +70,14 @@ public class Persistence {
     /**
      * Creates a new completely initialized <code>Persistence</code>.
      *
+     * @param context The {@link Context} required to locate the app's internal storage directory.
      * @param resolver <code>ContentResolver</code> that provides access to the {@link IdentifierTable}.
      * @param authority The authority used to load the identify the Android content provider to load the identifiers.
-     * @param context The {@link Context} required to locate the app's internal storage directory.
      */
     public Persistence(@NonNull final Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority) {
         this.resolver = resolver;
-        this.authority = authority; // FIXME: this way the SDK implementing app has to provide an authority when
-                                    // delete(measurement)
+        this.authority = authority;
         this.context = context;
         this.fileUtils = new FileUtils(context);
         this.openMeasurementsDir = new File(fileUtils.getOpenMeasurementsDirPath());

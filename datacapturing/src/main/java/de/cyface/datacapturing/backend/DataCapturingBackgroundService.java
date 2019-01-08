@@ -1,13 +1,6 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.BundlesExtrasCodes.*;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
@@ -26,40 +19,22 @@ import android.content.Intent;
 import android.content.IntentFilter;
 import android.hardware.SensorManager;
 import android.location.LocationManager;
-import android.os.Build;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.HandlerThread;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.Parcelable;
-import android.os.PowerManager;
-import android.os.RemoteException;
-import androidx.annotation.NonNull;
+import android.os.*;
+import android.support.annotation.NonNull;
 import android.util.Log;
-
+import de.cyface.datacapturing.*;
 import java.lang.ref.WeakReference;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-
-import de.cyface.datacapturing.BundlesExtrasCodes;
-import de.cyface.datacapturing.DataCapturingService;
-import de.cyface.datacapturing.EventHandlingStrategy;
-import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3D;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
-import de.cyface.persistence.serialization.GeoLocationsFile;
-import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.*;
 import de.cyface.utils.Validate;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
@@ -73,7 +48,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.1.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -204,8 +179,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     private void sendStoppedMessage(final long currentMeasurementIdentifier) {
         Log.v(TAG, "Sending IPC message: service stopped.");
         // Write point counters to MetaFile
-        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
-                rotationPointCounter, directionPointCounter));
+        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter,
+                accelerationPointCounter, rotationPointCounter, directionPointCounter));
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
@@ -224,8 +199,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
         // Write point counters to MetaFile
-        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
-                rotationPointCounter, directionPointCounter));
+        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter,
+                accelerationPointCounter, rotationPointCounter, directionPointCounter));
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);

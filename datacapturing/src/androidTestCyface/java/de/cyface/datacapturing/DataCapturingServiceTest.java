@@ -2,10 +2,7 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -15,11 +12,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Ignore;
-import org.junit.Rule;
-import org.junit.Test;
+import org.junit.*;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
@@ -54,7 +47,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.2
+ * @version 4.2.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -86,10 +79,6 @@ public class DataCapturingServiceTest {
      * Listener for messages from the service. This is used to assert correct service startup and shutdown.
      */
     private TestListener testListener;
-    /**
-     * A listener catching messages send to the UI in real applications.
-     */
-    private TestUIListener testUIListener;
 
     /**
      * Callback triggered if the test successfully establishes a connection with the background service or times out.
@@ -124,8 +113,8 @@ public class DataCapturingServiceTest {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, AUTHORITY,
-                            ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy());
+                    oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "http://localhost:8080",
+                            new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -136,7 +125,7 @@ public class DataCapturingServiceTest {
         lock = new ReentrantLock();
         condition = lock.newCondition();
         testListener = new TestListener(lock, condition);
-        testUIListener = new TestUIListener(lock, condition);
+        // A listener catching messages send to the UI in real applications.
         runningStatusCallback = new TestCallback("Default Callback", lock, condition);
 
         // Making sure there is no service instance of a previous test running

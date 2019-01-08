@@ -1,22 +1,12 @@
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static de.cyface.datacapturing.TestUtils.insertSampleMeasurement;
-import static de.cyface.datacapturing.TestUtils.insertTestAcceleration;
-import static de.cyface.datacapturing.TestUtils.insertTestDirection;
-import static de.cyface.datacapturing.TestUtils.insertTestGeoLocation;
-import static de.cyface.datacapturing.TestUtils.insertTestMeasurement;
-import static de.cyface.datacapturing.TestUtils.insertTestRotation;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.notNullValue;
+import static de.cyface.persistence.serialization.MeasurementSerializer.*;
+import static de.cyface.testutils.SharedTestUtils.*;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
 import java.io.DataInputStream;
-import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.Arrays;
@@ -36,7 +26,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
-
 import de.cyface.datacapturing.ServiceTestUtils;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -53,7 +42,7 @@ import de.cyface.persistence.serialization.MetaFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.2.0
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -90,10 +79,9 @@ public class PersistenceTest {
      * Creates two measurements: one finished and one still running and checks, that the
      * <code>loadFinishedMeasurements</code> method returns a list of size 1.
      *
-     * @throws DataCapturingException Fails the test if anything unexpected happens.
      */
     @Test
-    public void testLoadFinishedMeasurements_oneFinishedOneRunning() throws DataCapturingException {
+    public void testLoadFinishedMeasurements_oneFinishedOneRunning() {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasOpenMeasurement(), is(equalTo(true)));
 
@@ -120,10 +108,9 @@ public class PersistenceTest {
     /**
      * Test that loading an open and a closed measurement works as expected.
      *
-     * @throws DataCapturingException Fails the test if anything unexpected happens.
      */
     @Test
-    public void testLoadMeasurementSuccessfully() throws DataCapturingException {
+    public void testLoadMeasurementSuccessfully() {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
@@ -148,8 +135,7 @@ public class PersistenceTest {
     }
 
     @Ignore
-    public void testLoadGeoLocations(int numberOftestEntries)
-            throws DataCapturingException, NoSuchMeasurementException {
+    public void testLoadGeoLocations(int numberOftestEntries) throws NoSuchMeasurementException {
         // Arrange
         Context context = InstrumentationRegistry.getTargetContext();
 
@@ -181,11 +167,13 @@ public class PersistenceTest {
      * Also decompresses the compressed bytes to make sure it's still readable.
      */
     @Test
-    public void testLoadSerializedCompressedAndDecompressDeserialize() throws NoSuchMeasurementException, FileCorruptedException, IOException, DataFormatException {
+    public void testLoadSerializedCompressedAndDecompressDeserialize()
+            throws NoSuchMeasurementException, FileCorruptedException, IOException, DataFormatException {
 
         final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
                 + 3 * 3 * BYTES_IN_ONE_POINT_ENTRY;
-        final int SERIALIZED_COMPRESSED_SIZE = 31; // FIXME: Unclear why it's not compressed to 31 instead of 30 as before
+        final int SERIALIZED_COMPRESSED_SIZE = 31; // FIXME: Unclear why it's not compressed to 31 instead of 30 as
+                                                   // before
 
         // Serialize and check length
         long measurementIdentifier = insertSerializationTestSample();
@@ -246,18 +234,16 @@ public class PersistenceTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException {
-        Persistence persistence = new Persistence(context, context.getContentResolver(), AUTHORITY);
-
         // Create a not finished measurement
-        insertSampleMeasurement(false, false, persistence);
+        insertSampleMeasurement(false, false, oocut);
 
         // Create a not synced finished measurement
-        Measurement finishedMeasurement = insertSampleMeasurement(true, false, persistence);
+        Measurement finishedMeasurement = insertSampleMeasurement(true, false, oocut);
 
         // Create a synchronized measurement
-        insertSampleMeasurement(true, true, persistence);
+        insertSampleMeasurement(true, true, oocut);
 
-        final List<Measurement> loadedMeasurements = persistence.loadFinishedMeasurements();
+        final List<Measurement> loadedMeasurements = oocut.loadFinishedMeasurements();
 
         assertThat(loadedMeasurements.size(), is(1));
         assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));

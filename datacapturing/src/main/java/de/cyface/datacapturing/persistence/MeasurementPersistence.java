@@ -12,7 +12,6 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import android.util.Log;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.FileUtils;
@@ -22,12 +21,7 @@ import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
-import de.cyface.persistence.serialization.FileCorruptedException;
-import de.cyface.persistence.serialization.GeoLocationsFile;
-import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.*;
 import de.cyface.utils.Validate;
 
 /**
@@ -35,7 +29,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 6.0.2
  * @since 2.0.0
  */
 public class MeasurementPersistence extends Persistence {
@@ -76,7 +70,6 @@ public class MeasurementPersistence extends Persistence {
      */
     public MeasurementPersistence(@NonNull final Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority) {
-        // FIXME: this way the SDK implementing app has to provide an authority when delete(measurement)
         super(context, resolver, authority);
         this.threadPool = Executors.newCachedThreadPool();
     }

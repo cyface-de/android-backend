@@ -1,11 +1,10 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.SharedConstants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -14,22 +13,12 @@ import java.util.HashSet;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.accounts.AccountManagerFuture;
-import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
-import android.content.AbstractThreadedSyncAdapter;
-import android.content.ContentProviderClient;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.content.SyncResult;
+import android.accounts.*;
+import android.content.*;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import androidx.annotation.NonNull;
 import android.util.Log;
-
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.FileCorruptedException;
@@ -42,7 +31,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -92,8 +81,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final Persistence persistence = new Persistence(context, resolver, authority);
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account,
-                SharedConstants.AUTH_TOKEN_TYPE, null, false, null, null);
+        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
+                null, null);
 
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
@@ -151,7 +140,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 if (transmissionSuccessful) {
                     persistence.markAsSynchronized(measurement);
                     Log.d(TAG, "Measurement marked as synced.");
-                } // FIXME: else maybe reset sync progress
+                } else {
+                    break;
+                }
             }
         } catch (final RequestParsingException/* | SynchronisationException */ e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());

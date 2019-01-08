@@ -59,6 +59,7 @@ public class HttpConnection implements Http {
             final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
         final HttpsURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
+        Log.d(TAG, "Using auth token for post: "+jwtToken);
         return connection;
     }
 
@@ -389,7 +390,7 @@ import de.cyface.utils.ValidationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.1
+ * @version 1.3.2
  * @since 2.0.0
  */
 public class HttpConnection implements Http {

@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.SharedConstants.AUTH_TOKEN_TYPE;
+import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 
 import android.Manifest;
 import android.accounts.Account;
@@ -36,7 +36,7 @@ import de.cyface.synchronization.exceptions.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.0.3
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {

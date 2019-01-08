@@ -1,12 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.BundlesExtrasCodes.*;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 
@@ -21,27 +15,15 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
 import android.accounts.Account;
-import android.content.ComponentName;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
-import android.content.ServiceConnection;
-import android.content.SharedPreferences;
+import android.content.*;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.os.Bundle;
-import android.os.Handler;
-import android.os.IBinder;
-import android.os.Message;
-import android.os.Messenger;
-import android.os.RemoteException;
+import android.os.*;
 import android.preference.PreferenceManager;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.Log;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -78,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -406,6 +388,7 @@ public abstract class DataCapturingService {
 
         // Resume paused measurement
         final Measurement currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        Validate.notNull(currentlyOpenMeasurement);
         final MetaFile.MetaData metaData = MetaFile.resume(this.getContext(), currentlyOpenMeasurement.getIdentifier());
         runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
     }
