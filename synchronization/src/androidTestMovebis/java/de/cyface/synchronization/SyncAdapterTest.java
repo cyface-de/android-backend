@@ -24,11 +24,11 @@ import org.junit.runner.RunWith;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.os.Bundle;
-import android.support.annotation.NonNull;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.FlakyTest;
-import android.support.test.filters.LargeTest;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.annotation.NonNull;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.filters.FlakyTest;
+import androidx.test.filters.LargeTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
 /**
@@ -57,7 +57,7 @@ public final class SyncAdapterTest {
      */
     @Test
     public void testRequestSync() throws InterruptedException {
-        AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
+        AccountManager am = AccountManager.get(InstrumentationRegistry.getInstrumentation().getTargetContext());
         Account newAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_PASSWORD, Bundle.EMPTY)) {
             ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
@@ -148,7 +148,7 @@ public final class SyncAdapterTest {
             }
 
             // Print synchronizing accounts for debugging purposes.
-            AccountManager am = AccountManager.get(InstrumentationRegistry.getTargetContext());
+            AccountManager am = AccountManager.get(InstrumentationRegistry.getInstrumentation().getTargetContext());
             Account[] accounts = am.getAccountsByType(ACCOUNT_TYPE);
             for (Account account : accounts) {
                 Log.d(TAG,

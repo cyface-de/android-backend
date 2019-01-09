@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;

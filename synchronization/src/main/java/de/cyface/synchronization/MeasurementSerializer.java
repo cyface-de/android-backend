@@ -13,7 +13,7 @@ import java.util.zip.Deflater;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
@@ -40,7 +40,7 @@ import de.cyface.persistence.GpsPointsTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.0
  */
 public final class MeasurementSerializer {

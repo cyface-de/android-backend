@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.SharedConstants.DEFAULT_CHARSET;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -22,13 +24,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.os.Build;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
-
-import static de.cyface.synchronization.SharedConstants.DEFAULT_CHARSET;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
@@ -54,15 +54,16 @@ public class HttpConnection implements Http {
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(final @NonNull URL url,
-            final @NonNull SSLContext sslContext, final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
+    public HttpsURLConnection openHttpConnection(final @NonNull URL url, final @NonNull SSLContext sslContext,
+            final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
         final HttpsURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         return connection;
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(final @NonNull URL url, final @NonNull SSLContext sslContext, final boolean hasBinaryContent) throws ServerUnavailableException {
+    public HttpsURLConnection openHttpConnection(final @NonNull URL url, final @NonNull SSLContext sslContext,
+            final boolean hasBinaryContent) throws ServerUnavailableException {
         HttpsURLConnection connection;
         try {
             connection = (HttpsURLConnection)url.openConnection();
@@ -85,14 +86,14 @@ public class HttpConnection implements Http {
         } else {
             connection.setRequestProperty("Content-Type", "application/json; charset=" + DEFAULT_CHARSET);
         }
-        //connection.setConnectTimeout(5000);
+        // connection.setConnectTimeout(5000);
         try {
             connection.setRequestMethod("POST");
         } catch (final ProtocolException e) {
             throw new IllegalStateException(e);
         }
-        //connection.setRequestProperty("User-Agent", System.getProperty("http.agent"));
-        //connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
+        // connection.setRequestProperty("User-Agent", System.getProperty("http.agent"));
+        // connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
         return connection;
     }
 
@@ -123,8 +124,9 @@ public class HttpConnection implements Http {
     }
 
     @Override
-    public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull InputStream data, @NonNull final String deviceId, final long measurementId, @NonNull final String fileName, UploadProgressListener progressListener)
-            throws RequestParsingException, SynchronisationException,
+    public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull InputStream data,
+            @NonNull final String deviceId, final long measurementId, @NonNull final String fileName,
+            UploadProgressListener progressListener) throws RequestParsingException, SynchronisationException,
             ResponseParsingException, BadRequestException, UnauthorizedException {
 
         // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
@@ -135,7 +137,7 @@ public class HttpConnection implements Http {
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
-        //connection.setUseCaches(true); // from movebis but this is the default setting
+        // connection.setUseCaches(true); // from movebis but this is the default setting
         final String stringData = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
@@ -203,19 +205,17 @@ public class HttpConnection implements Http {
         }
     }
 
-    private BufferedOutputStream initOutputStream(final HttpURLConnection connection)
-            throws SynchronisationException {
+    private BufferedOutputStream initOutputStream(final HttpURLConnection connection) throws SynchronisationException {
         connection.setDoOutput(true); // To upload data to the server
         try {
             return new BufferedOutputStream(connection.getOutputStream());
         } catch (final IOException e) {
-            throw new SynchronisationException(String.format(
-                    "getOutputStream failed: %s",
-                    e.getMessage()), e);
+            throw new SynchronisationException(String.format("getOutputStream failed: %s", e.getMessage()), e);
         }
     }
 
-    private String setContentLength(final HttpURLConnection connection, final int dataSize, final String deviceIdentifier, final long measurementIdentifier, final String fileName) {
+    private String setContentLength(final HttpURLConnection connection, final int dataSize,
+            final String deviceIdentifier, final long measurementIdentifier, final String fileName) {
         final String userIdPart = addPart("deviceId", deviceIdentifier, BOUNDARY);
         final String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
                 BOUNDARY);
@@ -276,7 +276,8 @@ public class HttpConnection implements Http {
                 }
             } catch (final JSONException e) {
                 throw new ResponseParsingException(
-                        String.format("readResponse() failed: '%s'. Unable to read the http response.", e.getMessage()), e);
+                        String.format("readResponse() failed: '%s'. Unable to read the http response.", e.getMessage()),
+                        e);
             }
         }
     }
@@ -310,7 +311,7 @@ public class HttpConnection implements Http {
 
         try {
             final HttpResponse response;
-                response = new HttpResponse(con.getResponseCode(), responseString);
+            response = new HttpResponse(con.getResponseCode(), responseString);
             return response;
         } catch (final IOException e) {
             throw new SynchronisationException("A connection error occurred while reading the response code.", e);

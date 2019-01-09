@@ -6,7 +6,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 import de.cyface.persistence.AbstractCyfaceMeasurementTable;
 import de.cyface.persistence.AccelerationPointTable;
@@ -27,7 +27,7 @@ import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.0.0
  */
 public class MeasurementContentProviderClient {

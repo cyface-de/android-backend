@@ -15,10 +15,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.Context;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.MediumTest;
-import android.support.test.rule.GrantPermissionRule;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.MediumTest;
+import androidx.test.rule.GrantPermissionRule;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;

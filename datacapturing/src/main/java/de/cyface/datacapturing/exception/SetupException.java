@@ -1,12 +1,12 @@
 package de.cyface.datacapturing.exception;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An <code>Exception</code> that is thrown each time setting up the <code>DataCapturingService</code> fails.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public final class SetupException extends Exception {

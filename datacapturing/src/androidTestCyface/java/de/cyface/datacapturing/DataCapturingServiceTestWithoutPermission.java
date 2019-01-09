@@ -14,10 +14,10 @@ import org.junit.runner.RunWith;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.location.Location;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.filters.FlakyTest;
-import android.support.test.filters.MediumTest;
-import android.support.test.runner.AndroidJUnit4;
+import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.FlakyTest;
+import androidx.test.filters.MediumTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -150,29 +150,6 @@ public class DataCapturingServiceTestWithoutPermission {
         @Override
         public void onCapturingStopped() {
 
-        }
-    }
-
-    /**
-     * A {@link UIListener} implementation used for testing.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private static class TestUiListener implements UIListener {
-
-        boolean requiredPermission;
-
-        @Override
-        public void onLocationUpdate(Location location) {
-
-        }
-
-        @Override
-        public boolean onRequirePermission(String permission, Reason reason) {
-            requiredPermission = true;
-            return false;
         }
     }
 }

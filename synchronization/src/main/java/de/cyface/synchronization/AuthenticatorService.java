@@ -5,7 +5,7 @@ import static de.cyface.synchronization.SharedConstants.TAG;
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 /**
@@ -15,7 +15,7 @@ import android.util.Log;
  * Android documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 public final class AuthenticatorService extends Service {

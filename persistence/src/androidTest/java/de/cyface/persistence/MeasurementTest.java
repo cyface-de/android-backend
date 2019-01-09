@@ -1,19 +1,22 @@
 package de.cyface.persistence;
 
-import static org.hamcrest.CoreMatchers.equalTo;
-import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.database.Cursor;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
-import android.test.ProviderTestCase2;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.rule.provider.ProviderTestRule;
+
+import static de.cyface.persistence.TestUtils.AUTHORITY;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.junit.Assert.assertThat;
 
 /**
  * Tests that CRUD operations on measurements and the measurements table are working correctly.
@@ -23,31 +26,32 @@ import android.test.ProviderTestCase2;
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
-public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentProvider> {
+public class MeasurementTest {
+    /**
+     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
+     */
+    @Rule
+    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
+            .build();
     /**
      * A <code>ContentValues</code> object as prototype to create measurements in the database.
      */
     private ContentValues fixtureMeasurement;
-
     /**
-     * Constructor required by <code>ProviderTestCase2</code>.
+     * A mock resolver for accessing the mocked content provider.
      */
-    public MeasurementTest() {
-        super(MeasuringPointsContentProvider.class, TestUtils.AUTHORITY);
-    }
+    private ContentResolver mockContentResolver;
 
     /**
      * Initializes the <code>ProviderTestCase2</code> as well as the fixture measurement.
-     *
-     * @throws Exception
      */
     @Before
-    public void setUp() throws Exception {
-        setContext(InstrumentationRegistry.getTargetContext());
-        super.setUp();
+    public void setUp() {
         fixtureMeasurement = new ContentValues();
         fixtureMeasurement.put(MeasurementTable.COLUMN_FINISHED, false);
         fixtureMeasurement.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
+
+        mockContentResolver = providerRule.getResolver();
     }
 
     /**
@@ -55,7 +59,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
      */
     @Test
     public void testCascadingDeleteOneMeasurement() {
-        final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getMeasurementUri(),
+        final long identifier = TestUtils.create(mockContentResolver, TestUtils.getMeasurementUri(),
                 fixtureMeasurement);
 
         final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
@@ -66,15 +70,15 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
 
         final ContentValues fixtureDirection = directionContentValues(identifier);
 
-        TestUtils.create(getMockContentResolver(), TestUtils.getGeoLocationsUri(), fixtureGpsPoint);
-        TestUtils.create(getMockContentResolver(), TestUtils.getAccelerationsUri(), fixtureAcceleration);
-        TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixtureRotation);
-        TestUtils.create(getMockContentResolver(), TestUtils.getDirectionsUri(), fixtureDirection);
+        TestUtils.create(mockContentResolver, TestUtils.getGeoLocationsUri(), fixtureGpsPoint);
+        TestUtils.create(mockContentResolver, TestUtils.getAccelerationsUri(), fixtureAcceleration);
+        TestUtils.create(mockContentResolver, TestUtils.getRotationsUri(), fixtureRotation);
+        TestUtils.create(mockContentResolver, TestUtils.getDirectionsUri(), fixtureDirection);
 
         Cursor measurementCursor = null;
         try {
-            measurementCursor = getMockContentResolver().query(TestUtils.getMeasurementUri(), null,
-                    MeasurementTable.COLUMN_FINISHED + "=?", new String[] {Long.valueOf(0).toString()}, null);
+            measurementCursor = mockContentResolver.query(TestUtils.getMeasurementUri(), null,
+                    MeasurementTable.COLUMN_FINISHED + "=?", new String[]{Long.valueOf(0).toString()}, null);
             assertThat(measurementCursor.getCount() > 0, is(equalTo(true)));
         } finally {
             if (measurementCursor != null) {
@@ -82,12 +86,12 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
             }
         }
 
-        final int rowsDeleted = getMockContentResolver().delete(TestUtils.getMeasurementUri(), null, null);
-        assertEquals("Delete was unsuccessful for uri " + TestUtils.getMeasurementUri(), 5, rowsDeleted);
-        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getGeoLocationsUri()), is(0));
-        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getAccelerationsUri()), is(0));
-        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getRotationsUri()), is(0));
-        assertThat(TestUtils.count(getMockContentResolver(), TestUtils.getDirectionsUri()), is(0));
+        final int rowsDeleted = mockContentResolver.delete(TestUtils.getMeasurementUri(), null, null);
+        assertThat("Delete was unsuccessful for uri " + TestUtils.getMeasurementUri(), 5, is(rowsDeleted));
+        assertThat(TestUtils.count(mockContentResolver, TestUtils.getGeoLocationsUri()), is(0));
+        assertThat(TestUtils.count(mockContentResolver, TestUtils.getAccelerationsUri()), is(0));
+        assertThat(TestUtils.count(mockContentResolver, TestUtils.getRotationsUri()), is(0));
+        assertThat(TestUtils.count(mockContentResolver, TestUtils.getDirectionsUri()), is(0));
     }
 
     /**
@@ -96,7 +100,7 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
     @Test
     public void cascadingDeleteMeasurements() {
         for (int i = 0; i < 2; i++) {
-            final long identifier = TestUtils.create(getMockContentResolver(), TestUtils.getMeasurementUri(),
+            final long identifier = TestUtils.create(mockContentResolver, TestUtils.getMeasurementUri(),
                     fixtureMeasurement);
 
             final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
@@ -107,14 +111,14 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
 
             final ContentValues fixtureDirection = directionContentValues(identifier);
 
-            TestUtils.create(getMockContentResolver(), TestUtils.getGeoLocationsUri(), fixtureGpsPoint);
-            TestUtils.create(getMockContentResolver(), TestUtils.getAccelerationsUri(), fixtureAcceleration);
-            TestUtils.create(getMockContentResolver(), TestUtils.getRotationsUri(), fixtureRotation);
-            TestUtils.create(getMockContentResolver(), TestUtils.getDirectionsUri(), fixtureDirection);
+            TestUtils.create(mockContentResolver, TestUtils.getGeoLocationsUri(), fixtureGpsPoint);
+            TestUtils.create(mockContentResolver, TestUtils.getAccelerationsUri(), fixtureAcceleration);
+            TestUtils.create(mockContentResolver, TestUtils.getRotationsUri(), fixtureRotation);
+            TestUtils.create(mockContentResolver, TestUtils.getDirectionsUri(), fixtureDirection);
         }
 
-        final int rowsDeleted = getMockContentResolver().delete(TestUtils.getMeasurementUri(), null, null);
-        assertEquals("Delete was unsuccessful for uri " + TestUtils.getMeasurementUri(), 10, rowsDeleted);
+        final int rowsDeleted = mockContentResolver.delete(TestUtils.getMeasurementUri(), null, null);
+        assertThat("Delete was unsuccessful for uri " + TestUtils.getMeasurementUri(), 10, is(rowsDeleted));
     }
 
     /**
@@ -188,17 +192,13 @@ public class MeasurementTest extends ProviderTestCase2<MeasuringPointsContentPro
 
     /**
      * Shuts down the test and makes sure the database is empty for the next test.
-     *
-     * @throws Exception See <code>ContentProviderClient2#tearDown()</code>.
      */
     @After
-    public void tearDown() throws Exception {
-        getMockContentResolver().delete(TestUtils.getGeoLocationsUri(), null, null);
-        getMockContentResolver().delete(TestUtils.getAccelerationsUri(), null, null);
-        getMockContentResolver().delete(TestUtils.getDirectionsUri(), null, null);
-        getMockContentResolver().delete(TestUtils.getRotationsUri(), null, null);
-        getMockContentResolver().delete(TestUtils.getMeasurementUri(), null, null);
-        super.tearDown();
-        getProvider().shutdown();
+    public void tearDown() {
+        mockContentResolver.delete(TestUtils.getGeoLocationsUri(), null, null);
+        mockContentResolver.delete(TestUtils.getAccelerationsUri(), null, null);
+        mockContentResolver.delete(TestUtils.getDirectionsUri(), null, null);
+        mockContentResolver.delete(TestUtils.getRotationsUri(), null, null);
+        mockContentResolver.delete(TestUtils.getMeasurementUri(), null, null);
     }
 }

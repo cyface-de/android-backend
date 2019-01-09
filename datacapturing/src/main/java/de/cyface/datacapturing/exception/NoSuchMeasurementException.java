@@ -1,6 +1,6 @@
 package de.cyface.datacapturing.exception;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An <code>Exception</code> which occurs every time someone wants to execute an action on a
@@ -8,7 +8,7 @@ import android.support.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @since 2.0.0
- * @version 1.0.0
+ * @version 1.0.1
  */
 public final class NoSuchMeasurementException extends Exception {
     /**

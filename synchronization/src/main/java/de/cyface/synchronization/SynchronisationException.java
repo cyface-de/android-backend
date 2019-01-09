@@ -1,13 +1,13 @@
 package de.cyface.synchronization;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An <code>Exception</code> thrown each time data synchronisation with a Cyface/Movebis server fails. It provides
  * further information either via a message or another wrapped <code>Exception</code>.
  *
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 public final class SynchronisationException extends Exception {

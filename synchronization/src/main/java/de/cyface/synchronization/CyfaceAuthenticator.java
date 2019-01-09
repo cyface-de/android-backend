@@ -39,8 +39,8 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
 
@@ -51,7 +51,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.1
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -289,7 +289,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         try {
             connection = http.openHttpConnection(authUrl, sslContext, false);
             final HttpResponse loginResponse = http.post(connection, loginPayload, false);
-            connection.disconnect();
             if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
             }

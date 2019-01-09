@@ -8,8 +8,9 @@ import java.util.Collection;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.Nullable;
-import android.support.v4.content.LocalBroadcastManager;
+import androidx.annotation.Nullable;
+
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.Log;
 
 /**
@@ -20,7 +21,7 @@ import android.util.Log;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {

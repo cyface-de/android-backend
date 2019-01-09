@@ -5,9 +5,8 @@ import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 import android.accounts.Account;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
 
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.synchronization.SynchronisationException;
@@ -17,7 +16,7 @@ import de.cyface.synchronization.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.1
+ * @version 5.0.2
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {

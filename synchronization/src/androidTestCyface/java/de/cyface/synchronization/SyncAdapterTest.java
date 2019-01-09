@@ -25,8 +25,10 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
-import android.support.test.InstrumentationRegistry;
-import android.support.test.runner.AndroidJUnit4;
+
+import androidx.test.filters.FlakyTest;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementTable;
@@ -36,17 +38,19 @@ import de.cyface.utils.Validate;
  * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code> with the database.
  *
  * @author Armin Schnabel
+ * @author Klemens Muthmann
  * @version 1.0.0
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
+@FlakyTest
 public final class SyncAdapterTest {
     Context context;
     ContentResolver contentResolver;
 
     @Before
     public void setUp() {
-        context = InstrumentationRegistry.getTargetContext();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
         clearDatabase(contentResolver);
     }

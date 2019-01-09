@@ -12,7 +12,7 @@ import android.net.Uri;
 import android.os.Build;
 import android.os.DeadObjectException;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -30,7 +30,7 @@ import de.cyface.persistence.RotationPointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.2
+ * @version 3.0.3
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {

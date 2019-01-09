@@ -14,8 +14,8 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
-import android.support.annotation.Nullable;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import android.util.Log;
 
 import de.cyface.datacapturing.Measurement;
@@ -37,7 +37,7 @@ import de.cyface.persistence.RotationPointTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.3
+ * @version 5.0.4
  * @since 2.0.0
  */
 public class MeasurementPersistence {

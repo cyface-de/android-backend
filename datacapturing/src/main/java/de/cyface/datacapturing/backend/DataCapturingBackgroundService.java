@@ -1,20 +1,7 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.datacapturing.ui.CapturingNotification.CAPTURING_NOTIFICATION_ID;
-
-import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
 import android.annotation.SuppressLint;
+import android.app.Notification;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -24,16 +11,22 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.datacapturing.BuildConfig;
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
@@ -43,8 +36,14 @@ import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.datacapturing.ui.CapturingNotification;
 import de.cyface.utils.Validate;
+
+import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -55,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.14
+ * @version 4.0.16
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -68,27 +67,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * points they are split into multiple messages.
      */
     final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
-    /**
-     * Reference to the R files identifier for the notification channel name.
-     */
-    private final static int NOTIFICATION_CHANNEL_ID = BuildConfig.NOTIFICATION_CHANNEL;
-    /**
-     * Reference to the R files identifier for the notification title.
-     */
-    private final static int NOTIFICATION_TITLE_ID = BuildConfig.NOTIFICATION_TITLE;
-    /**
-     * Reference to the R files identifier for the notification text.
-     */
-    private final static int NOTIFICATION_TEXT_ID = BuildConfig.NOTIFICATION_TEXT;
-    /**
-     * Reference to the R files identifier for the notification logo.
-     */
-    private final static int NOTIFICATION_LOGO_ID = BuildConfig.NOTIFICATION_LOGO;
-    // TODO: Add this! But not used for the moment.
-    /**
-     * Reference to the R files identifier for the large logo shown as part of the notification.
-     */
-    private final static int NOTIFICATION_LARGE_LOGO_ID = 0;
     /**
      * A wake lock used to keep the application active during data capturing.
      */
@@ -124,10 +102,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private EventHandlingStrategy eventHandlingStrategy;
 
-    /*
-     * MARK: Service Lifecycle Methods
-     */
-
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
         Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
@@ -152,18 +126,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         super.onCreate();
         Log.d(TAG, "onCreate");
 
-        /*
-         * Notification shown to the user while the data capturing is active.
-         * This must be placed in onCreate or it will be called to late from time to time!
-         */
-        final CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
-                NOTIFICATION_TITLE_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
-        startForeground(CAPTURING_NOTIFICATION_ID, capturingNotification.getNotification(this));
-
         // Prevents this process from being killed by the system.
         final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
         if (powerManager != null) {
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface:wakelock");
             wakeLock.acquire();
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
@@ -227,9 +193,20 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Log.d(TAG, "Starting DataCapturingBackgroundService.");
+        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: "+intent);
 
         if (intent != null) { // i.e. this is the initial start command call init.
+            // Loads EventHandlingStrategy
+            this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
+            Validate.notNull(eventHandlingStrategy);
+            final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
+            if(notification!=null) {
+                /*
+                 * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate. However this might cause problems if the service has already been killed at this stage.
+                 */
+                startForeground(eventHandlingStrategy.getCapturingNotificationId(), notification);
+            }
+
             // Loads measurement id
             final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
             if (measurementIdentifier == -1) {
@@ -245,10 +222,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             }
             final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
             persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
-
-            // Loads EventHandlingStrategy
-            this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
-            Validate.notNull(eventHandlingStrategy);
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
@@ -280,7 +253,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
+        final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
+        final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
+        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread, sensorEventHandlerThread);
     }
 
     /**

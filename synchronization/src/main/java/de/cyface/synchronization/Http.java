@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import org.json.JSONObject;
+
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -7,16 +9,14 @@ import java.net.URL;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
-import org.json.JSONObject;
-
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An interface for http connections.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.1
  * @since 3.0.0
  */
 interface Http {

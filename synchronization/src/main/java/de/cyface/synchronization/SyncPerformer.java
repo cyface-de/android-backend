@@ -21,7 +21,7 @@ import javax.net.ssl.SSLContext;
 
 import android.content.Context;
 import android.content.SyncResult;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 /**
@@ -30,7 +30,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 class SyncPerformer {

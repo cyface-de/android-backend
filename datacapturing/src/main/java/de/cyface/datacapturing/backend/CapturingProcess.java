@@ -19,13 +19,14 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.model.Point3D;
+import de.cyface.utils.Validate;
 
 /**
  * Implements the data capturing functionality for Cyface. This class implements the SensorEventListener to listen to
@@ -33,7 +34,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.3
+ * @version 1.3.4
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -104,19 +105,23 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param sensorService The {@link SensorManager} used to get updates from the devices Accelerometer, Gyroscope and
      *            Compass.
      * @param geoLocationDeviceStatusHandler Handler that is notified if there is a geo location fix or not.
+     * @param locationEventHandlerThread A <code>HandlerThread</code> to handle new locations in the background without
+     *            blocking the calling thread.
+     * @param sensorEventHandlerThread A <code>HandlerThread</code> to handle new sensor events in the background
+     *            without blocking the calling thread. This is based on information from
+     *            <a href=
+     *            "https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please">StackOverflow</a>.
      * @throws SecurityException If user did not provide permission to access geo location.
      */
-    CapturingProcess(final LocationManager locationManager, final SensorManager sensorService,
-            final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler) throws SecurityException {
-        if (locationManager == null) {
-            throw new IllegalArgumentException("Illegal argument: locationManager was null!");
-        }
-        if (sensorService == null) {
-            throw new IllegalArgumentException("Illegal argument: sensorService was null!");
-        }
-        if (geoLocationDeviceStatusHandler == null) {
-            throw new IllegalArgumentException("Illegal argument: gpsHandler was null!");
-        }
+    CapturingProcess(final @NonNull LocationManager locationManager, final @NonNull SensorManager sensorService,
+            final @NonNull GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
+            final @NonNull HandlerThread locationEventHandlerThread,
+            final @NonNull HandlerThread sensorEventHandlerThread) throws SecurityException {
+        Validate.notNull("Illegal argument: locationManager was null!", locationManager);
+        Validate.notNull("Illegal argument: sensorService was null!", sensorService);
+        Validate.notNull("Illegal argument: gpsHandler was null!", geoLocationDeviceStatusHandler);
+        Validate.notNull("Illegal argument: locationEventHandlerThread was null!", locationEventHandlerThread);
+        Validate.notNull("Illegal argument: sensorEventHandlerThread was null!", sensorEventHandlerThread);
 
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);
@@ -125,8 +130,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.locationManager = locationManager;
         this.sensorService = sensorService;
         this.gpsStatusHandler = geoLocationDeviceStatusHandler;
-        this.locationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
-        this.sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
+        this.locationEventHandlerThread = locationEventHandlerThread;
+        this.sensorEventHandlerThread = sensorEventHandlerThread;
 
         locationEventHandlerThread.start();
         this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,

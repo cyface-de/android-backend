@@ -5,7 +5,7 @@ import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.BuildConfig;
@@ -18,7 +18,7 @@ import de.cyface.utils.Validate;
  * This can be used to check if the service is alive.
  *
  * @author Klemens Muthmann
- * @version 1.0.6
+ * @version 1.0.7
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {

@@ -10,7 +10,7 @@ import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * An HTTP connection that does not actually connect to the server. This is useful for testing code requiring a
@@ -30,7 +30,7 @@ final class MockedHttpConnection implements Http {
 
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull URL url, SSLContext sslContext, boolean hasBinaryContent,
-            @NonNull String jwtBearer) throws ServerUnavailableException {
+                                                 @NonNull String jwtBearer) throws ServerUnavailableException {
         return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
@@ -53,7 +53,7 @@ final class MockedHttpConnection implements Http {
 
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId,
-            long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+                             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException, BadRequestException {
         progressListener.updatedProgress(1.0f); // 100%

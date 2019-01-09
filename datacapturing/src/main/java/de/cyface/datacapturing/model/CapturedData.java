@@ -6,16 +6,16 @@ import java.util.List;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
-public class CapturedData implements Parcelable {
+public final class CapturedData implements Parcelable {
     /**
      * All accelerations captured since the last position was captured.
      */

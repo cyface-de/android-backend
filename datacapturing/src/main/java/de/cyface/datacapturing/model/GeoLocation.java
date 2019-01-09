@@ -6,7 +6,7 @@ import java.util.Locale;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.DataCapturingService;
@@ -15,7 +15,7 @@ import de.cyface.datacapturing.DataCapturingService;
  * A position captured by the {@link DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.2.3
+ * @version 1.2.4
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
