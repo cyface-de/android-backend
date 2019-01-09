@@ -46,7 +46,6 @@ import android.util.Log;
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 @LargeTest
 public final class SyncAdapterTest {
 

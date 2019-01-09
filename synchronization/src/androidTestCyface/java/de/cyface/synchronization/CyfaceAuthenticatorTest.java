@@ -3,9 +3,7 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
-import static org.hamcrest.CoreMatchers.is;
-import static org.hamcrest.CoreMatchers.not;
-import static org.hamcrest.CoreMatchers.nullValue;
+import static org.hamcrest.CoreMatchers.*;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -15,21 +13,16 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import android.accounts.Account;
-import android.accounts.AccountManager;
-import android.accounts.AccountManagerCallback;
-import android.accounts.AccountManagerFuture;
-import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
+import android.accounts.*;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import androidx.test.platform.app.InstrumentationRegistry;
+import android.util.Log;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import android.util.Log;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 /**
  *
@@ -41,7 +34,8 @@ import android.util.Log;
 
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-@FlakyTest
+@FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
+           // required an actual api)
 public class CyfaceAuthenticatorTest {
 
     private static final String TAG = "de.cyface.auth.test";
