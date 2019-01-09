@@ -107,7 +107,7 @@ public final class MovebisTest {
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
-    //@SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators - but uncommented until it fails again on lower api emulators, maybe Google fixed this
+    @SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators (only on the CI)
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
