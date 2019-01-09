@@ -11,6 +11,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import androidx.test.filters.SdkSuppress;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Rule;
@@ -107,8 +108,7 @@ public final class MovebisTest {
      *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
-    @Ignore
-    //Ignored: Currently this test only runs on Pixel 2 API 28 emulators which is not available on our CI (workaround)
+    //@SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators - but uncommented until it fails again on lower api emulators, maybe Google fixed this
     public void testUiLocationUpdateLifecycle() throws SetupException {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
