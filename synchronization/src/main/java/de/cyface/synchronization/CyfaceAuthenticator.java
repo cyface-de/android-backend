@@ -289,7 +289,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         try {
             connection = http.openHttpConnection(authUrl, sslContext, false);
             final HttpResponse loginResponse = http.post(connection, loginPayload, false);
-            connection.disconnect();
             if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
             }
