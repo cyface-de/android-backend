@@ -25,6 +25,8 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+
+import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
@@ -41,6 +43,7 @@ import de.cyface.utils.Validate;
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
+@FlakyTest
 public final class SyncAdapterTest {
     Context context;
     ContentResolver contentResolver;

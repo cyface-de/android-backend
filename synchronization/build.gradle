@@ -50,6 +50,8 @@ android {
 
         mock {
             dimension "mode"
+            // Excludes flaky tests that are trying to access a Cyface server.
+            testInstrumentationRunnerArgument "notAnnotation", "androidx.test.filters.FlakyTest"
         }
 
         full {
