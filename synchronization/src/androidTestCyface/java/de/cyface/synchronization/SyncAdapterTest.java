@@ -20,11 +20,8 @@ import android.accounts.AccountManager;
 import android.content.*;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-
-import androidx.test.filters.FlakyTest;
-import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
@@ -36,11 +33,10 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 public final class SyncAdapterTest {
     private Context context;
     private ContentResolver contentResolver;

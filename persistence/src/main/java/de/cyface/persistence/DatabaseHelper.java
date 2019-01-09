@@ -21,7 +21,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -94,8 +94,6 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 db.execSQL("DROP TABLE gps_points; ");
                 db.execSQL("DELETE FROM measurement; ");
                 db.execSQL("DROP TABLE measurement; ");
-                Log.w(TAG, "Creating identifiers table");
-                identifierTable.onCreate(db); // FIXME: test this before !
         }
     }
 

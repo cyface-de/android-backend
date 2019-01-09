@@ -22,11 +22,10 @@ import android.accounts.AccountManager;
 import android.content.*;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.filters.FlakyTest;
-import androidx.test.filters.LargeTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.LargeTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.utils.Validate;
@@ -36,11 +35,10 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 @LargeTest
 public class UploadProgressTest {
     private Context context;
