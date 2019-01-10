@@ -217,45 +217,63 @@ public class DataCapturingServiceTest {
     }
 
     /**
+     * Checks that a {@link DataCapturingService} actually started after calling the life-cycle method
+     * {@link DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
+     * {@link DataCapturingService#resumeAsync(StartUpFinishedHandler)}.
      *
-     * Checks that a {@link DataCapturingService} which was just resumed is running and that it resumed the expected
-     * measurement.
+     * This also updates the {@link #runningStatusCallback}.
      *
-     * @param startUpFinishedHandler The {@link TestShutdownFinishedHandler} used to start the service
-     * @return The id of the measurement which is expected to be resumed
+     * @param startUpFinishedHandler The {@link TestStartUpFinishedHandler} which was used to start the service
+     * @return The id of the measurement which was started
      */
     private long checkThatLaunched(final TestStartUpFinishedHandler startUpFinishedHandler) {
 
+        // Ensure the DataCapturingBackgroundService sent a started message back to the DataCapturingService
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
-        // ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         assertThat(runningStatusCallback.didTimeOut(), is(equalTo(false)));
 
+        // Return the id of the started measurement
         assertThat(startUpFinishedHandler.receivedMeasurementIdentifier, is(not(equalTo(-1L))));
-
         return startUpFinishedHandler.receivedMeasurementIdentifier;
     }
 
     /**
-     * Checks that a {@link DataCapturingService} which was just stopped is not running anymore
-     * and that it closed the started measurement.
+     * Checks that a {@link DataCapturingService} actually stopped after calling the life-cycle method
+     * {@link DataCapturingService#stopAsync(ShutDownFinishedHandler)} or
+     * {@link DataCapturingService#pauseAsync(ShutDownFinishedHandler)}.
      *
-     * @param shutDownFinishedHandler The {@link TestShutdownFinishedHandler} used to stop the service
-     * @param measurementIdentifier The measurement which is expected to be closed
+     * This also updates the {@link #runningStatusCallback}.
+     *
+     * Also checks that the measurement which was stopped is the expected measurement.
+     *
+     * @param shutDownFinishedHandler The {@link TestShutdownFinishedHandler} which was used to stop the service
+     * @param measurementIdentifier The id of the measurement which was expected to be stopped by the references
+     *            life-cycle call
      */
     private void checkThatStopped(final TestShutdownFinishedHandler shutDownFinishedHandler,
             final long measurementIdentifier) {
 
+        // Ensure the DataCapturingBackgroundService sent a stopped message back to the DataCapturingService
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
-        // FIXME [MOV-484]: why are the following two checks not working? Are they bond to the sync calls?
-        // assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-        // assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
 
+        // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
+        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+        assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
+
+        // Ensure that the expected measurement stopped
         assertThat(shutDownFinishedHandler.receivedMeasurementIdentifier, is(equalTo(measurementIdentifier)));
     }
 
