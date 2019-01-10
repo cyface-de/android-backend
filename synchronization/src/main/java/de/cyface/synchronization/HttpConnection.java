@@ -42,7 +42,7 @@ import de.cyface.utils.ValidationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.2
+ * @version 1.3.3
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -79,12 +79,12 @@ public class HttpConnection implements Http {
                     String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
         }
 
-        // Without verifying the hostname we receive the "Trust Anchor..." Error
         connection.setSSLSocketFactory(sslContext.getSocketFactory());
         connection.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(final String hostname, final SSLSession session) {
-                return true; // FIXME: create or attach task id
+                HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+                return hv.verify(url.getHost(), session);
             }
         });
 
