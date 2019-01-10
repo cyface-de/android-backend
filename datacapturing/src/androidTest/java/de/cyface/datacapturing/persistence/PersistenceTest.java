@@ -30,6 +30,9 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.Context;
+import androidx.test.InstrumentationRegistry;
+import androidx.test.filters.MediumTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
@@ -179,8 +182,8 @@ public class PersistenceTest {
 
         final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
                 + 3 * 3 * BYTES_IN_ONE_POINT_ENTRY;
-        final int SERIALIZED_COMPRESSED_SIZE = 31; // FIXME: Unclear why it's not compressed to 31 instead of 30 as
-                                                   // before
+        // Before the epic #CY-4067 the compression resulted into 30 bytes - did the compression change?
+        final int SERIALIZED_COMPRESSED_SIZE = 31;
 
         // Serialize and check length
         long measurementIdentifier = insertSerializationTestSample();

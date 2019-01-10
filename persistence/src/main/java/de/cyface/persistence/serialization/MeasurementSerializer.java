@@ -160,7 +160,7 @@ public final class MeasurementSerializer {
         buffer.putShort((short)bytes.length);
         buffer.put(bytes);
 
-        // FIXME: missing docu: what's this for? (from serialize(pointCursor))
+        // TODO: missing documentation - what's this for? (originally used in serialize(pointCursor))
         final byte[] payload = new byte[buffer.capacity()];
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
         // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
@@ -192,7 +192,7 @@ public final class MeasurementSerializer {
         buffer.putShort((short)bytes.length);
         buffer.put(bytes);
 
-        // FIXME: missing docu: what's this for? (from serialize(pointCursor))
+        // TODO: missing documentation - what's this for? (originally used in serialize(pointCursor))
         final byte[] payload = new byte[buffer.capacity()];
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
         // if we want to switch from write to read mode on the byte buffer we need to .flip() !!

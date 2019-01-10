@@ -26,6 +26,6 @@ final class ByteSizes {
      */
     final static int DOUBLE_BYTES = Double.SIZE / Byte.SIZE;
 
-    // FIXME: why are MOTORBIKE 9 * 1 B instead of 9 * (Character.SIZE / Byte.SIZE = 2B) ?
-    static final int CHARACTER_BYTES = 1;//Character.SIZE / Byte.SIZE;
+    // FIXME [MOV-485]: why is the vehicle id "MOTORBIKE" 9*1B instead of 9*2B (2B: Character.SIZE/Byte.SIZE) long?
+    static final int CHARACTER_BYTES = 1;// Character.SIZE / Byte.SIZE;
 }

@@ -410,8 +410,8 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Returns ALL measurements currently on this device. This includes currently running ones as well as paused and
-     * finished measurements.
+     * Returns all measurements currently on this device. This includes currently running ones, paused, finished and
+     * corrupted measurements.
      *
      * @return A list containing all measurements currently stored on this device by this application. An empty list if
      *         there are no such measurements, but never <code>null</code>.
