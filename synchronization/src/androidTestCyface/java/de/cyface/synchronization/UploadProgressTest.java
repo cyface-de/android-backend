@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
-import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -81,7 +81,6 @@ public class UploadProgressTest {
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
-        filter.addAction(CyfaceConnectionStatusListener.SYNC_PERCENTAGE); // FIXME: drop
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);

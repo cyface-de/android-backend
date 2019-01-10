@@ -1,14 +1,9 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.initSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.*;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -21,17 +16,10 @@ import javax.net.ssl.SSLContext;
 
 import android.content.Context;
 import android.content.SyncResult;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.Constants;
-import de.cyface.synchronization.exceptions.BadRequestException;
-import de.cyface.synchronization.exceptions.DataTransmissionException;
-import de.cyface.synchronization.exceptions.RequestParsingException;
-import de.cyface.synchronization.exceptions.ResponseParsingException;
-import de.cyface.synchronization.exceptions.ServerUnavailableException;
-import de.cyface.synchronization.exceptions.SynchronisationException;
-import de.cyface.synchronization.exceptions.UnauthorizedException;
+import de.cyface.synchronization.exceptions.*;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -39,7 +27,7 @@ import de.cyface.synchronization.exceptions.UnauthorizedException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -100,7 +88,8 @@ class SyncPerformer {
             throws RequestParsingException, BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
-        final String fileName = String.format(Locale.GERMAN, "%s_%d.%s", deviceIdentifier, measurementIdentifier, Constants.TRANSFER_FILE_EXTENSION);
+        final String fileName = String.format(Locale.GERMAN, "%s_%d.%s", deviceIdentifier, measurementIdentifier,
+                Constants.TRANSFER_FILE_EXTENSION);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));

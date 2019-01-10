@@ -26,7 +26,6 @@ public final class Constants {
     /**
      * The settings key used to identify the settings storing the device or rather installation identifier of the
      * current app. This identifier is used to anonymously group measurements from the same device together.
-     * FIXME: is it a problem to use the same key for multiple apps?
      */
     public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 

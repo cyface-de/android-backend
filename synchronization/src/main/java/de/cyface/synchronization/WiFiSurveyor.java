@@ -1,23 +1,18 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 
 import java.lang.ref.WeakReference;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.content.BroadcastReceiver;
-import android.content.ContentResolver;
-import android.content.Context;
-import android.content.Intent;
-import android.content.IntentFilter;
+import android.content.*;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.synchronization.exceptions.SynchronisationException;
 
 /**
@@ -26,7 +21,7 @@ import de.cyface.synchronization.exceptions.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.3
+ * @version 3.1.4
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {

@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 
 import android.app.Service;
 import android.content.Intent;
@@ -16,7 +16,7 @@ import android.util.Log;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.4
+ * @version 1.0.5
  * @since 2.0.0
  */
 public final class SyncService extends Service {

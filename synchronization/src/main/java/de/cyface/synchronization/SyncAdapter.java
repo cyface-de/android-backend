@@ -1,8 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
-import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.*;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.*;
 
@@ -17,8 +15,8 @@ import android.accounts.*;
 import android.content.*;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import androidx.annotation.NonNull;
 import android.util.Log;
+import androidx.annotation.NonNull;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.FileCorruptedException;

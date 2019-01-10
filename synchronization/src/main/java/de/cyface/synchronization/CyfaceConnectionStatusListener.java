@@ -1,10 +1,10 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.TAG;
+
 import android.content.Context;
 import android.content.Intent;
 import androidx.annotation.NonNull;
-
-import static de.cyface.synchronization.SharedConstants.TAG;
 
 /**
  * Listener for interested parties to subscribe to synchronization status updates.
@@ -12,7 +12,7 @@ import static de.cyface.synchronization.SharedConstants.TAG;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.1
+ * @version 2.1.2
  * @since 1.0.0
  */
 public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {
