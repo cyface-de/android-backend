@@ -11,14 +11,14 @@ import de.cyface.persistence.Persistence;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.1.0
  */
 final class TestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */
-    final static String TAG = SharedConstants.TAG + ".test";
+    final static String TAG = Constants.TAG + ".test";
     /**
      * The content provider authority used during tests. This must be the same as in the manifest and the authenticator
      * configuration.

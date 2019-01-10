@@ -12,11 +12,6 @@ package de.cyface.synchronization;
 public final class SharedConstants {
 
     /**
-     * Tag used to identify Logcat messages issued by instances of this package.
-     */
-    public final static String TAG = "de.cyface.sync";
-
-    /**
      * The settings key used to identify the settings storing the device or rather installation identifier of the
      * current app. This identifier is used to anonymously group measurements from the same device together.
      * FIXME: is it a problem to use the same key for multiple apps?

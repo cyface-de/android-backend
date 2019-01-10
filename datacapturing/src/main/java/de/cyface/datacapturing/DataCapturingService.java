@@ -8,7 +8,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
-import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;

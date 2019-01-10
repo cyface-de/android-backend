@@ -1,11 +1,10 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 
 /**
@@ -14,7 +13,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.1.6
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -70,12 +69,12 @@ public class MessageCodes {
     /**
      * Global Broadcast (inter-process) action identifier for ping messages sent by the
      * {@link DataCapturingService}'s {@link PongReceiver} to the
-     * {@link DataCapturingBackgroundService#pingReceiver}, to check if the {@link DataCapturingBackgroundService} is
+     * {@link de.cyface.datacapturing.backend.PingReceiver}, to check if the {@link DataCapturingBackgroundService} is
      */
     private static final String GLOBAL_BROADCAST_PING = "de.cyface.ping";
     /**
      * Global Broadcast (inter-process) action identifier for pong messages sent by the
-     * {@link DataCapturingBackgroundService#pingReceiver} as answer to a received ping.
+     * {@link de.cyface.datacapturing.backend.PingReceiver} as answer to a received ping.
      */
     private static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
 

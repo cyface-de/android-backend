@@ -136,7 +136,7 @@ public class HttpConnection implements Http {
             UploadProgressListener progressListener) throws RequestParsingException, SynchronisationException,
             ResponseParsingException, BadRequestException, UnauthorizedException {
 
-        // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
+        // TODO This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
         // returns only the data currently in memory or something similar.
         final int dataSize;
         try {

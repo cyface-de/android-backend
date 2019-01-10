@@ -5,10 +5,8 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.0
- *
- * * FIXME: Check in pull request if the AUTH_TOKEN_TYPE was moved since dev or even since before the BINARY epic. They must be the same as before but are differently defined for each project
  */
 public final class Constants {
 
@@ -24,6 +22,13 @@ public final class Constants {
      */
     public final static String ACCOUNT_TYPE = "de.cyface";
     public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
+
+    /**
+     * The settings key used to identify the settings storing the device or rather installation identifier of the
+     * current app. This identifier is used to anonymously group measurements from the same device together.
+     * FIXME: is it a problem to use the same key for multiple apps?
+     */
+    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     private Constants() {
         // Nothing to do here.
