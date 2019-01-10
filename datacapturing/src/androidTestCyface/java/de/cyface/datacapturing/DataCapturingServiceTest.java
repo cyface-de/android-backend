@@ -96,6 +96,7 @@ public class DataCapturingServiceTest {
      * Condition waiting for the background service to wake up this test case.
      */
     private Condition condition;
+    private Context context;
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
@@ -103,7 +104,7 @@ public class DataCapturingServiceTest {
      */
     @Before
     public void setUp() {
-        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
@@ -147,6 +148,7 @@ public class DataCapturingServiceTest {
             ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
             assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
         }
+        new Persistence(context, context.getContentResolver(), AUTHORITY).clear();
     }
 
     /**
@@ -550,19 +552,19 @@ public class DataCapturingServiceTest {
 
         // Check measurements
         assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(1)));
-        final List<Measurement> measurements = oocut.loadMeasurements();
-        assertThat(measurements.size() > 0, is(equalTo(true)));
 
         pauseAsyncAndCheckThatStopped(measurementIdentifier);
 
         resumeAsyncAndCheckThatLaunched(measurementIdentifier);
 
         // Check measurements again
-        final List<Measurement> newMeasurements = oocut.loadMeasurements();
-        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
+        assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements().size(), is(equalTo(1)));
 
         // oocut.stopSync();
         stopAsyncAndCheckThatStopped(measurementIdentifier);
+        assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(0)));
+        assertThat(oocut.loadFinishedMeasurements().size(), is(equalTo(1)));
     }
 
     /**
@@ -589,7 +591,7 @@ public class DataCapturingServiceTest {
 
         // Check sensor data
         final List<Measurement> measurements = oocut.loadMeasurements();
-        assertThat(measurements.size() > 0, is(equalTo(true)));
+        assertThat(measurements.size(), is(equalTo(1)));
         ServiceTestUtils.lockAndWait(3, TimeUnit.SECONDS, lock, condition);
         assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true)));
 
