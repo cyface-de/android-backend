@@ -95,7 +95,7 @@ public class DataCapturingServiceTestWithoutPermission {
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
-        // FIXME: if the test fails we might need to wait a bit as we're not async
+        // TODO: if the test fails we might need to wait a bit as we're async
     }
 
     /**

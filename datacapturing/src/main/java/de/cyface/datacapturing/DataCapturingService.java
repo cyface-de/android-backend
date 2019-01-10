@@ -395,7 +395,7 @@ public abstract class DataCapturingService {
         // Ensure there are no dead measurements in the open measurement folder
         persistenceLayer.cleanCorruptedOpenMeasurements();
 
-        // Ignore pause command if there are no paused measurements (wrong life-cycle call)
+        // Ignore resume command if there are no paused measurements (wrong life-cycle call which we support #MOV-460)
         if (!persistenceLayer.hasOpenMeasurement()) {
             Log.w(TAG,
                     "Ignoring resume() as there is no paused measurement. A start() would be expected by the life-cycle.");

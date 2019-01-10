@@ -208,12 +208,6 @@ public class MeasurementPersistence extends Persistence {
      * Before starting or resuming a measurement we need to make sure that there are no corrupted measurements
      * left in the /open/ folder. This can happen when the {@link DataCapturingBackgroundService} dies a devastating
      * Exception-death and was not able to append the {@link MetaFile.PointMetaData} to the {@link MetaFile}.
-     *
-     * FIXME: If we want to support double start/resume calls this method needs to be adjusted
-     * so that it does not clean open measurements when there is capturing going on, else we kill
-     * an ongoing measurement! We could also make sure this method is not called when capturing is
-     * taking place. But how do we synchronize this? The capturing could be in progress of starting,
-     * i.e. created the folder but the BGS is not yet launched? #MOV-460
      */
     public void cleanCorruptedOpenMeasurements() {
         final File[] openMeasurements = openMeasurementsDir.listFiles(FileUtils.directoryFilter());

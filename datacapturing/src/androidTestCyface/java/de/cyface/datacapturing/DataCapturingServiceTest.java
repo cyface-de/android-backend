@@ -341,7 +341,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests that running startSync twice does not break the system. This test succeeds if no <code>Exception</code>
-     * occurs.
+     * occurs. Must be supported (#MOV-460).
      *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
@@ -484,7 +484,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests that calling resume two times in a row works without causing any errors. The second call to resume should
-     * just do nothing.
+     * just do nothing. Must be supported (#MOV-460).
      *
      * @throws MissingPermissionException If permission to access geo location sensor is missing.
      * @throws DataCapturingException If any unexpected error occurs during the test.
@@ -504,8 +504,7 @@ public class DataCapturingServiceTest {
                 AUTHORITY);
         assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
 
-        // Resume 2, should just be ignored, but the service should still be running and the measurement dir open
-        // this ensures, that the first resumed measurement is not marked as corrupted by the second resume #MOV-460
+        // Resume 2: must be ignored by resumeAsync or else the "first resumed" measurement is marked as corrupted
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resume(startUpFinishedHandler);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
