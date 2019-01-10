@@ -20,7 +20,7 @@ import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
@@ -67,10 +67,11 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     public Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
         Validate.notNull("No context provided!", context);
 
+        // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
         NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(CHANNEL_ID)==null) {
             final NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
+                    "Cyface Data Capturing", NotificationManager.IMPORTANCE_LOW); // to disable vibration
             notificationManager.createNotificationChannel(channel);
         }
 
@@ -80,6 +81,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
                 .setContentText("Running Cyface Data Capturing")
                 .setOngoing(true)
                 .setAutoCancel(false)
+                .setVibrate(new long[]{0L, 0L, 0L})
                 .build();
         return notification;
     }
