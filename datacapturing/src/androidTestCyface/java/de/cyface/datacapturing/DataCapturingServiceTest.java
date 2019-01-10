@@ -250,7 +250,7 @@ public class DataCapturingServiceTest {
 
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
-        // FIXME: why are the following two checks not working? Are they bond to the sync calls?
+        // FIXME [MOV-484]: why are the following two checks not working? Are they bond to the sync calls?
         // assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
         // assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
 

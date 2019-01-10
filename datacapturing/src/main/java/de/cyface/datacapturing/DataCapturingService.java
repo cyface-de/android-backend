@@ -409,9 +409,6 @@ public abstract class DataCapturingService {
         runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
     }
 
-    // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
-    // the interface of PersistenceLayer (like on iOS). *renames to load* for now. All FIXME and TODOs should be taken
-    // care #MOV-459
     /**
      * Returns ALL measurements currently on this device. This includes currently running ones as well as paused and
      * finished measurements.
