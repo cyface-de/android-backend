@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.4
+ * @version 4.1.5
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -197,6 +197,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
      * The task for the missing test is CY-4111. Currently only tested manually.
      */
+    // Because this method must be called from SDK implementing apps which want to stop the capturing in custom {@link
+    // EventHandlingStrategy} implementations
+    @SuppressWarnings("unused")
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
         // Write point counters to MetaFile
@@ -417,16 +420,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
             final DataCapturingBackgroundService service = context.get();
 
-            switch (msg.what) {
-                case MessageCodes.REGISTER_CLIENT:
-                    Log.d(TAG, "Registering client!");
-                    if (service.clients.contains(msg.replyTo)) {
-                        Log.w(TAG, "Client " + msg.replyTo + " already registered.");
-                    }
-                    service.clients.add(msg.replyTo);
-                    break;
-                default:
-                    super.handleMessage(msg);
+            if (msg.what == MessageCodes.REGISTER_CLIENT) {
+                Log.d(TAG, "Registering client!");
+                if (service.clients.contains(msg.replyTo)) {
+                    Log.w(TAG, "Client " + msg.replyTo + " already registered.");
+                }
+                service.clients.add(msg.replyTo);
+            } else {
+                super.handleMessage(msg);
             }
         }
     }

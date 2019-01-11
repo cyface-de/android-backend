@@ -258,7 +258,7 @@ public abstract class DataCapturingService {
 
             // Start new measurement
             Measurement measurement = prepareStart(listener, vehicle);
-            runService(measurement, finishedHandler);
+            runService(measurement, finishedHandler, new PointMetaData(0, 0, 0, 0));
         } finally {
             Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
             lifecycleLock.unlock();
@@ -478,17 +478,18 @@ public abstract class DataCapturingService {
      *
      * @param measurement The <code>measurement</code> to load all the geo locations for.
      * @return The track associated with the measurement as a list of ordered (by timestamp) geo locations.
-     *         /
-     *         public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws
-     *         NoSuchMeasurementException {
-     *         return persistenceLayer.loadTrack(measurement);
-     *         }
      */
+    @SuppressWarnings("unused") // Because we need to support this interface for the Movebis project
+    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
+        return persistenceLayer.loadTrack(measurement);
+    }
 
     /**
      * Deletes a {@link Measurement} from this device.
      *
      * @param measurement The {@link Measurement} to delete.
+     *
+     *            TODO [MOV-487]: do we still need to offer this interface or can we delete the method?
      *
      * @throws NoSuchMeasurementException If the provided measurement was <code>null</code> due to some unknown reasons.
      *             This is an API violation. You are not supposed to provide <code>null</code> measurements to this
@@ -609,27 +610,11 @@ public abstract class DataCapturingService {
     /**
      * Starts the associated {@link DataCapturingBackgroundService} and calls the provided
      * <code>startedMessageReceiver</code>, after it successfully started.
-     * Call {@link DataCapturingService#runService(Measurement, StartUpFinishedHandler, PointMetaData)}
-     * instead if you resume a measurement to provide the {@link PointMetaData} from when you paused.
      *
      * @param measurement The measurement to store the captured data to.
      * @param startUpFinishedHandler A handler called if the service started successfully.
-     * @throws DataCapturingException If service could not be started.
-     */
-    private synchronized void runService(final Measurement measurement,
-            final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
-        runService(measurement, startUpFinishedHandler, new PointMetaData(0, 0, 0, 0));
-    }
-
-    /**
-     * Starts the associated {@link DataCapturingBackgroundService} and calls the provided
-     * <code>startedMessageReceiver</code>, after it successfully started.
-     * Call {@link DataCapturingService#runService(Measurement, StartUpFinishedHandler)} instead if you
-     * don't resume a measurement to reset the point counters.
-     *
-     * @param measurement The measurement to store the captured data to.
-     * @param startUpFinishedHandler A handler called if the service started successfully.
-     * @param metaData The {@link PointMetaData} from when your paused the measurement to continue the counters.
+     * @param metaData The {@link PointMetaData} from when your paused the measurement. Required to continue the
+     *            counters. If you do not resume but start a new measurement pass a new PointMetaData(0, 0, 0, 0).
      * @throws DataCapturingException If service could not be started.
      */
     private synchronized void runService(final Measurement measurement,
