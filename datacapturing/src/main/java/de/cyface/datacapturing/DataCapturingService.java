@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.1
+ * @version 8.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -171,7 +171,7 @@ public abstract class DataCapturingService {
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
 
         // Setup required device identifier, if not generated previously
-        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId(resolver);
+        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
         sharedPreferencesEditor.putString(DEVICE_IDENTIFIER_KEY, deviceIdentifier);
         Validate.notNull(deviceIdentifier,
                 "Sync canceled: No installation identifier for this application set in its preferences.");

@@ -7,7 +7,6 @@ import static org.junit.Assert.assertThat;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -24,7 +23,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -112,9 +111,9 @@ public class SharedTestUtils {
      * @return The database identifier of the created measurement.
      */
     public static Measurement insertTestMeasurement(final @NonNull Persistence persistence,
-            @NonNull final ContentResolver resolver, final @NonNull Vehicle vehicle) {
+                                                    final @NonNull Vehicle vehicle) {
         // usually called in DataCapturingService#Constructor
-        persistence.restoreOrCreateDeviceId(resolver);
+        persistence.restoreOrCreateDeviceId();
 
         return persistence.newMeasurement(vehicle);
     }
@@ -124,7 +123,7 @@ public class SharedTestUtils {
         Validate.isTrue(!synced || finished,
                 "You can only create a finished synced measurement, not a unfinished synced one.");
 
-        final Measurement measurement = insertTestMeasurement(persistence, persistence.getResolver(), Vehicle.UNKNOWN);
+        final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
         insertTestGeoLocation(persistence.getContext(), measurementIdentifier, 1503055141000L, 49.9304133333333,
                 8.82831833333333, 0.0, 940);

@@ -1,7 +1,9 @@
 package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.ArrayList;
@@ -31,10 +33,18 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.*;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.RotationsFile;
 
 /**
- * Tests whether captured data is correctly saved to the underlying content provider.
+ * Tests whether captured data is correctly saved to the underlying content provider. This test uses
+ * <code>ProviderTestRule</code> to get a mocked content provider. Implementation details are explained in the
+ * <a href="https://developer.android.com/reference/android/support/test/rule/provider/ProviderTestRule">Android
+ * documentation</a>.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -54,6 +64,9 @@ public class CapturedDataWriterTest {
      * The object of the class under test.
      */
     private MeasurementPersistence oocut;
+    /**
+     * {@link Context} used to access the persistence layer
+     */
     private Context context;
 
     /**
@@ -68,7 +81,7 @@ public class CapturedDataWriterTest {
 
         oocut = new MeasurementPersistence(context, mockResolver, AUTHORITY);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        oocut.restoreOrCreateDeviceId(mockResolver);
+        oocut.restoreOrCreateDeviceId();
     }
 
     /**

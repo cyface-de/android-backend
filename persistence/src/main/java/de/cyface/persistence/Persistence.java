@@ -25,11 +25,10 @@ import de.cyface.utils.Validate;
 
 /**
  * This class wraps the Cyface Android persistence API as required by the <code>DataCapturingService</code>,
- * <code>SyncAdapter</code> and its
- * delegate objects.
+ * <code>SyncAdapter</code> and its delegate objects.
  *
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 3.0.0
  */
 public class Persistence {
@@ -117,7 +116,6 @@ public class Persistence {
                     measurementIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
                             new String[] {IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID}, null, null, null);
                     // This can be null, see documentation
-                    // noinspection ConstantConditions
                     if (measurementIdentifierQueryCursor == null) {
                         throw new IllegalStateException("Unable to query for next measurement identifier!");
                     }
@@ -141,7 +139,6 @@ public class Persistence {
                 Log.d(TAG, "Incremented mid counter to " + (measurementId + 1));
             } finally {
                 // This can be null, see documentation
-                // noinspection ConstantConditions
                 if (measurementIdentifierQueryCursor != null) {
                     measurementIdentifierQueryCursor.close();
                 }
@@ -537,10 +534,9 @@ public class Persistence {
      * We want to make sure the device id is stored at the same location as the next measurement id counter.
      * This way we ensure ether both or none of both is reset upon re-installation or app reset.
      *
-     * @param resolver The {@link ContentResolver} to access the {@link IdentifierTable}.
      * @return The device is as string
      */
-    public final String restoreOrCreateDeviceId(final ContentResolver resolver) {
+    public final String restoreOrCreateDeviceId() {
         Log.d(Constants.TAG, "Trying to load device identifier from content provider!");
         Cursor deviceIdentifierQueryCursor = null;
         try {
@@ -549,7 +545,6 @@ public class Persistence {
                 deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
                         new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
                 // This can be null, see documentation
-                // noinspection ConstantConditions
                 if (deviceIdentifierQueryCursor == null) {
                     throw new IllegalStateException("Unable to query for device identifier!");
                 }
@@ -576,7 +571,6 @@ public class Persistence {
             }
         } finally {
             // This can be null, see documentation
-            // noinspection ConstantConditions
             if (deviceIdentifierQueryCursor != null) {
                 deviceIdentifierQueryCursor.close();
             }

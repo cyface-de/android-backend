@@ -20,7 +20,7 @@ import de.cyface.datacapturing.ui.Reason;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.2
+ * @version 1.2.3
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {

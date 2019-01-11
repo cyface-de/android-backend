@@ -18,7 +18,7 @@ import static android.content.ContentValues.TAG;
  * A handler for messages received from the capturing service.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 class FromServiceMessageHandler extends Handler {

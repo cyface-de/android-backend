@@ -15,7 +15,7 @@ import de.cyface.persistence.IdentifierTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 public class ServiceTestUtils {

@@ -1,9 +1,18 @@
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static de.cyface.persistence.serialization.MeasurementSerializer.*;
-import static de.cyface.testutils.SharedTestUtils.*;
-import static org.hamcrest.CoreMatchers.*;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
+import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurement;
+import static de.cyface.testutils.SharedTestUtils.insertTestAcceleration;
+import static de.cyface.testutils.SharedTestUtils.insertTestDirection;
+import static de.cyface.testutils.SharedTestUtils.insertTestGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.insertTestMeasurement;
+import static de.cyface.testutils.SharedTestUtils.insertTestRotation;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.DataInputStream;
@@ -22,12 +31,11 @@ import org.junit.runner.RunWith;
 
 import android.content.ContentResolver;
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.MediumTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.ServiceTestUtils;
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
@@ -42,7 +50,7 @@ import de.cyface.persistence.serialization.MetaFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.1
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -61,7 +69,7 @@ public class PersistenceTest {
      */
     @Before
     public void setUp() {
-        context = InstrumentationRegistry.getTargetContext();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         resolver = context.getContentResolver();
         oocut = new MeasurementPersistence(context, resolver, AUTHORITY);
     }
@@ -129,7 +137,7 @@ public class PersistenceTest {
      * database as there was a bug which limited the query size to 10_000 entries #MOV-248.
      */
     @Test
-    public void testLoadGeoLocations_10hTrack() throws DataCapturingException, NoSuchMeasurementException {
+    public void testLoadGeoLocations_10hTrack() throws NoSuchMeasurementException {
         // The Location frequency is always 1 Hz, i.e. 10h of measurement:
         testLoadGeoLocations(3600 * 10);
     }
@@ -137,7 +145,7 @@ public class PersistenceTest {
     @Ignore
     public void testLoadGeoLocations(int numberOftestEntries) throws NoSuchMeasurementException {
         // Arrange
-        Context context = InstrumentationRegistry.getTargetContext();
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // Act: Store and load the test entries
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -201,8 +209,7 @@ public class PersistenceTest {
     private long insertSerializationTestSample() throws NoSuchMeasurementException {
         // Insert sample measurement data
         Persistence persistence = new Persistence(context, resolver, AUTHORITY);
-        final ContentResolver contentResolver = context.getContentResolver();
-        final Measurement measurement = insertTestMeasurement(persistence, contentResolver, Vehicle.UNKNOWN);
+        final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
         insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
         insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);

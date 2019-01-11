@@ -93,7 +93,7 @@ public class DataTransmissionTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
         Persistence persistence = new Persistence(context, resolver, AUTHORITY);
-        Measurement measurement = insertTestMeasurement(persistence, resolver, Vehicle.UNKNOWN);
+        Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
         insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
                 940);
