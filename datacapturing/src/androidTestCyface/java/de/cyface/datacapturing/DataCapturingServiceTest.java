@@ -143,7 +143,7 @@ public class DataCapturingServiceTest {
     public void tearDown() throws Exception {
         if (isDataCapturingServiceRunning()) {
             ShutDownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
-            oocut.stopAsync(shutDownFinishedHandler);
+            oocut.stop(shutDownFinishedHandler);
             ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
             assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
         }
@@ -166,7 +166,7 @@ public class DataCapturingServiceTest {
     private long startAsyncAndCheckThatLaunched() throws MissingPermissionException, DataCapturingException {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
     }
@@ -180,7 +180,7 @@ public class DataCapturingServiceTest {
             throws NoSuchMeasurementException, DataCapturingException {
 
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
-        oocut.pauseAsync(shutDownFinishedHandler);
+        oocut.pause(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
     }
@@ -194,7 +194,7 @@ public class DataCapturingServiceTest {
             throws MissingPermissionException, DataCapturingException {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.resumeAsync(startUpFinishedHandler);
+        oocut.resume(startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
         assertThat(resumedMeasurementId, is(measurementIdentifier));
@@ -209,7 +209,7 @@ public class DataCapturingServiceTest {
             throws NoSuchMeasurementException, DataCapturingException {
 
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
-        oocut.stopAsync(shutDownFinishedHandler);
+        oocut.stop(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
     }
@@ -294,14 +294,14 @@ public class DataCapturingServiceTest {
         final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock, condition);
 
         // First Start/stop without waiting
-        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler1);
-        oocut.stopAsync(shutDownFinishedHandler1);
+        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler1);
+        oocut.stop(shutDownFinishedHandler1);
         // Second start/stop without waiting
-        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler2);
-        oocut.stopAsync(shutDownFinishedHandler2);
+        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler2);
+        oocut.stop(shutDownFinishedHandler2);
         // Second start/stop without waiting
-        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler3);
-        oocut.stopAsync(shutDownFinishedHandler3);
+        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler3);
+        oocut.stop(shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -355,7 +355,7 @@ public class DataCapturingServiceTest {
 
         // Second start - should not launch anything
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.startAsync(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
 
@@ -376,7 +376,7 @@ public class DataCapturingServiceTest {
 
         stopAsyncAndCheckThatStopped(measurementId);
         // must throw NoSuchMeasurementException
-        oocut.stopAsync(new TestShutdownFinishedHandler(lock, condition));
+        oocut.stop(new TestShutdownFinishedHandler(lock, condition));
     }
 
     /**
@@ -507,7 +507,7 @@ public class DataCapturingServiceTest {
         // Resume 2, should just be ignored, but the service should still be running and the measurement dir open
         // this ensures, that the first resumed measurement is not marked as corrupted by the second resume #MOV-460
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.resumeAsync(startUpFinishedHandler);
+        oocut.resume(startUpFinishedHandler);
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
@@ -535,8 +535,8 @@ public class DataCapturingServiceTest {
     /**
      * Tests if the service lifecycle is running successfully.
      * <p>
-     * Makes sure the {@link DataCapturingService#pauseAsync(ShutDownFinishedHandler)} and
-     * {@link DataCapturingService#resumeAsync(StartUpFinishedHandler)} work correctly.
+     * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
+     * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
      *
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
@@ -568,7 +568,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests whether actual sensor data is captured after running the method
-     * {@link CyfaceDataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} ()}.
+     * {@link CyfaceDataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} ()}.
      * In bug #CY-3862 only the {@link DataCapturingService} was started and measurements created
      * but no sensor data was captured as the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
      * was not started. The cause was: disables sensor capturing.

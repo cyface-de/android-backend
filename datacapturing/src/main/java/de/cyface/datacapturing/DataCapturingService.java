@@ -1,6 +1,12 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.*;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 
@@ -15,15 +21,26 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
 import android.accounts.Account;
-import android.content.*;
+import android.content.ComponentName;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.ServiceConnection;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.net.ConnectivityManager;
-import android.os.*;
+import android.os.Bundle;
+import android.os.Handler;
+import android.os.IBinder;
+import android.os.Message;
+import android.os.Messenger;
+import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import android.util.Log;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -60,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.3
+ * @version 9.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -199,9 +216,9 @@ public abstract class DataCapturingService {
      * Starts the capturing process with a listener, that is notified of important events occurring while the capturing
      * process is running.
      * <p>
-     * This method returns as soon as starting the service was initiated. You may not assume the service is running,
-     * after the method returns. Please use the {@link StartUpFinishedHandler} to receive a callback, when the service
-     * has been started.
+     * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
+     * assume the service is running, after the method returns. Please use the {@link StartUpFinishedHandler} to receive
+     * a callback, when the service has been started.
      * <p>
      * This method is thread safe to call.
      * <p>
@@ -216,7 +233,7 @@ public abstract class DataCapturingService {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
-    public void startAsync(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
+    public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
         Log.d(TAG, "Starting asynchronously and locking lifecycle!");
@@ -235,8 +252,7 @@ public abstract class DataCapturingService {
 
             // Ignore start command for paused measurements (wrong life-cycle call)
             if (persistenceLayer.hasOpenMeasurement()) {
-                Log.w(TAG,
-                        "Ignoring startAsync() as there is a paused measurement which needs to be resumed by resumeAsync().");
+                Log.w(TAG, "Ignoring start() as there is a paused measurement which needs to be resumed by resume().");
                 return;
             }
 
@@ -252,9 +268,9 @@ public abstract class DataCapturingService {
     /**
      * Stops the currently running data capturing process.
      * <p>
-     * This is the asynchronous version of the <code>stopSync()</code> method. You should not assume that the
-     * service has been stopped after the method returns. The provided <code>finishedHandler</code> is called after the
-     * <code>DataCapturingBackgroundService</code> has successfully shutdown.
+     * This is an asynchronous method. You should not assume that the service has been stopped after the method returns.
+     * The provided <code>finishedHandler</code> is called after the <code>DataCapturingBackgroundService</code> has
+     * successfully shutdown.
      * <p>
      * ATTENTION: It seems to be possible, that the service stopped signal is never received. Under these circumstances
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
@@ -268,10 +284,10 @@ public abstract class DataCapturingService {
      *             The service will still be stopped if the exception occurs, but you have to handle it anyways to
      *             prevent your application from crashing.
      * @throws NoSuchMeasurementException If no measurement was open while pausing the service. This usually occurs if
-     *             there was no call to {@link #startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to pausing.
      */
-    public void stopAsync(final @NonNull ShutDownFinishedHandler finishedHandler)
+    public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
         Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
@@ -309,9 +325,9 @@ public abstract class DataCapturingService {
     /**
      * Pauses the current data capturing, but does not finish the current measurement.
      * <p>
-     * This is the asynchronous version of the <code>stopSync</code> method. You should not assume that the service
-     * has been stopped after the method returns. The provided <code>finishedHandler</code> is called after the
-     * <code>DataCapturingBackgroundService</code> has successfully shutdown.
+     * This is an asynchronous method. You should not assume that the service has been stopped after the method returns.
+     * The provided <code>finishedHandler</code> is called after the <code>DataCapturingBackgroundService</code> has
+     * successfully shutdown.
      * <p>
      * ATTENTION: It seems to be possible, that the service stopped signal is never received. Under these circumstances
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
@@ -321,10 +337,10 @@ public abstract class DataCapturingService {
      *            paused.
      * @throws DataCapturingException In case the service was not stopped successfully.
      * @throws NoSuchMeasurementException If no measurement was open while pausing the service. This usually occurs if
-     *             there was no call to {@link #startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to pausing.
      */
-    public void pauseAsync(final @NonNull ShutDownFinishedHandler finishedHandler)
+    public void pause(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
         Log.d(TAG, "Pausing asynchronously.");
         Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
@@ -340,11 +356,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Resumes the current data capturing after a previous call to {@link #pauseAsync(ShutDownFinishedHandler)}.
+     * Resumes the current data capturing after a previous call to {@link #pause(ShutDownFinishedHandler)}.
      * <p>
-     * This is the not asynchronous version of the <code>resumeSync</code> method. You should not assume that the
-     * service has been resumed after the method returns. The provided <code>finishedHandler</code> is called after the
-     * <code>DataCapturingBackgroundService</code> has successfully resumed.
+     * This is an asynchronous method. You should not assume that the service has been resumed after the method returns.
+     * The provided <code>finishedHandler</code> is called after the <code>DataCapturingBackgroundService</code> has
+     * successfully resumed.
      * <p>
      * ATTENTION: It seems to be possible, that the service started signal is never received. Under these circumstances
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
@@ -358,7 +374,7 @@ public abstract class DataCapturingService {
      *             permission in the future you need to start a new measurement and not call <code>resumeSync</code>
      *             again.
      */
-    public void resumeAsync(final @NonNull StartUpFinishedHandler finishedHandler)
+    public void resume(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
 
         if (getIsRunning()) {
@@ -382,7 +398,7 @@ public abstract class DataCapturingService {
         // Ignore pause command if there are no paused measurements (wrong life-cycle call)
         if (!persistenceLayer.hasOpenMeasurement()) {
             Log.w(TAG,
-                    "Ignoring resumeAsync() as there is no paused measurement. A startAsync() would be expected by the life-cycle.");
+                    "Ignoring resume() as there is no paused measurement. A start() would be expected by the life-cycle.");
             return;
         }
 

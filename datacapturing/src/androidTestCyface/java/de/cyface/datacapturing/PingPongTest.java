@@ -103,7 +103,7 @@ public class PingPongTest {
         DataCapturingListener listener = new TestListener(lock, condition);
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition);
 
-        dcs.startAsync(listener, Vehicle.UNKNOWN, finishedHandler);
+        dcs.start(listener, Vehicle.UNKNOWN, finishedHandler);
 
         lock.lock();
         try {
@@ -130,7 +130,7 @@ public class PingPongTest {
         assertThat(testCallback.didTimeOut(), is(equalTo(false)));
 
         TestShutdownFinishedHandler shutdownHandler = new TestShutdownFinishedHandler(lock, condition);
-        dcs.stopAsync(shutdownHandler);
+        dcs.stop(shutdownHandler);
 
         lock.lock();
         try {

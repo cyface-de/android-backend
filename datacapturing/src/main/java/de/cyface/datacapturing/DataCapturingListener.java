@@ -9,7 +9,7 @@ import de.cyface.persistence.model.Vehicle;
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
  * {@link DataCapturingService} via
- * {@link DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} .
+ * {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} .
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel

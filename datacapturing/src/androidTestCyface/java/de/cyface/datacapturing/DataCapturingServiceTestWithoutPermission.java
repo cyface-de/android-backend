@@ -94,7 +94,7 @@ public class DataCapturingServiceTestWithoutPermission {
     @Test(expected = MissingPermissionException.class)
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-        oocut.startAsync(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
         // FIXME: if the test fails we might need to wait a bit as we're not async
     }
 
@@ -109,7 +109,7 @@ public class DataCapturingServiceTestWithoutPermission {
         boolean exceptionCaught = false;
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-            oocut.startAsync(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
+            oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCaught = true;
