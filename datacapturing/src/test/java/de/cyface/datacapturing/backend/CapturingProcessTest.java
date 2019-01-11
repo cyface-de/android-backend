@@ -25,7 +25,6 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.HandlerThread;
-
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
@@ -35,7 +34,7 @@ import de.cyface.utils.Validate;
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -90,8 +89,7 @@ public class CapturingProcessTest {
         testListener = new TestCapturingProcessListener();
         oocut.addCapturingProcessListener(testListener);
         final Sensor accelerometer = initSensor(Sensor.TYPE_ACCELEROMETER, "accelerometer");
-        when(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))
-                .thenReturn(accelerometer);
+        when(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)).thenReturn(accelerometer);
     }
 
     /**

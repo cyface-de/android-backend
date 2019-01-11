@@ -7,14 +7,13 @@ import java.util.List;
 import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
-
 import de.cyface.persistence.model.Point3D;
 
 /**
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.0.2
  * @since 1.0.0
  */
 public final class CapturedData implements Parcelable {

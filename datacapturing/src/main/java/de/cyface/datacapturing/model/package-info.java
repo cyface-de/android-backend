@@ -9,7 +9,7 @@
  * {@link de.cyface.persistence.model.GeoLocation} is a single captured geo location with all associated data.
  * 
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 package de.cyface.datacapturing.model;
