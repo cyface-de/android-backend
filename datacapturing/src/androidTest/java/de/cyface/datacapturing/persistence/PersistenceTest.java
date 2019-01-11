@@ -29,7 +29,6 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -50,7 +49,7 @@ import de.cyface.persistence.serialization.MetaFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.2.2
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -61,8 +60,10 @@ public class PersistenceTest {
      * An object of the class under test. It is setup prior to each test execution.
      */
     private MeasurementPersistence oocut;
+    /**
+     * {@link Context} used to access the persistence layer
+     */
     private Context context;
-    private ContentResolver resolver;
 
     /**
      * Initializes the <code>oocut</code> with the Android persistence stack.
@@ -70,8 +71,7 @@ public class PersistenceTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        resolver = context.getContentResolver();
-        oocut = new MeasurementPersistence(context, resolver, AUTHORITY);
+        oocut = new MeasurementPersistence(context, AUTHORITY);
     }
 
     /**
@@ -145,7 +145,6 @@ public class PersistenceTest {
     @Ignore
     public void testLoadGeoLocations(int numberOftestEntries) throws NoSuchMeasurementException {
         // Arrange
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // Act: Store and load the test entries
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -208,7 +207,7 @@ public class PersistenceTest {
 
     private long insertSerializationTestSample() throws NoSuchMeasurementException {
         // Insert sample measurement data
-        Persistence persistence = new Persistence(context, resolver, AUTHORITY);
+        Persistence persistence = new Persistence(context, AUTHORITY);
         final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
         insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);

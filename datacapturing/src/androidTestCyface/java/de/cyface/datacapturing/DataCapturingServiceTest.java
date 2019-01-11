@@ -2,7 +2,10 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
@@ -12,7 +15,11 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.junit.*;
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Rule;
+import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
@@ -45,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.4
+ * @version 4.2.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -495,7 +502,7 @@ public class DataCapturingServiceTest {
         // Resume 1
         resumeAsyncAndCheckThatLaunched(measurementIdentifier);
         Persistence persistence = new Persistence(InstrumentationRegistry.getInstrumentation().getTargetContext(),
-                InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver(), AUTHORITY);
+                AUTHORITY);
         assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
 
         // Resume 2, should just be ignored, but the service should still be running and the measurement dir open

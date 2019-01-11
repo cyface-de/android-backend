@@ -1,6 +1,9 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.*;
+import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
@@ -30,7 +33,11 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3D;
-import de.cyface.persistence.serialization.*;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.RotationsFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -42,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.2
+ * @version 4.1.3
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -240,7 +247,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                                 + AUTHORITY_ID);
             }
             final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-            persistenceLayer = new MeasurementPersistence(this, this.getContentResolver(), authority);
+            persistenceLayer = new MeasurementPersistence(this, authority);
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
@@ -267,10 +274,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     private GPSCapturingProcess initializeCapturingProcess() {
         Log.d(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        Validate.notNull(locationManager);
         final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        Validate.notNull(sensorManager);
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
         return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread,

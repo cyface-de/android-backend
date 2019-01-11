@@ -7,21 +7,24 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import android.content.ContentResolver;
 import android.content.Context;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import android.util.Log;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.FileUtils;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.*;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.RotationsFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -29,7 +32,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.2
+ * @version 6.0.3
  * @since 2.0.0
  */
 public class MeasurementPersistence extends Persistence {
@@ -64,13 +67,11 @@ public class MeasurementPersistence extends Persistence {
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
-     * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      * @param authority The authority used to identify the Android content provider to persist data to or load it from.
      * @param context The {@link Context} required to locate the app's internal storage directory.
      */
-    public MeasurementPersistence(@NonNull final Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority) {
-        super(context, resolver, authority);
+    public MeasurementPersistence(@NonNull final Context context, final @NonNull String authority) {
+        super(context, authority);
         this.threadPool = Executors.newCachedThreadPool();
     }
 

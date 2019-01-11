@@ -4,7 +4,11 @@ import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.serialization.MeasurementSerializer.serialize;
 
-import java.io.*;
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
+import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.UUID;
@@ -20,7 +24,13 @@ import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.*;
+import de.cyface.persistence.serialization.AccelerationsFile;
+import de.cyface.persistence.serialization.DirectionsFile;
+import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.serialization.GeoLocationsFile;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.MetaFile;
+import de.cyface.persistence.serialization.RotationsFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -28,7 +38,7 @@ import de.cyface.utils.Validate;
  * <code>SyncAdapter</code> and its delegate objects.
  *
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 3.0.0
  */
 public class Persistence {
@@ -70,12 +80,10 @@ public class Persistence {
      * Creates a new completely initialized <code>Persistence</code>.
      *
      * @param context The {@link Context} required to locate the app's internal storage directory.
-     * @param resolver <code>ContentResolver</code> that provides access to the {@link IdentifierTable}.
      * @param authority The authority used to load the identify the Android content provider to load the identifiers.
      */
-    public Persistence(@NonNull final Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority) {
-        this.resolver = resolver;
+    public Persistence(@NonNull final Context context, final @NonNull String authority) {
+        this.resolver = context.getContentResolver();
         this.authority = authority;
         this.context = context;
         this.fileUtils = new FileUtils(context);

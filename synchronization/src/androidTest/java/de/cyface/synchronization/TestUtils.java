@@ -1,10 +1,8 @@
 package de.cyface.synchronization;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.net.Uri;
 import androidx.annotation.NonNull;
-
 import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.Persistence;
 
@@ -13,10 +11,10 @@ import de.cyface.persistence.Persistence;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.1.0
  */
-public final class TestUtils {
+final class TestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */
@@ -33,16 +31,16 @@ public final class TestUtils {
     /**
      * An username used by the tests to set up a Cyface account for synchronization.
      */
-    public final static String DEFAULT_USERNAME = "admin";
+    final static String DEFAULT_USERNAME = "admin";
     /**
      * A password used by the tests to set up a Cyface account for synchronization.
      */
-    public final static String DEFAULT_PASSWORD = "secret";
+    final static String DEFAULT_PASSWORD = "secret";
 
     /**
      * Path to an API available for testing
      */
-    public final static String TEST_API_URL = "https://s1.cyface.de/api/v2";
+    final static String TEST_API_URL = "https://s1.cyface.de/api/v2";
 
     static Uri getIdentifierUri() {
         return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
@@ -51,14 +49,13 @@ public final class TestUtils {
     /**
      * Delete all persistent storage such as identifiers and measurements.
      *
-     * @param resolver The {@link ContentResolver} to access the identifier counters
      * @return the number of measurements deleted
      */
-    static int clear(final @NonNull Context context, final @NonNull ContentResolver resolver) {
+    static int clear(final @NonNull Context context) {
         int ret = 0;
-        Persistence persistence = new Persistence(context, resolver, AUTHORITY);
+        Persistence persistence = new Persistence(context, AUTHORITY);
         persistence.clear();
-        resolver.delete(getIdentifierUri(), null, null);
+        context.getContentResolver().delete(getIdentifierUri(), null, null);
         return ret;
     }
 }

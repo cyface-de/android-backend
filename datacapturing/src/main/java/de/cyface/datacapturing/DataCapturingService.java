@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.2
+ * @version 8.0.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -164,7 +164,7 @@ public abstract class DataCapturingService {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
-        this.persistenceLayer = new MeasurementPersistence(context, resolver, authority);
+        this.persistenceLayer = new MeasurementPersistence(context, authority);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

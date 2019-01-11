@@ -40,7 +40,7 @@ import de.cyface.synchronization.exceptions.RequestParsingException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.5
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -92,7 +92,7 @@ public class DataTransmissionTest {
             throws BadRequestException, RequestParsingException, FileCorruptedException, IOException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
-        Persistence persistence = new Persistence(context, resolver, AUTHORITY);
+        Persistence persistence = new Persistence(context, AUTHORITY);
         Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
         insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,

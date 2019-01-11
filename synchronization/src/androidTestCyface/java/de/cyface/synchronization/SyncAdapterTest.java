@@ -1,7 +1,11 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
-import static de.cyface.synchronization.TestUtils.*;
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
+import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.synchronization.TestUtils.getIdentifierUri;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurement;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -17,7 +21,11 @@ import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.content.*;
+import android.content.ContentProviderClient;
+import android.content.ContentResolver;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -33,25 +41,22 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.3
+ * @version 2.0.4
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
 public final class SyncAdapterTest {
     private Context context;
-    private ContentResolver contentResolver;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        contentResolver = context.getContentResolver();
-        clear(context, contentResolver);
+        clear(context);
     }
 
     @After
     public void tearDown() {
-        clear(context, contentResolver);
-        contentResolver = null;
+        clear(context);
         context = null;
     }
 
@@ -62,7 +67,7 @@ public final class SyncAdapterTest {
     public void testOnPerformSync() throws NoSuchMeasurementException {
 
         // Arrange
-        Persistence persistence = new Persistence(context, contentResolver, AUTHORITY);
+        Persistence persistence = new Persistence(context, AUTHORITY);
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);

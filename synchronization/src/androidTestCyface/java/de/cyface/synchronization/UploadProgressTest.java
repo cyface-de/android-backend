@@ -2,7 +2,12 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
-import static de.cyface.synchronization.TestUtils.*;
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
+import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.synchronization.TestUtils.getIdentifierUri;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurement;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -19,7 +24,13 @@ import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.content.*;
+import android.content.BroadcastReceiver;
+import android.content.ContentProviderClient;
+import android.content.Context;
+import android.content.Intent;
+import android.content.IntentFilter;
+import android.content.SharedPreferences;
+import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
@@ -35,26 +46,23 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 public class UploadProgressTest {
     private Context context;
-    private ContentResolver contentResolver;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        contentResolver = context.getContentResolver();
-        clear(context, contentResolver);
+        clear(context);
     }
 
     @After
     public void tearDown() {
-        clear(context, contentResolver);
-        contentResolver = null;
+        clear(context);
         context = null;
     }
 
@@ -80,11 +88,10 @@ public class UploadProgressTest {
 
         ContentProviderClient client = null;
         try {
-            Persistence persistence = new Persistence(context, contentResolver, AUTHORITY);
-            ContentResolver contentResolver = context.getContentResolver();
+            Persistence persistence = new Persistence(context, AUTHORITY);
             insertSampleMeasurement(true, false, persistence);
 
-            client = contentResolver.acquireContentProviderClient(getIdentifierUri());
+            client = context.getContentResolver().acquireContentProviderClient(getIdentifierUri());
             SyncResult result = new SyncResult();
             Validate.notNull(client);
             syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);

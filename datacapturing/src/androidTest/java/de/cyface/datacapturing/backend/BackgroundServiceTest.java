@@ -43,7 +43,7 @@ import de.cyface.persistence.model.Vehicle;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.9
+ * @version 2.0.10
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -89,7 +89,7 @@ public class BackgroundServiceTest {
     @Before
     public void setUp() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        persistence = new MeasurementPersistence(context, context.getContentResolver(), AUTHORITY);
+        persistence = new MeasurementPersistence(context, AUTHORITY);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         persistence.restoreOrCreateDeviceId();
         testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);

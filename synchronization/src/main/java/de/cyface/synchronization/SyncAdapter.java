@@ -31,7 +31,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.3
+ * @version 2.0.4
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -78,7 +78,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         final Context context = getContext();
         final ContentResolver resolver = context.getContentResolver();
-        final Persistence persistence = new Persistence(context, resolver, authority);
+        final Persistence persistence = new Persistence(context, authority);
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,

@@ -48,7 +48,7 @@ import de.cyface.persistence.serialization.RotationsFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.3
+ * @version 5.0.4
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -79,7 +79,7 @@ public class CapturedDataWriterTest {
         ContentResolver mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        oocut = new MeasurementPersistence(context, mockResolver, AUTHORITY);
+        oocut = new MeasurementPersistence(context, AUTHORITY);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
     }

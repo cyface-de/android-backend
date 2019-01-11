@@ -3,7 +3,9 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.SharedConstants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
-import static org.hamcrest.CoreMatchers.*;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.not;
+import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.IOException;
@@ -13,7 +15,12 @@ import java.util.concurrent.TimeUnit;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import android.accounts.*;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.accounts.AccountManagerCallback;
+import android.accounts.AccountManagerFuture;
+import android.accounts.AuthenticatorException;
+import android.accounts.OperationCanceledException;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -28,7 +35,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 
@@ -71,8 +78,8 @@ public class CyfaceAuthenticatorTest {
         editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
 
-        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE,
-                null, false, callback, null);
+        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE, null,
+                false, callback, null);
         Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
 
         Log.i(TAG, bundle.toString());
