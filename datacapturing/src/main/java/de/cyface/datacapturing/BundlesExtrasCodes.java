@@ -11,7 +11,7 @@ import de.cyface.persistence.serialization.RotationsFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.1.0
  */
 public class BundlesExtrasCodes {

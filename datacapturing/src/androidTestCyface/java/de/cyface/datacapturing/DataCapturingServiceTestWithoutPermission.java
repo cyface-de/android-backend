@@ -15,25 +15,25 @@ import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
-import android.content.ContentResolver;
+import android.accounts.AccountAuthenticatorActivity;
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.MediumTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.synchronization.CyfaceAuthenticator;
 
 /**
  * Checks if missing permissions are correctly detected before starting a service.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -62,14 +62,18 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Before
     public void setUp() {
-        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
+        CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
+
         final String dataUploadServerAddress = "https://localhost:8080";
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE,
-                            dataUploadServerAddress, new IgnoreEventsStrategy());
+                    oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, dataUploadServerAddress,
+                            new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }

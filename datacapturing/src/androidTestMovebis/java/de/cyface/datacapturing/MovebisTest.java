@@ -11,29 +11,26 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import androidx.test.filters.SdkSuppress;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.Manifest;
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.FlakyTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.test.filters.SdkSuppress;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
-import androidx.test.runner.AndroidJUnit4;
-
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.ui.UIListener;
 
 /**
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @author Armin Schnabel
+ * @version 2.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -78,11 +75,10 @@ public final class MovebisTest {
     /**
      * Initializes the object of class under test.
      *
-     * @throws SetupException If the <code>MovebisDataCapturingService</code> was not created properly.
      */
     @Before
-    public void setUp() throws SetupException {
-        context = InstrumentationRegistry.getTargetContext();
+    public void setUp() {
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
         testUIListener = new TestUIListener(lock, condition);
@@ -90,7 +86,8 @@ public final class MovebisTest {
             @Override
             public void run() {
                 try {
-                    oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080", testUIListener, 0L, new IgnoreEventsStrategy());
+                    oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080",
+                            testUIListener, 0L, new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }
@@ -103,12 +100,10 @@ public final class MovebisTest {
      * Tests if one lifecycle of starting and stopping location updates works as expected.
      * FlakyTest: This integration test may be dependent on position / GPS updates on real devices.
      *
-     * @throws SetupException Should not happen. For further details look at the documentation of
-     *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
     @SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators (only on the CI)
-    public void testUiLocationUpdateLifecycle() throws SetupException {
+    public void testUiLocationUpdateLifecycle() {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {

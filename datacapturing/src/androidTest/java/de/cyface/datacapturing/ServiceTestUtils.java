@@ -5,9 +5,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import android.net.Uri;
-
 import androidx.annotation.NonNull;
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.IdentifierTable;
 
 /**
@@ -15,7 +14,7 @@ import de.cyface.persistence.IdentifierTable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.5
  * @since 2.0.0
  */
 public class ServiceTestUtils {
@@ -30,9 +29,9 @@ public class ServiceTestUtils {
     /**
      * Account type used by all accounts created during testing.
      */
-    public static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
-    public final static String DEFAULT_USERNAME = "admin";
-    public final static String DEFAULT_PASSWORD = "secret";
+    static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
+    final static String DEFAULT_USERNAME = "admin";
+    final static String DEFAULT_PASSWORD = "secret";
 
     /**
      * Private constructor so no one tries to instantiate the utility class.

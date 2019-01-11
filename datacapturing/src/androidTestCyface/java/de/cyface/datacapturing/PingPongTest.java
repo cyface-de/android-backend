@@ -15,16 +15,15 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.MediumTest;
-import androidx.test.rule.GrantPermissionRule;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-
+import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.Vehicle;
 
 /**
@@ -32,7 +31,7 @@ import de.cyface.persistence.model.Vehicle;
  * expected.
  *
  * @author Klemens Muthmann
- * @since 2.3.2
+ * @since 2.3.4
  * @version 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,7 +74,7 @@ public class PingPongTest {
     public void setUp() {
         lock = new ReentrantLock();
         condition = lock.newCondition();
-        oocut = new PongReceiver(InstrumentationRegistry.getTargetContext());
+        oocut = new PongReceiver(InstrumentationRegistry.getInstrumentation().getTargetContext());
     }
 
     /**
@@ -89,14 +88,13 @@ public class PingPongTest {
     @Test
     public void testWithRunningService()
             throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
-        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
-                    dcs = new CyfaceDataCapturingService(context,
-                            ServiceTestUtils.AUTHORITY, ServiceTestUtils.ACCOUNT_TYPE, "https://fake.fake/",
-                            new IgnoreEventsStrategy());
+                    dcs = new CyfaceDataCapturingService(context, ServiceTestUtils.AUTHORITY,
+                            ServiceTestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);
                 }

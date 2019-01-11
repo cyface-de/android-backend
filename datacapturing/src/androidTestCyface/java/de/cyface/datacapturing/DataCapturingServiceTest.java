@@ -52,11 +52,10 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.5
+ * @version 5.0.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 @LargeTest
 public class DataCapturingServiceTest {
     /**
@@ -536,9 +535,8 @@ public class DataCapturingServiceTest {
     /**
      * Tests if the service lifecycle is running successfully.
      * <p>
-     * Makes sure the {@link DataCapturingService#pauseAsync(ShutDownFinishedHandler)} ()} and
-     * {@link DataCapturingService#resumeAsync(StartUpFinishedHandler)} ()}
-     * work correctly.
+     * Makes sure the {@link DataCapturingService#pauseAsync(ShutDownFinishedHandler)} and
+     * {@link DataCapturingService#resumeAsync(StartUpFinishedHandler)} work correctly.
      *
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.

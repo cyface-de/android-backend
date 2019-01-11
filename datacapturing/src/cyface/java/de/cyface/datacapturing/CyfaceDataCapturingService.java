@@ -16,7 +16,7 @@ import de.cyface.synchronization.exceptions.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 5.0.3
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
