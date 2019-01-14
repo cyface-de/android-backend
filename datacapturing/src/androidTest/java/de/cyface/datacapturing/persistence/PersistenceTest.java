@@ -52,7 +52,7 @@ import de.cyface.persistence.serialization.MetaFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.2
+ * @version 1.3.0
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -94,18 +94,18 @@ public class PersistenceTest {
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning() {
         oocut.newMeasurement(Vehicle.UNKNOWN);
-        assertThat(oocut.hasOpenMeasurement(), is(equalTo(true)));
+        assertThat(oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN), is(equalTo(true)));
 
         try {
             oocut.closeRecentMeasurement();
         } catch (NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
-        assertThat(oocut.hasOpenMeasurement(), is(equalTo(false)));
+        assertThat(oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN), is(equalTo(false)));
 
         oocut.newMeasurement(Vehicle.UNKNOWN);
-        assertThat(oocut.hasOpenMeasurement(), is(equalTo(true)));
-        assertThat(oocut.loadFinishedMeasurements().size(), is(equalTo(1)));
+        assertThat(oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN), is(equalTo(true)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED).size(), is(equalTo(1)));
     }
 
     /**
@@ -113,7 +113,7 @@ public class PersistenceTest {
      */
     @Test
     public void testLoadFinishedMeasurements_noMeasurements() {
-        assertThat(oocut.loadFinishedMeasurements().isEmpty(), is(equalTo(true)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED).isEmpty(), is(equalTo(true)));
     }
 
     /**
@@ -154,17 +154,17 @@ public class PersistenceTest {
         GeoLocation geoLocation = new GeoLocation(1.0, 1.0, 1L, 1.0, 1);
         long startTime = System.currentTimeMillis();
         for (int i = 0; i < numberOftestEntries; i++) {
-            oocut.storeLocation(geoLocation, measurement.getIdentifier());
+            oocut.storeLocation(geoLocation, measurement);
         }
         Log.i(ServiceTestUtils.TAG, "Inserting " + numberOftestEntries + " entries took: "
                 + (System.currentTimeMillis() - startTime) + " ms");
 
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(numberOftestEntries, 0, 0, 0));
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(numberOftestEntries, 0, 0, 0));
         oocut.closeRecentMeasurement();
 
         // Load entries again
         startTime = System.currentTimeMillis();
-        final List<GeoLocation> locationList = GeoLocationsFile.deserialize(context, measurement.getIdentifier());
+        final List<GeoLocation> locationList = GeoLocationsFile.loadFile(measurement).deserialize();
         Log.i(ServiceTestUtils.TAG, "Loading " + locationList.size() + " entries  took: "
                 + (System.currentTimeMillis() - startTime) + " ms");
 
@@ -186,13 +186,13 @@ public class PersistenceTest {
         final int SERIALIZED_COMPRESSED_SIZE = 31;
 
         // Serialize and check length
-        long measurementIdentifier = insertSerializationTestSample();
-        byte[] serializedData = oocut.loadSerialized(measurementIdentifier);
+        Measurement measurement = insertSerializationTestSample();
+        byte[] serializedData = oocut.loadSerialized(measurement);
         assertThat(serializedData.length, is(equalTo(SERIALIZED_SIZE)));
 
         // Serialize + compress and check length
-        measurementIdentifier = insertSerializationTestSample();
-        InputStream compressedStream = oocut.loadSerializedCompressed(measurementIdentifier);
+        measurement = insertSerializationTestSample();
+        InputStream compressedStream = oocut.loadSerializedCompressed(measurement);
         assertThat(compressedStream.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
 
         // Decompress the compressed bytes and check length and bytes
@@ -208,33 +208,33 @@ public class PersistenceTest {
         assertThat(Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE), is(equalTo(serializedData)));
     }
 
-    private long insertSerializationTestSample() throws NoSuchMeasurementException {
+    private Measurement insertSerializationTestSample() throws NoSuchMeasurementException {
         // Insert sample measurement data
         Persistence persistence = new Persistence(context, AUTHORITY);
         final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
-        final long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
-        insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
-        insertTestGeoLocation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0, 1);
-        insertTestAcceleration(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestAcceleration(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestAcceleration(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestRotation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestRotation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestRotation(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestDirection(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestDirection(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
-        insertTestDirection(context, measurementIdentifier, 1L, 1.0, 1.0, 1.0);
+        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
         // Write point counters to MetaFile
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(3, 3, 3, 3));
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(3, 3, 3, 3));
         // Finish measurement
         persistence.closeMeasurement(measurement);
         // Assert that data is in the database
-        final Measurement finishedMeasurement = persistence.loadFinishedMeasurement(measurementIdentifier);
+        final Measurement finishedMeasurement = persistence.loadMeasurement(measurement.getIdentifier(),
+                Measurement.MeasurementStatus.FINISHED);
         assertThat(finishedMeasurement, notNullValue());
         List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
         assertThat(geoLocations.size(), is(3));
-        return measurementIdentifier;
+        return measurement;
     }
 
     /**
@@ -252,7 +252,7 @@ public class PersistenceTest {
         // Create a synchronized measurement
         insertSampleMeasurement(true, true, oocut);
 
-        final List<Measurement> loadedMeasurements = oocut.loadFinishedMeasurements();
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED);
 
         assertThat(loadedMeasurements.size(), is(1));
         assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));

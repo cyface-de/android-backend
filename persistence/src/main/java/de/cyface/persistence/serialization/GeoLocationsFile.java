@@ -6,16 +6,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
-import android.content.Context;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.utils.Validate;
 
 /**
  * The file format to persist the captured geolocation points.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.0.0
  */
 public class GeoLocationsFile implements FileSupport<GeoLocation> {
@@ -25,20 +26,37 @@ public class GeoLocationsFile implements FileSupport<GeoLocation> {
      */
     private final File file;
     /**
-     * The name of the file containing the data
+     * The {@link Measurement} to which this file is part of.
      */
-    public static final String FILE_NAME = "g";
+    private final Measurement measurement;
     /**
      * The name of the file containing the data
      */
-    public static final String FILE_EXTENSION = "cyfg";
+    private static final String FILE_NAME = "g";
+    /**
+     * The name of the file containing the data
+     */
+    private static final String FILE_EXTENSION = "cyfg";
 
     /**
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement
+     * Constructor which actually creates a new {@link GeoLocationsFile} in the persistence layer.
+     *
+     * @param measurement The {@link Measurement} to which this file is part of.
      */
-    public GeoLocationsFile(final Context context, final long measurementId) {
-        this.file = new FileUtils(context).createFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    public GeoLocationsFile(@NonNull final Measurement measurement) {
+        this.file = measurement.createFile(FILE_NAME, FILE_EXTENSION);
+        this.measurement = measurement;
+    }
+
+    /**
+     * Constructor to reference existing {@link GeoLocationsFile}.
+     *
+     * @param measurement The {@link Measurement} to which this file is part of.
+     * @param file The already existing file which represents the {@link GeoLocationsFile}
+     */
+    private GeoLocationsFile(@NonNull final Measurement measurement, @NonNull final File file) {
+        this.file = file;
+        this.measurement = measurement;
     }
 
     @Override
@@ -55,25 +73,38 @@ public class GeoLocationsFile implements FileSupport<GeoLocation> {
         }
     }
 
+    public File getFile() {
+        return file;
+    }
+
+    public Measurement getMeasurement() {
+        return measurement;
+    }
+
     @Override
     public byte[] serialize(final GeoLocation location) {
         return MeasurementSerializer.serialize(location);
     }
 
-    public static File loadFile(final Context context, final long measurementId) {
-        return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
-    }
-
     /**
      * In order to display geolocations this method helps to load the stored track from {@link GeoLocationsFile}.
      *
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement to resume
      * @return the {@link GeoLocation}s restored from the {@code GeoLocationFile}
      */
-    public static List<GeoLocation> deserialize(final Context context, final long measurementId) {
-        final File file = loadFile(context, measurementId);
+    public List<GeoLocation> deserialize() {
         final byte[] bytes = FileUtils.loadBytes(file);
-        return MeasurementSerializer.deserializeGeoLocationFile(context, bytes, measurementId);
+        return MeasurementSerializer.deserializeGeoLocationFile(bytes, measurement);
+    }
+
+    /**
+     * Loads an existing {@link GeoLocationsFile} for a specified {@link Measurement}.
+     *
+     * @return the {@link GeoLocationsFile} link to the file
+     * @throws IllegalStateException if there is no such file
+     */
+    public static GeoLocationsFile loadFile(@NonNull final Measurement measurement) {
+        final File file = FileUtils.generateMeasurementFilePath(measurement, FILE_NAME, FILE_EXTENSION);
+        Validate.isTrue(file.exists());
+        return new GeoLocationsFile(measurement, file);
     }
 }

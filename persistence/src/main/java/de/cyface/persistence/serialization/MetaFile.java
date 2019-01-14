@@ -8,7 +8,6 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
-import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
@@ -20,7 +19,7 @@ import de.cyface.utils.Validate;
  * The file format to persist meta information of a measurement.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.0.0
  */
 public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
@@ -36,33 +35,34 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
     /**
      * The name of the file containing the data
      */
-    public static final String FILE_NAME = "m";
+    private static final String FILE_NAME = "m";
     /**
      * The name of the file containing the data
      */
-    public static final String FILE_EXTENSION = "cyfm";
+    private static final String FILE_EXTENSION = "cyfm";
 
     /**
-     * @param file The {@link File} pointer to the actual file which must already exist.
      * @param measurement The {@link Measurement} to which this file is part of.
      * @param vehicle The {@link Vehicle} used in the measurement
      */
-    public MetaFile(@NonNull final File file, @NonNull final Measurement measurement, @NonNull final Vehicle vehicle) {
-        Validate.isTrue(file.exists());
-        this.file = file;
+    public MetaFile(@NonNull final Measurement measurement, @NonNull final Vehicle vehicle) {
+        Validate.isTrue(measurement.getStatus() == Measurement.MeasurementStatus.OPEN, "Unsupported");
+        this.file = measurement.createFile(MetaFile.FILE_NAME, MetaFile.FILE_EXTENSION);
         this.measurement = measurement;
         // In case the PointMetaData is not persisted as the end of the capturing, appending the
         // vehicle at the beginning of the capturing allows to restore the corrupted data later on
         write(vehicle);
     }
 
+    /**
+     * Appends {@link PointMetaData} to an existing {@link MetaFile}, e.g. to pause or stop a measurement.
+     *
+     * @param metaData the {@code PointMetaData} to append
+     */
     @Override
     public void append(final PointMetaData metaData) {
         final byte[] data = serialize(metaData);
-        append(data, this.file);
-    }
-
-    private static void append(final byte[] data, final File file) {
+        // append
         try {
             final BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file, true));
             Log.d(TAG, "Writing " + data.length + " bytes (4 counters)");
@@ -73,21 +73,12 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         }
     }
 
-    /**
-     * This needs to be static as we don't want to create a new file when we append just the {@link PointMetaData}
-     * when finishing a measurement as the {@link MetaFile} is already created at the beginning to store
-     * the {@link Vehicle}.
-     */
-    public static void append(final Context context, final long measurementId, final PointMetaData metaData) {
-        final File file = loadFile(context, measurementId);
-
-        final byte[] data = MeasurementSerializer.serialize(metaData);
-
-        append(data, file);
-    }
-
     public File getFile() {
         return file;
+    }
+
+    public Measurement getMeasurement() {
+        return measurement;
     }
 
     /**
@@ -95,34 +86,31 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
      * and removes the counters from it so the updates counts can be stored when finishing or pausing
      * the measurement later on (again).
      *
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement to resume
      * @return the {@link MetaData} containing the point counters
      */
-    public static MetaData resume(final Context context, final long measurementId) {
+    public MetaData resume() {
         final MetaData metaData;
         try {
-            metaData = deserialize(context, measurementId);
-        } catch (FileCorruptedException e) {
+            metaData = deserialize();
+        } catch (final FileCorruptedException e) {
             throw new IllegalStateException(e); // should not happen
         }
 
         // Remove counters from MetaFile by creating a new MetaFile
-        new MetaFile(context, measurementId, metaData.vehicle);
+        Validate.isTrue(file.delete());
+        new MetaFile(measurement, metaData.vehicle);
+        Validate.isTrue(file.exists());
         return metaData;
     }
 
     /**
      * In order to resume a measurement from the {@link MetaFile} this method helps to load the stored counter states.
      *
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement to resume
      * @return the {@link MetaData} restored from the {@code MetaFile}
      * @throws FileCorruptedException when the DataCapturingBackgroundService did not finish a measurement by writing
      *             the <code>PointMetaData</code> to the <code>MetaFile</code>
      */
-    public static MetaData deserialize(final Context context, final long measurementId) throws FileCorruptedException {
-        final File file = loadFile(context, measurementId);
+    public MetaData deserialize() throws FileCorruptedException {
         final byte[] bytes = FileUtils.loadBytes(file);
         return MeasurementSerializer.deserializeMetaFile(bytes);
     }
@@ -152,6 +140,10 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
 
     /**
      * Contains the number of points stored in the files associated with a measurement.
+     *
+     * @author Armin Schnabel
+     * @version 1.0.0
+     * @since 3.0.0
      */
     public static class PointMetaData {
         private final int countOfGeoLocations;
@@ -199,6 +191,10 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
 
     /**
      * Contains the meta data of a measurement
+     *
+     * @author Armin Schnabel
+     * @version 1.0.0
+     * @since 3.0.0
      */
     public static class MetaData {
         private final Vehicle vehicle;

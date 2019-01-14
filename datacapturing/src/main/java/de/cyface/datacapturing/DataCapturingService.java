@@ -415,7 +415,7 @@ public abstract class DataCapturingService {
         } catch (NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
-        final MetaFile.MetaData metaData = MetaFile.resume(this.getContext(), currentlyOpenMeasurement.getIdentifier());
+        final MetaFile.MetaData metaData = currentlyOpenMeasurement.getMetaFile().resume();
         runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
     }
 
@@ -429,6 +429,16 @@ public abstract class DataCapturingService {
     @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
     public @NonNull List<Measurement> loadMeasurements() {
         return persistenceLayer.loadMeasurements();
+    }
+
+    /**
+     * Loads all {@link Measurement}s in a given {@link Measurement.MeasurementStatus}.
+     *
+     * @param status The status of the measurements to return
+     * @return The measurements which are in the given status
+     */
+    public @NonNull List<Measurement> loadMeasurements(@NonNull final Measurement.MeasurementStatus status) {
+        return persistenceLayer.loadMeasurements(status);
     }
 
     /**

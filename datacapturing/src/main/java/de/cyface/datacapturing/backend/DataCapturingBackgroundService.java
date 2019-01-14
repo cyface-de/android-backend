@@ -32,6 +32,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.serialization.AccelerationsFile;
 import de.cyface.persistence.serialization.DirectionsFile;
@@ -49,7 +50,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.6
+ * @version 4.2.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -89,9 +90,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private PingReceiver pingReceiver = new PingReceiver();
     /**
-     * The identifier of the measurement to save all the captured data to.
+     * The measurement to save all the captured data to.
      */
-    private long currentMeasurementIdentifier;
+    private Measurement currentMeasurement;
     /**
      * The strategy used to respond to selected events triggered by this service.
      */
@@ -169,22 +170,22 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
-        sendStoppedMessage(currentMeasurementIdentifier);
+        sendStoppedMessage(currentMeasurement);
     }
 
     /**
      * Sends an IPC message to interested parties that the service stopped successfully.
-     * 
-     * @param currentMeasurementIdentifier The id of the measurement which was stopped.
+     *
+     * @param currentMeasurement The the measurement which was stopped.
      */
-    private void sendStoppedMessage(final long currentMeasurementIdentifier) {
+    private void sendStoppedMessage(@NonNull final Measurement currentMeasurement) {
         Log.v(TAG, "Sending IPC message: service stopped.");
         // Write point counters to MetaFile
-        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter,
-                accelerationPointCounter, rotationPointCounter, directionPointCounter));
+        currentMeasurement.getMetaFile().append(new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
+                rotationPointCounter, directionPointCounter));
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
-        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        bundle.putLong(MEASUREMENT_ID, currentMeasurement.getIdentifier());
         bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
         informCaller(MessageCodes.SERVICE_STOPPED, bundle);
     }
@@ -197,17 +198,16 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
      * The task for the missing test is CY-4111. Currently only tested manually.
      */
-    // Because this method must be called from SDK implementing apps which want to stop the capturing in custom {@link
-    // EventHandlingStrategy} implementations
+    // As this is called by custom {@link EventHandlingStrategy} implementations which want to stop the capturing
     @SuppressWarnings("unused")
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
         // Write point counters to MetaFile
-        MetaFile.append(this, currentMeasurementIdentifier, new MetaFile.PointMetaData(geoLocationCounter,
-                accelerationPointCounter, rotationPointCounter, directionPointCounter));
+        currentMeasurement.getMetaFile().append(new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
+                rotationPointCounter, directionPointCounter));
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
-        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        bundle.putLong(MEASUREMENT_ID, currentMeasurement.getIdentifier());
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
@@ -233,7 +233,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             if (measurementIdentifier == -1) {
                 throw new IllegalStateException("No valid measurement identifier for started service provided.");
             }
-            this.currentMeasurementIdentifier = measurementIdentifier;
+            this.currentMeasurement = new Measurement(getBaseContext(), measurementIdentifier,
+                    Measurement.MeasurementStatus.OPEN);
 
             // Restore counter state after (if counts are provided, i.e. resuming capturing)
             geoLocationCounter = intent.getIntExtra(BundlesExtrasCodes.GEOLOCATION_COUNT, -1);
@@ -260,7 +261,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
         final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
-        serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurement.getIdentifier());
         sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
     }
@@ -336,7 +337,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
                     sampleSubList(rotations, i), sampleSubList(directions, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
-            persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
+            persistenceLayer.storeData(dataSublist, currentMeasurement, new WritingDataCompletedCallback() {
                 @Override
                 public void writingDataCompleted() {
                     // Nothing to do here!
@@ -365,7 +366,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public void onLocationCaptured(final @NonNull GeoLocation location) {
         Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
+        persistenceLayer.storeLocation(location, currentMeasurement);
         geoLocationCounter++;
 
         if (!spaceAvailable()) {

@@ -119,7 +119,6 @@ public class Persistence {
         final Measurement measurement = new Measurement(context, measurementId, OPEN);
         measurement.createDirectory();
         measurement.createMetaFile(vehicle);
-        // FIXME: update other new metafile code section, too
         return measurement;
     }
 
@@ -215,8 +214,6 @@ public class Persistence {
      *
      * @param measurementIdentifier The device wide unique identifier of the measurement to load.
      * @return The loaded measurement if it exists; <code>null</code> otherwise.
-     *
-     *         // FIXME: currently only finds open and finished measurements, see #loadMeasurements()
      */
     public Measurement loadMeasurement(final long measurementIdentifier) {
         final List<Measurement> measurements = new ArrayList<>();
@@ -290,28 +287,28 @@ public class Persistence {
      * Loads a measurement with the provided id from the persistence layer as uncompressed and serialized in
      * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
      *
-     * @param measurementId The identifier of the measurement to load.
+     * @param measurement The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
      * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
      * @throws IOException If the byte array could not be assembled.
      */
-    public byte[] loadSerialized(final long measurementId) throws FileCorruptedException, IOException {
+    public byte[] loadSerialized(final Measurement measurement) throws FileCorruptedException, IOException {
         final byte[] transferFileFormat = new byte[2];
         transferFileFormat[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         transferFileFormat[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
-        final MetaFile.MetaData metaData = MetaFile.deserialize(context, measurementId);
+        final MetaFile.MetaData metaData = measurement.getMetaFile().deserialize();
         final byte[] pointCounts = serialize(metaData.getPointMetaData());
         final byte[] geoLocationData = metaData.getPointMetaData().getCountOfGeoLocations() > 0
-                ? FileUtils.loadBytes(GeoLocationsFile.loadFile(context, measurementId))
+                ? FileUtils.loadBytes(GeoLocationsFile.loadFile(measurement).getFile())
                 : new byte[] {};
         final byte[] accelerationData = metaData.getPointMetaData().getCountOfAccelerations() > 0
-                ? FileUtils.loadBytes(AccelerationsFile.loadFile(context, measurementId))
+                ? FileUtils.loadBytes(AccelerationsFile.loadFile(measurement).getFile())
                 : new byte[] {};
         final byte[] rotationData = metaData.getPointMetaData().getCountOfRotations() > 0
-                ? FileUtils.loadBytes(RotationsFile.loadFile(context, measurementId))
+                ? FileUtils.loadBytes(RotationsFile.loadFile(measurement).getFile())
                 : new byte[] {};
         final byte[] directionData = metaData.getPointMetaData().getCountOfDirections() > 0
-                ? FileUtils.loadBytes(DirectionsFile.loadFile(context, measurementId))
+                ? FileUtils.loadBytes(DirectionsFile.loadFile(measurement).getFile())
                 : new byte[] {};
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -329,14 +326,14 @@ public class Persistence {
      * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
      * As compression the standard Android GZIP compression is used
      *
-     *
-     * @param measurementId The identifier of the measurement to load.
+     * @param measurement The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
      * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
      * @throws IOException If the byte array could not be assembled.
      */
-    public InputStream loadSerializedCompressed(final long measurementId) throws FileCorruptedException, IOException {
-        final byte[] data = loadSerialized(measurementId);
+    public InputStream loadSerializedCompressed(final Measurement measurement)
+            throws FileCorruptedException, IOException {
+        final byte[] data = loadSerialized(measurement);
 
         final Deflater compressor = new Deflater();
         compressor.setInput(data);
@@ -362,23 +359,23 @@ public class Persistence {
         // how do we want to handle this on Cyface ?
         final MetaFile.MetaData metaData;
         try {
-            metaData = MetaFile.deserialize(context, measurement.getIdentifier());
-        } catch (FileCorruptedException e) {
+            metaData = measurement.getMetaFile().deserialize();
+        } catch (final FileCorruptedException e) {
             throw new IllegalStateException(e);
         }
 
         if (metaData.getPointMetaData().getCountOfAccelerations() > 0) {
-            final File accelerationFile = AccelerationsFile.loadFile(context, measurement.getIdentifier());
+            final File accelerationFile = AccelerationsFile.loadFile(measurement).getFile();
             Validate.isTrue(accelerationFile.delete());
         }
 
         if (metaData.getPointMetaData().getCountOfRotations() > 0) {
-            final File rotationFile = RotationsFile.loadFile(context, measurement.getIdentifier());
+            final File rotationFile = RotationsFile.loadFile(measurement).getFile();
             Validate.isTrue(rotationFile.delete());
         }
 
         if (metaData.getPointMetaData().getCountOfDirections() > 0) {
-            final File directionFile = DirectionsFile.loadFile(context, measurement.getIdentifier());
+            final File directionFile = DirectionsFile.loadFile(measurement).getFile();
             Validate.isTrue(directionFile.delete());
         }
     }
@@ -500,7 +497,7 @@ public class Persistence {
         }
 
         // Load file with geolocations
-        return GeoLocationsFile.deserialize(context, measurement.getIdentifier());
+        return GeoLocationsFile.loadFile(measurement).deserialize();
     }
 
     public Context getContext() {

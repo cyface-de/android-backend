@@ -111,4 +111,18 @@ public final class FileUtils {
         final File measurementFolder = getMeasurementsFolder(context, status);
         return new File(measurementFolder.getPath() + File.separator + measurementId);
     }
+
+    /**
+     * Generates the path to a specific {@link Measurement} binary file.
+     *
+     * @param measurement the measurement for which the file name is to be generated.
+     * @param fileName the name of the file
+     * @param fileExtension the extension of the file
+     * @return The {@link File} link.
+     */
+    public static File generateMeasurementFilePath(@NonNull final Measurement measurement, final String fileName,
+            final String fileExtension) {
+        final File measurementFolder = measurement.getMeasurementFolder();
+        return new File(measurementFolder.getPath() + File.separator + fileName + "." + fileExtension);
+    }
 }

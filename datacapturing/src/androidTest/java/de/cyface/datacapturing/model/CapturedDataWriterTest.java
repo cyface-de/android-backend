@@ -48,7 +48,7 @@ import de.cyface.persistence.serialization.RotationsFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.4
+ * @version 5.1.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -102,14 +102,14 @@ public class CapturedDataWriterTest {
         assertThat(measurement.getIdentifier() >= 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
-        List<Measurement> openMeasurements = oocut.loadOpenMeasurements();
+        List<Measurement> openMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN);
         Measurement loadedOpenMeasurement = oocut.loadCurrentlyCapturedMeasurement();
         assertThat(loadedOpenMeasurement, notNullValue());
         assertThat(loadedOpenMeasurement.getIdentifier(), is(measurement.getIdentifier()));
         assertThat(openMeasurements.size(), is(equalTo(1)));
 
         // Write point counters to MetaFile
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 0, 0, 0));
 
         // Close the measurement, load the closed measurement and check its properties
         oocut.closeRecentMeasurement();
@@ -118,14 +118,14 @@ public class CapturedDataWriterTest {
             throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
         }
 
-        MetaFile.MetaData metaData = MetaFile.deserialize(context, measurement.getIdentifier());
+        MetaFile.MetaData metaData = measurement.getMetaFile().deserialize();
         assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
 
-        openMeasurements = oocut.loadOpenMeasurements();
-        List<Measurement> finishedMeasurements = oocut.loadFinishedMeasurements();
+        openMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN);
+        List<Measurement> finishedMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED);
         assertThat(finishedMeasurements.size(), is(equalTo(1)));
         assertThat(openMeasurements.size(), is(equalTo(0)));
-        metaData = MetaFile.deserialize(context, measurement.getIdentifier());
+        metaData = measurement.getMetaFile().deserialize();
         assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
     }
 
@@ -151,7 +151,7 @@ public class CapturedDataWriterTest {
             }
         };
 
-        oocut.storeData(testData(), measurement.getIdentifier(), callback);
+        oocut.storeData(testData(), measurement, callback);
 
         lock.lock();
         try {
@@ -162,16 +162,16 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
 
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        oocut.storeLocation(testLocation(), measurement);
 
         // Write point counters to MetaFile
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 3, 3, 3));
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 3, 3, 3));
 
         // Check if the captured data was persisted
-        List<GeoLocation> geoLocations = GeoLocationsFile.deserialize(context, measurement.getIdentifier());
-        List<Point3D> accelerations = AccelerationsFile.deserialize(context, measurement.getIdentifier());
-        List<Point3D> rotations = RotationsFile.deserialize(context, measurement.getIdentifier());
-        List<Point3D> directions = DirectionsFile.deserialize(context, measurement.getIdentifier());
+        List<GeoLocation> geoLocations = GeoLocationsFile.loadFile(measurement).deserialize();
+        List<Point3D> accelerations = AccelerationsFile.loadFile(measurement).deserialize();
+        List<Point3D> rotations = RotationsFile.loadFile(measurement).deserialize();
+        List<Point3D> directions = DirectionsFile.loadFile(measurement).deserialize();
 
         assertThat(geoLocations.size(), is(equalTo(1)));
         assertThat(accelerations.size(), is(equalTo(3)));
@@ -202,8 +202,8 @@ public class CapturedDataWriterTest {
             }
         };
 
-        oocut.storeData(testData(), measurement.getIdentifier(), finishedCallback);
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        oocut.storeData(testData(), measurement, finishedCallback);
+        oocut.storeLocation(testLocation(), measurement);
 
         lock.lock();
         try {
@@ -232,11 +232,11 @@ public class CapturedDataWriterTest {
     @Test
     public void testLoadMeasurements() throws NoSuchMeasurementException {
         Measurement measurement1 = oocut.newMeasurement(Vehicle.UNKNOWN);
-        MetaFile.append(context, measurement1.getIdentifier(), new MetaFile.PointMetaData(0, 0, 0, 0));
+        measurement1.getMetaFile().append(new MetaFile.PointMetaData(0, 0, 0, 0));
         oocut.closeRecentMeasurement();
 
         Measurement measurement2 = oocut.newMeasurement(Vehicle.CAR);
-        MetaFile.append(context, measurement2.getIdentifier(), new MetaFile.PointMetaData(0, 0, 0, 0));
+        measurement2.getMetaFile().append(new MetaFile.PointMetaData(0, 0, 0, 0));
         oocut.closeRecentMeasurement();
 
         List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -271,7 +271,7 @@ public class CapturedDataWriterTest {
                 }
             }
         };
-        oocut.storeData(testData(), measurement.getIdentifier(), callback);
+        oocut.storeData(testData(), measurement, callback);
 
         lock.lock();
         try {
@@ -282,9 +282,9 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
 
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        oocut.storeLocation(testLocation(), measurement);
 
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 3, 3, 3));
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 3, 3, 3));
         oocut.closeRecentMeasurement();
 
         oocut.delete(measurement);
@@ -300,8 +300,8 @@ public class CapturedDataWriterTest {
     @Test
     public void testLoadTrack() throws NoSuchMeasurementException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 0, 0, 0));
+        oocut.storeLocation(testLocation(), measurement);
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 0, 0, 0));
         oocut.closeRecentMeasurement();
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
@@ -315,14 +315,14 @@ public class CapturedDataWriterTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                if (!oocut.hasOpenMeasurement()) {
+                if (!oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN)) {
                     oocut.newMeasurement(Vehicle.BICYCLE);
                 }
-                if (!oocut.hasOpenMeasurement()) {
+                if (!oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN)) {
                     oocut.newMeasurement(Vehicle.BICYCLE);
                 }
 
-                if (oocut.hasOpenMeasurement()) {
+                if (oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN)) {
                     try {
                         oocut.closeRecentMeasurement();
                     } catch (NoSuchMeasurementException e) {

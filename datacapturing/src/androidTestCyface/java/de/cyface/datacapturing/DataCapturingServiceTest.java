@@ -52,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -522,7 +522,8 @@ public class DataCapturingServiceTest {
         resumeAsyncAndCheckThatLaunched(measurementIdentifier);
         Persistence persistence = new Persistence(InstrumentationRegistry.getInstrumentation().getTargetContext(),
                 AUTHORITY);
-        assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
+        assertThat(persistence.loadMeasurement(measurementIdentifier, Measurement.MeasurementStatus.OPEN),
+                notNullValue());
 
         // Resume 2: must be ignored by resumeAsync or else the "first resumed" measurement is marked as corrupted
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
@@ -530,7 +531,8 @@ public class DataCapturingServiceTest {
         ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
         ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
-        assertThat(persistence.loadOpenMeasurement(measurementIdentifier), notNullValue());
+        assertThat(persistence.loadMeasurement(measurementIdentifier, Measurement.MeasurementStatus.OPEN),
+                notNullValue());
 
         stopAsyncAndCheckThatStopped(measurementIdentifier);
     }
@@ -564,12 +566,14 @@ public class DataCapturingServiceTest {
     @Test
     public void testStartPauseResumeStop()
             throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
-        assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
 
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
 
         // Check measurements
-        assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(1)));
+        final List<Measurement> measurements = oocut.loadMeasurements();
+        assertThat(measurements.size() > 0, is(equalTo(true)));
 
         pauseAsyncAndCheckThatStopped(measurementIdentifier);
 

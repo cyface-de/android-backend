@@ -6,16 +6,17 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.List;
 
-import android.content.Context;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
+import de.cyface.utils.Validate;
 
 /**
  * The file format to persist the captured direction points.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.0.0
  */
 public class DirectionsFile implements FileSupport<List<Point3D>> {
@@ -25,20 +26,37 @@ public class DirectionsFile implements FileSupport<List<Point3D>> {
      */
     private final File file;
     /**
-     * The name of the file containing the data
+     * The {@link Measurement} to which this file is part of.
      */
-    public static final String FILE_NAME = "d";
+    private final Measurement measurement;
     /**
      * The name of the file containing the data
      */
-    public static final String FILE_EXTENSION = "cyfd";
+    private static final String FILE_NAME = "d";
+    /**
+     * The name of the file containing the data
+     */
+    private static final String FILE_EXTENSION = "cyfd";
 
     /**
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement
+     * Constructor which actually creates a new {@link DirectionsFile} in the persistence layer.
+     *
+     * @param measurement The {@link Measurement} to which this file is part of.
      */
-    public DirectionsFile(final Context context, final long measurementId) {
-        this.file = new FileUtils(context).createFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    public DirectionsFile(@NonNull final Measurement measurement) {
+        this.file = measurement.createFile(FILE_NAME, FILE_EXTENSION);
+        this.measurement = measurement;
+    }
+
+    /**
+     * Constructor to reference existing {@link DirectionsFile}.
+     *
+     * @param measurement The {@link Measurement} to which this file is part of.
+     * @param file The already existing file which represents the {@link DirectionsFile}
+     */
+    private DirectionsFile(@NonNull final Measurement measurement, @NonNull final File file) {
+        this.file = file;
+        this.measurement = measurement;
     }
 
     @Override
@@ -60,22 +78,35 @@ public class DirectionsFile implements FileSupport<List<Point3D>> {
         return MeasurementSerializer.serialize(dataPoints);
     }
 
-    public static File loadFile(final Context context, final long measurementId) {
-        return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    public File getFile() {
+        return file;
+    }
+
+    public Measurement getMeasurement() {
+        return measurement;
     }
 
     /**
      * For testing this method helps to load the stored data from a {@link DirectionsFile}.
      *
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement to resume
      * @return the {@link Point3D} data restored from the {@code DirectionsFile}
      * @throws FileCorruptedException when the {@link MetaFile} is corrupted
      */
-    public static List<Point3D> deserialize(final Context context, final long measurementId) throws FileCorruptedException {
-        final File file = loadFile(context, measurementId);
+    public List<Point3D> deserialize() throws FileCorruptedException {
         final byte[] bytes = FileUtils.loadBytes(file);
-        final int pointCount = MetaFile.deserialize(context, measurementId).getPointMetaData().getCountOfDirections();
+        final int pointCount = measurement.getMetaFile().deserialize().getPointMetaData().getCountOfDirections();
         return MeasurementSerializer.deserializePoint3dData(bytes, pointCount);
+    }
+
+    /**
+     * Loads an existing {@link DirectionsFile} for a specified {@link Measurement}.
+     *
+     * @return the {@link DirectionsFile} link to the file
+     * @throws IllegalStateException if there is no such file
+     */
+    public static DirectionsFile loadFile(@NonNull final Measurement measurement) {
+        final File file = FileUtils.generateMeasurementFilePath(measurement, FILE_NAME, FILE_EXTENSION);
+        Validate.isTrue(file.exists());
+        return new DirectionsFile(measurement, file);
     }
 }

@@ -1,5 +1,6 @@
 package de.cyface.persistence.model;
 
+import static de.cyface.persistence.FileUtils.generateMeasurementFilePath;
 import static de.cyface.persistence.FileUtils.generateMeasurementFolderPath;
 
 import java.io.File;
@@ -50,11 +51,12 @@ public final class Measurement {
      * @param status The {@link MeasurementStatus} of the measurement tells weather the measurement is still capturing
      *            data, finished or similar.
      */
+    // FIXME: we should check somewhere (e.g. when creating/deleting a measurement that there is only one folder per
+    // measurement id)
     public Measurement(@NonNull final Context context, final long id, @NonNull final MeasurementStatus status) {
         this.id = id;
         this.status = status;
         this.context = context;
-        // FIXME: also link the data Files I think
     }
 
     /**
@@ -83,8 +85,6 @@ public final class Measurement {
      * <code>DataCapturingBackgroundService</code>
      * must have stopped normally in advance in order for the point counts to be written into the {@link MetaFile}.
      * Else, the file is seen as corrupted.
-     *
-     * FIXME: automatically move the measurement to the new status-folder
      *
      * Status life-cycle:
      * - {@link Persistence#newMeasurement(Vehicle)} -> {@link MeasurementStatus#OPEN}
@@ -175,11 +175,13 @@ public final class Measurement {
     /**
      * Creates a file for Cyface binary data for this measurement.
      *
+     * @param fileName the name of the file
+     * @param fileExtension the extension of the file
      * @return A {@link File} link to the created file.
      * @throws IllegalStateException when the measurement folder does not exist.
      */
-    private File createFile(final String fileName, final String fileExtension) {
-        final File file = new File(getMeasurementFolder() + File.separator + fileName + "." + fileExtension);
+    public File createFile(@NonNull final String fileName, @NonNull final String fileExtension) {
+        final File file = generateMeasurementFilePath(this, fileName, fileExtension);
         if (!file.exists()) {
             try {
                 final boolean success = file.createNewFile();
@@ -194,21 +196,8 @@ public final class Measurement {
         return file;
     }
 
-    /**
-     * Returns a {@link File} link pointing to the requested file.
-     *
-     * @param fileName The name of the file
-     * @param fileExtension The file extension of the file
-     * @return the {@link File}.
-     */
-    public File getFile(final long measurementId, final String fileName, final String fileExtension) {
-        final File file = new File(getMeasurementFolder() + File.separator + fileName + "." + fileExtension);
-        if (!file.exists()) {
-            throw new IllegalStateException("Cannot load file because it does not exist");
-        }
-        // FIXME: we should check somewhere (e.g. when creating/deleting a measurement that there is only one folder per
-        // measurement id)
-        return file;
+    public MetaFile getMetaFile() {
+        return metaFile;
     }
 
     /**
@@ -220,8 +209,7 @@ public final class Measurement {
      */
     public void createMetaFile(@NonNull final Vehicle vehicle) {
         Validate.isTrue(getStatus() == MeasurementStatus.OPEN, "Unsupported");
-        final File file = createFile(MetaFile.FILE_NAME, MetaFile.FILE_EXTENSION);
-        this.metaFile = new MetaFile(file, this, vehicle);
+        this.metaFile = new MetaFile(this, vehicle);
     }
 
     /**

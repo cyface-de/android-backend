@@ -2,7 +2,10 @@ package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.serialization.ByteSizes.*;
+import static de.cyface.persistence.serialization.ByteSizes.CHARACTER_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.INT_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
+import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 
 import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
@@ -10,11 +13,11 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
-import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
@@ -248,18 +251,17 @@ public final class MeasurementSerializer {
     /**
      * Allows to load a stored track.
      *
-     * @param context The {@link Context} required to access the persistence layer
      * @param geoLocationFileBytes The bytes loaded from the {@link GeoLocationsFile}
-     * @param measurementId The id of the measurement of the file
+     * @param measurement The measurement of the file
      * @return The {@link GeoLocation} loaded from the file
      */
-    static List<GeoLocation> deserializeGeoLocationFile(final Context context, final byte[] geoLocationFileBytes,
-            final long measurementId) {
+    static List<GeoLocation> deserializeGeoLocationFile(final byte[] geoLocationFileBytes,
+            @NonNull final Measurement measurement) {
 
         final MetaFile.MetaData metaData;
         try {
-            metaData = MetaFile.deserialize(context, measurementId);
-        } catch (FileCorruptedException e) {
+            metaData = measurement.getMetaFile().deserialize();
+        } catch (final FileCorruptedException e) {
             throw new IllegalStateException(e); // Should not happen
         }
         final int geoLocationCount = metaData.getPointMetaData().getCountOfGeoLocations();

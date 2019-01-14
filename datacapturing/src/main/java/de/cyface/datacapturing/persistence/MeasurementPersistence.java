@@ -100,20 +100,21 @@ public class MeasurementPersistence extends Persistence {
      * Saves the provided {@link CapturedData} to the local persistent storage of the device.
      *
      * @param data The data to store.
+     * @param measurement The {@link Measurement} to store the data to.
      */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier,
+    public void storeData(final @NonNull CapturedData data, final Measurement measurement,
             final @NonNull WritingDataCompletedCallback callback) {
         if (threadPool.isShutdown()) {
             return;
         }
         if (accelerationsFile == null) {
-            accelerationsFile = new AccelerationsFile(context, measurementIdentifier);
+            accelerationsFile = new AccelerationsFile(measurement);
         }
         if (rotationsFile == null) {
-            rotationsFile = new RotationsFile(context, measurementIdentifier);
+            rotationsFile = new RotationsFile(measurement);
         }
         if (directionsFile == null) {
-            directionsFile = new DirectionsFile(context, measurementIdentifier);
+            directionsFile = new DirectionsFile(measurement);
         }
 
         final CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
@@ -123,13 +124,13 @@ public class MeasurementPersistence extends Persistence {
 
     /**
      * Stores the provided geo location under the currently active captured measurement.
-     *
+     * 
      * @param location The geo location to store.
-     * @param measurementIdentifier The identifier of the measurement to store the data to.
+     * @param measurement The {@link Measurement} to store the data to.
      */
-    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
+    public void storeLocation(final @NonNull GeoLocation location, final Measurement measurement) {
         if (geoLocationsFile == null) {
-            geoLocationsFile = new GeoLocationsFile(context, measurementIdentifier);
+            geoLocationsFile = new GeoLocationsFile(measurement);
         }
 
         geoLocationsFile.append(location);
@@ -216,7 +217,7 @@ public class MeasurementPersistence extends Persistence {
             switch (status) {
                 case OPEN:
                     try {
-                        MetaFile.deserialize(context, measurement.getIdentifier());
+                        measurement.getMetaFile().deserialize();
                     } catch (final FileCorruptedException e) {
                         // This means the measurement is corrupted
                         markAsCorrupted(measurement);
