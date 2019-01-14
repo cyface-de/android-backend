@@ -174,7 +174,10 @@ public abstract class DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences fails.
      */
-    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
+    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver, // FIXME:
+                                                                                                         // remove
+                                                                                                         // resolver
+                                                                                                         // parameter?
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
             throws SetupException {
@@ -248,11 +251,11 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(false);
 
             // Ensure there are no dead measurements in the open measurement folder
-            persistenceLayer.cleanCorruptedOpenMeasurements();
+            persistenceLayer.markCorruptedMeasurements(Measurement.MeasurementStatus.OPEN);
 
-            // Ignore start command for paused measurements (wrong life-cycle call)
-            if (persistenceLayer.hasOpenMeasurement()) {
-                Log.w(TAG, "Ignoring start() as there is a paused measurement which needs to be resumed by resume().");
+            // Ignore start command for paused measurements (wrong life-cycle call) TODO: is this the expected handling?
+            if (persistenceLayer.hasMeasurement(Measurement.MeasurementStatus.PAUSED)) {
+                Log.w(TAG, "Ignoring start() as there is a paused measurement which needs to be resumed first.");
                 return;
             }
 
@@ -287,6 +290,7 @@ public abstract class DataCapturingService {
      *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to pausing.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
         Log.d(TAG, "Stopping asynchronously!");
@@ -340,6 +344,7 @@ public abstract class DataCapturingService {
      *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to pausing.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void pause(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
         Log.d(TAG, "Pausing asynchronously.");
@@ -374,6 +379,7 @@ public abstract class DataCapturingService {
      *             permission in the future you need to start a new measurement and not call <code>resumeSync</code>
      *             again.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void resume(final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
 
@@ -392,19 +398,23 @@ public abstract class DataCapturingService {
             throw new MissingPermissionException();
         }
 
-        // Ensure there are no dead measurements in the open measurement folder
-        persistenceLayer.cleanCorruptedOpenMeasurements();
+        // Ensure there are no dead measurements in the paused measurement folder
+        persistenceLayer.markCorruptedMeasurements(Measurement.MeasurementStatus.PAUSED); // FIXME: not yet implemented
 
         // Ignore resume command if there are no paused measurements (wrong life-cycle call which we support #MOV-460)
-        if (!persistenceLayer.hasOpenMeasurement()) {
-            Log.w(TAG,
-                    "Ignoring resume() as there is no paused measurement. A start() would be expected by the life-cycle.");
+        if (!persistenceLayer.hasMeasurement(Measurement.MeasurementStatus.PAUSED)) {
+            Log.w(TAG, "Ignoring resume() as there is no paused measurement.");
             return;
         }
 
         // Resume paused measurement
-        final Measurement currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-        Validate.notNull(currentlyOpenMeasurement);
+        final Measurement currentlyOpenMeasurement;
+        try {
+            currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            Validate.notNull(currentlyOpenMeasurement);
+        } catch (NoSuchMeasurementException e) {
+            throw new IllegalStateException(e);
+        }
         final MetaFile.MetaData metaData = MetaFile.resume(this.getContext(), currentlyOpenMeasurement.getIdentifier());
         runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
     }
@@ -416,33 +426,16 @@ public abstract class DataCapturingService {
      * @return A list containing all measurements currently stored on this device by this application. An empty list if
      *         there are no such measurements, but never <code>null</code>.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
     public @NonNull List<Measurement> loadMeasurements() {
         return persistenceLayer.loadMeasurements();
-    }
-
-    /**
-     * @return A list containing all the finished (i.e. not running and not paused) but not yet uploaded measurements on
-     *         this device. An empty list if there are no such measurements, but never <code>null</code>.
-     */
-    public @NonNull List<Measurement> loadFinishedMeasurements() {
-        return persistenceLayer.loadFinishedMeasurements();
-    }
-
-    /**
-     * Returns open measurements currently on this device.
-     *
-     * @return A list containing all open measurements currently stored on this device by this application. An empty
-     *         list if
-     *         there are no such measurements, but never <code>null</code>.
-     */
-    public @NonNull List<Measurement> loadOpenMeasurements() {
-        return persistenceLayer.loadOpenMeasurements();
     }
 
     /**
      * @return The identifier used to qualify measurements from this capturing service with the server receiving the
      *         measurements. This needs to be world wide unique.
      */
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
     public @NonNull String getDeviceIdentifier() {
         return deviceIdentifier;
     }
@@ -464,6 +457,7 @@ public abstract class DataCapturingService {
      *
      * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
     public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
         Account account = getWiFiSurveyor().getOrCreateAccount(username);
         getWiFiSurveyor().scheduleSyncNow(account);
@@ -511,6 +505,7 @@ public abstract class DataCapturingService {
      * @param unit The unit of time specified by timeout.
      * @param callback Called as soon as the current state of the service has become clear.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.d(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext());
@@ -526,6 +521,7 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If service was not connected.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
     public void disconnect() throws DataCapturingException {
         unbind();
     }
@@ -543,6 +539,7 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If communication with background service is not successful.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
     public void reconnect() throws DataCapturingException {
 
         final Lock lock = new ReentrantLock();
@@ -584,6 +581,7 @@ public abstract class DataCapturingService {
     /**
      * @param uiListener A listener for events which the UI might be interested in.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
     public void setUiListener(final @NonNull UIListener uiListener) {
         this.uiListener = uiListener;
     }
@@ -592,6 +590,7 @@ public abstract class DataCapturingService {
      * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
      *         been no previous call to {@link #setUiListener(UIListener)}.
      */
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
     UIListener getUiListener() {
         return uiListener;
     }
@@ -655,7 +654,7 @@ public abstract class DataCapturingService {
      * @return True if there was a service running which was stopped
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
-    private boolean stopService(final @NonNull Measurement measurement,
+    private boolean stopService(final @NonNull Measurement measurement, // FIXME: can we remove this parameter?
             final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
         Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
@@ -721,6 +720,9 @@ public abstract class DataCapturingService {
      * @param context Current <code>Activity</code> context.
      * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
      */
+    // BooleanMethodIsAlwaysInverted because the semantic is more clear this way
+    // WeakerAccess because we need to support this API - TODO really?
+    @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "WeakerAccess"})
     boolean checkFineLocationAccess(final @NonNull Context context) {
         boolean permissionAlreadyGranted = ActivityCompat.checkSelfPermission(context,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -753,7 +755,7 @@ public abstract class DataCapturingService {
         if (!checkFineLocationAccess(getContext())) {
             throw new MissingPermissionException();
         }
-        Validate.isTrue(!persistenceLayer.hasOpenMeasurement());
+        Validate.isTrue(!persistenceLayer.hasMeasurement(Measurement.MeasurementStatus.OPEN));
         final Measurement measurement = persistenceLayer.newMeasurement(vehicle);
         fromServiceMessageHandler.addListener(listener);
         return measurement;
@@ -762,6 +764,7 @@ public abstract class DataCapturingService {
     /**
      * @return A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
     private MeasurementPersistence getPersistenceLayer() {
         return persistenceLayer;
     }
@@ -772,6 +775,7 @@ public abstract class DataCapturingService {
      * @return <code>true</code> if successfully bound to a running service; <code>false</code> otherwise.
      * @throws DataCapturingException If binding fails.
      */
+    @SuppressWarnings("UnusedReturnValue") // because we need to support this API - TODO: really?
     private boolean bind() throws DataCapturingException {
         if (context.get() == null) {
             throw new DataCapturingException("No valid context for binding!");
@@ -823,6 +827,7 @@ public abstract class DataCapturingService {
     /**
      * @return {@code true} if data capturing is running; {@code false} otherwise.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
     public boolean getIsRunning() {
         Log.d(TAG, "Getting isRunning with value " + isRunning);
         return isRunning;
@@ -853,6 +858,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
     public void addConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionStatusReceiver.addListener(listener);
     }
@@ -863,6 +869,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
     public void removeConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionStatusReceiver.removeListener(listener);
     }
@@ -870,6 +877,7 @@ public abstract class DataCapturingService {
     /**
      * Unregisters the {@link ConnectionStatusReceiver} when no more needed.
      */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
     public void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
     }
@@ -1033,7 +1041,10 @@ public abstract class DataCapturingService {
                             // The background service already received a stopSelf command but as it's still
                             // bound to this service it should be still alive. We unbind it from this service via the
                             // stopService method (to reduce code duplicity).
-                            Validate.isTrue(dataCapturingService.stopService(new Measurement(measurementId),
+                            // FIXME: is the following new Measurement() really always in this state? or can we use id
+                            // instead of measurement?
+                            Validate.isTrue(dataCapturingService.stopService(
+                                    new Measurement(context, measurementId, Measurement.MeasurementStatus.FINISHED),
                                     synchronizationReceiver));
 
                             // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
@@ -1065,6 +1076,7 @@ public abstract class DataCapturingService {
          *
          * @param listener A listener that is notified of important events during data capturing.
          */
+        @SuppressWarnings("unused") // because we need to support this API - TODO: really?
         void removeListener(final @NonNull DataCapturingListener listener) {
             this.listener.remove(listener);
         }

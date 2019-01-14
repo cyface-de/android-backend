@@ -3,6 +3,7 @@ package de.cyface.datacapturing.persistence;
 import static de.cyface.datacapturing.Constants.TAG;
 
 import java.io.File;
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -32,7 +33,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.3
+ * @version 7.0.0
  * @since 2.0.0
  */
 public class MeasurementPersistence extends Persistence {
@@ -42,11 +43,11 @@ public class MeasurementPersistence extends Persistence {
      */
     private ExecutorService threadPool;
     /**
-     * Caching the current measurement identifier, so we do not need to ask the database each time we require the
-     * current measurement identifier. This is <code>null</code> if there is no running measurement or if we lost the
+     * Caching the current {@link Measurement}, so we do not need to ask the database each time we require the
+     * current measurement. This is <code>null</code> if there is no running measurement or if we lost the
      * cache due to Android stopping the application hosting the data capturing service.
      */
-    private Long currentMeasurementIdentifier;
+    private Measurement currentMeasurement;
     /**
      * The file to write the geolocation points to.
      */
@@ -77,12 +78,8 @@ public class MeasurementPersistence extends Persistence {
 
     @Override
     public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
-        final Measurement measurement;
-        synchronized (this) {
-            measurement = super.newMeasurement(vehicle);
-            currentMeasurementIdentifier = measurement.getIdentifier();
-        }
-        return measurement;
+        currentMeasurement = super.newMeasurement(vehicle);
+        return currentMeasurement;
     }
 
     /**
@@ -90,13 +87,12 @@ public class MeasurementPersistence extends Persistence {
      */
     public void closeRecentMeasurement() throws NoSuchMeasurementException {
         synchronized (this) {
-            final Measurement openMeasurement = loadCurrentlyCapturedMeasurement();
-            if (openMeasurement == null) {
-                throw new NoSuchMeasurementException("Unable to close measurement as there is no open measurement");
+            final Measurement measurement = loadCurrentlyCapturedMeasurement();
+            if (measurement == null) {
+                throw new NoSuchMeasurementException("Unable to close measurement as there is no measurement");
             }
-            super.closeMeasurement(openMeasurement);
-
-            currentMeasurementIdentifier = null;
+            super.closeMeasurement(measurement);
+            currentMeasurement = null;
         }
     }
 
@@ -120,7 +116,7 @@ public class MeasurementPersistence extends Persistence {
             directionsFile = new DirectionsFile(context, measurementIdentifier);
         }
 
-        CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
+        final CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
                 callback);
         threadPool.submit(writer);
     }
@@ -140,52 +136,50 @@ public class MeasurementPersistence extends Persistence {
     }
 
     /**
-     * Provides the identifier of the measurement currently captured by the framework. This method should only be called
-     * if capturing is active. It throws an error otherwise.
+     * Loads the currently captured measurement and refreshes the {@link #currentMeasurement} pointer. This method
+     * should only be called if capturing is active. It throws an error otherwise.
      *
-     * @return The system wide unique identifier of the active measurement.
      * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
-     *             use
-     *             {@link #hasOpenMeasurement()} to check, whether there is an actual open measurement.
+     *             use {@link #hasMeasurement(Measurement.MeasurementStatus)}} to check whether there is an actual
+     *             {@link Measurement.MeasurementStatus#OPEN} measurement.
      */
-    private long refreshIdentifierOfCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
-        Log.d(TAG, "Trying to load measurement identifier from persistence layer!");
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
+    private void refreshCurrentlyCapturedMeasurementPointer() throws NoSuchMeasurementException {
+        Log.d(TAG, "Trying to load currently captured measurement from persistence layer!");
+        final List<Measurement> openMeasurements = loadMeasurements(Measurement.MeasurementStatus.OPEN);
 
-        if (openMeasurementDirs.length == 0) {
+        if (openMeasurements.size() == 0) {
             throw new NoSuchMeasurementException("No open measurement found!");
         }
-        if (openMeasurementDirs.length > 1) {
+        if (openMeasurements.size() > 1) {
             throw new IllegalStateException("More than one measurement is open.");
         }
 
-        currentMeasurementIdentifier = Long.parseLong(openMeasurementDirs[0].getName());
-        Log.d(TAG, "Providing measurement identifier " + currentMeasurementIdentifier);
-        return currentMeasurementIdentifier;
+        currentMeasurement = openMeasurements.get(0);
+        Log.d(TAG, "Refreshed currently captured measurement pointer: " + currentMeasurement.getIdentifier());
     }
 
     /**
-     * Loads the identifier of the current measurement from the internal cache if possible, or from the persistence
-     * layer if an open measurement exists. If neither the cache nor the persistence layer have an open measurement this
-     * method returns <code>null</code>.
+     * Loads the current measurement from the internal cache if possible, or from the persistence layer if an open
+     * measurement exists. If neither the cache nor the persistence layer have an open measurement this method returns
+     * <code>null</code>.
      *
-     * @return The identifier of the currently captured measurement or <code>null</code> if none exists.
+     * @return The currently captured measurement or <code>null</code> if none exists.
+     * @throws NoSuchMeasurementException when there is no active measurement
      */
-    public @Nullable Measurement loadCurrentlyCapturedMeasurement() {
+    public @Nullable Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
         Log.d(TAG, "loadCurrentlyCapturedMeasurement ...");
-        try {
-            synchronized (this) {
-                if (currentMeasurementIdentifier != null) {
-                    return new Measurement(currentMeasurementIdentifier);
-                } else if (hasOpenMeasurement()) {
-                    return new Measurement(refreshIdentifierOfCurrentlyCapturedMeasurement());
-                } else {
-                    return null;
-                }
+
+        synchronized (this) {
+            final boolean hasUnfinishedMeasurement = hasMeasurement(Measurement.MeasurementStatus.OPEN)
+                    || hasMeasurement(Measurement.MeasurementStatus.PAUSED);
+            if (currentMeasurement == null && hasUnfinishedMeasurement) {
+                refreshCurrentlyCapturedMeasurementPointer();
+                Validate.isTrue(currentMeasurement != null);
             }
-        } catch (NoSuchMeasurementException e) {
-            Log.w(TAG, "Trying to load measurement identifier while no measurement was open!");
-            return null;
+            if (currentMeasurement == null) {
+                return null;
+            }
+            return currentMeasurement;
         }
     }
 
@@ -205,30 +199,50 @@ public class MeasurementPersistence extends Persistence {
     }
 
     /**
-     * Before starting or resuming a measurement we need to make sure that there are no corrupted measurements
-     * left in the /open/ folder. This can happen when the {@link DataCapturingBackgroundService} dies a devastating
-     * Exception-death and was not able to append the {@link MetaFile.PointMetaData} to the {@link MetaFile}.
+     * Before starting, resuming or synchronizing a measurement we need to make sure that there are no corrupted
+     * measurements left for a specific {@link Measurement.MeasurementStatus}. This can happen e.g. when the
+     * {@link DataCapturingBackgroundService} dies a devastating Exception-death and was not able to append the
+     * {@link MetaFile.PointMetaData} to the {@link MetaFile}.
+     *
+     * @param status The status of which all corrupted measurements are marked as
+     *            {@link Measurement.MeasurementStatus#CORRUPTED}
+     *
+     *            FIXME: after adding pause folder we might need to execute this method in the resume() method
      */
-    public void cleanCorruptedOpenMeasurements() {
-        final File[] openMeasurements = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        for (File measurementDir : openMeasurements) {
-            final int measurementId = Integer.parseInt(measurementDir.getName());
-            try {
-                MetaFile.deserialize(context, measurementId);
-            } catch (final FileCorruptedException e) {
-                // Expected, we want to mark such measurements as corrupted
+    public void markCorruptedMeasurements(@NonNull final Measurement.MeasurementStatus status) {
 
-                Log.d(TAG, "Moving corrupted measurement: " + measurementId);
-                Validate.isTrue(corruptedMeasurementsDir.exists());
+        final List<Measurement> measurements = loadMeasurements(status);
+        for (Measurement measurement : measurements) {
+            switch (status) {
+                case OPEN:
+                    try {
+                        MetaFile.deserialize(context, measurement.getIdentifier());
+                    } catch (final FileCorruptedException e) {
+                        // This means the measurement is corrupted
+                        markAsCorrupted(measurement);
+                    }
+                    // Ignore non-broken OPEN measurements
+                    break;
 
-                // Move measurement to corrupted dir
-                final File corruptedMeasurementDir = new File(fileUtils.getCorruptedFolderName(measurementId));
-                if (!measurementDir.renameTo(corruptedMeasurementDir)) {
-                    throw new IllegalStateException("Failed to clean up corrupted measurement by moving dir: "
-                            + measurementDir.getAbsolutePath() + " -> " + corruptedMeasurementDir.getAbsolutePath());
-                }
+                default:
+                    throw new IllegalStateException("Not yet implemented"); // FIXME
             }
-            // Ignore non-broken measurements in open dir (e.g. paused measurements)
+        }
+    }
+
+    /**
+     * Marks an already as corrupted identified {@link Measurement} as {@link Measurement.MeasurementStatus#CORRUPTED}.
+     *
+     * @param measurement The measurement to mark.
+     * @throws IllegalStateException when the measurement could not be moved to the corrupted folder.
+     */
+    private void markAsCorrupted(@NonNull final Measurement measurement) {
+        Log.d(TAG, "Moving corrupted measurement: " + measurement.getMeasurementFolder());
+        final File targetMeasurementFolder = FileUtils.generateMeasurementFolderPath(context,
+                Measurement.MeasurementStatus.CORRUPTED, measurement.getIdentifier());
+        if (!measurement.getMeasurementFolder().renameTo(targetMeasurementFolder)) {
+            throw new IllegalStateException("Failed to clean up corrupted measurement by moving dir: "
+                    + measurement.getMeasurementFolder().getPath() + " to " + targetMeasurementFolder.getPath());
         }
     }
 }

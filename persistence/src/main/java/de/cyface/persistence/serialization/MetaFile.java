@@ -10,9 +10,11 @@ import java.io.IOException;
 
 import android.content.Context;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.utils.Validate;
 
 /**
  * The file format to persist meta information of a measurement.
@@ -28,6 +30,10 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
      */
     private final File file;
     /**
+     * The {@link Measurement} to which this file is part of.
+     */
+    private final Measurement measurement;
+    /**
      * The name of the file containing the data
      */
     public static final String FILE_NAME = "m";
@@ -37,12 +43,14 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
     public static final String FILE_EXTENSION = "cyfm";
 
     /**
-     * @param context The {@link Context} required to access the persistence layer.
-     * @param measurementId The identifier of the measurement
+     * @param file The {@link File} pointer to the actual file which must already exist.
+     * @param measurement The {@link Measurement} to which this file is part of.
      * @param vehicle The {@link Vehicle} used in the measurement
      */
-    public MetaFile(final Context context, final long measurementId, final Vehicle vehicle) {
-        this.file = new FileUtils(context).createFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    public MetaFile(@NonNull final File file, @NonNull final Measurement measurement, @NonNull final Vehicle vehicle) {
+        Validate.isTrue(file.exists());
+        this.file = file;
+        this.measurement = measurement;
         // In case the PointMetaData is not persisted as the end of the capturing, appending the
         // vehicle at the beginning of the capturing allows to restore the corrupted data later on
         write(vehicle);
@@ -78,8 +86,8 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         append(data, file);
     }
 
-    private static File loadFile(final Context context, final long measurementId) {
-        return new FileUtils(context).getFile(measurementId, FILE_NAME, FILE_EXTENSION);
+    public File getFile() {
+        return file;
     }
 
     /**

@@ -1,6 +1,12 @@
 package de.cyface.persistence;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.FileUtils.getMeasurementsFolder;
+import static de.cyface.persistence.model.Measurement.MeasurementStatus.CORRUPTED;
+import static de.cyface.persistence.model.Measurement.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.Measurement.MeasurementStatus.OPEN;
+import static de.cyface.persistence.model.Measurement.MeasurementStatus.PAUSED;
+import static de.cyface.persistence.model.Measurement.MeasurementStatus.SYNCED;
 import static de.cyface.persistence.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.serialization.MeasurementSerializer.serialize;
 
@@ -10,6 +16,7 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.util.ArrayList;
+import java.util.Arrays;
 import java.util.List;
 import java.util.UUID;
 import java.util.zip.Deflater;
@@ -38,7 +45,7 @@ import de.cyface.utils.Validate;
  * <code>SyncAdapter</code> and its delegate objects.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 2.0.0
  * @since 3.0.0
  */
 public class Persistence {
@@ -51,26 +58,6 @@ public class Persistence {
      * The authority used to identify the Android content provider to persist data to or load it from.
      */
     private final String authority;
-    /**
-     * The {@link File} pointing to the directory containing open measurements.
-     */
-    protected final File openMeasurementsDir;
-    /**
-     * The {@link File} pointing to the directory containing finished measurements.
-     */
-    private final File finishedMeasurementsDir;
-    /**
-     * The {@link File} pointing to the directory containing corrupted measurements.
-     */
-    protected final File corruptedMeasurementsDir;
-    /**
-     * The {@link File} pointing to the directory containing synchronized measurements.
-     */
-    private final File synchronizedMeasurementsDir;
-    /**
-     * Utility class to locate the directory and file paths used for persistence.
-     */
-    protected final FileUtils fileUtils;
     /**
      * The {@link Context} required to access the persistence layer.
      */
@@ -86,11 +73,11 @@ public class Persistence {
         this.resolver = context.getContentResolver();
         this.authority = authority;
         this.context = context;
-        this.fileUtils = new FileUtils(context);
-        this.openMeasurementsDir = new File(fileUtils.getOpenMeasurementsDirPath());
-        this.finishedMeasurementsDir = new File(fileUtils.getFinishedMeasurementsDirPath());
-        this.corruptedMeasurementsDir = new File(fileUtils.getCorruptedMeasurementsDirPath());
-        this.synchronizedMeasurementsDir = new File(fileUtils.getSynchronizedMeasurementsDirPath());
+        final File openMeasurementsDir = getMeasurementsFolder(context, OPEN);
+        final File finishedMeasurementsDir = getMeasurementsFolder(context, FINISHED);
+        final File corruptedMeasurementsDir = getMeasurementsFolder(context, Measurement.MeasurementStatus.CORRUPTED);
+        final File synchronizedMeasurementsDir = getMeasurementsFolder(context, Measurement.MeasurementStatus.SYNCED);
+        // FIXME: add paused folder
 
         // Ensure measurements dir exist
         if (!openMeasurementsDir.exists()) {
@@ -105,275 +92,191 @@ public class Persistence {
         if (!corruptedMeasurementsDir.exists()) {
             Validate.isTrue(corruptedMeasurementsDir.mkdirs(), "Unable to create directory");
         }
+        // FIXME: add paused folder
     }
 
     /**
-     * Creates a new {@link Measurement} for the provided {@link Vehicle}.
+     * Creates a new, {@link Measurement.MeasurementStatus#OPEN}, {@link Measurement}.
      *
      * @param vehicle The vehicle to create a new measurement for.
      * @return The newly created <code>Measurement</code>.
      */
     public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
         final long measurementId;
+        // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
             Log.d(TAG, "Trying to load measurement identifier from content provider!");
-            Cursor measurementIdentifierQueryCursor = null;
-            try {
-                // Read get measurement id from database
-                synchronized (this) {
-                    measurementIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
-                            new String[] {IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID}, null, null, null);
-                    // This can be null, see documentation
-                    if (measurementIdentifierQueryCursor == null) {
-                        throw new IllegalStateException("Unable to query for next measurement identifier!");
-                    }
-                    if (measurementIdentifierQueryCursor.getCount() > 1) {
-                        throw new IllegalStateException("More entries than expected");
-                    }
-                    if (!measurementIdentifierQueryCursor.moveToFirst()) {
-                        throw new IllegalStateException("Unable to get next measurement id!");
-                    }
-                    final int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
-                            .getColumnIndex(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID);
-                    measurementId = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
-                    Log.d(TAG, "Providing measurement identifier " + measurementId);
-                }
+            measurementId = loadNextMeasurementId();
 
-                // Update measurement id counter
-                final ContentValues values = new ContentValues();
-                values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, measurementId + 1);
-                final int updatedRows = resolver.update(getIdentifierUri(authority), values, null, null);
-                Validate.isTrue(updatedRows == 1);
-                Log.d(TAG, "Incremented mid counter to " + (measurementId + 1));
-            } finally {
-                // This can be null, see documentation
-                if (measurementIdentifierQueryCursor != null) {
-                    measurementIdentifierQueryCursor.close();
-                }
-            }
+            // Update measurement id counter - must be synchronized
+            final ContentValues values = new ContentValues();
+            values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, measurementId + 1);
+            final int updatedRows = resolver.update(getIdentifierUri(authority), values, null, null);
+            Validate.isTrue(updatedRows == 1);
+            Log.d(TAG, "Incremented mid counter to " + (measurementId + 1));
         }
 
-        final File dir = fileUtils.getAndCreateDirectory(measurementId);
-        Validate.isTrue(dir.exists(), "Measurement directory not created");
-        new MetaFile(context, measurementId, vehicle);
-        return new Measurement(measurementId);
+        final Measurement measurement = new Measurement(context, measurementId, OPEN);
+        measurement.createDirectory();
+        measurement.createMetaFile(vehicle);
+        // FIXME: update other new metafile code section, too
+        return measurement;
     }
 
     /**
-     * Close the specified {@link Measurement}.
-     * (!) Attention: This only moved the measurement to the finished folder. The
-     * <code>DataCapturingBackgroundService</code> must have stopped normally in advance in order for the point counts
-     * to be written into the {@link MetaFile}. Else, the file is seen as corrupted.
-     */
-    public void closeMeasurement(@NonNull final Measurement openMeasurement) {
-        Log.d(TAG, "Closing measurement: " + openMeasurement.getIdentifier());
-        synchronized (this) {
-            Validate.isTrue(openMeasurementsDir.exists());
-
-            // Ensure closed measurement dir exists
-            final File closedMeasurement = new File(fileUtils.getFinishedFolderName(openMeasurement.getIdentifier()));
-            if (!closedMeasurement.getParentFile().exists()) {
-                if (!closedMeasurement.getParentFile().mkdirs()) {
-                    throw new IllegalStateException("Unable to create directory for finished measurement data: "
-                            + closedMeasurement.getParentFile().getAbsolutePath());
-                }
-            }
-
-            // Move measurement to closed dir
-            final File openMeasurementDir = new File(fileUtils.getOpenFolderName(openMeasurement.getIdentifier()));
-            if (!openMeasurementDir.renameTo(closedMeasurement)) {
-                throw new IllegalStateException("Failed to finish measurement by moving dir: "
-                        + openMeasurementDir.getAbsolutePath() + " -> " + closedMeasurement.getAbsolutePath());
-            }
-        }
-    }
-
-    /**
-     * Returns all measurements currently on this device. This includes currently running ones, paused, finished and
-     * corrupted measurements.
+     * Loads the next measurement id available for a new measurement.
      *
-     * @return All (open and finished) measurements currently in the local persistent data storage.
+     * @return the next available measurement id
+     */
+    private long loadNextMeasurementId() {
+        final long measurementId;
+        Cursor measurementIdentifierQueryCursor = null;
+        try {
+            // Read get measurement id from database
+            synchronized (this) {
+                measurementIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
+                        new String[] {IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID}, null, null, null);
+                // This can be null, see documentation
+                if (measurementIdentifierQueryCursor == null) {
+                    throw new IllegalStateException("Unable to query for next measurement identifier!");
+                }
+                if (measurementIdentifierQueryCursor.getCount() > 1) {
+                    throw new IllegalStateException("More entries than expected");
+                }
+                if (!measurementIdentifierQueryCursor.moveToFirst()) {
+                    throw new IllegalStateException("Unable to get next measurement id!");
+                }
+                final int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
+                        .getColumnIndex(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID);
+                measurementId = measurementIdentifierQueryCursor.getLong(indexOfMeasurementIdentifierColumn);
+                Log.d(TAG, "Providing measurement identifier " + measurementId);
+            }
+        } finally {
+            // This can be null, see documentation
+            if (measurementIdentifierQueryCursor != null) {
+                measurementIdentifierQueryCursor.close();
+            }
+        }
+        return measurementId;
+    }
+
+    /**
+     * Closes the specified {@link Measurement} which is currently {@link Measurement.MeasurementStatus#OPEN} or
+     * {@link Measurement.MeasurementStatus#PAUSED}.
+     *
+     * (!) Attention: See {@link Measurement#setStatus(Measurement.MeasurementStatus)}
+     *
+     * @throws IllegalStateException when the {@param measurement} was not open or paused.
+     */
+    public void closeMeasurement(@NonNull final Measurement measurement) {
+        Validate.isTrue(measurement.getStatus() == OPEN | measurement.getStatus() == PAUSED);
+
+        Log.d(TAG, "Closing measurement: " + measurement.getIdentifier());
+        measurement.setStatus(FINISHED);
+    }
+
+    /**
+     * Returns all {@link Measurement}s. If you only want measurements of a specific
+     * {@link Measurement.MeasurementStatus} call {@link #loadMeasurements(Measurement.MeasurementStatus)} instead.
+     *
+     * @return All measurements currently in the local persistent data storage.
      */
     public @NonNull List<Measurement> loadMeasurements() {
         final List<Measurement> measurements = new ArrayList<>();
-        measurements.addAll(loadOpenMeasurements());
-        measurements.addAll(loadFinishedMeasurements());
-        measurements.addAll(loadSyncedMeasurements());
-        measurements.addAll(loadCorruptedMeasurements());
-        // FIXME: add pause
+        measurements.addAll(loadMeasurements(OPEN));
+        measurements.addAll(loadMeasurements(PAUSED));
+        measurements.addAll(loadMeasurements(FINISHED));
+        measurements.addAll(loadMeasurements(SYNCED));
+        measurements.addAll(loadMeasurements(CORRUPTED));
         return measurements;
     }
 
     /**
-     * Provide one specific measurement from the data storage if it exists, no matter in which state.
+     * Loads all {@link Measurement}s in a given {@link Measurement.MeasurementStatus}.
+     *
+     * @param status The status of the measurements to return
+     * @return The measurements which are in the given status
+     */
+    public List<Measurement> loadMeasurements(@NonNull final Measurement.MeasurementStatus status) {
+        final File measurementsFolder = getMeasurementsFolder(context, status);
+        final File[] measurementFolders = measurementsFolder.listFiles(FileUtils.directoryFilter());
+
+        final List<Measurement> measurements = new ArrayList<>();
+        for (File measurement : measurementFolders) {
+            final long measurementId = Long.parseLong(measurement.getName());
+            measurements.add(new Measurement(context, measurementId, status));
+        }
+
+        return measurements;
+    }
+
+    /**
+     * Provide one specific measurement from the data storage if it exists.
      *
      * @param measurementIdentifier The device wide unique identifier of the measurement to load.
      * @return The loaded measurement if it exists; <code>null</code> otherwise.
+     *
+     *         // FIXME: currently only finds open and finished measurements, see #loadMeasurements()
      */
     public Measurement loadMeasurement(final long measurementIdentifier) {
-        return loadMeasurement(measurementIdentifier, loadMeasurements());
-    }
-
-    /**
-     * Load one specific measurement from the provided list of measurements.
-     *
-     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
-     * @param measurements The list of measurements in which the measurement to be loaded is searched
-     * @return The loaded measurement if it exists; <code>null</code> otherwise.
-     */
-    private Measurement loadMeasurement(final long measurementIdentifier, final List<Measurement> measurements) {
-        final List<Measurement> matches = new ArrayList<>();
-        for (Measurement measurement : measurements) {
+        final List<Measurement> measurements = new ArrayList<>();
+        for (Measurement measurement : loadMeasurements()) {
             if (measurement.getIdentifier() == measurementIdentifier) {
-                matches.add(measurement);
+                measurements.add(measurement);
             }
         }
-        if (matches.size() == 1) {
-            return matches.get(0);
+
+        if (measurements.size() > 1) {
+            throw new IllegalStateException("Too many measurements loaded with id: " + measurementIdentifier);
         }
-        if (matches.size() == 0) {
+
+        if (measurements.size() == 1) {
+            return measurements.get(0);
+        } else {
             return null;
         }
-        throw new IllegalStateException("Multiple measurements found with id: " + measurementIdentifier);
     }
 
     /**
-     * Loads only the {@link Measurement} instances of a defined state from the local persistent data storage.
+     * Provide one specific measurement from the data storage if it exists. Makes sure it's in the expected status.
      *
-     * @param measurementsParentDir A directory which contains measurement directories, e.g. measurements/open/
-     * @return All the finished measurements from the local persistent data storage.
+     * @param measurementIdentifier The device wide unique identifier of the {@link Measurement} to load.
+     * @param status The expected {@link Measurement.MeasurementStatus} of the measurement to load.
+     * @return The loaded measurement if it exists; <code>null</code> otherwise.
+     * @throws IllegalStateException if the measurement is in the wrong state.
      */
-    public List<Measurement> loadMeasurements(final File measurementsParentDir) {
-        final List<Measurement> measurements = new ArrayList<>();
-
-        final File[] measurementDirs = measurementsParentDir.listFiles(FileUtils.directoryFilter());
-
-        for (File measurement : measurementDirs) {
-            final long measurementId = Long.parseLong(measurement.getName());
-            measurements.add(new Measurement(measurementId));
+    public Measurement loadMeasurement(final long measurementIdentifier,
+            @NonNull final Measurement.MeasurementStatus status) {
+        final Measurement measurement = loadMeasurement(measurementIdentifier);
+        if (measurement == null) {
+            return null;
         }
 
-        return measurements;
+        Validate.isTrue(measurement.getStatus() == status);
+        return measurement;
     }
 
     /**
-     * Loads only the finished {@link Measurement} instances from the local persistent data storage. Finished
-     * measurements are the ones not currently capturing or paused.
+     * Provides information about whether there is {@link Measurement} if a specified
+     * {@link Measurement.MeasurementStatus}.
      *
-     * @return All the finished measurements from the local persistent data storage.
+     * @param status The status for which to check if there are measurements
+     * @return <code>true</code> if a measurement of the {@param status} exists.
      */
-    public List<Measurement> loadFinishedMeasurements() {
-        return loadMeasurements(finishedMeasurementsDir);
-    }
-
-    /**
-     * Loads only the open {@link Measurement} instances from the local persistent data storage. Open
-     * measurements are the ones currently capturing or paused. If the <code>DataCapturingBackgroundService</code>
-     * stopped unexpectedly there can also be corrupted open measurements, see
-     * <code>MeasurementPersistence#cleanCorruptedOpenMeasurements()</code>
-     *
-     * @return All the open measurements from the local persistent data storage.
-     */
-    public List<Measurement> loadOpenMeasurements() {
-        return loadMeasurements(openMeasurementsDir);
-    }
-
-    /**
-     * Provides information about whether there is a currently finished measurement or not.
-     *
-     * @param measurementsParentDir A directory which contains measurement directories, e.g. measurements/open/
-     * @return <code>true</code> if a measurement is finished; <code>false</code> otherwise.
-     */
-    public boolean hasMeasurement(final File measurementsParentDir) {
-        final File[] measurementDirs = measurementsParentDir.listFiles(FileUtils.directoryFilter());
+    public boolean hasMeasurement(@NonNull final Measurement.MeasurementStatus status) {
+        final File measurementsFolder = getMeasurementsFolder(context, status);
+        final File[] measurementFolders = measurementsFolder.listFiles(FileUtils.directoryFilter());
 
         boolean hasMeasurement = false;
-        if (measurementDirs != null) {
-            if (measurementDirs.length >= 1) {
+        if (measurementFolders != null) {
+            if (measurementFolders.length >= 1) {
                 hasMeasurement = true;
             }
         }
+
+        Log.d(TAG, hasMeasurement ? "One or more measurements of status " + status + " exist."
+                : "No measurement of status " + status + "exist.");
         return hasMeasurement;
-    }
-
-    /**
-     * Provides information about whether there is a currently measurement or a specific state.
-     *
-     * @return <code>true</code> if a measurement is finished; <code>false</code> otherwise.
-     */
-    public boolean hasFinishedMeasurement() {
-        boolean hasFinishedMeasurement = hasMeasurement(finishedMeasurementsDir);
-        Log.d(TAG, hasFinishedMeasurement ? "One or more measurement is ready for synchronization"
-                : "No measurement is ready for synchronization.");
-        return hasFinishedMeasurement;
-    }
-
-    /**
-     * Provides information about whether there is a currently synchronized measurement or not.
-     *
-     * @return <code>true</code> if a measurement is synchronized; <code>false</code> otherwise.
-     */
-    public boolean hasSyncedMeasurement() {
-        return hasMeasurement(synchronizedMeasurementsDir);
-    }
-
-    /**
-     * Load one specific finished measurement from the data storage if it exists.
-     *
-     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
-     * @return The loaded measurement if it exists; <code>null</code> otherwise.
-     */
-    public Measurement loadFinishedMeasurement(final long measurementIdentifier) {
-        return loadMeasurement(measurementIdentifier, loadFinishedMeasurements());
-    }
-
-    /**
-     * Provides information about whether there is a currently open measurement or not.
-     *
-     * @return <code>true</code> if a measurement is open; <code>false</code> otherwise.
-     */
-    public boolean hasOpenMeasurement() {
-        final boolean hasOpenMeasurement = hasMeasurement(openMeasurementsDir);
-        Log.d(TAG, hasOpenMeasurement ? "One measurement is open." : "No measurement is open.");
-        return hasOpenMeasurement;
-    }
-
-    /**
-     * Load one specific synced measurement from the data storage if it exists.
-     *
-     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
-     * @return The loaded measurement if it exists; <code>null</code> otherwise.
-     */
-    public Measurement loadSyncedMeasurement(final long measurementIdentifier) {
-        return loadMeasurement(measurementIdentifier, loadSyncedMeasurements());
-    }
-
-    /**
-     * Provide one specific open measurement from the data storage if it exists.
-     *
-     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
-     * @return The loaded measurement if it exists; <code>null</code> otherwise.
-     */
-    public Measurement loadOpenMeasurement(final long measurementIdentifier) {
-        return loadMeasurement(measurementIdentifier, loadOpenMeasurements());
-    }
-
-    /**
-     * Loads only the synchronized {@link Measurement} instances from the local persistent data storage.
-     *
-     * @return All the synchronized measurements from the local persistent data storage.
-     */
-    public List<Measurement> loadSyncedMeasurements() {
-        return loadMeasurements(synchronizedMeasurementsDir);
-    }
-
-    /**
-     * Loads only the corrupted {@link Measurement} instances from the local persistent data storage.
-     *
-     * @return All the corrupted measurements from the local persistent data storage.
-     */
-    public List<Measurement> loadCorruptedMeasurements() {
-        return loadMeasurements(corruptedMeasurementsDir);
     }
 
     /**
@@ -446,25 +349,17 @@ public class Persistence {
     }
 
     /**
-     * Marks a finished {@link Measurement} as synchronized and deletes the sensor data.
+     * Marks a {@link Measurement.MeasurementStatus#FINISHED} {@link Measurement} as
+     * {@link Measurement.MeasurementStatus#SYNCED} and deletes the sensor data.
      *
      * @param measurement The measurement to remove.
      */
     public void markAsSynchronized(final @NonNull Measurement measurement) {
+        Validate.isTrue(measurement.getStatus() == FINISHED);
+        measurement.setStatus(Measurement.MeasurementStatus.SYNCED);
 
-        final File finishedMeasurementDir = new File(fileUtils.getFinishedFolderName(measurement.getIdentifier()));
-        if (!finishedMeasurementDir.exists()) {
-            throw new IllegalStateException(
-                    "Failed to remove non existent finished measurement: " + measurement.getIdentifier());
-        }
-
-        // Move measurement to synced dir
-        final File syncedMeasurementDir = new File(fileUtils.getSyncedFolderName(measurement.getIdentifier()));
-        if (!finishedMeasurementDir.renameTo(syncedMeasurementDir)) {
-            throw new IllegalStateException("Failed to move measurement: " + finishedMeasurementDir.getAbsolutePath()
-                    + " -> " + syncedMeasurementDir.getAbsolutePath());
-        }
-
+        // FIXME: for movebis we only delete sensor data not GPS points (+move to synchronized)
+        // how do we want to handle this on Cyface ?
         final MetaFile.MetaData metaData;
         try {
             metaData = MetaFile.deserialize(context, measurement.getIdentifier());
@@ -542,66 +437,50 @@ public class Persistence {
      * @return number of measurement directories removed.
      */
     public int clear() {
-        int ret = 0;
-        final File[] finishedMeasurementDirs = finishedMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        final File[] openMeasurementDirs = openMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        final File[] corruptedMeasurementDirs = corruptedMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        final File[] syncedMeasurementDirs = synchronizedMeasurementsDir.listFiles(FileUtils.directoryFilter());
-        for (File dir : finishedMeasurementDirs) {
+        final List<File> measurementFolders = new ArrayList<>();
+        measurementFolders
+                .addAll(Arrays.asList(getMeasurementsFolder(context, OPEN).listFiles(FileUtils.directoryFilter())));
+        measurementFolders
+                .addAll(Arrays.asList(getMeasurementsFolder(context, FINISHED).listFiles(FileUtils.directoryFilter())));
+        measurementFolders.addAll(Arrays.asList(getMeasurementsFolder(context, Measurement.MeasurementStatus.SYNCED)
+                .listFiles(FileUtils.directoryFilter())));
+        measurementFolders.addAll(Arrays.asList(getMeasurementsFolder(context, Measurement.MeasurementStatus.CORRUPTED)
+                .listFiles(FileUtils.directoryFilter())));
+        // FIXME: add paused
+
+        for (File dir : measurementFolders) {
             for (File file : dir.listFiles()) {
                 Validate.isTrue(file.delete());
             }
             Validate.isTrue(dir.delete());
         }
-        ret += finishedMeasurementDirs.length;
-        for (File dir : openMeasurementDirs) {
-            for (File file : dir.listFiles()) {
-                Validate.isTrue(file.delete());
-            }
-            Validate.isTrue(dir.delete());
-        }
-        ret += openMeasurementDirs.length;
-        for (File dir : corruptedMeasurementDirs) {
-            for (File file : dir.listFiles()) {
-                Validate.isTrue(file.delete());
-            }
-            Validate.isTrue(dir.delete());
-        }
-        ret += corruptedMeasurementDirs.length;
-        for (File dir : syncedMeasurementDirs) {
-            for (File file : dir.listFiles()) {
-                Validate.isTrue(file.delete());
-            }
-            Validate.isTrue(dir.delete());
-        }
-        ret += syncedMeasurementDirs.length;
-        return ret;
+        return measurementFolders.size();
     }
 
     /**
      * Removes one finished {@link Measurement} from the local persistent data storage.
      *
      * @param measurement The measurement to remove.
+     * @throws IllegalStateException if the measurement folder does not exist or if the folder or it's files could not
+     *             be removed.
      */
     public void delete(final @NonNull Measurement measurement) {
 
-        final File measurementDir = new File(fileUtils.getFinishedFolderName(measurement.getIdentifier()));
+        final File measurementDir = measurement.getMeasurementFolder();
         if (!measurementDir.exists()) {
-            throw new IllegalStateException(
-                    "Failed to remove non existent *finished* measurement: " + measurement.getIdentifier());
+            throw new IllegalStateException("Failed to remove non existent measurement: " + measurementDir.getPath());
         }
 
         final File[] files = measurementDir.listFiles();
         for (File file : files) {
             final boolean success = file.delete();
             if (!success) {
-                throw new IllegalStateException("Failed to remove file: " + file);
+                throw new IllegalStateException("Failed to remove file: " + file.getParent());
             }
         }
         final boolean dirDeleted = measurementDir.delete();
         if (!dirDeleted) {
-            throw new IllegalStateException(
-                    "Failed to delete finished measurement dir: " + measurement.getIdentifier());
+            throw new IllegalStateException("Failed to delete measurement dir: " + measurementDir.getPath());
         }
     }
 
@@ -622,10 +501,6 @@ public class Persistence {
 
         // Load file with geolocations
         return GeoLocationsFile.deserialize(context, measurement.getIdentifier());
-    }
-
-    public ContentResolver getResolver() {
-        return resolver;
     }
 
     public Context getContext() {
