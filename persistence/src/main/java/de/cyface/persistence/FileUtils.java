@@ -16,7 +16,7 @@ import de.cyface.persistence.model.Measurement;
  * Utility class containing file methods used by multiple classes.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.1.0
  * @since 3.0.0
  */
 public final class FileUtils {
@@ -78,11 +78,9 @@ public final class FileUtils {
         switch (status) {
             case OPEN:
                 folderName = "open";
-                // FIXME: I think it's cleaner to move paused measurements to a "paused" folder !!
                 break;
             case PAUSED:
-                // FIXME
-                folderName = "open";
+                folderName = "paused";
                 break;
             case SYNCED:
                 folderName = "synced";

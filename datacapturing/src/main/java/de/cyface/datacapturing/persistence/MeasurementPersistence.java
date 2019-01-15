@@ -2,7 +2,6 @@ package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.Constants.TAG;
 
-import java.io.File;
 import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -14,7 +13,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
@@ -83,9 +81,9 @@ public class MeasurementPersistence extends Persistence {
     }
 
     /**
-     * Close the currently active {@link Measurement}.
+     * Finish the currently active {@link Measurement}.
      */
-    public void closeRecentMeasurement() throws NoSuchMeasurementException {
+    public void finishRecentMeasurement() throws NoSuchMeasurementException {
         synchronized (this) {
             final Measurement measurement = loadCurrentlyCapturedMeasurement();
             if (measurement == null) {
@@ -146,8 +144,8 @@ public class MeasurementPersistence extends Persistence {
      */
     private void refreshCurrentlyCapturedMeasurementPointer() throws NoSuchMeasurementException {
         Log.d(TAG, "Trying to load currently captured measurement from persistence layer!");
-        final List<Measurement> openMeasurements = loadMeasurements(Measurement.MeasurementStatus.OPEN);
 
+        final List<Measurement> openMeasurements = loadMeasurements(Measurement.MeasurementStatus.OPEN);
         if (openMeasurements.size() == 0) {
             throw new NoSuchMeasurementException("No open measurement found!");
         }
@@ -156,7 +154,7 @@ public class MeasurementPersistence extends Persistence {
         }
 
         currentMeasurement = openMeasurements.get(0);
-        Log.d(TAG, "Refreshed currently captured measurement pointer: " + currentMeasurement.getIdentifier());
+        Log.d(TAG, "Refreshed currentMeasurement to: " + currentMeasurement.getIdentifier());
     }
 
     /**
@@ -200,50 +198,30 @@ public class MeasurementPersistence extends Persistence {
     }
 
     /**
-     * Before starting, resuming or synchronizing a measurement we need to make sure that there are no corrupted
-     * measurements left for a specific {@link Measurement.MeasurementStatus}. This can happen e.g. when the
-     * {@link DataCapturingBackgroundService} dies a devastating Exception-death and was not able to append the
-     * {@link MetaFile.PointMetaData} to the {@link MetaFile}.
+     * Before starting, resuming or synchronizing a measurement we make sure that there are no corrupted measurements
+     * left for a specific {@link Measurement.MeasurementStatus}.
+     * This can happen when the {@link DataCapturingBackgroundService} dies with a hard exception and, thus, did not
+     * append the {@link MetaFile.PointMetaData} to the {@link MetaFile} (i.e. there is a dead "OPEN" measurement).
+     *
+     * TODO: should we add markCorruptedMeasurements(FINISHED) before sync (if sync crashed while deleting a m)?
      *
      * @param status The status of which all corrupted measurements are marked as
      *            {@link Measurement.MeasurementStatus#CORRUPTED}
-     *
-     *            FIXME: after adding pause folder we might need to execute this method in the resume() method
      */
     public void markCorruptedMeasurements(@NonNull final Measurement.MeasurementStatus status) {
 
         final List<Measurement> measurements = loadMeasurements(status);
         for (Measurement measurement : measurements) {
-            switch (status) {
-                case OPEN:
-                    try {
-                        measurement.getMetaFile().deserialize();
-                    } catch (final FileCorruptedException e) {
-                        // This means the measurement is corrupted
-                        markAsCorrupted(measurement);
-                    }
-                    // Ignore non-broken OPEN measurements
-                    break;
+            Validate.isTrue(status == Measurement.MeasurementStatus.OPEN, "Unsupported case");
 
-                default:
-                    throw new IllegalStateException("Not yet implemented"); // FIXME
+            // Identify and mark dead "OPEN" measurements
+            try {
+                measurement.getMetaFile().deserialize();
+            } catch (final FileCorruptedException e) {
+                // This means the measurement is corrupted
+                Log.d(TAG, "Moving corrupted measurement: " + measurement.getMeasurementFolder());
+                measurement.setStatus(Measurement.MeasurementStatus.CORRUPTED);
             }
-        }
-    }
-
-    /**
-     * Marks an already as corrupted identified {@link Measurement} as {@link Measurement.MeasurementStatus#CORRUPTED}.
-     *
-     * @param measurement The measurement to mark.
-     * @throws IllegalStateException when the measurement could not be moved to the corrupted folder.
-     */
-    private void markAsCorrupted(@NonNull final Measurement measurement) {
-        Log.d(TAG, "Moving corrupted measurement: " + measurement.getMeasurementFolder());
-        final File targetMeasurementFolder = FileUtils.generateMeasurementFolderPath(context,
-                Measurement.MeasurementStatus.CORRUPTED, measurement.getIdentifier());
-        if (!measurement.getMeasurementFolder().renameTo(targetMeasurementFolder)) {
-            throw new IllegalStateException("Failed to clean up corrupted measurement by moving dir: "
-                    + measurement.getMeasurementFolder().getPath() + " to " + targetMeasurementFolder.getPath());
         }
     }
 }

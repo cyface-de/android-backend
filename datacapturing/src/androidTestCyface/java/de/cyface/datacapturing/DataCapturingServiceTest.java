@@ -52,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.0
+ * @version 5.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -148,7 +148,7 @@ public class DataCapturingServiceTest {
             ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
             assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
         }
-        new Persistence(context, context.getContentResolver(), AUTHORITY).clear();
+        new Persistence(context, AUTHORITY).clear();
     }
 
     /**
@@ -218,8 +218,8 @@ public class DataCapturingServiceTest {
 
     /**
      * Checks that a {@link DataCapturingService} actually started after calling the life-cycle method
-     * {@link DataCapturingService#startAsync(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
-     * {@link DataCapturingService#resumeAsync(StartUpFinishedHandler)}.
+     * {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
+     * {@link DataCapturingService#resume(StartUpFinishedHandler)}.
      *
      * This also updates the {@link #runningStatusCallback}.
      *
@@ -247,8 +247,8 @@ public class DataCapturingServiceTest {
 
     /**
      * Checks that a {@link DataCapturingService} actually stopped after calling the life-cycle method
-     * {@link DataCapturingService#stopAsync(ShutDownFinishedHandler)} or
-     * {@link DataCapturingService#pauseAsync(ShutDownFinishedHandler)}.
+     * {@link DataCapturingService#stop(ShutDownFinishedHandler)} or
+     * {@link DataCapturingService#pause(ShutDownFinishedHandler)}.
      *
      * This also updates the {@link #runningStatusCallback}.
      *
@@ -569,24 +569,23 @@ public class DataCapturingServiceTest {
         assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
 
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
-
-        // Check measurements
         assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(1)));
-        final List<Measurement> measurements = oocut.loadMeasurements();
-        assertThat(measurements.size() > 0, is(equalTo(true)));
 
         pauseAsyncAndCheckThatStopped(measurementIdentifier);
-
-        resumeAsyncAndCheckThatLaunched(measurementIdentifier);
-
-        // Check measurements again
-        assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.PAUSED).size(), is(equalTo(1)));
         assertThat(oocut.loadMeasurements().size(), is(equalTo(1)));
 
-        // oocut.stopSync();
+        resumeAsyncAndCheckThatLaunched(measurementIdentifier);
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.PAUSED).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements().size(), is(equalTo(1)));
+
         stopAsyncAndCheckThatStopped(measurementIdentifier);
-        assertThat(oocut.loadOpenMeasurements().size(), is(equalTo(0)));
-        assertThat(oocut.loadFinishedMeasurements().size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.PAUSED).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED).size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements().size(), is(equalTo(1)));
     }
 
     /**

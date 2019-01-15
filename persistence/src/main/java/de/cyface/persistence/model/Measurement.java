@@ -20,7 +20,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.1.0
  * @since 1.0.0
  */
 public final class Measurement {
@@ -51,8 +51,7 @@ public final class Measurement {
      * @param status The {@link MeasurementStatus} of the measurement tells weather the measurement is still capturing
      *            data, finished or similar.
      */
-    // FIXME: we should check somewhere (e.g. when creating/deleting a measurement that there is only one folder per
-    // measurement id)
+    // TODO: we should check somewhere (when creating/deleting a m?) that there is only one folder per measurement id)
     public Measurement(@NonNull final Context context, final long id, @NonNull final MeasurementStatus status) {
         this.id = id;
         this.status = status;
@@ -86,7 +85,7 @@ public final class Measurement {
      * must have stopped normally in advance in order for the point counts to be written into the {@link MetaFile}.
      * Else, the file is seen as corrupted.
      *
-     * Status life-cycle:
+     * Supported MeasurementStatus life-cycle:
      * - {@link Persistence#newMeasurement(Vehicle)} -> {@link MeasurementStatus#OPEN}
      *
      * - {@link MeasurementStatus#OPEN} -> {@link MeasurementStatus#PAUSED}
@@ -96,45 +95,29 @@ public final class Measurement {
      * - {@link MeasurementStatus#PAUSED} -> {@link MeasurementStatus#FINISHED}
      *
      * - {@link MeasurementStatus#FINISHED} -> {@link MeasurementStatus#SYNCED}
-     *
-     * - FIXME: -> CORRUPTED? - also in the code below
      */
     public void setStatus(@NonNull final MeasurementStatus newStatus) {
-        switch (status) {
-            case OPEN:
-                if (newStatus == MeasurementStatus.PAUSED) {
-                    move(newStatus);
-                    break;
-                }
-                if (newStatus == MeasurementStatus.FINISHED) {
-                    move(newStatus);
-                    break;
-                }
-                throw new IllegalStateException("Illegal MeasurementStatus life-cycle");
-            case PAUSED:
-                if (newStatus == MeasurementStatus.OPEN) {
-                    move(newStatus);
-                    break;
-                }
-                if (newStatus == MeasurementStatus.FINISHED) {
-                    move(newStatus);
-                    break;
-                }
-                throw new IllegalStateException("Illegal MeasurementStatus life-cycle");
-            case FINISHED:
-                if (newStatus == MeasurementStatus.SYNCED) {
-                    move(newStatus);
-                    break;
-                }
-                throw new IllegalStateException("Illegal MeasurementStatus life-cycle");
-            case SYNCED:
-                throw new IllegalStateException("Unsupported MeasurementStatus life-cycle");
-            case CORRUPTED:
-                throw new IllegalStateException("Unsupported MeasurementStatus life-cycle");
-            default:
-                throw new IllegalStateException("Undefined MeasurementState");
+        if (status == MeasurementStatus.SYNCED || status == MeasurementStatus.CORRUPTED) {
+            throw new IllegalStateException("Unsupported MeasurementStatus life-cycle");
         }
-        this.status = newStatus;
+
+        final boolean supportedOpenMeasurementLifeCycleFlow = status == MeasurementStatus.OPEN
+                && (newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.FINISHED
+                        || newStatus == MeasurementStatus.CORRUPTED);
+        final boolean supportedPausedMeasurementLifeCycleFlow = status == MeasurementStatus.PAUSED
+                && (newStatus == MeasurementStatus.OPEN || newStatus == MeasurementStatus.FINISHED);
+        final boolean supportedFinishedMeasurementLifeCycleFlow = status == MeasurementStatus.FINISHED
+                && (newStatus == MeasurementStatus.SYNCED);
+
+        if (supportedOpenMeasurementLifeCycleFlow || supportedPausedMeasurementLifeCycleFlow
+                || supportedFinishedMeasurementLifeCycleFlow) {
+            move(newStatus);
+            this.status = newStatus;
+            return;
+        }
+
+        throw new IllegalStateException("Illegal MeasurementStatus life-cycle");
+
     }
 
     /**

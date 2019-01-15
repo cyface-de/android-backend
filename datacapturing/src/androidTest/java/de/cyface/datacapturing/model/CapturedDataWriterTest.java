@@ -97,35 +97,34 @@ public class CapturedDataWriterTest {
      */
     @Test
     public void testCreateNewMeasurement() throws FileCorruptedException, NoSuchMeasurementException {
+
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
-        assertThat(measurement.getIdentifier() >= 0L, is(equalTo(true)));
+        assertThat(measurement.getIdentifier() > 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
-        List<Measurement> openMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN);
-        Measurement loadedOpenMeasurement = oocut.loadCurrentlyCapturedMeasurement();
-        assertThat(loadedOpenMeasurement, notNullValue());
-        assertThat(loadedOpenMeasurement.getIdentifier(), is(measurement.getIdentifier()));
-        assertThat(openMeasurements.size(), is(equalTo(1)));
+        Measurement currentlyCapturedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
+        assertThat(currentlyCapturedMeasurement, notNullValue());
+        assertThat(currentlyCapturedMeasurement.getIdentifier(), is(measurement.getIdentifier()));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(1)));
 
         // Write point counters to MetaFile
         measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 0, 0, 0));
 
-        // Close the measurement, load the closed measurement and check its properties
-        oocut.closeRecentMeasurement();
-        Measurement closedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
-        if (closedMeasurement == null) {
-            throw new IllegalStateException("Test failed because it was unable to load data from content provider.");
+        // Finish the measurement
+        oocut.finishRecentMeasurement();
+
+        // Load the finished measurement
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED).size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
+        Measurement loadedFinishedMeasurement = oocut.loadMeasurement(measurement.getIdentifier(),
+                Measurement.MeasurementStatus.FINISHED);
+        if (loadedFinishedMeasurement == null) {
+            throw new IllegalStateException("Test failed because it was unable to load data from persistence layer.");
         }
 
+        // Check that the vehicle id was stored correctly
         MetaFile.MetaData metaData = measurement.getMetaFile().deserialize();
-        assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
-
-        openMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN);
-        List<Measurement> finishedMeasurements = oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED);
-        assertThat(finishedMeasurements.size(), is(equalTo(1)));
-        assertThat(openMeasurements.size(), is(equalTo(0)));
-        metaData = measurement.getMetaFile().deserialize();
         assertThat(metaData.getVehicle().name(), is(equalTo(Vehicle.UNKNOWN.name())));
     }
 
@@ -233,11 +232,11 @@ public class CapturedDataWriterTest {
     public void testLoadMeasurements() throws NoSuchMeasurementException {
         Measurement measurement1 = oocut.newMeasurement(Vehicle.UNKNOWN);
         measurement1.getMetaFile().append(new MetaFile.PointMetaData(0, 0, 0, 0));
-        oocut.closeRecentMeasurement();
+        oocut.finishRecentMeasurement();
 
         Measurement measurement2 = oocut.newMeasurement(Vehicle.CAR);
         measurement2.getMetaFile().append(new MetaFile.PointMetaData(0, 0, 0, 0));
-        oocut.closeRecentMeasurement();
+        oocut.finishRecentMeasurement();
 
         List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(2)));
@@ -285,7 +284,7 @@ public class CapturedDataWriterTest {
         oocut.storeLocation(testLocation(), measurement);
 
         measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 3, 3, 3));
-        oocut.closeRecentMeasurement();
+        oocut.finishRecentMeasurement();
 
         oocut.delete(measurement);
 
@@ -302,7 +301,7 @@ public class CapturedDataWriterTest {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.storeLocation(testLocation(), measurement);
         measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 0, 0, 0));
-        oocut.closeRecentMeasurement();
+        oocut.finishRecentMeasurement();
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement loadedMeasurement : measurements) {
@@ -324,7 +323,7 @@ public class CapturedDataWriterTest {
 
                 if (oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN)) {
                     try {
-                        oocut.closeRecentMeasurement();
+                        oocut.finishRecentMeasurement();
                     } catch (NoSuchMeasurementException e) {
                         throw new IllegalStateException(e);
                     }

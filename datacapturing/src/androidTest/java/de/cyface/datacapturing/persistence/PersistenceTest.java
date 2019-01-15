@@ -34,9 +34,6 @@ import androidx.test.InstrumentationRegistry;
 import androidx.test.filters.MediumTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.MediumTest;
-import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.ServiceTestUtils;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
@@ -97,7 +94,7 @@ public class PersistenceTest {
         assertThat(oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN), is(equalTo(true)));
 
         try {
-            oocut.closeRecentMeasurement();
+            oocut.finishRecentMeasurement();
         } catch (NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
@@ -127,7 +124,7 @@ public class PersistenceTest {
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
         try {
-            oocut.closeRecentMeasurement();
+            oocut.finishRecentMeasurement();
         } catch (NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
@@ -160,7 +157,7 @@ public class PersistenceTest {
                 + (System.currentTimeMillis() - startTime) + " ms");
 
         measurement.getMetaFile().append(new MetaFile.PointMetaData(numberOftestEntries, 0, 0, 0));
-        oocut.closeRecentMeasurement();
+        oocut.finishRecentMeasurement();
 
         // Load entries again
         startTime = System.currentTimeMillis();

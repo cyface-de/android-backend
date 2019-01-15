@@ -45,7 +45,7 @@ import de.cyface.utils.Validate;
  * <code>SyncAdapter</code> and its delegate objects.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.2
  * @since 3.0.0
  */
 public class Persistence {
@@ -74,14 +74,17 @@ public class Persistence {
         this.authority = authority;
         this.context = context;
         final File openMeasurementsDir = getMeasurementsFolder(context, OPEN);
+        final File pausedMeasurementsDir = getMeasurementsFolder(context, PAUSED);
         final File finishedMeasurementsDir = getMeasurementsFolder(context, FINISHED);
         final File corruptedMeasurementsDir = getMeasurementsFolder(context, Measurement.MeasurementStatus.CORRUPTED);
         final File synchronizedMeasurementsDir = getMeasurementsFolder(context, Measurement.MeasurementStatus.SYNCED);
-        // FIXME: add paused folder
 
         // Ensure measurements dir exist
         if (!openMeasurementsDir.exists()) {
             Validate.isTrue(openMeasurementsDir.mkdirs(), "Unable to create directory");
+        }
+        if (!pausedMeasurementsDir.exists()) {
+            Validate.isTrue(pausedMeasurementsDir.mkdirs(), "Unable to create directory");
         }
         if (!synchronizedMeasurementsDir.exists()) {
             Validate.isTrue(synchronizedMeasurementsDir.mkdirs(), "Unable to create directory");
@@ -92,7 +95,6 @@ public class Persistence {
         if (!corruptedMeasurementsDir.exists()) {
             Validate.isTrue(corruptedMeasurementsDir.mkdirs(), "Unable to create directory");
         }
-        // FIXME: add paused folder
     }
 
     /**
@@ -163,7 +165,7 @@ public class Persistence {
      * Closes the specified {@link Measurement} which is currently {@link Measurement.MeasurementStatus#OPEN} or
      * {@link Measurement.MeasurementStatus#PAUSED}.
      *
-     * (!) Attention: See {@link Measurement#setStatus(Measurement.MeasurementStatus)}
+     * (!) Attention: See documentation of {@link Measurement#setStatus(Measurement.MeasurementStatus)}
      *
      * @throws IllegalStateException when the {@param measurement} was not open or paused.
      */
@@ -438,12 +440,13 @@ public class Persistence {
         measurementFolders
                 .addAll(Arrays.asList(getMeasurementsFolder(context, OPEN).listFiles(FileUtils.directoryFilter())));
         measurementFolders
+                .addAll(Arrays.asList(getMeasurementsFolder(context, PAUSED).listFiles(FileUtils.directoryFilter())));
+        measurementFolders
                 .addAll(Arrays.asList(getMeasurementsFolder(context, FINISHED).listFiles(FileUtils.directoryFilter())));
         measurementFolders.addAll(Arrays.asList(getMeasurementsFolder(context, Measurement.MeasurementStatus.SYNCED)
                 .listFiles(FileUtils.directoryFilter())));
         measurementFolders.addAll(Arrays.asList(getMeasurementsFolder(context, Measurement.MeasurementStatus.CORRUPTED)
                 .listFiles(FileUtils.directoryFilter())));
-        // FIXME: add paused
 
         for (File dir : measurementFolders) {
             for (File file : dir.listFiles()) {

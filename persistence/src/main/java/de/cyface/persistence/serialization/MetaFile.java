@@ -166,6 +166,7 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         }
 
         @Override
+        @NonNull
         public String toString() {
             return "PointMetaData{" + "countOfGeoLocations=" + countOfGeoLocations + ", countOfAccelerations="
                     + countOfAccelerations + ", countOfRotations=" + countOfRotations + ", countOfDirections="

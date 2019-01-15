@@ -235,6 +235,7 @@ public abstract class DataCapturingService {
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
+     * @throws IllegalStateException When there is still a paused measurement (wrong life-cycle)
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
@@ -253,10 +254,9 @@ public abstract class DataCapturingService {
             // Ensure there are no dead measurements in the open measurement folder
             persistenceLayer.markCorruptedMeasurements(Measurement.MeasurementStatus.OPEN);
 
-            // Ignore start command for paused measurements (wrong life-cycle call) TODO: is this the expected handling?
+            // Ensure there are no paused measurements (wrong life-cycle call)
             if (persistenceLayer.hasMeasurement(Measurement.MeasurementStatus.PAUSED)) {
-                Log.w(TAG, "Ignoring start() as there is a paused measurement which needs to be resumed first.");
-                return;
+                throw new IllegalStateException("Won't start new measurement as there is still a paused measurement!");
             }
 
             // Start new measurement
@@ -313,14 +313,14 @@ public abstract class DataCapturingService {
                 // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
                 sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
                 // This can probably also happen when the DCBS died (exception) before or dies when
-                // receiving this stop command. Thus, the closeRecentMeasurement() below would move it
+                // receiving this stop command. Thus, the finishRecentMeasurement() below would move it
                 // to finish folder without the DCBS having completed the MetaFile. For this reason we
                 // need to add another corruption test into the synchronization #MOV-453
             }
         } catch (IllegalArgumentException e) {
             throw new DataCapturingException(e);
         } finally {
-            persistenceLayer.closeRecentMeasurement();
+            persistenceLayer.finishRecentMeasurement();
             Log.v(TAG, "Unlocking in asynchronous stop.");
             lifecycleLock.unlock();
         }
@@ -391,15 +391,12 @@ public abstract class DataCapturingService {
         Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             try {
-                persistenceLayer.closeRecentMeasurement();
+                persistenceLayer.finishRecentMeasurement();
             } catch (NoSuchMeasurementException e) {
                 throw new IllegalStateException(e);
             }
             throw new MissingPermissionException();
         }
-
-        // Ensure there are no dead measurements in the paused measurement folder
-        persistenceLayer.markCorruptedMeasurements(Measurement.MeasurementStatus.PAUSED); // FIXME: not yet implemented
 
         // Ignore resume command if there are no paused measurements (wrong life-cycle call which we support #MOV-460)
         if (!persistenceLayer.hasMeasurement(Measurement.MeasurementStatus.PAUSED)) {
@@ -408,15 +405,16 @@ public abstract class DataCapturingService {
         }
 
         // Resume paused measurement
-        final Measurement currentlyOpenMeasurement;
+        final Measurement currentlyPausedMeasurement;
         try {
-            currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            Validate.notNull(currentlyOpenMeasurement);
-        } catch (NoSuchMeasurementException e) {
+            currentlyPausedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            Validate.notNull(currentlyPausedMeasurement);
+        } catch (final NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
-        final MetaFile.MetaData metaData = currentlyOpenMeasurement.getMetaFile().resume();
-        runService(currentlyOpenMeasurement, finishedHandler, metaData.getPointMetaData());
+        final MetaFile.MetaData metaData = currentlyPausedMeasurement.getMetaFile().resume();
+        currentlyPausedMeasurement.setStatus(Measurement.MeasurementStatus.OPEN);
+        runService(currentlyPausedMeasurement, finishedHandler, metaData.getPointMetaData());
     }
 
     /**
