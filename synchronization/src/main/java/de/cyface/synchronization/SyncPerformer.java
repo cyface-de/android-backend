@@ -1,9 +1,13 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.initSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.*;
+import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,7 +23,13 @@ import android.content.SyncResult;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.Constants;
-import de.cyface.synchronization.exceptions.*;
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.DataTransmissionException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
+import de.cyface.synchronization.exceptions.ResponseParsingException;
+import de.cyface.synchronization.exceptions.ServerUnavailableException;
+import de.cyface.synchronization.exceptions.SynchronisationException;
+import de.cyface.synchronization.exceptions.UnauthorizedException;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -27,7 +37,7 @@ import de.cyface.synchronization.exceptions.*;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.5
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -93,7 +103,7 @@ class SyncPerformer {
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
-            Log.i(TAG, String.format(Locale.US, "Uploading %s to %s", fileName, url.toString()));
+            Log.i(Constants.TAG, String.format(Locale.US, "Uploading %s to %s", fileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
                 http.post(connection, data, deviceIdentifier, measurementIdentifier, fileName, progressListener);

@@ -2,14 +2,24 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.*;
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
+import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
 import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
-import java.security.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 
 import javax.net.ssl.HttpsURLConnection;
@@ -19,7 +29,12 @@ import javax.net.ssl.TrustManagerFactory;
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.accounts.*;
+import android.accounts.AbstractAccountAuthenticator;
+import android.accounts.Account;
+import android.accounts.AccountAuthenticatorActivity;
+import android.accounts.AccountAuthenticatorResponse;
+import android.accounts.AccountManager;
+import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.content.Intent;
 import android.content.SharedPreferences;
@@ -29,7 +44,13 @@ import android.text.TextUtils;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import de.cyface.synchronization.exceptions.*;
+import de.cyface.synchronization.exceptions.BadRequestException;
+import de.cyface.synchronization.exceptions.DataTransmissionException;
+import de.cyface.synchronization.exceptions.RequestParsingException;
+import de.cyface.synchronization.exceptions.ResponseParsingException;
+import de.cyface.synchronization.exceptions.ServerUnavailableException;
+import de.cyface.synchronization.exceptions.SynchronisationException;
+import de.cyface.synchronization.exceptions.UnauthorizedException;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -38,7 +59,7 @@ import de.cyface.synchronization.exceptions.*;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.2
+ * @version 1.3.3
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {

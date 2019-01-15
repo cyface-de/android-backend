@@ -1,6 +1,5 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.*;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
@@ -39,7 +38,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -82,14 +81,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
-        Log.d(TAG, "Sync started.");
+        Log.d(Constants.TAG, "Sync started.");
 
         final Context context = getContext();
         final Persistence persistence = new Persistence(context, authority);
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
-                null, null);
+        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, Constants.AUTH_TOKEN_TYPE,
+                null, false, null, null);
 
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
@@ -106,7 +105,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
 
-            final String deviceId = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
+            final String deviceId = preferences.getString(Constants.DEVICE_IDENTIFIER_KEY, null);
             Validate.notNull(deviceId,
                     "Sync canceled: No installation identifier for this application set in its preferences.");
 
@@ -124,8 +123,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             for (final Measurement measurement : syncableMeasurements) {
 
                 // Load serialized measurement
-                Log.d(TAG, String.format("Measurement with identifier %d is about to be loaded for transmission.",
-                        measurement.getIdentifier()));
+                Log.d(Constants.TAG,
+                        String.format("Measurement with identifier %d is about to be loaded for transmission.",
+                                measurement.getIdentifier()));
                 final InputStream data;
                 try {
                     data = persistence.loadSerializedCompressed(measurement);
@@ -147,28 +147,28 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         }, jwtAuthToken);
                 if (transmissionSuccessful) {
                     persistence.markAsSynchronized(measurement);
-                    Log.d(TAG, "Measurement marked as synced.");
+                    Log.d(Constants.TAG, "Measurement marked as synced.");
                 } else {
                     break;
                 }
             }
         } catch (final RequestParsingException/* | SynchronisationException */ e) {
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+            Log.w(Constants.TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
         } catch (final BadRequestException e) {
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
+            Log.w(Constants.TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numConflictDetectedExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
         } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
             // OperationCanceledException is thrown with error message = null which leads to an NPE
             final String errorMessage = e.getMessage() != null ? e.getMessage()
                     : "onPerformSync threw " + e.getClass().getSimpleName();
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + errorMessage);
+            Log.w(Constants.TAG, e.getClass().getSimpleName() + ": " + errorMessage);
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), errorMessage);
         } finally {
-            Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
+            Log.d(Constants.TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();
             }

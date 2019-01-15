@@ -3,7 +3,11 @@ package de.cyface.synchronization;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.security.*;
+import java.security.KeyManagementException;
+import java.security.KeyStore;
+import java.security.KeyStoreException;
+import java.security.NoSuchAlgorithmException;
+import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 
 import javax.net.ssl.SSLContext;
@@ -27,7 +31,7 @@ import de.cyface.synchronization.exceptions.SynchronisationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 3.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {

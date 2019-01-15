@@ -2,7 +2,11 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.testutils.SharedTestUtils.*;
+import static de.cyface.testutils.SharedTestUtils.insertTestAcceleration;
+import static de.cyface.testutils.SharedTestUtils.insertTestDirection;
+import static de.cyface.testutils.SharedTestUtils.insertTestGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.insertTestMeasurement;
+import static de.cyface.testutils.SharedTestUtils.insertTestRotation;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -40,7 +44,7 @@ import de.cyface.synchronization.exceptions.RequestParsingException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.1.7
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -95,24 +99,23 @@ public class DataTransmissionTest {
         Persistence persistence = new Persistence(context, AUTHORITY);
         Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(context, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
-                940);
-        insertTestGeoLocation(context, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
-                8.78270530700684, 840);
-        insertTestAcceleration(context, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestAcceleration(context, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-        insertTestAcceleration(context, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-        insertTestRotation(context, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestRotation(context, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-        insertTestRotation(context, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-        insertTestDirection(context, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-        insertTestDirection(context, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
-        insertTestDirection(context, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
+        insertTestGeoLocation(measurement, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0, 940);
+        insertTestGeoLocation(measurement, 1503055142000L, 49.9305066666667, 8.82814, 8.78270530700684, 840);
+        insertTestAcceleration(measurement, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertTestAcceleration(measurement, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
+        insertTestAcceleration(measurement, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
+        insertTestRotation(measurement, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertTestRotation(measurement, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
+        insertTestRotation(measurement, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
+        insertTestDirection(measurement, 1501662636010L, 7.65, -32.4, -71.4);
+        insertTestDirection(measurement, 1501662636030L, 7.65, -32.550003, -71.700005);
+        insertTestDirection(measurement, 1501662636050L, 7.65, -33.15, -71.700005);
 
-        MetaFile.append(context, measurement.getIdentifier(), new MetaFile.PointMetaData(1, 3, 3, 3));
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 3, 3, 3));
         persistence.closeMeasurement(measurement);
 
         ContentProviderClient client = null;
+        InputStream measurementData = null;
         try {
             client = resolver.acquireContentProviderClient(AUTHORITY);
 
@@ -120,8 +123,7 @@ public class DataTransmissionTest {
                 throw new IllegalStateException(
                         String.format("Unable to acquire client for content provider %s", AUTHORITY));
 
-            InputStream measurementData = persistence.loadSerializedCompressed(measurementIdentifier);
-            ;
+            measurementData = persistence.loadSerializedCompressed(measurement);
             // printMD5(measurementData);
 
             String jwtAuthToken = "replace me";
@@ -137,6 +139,9 @@ public class DataTransmissionTest {
                     }, jwtAuthToken);
             assertThat(result, is(equalTo(true)));
         } finally {
+            if (measurementData != null) {
+                measurementData.close();
+            }
             if (client != null) {
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
                     client.close();
