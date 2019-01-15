@@ -1,10 +1,12 @@
 package de.cyface.persistence;
 
 import java.io.BufferedInputStream;
+import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileFilter;
 import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
 
 import android.content.Context;
@@ -66,16 +68,34 @@ public final class FileUtils {
      * @return The bytes.
      */
     public static byte[] loadBytes(final File file) {
+        final byte[] bytes = new byte[(int)file.length()];
+
         try {
-            final byte[] bytes = new byte[(int)file.length()];
-            final BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
-            final DataInputStream inputStream = new DataInputStream(bufferedInputStream);
-            inputStream.readFully(bytes);
-            Log.d(Constants.TAG, "Read " + bytes.length + " bytes (from " + file.getPath() + ")");
-            inputStream.close();
-            bufferedInputStream.close();
-            return bytes;
-        } catch (IOException e) {
+            BufferedInputStream bufferedInputStream = null;
+            try {
+                bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
+                DataInputStream inputStream = null;
+                try {
+                    inputStream = new DataInputStream(bufferedInputStream);
+                    try {
+                        inputStream.readFully(bytes);
+                        Log.d(Constants.TAG, "Read " + bytes.length + " bytes (from " + file.getPath() + ")");
+                    } finally {
+                        inputStream.close();
+                        bufferedInputStream.close();
+                    }
+                } finally {
+                    if (inputStream != null) {
+                        inputStream.close();
+                    }
+                }
+                return bytes;
+            } finally {
+                if (bufferedInputStream != null) {
+                    bufferedInputStream.close();
+                }
+            }
+        } catch (final IOException e) {
             throw new IllegalStateException("Failed to read file.");
         }
     }
@@ -147,5 +167,32 @@ public final class FileUtils {
             final String fileExtension) {
         final File measurementFolder = measurement.getMeasurementFolder();
         return new File(measurementFolder.getPath() + File.separator + fileName + "." + fileExtension);
+    }
+
+    /**
+     * Method to write data to a file.
+     *
+     * @param file The {@link File} referencing the path to write the data to
+     * @param data The bytes to write to the file
+     * @param append True if the data should be appended to an existing file.
+     */
+    public static void write(final File file, final byte[] data, final boolean append) {
+        try {
+            BufferedOutputStream outputStream = null;
+            try {
+                outputStream = new BufferedOutputStream(new FileOutputStream(file, append));
+                try {
+                    outputStream.write(data);
+                } finally {
+                    outputStream.close();
+                }
+            } finally {
+                if (outputStream != null) {
+                    outputStream.close();
+                }
+            }
+        } catch (final IOException e) {
+            throw new IllegalStateException("Failed to append data to file.");
+        }
     }
 }

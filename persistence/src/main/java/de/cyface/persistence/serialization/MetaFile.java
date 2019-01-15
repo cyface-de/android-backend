@@ -1,14 +1,9 @@
 package de.cyface.persistence.serialization;
 
-import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.serialization.MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
-import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.model.Measurement;
@@ -62,15 +57,7 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
     @Override
     public void append(final PointMetaData metaData) {
         final byte[] data = serialize(metaData);
-        // append
-        try {
-            final BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file, true));
-            Log.d(TAG, "Writing " + data.length + " bytes (4 counters)");
-            outputStream.write(data);
-            outputStream.close();
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to append data to file.");
-        }
+        FileUtils.write(file, data, true);
     }
 
     public File getFile() {
@@ -120,22 +107,20 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         return MeasurementSerializer.serialize(metaData);
     }
 
+    /**
+     * Method to create a new {@link MetaFile} and write {@code #PERSISTENCE_FILE_FORMAT_VERSION} and the
+     * {@link Vehicle} id into it.
+     *
+     * @param vehicle the vehicle used in the {@link Measurement}
+     */
     private void write(final Vehicle vehicle) {
         final byte[] dataFormatVersionBytes = new byte[2];
         dataFormatVersionBytes[0] = (byte)(PERSISTENCE_FILE_FORMAT_VERSION >> 8);
         dataFormatVersionBytes[1] = (byte)PERSISTENCE_FILE_FORMAT_VERSION;
         final byte[] vehicleIdBytes = MeasurementSerializer.serialize(vehicle);
 
-        try {
-            final BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file, false));
-            Log.d(TAG, "Writing " + dataFormatVersionBytes.length + " bytes (File Format)");
-            outputStream.write(dataFormatVersionBytes);
-            Log.d(TAG, "Writing " + vehicleIdBytes.length + " bytes (vehicle id)");
-            outputStream.write(vehicleIdBytes);
-            outputStream.close();
-        } catch (IOException e) {
-            throw new IllegalStateException("Failed to append data to file.");
-        }
+        FileUtils.write(file, dataFormatVersionBytes, false);
+        FileUtils.write(file, vehicleIdBytes, true);
     }
 
     /**

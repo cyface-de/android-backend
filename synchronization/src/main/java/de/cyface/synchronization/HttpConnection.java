@@ -24,9 +24,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.os.Build;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.synchronization.exceptions.BadRequestException;
 import de.cyface.synchronization.exceptions.DataTransmissionException;
 import de.cyface.synchronization.exceptions.RequestParsingException;
@@ -191,24 +190,26 @@ public class HttpConnection implements Http {
     }
 
     private byte[] gzip(byte[] input) {
-        GZIPOutputStream gzipOutputStream = null;
         try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-            gzipOutputStream.write(input);
-            gzipOutputStream.flush();
-            gzipOutputStream.close();
-            gzipOutputStream = null;
-            return byteArrayOutputStream.toByteArray();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            if (gzipOutputStream != null) {
+            GZIPOutputStream gzipOutputStream = null;
+            try {
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
                 try {
+                    gzipOutputStream.write(input);
+                    gzipOutputStream.flush();
+                } finally {
                     gzipOutputStream.close();
-                } catch (Exception ignored) {
+                }
+                gzipOutputStream = null;
+                return byteArrayOutputStream.toByteArray();
+            } finally {
+                if (gzipOutputStream != null) {
+                    gzipOutputStream.close();
                 }
             }
+        } catch (final IOException e) {
+            throw new IllegalStateException("Failed to gzip.");
         }
     }
 

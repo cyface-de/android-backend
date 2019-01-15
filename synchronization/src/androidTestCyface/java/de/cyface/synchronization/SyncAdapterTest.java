@@ -99,7 +99,8 @@ public final class SyncAdapterTest {
 
         // Assert: synced data is marked as synced
         // Measurement entry
-        final Measurement syncedMeasurement = persistence.loadSyncedMeasurement(measurementIdentifier);
+        final Measurement syncedMeasurement = persistence.loadMeasurement(measurementIdentifier,
+                Measurement.MeasurementStatus.SYNCED);
         assertThat(syncedMeasurement, notNullValue());
 
         // GPS Point

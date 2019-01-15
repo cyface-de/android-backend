@@ -1,9 +1,6 @@
 package de.cyface.persistence.serialization;
 
-import java.io.BufferedOutputStream;
 import java.io.File;
-import java.io.FileOutputStream;
-import java.io.IOException;
 
 import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
@@ -68,16 +65,8 @@ public class EventsFile implements FileSupport<Event> {
 
     @Override
     public void append(final Event event) {
-
         final byte[] data = serialize(event);
-
-        try {
-            final BufferedOutputStream outputStream = new BufferedOutputStream(new FileOutputStream(file, true));
-            outputStream.write(data);
-            outputStream.close();
-        } catch (final IOException e) {
-            throw new IllegalStateException("Failed to append data to file.");
-        }
+        FileUtils.write(file, data, true);
     }
 
     @Override
