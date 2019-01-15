@@ -1,10 +1,7 @@
 package de.cyface.datacapturing;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.GeoLocationsFile;
-import de.cyface.persistence.serialization.RotationsFile;
 
 /**
  * A utility class collecting all codes identifying extras used to transmit data via bundles in this application.
@@ -46,19 +43,19 @@ public class BundlesExtrasCodes {
      */
     public static final String GEOLOCATION_COUNT = "de.cyface.extra.geolocation.count";
     /**
-     * Code that contains the number of entries stored in the {@link AccelerationsFile} captured. This allows the
+     * Code that contains the number of entries stored in the accelerations captured. This allows the
      * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
      * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
      */
     public static final String ACCELERATION_POINT_COUNT = "de.cyface.extra.acceleration_point.count";
     /**
-     * Code that contains the number of entries stored in the {@link RotationsFile} captured. This allows the
+     * Code that contains the number of entries stored in the rotations captured. This allows the
      * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
      * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
      */
     public static final String ROTATION_POINT_COUNT = "de.cyface.extra.rotation_point.count";
     /**
-     * Code that contains the number of entries stored in the {@link DirectionsFile} captured. This allows the
+     * Code that contains the number of entries stored in the directions captured. This allows the
      * {@link DataCapturingService} to keep the number of points stored when a measurement was paused and to resume the
      * counting by passing it back to the {@link DataCapturingBackgroundService} on resume.
      */

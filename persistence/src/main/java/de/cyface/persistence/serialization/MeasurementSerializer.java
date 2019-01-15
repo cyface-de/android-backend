@@ -289,8 +289,7 @@ public final class MeasurementSerializer {
     /**
      * Deserialized {@link Point3D} data.
      *
-     * @param point3dFileBytes The bytes loaded from the {@link AccelerationsFile}, {@link RotationsFile} or
-     *            {@link DirectionsFile}
+     * @param point3dFileBytes The bytes loaded from the {@link Point3dFile}
      * @return The {@link Point3D} loaded from the file
      */
     static List<Point3D> deserializePoint3dData(final byte[] point3dFileBytes, final int pointCount) {

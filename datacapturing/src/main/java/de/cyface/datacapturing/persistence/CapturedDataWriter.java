@@ -2,13 +2,10 @@ package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.Point3dFile;
 
 /**
  * A class responsible for writing captured sensor data to the underlying persistence layer.
@@ -34,15 +31,15 @@ public class CapturedDataWriter implements Runnable {
     /**
      * The file to write acceleration points to.
      */
-    private final AccelerationsFile accelerationsFile;
+    private final Point3dFile accelerationsFile;
     /**
      * The file to write rotation points to.
      */
-    private final RotationsFile rotationsFile;
+    private final Point3dFile rotationsFile;
     /**
      * The file to write direction points to.
      */
-    private final DirectionsFile directionsFile;
+    private final Point3dFile directionsFile;
     /**
      * Callback which is called after writing data has finished.
      */
@@ -55,8 +52,8 @@ public class CapturedDataWriter implements Runnable {
      * @param accelerationsFile The file to write the data to.
      * @param callback Callback which is called after writing data has finished.
      */
-    CapturedDataWriter(final @NonNull CapturedData data, final AccelerationsFile accelerationsFile,
-            final RotationsFile rotationsFile, final DirectionsFile directionsFile,
+    CapturedDataWriter(final @NonNull CapturedData data, final Point3dFile accelerationsFile,
+            final Point3dFile rotationsFile, final Point3dFile directionsFile,
             final @NonNull WritingDataCompletedCallback callback) {
         this.data = data;
         this.accelerationsFile = accelerationsFile;

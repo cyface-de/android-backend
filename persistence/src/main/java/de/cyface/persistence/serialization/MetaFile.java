@@ -153,9 +153,9 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
 
         /**
          * @param countOfGeoLocations The number of geolocations stored in the {@link GeoLocationsFile}
-         * @param countOfAccelerations The number of points stored in the {@link AccelerationsFile}
-         * @param countOfRotations The number of points stored in the {@link RotationsFile}
-         * @param countOfDirections The number of points stored in the {@link DirectionsFile}
+         * @param countOfAccelerations The number of acceleration points stored in the {@link Point3dFile}
+         * @param countOfRotations The number of rotation points stored in the {@link Point3dFile}
+         * @param countOfDirections The number of direction points stored in the {@link Point3dFile}
          */
         public PointMetaData(final int countOfGeoLocations, final int countOfAccelerations, final int countOfRotations,
                 final int countOfDirections) {

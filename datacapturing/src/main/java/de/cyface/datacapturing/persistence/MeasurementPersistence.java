@@ -13,17 +13,16 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -53,15 +52,15 @@ public class MeasurementPersistence extends Persistence {
     /**
      * The file to write the acceleration points to.
      */
-    private AccelerationsFile accelerationsFile;
+    private Point3dFile accelerationsFile;
     /**
      * The file to write the rotation points to.
      */
-    private RotationsFile rotationsFile;
+    private Point3dFile rotationsFile;
     /**
      * The file to write the direction points to.
      */
-    private DirectionsFile directionsFile;
+    private Point3dFile directionsFile;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
@@ -106,13 +105,16 @@ public class MeasurementPersistence extends Persistence {
             return;
         }
         if (accelerationsFile == null) {
-            accelerationsFile = new AccelerationsFile(measurement);
+            accelerationsFile = new Point3dFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME,
+                    FileUtils.ACCELERATIONS_FILE_EXTENSION);
         }
         if (rotationsFile == null) {
-            rotationsFile = new RotationsFile(measurement);
+            rotationsFile = new Point3dFile(measurement, FileUtils.ROTATIONS_FILE_NAME,
+                    FileUtils.ROTATION_FILE_EXTENSION);
         }
         if (directionsFile == null) {
-            directionsFile = new DirectionsFile(measurement);
+            directionsFile = new Point3dFile(measurement, FileUtils.DIRECTION_FILE_NAME,
+                    FileUtils.DIRECTION_FILE_EXTENSION);
         }
 
         final CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,

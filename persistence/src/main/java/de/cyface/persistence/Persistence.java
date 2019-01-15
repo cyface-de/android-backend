@@ -31,13 +31,11 @@ import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -289,6 +287,8 @@ public class Persistence {
      * Loads a measurement with the provided id from the persistence layer as uncompressed and serialized in
      * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
      *
+     * TODO: test this on weak devices for large measurements
+     *
      * @param measurement The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
      * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
@@ -304,13 +304,16 @@ public class Persistence {
                 ? FileUtils.loadBytes(GeoLocationsFile.loadFile(measurement).getFile())
                 : new byte[] {};
         final byte[] accelerationData = metaData.getPointMetaData().getCountOfAccelerations() > 0
-                ? FileUtils.loadBytes(AccelerationsFile.loadFile(measurement).getFile())
+                ? FileUtils.loadBytes(Point3dFile.loadFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME,
+                        FileUtils.ACCELERATIONS_FILE_EXTENSION).getFile())
                 : new byte[] {};
-        final byte[] rotationData = metaData.getPointMetaData().getCountOfRotations() > 0
-                ? FileUtils.loadBytes(RotationsFile.loadFile(measurement).getFile())
+        final byte[] rotationData = metaData.getPointMetaData().getCountOfRotations() > 0 ? FileUtils.loadBytes(
+                Point3dFile.loadFile(measurement, FileUtils.ROTATIONS_FILE_NAME, FileUtils.ROTATION_FILE_EXTENSION)
+                        .getFile())
                 : new byte[] {};
-        final byte[] directionData = metaData.getPointMetaData().getCountOfDirections() > 0
-                ? FileUtils.loadBytes(DirectionsFile.loadFile(measurement).getFile())
+        final byte[] directionData = metaData.getPointMetaData().getCountOfDirections() > 0 ? FileUtils.loadBytes(
+                Point3dFile.loadFile(measurement, FileUtils.DIRECTION_FILE_NAME, FileUtils.DIRECTION_FILE_EXTENSION)
+                        .getFile())
                 : new byte[] {};
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -367,17 +370,21 @@ public class Persistence {
         }
 
         if (metaData.getPointMetaData().getCountOfAccelerations() > 0) {
-            final File accelerationFile = AccelerationsFile.loadFile(measurement).getFile();
+            final File accelerationFile = Point3dFile
+                    .loadFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME, FileUtils.ACCELERATIONS_FILE_EXTENSION)
+                    .getFile();
             Validate.isTrue(accelerationFile.delete());
         }
 
         if (metaData.getPointMetaData().getCountOfRotations() > 0) {
-            final File rotationFile = RotationsFile.loadFile(measurement).getFile();
+            final File rotationFile = Point3dFile
+                    .loadFile(measurement, FileUtils.ROTATIONS_FILE_NAME, FileUtils.ROTATION_FILE_EXTENSION).getFile();
             Validate.isTrue(rotationFile.delete());
         }
 
         if (metaData.getPointMetaData().getCountOfDirections() > 0) {
-            final File directionFile = DirectionsFile.loadFile(measurement).getFile();
+            final File directionFile = Point3dFile
+                    .loadFile(measurement, FileUtils.DIRECTION_FILE_NAME, FileUtils.DIRECTION_FILE_EXTENSION).getFile();
             Validate.isTrue(directionFile.delete());
         }
     }

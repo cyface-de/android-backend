@@ -22,6 +22,31 @@ import de.cyface.persistence.model.Measurement;
 public final class FileUtils {
 
     /**
+     * The name of the file containing acceleration data
+     */
+    public final static String ACCELERATIONS_FILE_NAME = "a";
+    /**
+     * The name of the file containing acceleration data
+     */
+    public final static String ACCELERATIONS_FILE_EXTENSION = "cyfa";
+    /**
+     * The name of the file containing rotation data
+     */
+    public final static String ROTATIONS_FILE_NAME = "r";
+    /**
+     * The name of the file containing rotation data
+     */
+    public final static String ROTATION_FILE_EXTENSION = "cyfr";
+    /**
+     * The name of the file containing direction data
+     */
+    public final static String DIRECTION_FILE_NAME = "d";
+    /**
+     * The name of the file containing direction data
+     */
+    public final static String DIRECTION_FILE_EXTENSION = "cyfd";
+
+    /**
      * Returns a {@link FileFilter} which can be used to get directories from a file list.
      *
      * @return the {@code FileFilter}

@@ -34,11 +34,9 @@ import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -102,15 +100,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private int geoLocationCounter = 0;
     /**
-     * Counter to write the number of points stored in the {@link AccelerationsFile} to the {@link MetaFile}.
+     * Counter to write the number of acceleration points stored in the {@link Point3dFile} to the {@link MetaFile}.
      */
     private int accelerationPointCounter = 0;
     /**
-     * Counter to write the number of points stored in the {@link RotationsFile} to the {@link MetaFile}.
+     * Counter to write the number of rotation points stored in the {@link Point3dFile} to the {@link MetaFile}.
      */
     private int rotationPointCounter = 0;
     /**
-     * Counter to write the number of points stored in the {@link DirectionsFile} to the {@link MetaFile}.
+     * Counter to write the number of direction points stored in the {@link Point3dFile} to the {@link MetaFile}.
      */
     private int directionPointCounter = 0;
 

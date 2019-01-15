@@ -5,15 +5,16 @@ import static de.cyface.persistence.Constants.TAG;
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 import android.util.Log;
+import androidx.annotation.NonNull;
 
 /**
  * This class represents the table containing the measurement-independent identifiers stored on this device.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.0.0
  */
-public class IdentifierTable extends AbstractCyfaceTable {
+public final class IdentifierTable extends AbstractCyfaceTable {
 
     /**
      * The path segment in the table URI identifying the identifier table.
@@ -22,18 +23,18 @@ public class IdentifierTable extends AbstractCyfaceTable {
     /**
      * A String value which contains an identifier for this device.
      */
-    public static final String COLUMN_DEVICE_ID = "device_id";
+    final static String COLUMN_DEVICE_ID = "device_id";
     /**
      * An int value which contains the identifier to be used for the next measurement;
      * If this value is reset than the {@code COLUMN_DEVICE_ID} must be reset, too to avoid duplicate measurement
      * identifiers on the server. We currently start counting from 1 upwards.
      */
-    public static final String COLUMN_NEXT_MEASUREMENT_ID = "next_measurement_id";
+    final static String COLUMN_NEXT_MEASUREMENT_ID = "next_measurement_id";
 
     /**
      * An array containing all columns from this table in default order.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_DEVICE_ID, COLUMN_NEXT_MEASUREMENT_ID};
+    private final static String[] COLUMNS = {BaseColumns._ID, COLUMN_DEVICE_ID, COLUMN_NEXT_MEASUREMENT_ID};
 
     /**
      * Creates a new completely initialized {@code IdentifierTable} using the name {@code URI_PATH}.
@@ -50,7 +51,7 @@ public class IdentifierTable extends AbstractCyfaceTable {
 
     /* Don't forget to update the DatabaseHelper's DATABASE_VERSION */
     @Override
-    public void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
+    public void onUpgrade(@NonNull final SQLiteDatabase database, final int oldVersion, final int newVersion) {
         Log.d(TAG, "Upgrading " + getName() + " from version " + oldVersion + " to " + newVersion + " ...");
         switch (oldVersion) {
             // no break, thus, the upgrade process continues with the next incremental upgrade step

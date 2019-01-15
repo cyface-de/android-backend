@@ -27,18 +27,17 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.Point3dFile;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
@@ -168,9 +167,13 @@ public class CapturedDataWriterTest {
 
         // Check if the captured data was persisted
         List<GeoLocation> geoLocations = GeoLocationsFile.loadFile(measurement).deserialize();
-        List<Point3D> accelerations = AccelerationsFile.loadFile(measurement).deserialize();
-        List<Point3D> rotations = RotationsFile.loadFile(measurement).deserialize();
-        List<Point3D> directions = DirectionsFile.loadFile(measurement).deserialize();
+        List<Point3D> accelerations = Point3dFile
+                .loadFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME, FileUtils.ACCELERATIONS_FILE_EXTENSION)
+                .deserialize();
+        List<Point3D> rotations = Point3dFile
+                .loadFile(measurement, FileUtils.ROTATIONS_FILE_NAME, FileUtils.ROTATION_FILE_EXTENSION).deserialize();
+        List<Point3D> directions = Point3dFile
+                .loadFile(measurement, FileUtils.DIRECTION_FILE_NAME, FileUtils.DIRECTION_FILE_EXTENSION).deserialize();
 
         assertThat(geoLocations.size(), is(equalTo(1)));
         assertThat(accelerations.size(), is(equalTo(3)));

@@ -8,17 +8,16 @@ import java.util.ArrayList;
 import java.util.List;
 
 import androidx.annotation.NonNull;
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3D;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.AccelerationsFile;
-import de.cyface.persistence.serialization.DirectionsFile;
 import de.cyface.persistence.serialization.GeoLocationsFile;
 import de.cyface.persistence.serialization.MetaFile;
-import de.cyface.persistence.serialization.RotationsFile;
+import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -42,7 +41,8 @@ public class SharedTestUtils {
      */
     public static void insertTestDirection(final Measurement measurement, final long timestamp, final double x,
             final double y, final double z) {
-        DirectionsFile directionsFile = new DirectionsFile(measurement);
+        Point3dFile directionsFile = new Point3dFile(measurement, FileUtils.DIRECTION_FILE_NAME,
+                FileUtils.DIRECTION_FILE_EXTENSION);
         List<Point3D> points = new ArrayList<>();
         points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
         directionsFile.append(points);
@@ -59,7 +59,8 @@ public class SharedTestUtils {
      */
     public static void insertTestRotation(final Measurement measurement, final long timestamp, final double x,
             final double y, final double z) {
-        RotationsFile rotationsFile = new RotationsFile(measurement);
+        Point3dFile rotationsFile = new Point3dFile(measurement, FileUtils.ROTATIONS_FILE_NAME,
+                FileUtils.ROTATION_FILE_EXTENSION);
         List<Point3D> points = new ArrayList<>();
         points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
         rotationsFile.append(points);
@@ -76,7 +77,8 @@ public class SharedTestUtils {
      */
     public static void insertTestAcceleration(final Measurement measurement, final long timestamp, final double x,
             final double y, final double z) {
-        AccelerationsFile accelerationsFile = new AccelerationsFile(measurement);
+        Point3dFile accelerationsFile = new Point3dFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME,
+                FileUtils.ACCELERATIONS_FILE_EXTENSION);
         List<Point3D> points = new ArrayList<>();
         points.add(new Point3D((float)x, (float)y, (float)z, timestamp));
         accelerationsFile.append(points);
