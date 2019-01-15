@@ -20,7 +20,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.2.0
  * @since 1.0.0
  */
 public final class Measurement {
@@ -67,7 +67,26 @@ public final class Measurement {
         return generateMeasurementFolderPath(context, status, id);
     }
 
-    // FIXME: re-generate hashcode and equals methods + toString method
+    @Override
+    public String toString() {
+        return "Measurement{" + "id=" + id + ", status=" + status + ", context=" + context + ", metaFile=" + metaFile
+                + '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        Measurement that = (Measurement)o;
+        return id == that.id && status == that.status && context.equals(that.context) && metaFile.equals(that.metaFile);
+    }
+
+    @Override
+    public int hashCode() {
+        return (int)(id ^ (id >>> 32));
+    }
 
     public long getIdentifier() {
         return id;
