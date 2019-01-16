@@ -13,6 +13,7 @@ import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.utils.Validate;
 
 /**
  * Utility class containing file methods used by multiple classes.
@@ -68,6 +69,7 @@ public final class FileUtils {
      * @return The bytes.
      */
     public static byte[] loadBytes(final File file) {
+        Validate.isTrue(file.exists());
         final byte[] bytes = new byte[(int)file.length()];
 
         try {
@@ -177,6 +179,7 @@ public final class FileUtils {
      * @param append True if the data should be appended to an existing file.
      */
     public static void write(final File file, final byte[] data, final boolean append) {
+        Validate.isTrue(file.exists(), "Failed to write to file as it does not exist: " + file.getPath());
         try {
             BufferedOutputStream outputStream = null;
             try {

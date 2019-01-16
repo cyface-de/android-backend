@@ -7,7 +7,9 @@ import java.io.File;
 import java.io.IOException;
 
 import android.content.Context;
+import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.Constants;
 import de.cyface.persistence.Persistence;
 import de.cyface.persistence.serialization.MetaFile;
 import de.cyface.utils.Validate;
@@ -73,6 +75,7 @@ public final class Measurement {
                 + '}';
     }
 
+    // TODO how to handle when the MetaFile was not yet loaded? Maybe make sure that it's aways loaded?
     @Override
     public boolean equals(Object o) {
         if (this == o)
@@ -80,7 +83,9 @@ public final class Measurement {
         if (o == null || getClass() != o.getClass())
             return false;
         Measurement that = (Measurement)o;
-        return id == that.id && status == that.status && context.equals(that.context) && metaFile.equals(that.metaFile);
+        return id == that.id && status == that.status && context.equals(that.context)
+                && ((metaFile == null && that.metaFile == null)
+                        || (metaFile != null && that.metaFile != null && metaFile.equals(that.metaFile)));
     }
 
     @Override
@@ -131,7 +136,8 @@ public final class Measurement {
         if (supportedOpenMeasurementLifeCycleFlow || supportedPausedMeasurementLifeCycleFlow
                 || supportedFinishedMeasurementLifeCycleFlow) {
             move(newStatus);
-            this.status = newStatus;
+            status = newStatus;
+            metaFile = MetaFile.loadFile(this); // Because the measurement was moved to another location
             return;
         }
 
@@ -184,22 +190,30 @@ public final class Measurement {
      */
     public File createFile(@NonNull final String fileName, @NonNull final String fileExtension) {
         final File file = generateMeasurementFilePath(this, fileName, fileExtension);
-        if (!file.exists()) {
-            try {
-                final boolean success = file.createNewFile();
-                if (!success) {
-                    throw new IOException("File not created");
-                }
-            } catch (IOException e) {
-                throw new IllegalStateException(
-                        "Unable to create file for measurement data: " + file.getAbsolutePath());
+        Validate.isTrue(!file.exists(), "Failed to createFile as it already exists: " + file.getPath());
+        try {
+            if (!file.createNewFile()) {
+                throw new IOException("Failed to createFile: " + file.getPath());
             }
+            Validate.isTrue(file.exists());
+            Log.d(Constants.TAG, "CreateFile successful: " + file.getAbsolutePath());
+        } catch (final IOException e) {
+            throw new IllegalStateException("Failed createFile: " + file.getPath());
         }
         return file;
     }
 
     public MetaFile getMetaFile() {
         return metaFile;
+    }
+
+    /**
+     * Loads the {@link MetaFile} from the persistence layer and re-links it to this measurement internally.
+     */
+    public void loadMetaFile() {
+        Validate.isTrue(metaFile == null, "Wrong method use: MetaFile already linked.");
+        metaFile = MetaFile.loadFile(this);
+        Validate.isTrue(metaFile.getFile().exists());
     }
 
     /**
@@ -212,6 +226,7 @@ public final class Measurement {
     public void createMetaFile(@NonNull final Vehicle vehicle) {
         Validate.isTrue(getStatus() == MeasurementStatus.OPEN, "Unsupported");
         this.metaFile = new MetaFile(this, vehicle);
+        Validate.isTrue(metaFile.getFile().exists());
     }
 
     /**

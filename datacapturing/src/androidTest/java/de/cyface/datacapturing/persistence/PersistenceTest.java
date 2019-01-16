@@ -30,10 +30,10 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.MediumTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.ServiceTestUtils;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.Persistence;
@@ -49,7 +49,7 @@ import de.cyface.persistence.serialization.MetaFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.1
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -90,14 +90,10 @@ public class PersistenceTest {
      */
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning() {
-        oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN), is(equalTo(true)));
 
-        try {
-            oocut.finishRecentMeasurement();
-        } catch (NoSuchMeasurementException e) {
-            throw new IllegalStateException(e);
-        }
+        oocut.finishRecentMeasurement(measurement);
         assertThat(oocut.hasMeasurement(Measurement.MeasurementStatus.OPEN), is(equalTo(false)));
 
         oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -121,13 +117,10 @@ public class PersistenceTest {
     public void testLoadMeasurementSuccessfully() {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        //loadedOpenMeasurement.loadMetaFile();
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
-        try {
-            oocut.finishRecentMeasurement();
-        } catch (NoSuchMeasurementException e) {
-            throw new IllegalStateException(e);
-        }
+        oocut.finishRecentMeasurement(measurement);
         Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedClosedMeasurement, is(equalTo(measurement)));
     }
@@ -137,13 +130,13 @@ public class PersistenceTest {
      * database as there was a bug which limited the query size to 10_000 entries #MOV-248.
      */
     @Test
-    public void testLoadGeoLocations_10hTrack() throws NoSuchMeasurementException {
+    public void testLoadGeoLocations_10hTrack() {
         // The Location frequency is always 1 Hz, i.e. 10h of measurement:
         testLoadGeoLocations(3600 * 10);
     }
 
     @Ignore
-    public void testLoadGeoLocations(int numberOftestEntries) throws NoSuchMeasurementException {
+    public void testLoadGeoLocations(int numberOftestEntries) {
         // Arrange
 
         // Act: Store and load the test entries
@@ -157,7 +150,7 @@ public class PersistenceTest {
                 + (System.currentTimeMillis() - startTime) + " ms");
 
         measurement.getMetaFile().append(new MetaFile.PointMetaData(numberOftestEntries, 0, 0, 0));
-        oocut.finishRecentMeasurement();
+        oocut.finishRecentMeasurement(measurement);
 
         // Load entries again
         startTime = System.currentTimeMillis();
@@ -224,7 +217,7 @@ public class PersistenceTest {
         // Write point counters to MetaFile
         measurement.getMetaFile().append(new MetaFile.PointMetaData(3, 3, 3, 3));
         // Finish measurement
-        persistence.closeMeasurement(measurement);
+        persistence.finishMeasurement(measurement);
         // Assert that data is in the database
         final Measurement finishedMeasurement = persistence.loadMeasurement(measurement.getIdentifier(),
                 Measurement.MeasurementStatus.FINISHED);

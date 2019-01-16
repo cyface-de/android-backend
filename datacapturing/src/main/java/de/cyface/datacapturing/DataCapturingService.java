@@ -300,9 +300,10 @@ public abstract class DataCapturingService {
 
         lifecycleLock.lock();
         Log.v(TAG, "Locking in asynchronous stop.");
+
+        final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
         try {
             setIsStoppingOrHasStopped(true);
-            Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
             if (measurement == null) {
                 throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
@@ -317,10 +318,12 @@ public abstract class DataCapturingService {
                 // to finish folder without the DCBS having completed the MetaFile. For this reason we
                 // need to add another corruption test into the synchronization #MOV-453
             }
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             throw new DataCapturingException(e);
         } finally {
-            persistenceLayer.finishRecentMeasurement();
+            if (measurement != null) {
+                persistenceLayer.finishRecentMeasurement(measurement);
+            }
             Log.v(TAG, "Unlocking in asynchronous stop.");
             lifecycleLock.unlock();
         }
@@ -391,8 +394,11 @@ public abstract class DataCapturingService {
         Log.d(TAG, "Resume asynchronously.");
         if (!checkFineLocationAccess(getContext())) {
             try {
-                persistenceLayer.finishRecentMeasurement();
-            } catch (NoSuchMeasurementException e) {
+                final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+                if (measurement != null) {
+                    persistenceLayer.finishRecentMeasurement(measurement);
+                }
+            } catch (final NoSuchMeasurementException e) {
                 throw new IllegalStateException(e);
             }
             throw new MissingPermissionException();
@@ -412,7 +418,7 @@ public abstract class DataCapturingService {
         } catch (final NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
-        final MetaFile.MetaData metaData = currentlyPausedMeasurement.getMetaFile().resume();
+        final MetaFile.MetaData metaData = currentlyPausedMeasurement.getMetaFile().resume(currentlyPausedMeasurement);
         currentlyPausedMeasurement.setStatus(Measurement.MeasurementStatus.OPEN);
         runService(currentlyPausedMeasurement, finishedHandler, metaData.getPointMetaData());
     }

@@ -9,6 +9,8 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import android.accounts.AccountAuthenticatorActivity;
+import de.cyface.synchronization.CyfaceAuthenticator;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -88,6 +90,10 @@ public class PingPongTest {
     @Test
     public void testWithRunningService()
             throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
+
+        // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
+        CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
+
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override

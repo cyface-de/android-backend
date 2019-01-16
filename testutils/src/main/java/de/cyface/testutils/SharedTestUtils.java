@@ -135,7 +135,7 @@ public class SharedTestUtils {
             // Write point counters to MetaFile
             measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 1, 1, 1));
             // Finish measurement
-            persistence.closeMeasurement(measurement);
+            persistence.finishMeasurement(measurement);
         }
 
         if (synced) {

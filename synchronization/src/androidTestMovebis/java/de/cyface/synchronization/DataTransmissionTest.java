@@ -23,7 +23,6 @@ import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SyncResult;
-import android.os.Build;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -44,7 +43,7 @@ import de.cyface.synchronization.exceptions.RequestParsingException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.7
+ * @version 1.1.8
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -112,7 +111,7 @@ public class DataTransmissionTest {
         insertTestDirection(measurement, 1501662636050L, 7.65, -33.15, -71.700005);
 
         measurement.getMetaFile().append(new MetaFile.PointMetaData(1, 3, 3, 3));
-        persistence.closeMeasurement(measurement);
+        persistence.finishMeasurement(measurement);
 
         ContentProviderClient client = null;
         InputStream measurementData = null;
@@ -143,11 +142,7 @@ public class DataTransmissionTest {
                 measurementData.close();
             }
             if (client != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    client.close();
-                } else {
-                    client.release();
-                }
+                client.close();
             }
         }
     }

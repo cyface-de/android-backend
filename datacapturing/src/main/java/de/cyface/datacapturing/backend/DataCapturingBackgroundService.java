@@ -177,19 +177,22 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
-        sendStoppedMessage(currentMeasurement);
+        sendStoppedMessage();
     }
 
     /**
      * Sends an IPC message to interested parties that the service stopped successfully.
      *
-     * @param currentMeasurement The the measurement which was stopped.
      */
-    private void sendStoppedMessage(@NonNull final Measurement currentMeasurement) {
+    private void sendStoppedMessage() {
         Log.v(TAG, "Sending IPC message: service stopped.");
+
         // Write point counters to MetaFile
+        updateMeasurementStatus(); // FIXME I don't like this: it's also a race condition
+        Validate.isTrue(currentMeasurement.getMetaFile().getFile().exists());
         currentMeasurement.getMetaFile().append(new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
                 rotationPointCounter, directionPointCounter));
+
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurement.getIdentifier());
@@ -209,13 +212,33 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @SuppressWarnings("unused")
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
+
         // Write point counters to MetaFile
+        updateMeasurementStatus(); // FIXME I don't like this: it's also a race condition
+        Validate.isTrue(currentMeasurement.getMetaFile().getFile().exists());
         currentMeasurement.getMetaFile().append(new MetaFile.PointMetaData(geoLocationCounter, accelerationPointCounter,
                 rotationPointCounter, directionPointCounter));
+
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurement.getIdentifier());
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
+    }
+
+    /**
+     * If the {@link DataCapturingService} already moved the measurement to FINISHED we update the status here, too.
+     */
+    private void updateMeasurementStatus() {
+        if (!currentMeasurement.getMeasurementFolder().exists()) {
+            final Measurement finishedMeasurement = persistenceLayer.loadMeasurement(currentMeasurement.getIdentifier(),
+                    Measurement.MeasurementStatus.FINISHED);
+            Validate.isTrue(finishedMeasurement.getMeasurementFolder().exists());
+            currentMeasurement = finishedMeasurement;
+            //currentMeasurement.loadMetaFile();
+            Validate.isTrue(currentMeasurement.getMeasurementFolder().exists());
+            Log.d(TAG, "Updated MeasurementStatus to FINISHED");
+        }
+        Validate.isTrue(currentMeasurement.getMetaFile().getFile().exists());
     }
 
     @Override
@@ -242,6 +265,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             }
             this.currentMeasurement = new Measurement(getBaseContext(), measurementIdentifier,
                     Measurement.MeasurementStatus.OPEN);
+            //currentMeasurement.loadMetaFile();
+            Validate.isTrue(currentMeasurement.getMetaFile().getFile().exists());
 
             // Restore counter state after (if counts are provided, i.e. resuming capturing)
             geoLocationCounter = intent.getIntExtra(BundlesExtrasCodes.GEOLOCATION_COUNT, -1);

@@ -549,8 +549,18 @@ public class DataCapturingServiceTest {
             throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
 
         final long measurementIdentifier = startAsyncAndCheckThatLaunched();
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(1)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.PAUSED).size(), is(equalTo(0)));
+
         pauseAsyncAndCheckThatStopped(measurementIdentifier);
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.PAUSED).size(), is(equalTo(1)));
+
         stopAsyncAndCheckThatStopped(-1); // -1 because it's already stopped
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.OPEN).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.PAUSED).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements(Measurement.MeasurementStatus.FINISHED).size(), is(equalTo(0)));
+        assertThat(oocut.loadMeasurements().size(), is(equalTo(1)));
     }
 
     /**

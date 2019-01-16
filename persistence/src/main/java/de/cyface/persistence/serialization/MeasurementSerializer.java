@@ -257,6 +257,9 @@ public final class MeasurementSerializer {
      */
     static List<GeoLocation> deserializeGeoLocationFile(final byte[] geoLocationFileBytes,
             @NonNull final Measurement measurement) {
+        /*if (measurement.getMetaFile() == null) {
+            measurement.loadMetaFile();
+        }*/
 
         final MetaFile.MetaData metaData;
         try {

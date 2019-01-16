@@ -81,14 +81,13 @@ public class MeasurementPersistence extends Persistence {
 
     /**
      * Finish the currently active {@link Measurement}.
+     *
+     * @param measurement The measurement to finish. To make sure the status if updated at the caller's level, too, it's
+     *            required as parameter instead of dynamically loading the recently captured measurement.
      */
-    public void finishRecentMeasurement() throws NoSuchMeasurementException {
+    public void finishRecentMeasurement(@NonNull final Measurement measurement) {
         synchronized (this) {
-            final Measurement measurement = loadCurrentlyCapturedMeasurement();
-            if (measurement == null) {
-                throw new NoSuchMeasurementException("Unable to close measurement as there is no measurement");
-            }
-            super.closeMeasurement(measurement);
+            super.finishMeasurement(measurement);
             currentMeasurement = null;
         }
     }

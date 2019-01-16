@@ -160,17 +160,17 @@ public class Persistence {
     }
 
     /**
-     * Closes the specified {@link Measurement} which is currently {@link Measurement.MeasurementStatus#OPEN} or
+     * Finishes the specified {@link Measurement} which is currently {@link Measurement.MeasurementStatus#OPEN} or
      * {@link Measurement.MeasurementStatus#PAUSED}.
      *
      * (!) Attention: See documentation of {@link Measurement#setStatus(Measurement.MeasurementStatus)}
      *
      * @throws IllegalStateException when the {@param measurement} was not open or paused.
      */
-    public void closeMeasurement(@NonNull final Measurement measurement) {
+    public void finishMeasurement(@NonNull final Measurement measurement) {
         Validate.isTrue(measurement.getStatus() == OPEN | measurement.getStatus() == PAUSED);
 
-        Log.d(TAG, "Closing measurement: " + measurement.getIdentifier());
+        Log.d(TAG, "Finishing measurement: " + measurement.getIdentifier());
         measurement.setStatus(FINISHED);
     }
 
@@ -201,9 +201,11 @@ public class Persistence {
         final File[] measurementFolders = measurementsFolder.listFiles(FileUtils.directoryFilter());
 
         final List<Measurement> measurements = new ArrayList<>();
-        for (File measurement : measurementFolders) {
-            final long measurementId = Long.parseLong(measurement.getName());
-            measurements.add(new Measurement(context, measurementId, status));
+        for (File measurementFolder : measurementFolders) {
+            final long measurementId = Long.parseLong(measurementFolder.getName());
+            final Measurement measurement = new Measurement(context, measurementId, status);
+            measurement.loadMetaFile();
+            measurements.add(measurement);
         }
 
         return measurements;
@@ -272,7 +274,7 @@ public class Persistence {
         }
 
         Log.d(TAG, hasMeasurement ? "One or more measurements of status " + status + " exist."
-                : "No measurement of status " + status + "exist.");
+                : "No measurement of status " + status + " exist.");
         return hasMeasurement;
     }
 
@@ -505,8 +507,10 @@ public class Persistence {
         if (measurement == null) {
             throw new NoSuchMeasurementException("Unable to load track for null measurement!");
         }
+        Validate.isTrue(measurement.getMeasurementFolder().exists());
 
         // Load file with geolocations
+        // FIXME: what happens when a measurement has no GpsPoints: Can the GeoLocationsFile be loaded?
         return GeoLocationsFile.loadFile(measurement).deserialize();
     }
 

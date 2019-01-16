@@ -24,10 +24,6 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
      */
     private final File file;
     /**
-     * The {@link Measurement} to which this file is part of.
-     */
-    private final Measurement measurement;
-    /**
      * The name of the file containing the data
      */
     private static final String FILE_NAME = "m";
@@ -37,16 +33,26 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
     private static final String FILE_EXTENSION = "cyfm";
 
     /**
+     * Constructor which actually creates a new {@link MetaFile} in the persistence layer.
+     *
      * @param measurement The {@link Measurement} to which this file is part of.
      * @param vehicle The {@link Vehicle} used in the measurement
      */
     public MetaFile(@NonNull final Measurement measurement, @NonNull final Vehicle vehicle) {
         Validate.isTrue(measurement.getStatus() == Measurement.MeasurementStatus.OPEN, "Unsupported");
-        this.file = measurement.createFile(MetaFile.FILE_NAME, MetaFile.FILE_EXTENSION);
-        this.measurement = measurement;
+        this.file = measurement.createFile(FILE_NAME, FILE_EXTENSION);
         // In case the PointMetaData is not persisted as the end of the capturing, appending the
         // vehicle at the beginning of the capturing allows to restore the corrupted data later on
         write(vehicle);
+    }
+
+    /**
+     * Constructor to reference existing {@link MetaFile}.
+     *
+     * @param file The already existing file which represents the {@link MetaFile}
+     */
+    private MetaFile(@NonNull final File file) {
+        this.file = file;
     }
 
     /**
@@ -64,18 +70,15 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         return file;
     }
 
-    public Measurement getMeasurement() {
-        return measurement;
-    }
-
     /**
      * To resume a paused measurement this method loads the point counters from the {@link MetaFile}
      * and removes the counters from it so the updates counts can be stored when finishing or pausing
      * the measurement later on (again).
      *
+     * @param measurement The measurement associated with this file, required to recreate the MetaFile
      * @return the {@link MetaData} containing the point counters
      */
-    public MetaData resume() {
+    public MetaData resume(@NonNull final Measurement measurement) {
         final MetaData metaData;
         try {
             metaData = deserialize();
@@ -98,6 +101,7 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
      *             the <code>PointMetaData</code> to the <code>MetaFile</code>
      */
     public MetaData deserialize() throws FileCorruptedException {
+        Validate.isTrue(file.exists(), "MetaFile not found.");
         final byte[] bytes = FileUtils.loadBytes(file);
         return MeasurementSerializer.deserializeMetaFile(bytes);
     }
@@ -121,6 +125,27 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
 
         FileUtils.write(file, dataFormatVersionBytes, false);
         FileUtils.write(file, vehicleIdBytes, true);
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        MetaFile metaFile = (MetaFile)o;
+        return file.equals(metaFile.file);
+    }
+
+    @Override
+    public int hashCode() {
+        return file.hashCode();
+    }
+
+    @Override
+    @NonNull
+    public String toString() {
+        return "MetaFile{" + "file=" + file + '}';
     }
 
     /**
@@ -202,5 +227,17 @@ public class MetaFile implements FileSupport<MetaFile.PointMetaData> {
         public PointMetaData getPointMetaData() {
             return pointMetaData;
         }
+    }
+
+    /**
+     * Loads an existing {@link MetaFile} for a specified {@link Measurement}.
+     *
+     * @return the {@link MetaFile} link to the file
+     * @throws IllegalStateException if there is no such file
+     */
+    public static MetaFile loadFile(@NonNull final Measurement measurement) {
+        final File file = FileUtils.generateMeasurementFilePath(measurement, FILE_NAME, FILE_EXTENSION);
+        Validate.isTrue(file.exists());
+        return new MetaFile(file);
     }
 }
