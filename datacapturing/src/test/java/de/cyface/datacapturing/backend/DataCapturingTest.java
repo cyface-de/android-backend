@@ -16,7 +16,7 @@ import android.location.LocationManager;
 import android.os.HandlerThread;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 
 /**
  * Tests the correct workings of the data capturing functionality.

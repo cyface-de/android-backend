@@ -1,4 +1,4 @@
-package de.cyface.datacapturing.model;
+package de.cyface.persistence.model;
 
 import static android.content.ContentValues.TAG;
 
@@ -6,16 +6,14 @@ import java.util.Locale;
 
 import android.os.Parcel;
 import android.os.Parcelable;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
-import de.cyface.datacapturing.DataCapturingService;
+import androidx.annotation.NonNull;
 
 /**
- * A position captured by the {@link DataCapturingService}.
+ * A position captured by the {@code DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.2.4
+ * @version 1.2.5
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {

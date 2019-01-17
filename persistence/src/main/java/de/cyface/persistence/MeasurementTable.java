@@ -18,7 +18,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * The path segment in the table URI identifying the measurements table.
      */
-    public final static String URI_PATH = "measurement";
+    public static final String URI_PATH = "measurement";
     /**
      * A boolean value which is either <code>true</code> (or 1 in SQLLite) if this measurement has been completed or
      * <code>false</code> (or 0 in SQLLite) otherwise. Usually only one measurement should not be finished; else there

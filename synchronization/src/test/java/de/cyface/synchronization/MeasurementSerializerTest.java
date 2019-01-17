@@ -1,15 +1,14 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_HEADER;
-import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-import static de.cyface.synchronization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
-import static org.mockito.Matchers.anyString;
 import static org.mockito.Mockito.when;
 
 import java.io.IOException;
@@ -22,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.cyface.persistence.serialization.MeasurementSerializer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -36,7 +36,6 @@ import android.net.Uri;
 import android.os.RemoteException;
 
 import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
@@ -84,7 +83,7 @@ public class MeasurementSerializerTest {
         when(pointsCursor.getCount()).thenReturn(3);
         // Insert 3 geo locations
         when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
-        // Insert 3 points of each Point3D type
+        // Insert 3 points of each Point3d type
         when(pointsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false)
                 .thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false).thenReturn(true).thenReturn(true)
                 .thenReturn(true).thenReturn(false);

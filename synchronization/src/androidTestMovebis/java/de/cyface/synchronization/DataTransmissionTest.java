@@ -16,8 +16,8 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import android.content.SyncRequest;
 import android.content.SyncResult;
+import de.cyface.persistence.serialization.MeasurementSerializer;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;

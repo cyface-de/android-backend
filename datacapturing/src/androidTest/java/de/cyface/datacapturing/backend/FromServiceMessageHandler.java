@@ -10,7 +10,7 @@ import java.util.List;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 
 import static android.content.ContentValues.TAG;
 

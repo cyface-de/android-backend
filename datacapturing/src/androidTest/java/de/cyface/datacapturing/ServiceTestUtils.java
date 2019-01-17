@@ -5,20 +5,20 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import android.net.Uri;
-
 import androidx.annotation.NonNull;
-import androidx.test.InstrumentationRegistry;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.IdentifierTable;
 
 /**
  * A class containing static utility functions, encapsulating often used calls.
  *
- * @author Klemens Muthmann
- * @version 1.1.3
+ * @author Armin Schnabel
+ * @version 1.1.6
  * @since 2.0.0
  */
 public class ServiceTestUtils {
@@ -33,9 +33,9 @@ public class ServiceTestUtils {
     /**
      * Account type used by all accounts created during testing.
      */
-    public static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
-    public final static String DEFAULT_FREE_USERNAME = "playStoreBeta";
-    public final static String DEFAULT_FREE_PASSWORD = "playStoreBeta@Cy";
+    static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
+    static final String DEFAULT_USERNAME = "admin";
+    static final String DEFAULT_PASSWORD = "secret";
 
     /**
      * Private constructor so no one tries to instantiate the utility class.
@@ -102,5 +102,9 @@ public class ServiceTestUtils {
     public static Uri getDirectionsUri() {
         return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH)
                 .build();
+    }
+
+    public static Uri getIdentifierUri() {
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
     }
 }

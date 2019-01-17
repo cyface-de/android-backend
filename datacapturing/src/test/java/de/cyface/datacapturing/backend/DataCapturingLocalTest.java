@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import de.cyface.persistence.model.Point3d;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -14,9 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.Point3D;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
@@ -73,19 +72,19 @@ public class DataCapturingLocalTest {
         int accelerationsSize = someLargeOddNumber*2;
         int rotationsSize = someLargeOddNumber;
         int directionsSize = someLargeOddNumber/2;
-        List<Point3D> accelerations = new ArrayList<>(accelerationsSize);
-        List<Point3D> rotations = new ArrayList<>(rotationsSize);
-        List<Point3D> directions = new ArrayList<>(directionsSize);
+        List<Point3d> accelerations = new ArrayList<>(accelerationsSize);
+        List<Point3d> rotations = new ArrayList<>(rotationsSize);
+        List<Point3d> directions = new ArrayList<>(directionsSize);
 
         // Create some random test data.
         for(int i=0;i<accelerationsSize;i++) {
-            accelerations.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
+            accelerations.add(new Point3d(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
         }
         for(int i=0;i<rotationsSize;i++) {
-            rotations.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
+            rotations.add(new Point3d(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
         }
         for(int i=0;i<directionsSize;i++) {
-            directions.add(new Point3D(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
+            directions.add(new Point3d(random.nextFloat(), random.nextFloat(), random.nextFloat(), Math.abs(random.nextLong())));
         }
         CapturedData data = new CapturedData(accelerations, rotations, directions);
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);

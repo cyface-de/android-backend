@@ -1,0 +1,51 @@
+/**
+ * Gradle's build file for the module which contains cross cutting code used by all other modules.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.2* @since 3.0.0
+ */
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        versionCode 1 // this must be incremented if new apk should be pushed to play store
+        // this is shown to the users, see Confluence/Android Client for naming guideline
+        versionName rootProject.ext.version
+
+        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+    }
+
+    // Enable Proguard for the release build type.
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+dependencies {
+    implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
+
+    // Dependencies for local unit tests
+    // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
+    // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other
+    // dependencies (e.g. testCompile)
+    implementation "junit:junit:$rootProject.ext.junitVersion"
+    implementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
+    // Optional - For better debuggable asserts
+    //implementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
+    implementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
+    implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
+
+    implementation project(":utils")
+    implementation project(':persistence')
+}

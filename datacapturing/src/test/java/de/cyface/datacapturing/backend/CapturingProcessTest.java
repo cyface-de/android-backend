@@ -28,7 +28,7 @@ import android.os.HandlerThread;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.utils.Validate;
 
 /**

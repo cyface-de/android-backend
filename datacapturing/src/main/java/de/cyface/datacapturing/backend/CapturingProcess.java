@@ -24,8 +24,8 @@ import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Point3d;
 import de.cyface.utils.Validate;
 
 /**
@@ -50,15 +50,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
-    private final List<Point3D> accelerations;
+    private final List<Point3d> accelerations;
     /**
      * Cache for captured but not yet processed points from the gyroscope.
      */
-    private final List<Point3D> rotations;
+    private final List<Point3d> rotations;
     /**
      * Cache for captured but not yet processed points from the compass.
      */
-    private final List<Point3D> directions;
+    private final List<Point3d> directions;
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -303,8 +303,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
-    private void saveSensorValue(final SensorEvent event, final List<Point3D> storage) {
-        Point3D dataPoint = new Point3D(event.values[0], event.values[1], event.values[2],
+    private void saveSensorValue(final SensorEvent event, final List<Point3d> storage) {
+        Point3d dataPoint = new Point3d(event.values[0], event.values[1], event.values[2],
                 event.timestamp / 1000000L + eventTimeOffset);
         storage.add(dataPoint);
     }

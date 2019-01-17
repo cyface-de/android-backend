@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.synchronization.SharedConstants.TAG;
@@ -17,6 +17,7 @@ import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.model.Point3d;
 
 /**
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
@@ -45,7 +46,18 @@ import de.cyface.persistence.GpsPointsTable;
  */
 public final class MeasurementSerializer {
 
-    static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
+    public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
+
+    /**
+     * The current version of the transferred file. This is always specified by the first two bytes of the file
+     * transferred and helps compatible APIs to process data from different client versions.
+     */
+    public final static short TRANSFER_FILE_FORMAT_VERSION = 1;
+    /**
+     * The current version of the file format used to persist {@link Point3d} data. This allows to have stored and
+     * process files with different PERSISTENCE_FILE_FORMAT_VERSION at the same time.
+     */
+    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1;
 
     /**
      * The current version of the data format. This is always specified by the first two bytes and allows to process
@@ -103,7 +115,7 @@ public final class MeasurementSerializer {
         compressor.finish();
         byte[] output = new byte[data.length];
         int lengthOfCompressedData = compressor.deflate(output);
-        Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
+        Log.d(SharedConstants.TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
         return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
     }
 
@@ -117,7 +129,7 @@ public final class MeasurementSerializer {
      */
     private byte[] serializeGeoLocations(final @NonNull Cursor geoLocationsCursor) {
         // Allocate enough space for all geo locations
-        Log.d(TAG, String.format("Serializing %d geo locations for synchronization.", geoLocationsCursor.getCount()));
+        Log.d(SharedConstants.TAG, String.format("Serializing %d geo locations for synchronization.", geoLocationsCursor.getCount()));
         ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
@@ -201,7 +213,7 @@ public final class MeasurementSerializer {
             }
             byte[] serializedGeoLocations = outputStream.toByteArray();
 
-            // TODO: Write Point3D data to a separate file because it's too much db work ...
+            // TODO: Write Point3d data to a separate file because it's too much db work ...
             byte[] serializedAccelerations = serialize(accelerationsCursor, accelerationsSerializer);
             byte[] serializedRotations = serialize(rotationsCursor, rotationsSerializer);
             byte[] serializedDirections = serialize(directionsCursor, directionsSerializer);
@@ -215,7 +227,7 @@ public final class MeasurementSerializer {
             buffer.put(serializedDirections);
 
             byte[] result = buffer.array();
-            Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
+            Log.d(SharedConstants.TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
             return result;
         } catch (RemoteException e) {
             throw new IllegalStateException(e);
@@ -246,7 +258,7 @@ public final class MeasurementSerializer {
      * @return A <code>byte</code> array containing all the data.
      */
     private byte[] serialize(final @NonNull Cursor pointCursor, final @NonNull Point3DSerializer serializer) {
-        Log.d(TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
+        Log.d(SharedConstants.TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
         ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
         while (pointCursor.moveToNext()) {
             buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(serializer.getTimestampColumnName())));

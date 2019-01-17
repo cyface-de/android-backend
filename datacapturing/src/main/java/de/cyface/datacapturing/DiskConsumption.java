@@ -11,6 +11,7 @@ import android.os.Parcelable;
 import android.os.StatFs;
 import androidx.annotation.NonNull;
 import android.util.Log;
+import de.cyface.persistence.model.Measurement;
 
 /**
  * Objects of this class represent the current disk (or rather SD card) space used and available. This space is mostly

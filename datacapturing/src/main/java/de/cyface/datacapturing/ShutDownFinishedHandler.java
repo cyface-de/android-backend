@@ -21,8 +21,8 @@ import android.util.Log;
  * @author Klemens Muthmann
  * @version 2.0.4
  * @since 2.0.0
- * @see DataCapturingService#pauseAsync(ShutDownFinishedHandler)
- * @see DataCapturingService#stopAsync(ShutDownFinishedHandler)
+ * @see DataCapturingService#pause(ShutDownFinishedHandler)
+ * @see DataCapturingService#stop(ShutDownFinishedHandler)
  */
 public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
 

@@ -17,7 +17,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.Point3D;
+import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.RotationPointTable;
@@ -146,13 +146,13 @@ public class CapturedDataWriter implements Runnable {
         }
     }
 
-    private void insert(final ContentProviderClient client, final List<Point3D> pointData,
+    private void insert(final ContentProviderClient client, final List<Point3d> pointData,
             final @NonNull Uri pointUriColumnName, final @NonNull String xColumnName, final @NonNull String yColumnName,
             final @NonNull String zColumnName, final @NonNull String isSyncedColumnName,
             final @NonNull String mFkColumnName, final @NonNull String timeColumnName) throws RemoteException {
         ContentValues[] values = new ContentValues[pointData.size()];
         for (int i = 0; i < pointData.size(); i++) {
-            Point3D dataPoint = pointData.get(i);
+            Point3d dataPoint = pointData.get(i);
             ContentValues ret = new ContentValues();
             ret.put(xColumnName, dataPoint.getX());
             ret.put(yColumnName, dataPoint.getY());

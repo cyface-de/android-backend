@@ -7,27 +7,28 @@ import java.util.List;
 import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.model.Point3d;
 
 /**
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.0.2
  * @since 1.0.0
  */
 public final class CapturedData implements Parcelable {
     /**
      * All accelerations captured since the last position was captured.
      */
-    private final List<Point3D> accelerations;
+    private final List<Point3d> accelerations;
     /**
      * All rotations captured since the last position was captured.
      */
-    private final List<Point3D> rotations;
+    private final List<Point3d> rotations;
     /**
      * All directions captured since the last position was captured.
      */
-    private final List<Point3D> directions;
+    private final List<Point3d> directions;
 
     /**
      * Creates a new captured data object from the provided data. The lists are copied and thus may be changed after
@@ -44,8 +45,8 @@ public final class CapturedData implements Parcelable {
      * @param directions The intensity of the earth's magnetic field on each of the three axis in space.
      *            The list contains all captured values since the last GPS fix.
      */
-    public CapturedData(final @NonNull List<Point3D> accelerations, final @NonNull List<Point3D> rotations,
-            final @NonNull List<Point3D> directions) {
+    public CapturedData(final @NonNull List<Point3d> accelerations, final @NonNull List<Point3d> rotations,
+                        final @NonNull List<Point3d> directions) {
         this.accelerations = new LinkedList<>(accelerations);
         this.rotations = new LinkedList<>(rotations);
         this.directions = new LinkedList<>(directions);
@@ -54,21 +55,21 @@ public final class CapturedData implements Parcelable {
     /**
      * @return All accelerations captured since the last position was captured.
      */
-    public List<Point3D> getAccelerations() {
+    public List<Point3d> getAccelerations() {
         return Collections.unmodifiableList(accelerations);
     }
 
     /**
      * @return All rotations captured since the last position was captured.
      */
-    public List<Point3D> getRotations() {
+    public List<Point3d> getRotations() {
         return Collections.unmodifiableList(rotations);
     }
 
     /**
      * @return All directions captured since the last position was captured.
      */
-    public List<Point3D> getDirections() {
+    public List<Point3d> getDirections() {
         return Collections.unmodifiableList(directions);
     }
 
@@ -82,9 +83,9 @@ public final class CapturedData implements Parcelable {
      * @param in Serialized form of a <code>CapturedData</code> object.
      */
     protected CapturedData(Parcel in) {
-        accelerations = in.createTypedArrayList(Point3D.CREATOR);
-        rotations = in.createTypedArrayList(Point3D.CREATOR);
-        directions = in.createTypedArrayList(Point3D.CREATOR);
+        accelerations = in.createTypedArrayList(Point3d.CREATOR);
+        rotations = in.createTypedArrayList(Point3d.CREATOR);
+        directions = in.createTypedArrayList(Point3d.CREATOR);
     }
 
     /**

@@ -11,25 +11,31 @@ import java.util.concurrent.TimeUnit;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import android.util.Log;
-
-import de.cyface.datacapturing.Measurement;
 import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.exception.NoSuchMeasurementException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Vehicle;
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GpsPointsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.Validate;
 
 /**
  * This class wraps the Cyface Android persistence API as required by the <code>DataCapturingListener</code> and its
@@ -65,10 +71,12 @@ public class MeasurementPersistence {
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
+     * @param context
      * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      * @param authority The authority used to identify the Android content provider to persist data to or load it from.
      */
-    public MeasurementPersistence(final @NonNull ContentResolver resolver, final @NonNull String authority) {
+    public MeasurementPersistence(Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String authority) {
         this.resolver = resolver;
         this.threadPool = Executors.newCachedThreadPool();
         this.authority = authority;
@@ -97,14 +105,14 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Close the currently active {@link Measurement}.
+     * Finish the currently active {@link Measurement}.
      *
      * @return The number of rows successfully updated.
      */
-    public int closeRecentMeasurement() {
-        // For brevity we are closing all open measurements. In order to make sure, that no error occurred
-        // we need to check that there is only one such open measurement before closing anything.
-        Log.d(TAG, "Closing recent measurements");
+    public int finishRecentMeasurement() {
+        // For brevity we are finishing all {@code MeasurementStatus#OPEN} measurements. In order to make sure, that no
+        // error occurred we need to check that there is only one such open measurement before closing anything.
+        Log.d(TAG, "Finishing recent measurements");
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_FINISHED, 1);
         synchronized (this) {
@@ -112,7 +120,7 @@ public class MeasurementPersistence {
                     new String[] {"0"});
             currentMeasurementIdentifier = null;
 
-            Log.d(TAG, "Closed " + updatedRows + " measurements");
+            Log.d(TAG, "Finished " + updatedRows + " measurements");
             return updatedRows;
         }
     }
@@ -155,37 +163,51 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Provides information about whether there is a currently open measurement or not.
+     * Provides information about whether there is currently a measurement in the specified {@link MeasurementStatus}.
      *
-     * @return <code>true</code> if a measurement is open; <code>false</code> otherwise.
-     * @throws DataCapturingException If more than one measurement is open or access to the content provider was
+     * @param status The {@code MeasurementStatus} in question
+     * @return <code>true</code> if a measurement is {@param status}; <code>false</code> otherwise.
+     * @throws NoSuchMeasurementException If more than one measurement is open or access to the content provider was
      *             impossible. The second case is probably a serious system issue and should not happen.
      */
-    public boolean hasOpenMeasurement() throws DataCapturingException {
-        Log.d(TAG, "Checking if app has an open measurement.");
-        Cursor openMeasurementQueryCursor = null;
+    public boolean hasMeasurement(@NonNull MeasurementStatus status) throws NoSuchMeasurementException {
+        Log.d(TAG, "Checking if app has an " + status + " measurement.");
+        Validate.isTrue(status == MeasurementStatus.OPEN, "Not yet implemented");
+
+        final String selection;
+        final String[] selectionArgs;
+        // noinspection SwitchStatementWithTooFewBranches
+        switch (status) {
+            case OPEN:
+                selection = MeasurementTable.COLUMN_FINISHED + "=?";
+                selectionArgs = new String[] {String.valueOf(MeasuringPointsContentProvider.SQLITE_FALSE)};
+                break;
+
+            default:
+                throw new IllegalArgumentException("Unsupported state: " + status);
+        }
+
+        Cursor measurementCursor = null;
         try {
             synchronized (this) {
-                openMeasurementQueryCursor = resolver.query(getMeasurementUri(), null,
-                        MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
-                        null);
+                measurementCursor = resolver.query(getMeasurementUri(), null, selection, selectionArgs, null);
 
-                if (openMeasurementQueryCursor == null) {
-                    throw new DataCapturingException(
-                            "Unable to initialize cursor to check for open measurement. Cursor was null!");
+                if (measurementCursor == null) {
+                    throw new NoSuchMeasurementException(
+                            "Unable to initialize cursor to check for " + status + " measurement. Cursor was null!");
                 }
 
-                if (openMeasurementQueryCursor.getCount() > 1) {
-                    throw new DataCapturingException("More than one measurement is open.");
+                if (measurementCursor.getCount() > 1) {
+                    throw new NoSuchMeasurementException("More than one measurement is " + status + ".");
                 }
 
-                boolean hasOpenMeasurement = openMeasurementQueryCursor.getCount() == 1;
-                Log.d(TAG, hasOpenMeasurement ? "One measurement is open." : "No measurement is open.");
-                return hasOpenMeasurement;
+                final boolean hasMeasurement = measurementCursor.getCount() == 1;
+                Log.d(TAG, hasMeasurement ? "One measurement is " + status + "." : "No measurement is " + status + ".");
+                return hasMeasurement;
             }
         } finally {
-            if (openMeasurementQueryCursor != null) {
-                openMeasurementQueryCursor.close();
+            if (measurementCursor != null) {
+                measurementCursor.close();
             }
         }
     }
@@ -199,7 +221,7 @@ public class MeasurementPersistence {
      *             serious system issue and should not occur.
      * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
      *             use
-     *             {@link #hasOpenMeasurement()} to check, whether there is an actual open measurement.
+     *             {@link #hasMeasurement(MeasurementStatus)} to check, whether there is an actual open measurement.
      */
     private long refreshIdentifierOfCurrentlyCapturedMeasurement()
             throws DataCapturingException, NoSuchMeasurementException {
@@ -302,19 +324,33 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Loads only the finished {@link Measurement} instances from the local persistent data storage. Finished
-     * measurements are the ones not currently capturing or paused.
+     * Loads only the {@link Measurement} in a specific {@link MeasurementStatus} from the local persistent data
+     * storage.
      *
-     * @return All the finished measurements from the local persistent data storage.
+     * @param status the {@code MeasurementStatus} for which all {@code Measurement}s are to be loaded
+     * @return All the {code Measurement}s in the specified {@param state} from the local persistent data storage.
      */
-    public List<Measurement> loadFinishedMeasurements() {
-        Cursor cursor = null;
+    public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) {
+        Validate.isTrue(status == MeasurementStatus.FINISHED, "Not yet supported");
 
+        final String selection;
+        final String[] selectionArgs;
+        // noinspection SwitchStatementWithTooFewBranches
+        switch (status) {
+            case FINISHED:
+                selection = MeasurementTable.COLUMN_FINISHED + "=?";
+                selectionArgs = new String[] {String.valueOf(MeasuringPointsContentProvider.SQLITE_TRUE)};
+                break;
+
+            default:
+                throw new IllegalArgumentException("Unsupported status" + status);
+        }
+
+        Cursor cursor = null;
         try {
             List<Measurement> ret = new ArrayList<>();
 
-            cursor = resolver.query(getMeasurementUri(), null, MeasurementTable.COLUMN_FINISHED + "=?",
-                    new String[] {String.valueOf(MeasuringPointsContentProvider.SQLITE_TRUE)}, null);
+            cursor = resolver.query(getMeasurementUri(), null, selection, selectionArgs, null);
             if (cursor == null) {
                 throw new IllegalStateException("Unable to access database to load measurements!");
             }
@@ -336,17 +372,16 @@ public class MeasurementPersistence {
 
     /**
      * Removes everything from the local persistent data storage.
+     * FIXME: also remove all persistence files such as accelerations, etc. and the identifier table?!
      *
      * @return number of rows removed from the database.
      */
     public int clear() {
         int ret = 0;
-        ret += resolver.delete(getRotationsUri(), null, null);
-        ret += resolver.delete(getAccelerationsUri(), null, null);
-        ret += resolver.delete(getDirectionsUri(), null, null);
         ret += resolver.delete(getGeoLocationsUri(), null, null);
         ret += resolver.delete(getMeasurementUri(), null, null);
-        return ret;
+        throw new IllegalStateException("Not implemented");
+        // return ret;
     }
 
     /**
@@ -493,5 +528,30 @@ public class MeasurementPersistence {
     private Uri getDirectionsUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
                 .build();
+    }
+
+    /**
+     * When pausing or stopping a {@link Measurement} we store the {@link Point3d} counters and the
+     * {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} in the {@link Measurement} to make sure we can
+     * deserialize the {@link Point3dFile}s with deprecated {@code PERSISTENCE_FILE_FORMAT_VERSION}s. This also could
+     * avoid corrupting {@code Point3dFile}s when the last bytes could not be written successfully.
+     *
+     * @param pointMetaData The {@code Point3dFile} meta information required for deserialization
+     * @param measurementId The id of the measurement associated with the {@link PointMetaData}
+     */
+    public void storePointMetaData(@NonNull final PointMetaData pointMetaData, final long measurementId) {
+        // FIXME:
+        throw new IllegalStateException("not yet implemented");
+    }
+
+    /**
+     * Loads the {@code PointMetaData} for a specific measurement, e.g. to resume the capturing.
+     *
+     * @param measurementId The id of the measurement to load the {@code PointMetaData} for
+     * @return the requested {@link PointMetaData}
+     */
+    public PointMetaData loadPointMetaData(final long measurementId) {
+        // FIXME
+        throw new IllegalStateException("not yet implemented");
     }
 }

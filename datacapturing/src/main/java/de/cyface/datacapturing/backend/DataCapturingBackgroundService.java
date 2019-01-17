@@ -1,5 +1,18 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
+
+import java.lang.ref.WeakReference;
+import java.util.Collections;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Set;
+
 import android.annotation.SuppressLint;
 import android.app.Notification;
 import android.app.Service;
@@ -18,32 +31,20 @@ import android.os.Messenger;
 import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
-import java.lang.ref.WeakReference;
-import java.util.Collections;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Set;
-
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
-
-import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -54,14 +55,14 @@ import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.16
+ * @version 4.3.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
     /**
      * The tag used to identify logging messages send to logcat.
      */
-    private final static String TAG = BACKGROUND_TAG;
+    private static final String TAG = BACKGROUND_TAG;
     /**
      * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
      * points they are split into multiple messages.
@@ -101,6 +102,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to respond to selected events triggered by this service.
      */
     private EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * Meta information required for deserialization of {@link Point3dFile}s.
+     */
+    private Point3dFile.PointMetaData pointMetaData;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -158,16 +163,18 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
-        sendStoppedMessage(currentMeasurementIdentifier);
+        sendStoppedMessage();
     }
 
     /**
      * Sends an IPC message to interested parties that the service stopped successfully.
-     * 
-     * @param currentMeasurementIdentifier The id of the measurement which was stopped.
      */
-    private void sendStoppedMessage(final long currentMeasurementIdentifier) {
+    private void sendStoppedMessage() {
         Log.v(TAG, "Sending IPC message: service stopped.");
+
+        // Store Point3d counters
+        persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
+
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
@@ -193,16 +200,17 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: "+intent);
+        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
 
         if (intent != null) { // i.e. this is the initial start command call init.
             // Loads EventHandlingStrategy
             this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
             Validate.notNull(eventHandlingStrategy);
             final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
-            if(notification!=null) {
+            if (notification != null) {
                 /*
-                 * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate. However this might cause problems if the service has already been killed at this stage.
+                 * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
+                 * However this might cause problems if the service has already been killed at this stage.
                  */
                 startForeground(eventHandlingStrategy.getCapturingNotificationId(), notification);
             }
@@ -221,7 +229,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                                 + AUTHORITY_ID);
             }
             final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-            persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
+            persistenceLayer = new MeasurementPersistence(this, this.getContentResolver(), authority);
+
+            // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
+            pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+            Validate.isTrue(
+                    pointMetaData
+                            .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                    "Cannot resume a measurement of a previous persistence file format version!");
 
             // Init capturing process
             dataCapturing = initializeCapturingProcess();
@@ -230,8 +245,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(
-                MessageCodes.getServiceStartedActionId(this));
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
         return Service.START_STICKY;
@@ -249,13 +263,16 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     private GPSCapturingProcess initializeCapturingProcess() {
         Log.d(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        Validate.notNull(locationManager);
         final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        Validate.notNull(sensorManager);
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
-        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread, sensorEventHandlerThread);
+        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread,
+                sensorEventHandlerThread);
     }
 
     /**
@@ -296,9 +313,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        final List<Point3D> accelerations = data.getAccelerations();
-        final List<Point3D> rotations = data.getRotations();
-        final List<Point3D> directions = data.getDirections();
+        final List<Point3d> accelerations = data.getAccelerations();
+        final List<Point3d> rotations = data.getRotations();
+        final List<Point3d> directions = data.getDirections();
         final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
         for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
@@ -311,20 +328,22 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     // Nothing to do here!
                 }
             });
+            pointMetaData.incrementPointCounters(data.getAccelerations().size(), data.getRotations().size(),
+                    data.getDirections().size());
         }
     }
 
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      *
-     * @param completeList The {@link List<Point3D>} to extract a subset from
+     * @param completeList The {@link List< Point3d >} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
-    private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int fromIndex) {
+    private @NonNull List<Point3d> sampleSubList(final @NonNull List<Point3d> completeList, final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
-        return (fromIndex >= toIndex) ? Collections.<Point3D> emptyList() : completeList.subList(fromIndex, toIndex);
+        return (fromIndex >= toIndex) ? Collections.<Point3d> emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override
@@ -385,6 +404,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
             final DataCapturingBackgroundService service = context.get();
 
+            // noinspection SwitchStatementWithTooFewBranches
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
                     Log.d(TAG, "Registering client!");

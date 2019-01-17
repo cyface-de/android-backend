@@ -1,6 +1,10 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
+import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -22,16 +26,15 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
 import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
-import de.cyface.datacapturing.Measurement;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.datacapturing.PongReceiver;
-import de.cyface.datacapturing.model.Vehicle;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 
 /**
@@ -39,7 +42,8 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  * GPS signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
- * @version 2.0.5
+ * @author Armin Schnabel
+ * @version 2.0.11
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -85,7 +89,9 @@ public class BackgroundServiceTest {
     @Before
     public void setUp() {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        persistence = new MeasurementPersistence(context.getContentResolver(), AUTHORITY);
+        persistence = new MeasurementPersistence(context, context.getContentResolver(), AUTHORITY);
+        // This is normally called in the <code>DataCapturingService#Constructor</code>
+        persistence.restoreOrCreateDeviceId();
         testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
@@ -99,12 +105,9 @@ public class BackgroundServiceTest {
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
-     * 
-     * @throws InterruptedException If test execution is interrupted externally. This should never really happen, but we
-     *             need to throw the exception anyways.
      */
     @Test
-    public void testStartDataCapturing() throws InterruptedException, TimeoutException {
+    public void testStartDataCapturing() throws TimeoutException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
 
@@ -121,6 +124,10 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
+        startIntent.putExtra(GEOLOCATION_COUNT, 0);
+        startIntent.putExtra(ACCELERATION_POINT_COUNT, 0);
+        startIntent.putExtra(ROTATION_POINT_COUNT, 0);
+        startIntent.putExtra(DIRECTION_POINT_COUNT, 0);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
 
         serviceTestRule.startService(startIntent);
@@ -149,17 +156,18 @@ public class BackgroundServiceTest {
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
-     *
-     * @throws InterruptedException If test execution is interrupted externally. This should never really happen, but we
-     *             need to throw the exception anyways.
      */
     @Test
-    public void testStartDataCapturingTwice() throws InterruptedException, TimeoutException {
+    public void testStartDataCapturingTwice() throws TimeoutException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
+        startIntent.putExtra(GEOLOCATION_COUNT, 0);
+        startIntent.putExtra(ACCELERATION_POINT_COUNT, 0);
+        startIntent.putExtra(ROTATION_POINT_COUNT, 0);
+        startIntent.putExtra(DIRECTION_POINT_COUNT, 0);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);

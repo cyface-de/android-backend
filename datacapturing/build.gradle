@@ -3,7 +3,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 1.0.0
  */
 
@@ -85,6 +85,7 @@ dependencies {
     implementation project(":synchronization")
 
     // Dependencies for instrumentation tests
+    androidTestImplementation project(":testutils")
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
