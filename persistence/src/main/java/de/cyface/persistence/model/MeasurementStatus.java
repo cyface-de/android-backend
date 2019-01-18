@@ -1,13 +1,40 @@
 package de.cyface.persistence.model;
 
 /**
- * Status which defines weather a measurement is still capturing data, (not yet supported) paused, finished, synced or
- * corrupted. This type is used to allow generalisation of status based methods such as hasMeasurement(OPEN, etc.).
+ * Status which defines weather a {@link Measurement} is still capturing data({@link #OPEN}), {@link #PAUSED},
+ * {@link #FINISHED} or {@link #SYNCED}.
+ *
+ * Usually only one {@code Measurement} should be {@link #OPEN} or {@link #PAUSED}; else there has been some error.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.0.0
  */
 public enum MeasurementStatus {
-    OPEN, /* PAUSED, currently the measurement table sees paused measurements as open */FINISHED, SYNCED, CORRUPTED
+    /**
+     * This state defines that a {@link Measurement} is currently active.
+     */
+    OPEN("OPEN"),
+    /**
+     * This state defines that an active {@link Measurement} was paused and not yet {@link #FINISHED} or resumed.
+     */
+    PAUSED("PAUSED"),
+    /**
+     * This state defines that a {@link Measurement} has been completed and was not yet {@link #SYNCED}.
+     */
+    FINISHED("FINISHED"),
+    /**
+     * This state defines that a {@link Measurement} has been synchronized.
+     */
+    SYNCED("SYNCED");
+
+    private String databaseIdentifier;
+
+    MeasurementStatus(final String databaseIdentifier) {
+        this.databaseIdentifier = databaseIdentifier;
+    }
+
+    public String getDatabaseIdentifier() {
+        return databaseIdentifier;
+    }
 }

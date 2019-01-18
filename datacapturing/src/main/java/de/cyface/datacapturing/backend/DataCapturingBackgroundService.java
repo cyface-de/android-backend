@@ -6,6 +6,8 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -38,10 +40,11 @@ import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocation;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
@@ -105,7 +108,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Meta information required for deserialization of {@link Point3dFile}s.
      */
-    private Point3dFile.PointMetaData pointMetaData;
+    private PointMetaData pointMetaData;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -172,9 +175,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     private void sendStoppedMessage() {
         Log.v(TAG, "Sending IPC message: service stopped.");
 
-        // Store Point3d counters
-        persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
-
         // Attention: the bundle is bundled again by informCaller !
         final Bundle bundle = new Bundle();
         bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
@@ -184,8 +184,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     /**
      * Sends an IPC message to interested parties that the service stopped itself. This must be called
-     * when the {@code stopSelf()} method is called on this service to unbind the {@link DataCapturingService},
-     * e.g. from an {@link EventHandlingStrategy} implementation.
+     * when the {@code stopSelf()} method is called on this service without a prior intent from the
+     * {@link DataCapturingService} to do so to unbind the {@link DataCapturingService}, e.g. from an
+     * {@link EventHandlingStrategy} implementation.
      *
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
      * The task for the missing test is CY-4111. Currently only tested manually.
@@ -200,55 +201,75 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
+        Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
         Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
 
-        if (intent != null) { // i.e. this is the initial start command call init.
-            // Loads EventHandlingStrategy
-            this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
-            Validate.notNull(eventHandlingStrategy);
-            final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
-            if (notification != null) {
-                /*
-                 * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
-                 * However this might cause problems if the service has already been killed at this stage.
-                 */
-                startForeground(eventHandlingStrategy.getCapturingNotificationId(), notification);
-            }
+        // Handle stopService commands sent via startService (to add extra information through the {@code Intend})
+        if (intent.getStringExtra(BundlesExtrasCodes.ACTION_STOP_SERVICE) != null) {
 
-            // Loads measurement id
-            final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
-            if (measurementIdentifier == -1) {
-                throw new IllegalStateException("No valid measurement identifier for started service provided.");
-            }
-            this.currentMeasurementIdentifier = measurementIdentifier;
+            // Set the currently active measurement to the correct status
+            final boolean setToPaused = intent.getBooleanExtra(BundlesExtrasCodes.SET_PAUSED, false);
+            persistenceLayer.setStatus(currentMeasurementIdentifier, setToPaused ? PAUSED : FINISHED);
+            // FIXME: We currently update the status in the DCS and here in the DCBS for pause/stop
+            // Which is the preferred place?
+            // pro DCBS: makes sure the storePointMetaData() and and setStatus() is at the same place
+            // contra DCBS: This way we need to send the set_paused extra as startService() intend which
+            // leads to us not getting a result if the service was active as in stopService().
+            // contra DCBS: See DCS.stop() finally - we have to lock here to ensure only one is entering the life-cycle
 
-            // Loads authority / persistence layer
-            if (!intent.hasExtra(AUTHORITY_ID)) {
-                throw new IllegalStateException(
-                        "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
-                                + AUTHORITY_ID);
-            }
-            final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-            persistenceLayer = new MeasurementPersistence(this, this.getContentResolver(), authority);
-
-            // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
-            pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
-            Validate.isTrue(
-                    pointMetaData
-                            .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                    "Cannot resume a measurement of a previous persistence file format version!");
-
-            // Init capturing process
-            dataCapturing = initializeCapturingProcess();
-            dataCapturing.addCapturingProcessListener(this);
+            // Stop Capturing
+            persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
+            stopSelf();
+            return Service.START_NOT_STICKY; // should not have any effect as the service is already started
         }
+
+        // Loads EventHandlingStrategy
+        this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
+        Validate.notNull(eventHandlingStrategy);
+        final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
+        if (notification != null) {
+            /*
+             * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
+             * However this might cause problems if the service has already been killed at this stage.
+             */
+            startForeground(eventHandlingStrategy.getCapturingNotificationId(), notification);
+        }
+
+        // Loads measurement id
+        final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
+        if (measurementIdentifier == -1) {
+            throw new IllegalStateException("No valid measurement identifier for started service provided.");
+        }
+        this.currentMeasurementIdentifier = measurementIdentifier;
+
+        // Loads authority / persistence layer
+        if (!intent.hasExtra(AUTHORITY_ID)) {
+            throw new IllegalStateException(
+                    "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
+                            + AUTHORITY_ID);
+        }
+        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+        persistenceLayer = new MeasurementPersistence(this, this.getContentResolver(), authority);
+
+        // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
+        pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+        Validate.isTrue(
+                pointMetaData
+                        .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                "Cannot resume a measurement of a previous persistence file format version!");
+
+        // Init capturing process
+        dataCapturing = initializeCapturingProcess();
+        dataCapturing.addCapturingProcessListener(this);
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
         final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
-        return Service.START_STICKY;
+
+        // NOT_STICKY to avoid recreation of the process which could mess up the life-cycle
+        return Service.START_NOT_STICKY;
     }
 
     /*

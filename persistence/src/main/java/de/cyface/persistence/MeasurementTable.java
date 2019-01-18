@@ -1,16 +1,19 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.Constants.TAG;
-
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
-import android.util.Log;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.MeasurementSerializer;
 
 /**
- * This class represents the table containing all the measurements currently stored on this device.
+ * This class represents the table containing all the {@link Measurement}s currently stored on this device.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -20,28 +23,40 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String URI_PATH = "measurement";
     /**
-     * A boolean value which is either <code>true</code> (or 1 in SQLLite) if this measurement has been completed or
-     * <code>false</code> (or 0 in SQLLite) otherwise. Usually only one measurement should not be finished; else there
-     * has been some error.
+     * Column name for {@link MeasurementStatus#getDatabaseIdentifier()} of the {@link Measurement}.
+     * Usually only one measurement should be in the {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
+     * state, else there has been some error.
      */
-    public static final String COLUMN_FINISHED = "finished";
+    public static final String COLUMN_STATUS = "status";
     /**
-     * Tells the system whether this measurement has been synchronized or not. If <code>true</code> or <code>1</code>
-     * this measurement has already been synchronized; if <code>false</code> or <code>0</code> it has not.
-     */
-    public static final String COLUMN_SYNCED = "synced";
-    /**
-     * A string which contains the .name() value of the vehicle enumeration
+     * Column name for the {@link Vehicle#getDatabaseIdentifier()} value of the {@link Vehicle} enumeration.
      */
     public static final String COLUMN_VEHICLE = "vehicle";
-
+    /**
+     * Column name for the number of acceleration {@link Point3d}s persisted for this {@link Measurement}.
+     */
+    public static final String COLUMN_ACCELERATIONS = "accelerations";
+    /**
+     * Column name for the number of rotation {@link Point3d}s persisted for this {@link Measurement}.
+     */
+    public static final String COLUMN_ROTATIONS = "rotations";
+    /**
+     * Column name for the number of direction {@link Point3d}s persisted for this {@link Measurement}.
+     */
+    public static final String COLUMN_DIRECTIONS = "directions";
+    /**
+     * Column name for the {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
+     * persistence layer of for this {@link Measurement}.
+     */
+    public static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
     /**
      * An array containing all columns from this table in default order.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_FINISHED, COLUMN_VEHICLE, COLUMN_SYNCED};
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_VEHICLE, COLUMN_ACCELERATIONS,
+            COLUMN_ROTATIONS, COLUMN_DIRECTIONS, COLUMN_PERSISTENCE_FILE_FORMAT_VERSION};
 
     /**
-     * Creates a new completely initialized {@code MeasurementTable} using the name "measurement".
+     * Creates a new completely initialized {@code MeasurementTable} using the name {@link #URI_PATH}.
      */
     MeasurementTable() {
         super(URI_PATH);
@@ -50,35 +65,27 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     @Override
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + "(" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_FINISHED + " INTEGER NOT NULL DEFAULT 1, " + COLUMN_VEHICLE + " TEXT, " + COLUMN_SYNCED
-                + " INTEGER NOT NULL DEFAULT 0);";
+                + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, " + COLUMN_ACCELERATIONS
+                + " INTEGER NOT NULL DEFAULT, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
+                + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " SHORT INTEGER NOT NULL);";
     }
 
-    /* Don't forget to update the DatabaseHelper's DATABASE_VERSION */
+    /**
+     * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
+     *
+     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     */
     @Override
-    public void onUpgrade(SQLiteDatabase database, int oldVersion, int newVersion) {
+    public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
+        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
         switch (oldVersion) {
-            case 3:
-                // nothing to do here
-                // no break, thus, the upgrade process continues with the next incremental upgrade step ->
-            case 5:
-                Log.w(TAG, "Upgrading " + getName() + " from version 5 to 6"); // For some reason this does not show up
-                                                                               // in log even though it's called
-                database.execSQL("ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_VEHICLE + " TEXT;");
-            case 7:
+            case 9:
+                // The upgrade from 8 to 9 is executed for all SDK versions below 3 (which is version 10).
+                // We don't support an upgrade for data captured before version 3 so all old data is deleted.
                 database.beginTransaction();
-                database.execSQL("CREATE TABLE " + getName() + "_backup (" + BaseColumns._ID
-                        + " INTEGER PRIMARY KEY AUTOINCREMENT, " + COLUMN_FINISHED + " INTEGER NOT NULL DEFAULT 1,"
-                        + COLUMN_VEHICLE + " TEXT);");
-                database.execSQL("INSERT INTO " + getName() + "_backup (" + BaseColumns._ID + ", " + COLUMN_VEHICLE
-                        + ")" + " SELECT " + BaseColumns._ID + ", " + COLUMN_VEHICLE + " FROM " + getName() + ";");
-                database.execSQL("DROP TABLE " + getName() + ";");
-                database.execSQL("ALTER TABLE " + getName() + "_backup RENAME TO " + getName() + ";");
+                database.execSQL("DELETE FROM " + getName() + ";");
                 database.endTransaction();
-            case 8:
-                database.beginTransaction();
-                database.execSQL(
-                        "ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_SYNCED + " INTEGER NOT NULL DEFAULT 0;");
+                // continues with the next incremental upgrade until return ! -->
         }
     }
 

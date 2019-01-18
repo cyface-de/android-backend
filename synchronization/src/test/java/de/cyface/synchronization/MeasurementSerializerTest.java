@@ -35,7 +35,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
@@ -74,9 +74,9 @@ public class MeasurementSerializerTest {
 
     @Before
     public void setUp() throws RemoteException {
-        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(TestUtils.AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(TestUtils.AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
-        when(loader.countData(geoLocationUri, GpsPointsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3L);
+        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3L);
         when(loader.loadGeoLocations(anyInt(),anyInt())).thenReturn(geoLocationsCursor);
         when(loader.load3DPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor);
         when(geoLocationsCursor.getCount()).thenReturn(3);

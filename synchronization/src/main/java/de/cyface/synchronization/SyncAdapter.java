@@ -34,7 +34,7 @@ import android.util.Log;
 
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
@@ -217,7 +217,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             MeasurementContentProviderClient client = new MeasurementContentProviderClient(measurementIdentifier,
                     provider, authority);
 
-            ret += client.countData(createGeoLocationsUri(authority), GpsPointsTable.COLUMN_MEASUREMENT_FK);
+            ret += client.countData(createGeoLocationsUri(authority), GeoLocationsTable.COLUMN_MEASUREMENT_FK);
             ret += client.countData(createAccelerationsUri(authority), AccelerationPointTable.COLUMN_MEASUREMENT_FK);
             ret += client.countData(createRotationsUri(authority), RotationPointTable.COLUMN_MEASUREMENT_FK);
             ret += client.countData(createDirectionsUri(authority), DirectionPointTable.COLUMN_MEASUREMENT_FK);
@@ -228,7 +228,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     private static Uri createGeoLocationsUri(final @NonNull String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
     }
 
     private static Uri createAccelerationsUri(final @NonNull String authority) {

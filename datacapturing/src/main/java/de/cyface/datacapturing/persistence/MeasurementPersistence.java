@@ -1,6 +1,12 @@
 package de.cyface.datacapturing.persistence;
 
+import static android.provider.BaseColumns._ID;
 import static de.cyface.datacapturing.Constants.TAG;
+import static de.cyface.persistence.MeasurementTable.COLUMN_ACCELERATIONS;
+import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
+import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.MeasurementTable.COLUMN_ROTATIONS;
+import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 
 import java.util.ArrayList;
 import java.util.Collections;
@@ -14,19 +20,14 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.provider.BaseColumns;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
-import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -43,11 +44,15 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.4
+ * @version 7.1.0
  * @since 2.0.0
  */
 public class MeasurementPersistence {
 
+    /**
+     * The {@link Context} required to locate the app's internal storage directory.
+     */
+    private final Context context;
     /**
      * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      */
@@ -60,23 +65,35 @@ public class MeasurementPersistence {
      * The authority used to identify the Android content provider to persist data to or load it from.
      */
     private final String authority;
-
     /**
      * Caching the current measurement identifier, so we do not need to ask the database each time we require the
      * current measurement identifier. This is <code>null</code> if there is no running measurement or if we lost the
      * cache due to Android stopping the application hosting the data capturing service.
      */
     private Long currentMeasurementIdentifier;
+    /**
+     * The {@link Point3dFile} to write the acceleration points to.
+     */
+    private Point3dFile accelerationsFile;
+    /**
+     * The {@link Point3dFile} to write the rotation points to.
+     */
+    private Point3dFile rotationsFile;
+    /**
+     * The {@link Point3dFile} to write the direction points to.
+     */
+    private Point3dFile directionsFile;
 
     /**
      * Creates a new completely initialized <code>MeasurementPersistence</code>.
      *
-     * @param context
+     * @param context The {@link Context} required to locate the app's internal storage directory.
      * @param resolver <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
      * @param authority The authority used to identify the Android content provider to persist data to or load it from.
      */
     public MeasurementPersistence(Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority) {
+        this.context = context;
         this.resolver = resolver;
         this.threadPool = Executors.newCachedThreadPool();
         this.authority = authority;
@@ -89,15 +106,13 @@ public class MeasurementPersistence {
      * @return The newly created <code>Measurement</code>.
      */
     public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
-        ContentValues values = new ContentValues();
+        final ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
-        values.put(MeasurementTable.COLUMN_FINISHED, false);
+        values.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
         synchronized (this) {
             Uri resultUri = resolver.insert(getMeasurementUri(), values);
-
-            if (resultUri == null) {
-                throw new IllegalStateException("New measurement could not be created!");
-            }
+            Validate.notNull("New measurement could not be created!", resultUri);
+            Validate.notNull(resultUri.getLastPathSegment());
 
             currentMeasurementIdentifier = Long.valueOf(resultUri.getLastPathSegment());
             return new Measurement(currentMeasurementIdentifier);
@@ -107,21 +122,40 @@ public class MeasurementPersistence {
     /**
      * Finish the currently active {@link Measurement}.
      *
-     * @return The number of rows successfully updated.
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
      */
-    public int finishRecentMeasurement() {
-        // For brevity we are finishing all {@code MeasurementStatus#OPEN} measurements. In order to make sure, that no
-        // error occurred we need to check that there is only one such open measurement before closing anything.
-        Log.d(TAG, "Finishing recent measurements");
-        ContentValues values = new ContentValues();
-        values.put(MeasurementTable.COLUMN_FINISHED, 1);
+    public void finishRecentMeasurement() throws NoSuchMeasurementException {
+        Log.d(TAG, "Finishing recent measurement");
         synchronized (this) {
-            int updatedRows = resolver.update(getMeasurementUri(), values, MeasurementTable.COLUMN_FINISHED + "=?",
-                    new String[] {"0"});
-            currentMeasurementIdentifier = null;
+            try {
+                setStatus(loadCurrentlyCapturedMeasurement().getIdentifier(), MeasurementStatus.FINISHED);
+            } finally {
+                currentMeasurementIdentifier = null;
+            }
+        }
+    }
 
-            Log.d(TAG, "Finished " + updatedRows + " measurements");
-            return updatedRows;
+    /**
+     * Pause the currently active {@link Measurement}.
+     *
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
+     */
+    public void pauseRecentMeasurement() throws NoSuchMeasurementException {
+        Log.d(TAG, "Pausing recent measurement");
+        synchronized (this) {
+            setStatus(loadCurrentlyCapturedMeasurement().getIdentifier(), MeasurementStatus.PAUSED);
+        }
+    }
+
+    /**
+     * Resumes the currently active {@link Measurement}.
+     *
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
+     */
+    public void resumeRecentMeasurement() throws NoSuchMeasurementException {
+        Log.d(TAG, "Resuming recent measurement");
+        synchronized (this) {
+            setStatus(loadCurrentlyCapturedMeasurement().getIdentifier(), MeasurementStatus.OPEN);
         }
     }
 
@@ -129,14 +163,28 @@ public class MeasurementPersistence {
      * Saves the provided {@link CapturedData} to the local persistent storage of the device.
      *
      * @param data The data to store.
+     * @param measurementIdentifier The id of the {@link Measurement} to store the data to.
      */
     public void storeData(final @NonNull CapturedData data, final long measurementIdentifier,
             final @NonNull WritingDataCompletedCallback callback) {
         if (threadPool.isShutdown()) {
             return;
         }
+        if (accelerationsFile == null) {
+            accelerationsFile = new Point3dFile(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+                    Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+        }
+        if (rotationsFile == null) {
+            rotationsFile = new Point3dFile(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+                    Point3dFile.ROTATION_FILE_EXTENSION);
+        }
+        if (directionsFile == null) {
+            directionsFile = new Point3dFile(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+                    Point3dFile.DIRECTION_FILE_EXTENSION);
+        }
 
-        CapturedDataWriter writer = new CapturedDataWriter(data, resolver, authority, measurementIdentifier, callback);
+        final CapturedDataWriter writer = new CapturedDataWriter(data, resolver, authority, measurementIdentifier,
+                accelerationsFile, rotationsFile, directionsFile, callback);
 
         threadPool.submit(writer);
     }
@@ -149,15 +197,14 @@ public class MeasurementPersistence {
      */
     public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
 
-        ContentValues values = new ContentValues();
+        final ContentValues values = new ContentValues();
         // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
-        values.put(GpsPointsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
-        values.put(GpsPointsTable.COLUMN_GPS_TIME, location.getTimestamp());
-        values.put(GpsPointsTable.COLUMN_IS_SYNCED, false);
-        values.put(GpsPointsTable.COLUMN_LAT, location.getLat());
-        values.put(GpsPointsTable.COLUMN_LON, location.getLon());
-        values.put(GpsPointsTable.COLUMN_SPEED, location.getSpeed());
-        values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        values.put(GeoLocationsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
+        values.put(GeoLocationsTable.COLUMN_GPS_TIME, location.getTimestamp());
+        values.put(GeoLocationsTable.COLUMN_LAT, location.getLat());
+        values.put(GeoLocationsTable.COLUMN_LON, location.getLon());
+        values.put(GeoLocationsTable.COLUMN_SPEED, location.getSpeed());
+        values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
 
         resolver.insert(getGeoLocationsUri(), values);
     }
@@ -167,42 +214,28 @@ public class MeasurementPersistence {
      *
      * @param status The {@code MeasurementStatus} in question
      * @return <code>true</code> if a measurement is {@param status}; <code>false</code> otherwise.
-     * @throws NoSuchMeasurementException If more than one measurement is open or access to the content provider was
-     *             impossible. The second case is probably a serious system issue and should not happen.
+     * @throws IllegalStateException If access to the content provider was impossible. This is probably a serious
+     *             system issue and should not happen.
      */
-    public boolean hasMeasurement(@NonNull MeasurementStatus status) throws NoSuchMeasurementException {
-        Log.d(TAG, "Checking if app has an " + status + " measurement.");
-        Validate.isTrue(status == MeasurementStatus.OPEN, "Not yet implemented");
-
-        final String selection;
-        final String[] selectionArgs;
-        // noinspection SwitchStatementWithTooFewBranches
-        switch (status) {
-            case OPEN:
-                selection = MeasurementTable.COLUMN_FINISHED + "=?";
-                selectionArgs = new String[] {String.valueOf(MeasuringPointsContentProvider.SQLITE_FALSE)};
-                break;
-
-            default:
-                throw new IllegalArgumentException("Unsupported state: " + status);
-        }
+    public boolean hasMeasurement(@NonNull MeasurementStatus status) {
+        Log.d(TAG, "Checking if app has an " + status + " measurement."); // FIXME: make sure we set the status to pause
+                                                                          // and synced (not just finished, paused and
+                                                                          // open)
 
         Cursor measurementCursor = null;
         try {
             synchronized (this) {
-                measurementCursor = resolver.query(getMeasurementUri(), null, selection, selectionArgs, null);
+                measurementCursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
+                        new String[] {status.getDatabaseIdentifier()}, null);
 
                 if (measurementCursor == null) {
-                    throw new NoSuchMeasurementException(
+                    throw new IllegalStateException(
                             "Unable to initialize cursor to check for " + status + " measurement. Cursor was null!");
                 }
 
-                if (measurementCursor.getCount() > 1) {
-                    throw new NoSuchMeasurementException("More than one measurement is " + status + ".");
-                }
-
-                final boolean hasMeasurement = measurementCursor.getCount() == 1;
-                Log.d(TAG, hasMeasurement ? "One measurement is " + status + "." : "No measurement is " + status + ".");
+                final boolean hasMeasurement = measurementCursor.getCount() > 0;
+                Log.d(TAG, hasMeasurement ? "At least one measurement is " + status + "."
+                        : "No measurement is " + status + ".");
                 return hasMeasurement;
             }
         } finally {
@@ -213,51 +246,28 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Provides the identifier of the measurement currently captured by the framework. This method should only be called
-     * if capturing is active. It throws an error otherwise.
+     * Loads the currently captured measurement and refreshes the {@link #currentMeasurementIdentifier} reference. This
+     * method should only be called if capturing is active. It throws an error otherwise.
      *
-     * @return The system wide unique identifier of the active measurement.
      * @throws DataCapturingException If access to the content provider was somehow impossible. This is probably a
      *             serious system issue and should not occur.
      * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
-     *             use
-     *             {@link #hasMeasurement(MeasurementStatus)} to check, whether there is an actual open measurement.
+     *             use {@link #hasMeasurement(MeasurementStatus)} to check whether there is an actual
+     *             {@link MeasurementStatus#OPEN} measurement.
      */
-    private long refreshIdentifierOfCurrentlyCapturedMeasurement()
+    private void refreshIdentifierOfCurrentlyCapturedMeasurement()
             throws DataCapturingException, NoSuchMeasurementException {
-        Log.d(TAG, "Trying to load measurement identifier from content provider!");
-        Cursor measurementIdentifierQueryCursor = null;
-        try {
-            synchronized (this) {
-                measurementIdentifierQueryCursor = resolver.query(getMeasurementUri(),
-                        new String[] {BaseColumns._ID, MeasurementTable.COLUMN_FINISHED},
-                        MeasurementTable.COLUMN_FINISHED + "=" + MeasuringPointsContentProvider.SQLITE_FALSE, null,
-                        BaseColumns._ID + " DESC");
-                if (measurementIdentifierQueryCursor == null) {
-                    throw new DataCapturingException("Unable to query for measurement identifier!");
-                }
+        Log.d(TAG, "Trying to load currently captured measurement from persistence layer!");
 
-                if (measurementIdentifierQueryCursor.getCount() > 1) {
-                    Log.w(TAG,
-                            "More than one measurement is open. Unable to decide where to store data! Using the one with the highest identifier!");
-                }
-
-                if (!measurementIdentifierQueryCursor.moveToFirst()) {
-                    throw new NoSuchMeasurementException("Unable to get measurement to store captured data to!");
-                }
-
-                int indexOfMeasurementIdentifierColumn = measurementIdentifierQueryCursor
-                        .getColumnIndex(BaseColumns._ID);
-                long measurementIdentifier = measurementIdentifierQueryCursor
-                        .getLong(indexOfMeasurementIdentifierColumn);
-                Log.d(TAG, "Providing measurement identifier " + measurementIdentifier);
-                return measurementIdentifier;
-            }
-        } finally {
-            if (measurementIdentifierQueryCursor != null) {
-                measurementIdentifierQueryCursor.close();
-            }
+        final List<Measurement> openMeasurements = loadMeasurements(MeasurementStatus.OPEN);
+        if (openMeasurements.size() == 0) {
+            throw new NoSuchMeasurementException("No open measurement found!");
         }
+        if (openMeasurements.size() > 1) {
+            throw new IllegalStateException("More than one measurement is open.");
+        }
+        currentMeasurementIdentifier = openMeasurements.get(0).getIdentifier();
+        Log.d(TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
     }
 
     /**
@@ -274,7 +284,7 @@ public class MeasurementPersistence {
             }
 
             while (cursor.moveToNext()) {
-                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(BaseColumns._ID));
+                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
 
                 ret.add(new Measurement(measurementIdentifier));
             }
@@ -299,14 +309,14 @@ public class MeasurementPersistence {
         Cursor cursor = null;
 
         try {
-            cursor = resolver.query(measurementUri, null, null, null, null);
+            cursor = resolver.query(measurementUri, null, _ID + "=?",
+                    new String[] {String.valueOf(measurementIdentifier)}, null);
 
             if (cursor == null) {
-                throw new DataCapturingException(
+                throw new DataCapturingException( // FIXME: do we really still need to soft capture this?
                         "Cursor for loading a measurement not correctly initialized. Was null for URI "
                                 + measurementUri);
             }
-
             if (cursor.getCount() > 1) {
                 throw new DataCapturingException("Too many measurements loaded from URI: " + measurementUri);
             }
@@ -324,6 +334,42 @@ public class MeasurementPersistence {
     }
 
     /**
+     * Provide the {@link MeasurementStatus} of one specific measurement from the data storage.
+     *
+     * @param measurementIdentifier The device wide unique identifier of the measurement to load.
+     * @return The loaded {@code MeasurementStatus}
+     * @throws NoSuchMeasurementException If accessing the measurement does not exist.
+     * @throws DataCapturingException If accessing the content provider fails.
+     */
+    public MeasurementStatus loadMeasurementStatus(final long measurementIdentifier)
+            throws DataCapturingException, NoSuchMeasurementException {
+        Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier)).build();
+        Cursor cursor = null;
+
+        try {
+            cursor = resolver.query(measurementUri, null, null, null, null);
+
+            if (cursor == null) {
+                throw new DataCapturingException(
+                        "Cursor for loading a measurement not correctly initialized. Was null for URI "
+                                + measurementUri);
+            }
+            if (cursor.getCount() > 1) {
+                throw new DataCapturingException("Too many measurements loaded from URI: " + measurementUri);
+            }
+            if (!cursor.moveToFirst()) {
+                throw new NoSuchMeasurementException("Failed to load MeasurementStatus.");
+            }
+
+            return MeasurementStatus.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
      * Loads only the {@link Measurement} in a specific {@link MeasurementStatus} from the local persistent data
      * storage.
      *
@@ -333,30 +379,18 @@ public class MeasurementPersistence {
     public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) {
         Validate.isTrue(status == MeasurementStatus.FINISHED, "Not yet supported");
 
-        final String selection;
-        final String[] selectionArgs;
-        // noinspection SwitchStatementWithTooFewBranches
-        switch (status) {
-            case FINISHED:
-                selection = MeasurementTable.COLUMN_FINISHED + "=?";
-                selectionArgs = new String[] {String.valueOf(MeasuringPointsContentProvider.SQLITE_TRUE)};
-                break;
-
-            default:
-                throw new IllegalArgumentException("Unsupported status" + status);
-        }
-
         Cursor cursor = null;
         try {
             List<Measurement> ret = new ArrayList<>();
 
-            cursor = resolver.query(getMeasurementUri(), null, selection, selectionArgs, null);
+            cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
+                    new String[] {status.getDatabaseIdentifier()}, null);
             if (cursor == null) {
                 throw new IllegalStateException("Unable to access database to load measurements!");
             }
 
             while (cursor.moveToNext()) {
-                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(BaseColumns._ID));
+                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
 
                 ret.add(new Measurement(measurementIdentifier));
             }
@@ -392,20 +426,15 @@ public class MeasurementPersistence {
      * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
      */
     public void delete(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        if (measurement == null) {
+        if (measurement == null) { // FIXME: do we need to support this for RM? if so, annotate this here with
+                                   // //noinspection
             throw new NoSuchMeasurementException("Unable to delete null measurement!");
         }
 
         String[] arrayWithMeasurementIdentifier = {Long.valueOf(measurement.getIdentifier()).toString()};
-        resolver.delete(getRotationsUri(), RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
+        resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 arrayWithMeasurementIdentifier);
-        resolver.delete(getAccelerationsUri(), AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                arrayWithMeasurementIdentifier);
-        resolver.delete(getDirectionsUri(), DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                arrayWithMeasurementIdentifier);
-        resolver.delete(getGeoLocationsUri(), GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                arrayWithMeasurementIdentifier);
-        resolver.delete(getMeasurementUri(), BaseColumns._ID + "=?", arrayWithMeasurementIdentifier);
+        resolver.delete(getMeasurementUri(), _ID + "=?", arrayWithMeasurementIdentifier);
     }
 
     /**
@@ -417,15 +446,16 @@ public class MeasurementPersistence {
      * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
      */
     public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        if (measurement == null) {
+        if (measurement == null) {// FIXME: do we need to support this for RM? if so, annotate this here with
+            // //noinspection
             throw new NoSuchMeasurementException("Unable to load track for null measurement!");
         }
 
         Cursor locationsCursor = null;
         try {
-            locationsCursor = resolver.query(getGeoLocationsUri(), null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+            locationsCursor = resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
-                    GpsPointsTable.COLUMN_GPS_TIME + " ASC");
+                    GeoLocationsTable.COLUMN_GPS_TIME + " ASC");
 
             if (locationsCursor == null) {
                 return Collections.emptyList();
@@ -433,13 +463,14 @@ public class MeasurementPersistence {
 
             List<GeoLocation> ret = new ArrayList<>(locationsCursor.getCount());
             while (locationsCursor.moveToNext()) {
-                double lat = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LAT));
-                double lon = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LON));
+                double lat = locationsCursor.getDouble(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
+                double lon = locationsCursor.getDouble(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
                 long timestamp = locationsCursor
-                        .getLong(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME));
-                double speed = locationsCursor.getDouble(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED));
+                        .getLong(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME));
+                double speed = locationsCursor
+                        .getDouble(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
                 float accuracy = locationsCursor
-                        .getFloat(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY));
+                        .getFloat(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
 
                 ret.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));
             }
@@ -453,28 +484,33 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Loads the identifier of the current measurement from the internal cache if possible, or from the database if an
-     * open measurement exists. If neither the cache nor the database have an open measurement this method returns
-     * <code>null</code>.
+     * Loads the current {@link Measurement} from the internal cache if possible, or from the persistence layer if an
+     * {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
+     * {@code Measurement} exists.
      *
-     * @return The identifier of the currently captured measurement or <code>null</code> if none exists.
+     * @return The currently captured {@code Measurement}
+     * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
+     *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
+     *             {@code Measurement}
      */
-    public @Nullable Measurement loadCurrentlyCapturedMeasurement() {
-        try {
-            synchronized (this) {
-                if (currentMeasurementIdentifier != null) {
-                    return new Measurement(currentMeasurementIdentifier);
-                } else if (hasOpenMeasurement()) {
-                    return new Measurement(refreshIdentifierOfCurrentlyCapturedMeasurement());
-                } else {
-                    return null;
+    public @NonNull Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
+        synchronized (this) {
+            if (currentMeasurementIdentifier == null
+                    && (hasMeasurement(MeasurementStatus.OPEN) || hasMeasurement(MeasurementStatus.PAUSED))) {
+                try {
+                    refreshIdentifierOfCurrentlyCapturedMeasurement();
+                } catch (final DataCapturingException e1) {
+                    throw new IllegalStateException(e1);
                 }
+                Validate.isTrue(currentMeasurementIdentifier != null);
             }
-        } catch (DataCapturingException e) {
-            throw new IllegalStateException("Unrecoverable internal error!", e);
-        } catch (NoSuchMeasurementException e) {
-            Log.w(TAG, "Trying to load measurement identifier while no measurement was open!");
-            return null;
+
+            if (currentMeasurementIdentifier == null) {
+                throw new NoSuchMeasurementException(
+                        "Trying to load measurement identifier while no measurement was open or paused!");
+            }
+
+            return new Measurement(currentMeasurementIdentifier);
         }
     }
 
@@ -504,30 +540,7 @@ public class MeasurementPersistence {
      * @return The content provider URI for the geo locations table.
      */
     private Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
-    }
-
-    /**
-     * @return The content provider URI for the accelerations table.
-     */
-    private Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH)
-                .build();
-    }
-
-    /**
-     * @return The content provider URI for the rotations table.
-     */
-    private Uri getRotationsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH).build();
-    }
-
-    /**
-     * @return The content provider URI for the directions table.
-     */
-    private Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
-                .build();
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
     }
 
     /**
@@ -540,8 +553,16 @@ public class MeasurementPersistence {
      * @param measurementId The id of the measurement associated with the {@link PointMetaData}
      */
     public void storePointMetaData(@NonNull final PointMetaData pointMetaData, final long measurementId) {
-        // FIXME:
-        throw new IllegalStateException("not yet implemented");
+        final ContentValues pointMetaDataValues = new ContentValues();
+        pointMetaDataValues.put(COLUMN_ACCELERATIONS, pointMetaData.getAccelerationPointCounter());
+        pointMetaDataValues.put(COLUMN_ROTATIONS, pointMetaData.getRotationPointCounter());
+        pointMetaDataValues.put(COLUMN_DIRECTIONS, pointMetaData.getDirectionPointCounter());
+        pointMetaDataValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+                pointMetaData.getPersistenceFileFormatVersion());
+
+        final int updatedRows = resolver.update(getMeasurementUri(), pointMetaDataValues,
+                _ID + "=" + currentMeasurementIdentifier, null);
+        Validate.isTrue(updatedRows == 1);
     }
 
     /**
@@ -551,7 +572,67 @@ public class MeasurementPersistence {
      * @return the requested {@link PointMetaData}
      */
     public PointMetaData loadPointMetaData(final long measurementId) {
-        // FIXME
-        throw new IllegalStateException("not yet implemented");
+        Cursor cursor = null;
+        try {
+            cursor = resolver.query(getMeasurementUri(),
+                    new String[] {COLUMN_ACCELERATIONS, COLUMN_ROTATIONS, COLUMN_DIRECTIONS,
+                            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION},
+                    _ID + "=?", new String[] {String.valueOf(measurementId)}, null);
+
+            if (cursor == null) { // FIXME: in other cases we soft capture this and throw a DataCapturingException
+                throw new IllegalStateException("Unable to access database to load measurements!");
+            }
+            Validate.isTrue(cursor.moveToNext(),
+                    "Failed to load PointMetaData for non existent measurement" + measurementId);
+
+            final int accelerations = cursor.getInt(cursor.getColumnIndex(COLUMN_ACCELERATIONS));
+            final int rotations = cursor.getInt(cursor.getColumnIndex(COLUMN_ROTATIONS));
+            final int directions = cursor.getInt(cursor.getColumnIndex(COLUMN_DIRECTIONS));
+            final short persistenceFileFormatVersion = cursor
+                    .getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
+            return new PointMetaData(accelerations, rotations, directions, persistenceFileFormatVersion);
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Updates the {@link MeasurementStatus} in the data persistence layer.
+     *
+     * @param measurementIdentifier The id of the {@link Measurement} to be updated
+     * @param newStatus The new {@code MeasurementStatus}
+     * @throws NoSuchMeasurementException if there was no measurement with the id {@param measurementIdentifier}.
+     */
+    private void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
+            throws NoSuchMeasurementException {
+        final ContentValues statusValue = new ContentValues();
+        statusValue.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
+
+        int updatedRows = resolver.update(getMeasurementUri(), statusValue, _ID + "=" + measurementIdentifier, null);
+        Validate.isTrue(updatedRows < 2, "Duplicate measurement id entries.");
+        if (updatedRows == 0) {
+            throw new NoSuchMeasurementException("The measurement could not be updated as it does not exist.");
+        }
+
+        switch (newStatus) {
+            case OPEN:
+                Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
+                break;
+            case PAUSED:
+                Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
+                break;
+            case FINISHED:
+                Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
+                Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
+                break;
+            case SYNCED:
+                break;
+            default:
+                throw new IllegalArgumentException("Not supported");
+        }
+
+        Log.d(TAG, "Set measurement " + currentMeasurementIdentifier + " to " + newStatus);
     }
 }

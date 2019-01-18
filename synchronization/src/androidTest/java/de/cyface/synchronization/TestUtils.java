@@ -7,7 +7,7 @@ import androidx.annotation.NonNull;
 
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
 
@@ -55,7 +55,7 @@ final class TestUtils {
     }
 
     static Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
     }
 
     static Uri getAccelerationsUri() {
@@ -152,13 +152,13 @@ final class TestUtils {
     static void insertTestGeoLocation(final @NonNull ContentResolver resolver, final long measurementIdentifier,
             final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
         ContentValues values = new ContentValues();
-        values.put(GpsPointsTable.COLUMN_ACCURACY, accuracy);
-        values.put(GpsPointsTable.COLUMN_GPS_TIME, timestamp);
-        values.put(GpsPointsTable.COLUMN_IS_SYNCED, false);
-        values.put(GpsPointsTable.COLUMN_LAT, lat);
-        values.put(GpsPointsTable.COLUMN_LON, lon);
-        values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-        values.put(GpsPointsTable.COLUMN_SPEED, speed);
+        values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
+        values.put(GeoLocationsTable.COLUMN_GPS_TIME, timestamp);
+        values.put(GeoLocationsTable.COLUMN_IS_SYNCED, false);
+        values.put(GeoLocationsTable.COLUMN_LAT, lat);
+        values.put(GeoLocationsTable.COLUMN_LON, lon);
+        values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        values.put(GeoLocationsTable.COLUMN_SPEED, speed);
         resolver.insert(getGeoLocationsUri(), values);
     }
 

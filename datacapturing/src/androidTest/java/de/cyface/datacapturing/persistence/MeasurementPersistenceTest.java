@@ -28,6 +28,8 @@ import de.cyface.persistence.model.Vehicle;
  * @author Armin Schnabel
  * @version 1.1.0
  * @since 2.0.3
+ *
+ * FIXME: pull selected PersitenceTest changes from declined FILES branch/PR into this branch
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest

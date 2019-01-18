@@ -4,6 +4,7 @@ import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
 import static de.cyface.datacapturing.ServiceTestUtils.TAG;
 import static de.cyface.datacapturing.ServiceTestUtils.getGeoLocationsUri;
 import static de.cyface.datacapturing.ServiceTestUtils.getMeasurementUri;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
@@ -32,7 +33,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -129,7 +130,8 @@ public class CapturedDataWriterTest {
 
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
                     is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_FINISHED)), is(equalTo(0)));
+            assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
+                    is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
 
         } finally {
             if (result != null) {
@@ -159,8 +161,8 @@ public class CapturedDataWriterTest {
 
             assertThat(finishingResult.getString(finishingResult.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
                     is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
-            assertThat(finishingResult.getInt(finishingResult.getColumnIndex(MeasurementTable.COLUMN_FINISHED)),
-                    is(equalTo(1)));
+            assertThat(finishingResult.getString(finishingResult.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
+                    is(equalTo(FINISHED.getDatabaseIdentifier())));
         } finally {
             if (finishingResult != null) {
                 finishingResult.close();
@@ -278,7 +280,7 @@ public class CapturedDataWriterTest {
         Cursor measurementsCursor = null;
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                    GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(), null, null, null, null);
             if (geoLocationsCursor == null || measurementsCursor == null) {
@@ -365,7 +367,7 @@ public class CapturedDataWriterTest {
         Cursor geoLocationsCursor = null;
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+                    GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             if (geoLocationsCursor == null) {
                 throw new IllegalStateException(

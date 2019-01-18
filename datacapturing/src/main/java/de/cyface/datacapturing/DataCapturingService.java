@@ -4,13 +4,12 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
+import static de.cyface.synchronization.SyncService.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.Locale;
-import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -34,24 +33,27 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import android.util.Log;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.synchronization.*;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.synchronization.ConnectionStatusListener;
+import de.cyface.synchronization.ConnectionStatusReceiver;
+import de.cyface.synchronization.SyncService;
+import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.Validate;
 
 /**
@@ -69,23 +71,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.8
+ * @version 9.1.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
-    /**
-     * The time in milliseconds after which this object stops waiting for the system to start or stop the Android
-     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
-     * what works under real world conditions.
-     */
-    private static final long START_STOP_TIMEOUT_MILLIS = 10_000L;
 
-    /**
-     * The time in milliseconds after which this object stops waiting for the system to pause or resume the Android
-     * service and reports an error. It is set to 10 seconds by default. There is no particular reason. We should check
-     * what works under real world conditions.
-     */
-    private static final long PAUSE_RESUME_TIMEOUT_TIME_MILLIS = 10_000L;
     /*
      * MARK: Properties
      */
@@ -138,9 +128,9 @@ public abstract class DataCapturingService {
      */
     private UIListener uiListener;
     /**
-     * The <code>ContentProvider</code> authority used to identify the content provider used by this
-     * <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
-     * avoid collisions between different apps using the Cyface SDK.
+     * The <code>ContentProvider</code> authority required to request a sync operation in the {@link WiFiSurveyor}.
+     * You should use something world wide unique, like your domain, to avoid collisions between different apps using
+     * the Cyface SDK.
      */
     private String authority;
     /**
@@ -167,9 +157,9 @@ public abstract class DataCapturingService {
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param resolver The <code>ContentResolver</code> used to access the data layer.
-     * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
-     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
-     *            avoid collisions between different apps using the Cyface SDK.
+     * @param authority The <code>ContentProvider</code> authority required to request a sync operation in the
+     *            {@link WiFiSurveyor}. You should use something world wide unique, like your domain, to avoid
+     *            collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service.
@@ -187,16 +177,16 @@ public abstract class DataCapturingService {
         this.persistenceLayer = new MeasurementPersistence(context, resolver, authority);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
-
-        // Setup required preferences including the device identifier, if not generated previously.
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
-        if (deviceIdentifier == null) {
-            deviceIdentifier = UUID.randomUUID().toString();
-            sharedPreferencesEditor.putString(SyncService.DEVICE_IDENTIFIER_KEY, deviceIdentifier);
-        }
-        this.deviceIdentifier = deviceIdentifier;
+
+        // Setup required device identifier, if not generated previously
+        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
+        sharedPreferencesEditor.putString(DEVICE_IDENTIFIER_KEY, deviceIdentifier);
+        Validate.notNull(deviceIdentifier,
+                "Sync canceled: No installation identifier for this application set in its preferences.");
+        // We cache the did in the preferences as it's hard or not possible to access the database
+        // where it's persisted, e.g. in the getAuthToken method.
 
         sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
@@ -219,9 +209,9 @@ public abstract class DataCapturingService {
      * Starts the capturing process with a listener, that is notified of important events occurring while the capturing
      * process is running.
      * <p>
-     * This method returns as soon as starting the service was initiated. You may not assume the service is running,
-     * after the method returns. Please use the {@link StartUpFinishedHandler} to receive a callback, when the service
-     * has been started or use the synchronized version {@link #startSync(DataCapturingListener, Vehicle)}.
+     * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
+     * assume the service is running, after the method returns. Please use the {@link StartUpFinishedHandler} to receive
+     * a callback, when the service has been started.
      * <p>
      * This method is thread safe to call.
      * <p>
@@ -237,7 +227,7 @@ public abstract class DataCapturingService {
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
-                      final @NonNull StartUpFinishedHandler finishedHandler)
+            final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException {
         Log.d(TAG, "Starting asynchronously and locking lifecycle!");
         lifecycleLock.lock();
@@ -276,9 +266,10 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException If <code>DataCapturingBackgroundService</code> is not bound to this service.
      *             The service will still be stopped if the exception occurs, but you have to handle it anyways to
      *             prevent your application from crashing.
-     * @throws NoSuchMeasurementException If no measurement was open while pausing the service. This usually occurs if
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
+     *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
-     *             prior to pausing.
+     *             prior to stopping.
      */
     public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
@@ -291,23 +282,28 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous stop.");
         try {
             setIsStoppingOrHasStopped(true);
-            Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
-            if (measurement == null) {
-                throw new NoSuchMeasurementException("Unable to stop service. There was no open measurement to close.");
-            }
-
-            if (!stopService(measurement, finishedHandler)) {
+            if (!stopService(measurement, finishedHandler, false)) {
                 // The background service was not active. This can happen when the measurement was paused.
                 // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
                 sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
             }
-        } catch (IllegalArgumentException e) {
-            throw new DataCapturingException(e);
         } finally {
-            persistenceLayer.finishRecentMeasurement();
-            Log.v(TAG, "Unlocking in asynchronous stop.");
-            lifecycleLock.unlock();
+            try {
+                // We execute the {@link MeasurementPersistence#setStatus()} here instead of in the {@link
+                // DataCapturingBackgroundService#onStartCommand()} because we want to make sure with the lock that
+                // ... the measurement is always ended even though if the {@code DataCapturingBackgroundService} has
+                // died?
+                // Also, we have this in the finally to make sure the currently capturing measurement reference in the
+                // persistence layer is also unset when loadCurrentlyCapturedMeasurement() fails.
+                // FIXME: very complicated: Do we want to execute this finishRecentMeasurement() when the stopService()
+                // throws a DataCapturingException, i.e. the server could not be stopped successfully?
+                persistenceLayer.finishRecentMeasurement();
+            } finally {
+                Log.v(TAG, "Unlocking in asynchronous stop.");
+                lifecycleLock.unlock();
+            }
         }
     }
 
@@ -325,22 +321,35 @@ public abstract class DataCapturingService {
      * @param finishedHandler A handler that is called as soon as the background service has send a message that it has
      *            paused.
      * @throws DataCapturingException In case the service was not stopped successfully.
-     * @throws NoSuchMeasurementException If no measurement was open while pausing the service. This usually occurs if
-     *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
-     *             prior to pausing.
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
+     *             service. This usually occurs if there was no call to
+     *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
      */
     public void pause(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException {
         Log.d(TAG, "Pausing asynchronously.");
-        Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-
-        if (currentMeasurement == null) {
-            throw new NoSuchMeasurementException(
-                    "There seems to be no open measurement, we can pause the capturing for.");
+        if (getContext() == null) {
+            return;
         }
 
-        if (!stopService(currentMeasurement, finishedHandler)) {
-            throw new DataCapturingException("No active service found to be paused.");
+        lifecycleLock.lock();
+        Log.v(TAG, "Locking in asynchronous pause.");
+        try {
+            setIsStoppingOrHasStopped(true);
+            final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+
+            if (!stopService(currentMeasurement, finishedHandler, true)) {
+                throw new DataCapturingException("No active service found to be paused.");
+            }
+
+            // We execute the {@link MeasurementPersistence#setStatus()} here instead of in the {@link
+            // DataCapturingBackgroundService#onStartCommand()} because we want to make sure with the lock that
+            // ... the measurement is always ended even though if the {@code DataCapturingBackgroundService} has
+            // died?
+            persistenceLayer.pauseRecentMeasurement();
+        } finally {
+            Log.v(TAG, "Unlocking in asynchronous stop.");
+            lifecycleLock.unlock();
         }
     }
 
@@ -363,16 +372,37 @@ public abstract class DataCapturingService {
      *             revoked. The current measurement is closed if you receive this <code>Exception</code>. If you get the
      *             permission in the future you need to start a new measurement and not call <code>resumeSync</code>
      *             again.
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
+     *             service. This usually occurs if there was no call to
+     *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
      */
     public void resume(final @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException {
+            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
         Log.d(TAG, "Resume asynchronously.");
-        if (!checkFineLocationAccess(getContext())) {
-            persistenceLayer.finishRecentMeasurement();
-            throw new MissingPermissionException();
+        if (getContext() == null) {
+            return;
         }
-        Measurement currentlyOpenMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-        runService(currentlyOpenMeasurement, finishedHandler);
+
+        lifecycleLock.lock();
+        Log.v(TAG, "Locking in asynchronous resume.");
+        try {
+            if (!checkFineLocationAccess(getContext())) {
+                persistenceLayer.finishRecentMeasurement();
+                throw new MissingPermissionException();
+            }
+
+            final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            runService(currentMeasurement, finishedHandler);
+
+            // We execute the {@link MeasurementPersistence#setStatus()} here instead of in the {@link
+            // DataCapturingBackgroundService#onStartCommand()} because we want to make sure with the lock that
+            // ... the measurement is always ended even though if the {@code DataCapturingBackgroundService} has
+            // died?
+            persistenceLayer.resumeRecentMeasurement();
+        } finally {
+            Log.v(TAG, "Unlocking in asynchronous resume.");
+            lifecycleLock.unlock();
+        }
     }
 
     // TODO: For at least the following two methods -> rename to load or remove completely from this class and expose
@@ -639,11 +669,14 @@ public abstract class DataCapturingService {
      * @param finishedHandler The handler to call after receiving the stop message from the
      *            <code>DataCapturingBackgroundService</code>. There are some cases where this never happens, so be
      *            careful when using this method.
+     * @param setPaused True if the {@link Measurement} should just be {@link MeasurementStatus#PAUSED} not
+     *            {@link MeasurementStatus#FINISHED}
      * @return True if there was a service running which was stopped
      * @throws DataCapturingException In case the service was not stopped successfully.
      */
     private boolean stopService(final @NonNull Measurement measurement,
-            final @NonNull ShutDownFinishedHandler finishedHandler) throws DataCapturingException {
+            final @NonNull ShutDownFinishedHandler finishedHandler, final boolean setPaused)
+            throws DataCapturingException {
         Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
         final Context context = getContext();
@@ -651,7 +684,7 @@ public abstract class DataCapturingService {
         LocalBroadcastManager.getInstance(context).registerReceiver(finishedHandler,
                 new IntentFilter(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED));
 
-        boolean serviceWasActive;
+        final boolean serviceWasActive;
         try {
             // For some reasons we have to call the unbind here.
             // We tried to send the stopIntent to the BackgroundService first which calls it's onDestroy
@@ -659,14 +692,20 @@ public abstract class DataCapturingService {
             // the unbind method. This should have worked for both - stopping the BackgroundService from
             // this service and by itself (via eventHandlerStrategyImpl.handleSpaceWarning())
             unbind();
-        } catch (IllegalArgumentException e) {
-            throw new DataCapturingException(e);
-        } catch (DataCapturingException e) {
+        } /*
+           * catch (IllegalArgumentException e) { TODO: unclear why this should be silently captured, thus, uncommented
+           * throw new DataCapturingException(e);
+           * }
+           */ catch (DataCapturingException e) {
+            // TODO: I think we catch this silently as we only try to unbind and the stopService call follows
             Log.w(TAG, "Service was either paused or already stopped, so I was unable to unbind from it.");
         } finally {
             Log.v(TAG, String.format("Stopping using Intent with context %s", context));
-            Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
-            serviceWasActive = context.stopService(stopIntent);
+            final Intent stopIntent = new Intent(context, DataCapturingBackgroundService.class);
+            stopIntent.putExtra(BundlesExtrasCodes.SET_PAUSED, setPaused);
+            serviceWasActive = context.startService(stopIntent); // FIXME: at least when pausing we don't get this
+                                                                 // result automatically so maybe we can to this
+                                                                 // manually?
         }
 
         return serviceWasActive;
@@ -731,6 +770,12 @@ public abstract class DataCapturingService {
      * @throws DataCapturingException If this object has no valid Android <code>Context</code>.
      * @throws MissingPermissionException If permission <code>ACCESS_FINE_LOCATION</code> has not been granted or
      *             revoked.
+     * @throws IllegalStateException If there are "dead" (open or paused) measurements or if access to the content
+     *             provider was impossible.
+     *             The first could maybe happen when the {@link DataCapturingBackgroundService} dies with a hard
+     *             exception and, thus, did not finish the {@link Measurement}. To find out if this can happen, we
+     *             explicitly do not handle this case softly. If this case occurs we need to write a handling to clean
+     *             up such measurements.
      */
     private Measurement prepareStart(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
             throws DataCapturingException, MissingPermissionException {
@@ -740,12 +785,12 @@ public abstract class DataCapturingService {
         if (!checkFineLocationAccess(getContext())) {
             throw new MissingPermissionException();
         }
-        Measurement measurement;
-        if (!persistenceLayer.hasOpenMeasurement()) {
-            measurement = persistenceLayer.newMeasurement(vehicle);
-        } else {
-            measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-        }
+        final boolean hasOpenMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN);
+        final boolean hasPausedMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED);
+        Validate.isTrue(!hasOpenMeasurements, "There is a dead OPEN measurement!");
+        Validate.isTrue(!hasPausedMeasurements, "There is a dead PAUSED measurement or wrong life-cycle call.");
+
+        final Measurement measurement = persistenceLayer.newMeasurement(vehicle);
         fromServiceMessageHandler.addListener(listener);
         return measurement;
     }

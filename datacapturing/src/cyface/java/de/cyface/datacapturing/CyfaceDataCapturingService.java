@@ -5,18 +5,16 @@ import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 import android.accounts.Account;
 import android.content.ContentResolver;
 import android.content.Context;
-
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.synchronization.SynchronisationException;
 
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 5.0.4
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -27,7 +25,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param contentResolver Resolver used to access the content provider for storing measurements.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
-     *            <code>DataCapturingService</code>. You should use something world wide unqiue, like your domain, to
+     *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by

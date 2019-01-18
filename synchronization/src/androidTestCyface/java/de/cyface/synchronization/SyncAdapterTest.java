@@ -30,7 +30,7 @@ import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.utils.Validate;
 
@@ -102,7 +102,7 @@ public final class SyncAdapterTest {
             assertThat(locationsCursor.getCount(), is(1));
             locationsCursor.moveToNext();
             final int gpsPointIsSynced = locationsCursor
-                    .getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
+                    .getInt(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_IS_SYNCED));
             assertThat(gpsPointIsSynced, is(SQLITE_FALSE));
         } finally {
             if (locationsCursor != null) {
@@ -143,7 +143,7 @@ public final class SyncAdapterTest {
             assertThat(locationsCursor.getCount(), is(1));
             locationsCursor.moveToNext();
             final int gpsPointIsSynced = locationsCursor
-                    .getInt(locationsCursor.getColumnIndex(GpsPointsTable.COLUMN_IS_SYNCED));
+                    .getInt(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_IS_SYNCED));
             //TODO: currently we only mark gps points as synced and don't delete them
             assertThat(gpsPointIsSynced, is(SQLITE_TRUE));
             //assertThat(locationsCursor.getCount(), is(0));
@@ -164,8 +164,8 @@ public final class SyncAdapterTest {
      * @return The cursor for the track of geolocation objects ordered by time ascending.
      */
     public Cursor loadTrack(final ContentResolver resolver, final long measurementId) {
-        return resolver.query(getGeoLocationsUri(), null, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {String.valueOf(measurementId)}, GpsPointsTable.COLUMN_GPS_TIME + " ASC");
+        return resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {String.valueOf(measurementId)}, GeoLocationsTable.COLUMN_GPS_TIME + " ASC");
     }
 
     /**

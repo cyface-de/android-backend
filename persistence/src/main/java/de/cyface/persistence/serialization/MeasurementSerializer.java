@@ -16,7 +16,7 @@ import android.os.RemoteException;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.model.Point3d;
 
 /**
@@ -134,14 +134,14 @@ public final class MeasurementSerializer {
 
         while (geoLocationsCursor.moveToNext()) {
             buffer.putLong(
-                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME)));
+                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME)));
             buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LAT)));
+                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT)));
             buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GpsPointsTable.COLUMN_LON)));
+                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON)));
             buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED)));
-            buffer.putInt(geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY)));
+                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED)));
+            buffer.putInt(geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY)));
         }
         byte[] payload = new byte[buffer.capacity()];
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
@@ -198,7 +198,7 @@ public final class MeasurementSerializer {
         try {
             Uri geoLocationTableUri = loader.createGeoLocationTableUri();
             final long geoLocationCount = loader.countData(geoLocationTableUri,
-                    GpsPointsTable.COLUMN_MEASUREMENT_FK);
+                    GeoLocationsTable.COLUMN_MEASUREMENT_FK);
             accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
             rotationsCursor = loader.load3DPoint(rotationsSerializer);
             directionsCursor = loader.load3DPoint(directionsSerializer);

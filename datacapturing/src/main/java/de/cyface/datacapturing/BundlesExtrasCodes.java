@@ -1,12 +1,18 @@
 package de.cyface.datacapturing;
 
+import android.content.Context;
+import android.content.Intent;
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+
 /**
  * A utility class collecting all codes identifying extras used to transmit data via bundles in this application.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @since 2.0.3
- * @version 2.1.0
+ * @version 2.3.0
+ * @since 2.1.0
  */
 public class BundlesExtrasCodes {
     /**
@@ -33,6 +39,23 @@ public class BundlesExtrasCodes {
      * Code that identifies the {@link EventHandlingStrategy} if transmitted via an Android bundle.
      */
     public static final String EVENT_HANDLING_STRATEGY_ID = "de.cyface.event_handling_strategy.id";
+    /**
+     * Code that identifies {@link Context#startService(Intent)} calls used to stop the service.
+     * <p>
+     * The goal is to use {@code Context#startService(Intent)} for all messages from the {@link DataCapturingService} to
+     * the {@link DataCapturingBackgroundService}. TODO [CY-4097]: register client is still sent differently
+     * <p>
+     * for all the status of the {@link Measurement} which is currently captured. This is used to tell the
+     * {@link DataCapturingBackgroundService} when calling {@link Context#stopService(Intent)} if it should set the
+     * {@link MeasurementStatus} to {@link MeasurementStatus#FINISHED} or {@link MeasurementStatus#PAUSED}.
+     */
+    public static final String ACTION_STOP_SERVICE = "de.cyface.extra.action_stop_service";
+    /**
+     * Code that identifies the status of the {@link Measurement} which is currently captured. This is used to tell the
+     * {@link DataCapturingBackgroundService} when calling {@link Context#stopService(Intent)} if it should set the
+     * {@link MeasurementStatus} to {@link MeasurementStatus#FINISHED} or {@link MeasurementStatus#PAUSED}.
+     */
+    public static final String SET_PAUSED = "de.cyface.extra.set_paused";
 
     /**
      * Constructor is private to prevent creation of utility class.

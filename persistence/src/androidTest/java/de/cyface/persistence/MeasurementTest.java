@@ -129,13 +129,13 @@ public class MeasurementTest {
      */
     private ContentValues geoLocationContentValues(final long measurementIdentifier) {
         final ContentValues ret = new ContentValues();
-        ret.put(GpsPointsTable.COLUMN_GPS_TIME, 10000L);
-        ret.put(GpsPointsTable.COLUMN_IS_SYNCED, false);
-        ret.put(GpsPointsTable.COLUMN_LAT, 13.0);
-        ret.put(GpsPointsTable.COLUMN_LON, 51.0);
-        ret.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-        ret.put(GpsPointsTable.COLUMN_SPEED, 1.0);
-        ret.put(GpsPointsTable.COLUMN_ACCURACY, 300);
+        ret.put(GeoLocationsTable.COLUMN_GPS_TIME, 10000L);
+        ret.put(GeoLocationsTable.COLUMN_IS_SYNCED, false);
+        ret.put(GeoLocationsTable.COLUMN_LAT, 13.0);
+        ret.put(GeoLocationsTable.COLUMN_LON, 51.0);
+        ret.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+        ret.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
+        ret.put(GeoLocationsTable.COLUMN_ACCURACY, 300);
         return ret;
     }
 

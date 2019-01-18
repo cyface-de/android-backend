@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.IdentifierTable;
@@ -87,7 +87,7 @@ public class ServiceTestUtils {
     }
 
     public static Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
     }
 
     public static Uri getAccelerationsUri() {

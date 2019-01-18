@@ -32,7 +32,7 @@ import android.util.Log;
 
 import de.cyface.persistence.AccelerationPointTable;
 import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
 
@@ -89,13 +89,13 @@ public class MeasurementContentProviderClientTest {
             final long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
             ContentValues geoLocationValues = new ContentValues();
-            geoLocationValues.put(GpsPointsTable.COLUMN_SPEED, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            geoLocationValues.put(GpsPointsTable.COLUMN_LON, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_IS_SYNCED, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_GPS_TIME, 1);
-            geoLocationValues.put(GpsPointsTable.COLUMN_ACCURACY, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_IS_SYNCED, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
             for (int i = 0; i < numberOftestEntries; i++) {
                 geoLocationValuesArray[i] = geoLocationValues;
@@ -175,13 +175,13 @@ public class MeasurementContentProviderClientTest {
             long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
             ContentValues geoLocationValues = new ContentValues();
-            geoLocationValues.put(GpsPointsTable.COLUMN_SPEED, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            geoLocationValues.put(GpsPointsTable.COLUMN_LON, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_IS_SYNCED, 0);
-            geoLocationValues.put(GpsPointsTable.COLUMN_GPS_TIME, 1L);
-            geoLocationValues.put(GpsPointsTable.COLUMN_ACCURACY, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_IS_SYNCED, 0);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1L);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
             client.insert(getGeoLocationsUri(), geoLocationValues);
             client.insert(getGeoLocationsUri(), geoLocationValues);
 

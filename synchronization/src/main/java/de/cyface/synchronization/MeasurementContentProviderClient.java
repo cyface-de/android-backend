@@ -10,7 +10,7 @@ import androidx.annotation.NonNull;
 
 import de.cyface.persistence.AbstractCyfaceMeasurementTable;
 import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.GpsPointsTable;
+import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.RotationPointTable;
@@ -75,11 +75,11 @@ public class MeasurementContentProviderClient {
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
-        final Uri uri = new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH)
+        final Uri uri = new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH)
                 .build();
-        final String[] projection = new String[] {GpsPointsTable.COLUMN_GPS_TIME, GpsPointsTable.COLUMN_LAT,
-                GpsPointsTable.COLUMN_LON, GpsPointsTable.COLUMN_SPEED, GpsPointsTable.COLUMN_ACCURACY};
-        final String selection = GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?";
+        final String[] projection = new String[] {GeoLocationsTable.COLUMN_GPS_TIME, GeoLocationsTable.COLUMN_LAT,
+                GeoLocationsTable.COLUMN_LON, GeoLocationsTable.COLUMN_SPEED, GeoLocationsTable.COLUMN_ACCURACY};
+        final String selection = GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?";
         final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
 
         /*
@@ -97,7 +97,7 @@ public class MeasurementContentProviderClient {
         // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
         // the arguments limit and offset are only available starting with API 26 ("O")
         return client.query(uri, projection, selection, selectionArgs,
-                GpsPointsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
+                GeoLocationsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
     }
 
     /**
@@ -189,9 +189,9 @@ public class MeasurementContentProviderClient {
         values.clear();
 
         // gps points
-        values.put(GpsPointsTable.COLUMN_IS_SYNCED, true);
-        client.update(new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build(),
-                values, GpsPointsTable.COLUMN_MEASUREMENT_FK + "=?",
+        values.put(GeoLocationsTable.COLUMN_IS_SYNCED, true);
+        client.update(new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build(),
+                values, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
 
         // data points
@@ -214,7 +214,7 @@ public class MeasurementContentProviderClient {
     }
 
     public @NonNull Uri createGeoLocationTableUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GpsPointsTable.URI_PATH).build();
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
     }
 
     /**

@@ -55,18 +55,18 @@ public final class GpsPointTest {
         assertThat(message, 1, is(cursor.getCount()));
         cursor.moveToFirst();
 
-        assertThat(values.getAsLong(GpsPointsTable.COLUMN_GPS_TIME),
-                is(cursor.getLong(cursor.getColumnIndex(GpsPointsTable.COLUMN_GPS_TIME))));
-        assertThat(values.getAsFloat(GpsPointsTable.COLUMN_LAT),
-                is(cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LAT))));
-        assertThat(values.getAsFloat(GpsPointsTable.COLUMN_LON),
-                is(cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_LON))));
-        assertThat(values.getAsInteger(GpsPointsTable.COLUMN_MEASUREMENT_FK),
-                is(cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_MEASUREMENT_FK))));
-        assertThat(values.getAsFloat(GpsPointsTable.COLUMN_SPEED),
-                is(cursor.getFloat(cursor.getColumnIndex(GpsPointsTable.COLUMN_SPEED))));
-        assertThat(values.getAsInteger(GpsPointsTable.COLUMN_ACCURACY),
-                is(cursor.getInt(cursor.getColumnIndex(GpsPointsTable.COLUMN_ACCURACY))));
+        assertThat(values.getAsLong(GeoLocationsTable.COLUMN_GPS_TIME),
+                is(cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME))));
+        assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_LAT),
+                is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT))));
+        assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_LON),
+                is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LON))));
+        assertThat(values.getAsInteger(GeoLocationsTable.COLUMN_MEASUREMENT_FK),
+                is(cursor.getInt(cursor.getColumnIndex(GeoLocationsTable.COLUMN_MEASUREMENT_FK))));
+        assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_SPEED),
+                is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED))));
+        assertThat(values.getAsInteger(GeoLocationsTable.COLUMN_ACCURACY),
+                is(cursor.getInt(cursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY))));
     }
 
     @Before
@@ -81,12 +81,12 @@ public final class GpsPointTest {
      */
     private ContentValues getTextFixture() {
         ContentValues values = new ContentValues();
-        values.put(GpsPointsTable.COLUMN_GPS_TIME, 1234567890L);
-        values.put(GpsPointsTable.COLUMN_LAT, 51.03624633f);
-        values.put(GpsPointsTable.COLUMN_LON, 13.78828128f);
-        values.put(GpsPointsTable.COLUMN_SPEED, 2.0f);
-        values.put(GpsPointsTable.COLUMN_ACCURACY, 300);
-        values.put(GpsPointsTable.COLUMN_MEASUREMENT_FK, 2);
+        values.put(GeoLocationsTable.COLUMN_GPS_TIME, 1234567890L);
+        values.put(GeoLocationsTable.COLUMN_LAT, 51.03624633f);
+        values.put(GeoLocationsTable.COLUMN_LON, 13.78828128f);
+        values.put(GeoLocationsTable.COLUMN_SPEED, 2.0f);
+        values.put(GeoLocationsTable.COLUMN_ACCURACY, 300);
+        values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, 2);
         return values;
     }
 
@@ -164,7 +164,7 @@ public final class GpsPointTest {
         String lastPathSegment = insert.getLastPathSegment();
 
         ContentValues newValues = new ContentValues();
-        newValues.put(GpsPointsTable.COLUMN_LAT, 10.34f);
+        newValues.put(GeoLocationsTable.COLUMN_LAT, 10.34f);
 
         Uri dataPointUri = TestUtils.getGeoLocationsUri().buildUpon().appendPath(lastPathSegment).build();
         assertThat(mockResolver.update(dataPointUri, newValues, null, null), is(1));
@@ -173,7 +173,7 @@ public final class GpsPointTest {
 
             assertThat(query.getCount(), is(1));
             query.moveToFirst();
-            int columnIndex = query.getColumnIndex(GpsPointsTable.COLUMN_LAT);
+            int columnIndex = query.getColumnIndex(GeoLocationsTable.COLUMN_LAT);
             assertThat(query.getFloat(columnIndex), is(10.34F));
         }
     }
