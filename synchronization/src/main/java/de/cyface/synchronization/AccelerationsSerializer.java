@@ -1,7 +1,5 @@
 package de.cyface.synchronization;
 
-import de.cyface.persistence.AccelerationPointTable;
-
 final class AccelerationsSerializer implements Point3DSerializer {
     @Override
     public String getTableUriPathSegment() {

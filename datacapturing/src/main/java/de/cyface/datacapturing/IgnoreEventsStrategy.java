@@ -1,18 +1,17 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+
 import android.app.Notification;
 import android.app.NotificationChannel;
 import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Parcel;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.utils.Validate;
-
-import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 
 /**
  * A default implementation of the {@link EventHandlingStrategy} used if not strategy was provided.
@@ -20,7 +19,7 @@ import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
@@ -43,7 +42,8 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     };
 
     /**
-     * No arguments constructor is redeclared here, since it is overwritten by the constructor required by <code>Parcelable</code>.
+     * No arguments constructor is redeclared here, since it is overwritten by the constructor required by
+     * <code>Parcelable</code>.
      */
     public IgnoreEventsStrategy() {
         // Nothing to do here
@@ -54,7 +54,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
      *
      * @param in A <code>Parcel</code> that is a serialized version of a <code>IgnoreEventsStrategy</code>.
      */
-    private IgnoreEventsStrategy(final @NonNull Parcel in) {
+    private IgnoreEventsStrategy(@SuppressWarnings("unused") final @NonNull Parcel in) {
         // Nothing to do here.
     }
 
@@ -67,21 +67,20 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     public Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
         Validate.notNull("No context provided!", context);
 
-        NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(CHANNEL_ID)==null) {
-            final NotificationChannel channel = new NotificationChannel(CHANNEL_ID,
-                    "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
+        // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
+        NotificationManager notificationManager = (NotificationManager)context
+                .getSystemService(Context.NOTIFICATION_SERVICE);
+        Validate.notNull(notificationManager);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
+                && notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
+            final NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Cyface Data Capturing",
+                    NotificationManager.IMPORTANCE_LOW); // to disable vibration
             notificationManager.createNotificationChannel(channel);
         }
 
-        Notification notification = new NotificationCompat.Builder(context, CHANNEL_ID)
-                .setContentTitle("Cyface")
-                .setSmallIcon(R.drawable.ic_movebis_notification)
-                .setContentText("Running Cyface Data Capturing")
-                .setOngoing(true)
-                .setAutoCancel(false)
-                .build();
-        return notification;
+        return new NotificationCompat.Builder(context, CHANNEL_ID).setContentTitle("Cyface")
+                .setSmallIcon(R.drawable.ic_movebis_notification).setContentText("Running Cyface Data Capturing")
+                .setOngoing(true).setAutoCancel(false).setVibrate(new long[] {0L, 0L, 0L}).build();
     }
 
     @Override

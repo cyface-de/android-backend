@@ -14,6 +14,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 
+import de.cyface.persistence.MeasurementContentProviderClient;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -30,11 +31,8 @@ import androidx.test.filters.MediumTest;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
 
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.RotationPointTable;
 
 /**
  * Tests that instances of the <code>MeasurementContentProviderClient</code> do work correctly.

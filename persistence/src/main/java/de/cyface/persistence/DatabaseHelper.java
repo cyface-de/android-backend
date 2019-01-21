@@ -14,6 +14,9 @@ import android.provider.BaseColumns;
 import android.text.TextUtils;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.serialization.Point3dFile;
 
 /**
  * The <code>DatabaseHelper</code> class is the part of the content provider where the hard part takes place. It
@@ -21,7 +24,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 4.0.2
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -43,6 +46,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * The table to store all the geo locations captured on the device.
      */
     private final GeoLocationsTable geoLocationsTable;
+    /**
+     * The table to store the device identifier to make sure its reset when the database, and thus the next measurement
+     * id count is reset, too.
+     */
+    private final IdentifierTable identifierTable;
 
     /**
      * Creates a new completely initialized <code>DatabaseHelper</code>.
@@ -55,6 +63,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         // Current database structure
         measurementTable = new MeasurementTable();
         geoLocationsTable = new GeoLocationsTable();
+        identifierTable = new IdentifierTable();
     }
 
     /**
@@ -67,6 +76,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
     public void onCreate(final SQLiteDatabase db) {
         measurementTable.onCreate(db);
         geoLocationsTable.onCreate(db);
+        identifierTable.onCreate(db);
     }
 
     /**
@@ -85,6 +95,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         // tables contains each table 2 times. We do need to call onUpgrade only once per table
         measurementTable.onUpgrade(db, oldVersion, newVersion);
         geoLocationsTable.onUpgrade(db, oldVersion, newVersion);
+        identifierTable.onUpgrade(db, oldVersion, newVersion);
 
         // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
         // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
@@ -104,7 +115,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * Deletes a row or multiple rows (depending on the format of the provided URI) from the database. If you delete a
-     * measurement all corresponding data is cascadingly deleted as well.
+     * {@link Measurement} all corresponding {@link GeoLocation} data is cascadingly deleted as well.
+     * FIXME: check if the sensor data files should be deleted here as well
      *
      * @param uri The URI specifying the table to delete from. If this ends with a single numeric identifier that row is
      *            deleted otherwise multiple rows might be deleted depending on the <code>selection</code> and
@@ -167,6 +179,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
                         database.setTransactionSuccessful();
                         return ret;
+                    case IdentifierTable.URI_PATH:
+                        ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
+                        database.setTransactionSuccessful();
+                        return ret;
+                        break;
                     default:
                         throw new IllegalStateException("Unable to delete data from table corresponding to URI " + uri
                                 + ". There seems to be no such table.");
@@ -180,7 +197,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Cascadingly deletes all data for a single measurement from the database.
+     * Cascadingly deletes all data for a single {@link Measurement} from the database (but not the
+     * {@link Point3dFile}s. // FIXME: sensor points, too?
      *
      * @param database The database object to delete from.
      * @param measurementIdentifier The device wide unique identifier of the measurement to delete.
@@ -229,7 +247,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      *            '?' and arguments needs to match.
      * @param sortOrder This is either <code>ASC</code> for ascending or <code>DESC</code> for descending.
      * @return A <code>Cursor</code> over the resulting rows. Do not forget to close this cursor after you finished
-     *         reading from it. Preferrably use <code>finally</code> to close the cursor to avoid memory leaks.
+     *         reading from it. Preferably use <code>finally</code> to close the cursor to avoid memory leaks.
      */
     public Cursor query(final @NonNull Uri uri, String[] projection, String selection, String[] selectionArgs,
             String sortOrder) {
@@ -304,6 +322,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 return measurementTable;
             case GeoLocationsTable.URI_PATH:
                 return geoLocationsTable;
+            case IdentifierTable.URI_PATH:
+                return identifierTable;
             default:
                 throw new IllegalStateException("Unknown table with URI: " + uri);
         }

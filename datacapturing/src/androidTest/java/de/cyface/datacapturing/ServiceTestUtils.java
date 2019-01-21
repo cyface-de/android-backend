@@ -7,12 +7,9 @@ import java.util.concurrent.locks.Lock;
 import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.RotationPointTable;
 import de.cyface.persistence.IdentifierTable;
+import de.cyface.persistence.MeasurementTable;
 
 /**
  * A class containing static utility functions, encapsulating often used calls.
@@ -88,20 +85,6 @@ public class ServiceTestUtils {
 
     public static Uri getGeoLocationsUri() {
         return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
-    }
-
-    public static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(AccelerationPointTable.URI_PATH)
-                .build();
-    }
-
-    public static Uri getRotationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(RotationPointTable.URI_PATH).build();
-    }
-
-    public static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(DirectionPointTable.URI_PATH)
-                .build();
     }
 
     public static Uri getIdentifierUri() {

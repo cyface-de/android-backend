@@ -2,12 +2,15 @@ package de.cyface.utils;
 
 import java.util.Collection;
 
+import android.database.Cursor;
+import androidx.annotation.Nullable;
+
 /**
  * A class with static methods to check method pre- and post conditions.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.1.0
  * @since 2.2.0
  */
 public class Validate {
@@ -51,6 +54,18 @@ public class Validate {
     public static void isTrue(final boolean b, final String message) {
         if (!b) {
             throw new ValidationException(message);
+        }
+    }
+
+    /**
+     * Checks if the {@link Cursor} is null. If so, a soft {@link DataCapturingException} is thrown.
+     *
+     * @param cursor the {@code Cursor} to be checked
+     * @throws DataCapturingException If content provider was inaccessible. See {@code ContentResolver#query()}.
+     */
+    public static void softCatchNullCursor(@Nullable Cursor cursor) throws DataCapturingException {
+        if (cursor == null) {
+            throw new DataCapturingException("Cursor was null, unable to perform operation.");
         }
     }
 }

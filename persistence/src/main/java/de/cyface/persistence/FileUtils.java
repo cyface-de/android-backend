@@ -85,7 +85,7 @@ public final class FileUtils {
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param folderName The folder name defining the type of {@link Point3d}
      */
-    private static File getFolderPath(@NonNull final Context context, @NonNull String folderName) {
+    public static File getFolderPath(@NonNull final Context context, @NonNull String folderName) {
         return new File(context.getFilesDir() + File.separator + folderName);
     }
 

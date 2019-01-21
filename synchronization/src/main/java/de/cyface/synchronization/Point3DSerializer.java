@@ -1,9 +1,5 @@
 package de.cyface.synchronization;
 
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.RotationPointTable;
-
 /**
  * Serializes a point with 3 coordinates (i.e. acceleration, rotation, direction) into the Cyface binary format. An
  * actual implementation needs to provide mappings from database column names to the properties required for

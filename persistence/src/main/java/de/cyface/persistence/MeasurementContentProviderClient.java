@@ -1,5 +1,9 @@
-package de.cyface.synchronization;
+package de.cyface.persistence;
 
+import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
+import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
+
+import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentValues;
 import android.database.Cursor;
@@ -7,16 +11,10 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
-
-import de.cyface.persistence.AbstractCyfaceMeasurementTable;
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.DirectionPointTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.RotationPointTable;
-
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.Validate;
 
 /**
  * A wrapper for a <code>ContentProviderClient</code> used to provide access to one specific measurement.
@@ -71,7 +69,7 @@ public class MeasurementContentProviderClient {
      * @param offset The start index of the first geo location to load within the measurement
      * @param limit The number of geo locations to load. A recommended upper limit is:
      *            {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}
-     * @return A <code>Cursor</code> on the geo locations stored for the measurement.
+     * @return A <code>Cursor</code> on the {@link GeoLocation}s stored for the {@link Measurement}.
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
@@ -101,8 +99,8 @@ public class MeasurementContentProviderClient {
     }
 
     /**
-     * Counts all the data elements from one table for the measurement. Data elements depend on the provided content
-     * provider URI and might be geo locations, accelerations, rotations or directions.
+     * Counts all the data elements from one table for the {@link Measurement}s. Data elements depend on the provided
+     * {@link ContentProvider} {@link Uri} and might be {@link GeoLocation}s.
      *
      * @param tableUri The content provider Uri of the table to count.
      * @param measurementForeignKeyColumnName The column name of the column containing the reference to the measurement
@@ -110,8 +108,8 @@ public class MeasurementContentProviderClient {
      * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
      */
-    long countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName)
-            throws RemoteException {
+    public int countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName)
+            throws RemoteException, DataCapturingException {
         Cursor cursor = null;
 
         try {
@@ -119,9 +117,8 @@ public class MeasurementContentProviderClient {
             final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
 
             cursor = client.query(tableUri, null, selection, selectionArgs, null);
-            if (cursor == null) {
-                throw new IllegalStateException("Unable to count GeoLocations for measurement.");
-            }
+            Validate.softCatchNullCursor(cursor);
+
             return cursor.getCount();
         } finally {
             if (cursor != null) {
@@ -131,50 +128,8 @@ public class MeasurementContentProviderClient {
     }
 
     /**
-     * Loads data points for the measurement. Such points might be accelerometer, gyroscope or compass points.
-     *
-     * @param serializer A serializer defining which kind of data points to load and how to access them.
-     * @return A <code>Cursor</code> on one kind of data points stored for the measurement.
-     * @throws RemoteException If the content provider is not accessible.
-     */
-    Cursor load3DPoint(final @NonNull Point3DSerializer serializer) throws RemoteException {
-        final Uri contentProviderUri = new Uri.Builder().scheme("content").authority(authority)
-                .appendPath(serializer.getTableUriPathSegment()).build();
-        return client.query(contentProviderUri,
-                new String[] {serializer.getTimestampColumnName(), serializer.getXColumnName(),
-                        serializer.getYColumnName(), serializer.getZColumnName()},
-                serializer.getMeasurementKeyColumnName() + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()}, null);
-    }
-
-    /**
-     * Loads data points for the measurement. Such points might be accelerometer, gyroscope or compass points.
-     *
-     * @param serializer A serializer defining which kind of data points to load and how to access them.
-     * @param offset The start index of the first point to load within the measurement
-     * @param limit The number of points to load. A recommended upper limit is:
-     *            {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}.
-     * @return A <code>Cursor</code> on one kind of data points stored for the measurement.
-     * @throws RemoteException If the content provider is not accessible.
-     */
-    Cursor load3DPoint(final @NonNull Point3DSerializer serializer, final int offset, final int limit)
-            throws RemoteException {
-        String[] projection = new String[] {serializer.getTimestampColumnName(), serializer.getXColumnName(),
-                serializer.getYColumnName(), serializer.getZColumnName()};
-        String selection = serializer.getMeasurementKeyColumnName() + "=?";
-        String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
-        // This is a hack, that only works for a content provider with a backing database. More recent Android version
-        // provide a native API to support offset and limit. We may switch to that API if we increase the minimum
-        // version.
-        String sortOrder = serializer.getMeasurementKeyColumnName() + " ASC limit " + limit + " offset " + offset;
-
-        final Uri contentProviderUri = new Uri.Builder().scheme("content").authority(authority)
-                .appendPath(serializer.getTableUriPathSegment()).build();
-        return client.query(contentProviderUri, projection, selection, selectionArgs, sortOrder);
-    }
-
-    /**
-     * Cleans the measurement by deleting all data points (accelerations, rotations and directions). And marking the measurement
+     * Cleans the measurement by deleting all data points (accelerations, rotations and directions). And marking the
+     * measurement
      * and the gps points as synced. This operation can not be revoked. Your data will be lost afterwards.
      *
      * @return The amount of deleted data points.
@@ -190,26 +145,13 @@ public class MeasurementContentProviderClient {
 
         // gps points
         values.put(GeoLocationsTable.COLUMN_IS_SYNCED, true);
-        client.update(new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build(),
+        client.update(
+                new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build(),
                 values, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
 
-        // data points
+        // data points FIXME: not in the database anymore
         int ret = 0;
-        ret += client.delete(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(AccelerationPointTable.URI_PATH).build(),
-                AccelerationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
-        ret += client.delete(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(RotationPointTable.URI_PATH)
-                        .build(),
-                RotationPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
-        ret += client.delete(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(DirectionPointTable.URI_PATH)
-                        .build(),
-                DirectionPointTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
         return ret;
     }
 

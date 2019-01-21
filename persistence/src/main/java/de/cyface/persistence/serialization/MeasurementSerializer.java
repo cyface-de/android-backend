@@ -1,27 +1,38 @@
 package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.persistence.Constants.TAG;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
+import java.nio.ByteOrder;
+import java.util.ArrayList;
+import java.util.List;
 import java.util.zip.Deflater;
 
+import android.content.ContentProvider;
+import android.content.ContentResolver;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.PointMetaData;
+import de.cyface.utils.Validate;
 
 /**
- * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> into the
- * Cyface binary format. This format consists of a header with the following information:
+ * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> and
+ * Cyface {@link #PERSISTENCE_FILE_FORMAT_VERSION} binary format into the Cyface {@link #TRANSFER_FILE_FORMAT_VERSION}
+ * binary format. The later consists of a header with the following information:
  * <ul>
  * <li>2 Bytes format version</li>
  * <li>4 Bytes amount of geo locations</li>
@@ -41,96 +52,99 @@ import de.cyface.persistence.model.Point3d;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 2.1.0
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
 
-    public static final int BYTES_IN_ONE_POINT_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
-
+    /**
+     * A constant with the number of bytes for one uncompressed {@link Point3d} entry in the Cyface binary format.
+     */
+    public static final int BYTES_IN_ONE_POINT_3D_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
     /**
      * The current version of the transferred file. This is always specified by the first two bytes of the file
      * transferred and helps compatible APIs to process data from different client versions.
      */
     public final static short TRANSFER_FILE_FORMAT_VERSION = 1;
     /**
-     * The current version of the file format used to persist {@link Point3d} data. This allows to have stored and
-     * process files with different PERSISTENCE_FILE_FORMAT_VERSION at the same time.
+     * The current version of the file format used to persist {@link Point3d} data.
+     * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
+     * measurements and files with different {@code #PERSISTENCE_FILE_FORMAT_VERSION} at the same time.
      */
     public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1;
-
     /**
-     * The current version of the data format. This is always specified by the first two bytes and allows to process
-     * different version in parallel.
+     * A constant with the number of bytes for the header of the {@link #TRANSFER_FILE_FORMAT_VERSION} file.
      */
-    private final static short DATA_FORMAT_VERSION = 1;
-
-    final static int BYTES_IN_HEADER = 2 + 4 * 4;
-
+    public final static int BYTES_IN_HEADER = 2 + 4 * 4;
     /**
      * A constant with the number of bytes for one uncompressed geo location entry in the Cyface binary format.
      */
-    final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
+    public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
 
     /**
-     * Serializer for transforming acceleration points into a byte representation.
-     */
-    private final static Point3DSerializer accelerationsSerializer = new AccelerationsSerializer();
-
-    /**
-     * Serializer for transforming rotation points into a byte representation.
-     */
-    private final static Point3DSerializer rotationsSerializer = new RotationsSerializer();
-
-    /**
-     * Serializer for transforming direction points into a byte representation.
-     */
-    private final static Point3DSerializer directionsSerializer = new DirectionsSerializer();
-
-    /**
-     * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
-     * client given to the constructor and serializes it in the described binary format to an <code>InputStream</code>.
+     * Creates the part of the header field which contains the counters of the {@link Point3d} data for a serialized
+     * measurement in big endian format.
+     * (!) Attention: Changes to this format must be discussed with compatible API providers.
      *
-     * @param loader The device wide unique identifier of the measurement to serialize.
-     * @return An <code>InputStream</code> containing the serialized data.
+     * @param metaData Number of {@link Point3d} points in the serialized {@link Measurement}.
+     * @return The header byte array.
      */
-    InputStream serialize(final @NonNull MeasurementContentProviderClient loader) {
-        return new ByteArrayInputStream(serializeToByteArray(loader));
+    public static byte[] serialize(final PointMetaData metaData) {
+        Validate.isTrue(metaData.getPersistenceFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
+        byte[] ret = new byte[16];
+        /*
+         * ret[0] = (byte)(metaData.getCountOfGeoLocations() >> 24);
+         * ret[1] = (byte)(metaData.getCountOfGeoLocations() >> 16);
+         * ret[2] = (byte)(metaData.getCountOfGeoLocations() >> 8);
+         * ret[3] = (byte)metaData.getCountOfGeoLocations(); FIXME: missing!
+         */
+        ret[4] = (byte)(metaData.getAccelerationPointCounter() >> 24);
+        ret[5] = (byte)(metaData.getAccelerationPointCounter() >> 16);
+        ret[6] = (byte)(metaData.getAccelerationPointCounter() >> 8);
+        ret[7] = (byte)metaData.getAccelerationPointCounter();
+        ret[8] = (byte)(metaData.getRotationPointCounter() >> 24);
+        ret[9] = (byte)(metaData.getRotationPointCounter() >> 16);
+        ret[10] = (byte)(metaData.getRotationPointCounter() >> 8);
+        ret[11] = (byte)metaData.getRotationPointCounter();
+        ret[12] = (byte)(metaData.getDirectionPointCounter() >> 24);
+        ret[13] = (byte)(metaData.getDirectionPointCounter() >> 16);
+        ret[14] = (byte)(metaData.getDirectionPointCounter() >> 8);
+        ret[15] = (byte)metaData.getDirectionPointCounter();
+        return ret;
     }
 
     /**
-     * Loads the measurement with the provided identifier from the <code>ContentProvider</code> accessible via the
-     * client given to the constructor and serializes it, using standard Android GZIP compression on the described
-     * binary
-     * format to an <code>InputStream</code>.
+     * Loads the {@link Measurement} with the provided identifier from the <code>ContentProvider</code> accessible via
+     * the client given to the constructor and serializes it, using standard Android GZIP compression on the described
+     * binary format to an <code>InputStream</code>.
      * 
-     * @param loader The device wide unique identifier of the measurement to serialize.
+     * @param loader The device wide unique identifier of the {@code Measurement} to serialize.
      * @return An <code>InputStream</code> containing the serialized compressed data.
      */
     InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
-        Deflater compressor = new Deflater();
-        byte[] data = serializeToByteArray(loader);
-        compressor.setInput(data);
+        final Deflater compressor = new Deflater();
+        final byte[] serializedGeoLocations = serialize(loader);
+        compressor.setInput(serializedGeoLocations);
         compressor.finish();
-        byte[] output = new byte[data.length];
+        byte[] output = new byte[serializedGeoLocations.length];
         int lengthOfCompressedData = compressor.deflate(output);
-        Log.d(SharedConstants.TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
+        Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
         return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
     }
 
     /**
-     * Serializes all the geo locations from the measurement identified by the provided
-     * <code>measurementIdentifier</code>.
+     * Serializes all the {@link GeoLocation}s from the {@link Measurement} identified by the provided
+     * {@code measurementIdentifier}.
      *
-     * @param geoLocationsCursor A <code>Cursor</code> returned by a <code>ContentResolver</code> to load geo locations
+     * @param geoLocationsCursor A {@link Cursor} returned by a {@link ContentResolver} to load {@code GeoLocation}s
      *            from.
      * @return A <code>byte</code> array containing all the data.
      */
     private byte[] serializeGeoLocations(final @NonNull Cursor geoLocationsCursor) {
         // Allocate enough space for all geo locations
-        Log.d(SharedConstants.TAG, String.format("Serializing %d geo locations for synchronization.", geoLocationsCursor.getCount()));
-        ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
+        Log.d(TAG, String.format("Serializing %d GeoLocations for synchronization.", geoLocationsCursor.getCount()));
+        final ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
             buffer.putLong(
@@ -141,8 +155,11 @@ public final class MeasurementSerializer {
                     geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON)));
             buffer.putDouble(
                     geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED)));
-            buffer.putInt(geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY)));
+            buffer.putInt(
+                    geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY)));
         }
+
+        // TODO: missing documentation - what's this for?
         byte[] payload = new byte[buffer.capacity()];
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
         // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
@@ -150,20 +167,41 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Creates the header field for a serialized measurement in big endian format.
+     * Serializes the provided {@link Point3d} points.
      *
-     * @param countOfGeoLocations Number of geo locations in the serialized measurement.
-     * @param countOfAccelerations Number of accelerations in the serialized measurement.
-     * @param countOfRotations Number of rotations in the serialized measurement.
-     * @param countOfDirections Number of directions in the serialized measurement.
+     * @return A <code>byte</code> array containing all the data.
+     */
+    public static byte[] serialize(final @NonNull List<Point3d> dataPoints) {
+        Log.d(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
+        final ByteBuffer buffer = ByteBuffer.allocate(dataPoints.size() * BYTES_IN_ONE_POINT_3D_ENTRY);
+        for (final Point3d point : dataPoints) {
+            buffer.putLong(point.getTimestamp());
+            buffer.putDouble(point.getX());
+            buffer.putDouble(point.getY());
+            buffer.putDouble(point.getZ());
+        }
+
+        // TODO: missing documentation - what's this for?
+        byte[] payload = new byte[buffer.capacity()];
+        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
+        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
+        return payload;
+    }
+
+    /**
+     * Creates the header field for a serialized {@link Measurement} in big endian format for synchronization.
+     *
+     * @param countOfGeoLocations Number of {@link GeoLocation}s in the serialized measurement.
+     * @param countOfAccelerations Number of acceleration {@link Point3d}s in the serialized measurement.
+     * @param countOfRotations Number of rotation {@link Point3d}s in the serialized measurement.
+     * @param countOfDirections Number of direction {@link Point3d}s in the serialized measurement.
      * @return The header byte array.
      */
-    private byte[] createHeader(final long countOfGeoLocations, final int countOfAccelerations,
+    private byte[] createTransferFileHeader(final int countOfGeoLocations, final int countOfAccelerations,
             final int countOfRotations, final int countOfDirections) {
         byte[] ret = new byte[18];
-        ret[0] = (byte)(DATA_FORMAT_VERSION >> 8);
-        ret[1] = (byte)DATA_FORMAT_VERSION;
-        // TODO: This puts a long into only 4 bytes, which will not work
+        ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
+        ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
         ret[2] = (byte)(countOfGeoLocations >> 24);
         ret[3] = (byte)(countOfGeoLocations >> 16);
         ret[4] = (byte)(countOfGeoLocations >> 8);
@@ -184,91 +222,86 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Implements the core algorithm of loading data from a content provider and serializing it into an array of bytes.
+     * Implements the core algorithm of loading {@link GeoLocation}s and {@link Point3d} data and serializing them into
+     * an array of bytes.
      *
-     * @param loader The loader providing access to the content provider storing all the measurements.
+     * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link GeoLocation}s.
      * @return A byte array containing the serialized data.
      */
-    private byte[] serializeToByteArray(final @NonNull MeasurementContentProviderClient loader) {
+    private byte[] serialize(final @NonNull MeasurementContentProviderClient loader) {
         Cursor geoLocationsCursor = null;
-        Cursor accelerationsCursor = null;
-        Cursor rotationsCursor = null;
-        Cursor directionsCursor = null;
 
         try {
-            Uri geoLocationTableUri = loader.createGeoLocationTableUri();
-            final long geoLocationCount = loader.countData(geoLocationTableUri,
-                    GeoLocationsTable.COLUMN_MEASUREMENT_FK);
-            accelerationsCursor = loader.load3DPoint(accelerationsSerializer);
-            rotationsCursor = loader.load3DPoint(rotationsSerializer);
-            directionsCursor = loader.load3DPoint(directionsSerializer);
+            final Uri geoLocationTableUri = loader.createGeoLocationTableUri();
+            final int geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
 
-            byte[] header = createHeader(geoLocationCount, accelerationsCursor.getCount(), rotationsCursor.getCount(),
-                    directionsCursor.getCount());
+            // Generate transfer file header
+            // FIXME: missing PointMetaData
+            final byte[] header = createTransferFileHeader(geoLocationCount, accelerationsCursor.getCount(),
+                    rotationsCursor.getCount(), directionsCursor.getCount());
 
-            ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            // Serialize GeoLocations
+            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
                 geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
                 outputStream.write(serializeGeoLocations(geoLocationsCursor));
             }
-            byte[] serializedGeoLocations = outputStream.toByteArray();
+            final byte[] serializedGeoLocations = outputStream.toByteArray();
 
-            // TODO: Write Point3d data to a separate file because it's too much db work ...
-            byte[] serializedAccelerations = serialize(accelerationsCursor, accelerationsSerializer);
-            byte[] serializedRotations = serialize(rotationsCursor, rotationsSerializer);
-            byte[] serializedDirections = serialize(directionsCursor, directionsSerializer);
+            // Serialize Point3ds
+            // FIXME: missing Point3d data
+            final byte[] serializedAccelerations = serialize(accelerationsCursor);
+            final byte[] serializedRotations = serialize(rotationsCursor);
+            final byte[] serializedDirections = serialize(directionsCursor);
 
-            ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
+            // Create transfer file
+            final ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
                     + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
             buffer.put(header);
             buffer.put(serializedGeoLocations);
             buffer.put(serializedAccelerations);
             buffer.put(serializedRotations);
             buffer.put(serializedDirections);
+            final byte[] result = buffer.array();
+            // FIXME: not sure if this "uncompressed size" calculation is still correct
+            Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
 
-            byte[] result = buffer.array();
-            Log.d(SharedConstants.TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
             return result;
-        } catch (RemoteException e) {
-            throw new IllegalStateException(e);
-        } catch (IOException e) {
+        } catch (final RemoteException | IOException e) {
             throw new IllegalStateException(e);
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
             }
-            if (accelerationsCursor != null) {
-                accelerationsCursor.close();
-            }
-            if (rotationsCursor != null) {
-                rotationsCursor.close();
-            }
-            if (directionsCursor != null) {
-                directionsCursor.close();
-            }
         }
     }
 
     /**
-     * Serializes all the points from the provided
-     * <code>pointCursor</code>.
+     * Deserialized {@link Point3d} data.
      *
-     * @param pointCursor A content provider cursor providing access to the points to serialize
-     * @param serializer Wrapped information about the points to serialize.
-     * @return A <code>byte</code> array containing all the data.
+     * @param point3dFileBytes The bytes loaded from the {@link Point3dFile}
+     * @return The {@link Point3d} loaded from the file
      */
-    private byte[] serialize(final @NonNull Cursor pointCursor, final @NonNull Point3DSerializer serializer) {
-        Log.d(SharedConstants.TAG, String.format("Serializing %d data points!", pointCursor.getCount()));
-        ByteBuffer buffer = ByteBuffer.allocate(pointCursor.getCount() * BYTES_IN_ONE_POINT_ENTRY);
-        while (pointCursor.moveToNext()) {
-            buffer.putLong(pointCursor.getLong(pointCursor.getColumnIndex(serializer.getTimestampColumnName())));
-            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(serializer.getXColumnName())));
-            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(serializer.getYColumnName())));
-            buffer.putDouble(pointCursor.getDouble(pointCursor.getColumnIndex(serializer.getZColumnName())));
+    static List<Point3d> deserializePoint3dData(final byte[] point3dFileBytes, final int pointCount) {
+
+        Validate.isTrue(point3dFileBytes.length == pointCount * BYTES_IN_ONE_POINT_3D_ENTRY);
+        if (pointCount == 0) {
+            return new ArrayList<>();
         }
-        byte[] payload = new byte[buffer.capacity()];
-        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
-        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
-        return payload;
+
+        // Deserialize bytes
+        final List<Point3d> points = new ArrayList<>();
+        final ByteBuffer buffer = ByteBuffer.wrap(point3dFileBytes);
+        for (int i = 0; i < pointCount; i++) {
+            final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
+            final double x = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final double y = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            final double z = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
+            // final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
+            points.add(new Point3d((float)x, (float)y, (float)z, timestamp));
+        }
+
+        Log.d(TAG, "Deserialized Points: " + points.size());
+        return points;
     }
 }

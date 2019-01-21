@@ -32,10 +32,8 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import android.util.Log;
 
-import de.cyface.persistence.AccelerationPointTable;
-import de.cyface.persistence.DirectionPointTable;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.RotationPointTable;
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
 

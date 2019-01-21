@@ -35,7 +35,7 @@ import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.backend.TestCallback;
-import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.MeasurementPersistence;

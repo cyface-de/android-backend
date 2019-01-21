@@ -6,9 +6,8 @@ import static de.cyface.datacapturing.Constants.TAG;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
 
@@ -21,7 +20,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.0.0
  * @see DataCapturingService#resume(StartUpFinishedHandler)
  * @see DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)

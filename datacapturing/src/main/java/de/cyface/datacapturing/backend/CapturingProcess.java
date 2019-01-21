@@ -19,13 +19,12 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
-import de.cyface.datacapturing.exception.DataCapturingException;
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
@@ -34,7 +33,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.4
+ * @version 1.3.5
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -277,7 +276,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     }
 
     /**
-     * Shuts down this sensor listener freeing the sensors used to caputre data.
+     * Shuts down this sensor listener freeing the sensors used to capture data.
      *
      * @throws SecurityException If user did not provide permission to access GPS location.
      */

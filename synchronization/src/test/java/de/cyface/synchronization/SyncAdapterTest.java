@@ -4,6 +4,7 @@ import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import de.cyface.persistence.MeasurementContentProviderClient;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;

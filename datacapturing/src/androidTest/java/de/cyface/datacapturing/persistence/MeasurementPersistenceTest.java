@@ -1,9 +1,12 @@
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -15,7 +18,7 @@ import android.content.Context;
 import androidx.test.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
-import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -29,7 +32,7 @@ import de.cyface.persistence.model.Vehicle;
  * @version 1.1.0
  * @since 2.0.3
  *
- * FIXME: pull selected PersitenceTest changes from declined FILES branch/PR into this branch
+ *        FIXME: pull selected PersitenceTest changes from declined FILES branch/PR into this branch
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
@@ -69,7 +72,7 @@ public class MeasurementPersistenceTest {
     public void testLoadFinishedMeasurements_oneFinishedOneRunning() throws NoSuchMeasurementException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
-        oocut.finishRecentMeasurement();
+        oocut.updateRecentMeasurement(FINISHED);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(false)));
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
@@ -91,13 +94,14 @@ public class MeasurementPersistenceTest {
      * @throws DataCapturingException Fails the test if anything unexpected happens.
      */
     @Test
-    public void testLoadMeasurementSuccessfully() throws DataCapturingException {
+    public void testLoadMeasurementSuccessfully() throws DataCapturingException, NoSuchMeasurementException {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
-        assertThat(oocut.finishRecentMeasurement(), is(equalTo(1)));
-        Measurement loadedClosedMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
-        assertThat(loadedClosedMeasurement, is(equalTo(measurement)));
+        oocut.updateRecentMeasurement(FINISHED);
+        List<Measurement> finishedMeasurements = oocut.loadMeasurements(FINISHED);
+        assertThat(finishedMeasurements.size(), is(equalTo(1)));
+        assertThat(finishedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
     }
 }

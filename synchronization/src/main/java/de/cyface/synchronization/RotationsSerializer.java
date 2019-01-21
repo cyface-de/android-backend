@@ -1,7 +1,5 @@
 package de.cyface.synchronization;
 
-import de.cyface.persistence.RotationPointTable;
-
 final class RotationsSerializer implements Point3DSerializer {
     @Override
     public String getTableUriPathSegment() {

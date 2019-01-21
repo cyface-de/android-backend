@@ -2,7 +2,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_ENTRY;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -21,6 +21,7 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import org.junit.Before;
 import org.junit.Rule;
@@ -69,7 +70,7 @@ public class MeasurementSerializerTest {
     private Cursor pointsCursor;
 
     private final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
-            + 3 * 3 * BYTES_IN_ONE_POINT_ENTRY;
+            + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
     private final int SERIALIZED_COMPRESSED_SIZE = 30;
 
     @Before
@@ -142,9 +143,9 @@ public class MeasurementSerializerTest {
         int beginOfAccelerationsIndex = beginOfGeoLocationsIndex
                 + numberOfGeoLocations * BYTES_IN_ONE_GEO_LOCATION_ENTRY;
         int beginOfRotationsIndex = beginOfAccelerationsIndex
-                + numberOfAccelerations * BYTES_IN_ONE_POINT_ENTRY;
+                + numberOfAccelerations * BYTES_IN_ONE_POINT_3D_ENTRY;
         int beginOfDirectionsIndex = beginOfRotationsIndex
-                + numberOfRotations * BYTES_IN_ONE_POINT_ENTRY;
+                + numberOfRotations * BYTES_IN_ONE_POINT_3D_ENTRY;
 
         List<Map<String, ?>> geoLocations = deserializeGeoLocations(
                 Arrays.copyOfRange(individualBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
@@ -190,9 +191,9 @@ public class MeasurementSerializerTest {
     private List<Map<String, ?>> deserializePoint3D(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
 
-        for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_POINT_ENTRY) {
+        for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_POINT_3D_ENTRY) {
             ByteBuffer buffer = ByteBuffer
-                    .wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_POINT_ENTRY));
+                    .wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_POINT_3D_ENTRY));
             Map<String, Object> entry = new HashMap<>(4);
             entry.put("timestamp", buffer.getLong());
             entry.put("x", buffer.getDouble());

@@ -46,6 +46,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.Validate;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
@@ -107,7 +108,7 @@ public class CapturedDataWriterTest {
      * Tests whether creating and closing a measurement works as expected.
      */
     @Test
-    public void testCreateNewMeasurement() {
+    public void testCreateNewMeasurement() throws NoSuchMeasurementException {
 
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -144,7 +145,7 @@ public class CapturedDataWriterTest {
                 measurement.getIdentifier());
 
         // Finish the measurement
-        oocut.finishRecentMeasurement();
+        oocut.updateRecentMeasurement(FINISHED);
 
         // Load the finished measurement
         Cursor finishingResult = null;
@@ -220,10 +221,8 @@ public class CapturedDataWriterTest {
             List<Point3d> directions = Point3dFile.loadFile(context, measurement.getIdentifier(),
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).deserialize(3);
 
-            if (geoLocationsCursor == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from the content provider.");
-            }
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    geoLocationsCursor);
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(1)));
             assertThat(accelerations.size(), is(equalTo(3)));
@@ -283,10 +282,11 @@ public class CapturedDataWriterTest {
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(), null, null, null, null);
-            if (geoLocationsCursor == null || measurementsCursor == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from the content provider.");
-            }
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    geoLocationsCursor);
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    measurementsCursor);
+
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
             // FIXME: load and assert sensor data count?
             assertThat(measurementsCursor.getCount(), is(equalTo(0)));
@@ -369,10 +369,8 @@ public class CapturedDataWriterTest {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            if (geoLocationsCursor == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from the content provider.");
-            }
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    geoLocationsCursor);
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
             // FIXME: load and assert sensor data count?
@@ -413,7 +411,7 @@ public class CapturedDataWriterTest {
                     }
 
                     if (oocut.hasMeasurement(MeasurementStatus.OPEN)) {
-                        oocut.finishRecentMeasurement();
+                        oocut.updateRecentMeasurement(FINISHED);
                     }
                 } catch (final NoSuchMeasurementException e) {
                     // FIXME: why do we just silently ignore the exception? I would expect a check that the right

@@ -21,7 +21,7 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.backend.TestCallback;
-import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.NoSuchMeasurementException;

@@ -17,6 +17,7 @@ import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
 import android.content.SyncResult;
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import org.junit.Ignore;
 import org.junit.Test;
