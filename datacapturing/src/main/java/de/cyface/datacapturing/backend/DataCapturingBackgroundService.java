@@ -6,8 +6,6 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
-import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
-import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -167,6 +165,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
         sendStoppedMessage();
+        persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
     }
 
     /**
@@ -199,29 +198,17 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
     }
 
+    /**
+     * We don't use {@link #startService(Intent)} to pause of stop the service because we prefer to use a lock and
+     * finally in the {@link DataCapturingService}'s life-cycle methods instead. This also avoids headaches with
+     * replacing the return statement from {@link #stopService(Intent)} by the return by {@code #startService()}.
+     *
+     * For the remaining documentation see the overwritten {@code #onStartCommand(Intent, int, int)}
+     */
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
         Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
-
-        // Handle stopService commands sent via startService (to add extra information through the {@code Intend})
-        if (intent.getStringExtra(BundlesExtrasCodes.ACTION_STOP_SERVICE) != null) {
-
-            // Set the currently active measurement to the correct status
-            final boolean setToPaused = intent.getBooleanExtra(BundlesExtrasCodes.SET_PAUSED, false);
-            persistenceLayer.setStatus(currentMeasurementIdentifier, setToPaused ? PAUSED : FINISHED);
-            // FIXME: We currently update the status in the DCS and here in the DCBS for pause/stop
-            // Which is the preferred place?
-            // pro DCBS: makes sure the storePointMetaData() and and setStatus() is at the same place
-            // contra DCBS: This way we need to send the set_paused extra as startService() intend which
-            // leads to us not getting a result if the service was active as in stopService().
-            // contra DCBS: See DCS.stop() finally - we have to lock here to ensure only one is entering the life-cycle
-
-            // Stop Capturing
-            persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
-            stopSelf();
-            return Service.START_NOT_STICKY; // should not have any effect as the service is already started
-        }
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);

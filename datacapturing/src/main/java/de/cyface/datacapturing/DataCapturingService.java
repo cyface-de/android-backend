@@ -290,15 +290,14 @@ public abstract class DataCapturingService {
                 sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
             }
         } finally {
+            // This try makes sure the unlock is also called when the finishRecentMeasurement() command fails
             try {
-                // We execute the {@link MeasurementPersistence#setStatus()} here instead of in the {@link
-                // DataCapturingBackgroundService#onStartCommand()} because we want to make sure with the lock that
-                // ... the measurement is always ended even though if the {@code DataCapturingBackgroundService} has
-                // died?
-                // Also, we have this in the finally to make sure the currently capturing measurement reference in the
-                // persistence layer is also unset when loadCurrentlyCapturedMeasurement() fails.
-                // FIXME: very complicated: Do we want to execute this finishRecentMeasurement() when the stopService()
-                // throws a DataCapturingException, i.e. the server could not be stopped successfully?
+                // {@link #finishRecentMeasurement()} is even executed when {@link #stopService()} fails which should
+                // not even happen. However, it's safer to finish the measurement anyway so that the {@link
+                // DataCapturingBackgroundService} crashes and is reset afterwards.
+
+                // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
+                // is case the {@link DataCapturingBackgroundService} is already dead.
                 persistenceLayer.finishRecentMeasurement();
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous stop.");
@@ -341,15 +340,20 @@ public abstract class DataCapturingService {
             if (!stopService(currentMeasurement, finishedHandler, true)) {
                 throw new DataCapturingException("No active service found to be paused.");
             }
-
-            // We execute the {@link MeasurementPersistence#setStatus()} here instead of in the {@link
-            // DataCapturingBackgroundService#onStartCommand()} because we want to make sure with the lock that
-            // ... the measurement is always ended even though if the {@code DataCapturingBackgroundService} has
-            // died?
-            persistenceLayer.pauseRecentMeasurement();
         } finally {
-            Log.v(TAG, "Unlocking in asynchronous stop.");
-            lifecycleLock.unlock();
+            // This try makes sure the unlock is also called when the pauseRecentMeasurement() command fails
+            try {
+                // {@link #pauseRecentMeasurement()} is even executed when {@link #stopService()} fails which should
+                // not even happen. However, it's safer to pause the measurement anyway so that the {@link
+                // DataCapturingBackgroundService} crashes and is reset afterwards.
+
+                // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
+                // is case the {@link DataCapturingBackgroundService} is already dead.
+                persistenceLayer.pauseRecentMeasurement();
+            } finally {
+                Log.v(TAG, "Unlocking in asynchronous pause.");
+                lifecycleLock.unlock();
+            }
         }
     }
 
@@ -394,10 +398,7 @@ public abstract class DataCapturingService {
             final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
             runService(currentMeasurement, finishedHandler);
 
-            // We execute the {@link MeasurementPersistence#setStatus()} here instead of in the {@link
-            // DataCapturingBackgroundService#onStartCommand()} because we want to make sure with the lock that
-            // ... the measurement is always ended even though if the {@code DataCapturingBackgroundService} has
-            // died?
+            // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
             persistenceLayer.resumeRecentMeasurement();
         } finally {
             Log.v(TAG, "Unlocking in asynchronous resume.");
