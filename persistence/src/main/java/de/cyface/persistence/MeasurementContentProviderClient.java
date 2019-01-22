@@ -107,6 +107,7 @@ public class MeasurementContentProviderClient {
      *            table.
      * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
+     * @throws DataCapturingException If content provider was inaccessible.
      */
     public int countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName)
             throws RemoteException, DataCapturingException {

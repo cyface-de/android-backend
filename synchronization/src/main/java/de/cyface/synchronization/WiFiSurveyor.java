@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 
 import java.lang.ref.WeakReference;
 
@@ -15,8 +15,8 @@ import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.os.Build;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
 import android.util.Log;
+import androidx.annotation.NonNull;
 
 /**
  * An instance of this class is responsible for surveying the state of the devices WiFi connection. If WiFi is active,
@@ -24,7 +24,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.3
+ * @version 3.1.6
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -69,12 +69,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * for further information.
      */
     private final String authority;
-
     /**
      * A <code>String</code> identifying the account type of the accounts to use for data synchronization.
      */
     private final String accountType;
-
     /**
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
      */

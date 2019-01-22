@@ -1,3 +1,12 @@
+/**
+ * Gradle's build file for the placeholder app module required by Android Studio.
+ *
+ * author Armin Schnabel
+ * author Klemens Muthmann
+ * version 1.0.0
+ * since 2.5.0
+ */
+
 apply plugin: 'com.android.application'
 
 android {

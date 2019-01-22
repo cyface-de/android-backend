@@ -7,7 +7,7 @@ import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
-import static de.cyface.synchronization.SyncService.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;

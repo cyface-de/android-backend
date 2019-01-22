@@ -1,12 +1,15 @@
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
-
-import static de.cyface.synchronization.TestUtils.*;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurement;
+import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 
+import java.util.List;
 import java.util.UUID;
 
 import org.junit.After;
@@ -25,25 +28,24 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
-
-import androidx.test.filters.FlakyTest;
-import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.utils.Validate;
 
 /**
- * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code> with the database.
+ * Tests the correct internal workings of the <code>CyfaceSyncAdapter</code> with the persistence layer.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 2.1.0
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 public final class SyncAdapterTest {
     Context context;
     ContentResolver contentResolver;
@@ -52,12 +54,12 @@ public final class SyncAdapterTest {
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
-        clearDatabase(contentResolver);
+        clear(context, contentResolver);
     }
 
     @After
     public void tearDown() {
-        clearDatabase(contentResolver);
+        clear(context, contentResolver);
         contentResolver = null;
         context = null;
     }
@@ -66,9 +68,10 @@ public final class SyncAdapterTest {
      * Tests whether points are correctly marked as synced.
      */
     @Test
-    public void testOnPerformSync() {
+    public void testOnPerformSync() throws NoSuchMeasurementException {
 
         // Arrange
+        MeasurementPersistence persistence = new MeasurementPersistence(context, AUTHORITY);
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
@@ -76,42 +79,14 @@ public final class SyncAdapterTest {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
+
         // Insert data to be synced
         final ContentResolver contentResolver = context.getContentResolver();
-        final long measurementIdentifier = insertTestMeasurement(contentResolver, "UNKNOWN");
-        insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055141000L, 49.9304133333333,
-                8.82831833333333, 0.0, 940);
-        Cursor locationsCursor = null;
-        Cursor measurementsCursor = null;
-        // Assert that data is in the database
-        try {
-            // Measurement entry
-            measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
-            assertThat(measurementsCursor.getCount(), is(1));
-            measurementsCursor.moveToNext();
-            final int measurementIsFinished = measurementsCursor
-                    .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_FINISHED));
-            assertThat(measurementIsFinished, is(SQLITE_TRUE));
-            final int measurementIsSynced = measurementsCursor
-                    .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_SYNCED));
-            assertThat(measurementIsSynced, is(SQLITE_FALSE));
-            // GPS Point
-            locationsCursor = loadTrack(contentResolver, measurementIdentifier);
-            assertThat(locationsCursor.getCount(), is(1));
-            locationsCursor.moveToNext();
-            final int gpsPointIsSynced = locationsCursor
-                    .getInt(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_IS_SYNCED));
-            assertThat(gpsPointIsSynced, is(SQLITE_FALSE));
-        } finally {
-            if (locationsCursor != null) {
-                locationsCursor.close();
-            }
-            if (measurementsCursor != null) {
-                measurementsCursor.close();
-            }
-        }
+        final Measurement insertedMeasurement = insertSampleMeasurement(context, MeasurementStatus.FINISHED,
+                persistence);
+        final long measurementIdentifier = insertedMeasurement.getIdentifier();
 
         // Mock - nothing to do
 
@@ -129,32 +104,15 @@ public final class SyncAdapterTest {
         }
 
         // Assert: synced data is marked as synced
-        try {
-            // Measurement entry
-            measurementsCursor = loadMeasurement(contentResolver, measurementIdentifier);
-            assertThat(measurementsCursor.getCount(), is(1));
-            measurementsCursor.moveToNext();
-            final int measurementIsSynced = measurementsCursor
-                    .getInt(measurementsCursor.getColumnIndex(MeasurementTable.COLUMN_SYNCED));
-            assertThat(measurementIsSynced, is(SQLITE_TRUE));
+        // Measurement entry
+        final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
+        final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(loadedStatus, is(equalTo(MeasurementStatus.SYNCED)));
+        assertThat(loadedMeasurement, notNullValue());
 
-            // GPS Point
-            locationsCursor = loadTrack(contentResolver, measurementIdentifier);
-            assertThat(locationsCursor.getCount(), is(1));
-            locationsCursor.moveToNext();
-            final int gpsPointIsSynced = locationsCursor
-                    .getInt(locationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_IS_SYNCED));
-            //TODO: currently we only mark gps points as synced and don't delete them
-            assertThat(gpsPointIsSynced, is(SQLITE_TRUE));
-            //assertThat(locationsCursor.getCount(), is(0));
-        } finally {
-            if (locationsCursor != null) {
-                locationsCursor.close();
-            }
-            if (measurementsCursor != null) {
-                measurementsCursor.close();
-            }
-        }
+        // GPS Point
+        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
+        assertThat(geoLocations.size(), is(1));
     }
 
     /**

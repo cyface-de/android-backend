@@ -1,7 +1,7 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -113,8 +113,8 @@ public class DataCapturingServiceTest {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         // Add test account
-        final Account requestAccount = new Account(ServiceTestUtils.DEFAULT_USERNAME, ServiceTestUtils.ACCOUNT_TYPE);
-        AccountManager.get(context).addAccountExplicitly(requestAccount, ServiceTestUtils.DEFAULT_PASSWORD, null);
+        final Account requestAccount = new Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE);
+        AccountManager.get(context).addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
         // Start DataCapturingService
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
@@ -148,7 +148,7 @@ public class DataCapturingServiceTest {
         if (isDataCapturingServiceRunning()) {
             ShutDownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
             oocut.stop(shutDownFinishedHandler);
-            ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+            TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
             assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
         }
         new Persistence(context, AUTHORITY).clear();
@@ -158,8 +158,8 @@ public class DataCapturingServiceTest {
      * Makes sure a test did not forget to stop the capturing.
      */
     private boolean isDataCapturingServiceRunning() {
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         return runningStatusCallback.wasRunning() && !runningStatusCallback.timedOut;
     }
 
@@ -232,12 +232,12 @@ public class DataCapturingServiceTest {
     private long checkThatLaunched(final TestStartUpFinishedHandler startUpFinishedHandler) {
 
         // Ensure the DataCapturingBackgroundService sent a started message back to the DataCapturingService
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
         // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
@@ -265,12 +265,12 @@ public class DataCapturingServiceTest {
             final long measurementIdentifier) {
 
         // Ensure the DataCapturingBackgroundService sent a stopped message back to the DataCapturingService
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
         // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
@@ -327,7 +327,7 @@ public class DataCapturingServiceTest {
         oocut.stop(shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         final long measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier;
         assertThat(measurementId1, is(not(equalTo(-1L))));
         assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
@@ -355,9 +355,9 @@ public class DataCapturingServiceTest {
 
         oocut.disconnect();
         oocut.reconnect();
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         stopAndCheckThatStopped(measurementIdentifier);
     }
@@ -379,7 +379,7 @@ public class DataCapturingServiceTest {
         // Second start - should not launch anything
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
 
         stopAndCheckThatStopped(measurementIdentifier);
@@ -454,9 +454,9 @@ public class DataCapturingServiceTest {
 
         oocut.reconnect();
         oocut.reconnect();
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
         stopAndCheckThatStopped(measurementIdentifier);
     }
@@ -479,8 +479,8 @@ public class DataCapturingServiceTest {
         oocut.disconnect();
         oocut.reconnect();
 
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat("Service seems not to be running anymore after two disconnect/reconnect cycles!",
                 runningStatusCallback.wasRunning(), is(equalTo(true)));
 
@@ -529,8 +529,8 @@ public class DataCapturingServiceTest {
                 InstrumentationRegistry.getInstrumentation().getTargetContext(), AUTHORITY);
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.resume(startUpFinishedHandler);
-        ServiceTestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        ServiceTestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(OPEN)));
 
@@ -610,7 +610,7 @@ public class DataCapturingServiceTest {
         // Check sensor data
         final List<Measurement> measurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
-        ServiceTestUtils.lockAndWait(3, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(3, TimeUnit.SECONDS, lock, condition);
         assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true)));
 
         stopAndCheckThatStopped(measurementIdentifier);

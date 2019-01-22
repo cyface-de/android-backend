@@ -15,7 +15,7 @@ import java.util.concurrent.TimeUnit;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 
-import static de.cyface.datacapturing.ServiceTestUtils.TAG;
+import static de.cyface.datacapturing.TestUtils.TAG;
 
 /**
  * Connection from the test to the capturing service.

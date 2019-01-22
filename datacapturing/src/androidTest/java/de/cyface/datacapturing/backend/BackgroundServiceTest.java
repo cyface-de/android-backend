@@ -5,7 +5,7 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;

@@ -1,13 +1,13 @@
 package de.cyface.synchronization;
 
-import org.json.JSONObject;
-
 import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+
+import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
 
@@ -16,7 +16,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.2.2
  * @since 3.0.0
  */
 interface Http {
@@ -50,7 +50,7 @@ interface Http {
      * @return the HTTPURLConnection
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      */
-    HttpsURLConnection openHttpConnection(@NonNull URL url, SSLContext sslContext, boolean hasBinaryContent)
+    HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent)
             throws ServerUnavailableException;
 
     /**

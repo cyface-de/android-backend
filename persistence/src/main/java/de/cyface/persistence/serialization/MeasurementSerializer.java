@@ -27,6 +27,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
@@ -83,38 +84,6 @@ public final class MeasurementSerializer {
             + ByteSizes.INT_BYTES;
 
     /**
-     * Creates the part of the header field which contains the counters of the {@link Point3d} data for a serialized
-     * measurement in big endian format.
-     * (!) Attention: Changes to this format must be discussed with compatible API providers.
-     *
-     * @param metaData Number of {@link Point3d} points in the serialized {@link Measurement}.
-     * @return The header byte array.
-     */
-    public static byte[] serialize(final PointMetaData metaData) {
-        Validate.isTrue(metaData.getPersistenceFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
-        byte[] ret = new byte[16];
-        /*
-         * ret[0] = (byte)(metaData.getCountOfGeoLocations() >> 24);
-         * ret[1] = (byte)(metaData.getCountOfGeoLocations() >> 16);
-         * ret[2] = (byte)(metaData.getCountOfGeoLocations() >> 8);
-         * ret[3] = (byte)metaData.getCountOfGeoLocations(); FIXME: missing!
-         */
-        ret[4] = (byte)(metaData.getAccelerationPointCounter() >> 24);
-        ret[5] = (byte)(metaData.getAccelerationPointCounter() >> 16);
-        ret[6] = (byte)(metaData.getAccelerationPointCounter() >> 8);
-        ret[7] = (byte)metaData.getAccelerationPointCounter();
-        ret[8] = (byte)(metaData.getRotationPointCounter() >> 24);
-        ret[9] = (byte)(metaData.getRotationPointCounter() >> 16);
-        ret[10] = (byte)(metaData.getRotationPointCounter() >> 8);
-        ret[11] = (byte)metaData.getRotationPointCounter();
-        ret[12] = (byte)(metaData.getDirectionPointCounter() >> 24);
-        ret[13] = (byte)(metaData.getDirectionPointCounter() >> 16);
-        ret[14] = (byte)(metaData.getDirectionPointCounter() >> 8);
-        ret[15] = (byte)metaData.getDirectionPointCounter();
-        return ret;
-    }
-
-    /**
      * Loads the {@link Measurement} with the provided identifier from the <code>ContentProvider</code> accessible via
      * the client given to the constructor and serializes it, using standard Android GZIP compression on the described
      * binary format to an <code>InputStream</code>.
@@ -124,7 +93,7 @@ public final class MeasurementSerializer {
      */
     InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
         final Deflater compressor = new Deflater();
-        final byte[] serializedGeoLocations = serialize(loader);
+        final byte[] serializedGeoLocations = serialize(loader); // FIXME: serialize the whole measurement I think
         compressor.setInput(serializedGeoLocations);
         compressor.finish();
         byte[] output = new byte[serializedGeoLocations.length];
@@ -191,33 +160,33 @@ public final class MeasurementSerializer {
     /**
      * Creates the header field for a serialized {@link Measurement} in big endian format for synchronization.
      *
-     * @param countOfGeoLocations Number of {@link GeoLocation}s in the serialized measurement.
-     * @param countOfAccelerations Number of acceleration {@link Point3d}s in the serialized measurement.
-     * @param countOfRotations Number of rotation {@link Point3d}s in the serialized measurement.
-     * @param countOfDirections Number of direction {@link Point3d}s in the serialized measurement.
+     * (!) Attention: Changes to this format must be discussed with compatible API providers.
+     *
+     * @param geoLocationCount Number of {@link GeoLocation} in the serialized {@code Measurement}.
+     * @param metaData Number of {@link Point3d} points in the serialized {@link Measurement}.
      * @return The header byte array.
      */
-    private byte[] createTransferFileHeader(final int countOfGeoLocations, final int countOfAccelerations,
-            final int countOfRotations, final int countOfDirections) {
+    public byte[] serializeTransferFileHeader(final int geoLocationCount, final PointMetaData metaData) {
+        Validate.isTrue(metaData.getPersistenceFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
         byte[] ret = new byte[18];
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
-        ret[2] = (byte)(countOfGeoLocations >> 24);
-        ret[3] = (byte)(countOfGeoLocations >> 16);
-        ret[4] = (byte)(countOfGeoLocations >> 8);
-        ret[5] = (byte)countOfGeoLocations;
-        ret[6] = (byte)(countOfAccelerations >> 24);
-        ret[7] = (byte)(countOfAccelerations >> 16);
-        ret[8] = (byte)(countOfAccelerations >> 8);
-        ret[9] = (byte)countOfAccelerations;
-        ret[10] = (byte)(countOfRotations >> 24);
-        ret[11] = (byte)(countOfRotations >> 16);
-        ret[12] = (byte)(countOfRotations >> 8);
-        ret[13] = (byte)countOfRotations;
-        ret[14] = (byte)(countOfDirections >> 24);
-        ret[15] = (byte)(countOfDirections >> 16);
-        ret[16] = (byte)(countOfDirections >> 8);
-        ret[17] = (byte)countOfDirections;
+        ret[2] = (byte)(geoLocationCount >> 24);
+        ret[3] = (byte)(geoLocationCount >> 16);
+        ret[4] = (byte)(geoLocationCount >> 8);
+        ret[5] = (byte)geoLocationCount;
+        ret[6] = (byte)(metaData.getAccelerationPointCounter() >> 24);
+        ret[7] = (byte)(metaData.getAccelerationPointCounter() >> 16);
+        ret[8] = (byte)(metaData.getAccelerationPointCounter() >> 8);
+        ret[9] = (byte)metaData.getAccelerationPointCounter();
+        ret[10] = (byte)(metaData.getRotationPointCounter() >> 24);
+        ret[11] = (byte)(metaData.getRotationPointCounter() >> 16);
+        ret[12] = (byte)(metaData.getRotationPointCounter() >> 8);
+        ret[13] = (byte)metaData.getRotationPointCounter();
+        ret[14] = (byte)(metaData.getDirectionPointCounter() >> 24);
+        ret[15] = (byte)(metaData.getDirectionPointCounter() >> 16);
+        ret[16] = (byte)(metaData.getDirectionPointCounter() >> 8);
+        ret[17] = (byte)metaData.getDirectionPointCounter();
         return ret;
     }
 
@@ -227,8 +196,9 @@ public final class MeasurementSerializer {
      *
      * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link GeoLocation}s.
      * @return A byte array containing the serialized data.
+     * @throws DataCapturingException If content provider was inaccessible.
      */
-    private byte[] serialize(final @NonNull MeasurementContentProviderClient loader) {
+    private byte[] serialize(@NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier, @NonNull final MeasurementPersistence persistence) throws DataCapturingException {
         Cursor geoLocationsCursor = null;
 
         try {
@@ -236,9 +206,8 @@ public final class MeasurementSerializer {
             final int geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
 
             // Generate transfer file header
-            // FIXME: missing PointMetaData
-            final byte[] header = createTransferFileHeader(geoLocationCount, accelerationsCursor.getCount(),
-                    rotationsCursor.getCount(), directionsCursor.getCount());
+            final PointMetaData pointMetaData = persistence.loadPointMetaData(measurementIdentifier);
+            final byte[] header = serializeTransferFileHeader(geoLocationCount, pointMetaData);
 
             // Serialize GeoLocations
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();

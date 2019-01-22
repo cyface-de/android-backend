@@ -1,7 +1,8 @@
 package de.cyface.synchronization;
 
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
@@ -39,10 +40,10 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 import android.text.TextUtils;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -51,7 +52,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.1
+ * @version 1.3.4
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -245,14 +246,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     /**
-     * Initializes the synchronisation by logging in to the server and creating this device if
-     * necessary.
+     * Initializes the synchronisation by logging in to the server.
      *
      * @param username The username that is used by the application to login to the
      *            server.
      * @param password The password belonging to the account with the {@code username}
      *            logging in to the Cyface server.
-     * @param sslContext
+     * @param sslContext To open a SSL connection
      * @return The currently valid auth token to be used by further requests from this application.
      * @throws JSONException Thrown if the returned JSON message is not parsable.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
@@ -268,8 +268,9 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
             BadRequestException {
         Log.v(TAG, "Init Sync!");
+
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String installationIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String installationIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         if (installationIdentifier == null) {
             throw new IllegalStateException("No installation identifier for this application set in its preferences.");
         }

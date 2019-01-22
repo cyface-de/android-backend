@@ -102,7 +102,7 @@ public class PingPongTest {
             public void run() {
                 try {
                     dcs = new CyfaceDataCapturingService(context, context.getContentResolver(),
-                            ServiceTestUtils.AUTHORITY, ServiceTestUtils.ACCOUNT_TYPE, "https://fake.fake/",
+                            TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE, "https://fake.fake/",
                             new IgnoreEventsStrategy());
                 } catch (SetupException e) {
                     throw new IllegalStateException(e);

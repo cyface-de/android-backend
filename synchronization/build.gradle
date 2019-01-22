@@ -4,9 +4,10 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 /**
  * Gradle's build file for the module which synchronizes the sensor data.
  *
- * @author Armin Schnabel
- * @author Klemens Muthmann
- * @version 2.1.0* @since 1.0.0
+ * author Armin Schnabel
+ * author Klemens Muthmann
+ * version 2.1.1
+ * since 1.0.0
  */
 
 apply plugin: 'com.android.library'

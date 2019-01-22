@@ -23,7 +23,7 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
     /**
      * A String value which contains an identifier for this device.
      */
-    final static String COLUMN_DEVICE_ID = "device_id";
+    public final static String COLUMN_DEVICE_ID = "device_id";
 
     /**
      * An array containing all columns from this table in default order.

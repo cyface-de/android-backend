@@ -1,12 +1,12 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import androidx.annotation.NonNull;
 import android.util.Log;
+import androidx.annotation.NonNull;
 
 /**
  * The Android service used to communicate with the Stub Authenticator. This has been implemented as described in
@@ -15,7 +15,7 @@ import android.util.Log;
  * Android documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 public final class AuthenticatorService extends Service {

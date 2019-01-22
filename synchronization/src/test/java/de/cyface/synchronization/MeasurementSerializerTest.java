@@ -21,8 +21,6 @@ import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
 
-import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -35,15 +33,16 @@ import org.robolectric.RobolectricTestRunner;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
-
 import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.serialization.MeasurementSerializer;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.2.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -75,11 +74,12 @@ public class MeasurementSerializerTest {
 
     @Before
     public void setUp() throws RemoteException {
-        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(TestUtils.AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
+        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(TestUtils.AUTHORITY)
+                .appendPath(GeoLocationsTable.URI_PATH).build();
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
-        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3L);
-        when(loader.loadGeoLocations(anyInt(),anyInt())).thenReturn(geoLocationsCursor);
-        when(loader.load3DPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor);
+        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3);
+        when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
+        when(loader.load3dPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor); // FIXME
         when(geoLocationsCursor.getCount()).thenReturn(3);
         when(pointsCursor.getCount()).thenReturn(3);
         // Insert 3 geo locations
@@ -142,10 +142,8 @@ public class MeasurementSerializerTest {
         int beginOfGeoLocationsIndex = BYTES_IN_HEADER;
         int beginOfAccelerationsIndex = beginOfGeoLocationsIndex
                 + numberOfGeoLocations * BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-        int beginOfRotationsIndex = beginOfAccelerationsIndex
-                + numberOfAccelerations * BYTES_IN_ONE_POINT_3D_ENTRY;
-        int beginOfDirectionsIndex = beginOfRotationsIndex
-                + numberOfRotations * BYTES_IN_ONE_POINT_3D_ENTRY;
+        int beginOfRotationsIndex = beginOfAccelerationsIndex + numberOfAccelerations * BYTES_IN_ONE_POINT_3D_ENTRY;
+        int beginOfDirectionsIndex = beginOfRotationsIndex + numberOfRotations * BYTES_IN_ONE_POINT_3D_ENTRY;
 
         List<Map<String, ?>> geoLocations = deserializeGeoLocations(
                 Arrays.copyOfRange(individualBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
@@ -192,8 +190,7 @@ public class MeasurementSerializerTest {
         List<Map<String, ?>> ret = new ArrayList<>();
 
         for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_POINT_3D_ENTRY) {
-            ByteBuffer buffer = ByteBuffer
-                    .wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_POINT_3D_ENTRY));
+            ByteBuffer buffer = ByteBuffer.wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_POINT_3D_ENTRY));
             Map<String, Object> entry = new HashMap<>(4);
             entry.put("timestamp", buffer.getLong());
             entry.put("x", buffer.getDouble());
@@ -217,8 +214,7 @@ public class MeasurementSerializerTest {
     private List<Map<String, ?>> deserializeGeoLocations(byte[] bytes) {
         List<Map<String, ?>> ret = new ArrayList<>();
         for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_GEO_LOCATION_ENTRY) {
-            ByteBuffer buffer = ByteBuffer
-                    .wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_GEO_LOCATION_ENTRY));
+            ByteBuffer buffer = ByteBuffer.wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_GEO_LOCATION_ENTRY));
             Map<String, Object> entry = new HashMap<>(5);
             entry.put("timestamp", buffer.getLong());
             entry.put("lat", buffer.getDouble());

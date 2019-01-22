@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.ServiceTestUtils.TAG;
+import static de.cyface.datacapturing.TestUtils.TAG;
 
 import java.util.ArrayList;
 import java.util.Collections;

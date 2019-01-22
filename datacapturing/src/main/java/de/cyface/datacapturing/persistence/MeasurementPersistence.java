@@ -7,15 +7,22 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_ROTATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
+import java.io.ByteArrayInputStream;
+import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
-import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
+import java.util.UUID;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
+import java.util.zip.Deflater;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -24,10 +31,12 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.datacapturing.Constants;
 import de.cyface.datacapturing.DataCapturingListener;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -37,6 +46,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.DataCapturingException;
@@ -136,8 +146,8 @@ public class MeasurementPersistence {
      *             {@link MeasurementStatus#OPEN}.
      */
     public void updateRecentMeasurement(@NonNull final MeasurementStatus newStatus) throws NoSuchMeasurementException {
-        Validate.isTrue(newStatus == MeasurementStatus.FINISHED || newStatus == MeasurementStatus.PAUSED
-                || newStatus == MeasurementStatus.OPEN);
+        Validate.isTrue(
+                newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
 
         final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
         switch (newStatus) {
@@ -160,7 +170,7 @@ public class MeasurementPersistence {
             try {
                 setStatus(currentlyCapturedMeasurementId, newStatus);
             } finally {
-                if (newStatus == MeasurementStatus.FINISHED) {
+                if (newStatus == FINISHED) {
                     currentMeasurementIdentifier = null;
                 }
             }
@@ -333,7 +343,7 @@ public class MeasurementPersistence {
      *
      * @param measurementIdentifier The device wide unique identifier of the measurement to load.
      * @return The loaded {@code MeasurementStatus}
-     * @throws NoSuchMeasurementException If accessing the measurement does not exist.
+     * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
      * @throws DataCapturingException If accessing the content provider fails.
      */
     public MeasurementStatus loadMeasurementStatus(final long measurementIdentifier)
@@ -390,41 +400,47 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Loads a measurement with the provided id from the persistence layer as uncompressed and serialized in
+     * Loads a {@link Measurement} with the provided id from the persistence layer as uncompressed and serialized in
      * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
      *
      * TODO: test this on weak devices for large measurements
+     *
+     * FIXME: this is a duplicate to MeasurementSerialized.serialize(loader, ...)
      *
      * @param measurement The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
      * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
      * @throws IOException If the byte array could not be assembled.
+     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws NoSuchMeasurementException If the provided {@param Measurement} was <code>null</code>.
      */
-    public byte[] loadSerialized(final Measurement measurement) throws FileCorruptedException, IOException {
-        final byte[] transferFileFormat = new byte[2];
-        transferFileFormat[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
-        transferFileFormat[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
-        final MetaFile.MetaData metaData = measurement.getMetaFile().deserialize();
-        final byte[] pointCounts = serialize(metaData.getPointMetaData());
-        final byte[] geoLocationData = metaData.getPointMetaData().getCountOfGeoLocations() > 0
+    public byte[] loadSerialized(final Measurement measurement)
+            throws FileCorruptedException, IOException, DataCapturingException, NoSuchMeasurementException {
+        final List<GeoLocation> geoLocations = loadTrack(measurement);
+        final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
+        final MeasurementSerializer serializer = new MeasurementSerializer();
+        final byte[] transferFileHeader = serializer.serializeTransferFileHeader(geoLocations.size(), pointMetaData);
+
+        // FIXME
+        throw new IllegalStateException("fixme");
+        final byte[] geoLocationData = geoLocations.size() > 0
                 ? FileUtils.loadBytes(GeoLocationsFile.loadFile(measurement).getFile())
                 : new byte[] {};
-        final byte[] accelerationData = metaData.getPointMetaData().getCountOfAccelerations() > 0
-                ? FileUtils.loadBytes(Point3dFile.loadFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME,
-                        FileUtils.ACCELERATIONS_FILE_EXTENSION).getFile())
+        final byte[] accelerationData = pointMetaData.getAccelerationPointCounter() > 0
+                ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
+                        Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile())
                 : new byte[] {};
-        final byte[] rotationData = metaData.getPointMetaData().getCountOfRotations() > 0 ? FileUtils.loadBytes(
-                Point3dFile.loadFile(measurement, FileUtils.ROTATIONS_FILE_NAME, FileUtils.ROTATION_FILE_EXTENSION)
-                        .getFile())
+        final byte[] rotationData = pointMetaData.getRotationPointCounter() > 0
+                ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
+                        Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile())
                 : new byte[] {};
-        final byte[] directionData = metaData.getPointMetaData().getCountOfDirections() > 0 ? FileUtils.loadBytes(
-                Point3dFile.loadFile(measurement, FileUtils.DIRECTION_FILE_NAME, FileUtils.DIRECTION_FILE_EXTENSION)
-                        .getFile())
+        final byte[] directionData = pointMetaData.getDirectionPointCounter() > 0
+                ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
+                        Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile())
                 : new byte[] {};
 
         final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(transferFileFormat);
-        outputStream.write(pointCounts);
+        outputStream.write(transferFileHeader);
         outputStream.write(geoLocationData);
         outputStream.write(accelerationData);
         outputStream.write(rotationData);
@@ -457,40 +473,36 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Marks a {@link Measurement.MeasurementStatus#FINISHED} {@link Measurement} as
-     * {@link Measurement.MeasurementStatus#SYNCED} and deletes the sensor data.
+     * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as
+     * {@link MeasurementStatus#SYNCED} and deletes the sensor data.
      *
      * @param measurement The measurement to remove.
+     * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
      */
-    public void markAsSynchronized(final @NonNull Measurement measurement) {
-        Validate.isTrue(measurement.getStatus() == FINISHED);
-        measurement.setStatus(Measurement.MeasurementStatus.SYNCED);
+    public void markAsSynchronized(@NonNull final Measurement measurement)
+            throws NoSuchMeasurementException, DataCapturingException {
+        Validate.isTrue(loadMeasurementStatus(measurement.getIdentifier()) == FINISHED);
+        setStatus(measurement.getIdentifier(), SYNCED);
 
         // FIXME: for movebis we only delete sensor data not GPS points (+move to synchronized)
         // how do we want to handle this on Cyface ?
-        final MetaFile.MetaData metaData;
-        try {
-            metaData = measurement.getMetaFile().deserialize();
-        } catch (final FileCorruptedException e) {
-            throw new IllegalStateException(e);
-        }
+        final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
 
-        if (metaData.getPointMetaData().getCountOfAccelerations() > 0) {
-            final File accelerationFile = Point3dFile
-                    .loadFile(measurement, FileUtils.ACCELERATIONS_FILE_NAME, FileUtils.ACCELERATIONS_FILE_EXTENSION)
-                    .getFile();
+        if (pointMetaData.getAccelerationPointCounter() > 0) {
+            final File accelerationFile = Point3dFile.loadFile(context, measurement.getIdentifier(),
+                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
             Validate.isTrue(accelerationFile.delete());
         }
 
-        if (metaData.getPointMetaData().getCountOfRotations() > 0) {
-            final File rotationFile = Point3dFile
-                    .loadFile(measurement, FileUtils.ROTATIONS_FILE_NAME, FileUtils.ROTATION_FILE_EXTENSION).getFile();
+        if (pointMetaData.getRotationPointCounter() > 0) {
+            final File rotationFile = Point3dFile.loadFile(context, measurement.getIdentifier(),
+                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
             Validate.isTrue(rotationFile.delete());
         }
 
-        if (metaData.getPointMetaData().getCountOfDirections() > 0) {
-            final File directionFile = Point3dFile
-                    .loadFile(measurement, FileUtils.DIRECTION_FILE_NAME, FileUtils.DIRECTION_FILE_EXTENSION).getFile();
+        if (pointMetaData.getDirectionPointCounter() > 0) {
+            final File directionFile = Point3dFile.loadFile(context, measurement.getIdentifier(),
+                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
             Validate.isTrue(directionFile.delete());
         }
     }
@@ -525,10 +537,9 @@ public class MeasurementPersistence {
                 final String deviceId = UUID.randomUUID().toString();
                 final ContentValues values = new ContentValues();
                 values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
-                values.put(IdentifierTable.COLUMN_NEXT_MEASUREMENT_ID, 1);
                 final Uri resultUri = resolver.insert(getIdentifierUri(authority), values);
-                Validate.notNull("New device id and measurement id counter could not be created!", resultUri);
-                Log.d(Constants.TAG, "Created new device id " + deviceId + " and reset measurement id counter");
+                Validate.notNull("New device id could not be created!", resultUri);
+                Log.d(Constants.TAG, "Created new device id " + deviceId);
                 return deviceId;
             }
         } finally {
@@ -537,42 +548,6 @@ public class MeasurementPersistence {
                 deviceIdentifierQueryCursor.close();
             }
         }
-    }
-
-    /**
-     * Removes everything from the local persistent data storage.
-     * (!) Attention: This currently does not reset the device id counter. // FIXME: should this be done? does it work?
-     *
-     * @return number of rows removed from the database which includes {@link Measurement}s and {@link GeoLocation}s.
-     *         This does not include the number of {@link Point3dFile}s removed.
-     */
-    public int clear() {
-
-        // Remove {@code Point3dFile}s
-        final File accelerationFolder = FileUtils.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
-        final File rotationFolder = FileUtils.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
-        final File directionFolder = FileUtils.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
-        final List<File> accelerationFiles = new ArrayList<>(Arrays.asList(accelerationFolder.listFiles()));
-        final List<File> rotationFiles = new ArrayList<>(Arrays.asList(rotationFolder.listFiles()));
-        final List<File> directionFiles = new ArrayList<>(Arrays.asList(directionFolder.listFiles()));
-        for (File file : accelerationFiles) {
-            Validate.isTrue(file.delete());
-        }
-        for (File file : rotationFiles) {
-            Validate.isTrue(file.delete());
-        }
-        for (File file : directionFiles) {
-            Validate.isTrue(file.delete());
-        }
-        Validate.isTrue(accelerationFolder.delete());
-        Validate.isTrue(rotationFolder.delete());
-        Validate.isTrue(directionFolder.delete());
-
-        // Remove database entries
-        int removedDatabaseRows = 0;
-        removedDatabaseRows += resolver.delete(getGeoLocationsUri(), null, null);
-        removedDatabaseRows += resolver.delete(getMeasurementUri(), null, null);
-        return removedDatabaseRows;
     }
 
     /**

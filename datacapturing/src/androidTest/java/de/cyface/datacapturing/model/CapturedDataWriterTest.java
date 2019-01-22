@@ -1,9 +1,9 @@
 package de.cyface.datacapturing.model;
 
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
-import static de.cyface.datacapturing.ServiceTestUtils.TAG;
-import static de.cyface.datacapturing.ServiceTestUtils.getGeoLocationsUri;
-import static de.cyface.datacapturing.ServiceTestUtils.getMeasurementUri;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TAG;
+import static de.cyface.datacapturing.TestUtils.getGeoLocationsUri;
+import static de.cyface.datacapturing.TestUtils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;

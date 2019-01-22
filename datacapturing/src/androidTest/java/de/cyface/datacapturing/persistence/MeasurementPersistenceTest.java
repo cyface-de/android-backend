@@ -1,6 +1,6 @@
 package de.cyface.datacapturing.persistence;
 
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;

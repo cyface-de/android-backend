@@ -4,21 +4,17 @@ import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import android.net.Uri;
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
-import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.IdentifierTable;
-import de.cyface.persistence.MeasurementTable;
 
 /**
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Armin Schnabel
- * @version 1.1.6
+ * @version 1.1.7
  * @since 2.0.0
  */
-public class ServiceTestUtils {
+public class TestUtils {
     /**
      * The tag used to identify log messages send to logcat.
      */
@@ -37,7 +33,7 @@ public class ServiceTestUtils {
     /**
      * Private constructor so no one tries to instantiate the utility class.
      */
-    private ServiceTestUtils() {
+    private TestUtils() {
         // Nothing to do here.
     }
 
@@ -77,17 +73,5 @@ public class ServiceTestUtils {
                 oocut.isRunning(1, TimeUnit.SECONDS, runningStatusCallback);
             }
         });
-    }
-
-    public static Uri getMeasurementUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
-    }
-
-    public static Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
-    }
-
-    public static Uri getIdentifierUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
     }
 }

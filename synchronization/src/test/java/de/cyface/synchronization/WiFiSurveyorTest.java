@@ -12,7 +12,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
-import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowConnectivityManager;
 import org.robolectric.shadows.ShadowNetworkInfo;
 
@@ -28,7 +27,7 @@ import android.net.wifi.WifiManager;
  * and thus is a <code>FlakyTest</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -77,11 +76,9 @@ public class WiFiSurveyorTest {
     /**
      * Tests if mobile and WiFi connectivity is detected correctly if both are allowed.
      *
-     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
-     *             <code>Context</code> is available.
      */
     @Test
-    public void testMobileConnectivity() throws SynchronisationException {
+    public void testMobileConnectivity() {
         switchMobileConnection(false);
 
         switchWiFiConnection(false);

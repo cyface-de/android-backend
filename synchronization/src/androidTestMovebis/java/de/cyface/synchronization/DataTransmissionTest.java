@@ -1,12 +1,10 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.insertTestAcceleration;
-import static de.cyface.synchronization.TestUtils.insertTestDirection;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.synchronization.TestUtils.insertTestRotation;
+import static de.cyface.testutils.SharedTestUtils.AUTHORITY;
+import static de.cyface.testutils.SharedTestUtils.insertTestGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.insertTestMeasurement;
+import static de.cyface.testutils.SharedTestUtils.insertTestPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -16,22 +14,27 @@ import java.io.InputStream;
 import java.security.MessageDigest;
 import java.security.NoSuchAlgorithmException;
 
-import android.content.SyncResult;
-import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.serialization.MeasurementSerializer;
-import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
-import android.os.Build;
+import android.content.Context;
+import android.content.SyncResult;
+import android.util.Log;
 import androidx.annotation.NonNull;
-import androidx.test.platform.app.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-import android.util.Log;
+import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.Point3dFile;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -39,15 +42,15 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.9
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-@FlakyTest
-@Ignore
+@FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
+           // required an actual api)
 public class DataTransmissionTest {
 
     /**
@@ -88,24 +91,41 @@ public class DataTransmissionTest {
      */
     @Test
     public void testUploadSomeBytesViaMultiPart()
-            throws SynchronisationException, BadRequestException, RequestParsingException {
-        ContentResolver resolver = InstrumentationRegistry.getInstrumentation().getTargetContext().getContentResolver();
-        long measurementIdentifier = insertTestMeasurement(resolver, "UNKNOWN");
-        insertTestGeoLocation(resolver, measurementIdentifier, 1503055141000L, 49.9304133333333, 8.82831833333333, 0.0,
-                940);
-        insertTestGeoLocation(resolver, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
+            throws BadRequestException, RequestParsingException, FileCorruptedException, IOException {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        ContentResolver resolver = context.getContentResolver();
+        Persistence persistence = new Persistence(context, AUTHORITY);
+        Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
+        long measurementIdentifier = measurement.getIdentifier();
+        insertTestGeoLocation(resolver, measurement.getIdentifier(), 1503055141000L, 49.9304133333333, 8.82831833333333,
+                0.0, 940);
+        insertTestGeoLocation(resolver, measurement.getIdentifier(), 1503055142000L, 49.9305066666667, 8.82814,
                 8.78270530700684, 840);
-        insertTestAcceleration(resolver, measurementIdentifier, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestAcceleration(resolver, measurementIdentifier, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-        insertTestAcceleration(resolver, measurementIdentifier, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-        insertTestRotation(resolver, measurementIdentifier, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestRotation(resolver, measurementIdentifier, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-        insertTestRotation(resolver, measurementIdentifier, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-        insertTestDirection(resolver, measurementIdentifier, 1501662636010L, 7.65, -32.4, -71.4);
-        insertTestDirection(resolver, measurementIdentifier, 1501662636030L, 7.65, -32.550003, -71.700005);
-        insertTestDirection(resolver, measurementIdentifier, 1501662636050L, 7.65, -33.15, -71.700005);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+                Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+                Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+                Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+                Point3dFile.ROTATION_FILE_EXTENSION, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+                Point3dFile.ROTATION_FILE_EXTENSION, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+                Point3dFile.ROTATION_FILE_EXTENSION, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+                Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636010L, 7.65, -32.4, -71.4);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+                Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636030L, 7.65, -32.550003, -71.700005);
+        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+                Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636050L, 7.65, -33.15, -71.700005);
+
+        persistence
+                .storePointMetaData(new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION));
+        persistence.updateMeasurement(measurement, MeasurementStatus.FINISHED);
 
         ContentProviderClient client = null;
+        InputStream measurementData = null;
         try {
             client = resolver.acquireContentProviderClient(AUTHORITY);
 
@@ -117,10 +137,12 @@ public class DataTransmissionTest {
                     client, AUTHORITY);
             MeasurementSerializer serializer = new MeasurementSerializer();
             InputStream measurementData = serializer.serialize(loader);
+            measurementData = persistence.loadSerializedCompressed(measurement);
             // printMD5(measurementData);
 
             String jwtAuthToken = "replace me";
-            SyncPerformer performer = new SyncPerformer(InstrumentationRegistry.getInstrumentation().getTargetContext());
+            SyncPerformer performer = new SyncPerformer(
+                    InstrumentationRegistry.getInstrumentation().getTargetContext());
             SyncResult syncResult = new SyncResult();
             boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
                     measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {
@@ -131,12 +153,11 @@ public class DataTransmissionTest {
                     }, jwtAuthToken);
             assertThat(result, is(equalTo(true)));
         } finally {
+            if (measurementData != null) {
+                measurementData.close();
+            }
             if (client != null) {
-                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-                    client.close();
-                } else {
-                    client.release();
-                }
+                client.close();
             }
         }
     }

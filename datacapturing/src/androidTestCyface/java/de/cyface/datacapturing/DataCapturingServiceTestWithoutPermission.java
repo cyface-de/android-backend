@@ -1,7 +1,7 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
