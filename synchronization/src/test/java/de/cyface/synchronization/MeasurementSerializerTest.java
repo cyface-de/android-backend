@@ -3,14 +3,17 @@ package de.cyface.synchronization;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
+import static org.hamcrest.core.IsNull.notNullValue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
 import static org.mockito.Mockito.when;
 
+import java.io.DataInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -20,6 +23,8 @@ import java.util.Arrays;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.zip.DataFormatException;
+import java.util.zip.Inflater;
 
 import org.junit.Before;
 import org.junit.Rule;
@@ -35,6 +40,12 @@ import android.net.Uri;
 import android.os.RemoteException;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 
 /**
@@ -74,7 +85,7 @@ public class MeasurementSerializerTest {
 
     @Before
     public void setUp() throws RemoteException {
-        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(TestUtils.AUTHORITY)
+        Uri geoLocationUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
                 .appendPath(GeoLocationsTable.URI_PATH).build();
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
         when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3);
@@ -225,5 +236,76 @@ public class MeasurementSerializerTest {
             ret.add(entry);
         }
         return ret;
+    }
+
+    /**
+     * Tests that the serialization and compression results into bytes of the expected length.
+     * Also decompresses the compressed bytes to make sure it's still readable.
+     *
+     * from declined PR.PersistenceTest FIXME
+     */
+    @Test
+    public void testLoadSerializedCompressedAndDecompressDeserialize()
+            throws NoSuchMeasurementException, FileCorruptedException, IOException, DataFormatException {
+        MeasurementSerializer oocut = new MeasurementSerializer();
+
+        final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
+                + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
+        // Before the epic #CY-4067 the compression resulted into 30 bytes - did the compression change?
+        final int SERIALIZED_COMPRESSED_SIZE = 31;
+
+        // Serialize and check length
+        Measurement measurement = insertSerializationTestSample();
+        byte[] serializedData = oocut.loadSerialized(measurement);
+        assertThat(serializedData.length, is(equalTo(SERIALIZED_SIZE)));
+
+        // Serialize + compress and check length
+        measurement = insertSerializationTestSample();
+        InputStream compressedStream = oocut.loadSerializedCompressed(measurement);
+        assertThat(compressedStream.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+
+        // Decompress the compressed bytes and check length and bytes
+        byte[] compressedBytes = new byte[compressedStream.available()];
+        DataInputStream dis = new DataInputStream(compressedStream);
+        dis.readFully(compressedBytes);
+        Inflater inflater = new Inflater();
+        inflater.setInput(compressedBytes, 0, compressedBytes.length);
+        byte[] decompressedBytes = new byte[1000];
+        int decompressedLength = inflater.inflate(decompressedBytes);
+        inflater.end();
+        assertThat(decompressedLength, is(equalTo(SERIALIZED_SIZE)));
+        assertThat(Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE), is(equalTo(serializedData)));
+    }
+
+    /**
+     * from declined PR.PersistenceTest FIXME
+     */
+    private Measurement insertSerializationTestSample() throws NoSuchMeasurementException {
+        // Insert sample measurement data
+        Persistence persistence = new PersistenceLayer(context, AUTHORITY);
+        final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
+        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
+        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
+        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
+        // Write point counters to MetaFile
+        measurement.getMetaFile().append(new MetaFile.PointMetaData(3, 3, 3, 3));
+        // Finish measurement
+        persistence.finishMeasurement(measurement);
+        // Assert that data is in the database
+        final Measurement finishedMeasurement = persistence.loadMeasurement(measurement.getIdentifier(),
+                Measurement.MeasurementStatus.FINISHED);
+        assertThat(finishedMeasurement, notNullValue());
+        List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
+        assertThat(geoLocations.size(), is(3));
+        return measurement;
     }
 }

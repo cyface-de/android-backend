@@ -2,9 +2,10 @@ package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
-import static de.cyface.datacapturing.TestUtils.getGeoLocationsUri;
-import static de.cyface.datacapturing.TestUtils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
+import static de.cyface.testutils.SharedTestUtils.getMeasurementUri;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
@@ -31,12 +32,14 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
-import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -46,6 +49,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
@@ -56,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.1
+ * @version 5.3.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -71,7 +75,7 @@ public class CapturedDataWriterTest {
     /**
      * The object of the class under test.
      */
-    private MeasurementPersistence oocut;
+    private PersistenceLayer oocut;
     /**
      * An Android <code>ContentResolver</code> provided for executing tests.
      */
@@ -80,6 +84,10 @@ public class CapturedDataWriterTest {
      * The {@link Context} required to access the persistence layer.
      */
     private Context context;
+    /**
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     */
+    private CapturingPersistenceBehaviour capturingBehaviour;
 
     /**
      * Initializes the test case as explained in the <a href=
@@ -87,11 +95,12 @@ public class CapturedDataWriterTest {
      * documentation</a>.
      */
     @Before
-    public void setUp() {
+    public void setUp() throws DataCapturingException {
         mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        oocut = new MeasurementPersistence(context, mockResolver, AUTHORITY);
+        this.capturingBehaviour = new CapturingPersistenceBehaviour();
+        oocut = new PersistenceLayer(context, mockResolver, AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
     }
@@ -101,14 +110,14 @@ public class CapturedDataWriterTest {
      */
     @After
     public void tearDown() {
-        oocut.clear();
+        clear(context, mockResolver);
     }
 
     /**
      * Tests whether creating and closing a measurement works as expected.
      */
     @Test
-    public void testCreateNewMeasurement() throws NoSuchMeasurementException {
+    public void testCreateNewMeasurement() throws NoSuchMeasurementException, DataCapturingException {
 
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -119,7 +128,7 @@ public class CapturedDataWriterTest {
         Log.d(TAG, identifierString);
         Cursor result = null;
         try {
-            result = mockResolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+            result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
                     new String[] {identifierString}, null);
             if (result == null) {
                 throw new IllegalStateException(
@@ -145,12 +154,12 @@ public class CapturedDataWriterTest {
                 measurement.getIdentifier());
 
         // Finish the measurement
-        oocut.updateRecentMeasurement(FINISHED);
+        capturingBehaviour.updateRecentMeasurement(FINISHED);
 
         // Load the finished measurement
         Cursor finishingResult = null;
         try {
-            finishingResult = mockResolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+            finishingResult = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
                     new String[] {identifierString}, null);
             if (finishingResult == null) {
                 throw new IllegalStateException(
@@ -172,7 +181,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether data is stored correctly via the <code>MeasurementPersistence</code>.
+     * Tests whether data is stored correctly via the <code>PersistenceLayer</code>.
      */
     @Test
     public void testStoreData() throws FileCorruptedException {
@@ -193,7 +202,7 @@ public class CapturedDataWriterTest {
             }
         };
 
-        oocut.storeData(testData(), measurement.getIdentifier(), callback);
+        capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
         // Store PointMetaData
         oocut.storePointMetaData(new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),
@@ -208,12 +217,12 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
 
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
 
         // Check if the captured data was persisted
         Cursor geoLocationsCursor = null;
         try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null, null, null, null);
+            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
             List<Point3d> accelerations = Point3dFile.loadFile(context, measurement.getIdentifier(),
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).deserialize(3);
             List<Point3d> rotations = Point3dFile.loadFile(context, measurement.getIdentifier(),
@@ -258,8 +267,8 @@ public class CapturedDataWriterTest {
             }
         };
 
-        oocut.storeData(testData(), measurement.getIdentifier(), finishedCallback);
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
+        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
 
         lock.lock();
         try {
@@ -271,17 +280,17 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedRows = oocut.clear();
+        int removedRows = clear(context, mockResolver);
         assertThat(removedRows, is(equalTo(12)));
 
         // make sure nothing is left in the database
         Cursor geoLocationsCursor = null;
         Cursor measurementsCursor = null;
         try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
+            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
-            measurementsCursor = mockResolver.query(getMeasurementUri(), null, null, null, null);
+            measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
@@ -305,14 +314,14 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading {@link Measurement}s from the data storage via <code>MeasurementPersistence</code> is
+     * Tests whether loading {@link Measurement}s from the data storage via <code>PersistenceLayer</code> is
      * working as expected.
      *
      * @throws NoSuchMeasurementException If the test measurement was null for some reason. This should only happen if
      *             there was a very serious database error.
      */
     @Test
-    public void testLoadMeasurements() throws NoSuchMeasurementException {
+    public void testLoadMeasurements() throws NoSuchMeasurementException, DataCapturingException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
@@ -331,7 +340,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testDeleteMeasurement() throws NoSuchMeasurementException {
+    public void testDeleteMeasurement() throws NoSuchMeasurementException, DataCapturingException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
@@ -348,7 +357,7 @@ public class CapturedDataWriterTest {
                 }
             }
         };
-        oocut.storeData(testData(), measurement.getIdentifier(), callback);
+        capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
         lock.lock();
         try {
@@ -359,14 +368,14 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
 
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
         oocut.delete(measurement);
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
 
         Cursor geoLocationsCursor = null;
         try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(), null,
+            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
@@ -382,14 +391,14 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link MeasurementPersistence} object.
+     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
      *
      * @throws NoSuchMeasurementException if the created measurement is null for some unexpected reason.
      */
     @Test
-    public void testLoadTrack() throws NoSuchMeasurementException {
+    public void testLoadTrack() throws NoSuchMeasurementException, DataCapturingException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
-        oocut.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement loadedMeasurement : measurements) {
@@ -411,9 +420,9 @@ public class CapturedDataWriterTest {
                     }
 
                     if (oocut.hasMeasurement(MeasurementStatus.OPEN)) {
-                        oocut.updateRecentMeasurement(FINISHED);
+                        capturingBehaviour.updateRecentMeasurement(FINISHED);
                     }
-                } catch (final NoSuchMeasurementException e) {
+                } catch (final NoSuchMeasurementException | DataCapturingException e) {
                     // FIXME: why do we just silently ignore the exception? I would expect a check that the right
                     // exception is thrown
                     e.printStackTrace();

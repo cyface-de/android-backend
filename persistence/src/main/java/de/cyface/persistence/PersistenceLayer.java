@@ -1,7 +1,6 @@
-package de.cyface.datacapturing.persistence;
+package de.cyface.persistence;
 
 import static android.provider.BaseColumns._ID;
-import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_ACCELERATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
@@ -11,7 +10,6 @@ import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
 import java.io.ByteArrayInputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
@@ -19,9 +17,6 @@ import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.concurrent.ExecutorService;
-import java.util.concurrent.Executors;
-import java.util.concurrent.TimeUnit;
 import java.util.zip.Deflater;
 
 import android.content.ContentResolver;
@@ -31,15 +26,6 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import de.cyface.datacapturing.Constants;
-import de.cyface.datacapturing.DataCapturingListener;
-import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.FileUtils;
-import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.IdentifierTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -53,15 +39,15 @@ import de.cyface.utils.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
- * This class wraps the Cyface Android persistence API as required by the {@link DataCapturingListener} and its delegate
+ * This class wraps the Cyface Android persistence API as required by the {@code DataCapturingListener} and its delegate
  * objects.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.0
+ * @version 8.0.0
  * @since 2.0.0
  */
-public class MeasurementPersistence {
+public class PersistenceLayer {
 
     /**
      * The {@link Context} required to locate the app's internal storage directory.
@@ -72,46 +58,32 @@ public class MeasurementPersistence {
      */
     private final ContentResolver resolver;
     /**
-     * A threadPool to execute operations on their own background threads.
-     */
-    private ExecutorService threadPool;
-    /**
      * The authority used to identify the Android content provider to persist data to or load it from.
      */
     private final String authority;
     /**
-     * Caching the current measurement identifier, so we do not need to ask the database each time we require the
-     * current measurement identifier. This is <code>null</code> if there is no running measurement or if we lost the
-     * cache due to Android stopping the application hosting the data capturing service.
+     * The {@link PersistenceBehaviour} defines how the {@code Persistence} layer is works. We need this behaviour to
+     * differentiate if the {@link PersistenceLayer} is used for live capturing and or to load existing data.
      */
-    private Long currentMeasurementIdentifier;
-    /**
-     * The {@link Point3dFile} to write the acceleration points to.
-     */
-    private Point3dFile accelerationsFile;
-    /**
-     * The {@link Point3dFile} to write the rotation points to.
-     */
-    private Point3dFile rotationsFile;
-    /**
-     * The {@link Point3dFile} to write the direction points to.
-     */
-    private Point3dFile directionsFile;
+    private PersistenceBehaviour persistenceBehaviour;
 
     /**
-     * Creates a new completely initialized <code>MeasurementPersistence</code>.
+     * Creates a new completely initialized <code>PersistenceLayer</code>.
      *
      * @param context The {@link Context} required to locate the app's internal storage directory.
      * @param resolver {@link ContentResolver} that provides access to the {@link MeasuringPointsContentProvider}. This
      *            is required as an explicit parameter to allow test to inject a mocked {@code ContentResolver}.
      * @param authority The authority used to identify the Android content provider.
+     * @param persistenceBehaviour A {@link PersistenceBehaviour} which tells if this {@link PersistenceLayer} is used
+     *            to capture live data.
      */
-    public MeasurementPersistence(@NonNull final Context context, @NonNull final ContentResolver resolver,
-            @NonNull final String authority) {
+    public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            @NonNull final String authority, @NonNull final PersistenceBehaviour persistenceBehaviour) {
         this.context = context;
         this.resolver = resolver;
-        this.threadPool = Executors.newCachedThreadPool();
         this.authority = authority;
+        this.persistenceBehaviour = persistenceBehaviour;
+        persistenceBehaviour.onStart(this);
     }
 
     /**
@@ -131,100 +103,10 @@ public class MeasurementPersistence {
             Validate.notNull("New measurement could not be created!", resultUri);
             Validate.notNull(resultUri.getLastPathSegment());
 
-            currentMeasurementIdentifier = Long.valueOf(resultUri.getLastPathSegment());
-            return new Measurement(currentMeasurementIdentifier);
+            final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
+            persistenceBehaviour.onNewMeasurement(measurementId);
+            return new Measurement(measurementId);
         }
-    }
-
-    /**
-     * Update the {@link MeasurementStatus} of the currently active {@link Measurement}.
-     * (!) Attention: this method does not check the previous state and if the life-cycle change is valid. //TODO: ok?
-     *
-     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
-     * @throws IllegalArgumentException When the {@param newStatus} was none of the supported:
-     *             {@link MeasurementStatus#FINISHED}, {@link MeasurementStatus#PAUSED} or
-     *             {@link MeasurementStatus#OPEN}.
-     */
-    public void updateRecentMeasurement(@NonNull final MeasurementStatus newStatus) throws NoSuchMeasurementException {
-        Validate.isTrue(
-                newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
-
-        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
-        switch (newStatus) {
-            case OPEN:
-                Validate.isTrue(loadMeasurementStatus(currentlyCapturedMeasurementId) == MeasurementStatus.PAUSED);
-                break;
-            case PAUSED:
-                Validate.isTrue(loadMeasurementStatus(currentlyCapturedMeasurementId) == MeasurementStatus.OPEN);
-                break;
-            case FINISHED:
-                Validate.isTrue(loadMeasurementStatus(currentlyCapturedMeasurementId) == MeasurementStatus.OPEN
-                        || loadMeasurementStatus(currentlyCapturedMeasurementId) == MeasurementStatus.PAUSED);
-                break;
-            default:
-                throw new IllegalArgumentException("No supported newState: " + newStatus);
-        }
-
-        Log.d(TAG, "Updating recent measurement to: " + newStatus);
-        synchronized (this) {
-            try {
-                setStatus(currentlyCapturedMeasurementId, newStatus);
-            } finally {
-                if (newStatus == FINISHED) {
-                    currentMeasurementIdentifier = null;
-                }
-            }
-        }
-    }
-
-    /**
-     * Saves the provided {@link CapturedData} to the local persistent storage of the device.
-     *
-     * @param data The data to store.
-     * @param measurementIdentifier The id of the {@link Measurement} to store the data to.
-     */
-    public void storeData(final @NonNull CapturedData data, final long measurementIdentifier,
-            final @NonNull WritingDataCompletedCallback callback) {
-        if (threadPool.isShutdown()) {
-            return;
-        }
-        if (accelerationsFile == null) {
-            accelerationsFile = new Point3dFile(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
-                    Point3dFile.ACCELERATIONS_FILE_EXTENSION);
-        }
-        if (rotationsFile == null) {
-            rotationsFile = new Point3dFile(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
-                    Point3dFile.ROTATION_FILE_EXTENSION);
-        }
-        if (directionsFile == null) {
-            directionsFile = new Point3dFile(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
-                    Point3dFile.DIRECTION_FILE_EXTENSION);
-        }
-
-        final CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
-                callback);
-
-        threadPool.submit(writer);
-    }
-
-    /**
-     * Stores the provided geo location under the currently active captured measurement.
-     *
-     * @param location The geo location to store.
-     * @param measurementIdentifier The identifier of the measurement to store the data to.
-     */
-    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
-
-        final ContentValues values = new ContentValues();
-        // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
-        values.put(GeoLocationsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
-        values.put(GeoLocationsTable.COLUMN_GPS_TIME, location.getTimestamp());
-        values.put(GeoLocationsTable.COLUMN_LAT, location.getLat());
-        values.put(GeoLocationsTable.COLUMN_LON, location.getLon());
-        values.put(GeoLocationsTable.COLUMN_SPEED, location.getSpeed());
-        values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-
-        resolver.insert(getGeoLocationsUri(), values);
     }
 
     /**
@@ -236,7 +118,7 @@ public class MeasurementPersistence {
      * @throws DataCapturingException If content provider was inaccessible.
      */
     public boolean hasMeasurement(@NonNull MeasurementStatus status) throws DataCapturingException {
-        Log.d(TAG, "Checking if app has an " + status + " measurement.");
+        Log.d(Constants.TAG, "Checking if app has an " + status + " measurement.");
 
         Cursor cursor = null;
         try {
@@ -246,7 +128,7 @@ public class MeasurementPersistence {
                 Validate.softCatchNullCursor(cursor);
 
                 final boolean hasMeasurement = cursor.getCount() > 0;
-                Log.d(TAG, hasMeasurement ? "At least one measurement is " + status + "."
+                Log.d(Constants.TAG, hasMeasurement ? "At least one measurement is " + status + "."
                         : "No measurement is " + status + ".");
                 return hasMeasurement;
             }
@@ -255,28 +137,6 @@ public class MeasurementPersistence {
                 cursor.close();
             }
         }
-    }
-
-    /**
-     * Loads the currently captured measurement and refreshes the {@link #currentMeasurementIdentifier} reference. This
-     * method should only be called if capturing is active. It throws an error otherwise.
-     *
-     * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
-     *             use {@link #hasMeasurement(MeasurementStatus)} to check whether there is an actual
-     *             {@link MeasurementStatus#OPEN} measurement.
-     */
-    private void refreshIdentifierOfCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
-        Log.d(TAG, "Trying to load currently captured measurement from persistence layer!");
-
-        final List<Measurement> openMeasurements = loadMeasurements(MeasurementStatus.OPEN);
-        if (openMeasurements.size() == 0) {
-            throw new NoSuchMeasurementException("No open measurement found!");
-        }
-        if (openMeasurements.size() > 1) {
-            throw new IllegalStateException("More than one measurement is open.");
-        }
-        currentMeasurementIdentifier = openMeasurements.get(0).getIdentifier();
-        Log.d(TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
     }
 
     /**
@@ -405,7 +265,8 @@ public class MeasurementPersistence {
      *
      * TODO: test this on weak devices for large measurements
      *
-     * FIXME: this is a duplicate to MeasurementSerialized.serialize(loader, ...)
+     * FIXME: this is a duplicate to MeasurementSerialized.serialize(loader, ...) - why is this not still in the
+     * MeasurementSerializer?
      *
      * @param measurement The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
@@ -423,29 +284,30 @@ public class MeasurementPersistence {
 
         // FIXME
         throw new IllegalStateException("fixme");
-        final byte[] geoLocationData = geoLocations.size() > 0
-                ? FileUtils.loadBytes(GeoLocationsFile.loadFile(measurement).getFile())
-                : new byte[] {};
-        final byte[] accelerationData = pointMetaData.getAccelerationPointCounter() > 0
-                ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
-                        Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile())
-                : new byte[] {};
-        final byte[] rotationData = pointMetaData.getRotationPointCounter() > 0
-                ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
-                        Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile())
-                : new byte[] {};
-        final byte[] directionData = pointMetaData.getDirectionPointCounter() > 0
-                ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
-                        Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile())
-                : new byte[] {};
-
-        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-        outputStream.write(transferFileHeader);
-        outputStream.write(geoLocationData);
-        outputStream.write(accelerationData);
-        outputStream.write(rotationData);
-        outputStream.write(directionData);
-        return outputStream.toByteArray();
+        /*
+         * final byte[] geoLocationData = geoLocations.size() > 0
+         * ? FileUtils.loadBytes(GeoLocationsFile.loadFile(measurement).getFile())
+         * : new byte[] {};
+         * final byte[] accelerationData = pointMetaData.getAccelerationPointCounter() > 0
+         * ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
+         * Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile())
+         * : new byte[] {};
+         * final byte[] rotationData = pointMetaData.getRotationPointCounter() > 0
+         * ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
+         * Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile())
+         * : new byte[] {};
+         * final byte[] directionData = pointMetaData.getDirectionPointCounter() > 0
+         * ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
+         * Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile())
+         * : new byte[] {};
+         * final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+         * outputStream.write(transferFileHeader);
+         * outputStream.write(geoLocationData);
+         * outputStream.write(accelerationData);
+         * outputStream.write(rotationData);
+         * outputStream.write(directionData);
+         * return outputStream.toByteArray();
+         */
     }
 
     /**
@@ -453,13 +315,16 @@ public class MeasurementPersistence {
      * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
      * As compression the standard Android GZIP compression is used
      *
+     * FIXME: this is a duplicate to MeasurementSerialized.serialize(loader, ...) - why is this not still in the
+     * MeasurementSerializer?
+     *
      * @param measurement The identifier of the measurement to load.
      * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
      * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
      * @throws IOException If the byte array could not be assembled.
      */
     public InputStream loadSerializedCompressed(final Measurement measurement)
-            throws FileCorruptedException, IOException {
+            throws FileCorruptedException, IOException, NoSuchMeasurementException, DataCapturingException {
         final byte[] data = loadSerialized(measurement);
 
         final Deflater compressor = new Deflater();
@@ -468,7 +333,7 @@ public class MeasurementPersistence {
 
         final byte[] output = new byte[data.length];
         final int lengthOfCompressedData = compressor.deflate(output);
-        Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
+        Log.d(Constants.TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
         return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
     }
 
@@ -519,7 +384,7 @@ public class MeasurementPersistence {
         try {
             synchronized (this) {
                 // Try to get device id from database
-                deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(authority),
+                deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(),
                         new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
                 Validate.softCatchNullCursor(deviceIdentifierQueryCursor);
                 if (deviceIdentifierQueryCursor.getCount() > 1) {
@@ -537,7 +402,7 @@ public class MeasurementPersistence {
                 final String deviceId = UUID.randomUUID().toString();
                 final ContentValues values = new ContentValues();
                 values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
-                final Uri resultUri = resolver.insert(getIdentifierUri(authority), values);
+                final Uri resultUri = resolver.insert(getIdentifierUri(), values);
                 Validate.notNull("New device id could not be created!", resultUri);
                 Log.d(Constants.TAG, "Created new device id " + deviceId);
                 return deviceId;
@@ -638,65 +503,30 @@ public class MeasurementPersistence {
     }
 
     /**
-     * Loads the current {@link Measurement} from the internal cache if possible, or from the persistence layer if an
-     * {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
-     * {@code Measurement} exists.
-     *
-     * @return The currently captured {@code Measurement}
-     * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
-     *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
-     *             {@code Measurement}
-     */
-    public @NonNull Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
-        synchronized (this) {
-            if (currentMeasurementIdentifier == null
-                    && (hasMeasurement(MeasurementStatus.OPEN) || hasMeasurement(MeasurementStatus.PAUSED))) {
-                refreshIdentifierOfCurrentlyCapturedMeasurement();
-                Validate.isTrue(currentMeasurementIdentifier != null);
-            }
-
-            if (currentMeasurementIdentifier == null) {
-                throw new NoSuchMeasurementException(
-                        "Trying to load measurement identifier while no measurement was open or paused!");
-            }
-
-            return new Measurement(currentMeasurementIdentifier);
-        }
-    }
-
-    /**
      * This method cleans up when the persistence layer is no longer needed by the caller.
      */
     public void shutdown() {
-        if (threadPool != null) {
-            try {
-                threadPool.shutdown();
-                threadPool.awaitTermination(1, TimeUnit.SECONDS);
-                threadPool.shutdownNow();
-            } catch (InterruptedException e) {
-                throw new IllegalStateException(e);
-            }
-        }
+        persistenceBehaviour.shutdown();
     }
 
     /**
      * @return The content provider {@link Uri} for the {@link MeasurementTable}.
      */
-    private Uri getMeasurementUri() {
+    public Uri getMeasurementUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build();
     }
 
     /**
      * @return The content provider {@link Uri} for the {@link GeoLocationsTable}.
      */
-    private Uri getGeoLocationsUri() {
+    public Uri getGeoLocationsUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
     }
 
     /**
      * @return The content provider URI for the {@link IdentifierTable}
      */
-    private static Uri getIdentifierUri(final String authority) {
+    public Uri getIdentifierUri() {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
     }
 
@@ -761,7 +591,7 @@ public class MeasurementPersistence {
      * @throws NoSuchMeasurementException if there was no measurement with the id {@param measurementIdentifier}.
      * @throws DataCapturingException If accessing the content provider fails.
      */
-    private void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
+    public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
             throws NoSuchMeasurementException, DataCapturingException {
         final ContentValues statusValue = new ContentValues();
         statusValue.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
@@ -789,6 +619,18 @@ public class MeasurementPersistence {
                 throw new IllegalArgumentException("Not supported");
         }
 
-        Log.d(TAG, "Set measurement " + currentMeasurementIdentifier + " to " + newStatus);
+        Log.d(Constants.TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
+    }
+
+    public Context getContext() {
+        return context;
+    }
+
+    public ContentResolver getResolver() {
+        return resolver;
+    }
+
+    public PersistenceBehaviour getPersistenceBehaviour() {
+        return persistenceBehaviour;
     }
 }

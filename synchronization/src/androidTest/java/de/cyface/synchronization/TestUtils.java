@@ -3,6 +3,9 @@ package de.cyface.synchronization;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
+import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
+import static de.cyface.testutils.SharedTestUtils.getIdentifierUri;
+import static de.cyface.testutils.SharedTestUtils.getMeasurementUri;
 import static de.cyface.testutils.SharedTestUtils.insertTestPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -17,13 +20,12 @@ import java.util.List;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
-import android.net.Uri;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.IdentifierTable;
-import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -32,6 +34,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.testutils.SharedTestUtils;
+import de.cyface.utils.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
@@ -42,7 +45,7 @@ import de.cyface.utils.Validate;
  * @version 2.3.0
  * @since 2.1.0
  */
-final class TestUtils {
+public final class TestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */
@@ -69,18 +72,6 @@ final class TestUtils {
      */
     final static String TEST_API_URL = "https://s1.cyface.de:9090/api/v2";
 
-    static Uri getMeasurementUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
-    }
-
-    static Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GeoLocationsTable.URI_PATH).build();
-    }
-
-    static Uri getIdentifierUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(IdentifierTable.URI_PATH).build();
-    }
-
     /**
      * Inserts a test {@link GeoLocation} into the database content provider accessed by the test.
      *
@@ -91,8 +82,9 @@ final class TestUtils {
      * @param speed The fake test speed of the {@code GeoLocation}.
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
-    static void insertTestGeoLocation(final ContentResolver resolver, final long measurementIdentifier,
-            final long timestamp, final double lat, final double lon, final double speed, final int accuracy) {
+    static void insertTestGeoLocation(final ContentResolver resolver, final String authority,
+            final long measurementIdentifier, final long timestamp, final double lat, final double lon,
+            final double speed, final int accuracy) {
 
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
@@ -101,7 +93,7 @@ final class TestUtils {
         values.put(GeoLocationsTable.COLUMN_LON, lon);
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(GeoLocationsTable.COLUMN_SPEED, speed);
-        resolver.insert(getGeoLocationsUri(), values);
+        resolver.insert(getGeoLocationsUri(authority), values);
     }
 
     // FIXME: the following methods insertTestMeasurement and insertSampleMeasurement where in the declined PR in
@@ -110,7 +102,7 @@ final class TestUtils {
     /**
      * Inserts a test {@code Measurement} into the database content provider accessed by the test. To add data to the
      * {@code Measurement} use some or all of
-     * {@link #insertTestGeoLocation(ContentResolver, long, long, double, double, double, int)} ,
+     * {@link #insertTestGeoLocation(ContentResolver, String, long, long, double, double, double, int)}
      * {@link SharedTestUtils#insertTestAcceleration(Context, long, long, double, double, double)},
      * {@link SharedTestUtils#insertTestRotation(Context, long, long, double, double, double)},
      * {@link SharedTestUtils#insertTestDirection(Context, long, long, double, double, double)}
@@ -119,8 +111,8 @@ final class TestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    public static Measurement insertTestMeasurement(final @NonNull MeasurementPersistence persistence,
-            final @NonNull Vehicle vehicle) {
+    public static Measurement insertTestMeasurement(final @NonNull PersistenceLayer persistence,
+            final @NonNull Vehicle vehicle) throws DataCapturingException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
@@ -128,12 +120,13 @@ final class TestUtils {
         return persistence.newMeasurement(vehicle);
     }
 
-    public static Measurement insertSampleMeasurement(@NonNull final Context context, final MeasurementStatus status,
-            final MeasurementPersistence persistence) throws NoSuchMeasurementException {
+    public static Measurement insertSampleMeasurement(@NonNull final Context context, final String authority,
+            final MeasurementStatus status, final PersistenceLayer persistence)
+            throws NoSuchMeasurementException, DataCapturingException {
 
         final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(context.getContentResolver(), measurement.getIdentifier(), 1503055141000L,
+        insertTestGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
                 49.9304133333333, 8.82831833333333, 0.0, 940);
         insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                 Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
@@ -147,12 +140,14 @@ final class TestUtils {
             final PointMetaData pointMetaData = new PointMetaData(1, 1, 1,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             persistence.storePointMetaData(pointMetaData, measurementIdentifier);
-            // Finish measurement
-            persistence.updateMeasurement(measurementIdentifier, FINISHED);
+            // Finish measurement - this was the deprecated finishMeasurement() before CapturingPersistenceBehaviour
+            // thus, it will now not update the currentMeasurementIdentifier anymore which should not have been
+            // necessary anyway FIXME: ensure that this method is not called from somewhere where capturing is expected
+            persistence.setStatus(measurementIdentifier, FINISHED);
         }
 
         if (status == SYNCED) {
-            persistence.markAsSynchronized(measurementIdentifier);
+            persistence.markAsSynchronized(measurement);
         }
 
         // Assert that data is in the database
@@ -180,6 +175,7 @@ final class TestUtils {
     /**
      * Removes everything from the local persistent data storage to allow reproducible test results.
      * (!) This removes both the data from file persistence and the database which will also reset the device id.
+     * This is not part of the persistence layer as we want to avoid that this is used outside the test code.
      *
      * @param context The {@link Context} required to access the file persistence layer
      * @param resolver The {@link ContentResolver} required to access the database
@@ -187,7 +183,8 @@ final class TestUtils {
      *         {@link Measurement}s and {@link GeoLocation}s and the {@link IdentifierTable} (i.e. device id). The later
      *         includes the {@link Point3dFile}s.
      */
-    static int clear(@NonNull final Context context, @NonNull final ContentResolver resolver) {
+    public static int clear(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            final String authority) {
 
         // Remove {@code Point3dFile}s and their parent folders
         int removedFiles = 0;
@@ -215,9 +212,9 @@ final class TestUtils {
 
         // Remove database entries
         int removedDatabaseRows = 0;
-        removedDatabaseRows += resolver.delete(getGeoLocationsUri(), null, null);
-        removedDatabaseRows += resolver.delete(getMeasurementUri(), null, null);
-        removedDatabaseRows += resolver.delete(getIdentifierUri(), null, null);
-        return removedDatabaseRows;
+        removedDatabaseRows += resolver.delete(getGeoLocationsUri(authority), null, null);
+        removedDatabaseRows += resolver.delete(getMeasurementUri(authority), null, null);
+        removedDatabaseRows += resolver.delete(getIdentifierUri(authority), null, null);
+        return removedFiles + removedDatabaseRows;
     }
 }

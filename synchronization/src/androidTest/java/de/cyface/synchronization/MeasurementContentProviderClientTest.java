@@ -1,20 +1,21 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.getAccelerationsUri;
-import static de.cyface.synchronization.TestUtils.getDirectionsUri;
-import static de.cyface.synchronization.TestUtils.getGeoLocationsUri;
-import static de.cyface.synchronization.TestUtils.getMeasurementUri;
-import static de.cyface.synchronization.TestUtils.getRotationsUri;
+import static de.cyface.synchronization.TestUtils.insertSampleMeasurement;
+import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
+import static de.cyface.testutils.SharedTestUtils.getMeasurementUri;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
+import java.util.List;
 
-import de.cyface.persistence.MeasurementContentProviderClient;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -26,20 +27,26 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.Build;
 import android.os.RemoteException;
-import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.filters.MediumTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
-
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.Validate;
 
 /**
  * Tests that instances of the <code>MeasurementContentProviderClient</code> do work correctly.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -79,11 +86,10 @@ public class MeasurementContentProviderClientTest {
 
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
-            measurementValues.put(MeasurementTable.COLUMN_FINISHED, 1);
-            Uri result = client.insert(getMeasurementUri(), measurementValues);
-            if (result == null) {
-                throw new IllegalStateException("Measurement insertion failed!");
-            }
+            measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
+            Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
+            Validate.notNull("Measurement insertion failed!", result);
+            Validate.notNull(result.getLastPathSegment());
             final long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
             ContentValues geoLocationValues = new ContentValues();
@@ -91,7 +97,6 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_IS_SYNCED, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1);
             geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
@@ -104,7 +109,7 @@ public class MeasurementContentProviderClientTest {
             for (int startIndex = 0; startIndex < geoLocationValuesArray.length; startIndex += MAX_SIMULTANEOUS_OPERATIONS) {
                 int endIndex = Math.min(geoLocationValuesArray.length, startIndex + MAX_SIMULTANEOUS_OPERATIONS);
                 // BulkInsert is about 80 times faster than insertBatch
-                client.bulkInsert(getGeoLocationsUri(),
+                client.bulkInsert(getGeoLocationsUri(AUTHORITY),
                         Arrays.copyOfRange(geoLocationValuesArray, startIndex, endIndex));
                 if (startIndex % MAX_SIMULTANEOUS_OPERATIONS * 100 == 0)
                     Log.i(TAG, "Inserting " + startIndex + " entries took: " + (System.currentTimeMillis() - startTime)
@@ -149,12 +154,7 @@ public class MeasurementContentProviderClientTest {
     public void test() throws RemoteException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentProviderClient client = null;
-        Cursor loadedAccelerations = null;
-        Cursor loadedRotations = null;
-        Cursor loadedDirections = null;
-        Cursor loadedEmptyAccelerations = null;
-        Cursor loadedEmptyRotations = null;
-        Cursor loadedEmptyDirections = null;
+        // FIXME: here were the sensor points, too, but they were removed as they are not loaded via content provider
 
         try {
             client = context.getContentResolver().acquireContentProviderClient(AUTHORITY);
@@ -165,11 +165,10 @@ public class MeasurementContentProviderClientTest {
 
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
-            measurementValues.put(MeasurementTable.COLUMN_FINISHED, 1);
-            Uri result = client.insert(getMeasurementUri(), measurementValues);
-            if (result == null) {
-                throw new IllegalStateException("Measurement insertion failed!");
-            }
+            measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
+            Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
+            Validate.notNull("Measurement insertion failed!", result);
+            Validate.notNull(result.getLastPathSegment());
             long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
             ContentValues geoLocationValues = new ContentValues();
@@ -177,94 +176,46 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_IS_SYNCED, 0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1L);
             geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
-            client.insert(getGeoLocationsUri(), geoLocationValues);
-            client.insert(getGeoLocationsUri(), geoLocationValues);
-
-            ContentValues samplePointValues = new ContentValues();
-            samplePointValues.put(AccelerationPointTable.COLUMN_AX, 1.0);
-            samplePointValues.put(AccelerationPointTable.COLUMN_AY, 1.0);
-            samplePointValues.put(AccelerationPointTable.COLUMN_AZ, 1.0);
-            samplePointValues.put(AccelerationPointTable.COLUMN_TIME, 1L);
-            samplePointValues.put(AccelerationPointTable.COLUMN_IS_SYNCED, 0);
-            samplePointValues.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            client.insert(getAccelerationsUri(), samplePointValues);
-            client.insert(getAccelerationsUri(), samplePointValues);
-            client.insert(getAccelerationsUri(), samplePointValues);
-
-            ContentValues rotationPointValues = new ContentValues();
-            rotationPointValues.put(RotationPointTable.COLUMN_RX, 1.0);
-            rotationPointValues.put(RotationPointTable.COLUMN_RY, 1.0);
-            rotationPointValues.put(RotationPointTable.COLUMN_RZ, 1.0);
-            rotationPointValues.put(RotationPointTable.COLUMN_TIME, 1L);
-            rotationPointValues.put(RotationPointTable.COLUMN_IS_SYNCED, 0);
-            rotationPointValues.put(RotationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            client.insert(getRotationsUri(), rotationPointValues);
-            client.insert(getRotationsUri(), rotationPointValues);
-            client.insert(getRotationsUri(), rotationPointValues);
-
-            ContentValues directionPointValues = new ContentValues();
-            directionPointValues.put(DirectionPointTable.COLUMN_MX, 1.0);
-            directionPointValues.put(DirectionPointTable.COLUMN_MY, 1.0);
-            directionPointValues.put(DirectionPointTable.COLUMN_MZ, 1.0);
-            directionPointValues.put(DirectionPointTable.COLUMN_TIME, 1L);
-            directionPointValues.put(DirectionPointTable.COLUMN_IS_SYNCED, 0);
-            directionPointValues.put(DirectionPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            client.insert(getDirectionsUri(), directionPointValues);
-            client.insert(getDirectionsUri(), directionPointValues);
-            client.insert(getDirectionsUri(), directionPointValues);
+            client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);
+            client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);
 
             MeasurementContentProviderClient oocut = new MeasurementContentProviderClient(measurementIdentifier, client,
                     AUTHORITY);
 
-            AccelerationsSerializer accelerationsSerializer = new AccelerationsSerializer();
-            loadedAccelerations = oocut.load3DPoint(accelerationsSerializer);
-            RotationsSerializer rotationsSerializer = new RotationsSerializer();
-            loadedRotations = oocut.load3DPoint(rotationsSerializer);
-            DirectionsSerializer directionsSerializer = new DirectionsSerializer();
-            loadedDirections = oocut.load3DPoint(directionsSerializer);
-
-            assertThat(loadedAccelerations.getCount(), is(equalTo(3)));
-            assertThat(loadedRotations.getCount(), is(equalTo(3)));
-            assertThat(loadedDirections.getCount(), is(equalTo(3)));
-
+            // FIXME: here was the method tested which marks the measurement as synced and deleted the point3d data
             assertThat(oocut.cleanMeasurement(), is(equalTo(9)));
-
-            loadedEmptyAccelerations = oocut.load3DPoint(accelerationsSerializer);
-            loadedEmptyRotations = oocut.load3DPoint(rotationsSerializer);
-            loadedEmptyDirections = oocut.load3DPoint(directionsSerializer);
-
-            assertThat(loadedEmptyAccelerations.getCount(), is(equalTo(0)));
-            assertThat(loadedEmptyRotations.getCount(), is(equalTo(0)));
-            assertThat(loadedEmptyDirections.getCount(), is(equalTo(0)));
         } finally {
             if (client != null) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                    client.release();
-                } else {
-                    client.close();
-                }
-            }
-            if (loadedAccelerations != null) {
-                loadedAccelerations.close();
-            }
-            if (loadedRotations != null) {
-                loadedRotations.close();
-            }
-            if (loadedDirections != null) {
-                loadedDirections.close();
-            }
-            if (loadedEmptyAccelerations != null) {
-                loadedEmptyAccelerations.close();
-            }
-            if (loadedEmptyRotations != null) {
-                loadedEmptyRotations.close();
-            }
-            if (loadedEmptyDirections != null) {
-                loadedEmptyDirections.close();
+                client.close();
             }
         }
+    }
+
+    /**
+     * Tests whether the sync adapter loads the correct measurements for synchronization.
+     *
+     */
+    @Test
+    public void testGetSyncableMeasurement() throws NoSuchMeasurementException, DataCapturingException {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        PersistenceLayer persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+                new DefaultPersistenceBehaviour());
+
+        // Create a not finished measurement
+        insertSampleMeasurement(context, AUTHORITY, OPEN, persistenceLayer);
+
+        // Create a not synced finished measurement
+        Measurement finishedMeasurement = insertSampleMeasurement(context, AUTHORITY, FINISHED, persistenceLayer);
+
+        // Create a synchronized measurement
+        insertSampleMeasurement(context, AUTHORITY, SYNCED, persistenceLayer);
+
+        final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
+
+        assertThat(loadedMeasurements.size(), is(1));
+        assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
+
     }
 }

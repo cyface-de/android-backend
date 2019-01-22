@@ -16,6 +16,7 @@ final class TestUtils {
      * The account type used during testing. This must be the same as in the authenticator configuration.
      */
     public final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
+
     /**
      * Private constructor to avoid instantiation of utility class.
      */

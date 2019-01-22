@@ -15,6 +15,7 @@ import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
 
+import de.cyface.persistence.PersistenceLayer;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -25,7 +26,6 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.persistence.MeasurementPersistence;
 import de.cyface.persistence.model.Point3d;
 
 /**
@@ -54,7 +54,7 @@ public class DataCapturingLocalTest {
      * Mocking the persistence layer to avoid calling Android system functions.
      */
     @Mock
-    MeasurementPersistence mockPersistence;
+    PersistenceLayer mockPersistence;
 
     @Before
     public void setUp() throws NoSuchFieldException, IllegalAccessException {

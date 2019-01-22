@@ -38,9 +38,12 @@ import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -56,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.3.0
+ * @version 4.4.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -90,7 +93,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
      */
-    private MeasurementPersistence persistenceLayer;
+    private PersistenceLayer persistenceLayer;
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
@@ -107,6 +110,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Meta information required for deserialization of {@link Point3dFile}s.
      */
     private PointMetaData pointMetaData;
+    /**
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     */
+    private CapturingPersistenceBehaviour capturingBehaviour;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -236,7 +243,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                             + AUTHORITY_ID);
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-        persistenceLayer = new MeasurementPersistence(this, this.getContentResolver(), authority);
+        this.capturingBehaviour = new CapturingPersistenceBehaviour();
+        persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
 
         // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
         pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
@@ -330,7 +338,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
                     sampleSubList(rotations, i), sampleSubList(directions, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
-            persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
+            capturingBehaviour.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
                 @Override
                 public void writingDataCompleted() {
                     // Nothing to do here!
@@ -358,7 +366,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public void onLocationCaptured(final @NonNull GeoLocation location) {
         Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
+        capturingBehaviour.storeLocation(location, currentMeasurementIdentifier);
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");

@@ -4,7 +4,11 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.content.Context;
+import android.net.Uri;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.IdentifierTable;
+import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -83,12 +87,36 @@ public class SharedTestUtils {
      * @param y A fake test y coordinate of the {@code Point3d}.
      * @param z A fake test z coordinate of the {@code Point3d}.
      */
-    private static void insertTestPoint3d(@NonNull final Context context, final long measurementId,
+    public static void insertTestPoint3d(@NonNull final Context context, final long measurementId,
             @NonNull final String folderName, @NonNull final String fileExtension, final long timestamp, final double x,
             final double y, final double z) {
         final Point3dFile file = new Point3dFile(context, measurementId, folderName, fileExtension);
         final List<Point3d> points = new ArrayList<>();
         points.add(new Point3d((float)x, (float)y, (float)z, timestamp));
         file.append(points);
+    }
+
+    /**
+     * (!) It's important to provide the authority string as parameter because depending on from where you call this
+     * you want to access your own authorities database.
+     */
+    public static Uri getMeasurementUri(@NonNull final String authority) {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build();
+    }
+
+    /**
+     * (!) It's important to provide the authority string as parameter because depending on from where you call this
+     * you want to access your own authorities database.
+     */
+    public static Uri getGeoLocationsUri(@NonNull final String authority) {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
+    }
+
+    /**
+     * (!) It's important to provide the authority string as parameter because depending on from where you call this
+     * you want to access your own authorities database.
+     */
+    public static Uri getIdentifierUri(@NonNull final String authority) {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
     }
 }

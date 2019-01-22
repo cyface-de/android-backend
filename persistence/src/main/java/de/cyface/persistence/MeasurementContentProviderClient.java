@@ -2,6 +2,7 @@ package de.cyface.persistence;
 
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
 import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
+import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
@@ -13,6 +14,7 @@ import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.utils.DataCapturingException;
 import de.cyface.utils.Validate;
 
@@ -56,8 +58,8 @@ public class MeasurementContentProviderClient {
      *            not possible to retrieve this from the <code>client</code> itself. To communicate with the client this
      *            information is required and so needs to be injected explicitly.
      */
-    MeasurementContentProviderClient(final long measurementIdentifier, final @NonNull ContentProviderClient client,
-            final String authority) {
+    public MeasurementContentProviderClient(final long measurementIdentifier,
+            final @NonNull ContentProviderClient client, final String authority) {
         this.measurementIdentifier = measurementIdentifier;
         this.client = client;
         this.authority = authority;
@@ -129,29 +131,23 @@ public class MeasurementContentProviderClient {
     }
 
     /**
-     * Cleans the measurement by deleting all data points (accelerations, rotations and directions). And marking the
-     * measurement
-     * and the gps points as synced. This operation can not be revoked. Your data will be lost afterwards.
+     * Cleans the {@link Measurement} by marking the measurement as {@link MeasurementStatus#SYNCED}. This operation can
+     * not be revoked. Your data will be lost afterwards.
+     * FIXME: is this still used? before, the point 3d data was clear to. this is missing now.
      *
-     * @return The amount of deleted data points.
+     * @return The amount of deleted data points. FIXME
      * @throws RemoteException If the content provider is not accessible.
      */
     int cleanMeasurement() throws RemoteException {
         ContentValues values = new ContentValues();
-        values.put(MeasurementTable.COLUMN_SYNCED, true);
+        values.put(MeasurementTable.COLUMN_STATUS, SYNCED.getDatabaseIdentifier());
         client.update(
                 new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build(),
                 values, BaseColumns._ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
         values.clear();
 
-        // gps points
-        values.put(GeoLocationsTable.COLUMN_IS_SYNCED, true);
-        client.update(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build(),
-                values, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
-
         // data points FIXME: not in the database anymore
+
         int ret = 0;
         return ret;
     }

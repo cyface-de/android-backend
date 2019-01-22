@@ -1,11 +1,8 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.ACCELERATION_POINT_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.DIRECTION_POINT_COUNT;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.GEOLOCATION_COUNT;
-import static de.cyface.datacapturing.BundlesExtrasCodes.ROTATION_POINT_COUNT;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.clear;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -25,17 +22,19 @@ import org.junit.runner.RunWith;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
-import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.datacapturing.PongReceiver;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.utils.DataCapturingException;
 
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
@@ -43,7 +42,7 @@ import de.cyface.datacapturing.persistence.MeasurementPersistence;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.11
+ * @version 2.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -68,11 +67,6 @@ public class BackgroundServiceTest {
     private Messenger fromServiceMessenger;
 
     /**
-     * Required to create a test measurement.
-     */
-    private MeasurementPersistence persistence;
-
-    /**
      * The identifier for the test measurement created in the <code>setUp</code> method.
      */
     private Measurement testMeasurement;
@@ -85,11 +79,15 @@ public class BackgroundServiceTest {
      * Condition waiting for the background service to message this service, that it is running.
      */
     private Condition condition;
+    private Context context;
 
     @Before
-    public void setUp() {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        persistence = new MeasurementPersistence(context, context.getContentResolver(), AUTHORITY);
+    public void setUp() throws DataCapturingException {
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
+        // Required to create a test measurement.
+        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+                capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         persistence.restoreOrCreateDeviceId();
         testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
@@ -99,7 +97,7 @@ public class BackgroundServiceTest {
 
     @After
     public void tearDown() {
-        persistence.clear();
+        clear(context, context.getContentResolver());
         testMeasurement = null;
     }
 
@@ -124,10 +122,6 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
-        startIntent.putExtra(GEOLOCATION_COUNT, 0);
-        startIntent.putExtra(ACCELERATION_POINT_COUNT, 0);
-        startIntent.putExtra(ROTATION_POINT_COUNT, 0);
-        startIntent.putExtra(DIRECTION_POINT_COUNT, 0);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
 
         serviceTestRule.startService(startIntent);
@@ -164,10 +158,6 @@ public class BackgroundServiceTest {
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
-        startIntent.putExtra(GEOLOCATION_COUNT, 0);
-        startIntent.putExtra(ACCELERATION_POINT_COUNT, 0);
-        startIntent.putExtra(ROTATION_POINT_COUNT, 0);
-        startIntent.putExtra(DIRECTION_POINT_COUNT, 0);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);

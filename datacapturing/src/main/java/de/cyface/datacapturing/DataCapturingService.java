@@ -44,10 +44,12 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.persistence.MeasurementPersistence;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -75,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.1.0
+ * @version 9.2.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -108,7 +110,7 @@ public abstract class DataCapturingService {
     /**
      * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
-    private final MeasurementPersistence persistenceLayer;
+    private final PersistenceLayer persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
@@ -155,6 +157,10 @@ public abstract class DataCapturingService {
      * The strategy used to respond to selected events triggered by this service.
      */
     private final EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     */
+    private final CapturingPersistenceBehaviour capturingBehaviour;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -178,7 +184,8 @@ public abstract class DataCapturingService {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
-        this.persistenceLayer = new MeasurementPersistence(context, resolver, authority);
+        this.capturingBehaviour = new CapturingPersistenceBehaviour();
+        this.persistenceLayer = new PersistenceLayer(context, resolver, authority, capturingBehaviour);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -291,7 +298,7 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous stop.");
         try {
             setIsStoppingOrHasStopped(true);
-            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            final Measurement measurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
 
             if (!stopService(measurement, finishedHandler)) {
                 // The background service was not active. This can happen when the measurement was paused.
@@ -307,7 +314,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.updateRecentMeasurement(FINISHED);
+                capturingBehaviour.updateRecentMeasurement(FINISHED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous stop.");
                 lifecycleLock.unlock();
@@ -345,7 +352,7 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous pause.");
         try {
             setIsStoppingOrHasStopped(true);
-            final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            final Measurement currentMeasurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
 
             if (!stopService(currentMeasurement, finishedHandler)) {
                 throw new DataCapturingException("No active service found to be paused.");
@@ -359,7 +366,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.updateRecentMeasurement(PAUSED);
+                capturingBehaviour.updateRecentMeasurement(PAUSED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous pause.");
                 lifecycleLock.unlock();
@@ -405,7 +412,7 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous resume.");
         try {
             if (!checkFineLocationAccess(getContext())) {
-                persistenceLayer.updateRecentMeasurement(FINISHED);
+                capturingBehaviour.updateRecentMeasurement(FINISHED);
                 throw new MissingPermissionException();
             }
 
@@ -416,11 +423,11 @@ public abstract class DataCapturingService {
             }
 
             // Resume paused measurement
-            final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            final Measurement currentMeasurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
             runService(currentMeasurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
-            persistenceLayer.updateRecentMeasurement(OPEN);
+            capturingBehaviour.updateRecentMeasurement(OPEN);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous resume.");
             lifecycleLock.unlock();
@@ -780,7 +787,7 @@ public abstract class DataCapturingService {
      * @return A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
     @SuppressWarnings("unused") // because we need to support this API - TODO: really?
-    private MeasurementPersistence getPersistenceLayer() {
+    private PersistenceLayer getPersistenceLayer() {
         return persistenceLayer;
     }
 
