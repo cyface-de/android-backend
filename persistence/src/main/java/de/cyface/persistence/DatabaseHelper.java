@@ -160,6 +160,10 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 }
             } else if (pathSegments.size() == 1) {
                 switch (pathSegments.get(0)) {
+                    case IdentifierTable.URI_PATH:
+                        ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
+                        database.setTransactionSuccessful();
+                        return ret;
                     case MeasurementTable.URI_PATH:
                         Cursor selectedMeasurementsCursor = null;
                         try {
@@ -179,11 +183,6 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
                         database.setTransactionSuccessful();
                         return ret;
-                    case IdentifierTable.URI_PATH:
-                        ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
-                        database.setTransactionSuccessful();
-                        return ret;
-                        break;
                     default:
                         throw new IllegalStateException("Unable to delete data from table corresponding to URI " + uri
                                 + ". There seems to be no such table.");

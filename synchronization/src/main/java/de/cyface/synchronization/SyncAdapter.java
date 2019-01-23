@@ -27,7 +27,6 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.os.Bundle;
-import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -38,6 +37,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -162,7 +162,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     break;
                 }
             }
-        } catch (final DatabaseException | RemoteException e) {
+        } catch (final CursorIsNullException e) {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());

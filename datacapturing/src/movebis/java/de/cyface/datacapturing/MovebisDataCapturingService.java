@@ -1,11 +1,12 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.SharedConstants.AUTH_TOKEN_TYPE;
+import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 
 import android.Manifest;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.annotation.SuppressLint;
+import android.content.ContentProvider;
 import android.content.Context;
 import android.content.pm.PackageManager;
 import android.location.Location;
@@ -19,6 +20,7 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.synchronization.SynchronisationException;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
@@ -35,7 +37,8 @@ import de.cyface.synchronization.SynchronisationException;
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
- * @version 3.0.4
+ * @author Armin Schnabel
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class MovebisDataCapturingService extends DataCapturingService {
@@ -96,10 +99,12 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings("WeakerAccess") // TODO - because?
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException {
+            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
         this(context, "de.cyface.provider", "de.cyface", dataUploadServerAddress, uiListener, locationUpdateRate,
                 eventHandlingStrategy);
     }
@@ -107,6 +112,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
     /**
      * Creates a new completely initialized {@link MovebisDataCapturingService}.
      * This variant is required to test the ContentProvider.
+     *
+     * (!) ATTENTION: This constructor is only for testing to be able to inject authority and account type. Use
+     * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
+     * instead.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
@@ -122,15 +131,12 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
-     *
-     * @deprecated because the authority and account type should only be changes for testing. Use
-     *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
-     *             instead.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String authority,
+    MovebisDataCapturingService(final @NonNull Context context, final @NonNull String authority,
             final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException {
+            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
         super(context, context.getContentResolver(), authority, accountType, dataUploadServerAddress,
                 eventHandlingStrategy);
         this.locationUpdateRate = locationUpdateRate;
@@ -153,11 +159,14 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            if you would like to be notified as often as possible.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      *
      *             FIXME: can we remove one of these constructors?
      */
+    @SuppressWarnings("unused") // Because?
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate) throws SetupException {
+            final @NonNull UIListener uiListener, final long locationUpdateRate)
+            throws SetupException, CursorIsNullException {
         this(context, dataUploadServerAddress, uiListener, locationUpdateRate, new IgnoreEventsStrategy());
     }
 
@@ -166,6 +175,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * purely intended for display purposes. The received locations are forwarded to the {@link UIListener} provided to
      * the constructor.
      */
+    @SuppressWarnings("WeakerAccess") // TODO Because ?
     @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
     public void startUILocationUpdates() {
         if (uiUpdatesActive) {
@@ -192,6 +202,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *
      * @see #startUILocationUpdates()
      */
+    @SuppressWarnings("WeakerAccess") // TODO: Because?
     public void stopUILocationUpdates() {
         if (!uiUpdatesActive) {
             return;
@@ -208,6 +219,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param token The auth token to add.
      * @throws SynchronisationException If unable to create an appropriate account with the Android account system.
      */
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Because this is required by the STADTRADELN app
     public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
             throws SynchronisationException {
         AccountManager accountManager = AccountManager.get(getContext());
@@ -225,6 +237,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *
      * @param username The username of the user to remove the auth token for.
      */
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Because this is required by the STADTRADELN app
     public void deregisterJWTAuthToken(final @NonNull String username) {
         getWiFiSurveyor().deleteAccount(username);
     }
@@ -237,6 +250,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
      *            available. The second option might use up the users data plan rapidly so use it sparingly.
      */
+    @SuppressWarnings("unused") // TODO: Because?
     public void syncOnWiFiOnly(final boolean state) {
         getWiFiSurveyor().syncOnWiFiOnly(state);
     }

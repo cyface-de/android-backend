@@ -1,7 +1,7 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -24,6 +24,7 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the specific features required for the Movebis project work as expected.
@@ -87,7 +88,7 @@ public final class MovebisTest {
                 try {
                     oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080",
                             testUIListener, 0L, new IgnoreEventsStrategy());
-                } catch (SetupException e) {
+                } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
@@ -109,7 +110,7 @@ public final class MovebisTest {
             }
         });
 
-        ServiceTestUtils.lockAndWait(10L, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(10L, TimeUnit.SECONDS, lock, condition);
         oocut.stopUILocationUpdates();
 
         assertThat(testUIListener.receivedUpdates.isEmpty(), is(equalTo(false)));

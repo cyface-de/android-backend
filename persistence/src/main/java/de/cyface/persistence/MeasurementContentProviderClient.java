@@ -1,7 +1,6 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_FALSE;
-import static de.cyface.persistence.MeasuringPointsContentProvider.SQLITE_TRUE;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
 import android.content.ContentProvider;
@@ -146,9 +145,8 @@ public class MeasurementContentProviderClient {
                 values, BaseColumns._ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
         values.clear();
 
-        // data points FIXME: not in the database anymore
-
         int ret = 0;
+        // data points FIXME: not in the database anymore
         return ret;
     }
 
@@ -170,9 +168,8 @@ public class MeasurementContentProviderClient {
             final @NonNull String authority) throws RemoteException {
         final Uri measurementTableUri = new Uri.Builder().scheme("content").authority(authority)
                 .appendPath(MeasurementTable.URI_PATH).build();
-        final Cursor ret = provider.query(measurementTableUri, null,
-                MeasurementTable.COLUMN_FINISHED + "=? AND " + MeasurementTable.COLUMN_SYNCED + "=?",
-                new String[] {String.valueOf(SQLITE_TRUE), String.valueOf(SQLITE_FALSE)}, null);
+        final Cursor ret = provider.query(measurementTableUri, null, MeasurementTable.COLUMN_STATUS + "=?",
+                new String[] {FINISHED.getDatabaseIdentifier()}, null);
 
         if (ret == null) {
             throw new IllegalStateException("Unable to load measurement from content provider!");

@@ -48,6 +48,7 @@ import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -197,6 +198,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
      * The task for the missing test is CY-4111. Currently only tested manually.
      */
+    @SuppressWarnings("unused") // Because must be callable by custom {@link EventHandlingStrategy} implementations
     public void sendStoppedItselfMessage() {
         Log.v(TAG, "Sending IPC message: service stopped itself.");
         // Attention: the bundle is bundled again by informCaller !
@@ -243,11 +245,17 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                             + AUTHORITY_ID);
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-        this.capturingBehaviour = new CapturingPersistenceBehaviour();
+        // FIXME: remove initPersistenceLayer(authority);
+        capturingBehaviour = new CapturingPersistenceBehaviour();
         persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
 
         // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
-        pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+        try {
+            pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+        } catch (final CursorIsNullException e) {
+            // because onStartCommand is called by Android so we can't throw soft exception.
+            throw new IllegalStateException(e);
+        }
         Validate.isTrue(
                 pointMetaData
                         .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
@@ -266,6 +274,20 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // NOT_STICKY to avoid recreation of the process which could mess up the life-cycle
         return Service.START_NOT_STICKY;
     }
+
+    /**
+     * This method allows the {@code DataCapturingLocalTest} to use methods of the {@link CapturingPersistenceBehaviour}
+     * which requires an initialized {@link PersistenceLayer}.
+     * More details: as the {@link #onStartCommand(Intent, int, int)} is not called in this test we need to be able to
+     * inject an {@param authority} for the {@link PersistenceLayer} because else we got a {@link NullPointerException}.
+     * 
+     * @param authority The authority to access the database.
+     *            FIXME: remove/
+     *            void initPersistenceLayer(@NonNull final String authority) {
+     *            persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority,
+     *            new CapturingPersistenceBehaviour());
+     *            }
+     */
 
     /*
      * MARK: Methods
@@ -352,7 +374,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      *
-     * @param completeList The {@link List< Point3d >} to extract a subset from
+     * @param completeList The {@link List<Point3d>} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */

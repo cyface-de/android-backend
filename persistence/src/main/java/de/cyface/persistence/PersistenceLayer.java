@@ -64,6 +64,16 @@ public class PersistenceLayer {
     private PersistenceBehaviour persistenceBehaviour;
 
     /**
+     * This constructor is only for testing. It's required by the {@code DataCapturingLocalTest} to be able to
+     * {@link @Spy} on this object.
+     */
+    public PersistenceLayer() {
+        this.context = null;
+        this.resolver = null;
+        this.authority = null;
+    }
+
+    /**
      * Creates a new completely initialized <code>PersistenceLayer</code>.
      *
      * @param context The {@link Context} required to locate the app's internal storage directory.
