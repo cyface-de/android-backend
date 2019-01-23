@@ -9,15 +9,11 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
-import java.io.ByteArrayInputStream;
 import java.io.File;
-import java.io.IOException;
-import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
-import java.util.zip.Deflater;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -32,7 +28,6 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.DataCapturingException;
@@ -260,84 +255,6 @@ public class PersistenceLayer {
     }
 
     /**
-     * Loads a {@link Measurement} with the provided id from the persistence layer as uncompressed and serialized in
-     * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
-     *
-     * TODO: test this on weak devices for large measurements
-     *
-     * FIXME: this is a duplicate to MeasurementSerialized.serialize(loader, ...) - why is this not still in the
-     * MeasurementSerializer?
-     *
-     * @param measurement The identifier of the measurement to load.
-     * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
-     * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
-     * @throws IOException If the byte array could not be assembled.
-     * @throws DataCapturingException If accessing the content provider fails.
-     * @throws NoSuchMeasurementException If the provided {@param Measurement} was <code>null</code>.
-     */
-    public byte[] loadSerialized(final Measurement measurement)
-            throws FileCorruptedException, IOException, DataCapturingException, NoSuchMeasurementException {
-        final List<GeoLocation> geoLocations = loadTrack(measurement);
-        final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
-        final MeasurementSerializer serializer = new MeasurementSerializer();
-        final byte[] transferFileHeader = serializer.serializeTransferFileHeader(geoLocations.size(), pointMetaData);
-
-        // FIXME
-        throw new IllegalStateException("fixme");
-        /*
-         * final byte[] geoLocationData = geoLocations.size() > 0
-         * ? FileUtils.loadBytes(GeoLocationsFile.loadFile(measurement).getFile())
-         * : new byte[] {};
-         * final byte[] accelerationData = pointMetaData.getAccelerationPointCounter() > 0
-         * ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
-         * Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile())
-         * : new byte[] {};
-         * final byte[] rotationData = pointMetaData.getRotationPointCounter() > 0
-         * ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
-         * Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile())
-         * : new byte[] {};
-         * final byte[] directionData = pointMetaData.getDirectionPointCounter() > 0
-         * ? FileUtils.loadBytes(Point3dFile.loadFile(context, measurement.getIdentifier(),
-         * Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile())
-         * : new byte[] {};
-         * final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
-         * outputStream.write(transferFileHeader);
-         * outputStream.write(geoLocationData);
-         * outputStream.write(accelerationData);
-         * outputStream.write(rotationData);
-         * outputStream.write(directionData);
-         * return outputStream.toByteArray();
-         */
-    }
-
-    /**
-     * Loads a measurement with the provided id from the persistence layer as compressed and serialized in
-     * the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
-     * As compression the standard Android GZIP compression is used
-     *
-     * FIXME: this is a duplicate to MeasurementSerialized.serialize(loader, ...) - why is this not still in the
-     * MeasurementSerializer?
-     *
-     * @param measurement The identifier of the measurement to load.
-     * @return The bytes of the measurement in the <code>TRANSFER_FILE_FORMAT_VERSION</code> format.
-     * @throws FileCorruptedException If the persisted measurement if broken or in a false format.
-     * @throws IOException If the byte array could not be assembled.
-     */
-    public InputStream loadSerializedCompressed(final Measurement measurement)
-            throws FileCorruptedException, IOException, NoSuchMeasurementException, DataCapturingException {
-        final byte[] data = loadSerialized(measurement);
-
-        final Deflater compressor = new Deflater();
-        compressor.setInput(data);
-        compressor.finish();
-
-        final byte[] output = new byte[data.length];
-        final int lengthOfCompressedData = compressor.deflate(output);
-        Log.d(Constants.TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
-        return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
-    }
-
-    /**
      * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as
      * {@link MeasurementStatus#SYNCED} and deletes the sensor data.
      *
@@ -463,10 +380,12 @@ public class PersistenceLayer {
     /**
      * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}.
      *
+     * TODO [#CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
+     * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
+     *
      * @param measurement The {@code Measurement} to load the track for.
      * @return The loaded track of <code>GeoLocation</code> objects ordered by time ascending or an empty list if
      *         accessing the content provider fails which should hardly ever happen.
-     *
      * @throws NoSuchMeasurementException If the provided {@param Measurement} was <code>null</code>.
      */
     public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {

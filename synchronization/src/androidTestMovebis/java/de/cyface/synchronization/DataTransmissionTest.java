@@ -1,9 +1,9 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.testutils.SharedTestUtils.AUTHORITY;
-import static de.cyface.testutils.SharedTestUtils.insertTestGeoLocation;
-import static de.cyface.testutils.SharedTestUtils.insertTestMeasurement;
+import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
+import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
 import static de.cyface.testutils.SharedTestUtils.insertTestPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -27,7 +27,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.PointMetaData;
@@ -35,6 +38,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.DataCapturingException;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -42,7 +46,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.9
+ * @version 1.2.0
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -90,17 +94,18 @@ public class DataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart()
-            throws BadRequestException, RequestParsingException, FileCorruptedException, IOException {
+    public void testUploadSomeBytesViaMultiPart() throws BadRequestException, RequestParsingException,
+            FileCorruptedException, IOException, DataCapturingException, NoSuchMeasurementException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
-        Persistence persistence = new Persistence(context, AUTHORITY);
+        PersistenceLayer persistence = new PersistenceLayer(context, resolver, AUTHORITY,
+                new DefaultPersistenceBehaviour());
         Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(resolver, measurement.getIdentifier(), 1503055141000L, 49.9304133333333, 8.82831833333333,
-                0.0, 940);
-        insertTestGeoLocation(resolver, measurement.getIdentifier(), 1503055142000L, 49.9305066666667, 8.82814,
-                8.78270530700684, 840);
+        insertTestGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055141000L, 49.9304133333333,
+                8.82831833333333, 0.0, 940);
+        insertTestGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055142000L, 49.9305066666667,
+                8.82814, 8.78270530700684, 840);
         insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                 Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
         insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
@@ -120,9 +125,10 @@ public class DataTransmissionTest {
         insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
                 Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636050L, 7.65, -33.15, -71.700005);
 
-        persistence
-                .storePointMetaData(new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION));
-        persistence.updateMeasurement(measurement, MeasurementStatus.FINISHED);
+        persistence.storePointMetaData(
+                new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),
+                measurementIdentifier);
+        persistence.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
 
         ContentProviderClient client = null;
         InputStream measurementData = null;
@@ -136,8 +142,7 @@ public class DataTransmissionTest {
             MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
             MeasurementSerializer serializer = new MeasurementSerializer();
-            InputStream measurementData = serializer.serialize(loader);
-            measurementData = persistence.loadSerializedCompressed(measurement);
+            measurementData = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(), persistence);
             // printMD5(measurementData);
 
             String jwtAuthToken = "replace me";

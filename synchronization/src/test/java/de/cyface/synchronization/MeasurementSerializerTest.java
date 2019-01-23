@@ -8,12 +8,13 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.core.IsNull.notNullValue;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.anyInt;
+import static org.mockito.Matchers.anyLong;
 import static org.mockito.Mockito.when;
 
 import java.io.DataInputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -35,25 +36,23 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.FileCorruptedException;
+import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.utils.DataCapturingException;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.3.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -69,6 +68,16 @@ public class MeasurementSerializerTest {
     @Mock
     private MeasurementContentProviderClient loader;
     /**
+     * A mock persistence layer, not accessing any files.
+     */
+    @Mock
+    PersistenceLayer persistence;
+    /**
+     * A mock mockedContext, to be able to mock-generate file paths
+     */
+    @Mock
+    Context mockedContext;
+    /**
      * A mocked cursor for geo locations.
      */
     @Mock
@@ -81,18 +90,19 @@ public class MeasurementSerializerTest {
 
     private final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
             + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
-    private final int SERIALIZED_COMPRESSED_SIZE = 30;
 
     @Before
-    public void setUp() throws RemoteException {
+    public void setUp() throws RemoteException, DataCapturingException {
         Uri geoLocationUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
                 .appendPath(GeoLocationsTable.URI_PATH).build();
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
         when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
-        when(loader.load3dPoint(any(Point3DSerializer.class))).thenReturn(pointsCursor); // FIXME
+        when(persistence.loadPointMetaData(anyLong()))
+                .thenReturn(new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION));
+        when(persistence.getContext()).thenReturn(mockedContext);
+        when(mockedContext.getFilesDir()).thenReturn(new File("/mocked-files-dir/"));
         when(geoLocationsCursor.getCount()).thenReturn(3);
-        when(pointsCursor.getCount()).thenReturn(3);
         // Insert 3 geo locations
         when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
         // Insert 3 points of each Point3d type
@@ -115,12 +125,10 @@ public class MeasurementSerializerTest {
      * @throws IOException Should not happen as long as serialization depends on ByteArrayInputStream.
      */
     @Test
-    public void testSerializeMeasurement() throws IOException {
+    public void testSerializeMeasurement() throws IOException, DataCapturingException {
         MeasurementSerializer serializer = new MeasurementSerializer();
-
-        InputStream stream = serializer.serialize(loader);
-
-        assertThat(stream.available(), is(equalTo(SERIALIZED_SIZE)));
+        byte[] data = serializer.loadSerialized(loader, 0, persistence);
+        assertThat(data.length, is(equalTo(SERIALIZED_SIZE)));
     }
 
     /**
@@ -131,15 +139,14 @@ public class MeasurementSerializerTest {
      *             occur.
      */
     @Test
-    public void testDeserializeMeasurement() throws IOException {
+    public void testDeserializeMeasurement() throws IOException, DataCapturingException {
         MeasurementSerializer serializer = new MeasurementSerializer();
 
-        InputStream stream = serializer.serialize(loader);
+        byte[] measurementBytes = serializer.loadSerialized(loader, 0, persistence);
+        // byte[] individualBytes = new byte[SERIALIZED_SIZE];
+        assertThat(/* stream.read(individualBytes) */measurementBytes.length, is(equalTo(SERIALIZED_SIZE)));
 
-        byte[] individualBytes = new byte[SERIALIZED_SIZE];
-        assertThat(stream.read(individualBytes), is(equalTo(SERIALIZED_SIZE)));
-
-        ByteBuffer buffer = ByteBuffer.wrap(individualBytes);
+        ByteBuffer buffer = ByteBuffer.wrap(measurementBytes);
         short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
         assertThat(formatVersion, is(equalTo((short)1)));
         int numberOfGeoLocations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(2);
@@ -157,19 +164,19 @@ public class MeasurementSerializerTest {
         int beginOfDirectionsIndex = beginOfRotationsIndex + numberOfRotations * BYTES_IN_ONE_POINT_3D_ENTRY;
 
         List<Map<String, ?>> geoLocations = deserializeGeoLocations(
-                Arrays.copyOfRange(individualBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
+                Arrays.copyOfRange(measurementBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
         assertThat(geoLocations, hasSize(3));
 
         List<Map<String, ?>> accelerations = deserializePoint3D(
-                Arrays.copyOfRange(individualBytes, beginOfAccelerationsIndex, beginOfRotationsIndex));
+                Arrays.copyOfRange(measurementBytes, beginOfAccelerationsIndex, beginOfRotationsIndex));
         assertThat(accelerations, hasSize(3));
 
         List<Map<String, ?>> rotations = deserializePoint3D(
-                Arrays.copyOfRange(individualBytes, beginOfRotationsIndex, beginOfDirectionsIndex));
+                Arrays.copyOfRange(measurementBytes, beginOfRotationsIndex, beginOfDirectionsIndex));
         assertThat(rotations, hasSize(3));
 
         List<Map<String, ?>> directions = deserializePoint3D(
-                Arrays.copyOfRange(individualBytes, beginOfDirectionsIndex, individualBytes.length));
+                Arrays.copyOfRange(measurementBytes, beginOfDirectionsIndex, measurementBytes.length));
         assertThat(directions, hasSize(3));
     }
 
@@ -183,8 +190,10 @@ public class MeasurementSerializerTest {
     public void testSerializeCompressedMeasurement() throws IOException {
         MeasurementSerializer serializer = new MeasurementSerializer();
 
-        InputStream input = serializer.serializeCompressed(loader);
+        InputStream input = serializer.loadSerializedCompressed(loader, 0, persistence);
 
+        // Before the epic #CY-4067 the compression resulted into 30 bytes - did the compression change?
+        final int SERIALIZED_COMPRESSED_SIZE = 31;
         assertThat(input.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
     }
 
@@ -239,30 +248,13 @@ public class MeasurementSerializerTest {
     }
 
     /**
-     * Tests that the serialization and compression results into bytes of the expected length.
-     * Also decompresses the compressed bytes to make sure it's still readable.
-     *
-     * from declined PR.PersistenceTest FIXME
+     * Tests that the serialized and compressed data can be decompressed and deserialized again.
      */
     @Test
-    public void testLoadSerializedCompressedAndDecompressDeserialize()
-            throws NoSuchMeasurementException, FileCorruptedException, IOException, DataFormatException {
-        MeasurementSerializer oocut = new MeasurementSerializer();
-
-        final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
-                + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
-        // Before the epic #CY-4067 the compression resulted into 30 bytes - did the compression change?
-        final int SERIALIZED_COMPRESSED_SIZE = 31;
-
-        // Serialize and check length
-        Measurement measurement = insertSerializationTestSample();
-        byte[] serializedData = oocut.loadSerialized(measurement);
-        assertThat(serializedData.length, is(equalTo(SERIALIZED_SIZE)));
-
-        // Serialize + compress and check length
-        measurement = insertSerializationTestSample();
-        InputStream compressedStream = oocut.loadSerializedCompressed(measurement);
-        assertThat(compressedStream.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+    public void testDecompressDeserialize() throws IOException, DataFormatException, DataCapturingException {
+        MeasurementSerializer serializer = new MeasurementSerializer();
+        byte[] serializedData = serializer.loadSerialized(loader, 0, persistence);
+        InputStream compressedStream = serializer.loadSerializedCompressed(loader, 0, persistence);
 
         // Decompress the compressed bytes and check length and bytes
         byte[] compressedBytes = new byte[compressedStream.available()];
@@ -275,37 +267,5 @@ public class MeasurementSerializerTest {
         inflater.end();
         assertThat(decompressedLength, is(equalTo(SERIALIZED_SIZE)));
         assertThat(Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE), is(equalTo(serializedData)));
-    }
-
-    /**
-     * from declined PR.PersistenceTest FIXME
-     */
-    private Measurement insertSerializationTestSample() throws NoSuchMeasurementException {
-        // Insert sample measurement data
-        Persistence persistence = new PersistenceLayer(context, AUTHORITY);
-        final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
-        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
-        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
-        insertTestGeoLocation(measurement, 1L, 1.0, 1.0, 1.0, 1);
-        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestAcceleration(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestRotation(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
-        insertTestDirection(measurement, 1L, 1.0, 1.0, 1.0);
-        // Write point counters to MetaFile
-        measurement.getMetaFile().append(new MetaFile.PointMetaData(3, 3, 3, 3));
-        // Finish measurement
-        persistence.finishMeasurement(measurement);
-        // Assert that data is in the database
-        final Measurement finishedMeasurement = persistence.loadMeasurement(measurement.getIdentifier(),
-                Measurement.MeasurementStatus.FINISHED);
-        assertThat(finishedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(finishedMeasurement);
-        assertThat(geoLocations.size(), is(3));
-        return measurement;
     }
 }

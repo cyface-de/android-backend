@@ -88,7 +88,7 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
     }
 
     @Override
-    public void append(final List<Point3d> dataPoints) { // was: Serializable not DataPoint
+    public void append(final List<Point3d> dataPoints) {
         final byte[] data = serialize(dataPoints);
         FileUtils.write(file, data, true);
     }
@@ -105,7 +105,7 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * @return the {@link Point3d} data restored from the {@code Point3dFile}
      * @throws FileCorruptedException when the {@link File} is corrupted
      */
-    public List<Point3d> deserialize(final long pointCount) throws FileCorruptedException {
+    public List<Point3d> deserialize(final int pointCount) throws FileCorruptedException {
         final byte[] bytes = FileUtils.loadBytes(file);
         return MeasurementSerializer.deserializePoint3dData(bytes, pointCount);
     }

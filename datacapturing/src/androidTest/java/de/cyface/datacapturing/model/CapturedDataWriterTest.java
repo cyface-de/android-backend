@@ -110,7 +110,7 @@ public class CapturedDataWriterTest {
      */
     @After
     public void tearDown() {
-        clear(context, mockResolver);
+        clear(context, mockResolver, AUTHORITY);
     }
 
     /**
@@ -280,7 +280,7 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedRows = clear(context, mockResolver);
+        int removedRows = clear(context, mockResolver, AUTHORITY);
         assertThat(removedRows, is(equalTo(12)));
 
         // make sure nothing is left in the database

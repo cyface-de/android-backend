@@ -5,6 +5,7 @@ import static de.cyface.persistence.Constants.TAG;
 
 import java.io.ByteArrayInputStream;
 import java.io.ByteArrayOutputStream;
+import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
@@ -20,9 +21,11 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
@@ -53,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 3.0.0
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -84,19 +87,24 @@ public final class MeasurementSerializer {
             + ByteSizes.INT_BYTES;
 
     /**
-     * Loads the {@link Measurement} with the provided identifier from the <code>ContentProvider</code> accessible via
-     * the client given to the constructor and serializes it, using standard Android GZIP compression on the described
-     * binary format to an <code>InputStream</code>.
+     * Loads the {@link Measurement} with the provided identifier from the persistence layer as compressed and and
+     * serialized in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
+     *
+     * The standard Android GZIP compression is used.
      * 
-     * @param loader The device wide unique identifier of the {@code Measurement} to serialize.
-     * @return An <code>InputStream</code> containing the serialized compressed data.
+     * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
+     * @param measurementId The id of the {@link Measurement} to load
+     * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
+     * @return An {@link InputStream} containing the serialized compressed data.
      */
-    InputStream serializeCompressed(final @NonNull MeasurementContentProviderClient loader) {
+    public InputStream loadSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
+            @NonNull final long measurementId, @NonNull final PersistenceLayer persistenceLayer) {
+
         final Deflater compressor = new Deflater();
-        final byte[] serializedGeoLocations = serialize(loader); // FIXME: serialize the whole measurement I think
-        compressor.setInput(serializedGeoLocations);
+        final byte[] serializedMeasurement = loadSerialized(loader, measurementId, persistenceLayer);
+        compressor.setInput(serializedMeasurement);
         compressor.finish();
-        byte[] output = new byte[serializedGeoLocations.length];
+        byte[] output = new byte[serializedMeasurement.length];
         int lengthOfCompressedData = compressor.deflate(output);
         Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
         return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
@@ -191,23 +199,31 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Implements the core algorithm of loading {@link GeoLocation}s and {@link Point3d} data and serializing them into
-     * an array of bytes.
+     * Implements the core algorithm of loading a {@link Measurement} with all its data from the
+     * {@link PersistenceLayer} and serializing it into an array of bytes in the
+     * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
+     *
+     * We use the {@param loader} to access the
+     *
+     * TODO: test this on weak devices for large measurements
      *
      * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link GeoLocation}s.
+     * @param measurementIdentifier The id of the {@code Measurement} to load
+     * @param persistence The {@code PersistenceLayer} to access the file based data
      * @return A byte array containing the serialized data.
      * @throws DataCapturingException If content provider was inaccessible.
      */
-    private byte[] serialize(@NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier, @NonNull final MeasurementPersistence persistence) throws DataCapturingException {
-        Cursor geoLocationsCursor = null;
+    public byte[] loadSerialized(@NonNull final MeasurementContentProviderClient loader,
+            final long measurementIdentifier, @NonNull final PersistenceLayer persistence)
+            throws DataCapturingException {
 
+        // GeoLocations
+        Cursor geoLocationsCursor = null;
+        final byte[] serializedGeoLocations;
+        final int geoLocationCount;
         try {
             final Uri geoLocationTableUri = loader.createGeoLocationTableUri();
-            final int geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
-
-            // Generate transfer file header
-            final PointMetaData pointMetaData = persistence.loadPointMetaData(measurementIdentifier);
-            final byte[] header = serializeTransferFileHeader(geoLocationCount, pointMetaData);
+            geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
 
             // Serialize GeoLocations
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
@@ -215,27 +231,8 @@ public final class MeasurementSerializer {
                 geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
                 outputStream.write(serializeGeoLocations(geoLocationsCursor));
             }
-            final byte[] serializedGeoLocations = outputStream.toByteArray();
+            serializedGeoLocations = outputStream.toByteArray();
 
-            // Serialize Point3ds
-            // FIXME: missing Point3d data
-            final byte[] serializedAccelerations = serialize(accelerationsCursor);
-            final byte[] serializedRotations = serialize(rotationsCursor);
-            final byte[] serializedDirections = serialize(directionsCursor);
-
-            // Create transfer file
-            final ByteBuffer buffer = ByteBuffer.allocate(header.length + serializedGeoLocations.length
-                    + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
-            buffer.put(header);
-            buffer.put(serializedGeoLocations);
-            buffer.put(serializedAccelerations);
-            buffer.put(serializedRotations);
-            buffer.put(serializedDirections);
-            final byte[] result = buffer.array();
-            // FIXME: not sure if this "uncompressed size" calculation is still correct
-            Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
-
-            return result;
         } catch (final RemoteException | IOException e) {
             throw new IllegalStateException(e);
         } finally {
@@ -243,6 +240,40 @@ public final class MeasurementSerializer {
                 geoLocationsCursor.close();
             }
         }
+
+        // Generate transfer file header
+        final PointMetaData pointMetaData = persistence.loadPointMetaData(measurementIdentifier);
+        final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, pointMetaData);
+
+        // Serialize Point3ds
+        final File accelerationFile = FileUtils.getFilePath(persistence.getContext(), measurementIdentifier,
+                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+        final File rotationFile = FileUtils.getFilePath(persistence.getContext(), measurementIdentifier,
+                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+        final File directionFile = FileUtils.getFilePath(persistence.getContext(), measurementIdentifier,
+                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+        final byte[] serializedAccelerations = pointMetaData.getAccelerationPointCounter() > 0
+                ? FileUtils.loadBytes(accelerationFile)
+                : new byte[] {};
+        final byte[] serializedRotations = pointMetaData.getRotationPointCounter() > 0
+                ? FileUtils.loadBytes(rotationFile)
+                : new byte[] {};
+        final byte[] serializedDirections = pointMetaData.getDirectionPointCounter() > 0
+                ? FileUtils.loadBytes(directionFile)
+                : new byte[] {};
+
+        // Create transfer file
+        final ByteBuffer buffer = ByteBuffer.allocate(transferFileHeader.length + serializedGeoLocations.length
+                + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
+        buffer.put(transferFileHeader);
+        buffer.put(serializedGeoLocations);
+        buffer.put(serializedAccelerations);
+        buffer.put(serializedRotations);
+        buffer.put(serializedDirections);
+        final byte[] result = buffer.array();
+
+        Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
+        return result;
     }
 
     /**

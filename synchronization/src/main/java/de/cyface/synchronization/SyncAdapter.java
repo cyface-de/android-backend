@@ -31,10 +31,12 @@ import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
 
@@ -43,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.2
+ * @version 2.2.0
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -90,7 +92,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer();
-        final Persistence persistence = new Persistence(context, authority);
+        final PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), authority,
+                new DefaultPersistenceBehaviour());
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
@@ -127,18 +130,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
             for (final Measurement measurement : syncableMeasurements) {
 
-                // Load serialized measurement
+                // Load measurement serialized compressed
                 Log.d(Constants.TAG,
                         String.format("Measurement with identifier %d is about to be loaded for transmission.",
                                 measurement.getIdentifier()));
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementId,
-                        provider, authority); // from old code
-                final InputStream data;
-                try {
-                    data = persistence.loadSerializedCompressed(loader, measurement);
-                } catch (final FileCorruptedException e) {
-                    throw new IllegalStateException(e);
-                }
+                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
+                        measurement.getIdentifier(), provider, authority);
+                final InputStream data = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(),
+                        persistence);
 
                 // Synchronize measurement
                 Validate.notNull(endPointUrl);
@@ -153,7 +152,11 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                             }
                         }, jwtAuthToken);
                 if (transmissionSuccessful) {
-                    persistence.markAsSynchronized(measurement);
+                    try {
+                        persistence.markAsSynchronized(measurement);
+                    } catch (final NoSuchMeasurementException e) {
+                        throw new IllegalStateException(e);
+                    }
                     Log.d(Constants.TAG, "Measurement marked as synced.");
                 } else {
                     break;

@@ -41,7 +41,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
 public class SyncAdapterTest {
 
     /**
-     * The Android context to use for this test case.
+     * The Android mockedContext to use for this test case.
      */
     private Context context;
 
