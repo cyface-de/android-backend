@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED;
 import static de.cyface.synchronization.Constants.TAG;
 
 import java.lang.ref.WeakReference;
@@ -12,7 +13,10 @@ import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
+import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
@@ -24,7 +28,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.6
+ * @version 3.2.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -42,7 +46,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
      * seconds using {@link #SECONDS_PER_MINUTE}.
      */
-    private static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
+    static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
     /**
      * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such
      * <code>Account</code> has been set.
@@ -77,6 +81,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
      */
     private final ConnectivityManager connectivityManager;
+    /**
+     * A callback which handles changes on the connectivity starting at API {@link Build.VERSION_CODES#LOLLIPOP}
+     */
+    private NetworkCallback networkCallback;
 
     /**
      * Creates a new completely initialized <code>WiFiSurveyor</code> within the current Android context.
@@ -101,13 +109,17 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Starts the WiFi connection status surveillance. If a WiFi connection is active data synchronization is started.
+     * Starts the WiFi* connection status surveillance. If a WiFi connection is active data synchronization is started.
      * If the WiFi goes back down synchronization is deactivated.
      * <p>
      * The method also schedules an immediate synchronization run after the WiFi has been connected.
      * <p>
      * ATTENTION: If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the future
      * or you will waste system resources.
+     * <p>
+     * ATTENTION: Starting at version {@link Build.VERSION_CODES#LOLLIPOP} and higher instead of expecting only "WiFi"
+     * connections as "not metered" we use the {@link NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as
+     * suggested by Android.
      *
      * @param account Starts surveillance of the WiFi connection status for this account.
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
@@ -121,10 +133,19 @@ public class WiFiSurveyor extends BroadcastReceiver {
             ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
 
-        IntentFilter intentFilter = new IntentFilter();
-        intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-        currentSynchronizationAccount = account;
-        context.get().registerReceiver(this, intentFilter);
+        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+            NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
+            if (syncOnWiFiOnly) {
+                requestBuilder.addTransportType(NET_CAPABILITY_NOT_METERED);
+            }
+            networkCallback = new NetworkCallback(this, currentSynchronizationAccount, authority);
+            connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
+        } else {
+            IntentFilter intentFilter = new IntentFilter();
+            intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
+            currentSynchronizationAccount = account;
+            context.get().registerReceiver(this, intentFilter);
+        }
     }
 
     /**
@@ -132,14 +153,20 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
+    @SuppressWarnings({"WeakerAccess", "unused"}) // TODO: because ...?
     public void stopSurveillance() throws SynchronisationException {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
         }
-        try {
-            context.get().unregisterReceiver(this);
-        } catch (IllegalArgumentException e) {
-            throw new SynchronisationException(e);
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            connectivityManager.unregisterNetworkCallback(networkCallback);
+        } else {
+            try {
+                context.get().unregisterReceiver(this);
+            } catch (IllegalArgumentException e) {
+                throw new SynchronisationException(e);
+            }
         }
     }
 
@@ -165,7 +192,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
         final String action = intent.getAction();
         if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
             if (isConnected()) {
-                // do stuff
                 // Try synchronization periodically
                 boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
                         authority);
@@ -259,12 +285,23 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @return <code>true</code> if WiFi is available; <code>false</code> otherwise.
      */
+    @SuppressWarnings("WeakerAccess") // TODO: because?
     public boolean isConnected() {
-        NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-        return syncOnWiFiOnly
-                ? activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI
-                        && activeNetworkInfo.isConnected()
-                : activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            final Network activeNetwork = connectivityManager.getActiveNetwork();
+            final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+            return syncOnWiFiOnly
+                    ? networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED) && activeNetworkInfo != null
+                            && activeNetworkInfo.isConnected()
+                    : activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        } else {
+            final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+            return syncOnWiFiOnly
+                    ? activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI
+                            && activeNetworkInfo.isConnected()
+                    : activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        }
     }
 
     /**
@@ -272,6 +309,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *         if
      *         synchronization is active and <code>false</code> otherwise.
      */
+    @SuppressWarnings("WeakerAccess") // TODO because?
     public boolean synchronizationIsActive() {
         return synchronizationIsActive;
     }
@@ -287,5 +325,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void syncOnWiFiOnly(boolean state) {
         syncOnWiFiOnly = state;
+    }
+
+    void setSynchronizationIsActive(boolean synchronizationIsActive) {
+        this.synchronizationIsActive = synchronizationIsActive;
     }
 }
