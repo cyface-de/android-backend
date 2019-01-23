@@ -137,7 +137,7 @@ public class MeasurementContentProviderClient {
      * @return The amount of deleted data points. FIXME
      * @throws RemoteException If the content provider is not accessible.
      */
-    int cleanMeasurement() throws RemoteException {
+    public int cleanMeasurement() throws RemoteException {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_STATUS, SYNCED.getDatabaseIdentifier());
         client.update(
@@ -164,8 +164,8 @@ public class MeasurementContentProviderClient {
      * @throws RemoteException If the query to the content provider has not been successful.
      * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
      */
-    static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider,
-            final @NonNull String authority) throws RemoteException {
+    public static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider,
+                                                  final @NonNull String authority) throws RemoteException {
         final Uri measurementTableUri = new Uri.Builder().scheme("content").authority(authority)
                 .appendPath(MeasurementTable.URI_PATH).build();
         final Cursor ret = provider.query(measurementTableUri, null, MeasurementTable.COLUMN_STATUS + "=?",

@@ -35,20 +35,20 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * Column name for the number of acceleration {@link Point3d}s persisted for this {@link Measurement}.
      */
-    public static final String COLUMN_ACCELERATIONS = "accelerations";
+    static final String COLUMN_ACCELERATIONS = "accelerations";
     /**
      * Column name for the number of rotation {@link Point3d}s persisted for this {@link Measurement}.
      */
-    public static final String COLUMN_ROTATIONS = "rotations";
+    static final String COLUMN_ROTATIONS = "rotations";
     /**
      * Column name for the number of direction {@link Point3d}s persisted for this {@link Measurement}.
      */
-    public static final String COLUMN_DIRECTIONS = "directions";
+    static final String COLUMN_DIRECTIONS = "directions";
     /**
      * Column name for the {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
      * persistence layer of for this {@link Measurement}.
      */
-    public static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
+    static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
     /**
      * An array containing all columns from this table in default order.
      */
@@ -66,7 +66,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + "(" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, " + COLUMN_ACCELERATIONS
-                + " INTEGER NOT NULL DEFAULT, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
+                + " INTEGER NOT NULL, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
                 + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " SHORT INTEGER NOT NULL);";
     }
 

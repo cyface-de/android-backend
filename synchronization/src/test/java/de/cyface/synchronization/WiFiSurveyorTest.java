@@ -6,6 +6,7 @@ import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
+import androidx.test.core.app.ApplicationProvider;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +28,8 @@ import android.net.wifi.WifiManager;
  * and thus is a <code>FlakyTest</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -41,16 +43,17 @@ public class WiFiSurveyorTest {
      * An object of the class under test.
      */
     private WiFiSurveyor oocut;
+    /**
+     * The Android test <code>Context</code> to use for testing.
+     */
+    private Context context;
 
     /**
      * Initializes the properties for each test case individually.
      */
     @Before
     public void setUp() {
-        /*
-         * The Android test <code>Context</code> to use for testing.
-         */
-        Context context = RuntimeEnvironment.application;
+        context = ApplicationProvider.getApplicationContext();
         ConnectivityManager connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
         oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
@@ -92,7 +95,7 @@ public class WiFiSurveyorTest {
      * @return An appropriate <code>ConnectivityManager</code> from Robolectric.
      */
     private ConnectivityManager getConnectivityManager() {
-        return (ConnectivityManager)RuntimeEnvironment.application.getSystemService(Context.CONNECTIVITY_SERVICE);
+        return (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     /**
@@ -114,7 +117,7 @@ public class WiFiSurveyorTest {
         }
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
         broadcastIntent.putExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, enabled);
-        RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
+        context.sendBroadcast(broadcastIntent);
     }
 
     /**
@@ -135,7 +138,7 @@ public class WiFiSurveyorTest {
             shadowConnectivityManager.setActiveNetworkInfo(null);
         }
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
-        RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
+        context.sendBroadcast(broadcastIntent);
     }
 
 }

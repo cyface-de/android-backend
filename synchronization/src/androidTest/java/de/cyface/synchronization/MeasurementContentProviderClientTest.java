@@ -16,6 +16,8 @@ import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
+import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -38,8 +40,6 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.utils.DataCapturingException;
-import de.cyface.utils.Validate;
 
 /**
  * Tests that instances of the <code>MeasurementContentProviderClient</code> do work correctly.
@@ -135,11 +135,7 @@ public class MeasurementContentProviderClientTest {
             }
         } finally {
             if (client != null) {
-                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.N) {
-                    client.release();
-                } else {
-                    client.close();
-                }
+                client.close();
             }
             if (locationsCursor != null) {
                 locationsCursor.close();
@@ -198,7 +194,7 @@ public class MeasurementContentProviderClientTest {
      *
      */
     @Test
-    public void testGetSyncableMeasurement() throws NoSuchMeasurementException, DataCapturingException {
+    public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         PersistenceLayer persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());

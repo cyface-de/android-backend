@@ -1,16 +1,17 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.DEFAULT_PASSWORD;
+import static de.cyface.synchronization.TestUtils.DEFAULT_USERNAME;
 import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.synchronization.TestUtils.clear;
-import static de.cyface.testutils.SharedTestUtils.AUTHORITY;
-import static de.cyface.testutils.SharedTestUtils.DEFAULT_PASSWORD;
-import static de.cyface.testutils.SharedTestUtils.DEFAULT_USERNAME;
-import static de.cyface.testutils.SharedTestUtils.TEST_API_URL;
+import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
+import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
 import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
-import static de.cyface.testutils.SharedTestUtils.insertTestGeoLocation;
-import static de.cyface.testutils.SharedTestUtils.insertTestMeasurement;
 import static de.cyface.testutils.SharedTestUtils.insertTestPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -20,6 +21,11 @@ import java.util.LinkedList;
 import java.util.List;
 import java.util.UUID;
 
+import de.cyface.persistence.DefaultPersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.utils.CursorIsNullException;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -49,31 +55,31 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.2.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 public class UploadProgressTest {
-    Context context;
-    ContentResolver contentResolver;
+    private Context context;
+    private ContentResolver contentResolver;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
-        clear(context, contentResolver);
+        clear(context, contentResolver, AUTHORITY);
     }
 
     @After
     public void tearDown() {
-        clear(context, contentResolver);
+        clear(context, contentResolver, AUTHORITY);
         contentResolver = null;
         context = null;
     }
 
     @Test
-    public void testUploadProgressHappyPath() {
+    public void testUploadProgressHappyPath() throws CursorIsNullException {
         SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         AccountManager manager = AccountManager.get(context);
         Account account = new Account(DEFAULT_USERNAME, ACCOUNT_TYPE);
@@ -82,7 +88,7 @@ public class UploadProgressTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(SyncService.DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
+        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
@@ -95,12 +101,14 @@ public class UploadProgressTest {
         ContentProviderClient client = null;
         try {
             ContentResolver contentResolver = context.getContentResolver();
-            final MeasurementPersistence persistence = new MeasurementPersistence(context, contentResolver, AUTHORITY);
-            long measurementIdentifier = insertTestMeasurement(persistence, "UNKNOWN");
-            insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055141000L, 49.9304133333333,
+            final PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
+                    new DefaultPersistenceBehaviour());
+            Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
+            long measurementIdentifier = measurement.getIdentifier();
+            insertTestGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055141000L, 49.9304133333333,
                     8.82831833333333, 0.0, 940);
-            insertTestGeoLocation(contentResolver, measurementIdentifier, 1503055142000L, 49.9305066666667, 8.82814,
-                    8.78270530700684, 840);
+            insertTestGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055142000L, 49.9305066666667,
+                    8.82814, 8.78270530700684, 840);
             insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                     Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
             insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
@@ -120,7 +128,7 @@ public class UploadProgressTest {
             insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
                     Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636050L, 7.65, -33.15, -71.700005);
 
-            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri());
+            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             SyncResult result = new SyncResult();
             Validate.notNull(client);
             syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
@@ -163,6 +171,7 @@ class TestReceiver extends BroadcastReceiver {
         }
     }
 
+    @SuppressWarnings("WeakerAccess") // TODO - because?
     public List<Float> getCollectedPercentages() {
         return collectedPercentages;
     }

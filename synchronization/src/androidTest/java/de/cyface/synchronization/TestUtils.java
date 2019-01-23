@@ -21,6 +21,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileUtils;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.IdentifierTable;
@@ -34,7 +35,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.testutils.SharedTestUtils;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -70,6 +71,7 @@ public final class TestUtils {
     /**
      * Path to an API available for testing.
      */
+    // ignore unused - because this is used in the cyface flavour
     final static String TEST_API_URL = "https://s1.cyface.de:9090/api/v2";
 
     /**
@@ -83,8 +85,8 @@ public final class TestUtils {
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
     static void insertTestGeoLocation(final ContentResolver resolver, final String authority,
-            final long measurementIdentifier, final long timestamp, final double lat, final double lon,
-            final double speed, final int accuracy) {
+                                      final long measurementIdentifier, final long timestamp, final double lat, final double lon,
+                                      final double speed, final int accuracy) {
 
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
@@ -95,9 +97,6 @@ public final class TestUtils {
         values.put(GeoLocationsTable.COLUMN_SPEED, speed);
         resolver.insert(getGeoLocationsUri(authority), values);
     }
-
-    // FIXME: the following methods insertTestMeasurement and insertSampleMeasurement where in the declined PR in
-    // SharedTestUtils but now it's not possible without splitting Persistence and MeasurementPersistence
 
     /**
      * Inserts a test {@code Measurement} into the database content provider accessed by the test. To add data to the
@@ -111,8 +110,8 @@ public final class TestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    public static Measurement insertTestMeasurement(final @NonNull PersistenceLayer persistence,
-            final @NonNull Vehicle vehicle) throws DataCapturingException {
+    static Measurement insertTestMeasurement(final @NonNull PersistenceLayer persistence,
+                                             final @NonNull Vehicle vehicle) throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
@@ -120,9 +119,13 @@ public final class TestUtils {
         return persistence.newMeasurement(vehicle);
     }
 
-    public static Measurement insertSampleMeasurement(@NonNull final Context context, final String authority,
+    /**
+     * This method inserts a {@link Measurement} into the persistence layer but does not use the
+     * {@code CapturingPersistenceBehaviour} but the {@link DefaultPersistenceBehaviour}.
+     */
+    static Measurement insertSampleMeasurement(@NonNull final Context context, final String authority,
             final MeasurementStatus status, final PersistenceLayer persistence)
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
 
         final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
@@ -140,9 +143,6 @@ public final class TestUtils {
             final PointMetaData pointMetaData = new PointMetaData(1, 1, 1,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             persistence.storePointMetaData(pointMetaData, measurementIdentifier);
-            // Finish measurement - this was the deprecated finishMeasurement() before CapturingPersistenceBehaviour
-            // thus, it will now not update the currentMeasurementIdentifier anymore which should not have been
-            // necessary anyway FIXME: ensure that this method is not called from somewhere where capturing is expected
             persistence.setStatus(measurementIdentifier, FINISHED);
         }
 

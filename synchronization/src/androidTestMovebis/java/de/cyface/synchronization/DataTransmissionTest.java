@@ -35,10 +35,9 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -94,8 +93,8 @@ public class DataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart() throws BadRequestException, RequestParsingException,
-            FileCorruptedException, IOException, DataCapturingException, NoSuchMeasurementException {
+    public void testUploadSomeBytesViaMultiPart() throws BadRequestException, RequestParsingException, IOException,
+            CursorIsNullException, NoSuchMeasurementException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
         PersistenceLayer persistence = new PersistenceLayer(context, resolver, AUTHORITY,
@@ -174,9 +173,11 @@ public class DataTransmissionTest {
      * @throws IOException Thrown if the stream is not readable.
      * @throws NoSuchAlgorithmException Thrown if MD5 Algorithm is not supported
      */
+    @SuppressWarnings("unused") // TODO - because?
     private void printMD5(final @NonNull InputStream stream) throws IOException, NoSuchAlgorithmException {
         MessageDigest md = MessageDigest.getInstance("MD5");
         byte[] content = new byte[stream.available()];
+        // noinspection ResultOfMethodCallIgnored - because we don't care
         stream.read(content);
         byte[] theDigest = md.digest(content);
         StringBuilder sb = new StringBuilder(theDigest.length * 2);

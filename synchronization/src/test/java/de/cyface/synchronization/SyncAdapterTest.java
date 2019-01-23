@@ -4,17 +4,14 @@ import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
 
-import de.cyface.persistence.MeasurementContentProviderClient;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.Robolectric;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowContentResolver;
 
@@ -25,15 +22,20 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.provider.BaseColumns;
-
+import androidx.annotation.NonNull;
+import androidx.test.core.app.ApplicationProvider;
+import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.utils.Validate;
 
 /**
  * Tests the correct internal workings of the <code>SyncAdapter</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -48,12 +50,9 @@ public class SyncAdapterTest {
     @Rule
     public MockitoRule rule = MockitoJUnit.rule();
 
-    @Mock
-    Http httpConnection;
-
     @Before
     public void setUp() {
-        context = RuntimeEnvironment.application;
+        context = ApplicationProvider.getApplicationContext();
         ShadowContentResolver.registerProviderInternal(AUTHORITY,
                 Robolectric.setupContentProvider(MeasuringPointsContentProvider.class));
     }
@@ -65,7 +64,6 @@ public class SyncAdapterTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws RemoteException {
-        SyncAdapter oocut = new SyncAdapter(context, false, httpConnection);
         ContentProviderClient client = null;
         Uri measurementUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
                 .appendPath(MeasurementTable.URI_PATH).build();
@@ -75,15 +73,14 @@ public class SyncAdapterTest {
                 throw new IllegalStateException("ContentProviderClient was null.");
             }
 
-            ContentValues notFinishedMeasurementValues = createMeasurement(false, false);
-            ContentValues notSyncedMeasurementValues = createMeasurement(false, true);
-            ContentValues syncedMeasurementValues = createMeasurement(true, true);
+            ContentValues notFinishedMeasurementValues = createMeasurement(MeasurementStatus.OPEN);
+            ContentValues notSyncedMeasurementValues = createMeasurement(MeasurementStatus.FINISHED);
+            ContentValues syncedMeasurementValues = createMeasurement(MeasurementStatus.SYNCED);
             client.insert(measurementUri, notFinishedMeasurementValues);
             Uri result = client.insert(measurementUri, notSyncedMeasurementValues);
-            if (result == null) {
-                throw new IllegalStateException("Unable to insert measurement into ContentProvider.");
-            }
+            Validate.notNull("Unable to insert measurement into ContentProvider.", result);
 
+            Validate.notNull(result.getLastPathSegment());
             long expectedIdentifier = Long.parseLong(result.getLastPathSegment());
             client.insert(measurementUri, syncedMeasurementValues);
 
@@ -96,6 +93,7 @@ public class SyncAdapterTest {
                     is(expectedIdentifier));
         } finally {
             if (client != null) {
+                // noinspection deprecation - because Roboelectric returns "NoSuchMeasurementError" in version 4.1
                 client.release();
             }
         }
@@ -105,16 +103,12 @@ public class SyncAdapterTest {
     /**
      * Creates the <code>ContentValues</code> object required to insert a new measurement ot a content provider.
      *
-     * @param isSynced If <code>true</code> the measurement has been synced; if <code>false</code> not.
-     * @param isFinished If <code>true</code> the measurement has finished data capturing; if <code>false</code> not.
+     * @param status The {@link MeasurementStatus} in which the measurement should be created.
      * @return The prepared <code>ContentValues</code> for inserting into a content provider.
      */
-    private ContentValues createMeasurement(final boolean isSynced, final boolean isFinished) {
+    private ContentValues createMeasurement(@NonNull final MeasurementStatus status) {
         ContentValues values = new ContentValues();
-
-        values.put(MeasurementTable.COLUMN_SYNCED, isSynced);
-        values.put(MeasurementTable.COLUMN_FINISHED, isFinished);
-
+        values.put(MeasurementTable.COLUMN_STATUS, status.getDatabaseIdentifier());
         return values;
     }
 
