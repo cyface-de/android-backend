@@ -36,6 +36,7 @@ import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 
+import android.content.ContentProvider;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
@@ -45,7 +46,7 @@ import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether serialization and deserialization of the Cyface binary format is successful.
@@ -92,7 +93,7 @@ public class MeasurementSerializerTest {
             + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
 
     @Before
-    public void setUp() throws RemoteException, DataCapturingException {
+    public void setUp() throws RemoteException, CursorIsNullException {
         Uri geoLocationUri = new Uri.Builder().scheme("content").authority(AUTHORITY)
                 .appendPath(GeoLocationsTable.URI_PATH).build();
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
@@ -122,10 +123,9 @@ public class MeasurementSerializerTest {
     /**
      * Tests if serialization of a measurement is successful.
      *
-     * @throws IOException Should not happen as long as serialization depends on ByteArrayInputStream.
      */
     @Test
-    public void testSerializeMeasurement() throws IOException, DataCapturingException {
+    public void testSerializeMeasurement() throws CursorIsNullException {
         MeasurementSerializer serializer = new MeasurementSerializer();
         byte[] data = serializer.loadSerialized(loader, 0, persistence);
         assertThat(data.length, is(equalTo(SERIALIZED_SIZE)));
@@ -135,11 +135,10 @@ public class MeasurementSerializerTest {
      * Tests whether deserialization of measurements from a serialized measurement is successful and provides the
      * expected result.
      *
-     * @throws IOException Thrown on streaming errors. Since this only uses ByteArrayStreams the exception should not
-     *             occur.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testDeserializeMeasurement() throws IOException, DataCapturingException {
+    public void testDeserializeMeasurement() throws CursorIsNullException {
         MeasurementSerializer serializer = new MeasurementSerializer();
 
         byte[] measurementBytes = serializer.loadSerialized(loader, 0, persistence);
@@ -187,7 +186,7 @@ public class MeasurementSerializerTest {
      *             occur.
      */
     @Test
-    public void testSerializeCompressedMeasurement() throws IOException {
+    public void testSerializeCompressedMeasurement() throws IOException, CursorIsNullException {
         MeasurementSerializer serializer = new MeasurementSerializer();
 
         InputStream input = serializer.loadSerializedCompressed(loader, 0, persistence);
@@ -251,7 +250,7 @@ public class MeasurementSerializerTest {
      * Tests that the serialized and compressed data can be decompressed and deserialized again.
      */
     @Test
-    public void testDecompressDeserialize() throws IOException, DataFormatException, DataCapturingException {
+    public void testDecompressDeserialize() throws IOException, DataFormatException, CursorIsNullException {
         MeasurementSerializer serializer = new MeasurementSerializer();
         byte[] serializedData = serializer.loadSerialized(loader, 0, persistence);
         InputStream compressedStream = serializer.loadSerializedCompressed(loader, 0, persistence);

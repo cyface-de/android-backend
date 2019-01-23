@@ -1,4 +1,4 @@
-package de.cyface.utils;
+package de.cyface.datacapturing.exception;
 
 import androidx.annotation.NonNull;
 

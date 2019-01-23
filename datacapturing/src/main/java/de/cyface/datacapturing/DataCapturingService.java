@@ -21,6 +21,7 @@ import java.util.concurrent.locks.ReentrantLock;
 import android.Manifest;
 import android.accounts.Account;
 import android.content.ComponentName;
+import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
@@ -41,6 +42,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.model.CapturedData;
@@ -59,7 +61,7 @@ import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -176,11 +178,12 @@ public abstract class DataCapturingService {
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @throws SetupException If writing the components preferences fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
-            throws SetupException {
+            throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.serviceConnection = new BackgroundServiceConnection();
@@ -232,14 +235,16 @@ public abstract class DataCapturingService {
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
-     * @throws DataCapturingException If the asynchronous background service did not start successfully.
+     * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
+     *             Android context was available.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException {
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
         Log.d(TAG, "Starting asynchronously and locking lifecycle!");
         lifecycleLock.lock();
         try {
@@ -278,17 +283,15 @@ public abstract class DataCapturingService {
      *
      * @param finishedHandler A handler that gets called after the process of finishing the current measurement has
      *            completed.
-     * @throws DataCapturingException If <code>DataCapturingBackgroundService</code> is not bound to this service.
-     *             The service will still be stopped if the exception occurs, but you have to handle it anyways to
-     *             prevent your application from crashing.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
      *             prior to stopping.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
-            throws DataCapturingException, NoSuchMeasurementException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
             return;
@@ -339,10 +342,11 @@ public abstract class DataCapturingService {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
      *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void pause(final @NonNull ShutDownFinishedHandler finishedHandler)
-            throws DataCapturingException, NoSuchMeasurementException {
+            throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
         if (getContext() == null) {
             return;
@@ -395,10 +399,11 @@ public abstract class DataCapturingService {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
      *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // because we need to support this API
-    public void resume(final @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException {
+    public void resume(final @NonNull StartUpFinishedHandler finishedHandler) throws DataCapturingException,
+            MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
         if (getContext() == null) {
             return;
         }
@@ -441,9 +446,10 @@ public abstract class DataCapturingService {
      *
      * @return A list containing all {@code Measurement}s currently stored on this device by this application. An empty
      *         list if there are no such measurements, but never <code>null</code>.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
-    public @NonNull List<Measurement> getCachedMeasurements() {
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    public @NonNull List<Measurement> getCachedMeasurements() throws CursorIsNullException {
         return persistenceLayer.loadMeasurements();
     }
 
@@ -453,8 +459,10 @@ public abstract class DataCapturingService {
      * @param status The status of the measurements to return
      * @return The {@code Measurement}s which are in the given {@code MeasurementStatus}. An empty list if there are no
      *         such measurements, but never <code>null</code>.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public @NonNull List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) {
+    public @NonNull List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status)
+            throws CursorIsNullException {
         return persistenceLayer.loadMeasurements(status);
     }
 
@@ -550,7 +558,7 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If service was not connected.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
+    @SuppressWarnings("unused") // because we need to support this API - TODO really?
     public void disconnect() throws DataCapturingException {
         unbind();
     }
@@ -732,9 +740,6 @@ public abstract class DataCapturingService {
      * @param context Current <code>Activity</code> context.
      * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
      */
-    // BooleanMethodIsAlwaysInverted because the semantic is more clear this way
-    // WeakerAccess because we need to support this API - TODO really?
-    @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "WeakerAccess"})
     boolean checkFineLocationAccess(final @NonNull Context context) {
         boolean permissionAlreadyGranted = ActivityCompat.checkSelfPermission(context,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -764,9 +769,10 @@ public abstract class DataCapturingService {
      *             exception and, thus, did not finish the {@link Measurement}. To find out if this can happen, we
      *             explicitly do not handle this case softly. If this case occurs we need to write a handling to clean
      *             up such measurements.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private Measurement prepareStart(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
-            throws DataCapturingException, MissingPermissionException {
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
         if (context.get() == null) {
             throw new DataCapturingException("No context to start service!");
         }
@@ -899,7 +905,7 @@ public abstract class DataCapturingService {
     /**
      * Unregisters the {@link ConnectionStatusReceiver} when no more needed.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
+    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
     public void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
     }

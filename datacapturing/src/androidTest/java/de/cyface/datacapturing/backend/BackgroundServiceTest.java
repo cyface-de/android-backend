@@ -34,7 +34,7 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.datacapturing.exception.DataCapturingException;
 
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and

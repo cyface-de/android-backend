@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -109,10 +109,10 @@ public class MeasurementContentProviderClient {
      *            table.
      * @return the number of data elements stored for the measurement.
      * @throws RemoteException If the content provider is not accessible.
-     * @throws DataCapturingException If content provider was inaccessible.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public int countData(final @NonNull Uri tableUri, final @NonNull String measurementForeignKeyColumnName)
-            throws RemoteException, DataCapturingException {
+            throws RemoteException, CursorIsNullException {
         Cursor cursor = null;
 
         try {

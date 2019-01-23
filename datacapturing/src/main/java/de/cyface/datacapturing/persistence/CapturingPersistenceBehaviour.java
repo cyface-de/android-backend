@@ -8,6 +8,7 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
+import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.util.Log;
 import androidx.annotation.NonNull;
@@ -21,7 +22,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.serialization.Point3dFile;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -143,9 +144,10 @@ public class CapturingPersistenceBehaviour extends PersistenceBehaviour {
      * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
      *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
      *             {@code Measurement}
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public @NonNull Measurement loadCurrentlyCapturedMeasurement()
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         synchronized (this) {
             if (currentMeasurementIdentifier == null && (persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     || persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))) {
@@ -169,9 +171,10 @@ public class CapturingPersistenceBehaviour extends PersistenceBehaviour {
      * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
      *             use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an actual
      *             {@link MeasurementStatus#OPEN} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void refreshIdentifierOfCurrentlyCapturedMeasurement()
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(Constants.TAG, "Trying to load currently captured measurement from persistence layer!");
 
         final List<Measurement> openMeasurements = persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
@@ -192,9 +195,10 @@ public class CapturingPersistenceBehaviour extends PersistenceBehaviour {
      * @throws IllegalArgumentException When the {@param newStatus} was none of the supported:
      *             {@link MeasurementStatus#FINISHED}, {@link MeasurementStatus#PAUSED} or
      *             {@link MeasurementStatus#OPEN}.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public void updateRecentMeasurement(@NonNull final MeasurementStatus newStatus)
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(
                 newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
 

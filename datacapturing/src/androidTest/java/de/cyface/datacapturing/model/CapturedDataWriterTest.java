@@ -23,6 +23,7 @@ import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
@@ -32,6 +33,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.GeoLocationsTable;
@@ -49,7 +51,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -95,7 +97,7 @@ public class CapturedDataWriterTest {
      * documentation</a>.
      */
     @Before
-    public void setUp() throws DataCapturingException {
+    public void setUp() throws CursorIsNullException {
         mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
@@ -117,7 +119,7 @@ public class CapturedDataWriterTest {
      * Tests whether creating and closing a measurement works as expected.
      */
     @Test
-    public void testCreateNewMeasurement() throws NoSuchMeasurementException, DataCapturingException {
+    public void testCreateNewMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -321,7 +323,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testLoadMeasurements() throws NoSuchMeasurementException, DataCapturingException {
+    public void testLoadMeasurements() throws NoSuchMeasurementException, CursorIsNullException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
@@ -340,7 +342,7 @@ public class CapturedDataWriterTest {
      *             there was a very serious database error.
      */
     @Test
-    public void testDeleteMeasurement() throws NoSuchMeasurementException, DataCapturingException {
+    public void testDeleteMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
@@ -394,9 +396,10 @@ public class CapturedDataWriterTest {
      * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
      *
      * @throws NoSuchMeasurementException if the created measurement is null for some unexpected reason.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack() throws NoSuchMeasurementException, DataCapturingException {
+    public void testLoadTrack() throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();
@@ -422,10 +425,8 @@ public class CapturedDataWriterTest {
                     if (oocut.hasMeasurement(MeasurementStatus.OPEN)) {
                         capturingBehaviour.updateRecentMeasurement(FINISHED);
                     }
-                } catch (final NoSuchMeasurementException | DataCapturingException e) {
-                    // FIXME: why do we just silently ignore the exception? I would expect a check that the right
-                    // exception is thrown
-                    e.printStackTrace();
+                } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+                    throw new IllegalStateException(e);
                 }
             }
         });

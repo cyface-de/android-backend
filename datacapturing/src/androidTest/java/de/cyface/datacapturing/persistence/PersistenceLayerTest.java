@@ -25,7 +25,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests the correct workings of the <code>PersistenceLayer</code> class.
@@ -84,7 +84,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
         capturingBehaviour.updateRecentMeasurement(FINISHED);
@@ -99,17 +99,16 @@ public class PersistenceLayerTest {
      * returns an empty list.
      */
     @Test
-    public void testLoadFinishedMeasurements_noMeasurements() throws DataCapturingException {
+    public void testLoadFinishedMeasurements_noMeasurements() throws CursorIsNullException {
         assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), is(equalTo(true)));
     }
 
     /**
      * Test that loading an open and a closed measurement works as expected.
      *
-     * @throws DataCapturingException Fails the test if anything unexpected happens.
      */
     @Test
-    public void testLoadMeasurementSuccessfully() throws DataCapturingException, NoSuchMeasurementException {
+    public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));

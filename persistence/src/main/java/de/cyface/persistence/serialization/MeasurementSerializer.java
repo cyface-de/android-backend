@@ -30,7 +30,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -96,9 +96,10 @@ public final class MeasurementSerializer {
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
      * @return An {@link InputStream} containing the serialized compressed data.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public InputStream loadSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
-            @NonNull final long measurementId, @NonNull final PersistenceLayer persistenceLayer) {
+            final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
         final Deflater compressor = new Deflater();
         final byte[] serializedMeasurement = loadSerialized(loader, measurementId, persistenceLayer);
@@ -211,11 +212,11 @@ public final class MeasurementSerializer {
      * @param measurementIdentifier The id of the {@code Measurement} to load
      * @param persistence The {@code PersistenceLayer} to access the file based data
      * @return A byte array containing the serialized data.
-     * @throws DataCapturingException If content provider was inaccessible.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public byte[] loadSerialized(@NonNull final MeasurementContentProviderClient loader,
             final long measurementIdentifier, @NonNull final PersistenceLayer persistence)
-            throws DataCapturingException {
+            throws CursorIsNullException {
 
         // GeoLocations
         Cursor geoLocationsCursor = null;

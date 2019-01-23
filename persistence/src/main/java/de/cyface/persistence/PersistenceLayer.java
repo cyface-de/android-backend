@@ -15,6 +15,7 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
@@ -30,7 +31,7 @@ import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -110,9 +111,9 @@ public class PersistenceLayer {
      *
      * @param status The {@code MeasurementStatus} in question
      * @return <code>true</code> if a {@code Measurement} of the {@param status} exists.
-     * @throws DataCapturingException If content provider was inaccessible.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public boolean hasMeasurement(@NonNull MeasurementStatus status) throws DataCapturingException {
+    public boolean hasMeasurement(@NonNull MeasurementStatus status) throws CursorIsNullException {
         Log.d(Constants.TAG, "Checking if app has an " + status + " measurement.");
 
         Cursor cursor = null;
@@ -139,9 +140,9 @@ public class PersistenceLayer {
      * {@link #loadMeasurements(MeasurementStatus)} instead.
      *
      * @return All {@code Measurement}s currently in the local persistent data storage.
-     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public @NonNull List<Measurement> loadMeasurements() throws DataCapturingException {
+    public @NonNull List<Measurement> loadMeasurements() throws CursorIsNullException {
         Cursor cursor = null;
         try {
             List<Measurement> ret = new ArrayList<>();
@@ -166,9 +167,9 @@ public class PersistenceLayer {
      *
      * @param measurementIdentifier The device wide unique identifier of the {@code Measurement} to load.
      * @return The loaded {@code Measurement} if it exists; <code>null</code> otherwise.
-     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public Measurement loadMeasurement(final long measurementIdentifier) throws DataCapturingException {
+    public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
         final Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier))
                 .build();
         Cursor cursor = null;
@@ -178,7 +179,7 @@ public class PersistenceLayer {
                     new String[] {String.valueOf(measurementIdentifier)}, null);
             Validate.softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
-                throw new DataCapturingException("Too many measurements loaded from URI: " + measurementUri);
+                throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
             }
 
             if (cursor.moveToFirst()) {
@@ -199,10 +200,10 @@ public class PersistenceLayer {
      * @param measurementIdentifier The device wide unique identifier of the measurement to load.
      * @return The loaded {@code MeasurementStatus}
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
-     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public MeasurementStatus loadMeasurementStatus(final long measurementIdentifier)
-            throws DataCapturingException, NoSuchMeasurementException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier)).build();
         Cursor cursor = null;
 
@@ -210,7 +211,7 @@ public class PersistenceLayer {
             cursor = resolver.query(measurementUri, null, null, null, null);
             Validate.softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
-                throw new DataCapturingException("Too many measurements loaded from URI: " + measurementUri);
+                throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
             }
             if (!cursor.moveToFirst()) {
                 throw new NoSuchMeasurementException("Failed to load MeasurementStatus.");
@@ -230,9 +231,9 @@ public class PersistenceLayer {
      *
      * @param status the {@code MeasurementStatus} for which all {@code Measurement}s are to be loaded
      * @return All the {code Measurement}s in the specified {@param state}
-     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) throws DataCapturingException {
+    public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) throws CursorIsNullException {
         Cursor cursor = null;
 
         try {
@@ -262,7 +263,7 @@ public class PersistenceLayer {
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
      */
     public void markAsSynchronized(@NonNull final Measurement measurement)
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(loadMeasurementStatus(measurement.getIdentifier()) == FINISHED);
         setStatus(measurement.getIdentifier(), SYNCED);
 
@@ -295,7 +296,7 @@ public class PersistenceLayer {
      *
      * @return The device is as string
      */
-    public final String restoreOrCreateDeviceId() throws DataCapturingException {
+    public final String restoreOrCreateDeviceId() throws CursorIsNullException {
         Log.d(Constants.TAG, "Trying to load device identifier from content provider!");
         Cursor deviceIdentifierQueryCursor = null;
         try {
@@ -476,9 +477,9 @@ public class PersistenceLayer {
      *
      * @param measurementId The id of the measurement to load the {@code PointMetaData} for
      * @return the requested {@link PointMetaData}
-     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public PointMetaData loadPointMetaData(final long measurementId) throws DataCapturingException {
+    public PointMetaData loadPointMetaData(final long measurementId) throws CursorIsNullException {
         Cursor cursor = null;
         try {
             cursor = resolver.query(getMeasurementUri(),
@@ -508,10 +509,10 @@ public class PersistenceLayer {
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newStatus The new {@code MeasurementStatus}
      * @throws NoSuchMeasurementException if there was no measurement with the id {@param measurementIdentifier}.
-     * @throws DataCapturingException If accessing the content provider fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
-            throws NoSuchMeasurementException, DataCapturingException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         final ContentValues statusValue = new ContentValues();
         statusValue.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
 

@@ -2,6 +2,7 @@ package de.cyface.utils;
 
 import java.util.Collection;
 
+import android.content.ContentProvider;
 import android.database.Cursor;
 import androidx.annotation.Nullable;
 
@@ -10,7 +11,7 @@ import androidx.annotation.Nullable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.2.0
  * @since 2.2.0
  */
 public class Validate {
@@ -61,11 +62,11 @@ public class Validate {
      * Checks if the {@link Cursor} is null. If so, a soft {@link DataCapturingException} is thrown.
      *
      * @param cursor the {@code Cursor} to be checked
-     * @throws DataCapturingException If content provider was inaccessible. See {@code ContentResolver#query()}.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible. See {@code ContentResolver#query()}.
      */
-    public static void softCatchNullCursor(@Nullable Cursor cursor) throws DataCapturingException {
+    public static void softCatchNullCursor(@Nullable Cursor cursor) throws CursorIsNullException{
         if (cursor == null) {
-            throw new DataCapturingException("Cursor was null, unable to perform operation.");
+            throw new CursorIsNullException();
         }
     }
 }

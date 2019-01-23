@@ -24,7 +24,7 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
