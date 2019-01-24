@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.HttpConnection.TAG;
 
 import android.app.Service;
 import android.content.Intent;
@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
  * Android documentation</a>.
  *
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.0.0
  */
 public final class AuthenticatorService extends Service {

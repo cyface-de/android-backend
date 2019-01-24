@@ -3,14 +3,16 @@ package de.cyface.datacapturing.model;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
-import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clear;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -51,7 +53,6 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.persistence.serialization.FileCorruptedException;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
@@ -93,6 +94,8 @@ public class CapturedDataWriterTest {
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     private CapturingPersistenceBehaviour capturingBehaviour;
+    private int testLocationCount = 1;
+    private int testDataCount = 3;
 
     /**
      * Initializes the test case as explained in the <a href=
@@ -147,6 +150,11 @@ public class CapturedDataWriterTest {
                     is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
+            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_ACCELERATIONS)), is(equalTo(0)));
+            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_ROTATIONS)), is(equalTo(0)));
+            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_DIRECTIONS)), is(equalTo(0)));
+            assertThat(result.getShort(result.getColumnIndex(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
+                    is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
 
         } finally {
             if (result != null) {
@@ -189,7 +197,7 @@ public class CapturedDataWriterTest {
      * Tests whether data is stored correctly via the <code>PersistenceLayer</code>.
      */
     @Test
-    public void testStoreData() throws FileCorruptedException {
+    public void testStoreData() {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
@@ -210,8 +218,8 @@ public class CapturedDataWriterTest {
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
         // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),
-                measurement.getIdentifier());
+        oocut.storePointMetaData(new PointMetaData(testDataCount, testDataCount, testDataCount,
+                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
 
         lock.lock();
         try {
@@ -228,8 +236,13 @@ public class CapturedDataWriterTest {
         Cursor geoLocationsCursor = null;
         FileAccessLayer fileAccessLayer = new DefaultFileAccess();
         try {
+            // GeoLocations
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    geoLocationsCursor);
+            assertThat(geoLocationsCursor.getCount(), is(equalTo(testLocationCount)));
 
+            // Point3ds
             Point3dFile accelerationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
             Point3dFile rotationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
@@ -237,17 +250,13 @@ public class CapturedDataWriterTest {
             Point3dFile directionsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
 
-            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), 3);
-            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), 3);
-            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), 3);
+            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), testDataCount);
+            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), testDataCount);
+            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), testDataCount);
 
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
-
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(1)));
-            assertThat(accelerations.size(), is(equalTo(3)));
-            assertThat(rotations.size(), is(equalTo(3)));
-            assertThat(directions.size(), is(equalTo(3)));
+            assertThat(accelerations.size(), is(equalTo(testDataCount)));
+            assertThat(rotations.size(), is(equalTo(testDataCount)));
+            assertThat(directions.size(), is(equalTo(testDataCount)));
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
@@ -261,6 +270,7 @@ public class CapturedDataWriterTest {
     @Test
     public void testCascadingClearMeasurements() {
         // Insert some test data
+        final int testMeasurements = 2;
         oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
 
@@ -279,6 +289,11 @@ public class CapturedDataWriterTest {
         };
 
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
+
+        // Store PointMetaData
+        oocut.storePointMetaData(new PointMetaData(testDataCount, testDataCount, testDataCount,
+                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
+
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
 
         lock.lock();
@@ -291,25 +306,33 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedRows = clear(context, mockResolver, AUTHORITY);
-        assertThat(removedRows, is(equalTo(12)));
+        int removedEntries = clear(context, mockResolver, AUTHORITY);
+        final int testIdentifierTableCount = 1;
+        final int testMeasurementsWithPoint3dFiles = 1;
+        final int point3dFilesPerMeasurement = 3;
+        assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3dFiles * point3dFilesPerMeasurement
+                + testLocationCount + testMeasurements + testIdentifierTableCount)));
 
         // make sure nothing is left in the database
         Cursor geoLocationsCursor = null;
         Cursor measurementsCursor = null;
+        Cursor identifierCursor = null;
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
+            identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     measurementsCursor);
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    identifierCursor);
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-            // FIXME: load and assert sensor data count?
             assertThat(measurementsCursor.getCount(), is(equalTo(0)));
+            assertThat(identifierCursor.getCount(), is(equalTo(0)));
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
@@ -317,11 +340,21 @@ public class CapturedDataWriterTest {
             if (measurementsCursor != null) {
                 measurementsCursor.close();
             }
+            if (identifierCursor != null) {
+                identifierCursor.close();
+            }
         }
 
-        // Make sure nothing is left of the persistence files
-        // FIXME:
-        throw new IllegalStateException("Not implemented");
+        // Make sure nothing is left of the Point3dFiles
+        final File accelerationsFolder = oocut.getFileAccessLayer().getFolderPath(context,
+                Point3dFile.ACCELERATIONS_FOLDER_NAME);
+        final File rotationsFolder = oocut.getFileAccessLayer().getFolderPath(context,
+                Point3dFile.ROTATIONS_FOLDER_NAME);
+        final File directionsFolder = oocut.getFileAccessLayer().getFolderPath(context,
+                Point3dFile.DIRECTIONS_FOLDER_NAME);
+        assertThat(accelerationsFolder.exists(), is(equalTo(false)));
+        assertThat(rotationsFolder.exists(), is(equalTo(false)));
+        assertThat(directionsFolder.exists(), is(equalTo(false)));
     }
 
     /**

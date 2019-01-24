@@ -2,7 +2,7 @@ package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clear;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -34,7 +34,7 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
@@ -82,7 +82,7 @@ public class BackgroundServiceTest {
     private Context context;
 
     @Before
-    public void setUp() throws DataCapturingException {
+    public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
         // Required to create a test measurement.
@@ -97,7 +97,7 @@ public class BackgroundServiceTest {
 
     @After
     public void tearDown() {
-        clear(context, context.getContentResolver());
+        clear(context, context.getContentResolver(), AUTHORITY);
         testMeasurement = null;
     }
 

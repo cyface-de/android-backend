@@ -11,7 +11,7 @@ import de.cyface.persistence.model.Measurement;
  * @version 1.0.0
  * @since 3.0.0
  */
-public class DefaultPersistenceBehaviour extends PersistenceBehaviour {
+public class DefaultPersistenceBehaviour implements PersistenceBehaviour {
     @Override
     public void onStart(@NonNull PersistenceLayer persistenceLayer) {
         // nothing to do

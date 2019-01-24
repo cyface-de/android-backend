@@ -6,6 +6,7 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_ROTATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
+import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
@@ -95,7 +96,24 @@ public class PersistenceLayer {
         this.authority = authority;
         this.persistenceBehaviour = persistenceBehaviour;
         this.fileAccessLayer = new DefaultFileAccess();
+        final File accelerationsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
+        final File rotationsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
+        final File directionsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+        checkOrCreateFolder(accelerationsFolder);
+        checkOrCreateFolder(rotationsFolder);
+        checkOrCreateFolder(directionsFolder);
         persistenceBehaviour.onStart(this);
+    }
+
+    /**
+     * Ensures that the specified exists.
+     *
+     * @param folder The {@link File} pointer to the folder which is created if it does not yet exist
+     */
+    private void checkOrCreateFolder(@NonNull final File folder) {
+        if (!folder.exists()) {
+            Validate.isTrue(folder.mkdir());
+        }
     }
 
     /**
@@ -105,13 +123,18 @@ public class PersistenceLayer {
      * @return The newly created {@code Measurement}.
      */
     public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
-        final ContentValues values = new ContentValues();
-        values.put(MeasurementTable.COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
-        values.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
+        final ContentValues measurementValues = new ContentValues();
+        measurementValues.put(COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
+        measurementValues.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
+        measurementValues.put(COLUMN_ACCELERATIONS, 0);
+        measurementValues.put(COLUMN_ROTATIONS, 0);
+        measurementValues.put(COLUMN_DIRECTIONS, 0);
+        measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
 
         // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
-            Uri resultUri = resolver.insert(getMeasurementUri(), values);
+            Uri resultUri = resolver.insert(getMeasurementUri(), measurementValues);
             Validate.notNull("New measurement could not be created!", resultUri);
             Validate.notNull(resultUri.getLastPathSegment());
 
@@ -566,7 +589,7 @@ public class PersistenceLayer {
         return resolver;
     }
 
-    public PersistenceBehaviour getPersistenceBehaviour() {
-        return persistenceBehaviour;
+    public FileAccessLayer getFileAccessLayer() {
+        return fileAccessLayer;
     }
 }

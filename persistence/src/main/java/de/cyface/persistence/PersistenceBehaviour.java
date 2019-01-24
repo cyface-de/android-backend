@@ -12,22 +12,22 @@ import de.cyface.persistence.model.Vehicle;
  * @version 1.0.0
  * @since 3.0.0
  */
-abstract public class PersistenceBehaviour {
+public interface PersistenceBehaviour {
 
     /**
      * This is called in the {@code Persistence}'s constructor.
      */
-    public abstract void onStart(@NonNull PersistenceLayer persistenceLayer);
+    void onStart(@NonNull PersistenceLayer persistenceLayer);
 
     /**
      * This is called after a {@link PersistenceLayer#newMeasurement(Vehicle)} was created.
      * 
      * @param measurementId The id of the recently created {@link Measurement}
      */
-    public abstract void onNewMeasurement(long measurementId);
+    void onNewMeasurement(long measurementId);
 
     /**
      * This is called when the {@link PersistenceLayer} is no longer needed by {@link PersistenceLayer#shutdown()}.
      */
-    public abstract void shutdown();
+    void shutdown();
 }

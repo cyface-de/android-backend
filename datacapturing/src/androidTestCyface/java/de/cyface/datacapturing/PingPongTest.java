@@ -21,12 +21,13 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.backend.TestCallback;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * This test checks that the ping pong mechanism, which is used to check if a service is running or not, works as
@@ -34,7 +35,7 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -89,8 +90,8 @@ public class PingPongTest {
      * @throws NoSuchMeasurementException If the service lost track of the measurement.
      */
     @Test
-    public void testWithRunningService()
-            throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException {
+    public void testWithRunningService() throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException {
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
@@ -101,10 +102,9 @@ public class PingPongTest {
             @Override
             public void run() {
                 try {
-                    dcs = new CyfaceDataCapturingService(context, context.getContentResolver(),
-                            TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE, "https://fake.fake/",
-                            new IgnoreEventsStrategy());
-                } catch (SetupException e) {
+                    dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
+                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy());
+                } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }

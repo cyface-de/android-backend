@@ -1,6 +1,5 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
@@ -270,7 +269,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         Log.v(TAG, "Init Sync!");
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String installationIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
+        final String installationIdentifier = preferences.getString(Constants.DEVICE_IDENTIFIER_KEY, null);
         if (installationIdentifier == null) {
             throw new IllegalStateException("No installation identifier for this application set in its preferences.");
         }

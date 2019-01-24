@@ -22,12 +22,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import de.cyface.utils.DataCapturingException;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Checks if missing permissions are correctly detected before starting a service.
@@ -74,7 +75,7 @@ public class DataCapturingServiceTestWithoutPermission {
                 try {
                     oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
                             dataUploadServerAddress, new IgnoreEventsStrategy());
-                } catch (SetupException e) {
+                } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
@@ -92,7 +93,8 @@ public class DataCapturingServiceTestWithoutPermission {
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      */
     @Test(expected = MissingPermissionException.class)
-    public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException {
+    public void testServiceDoesNotStartWithoutPermission()
+            throws MissingPermissionException, DataCapturingException, CursorIsNullException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
         oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
@@ -102,7 +104,7 @@ public class DataCapturingServiceTestWithoutPermission {
      * Tests whether a set {@link UIListener} is correctly informed about a missing permission.
      */
     @Test
-    public void testUIListenerIsInformedOfMissingPermission() {
+    public void testUIListenerIsInformedOfMissingPermission() throws CursorIsNullException {
         TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 

@@ -27,6 +27,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -140,7 +141,7 @@ public class DataTransmissionTest {
 
             MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
-            MeasurementSerializer serializer = new MeasurementSerializer();
+            MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
             measurementData = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(), persistence);
             // printMD5(measurementData);
 

@@ -740,6 +740,9 @@ public abstract class DataCapturingService {
      * @param context Current <code>Activity</code> context.
      * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
      */
+    // BooleanMethodIsAlwaysInverted - because it's better readable this way
+    // WeakerAccess - //TODO because ?
+    @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "WeakerAccess"})
     boolean checkFineLocationAccess(final @NonNull Context context) {
         boolean permissionAlreadyGranted = ActivityCompat.checkSelfPermission(context,
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
@@ -905,7 +908,7 @@ public abstract class DataCapturingService {
     /**
      * Unregisters the {@link ConnectionStatusReceiver} when no more needed.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO: really?
     public void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
     }

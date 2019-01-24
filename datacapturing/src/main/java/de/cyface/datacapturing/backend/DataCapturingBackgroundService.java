@@ -245,7 +245,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                             + AUTHORITY_ID);
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-        // FIXME: remove initPersistenceLayer(authority);
         capturingBehaviour = new CapturingPersistenceBehaviour();
         persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
 

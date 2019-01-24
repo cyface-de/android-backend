@@ -37,6 +37,7 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -86,6 +87,11 @@ public class MeasurementContentProviderClientTest {
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
+            measurementValues.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
+            measurementValues.put(MeasurementTable.COLUMN_ROTATIONS, 0);
+            measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
+            measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
             Validate.notNull("Measurement insertion failed!", result);
             Validate.notNull(result.getLastPathSegment());
@@ -161,6 +167,11 @@ public class MeasurementContentProviderClientTest {
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
+            measurementValues.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
+            measurementValues.put(MeasurementTable.COLUMN_ROTATIONS, 0);
+            measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
+            measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
             Validate.notNull("Measurement insertion failed!", result);
             Validate.notNull(result.getLastPathSegment());
@@ -202,7 +213,8 @@ public class MeasurementContentProviderClientTest {
         insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer);
 
         // Create a finished measurement
-        Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED, persistenceLayer);
+        Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
+                persistenceLayer);
 
         // Create a synchronized measurement
         insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);

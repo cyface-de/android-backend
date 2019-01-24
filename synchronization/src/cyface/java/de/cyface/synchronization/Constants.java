@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.5
+ * @version 1.2.6
  * @since 2.0.0
  */
 public final class Constants {

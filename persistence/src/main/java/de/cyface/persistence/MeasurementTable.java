@@ -35,20 +35,20 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * Column name for the number of acceleration {@link Point3d}s persisted for this {@link Measurement}.
      */
-    static final String COLUMN_ACCELERATIONS = "accelerations";
+    public static final String COLUMN_ACCELERATIONS = "accelerations";
     /**
      * Column name for the number of rotation {@link Point3d}s persisted for this {@link Measurement}.
      */
-    static final String COLUMN_ROTATIONS = "rotations";
+    public static final String COLUMN_ROTATIONS = "rotations";
     /**
      * Column name for the number of direction {@link Point3d}s persisted for this {@link Measurement}.
      */
-    static final String COLUMN_DIRECTIONS = "directions";
+    public static final String COLUMN_DIRECTIONS = "directions";
     /**
      * Column name for the {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
      * persistence layer of for this {@link Measurement}.
      */
-    static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
+    public static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
     /**
      * An array containing all columns from this table in default order.
      */

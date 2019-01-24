@@ -32,7 +32,7 @@ import de.cyface.utils.Validate;
  * @version 1.0.0
  * @since 3.0.0
  */
-public class CapturingPersistenceBehaviour extends PersistenceBehaviour {
+public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
 
     /**
      * A threadPool to execute operations on their own background threads.

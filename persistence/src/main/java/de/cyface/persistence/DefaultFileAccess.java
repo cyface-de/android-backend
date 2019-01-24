@@ -4,7 +4,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
-import java.io.FileFilter;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
@@ -22,16 +21,6 @@ import de.cyface.utils.Validate;
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {
-
-    @Override
-    @NonNull
-    public FileFilter directoryFilter() {
-        return new FileFilter() {
-            public boolean accept(File pathname) {
-                return pathname.isDirectory();
-            }
-        };
-    }
 
     @Override
     @NonNull

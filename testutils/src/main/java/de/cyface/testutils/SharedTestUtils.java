@@ -1,6 +1,9 @@
 package de.cyface.testutils;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getIdentifierUri;
+import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 
 import java.io.File;
@@ -9,10 +12,14 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
+import de.cyface.persistence.IdentifierTable;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -138,5 +145,70 @@ public class SharedTestUtils {
 
         Log.d(TAG, "Deserialized Points: " + points.size());
         return points;
+    }
+
+    /**
+     * Removes everything from the local persistent data storage to allow reproducible test results.
+     *
+     * (!) This removes both the data from file persistence and the database which will also reset the device id.
+     * This is not part of the persistence layer as we want to avoid that this is used outside the test code.
+     *
+     * This method mut be in the {@link SharedTestUtils} to ensure multiple modules can access it in androidTests!
+     *
+     * @param context The {@link Context} required to access the file persistence layer
+     * @param resolver The {@link ContentResolver} required to access the database
+     * @return number of rows removed from the database and number of <b>FILES</b> (not points) deleted. The earlier
+     *         includes {@link Measurement}s and {@link GeoLocation}s and the {@link IdentifierTable} (i.e. device id).
+     *         The later includes the {@link Point3dFile}s.
+     */
+    public static int clear(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            @NonNull final String authority) {
+
+        final FileAccessLayer fileAccessLayer = new DefaultFileAccess();
+
+        // Remove {@code Point3dFile}s and their parent folders
+        int removedFiles = 0;
+
+        final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
+        if (accelerationFolder.exists()) {
+            Validate.isTrue(accelerationFolder.isDirectory());
+            final File[] accelerationFiles = accelerationFolder.listFiles();
+            for (File file : accelerationFiles) {
+                Validate.isTrue(file.delete());
+            }
+            removedFiles += accelerationFiles.length;
+            Validate.isTrue(accelerationFolder.delete());
+        }
+
+        final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
+        if (rotationFolder.exists()) {
+            Validate.isTrue(rotationFolder.isDirectory());
+            final File[] rotationFiles = rotationFolder.listFiles();
+            for (File file : rotationFiles) {
+                Validate.isTrue(file.delete());
+            }
+            removedFiles += rotationFiles.length;
+            Validate.isTrue(rotationFolder.delete());
+        }
+
+        final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+        if (directionFolder.exists()) {
+            Validate.isTrue(directionFolder.isDirectory());
+            final File[] directionFiles = directionFolder.listFiles();
+            for (File file : directionFiles) {
+                Validate.isTrue(file.delete());
+            }
+            removedFiles += directionFiles.length;
+            Validate.isTrue(directionFolder.delete());
+        }
+
+        // Remove database entries
+        final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
+        final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
+        int removedDatabaseRows = 0;
+        removedDatabaseRows += resolver.delete(getIdentifierUri(authority), null, null);
+        removedDatabaseRows += removedGeoLocations;
+        removedDatabaseRows += removedMeasurements;
+        return removedFiles + removedDatabaseRows;
     }
 }
