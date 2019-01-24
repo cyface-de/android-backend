@@ -101,7 +101,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * A wake lock used to keep the application active during data capturing.
      */
-    private PowerManager.WakeLock wakeLock;
+    private static final int NOTIFICATION_ID = 74656;
+    /**
+     * The tag used to identify logging messages send to logcat.
+     */
+    private final static String TAG = BACKGROUND_TAG;
     /**
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
@@ -258,8 +262,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         * However this might cause problems if the service has already been killed at this stage.
         */
         startForeground(NOTIFICATION_ID, notification);
-        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
-
 
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
