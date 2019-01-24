@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
@@ -19,12 +37,10 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.1.2
+ * @version 2.0.0
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
-
-    private final static String CHANNEL_ID = "de.cyface.datacapturing.ignoreeventsstrategy";
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
@@ -59,12 +75,12 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     }
 
     @Override
-    public void handleSpaceWarning(final DataCapturingBackgroundService dataCapturingBackgroundService) {
+    public void handleSpaceWarning(final @NonNull DataCapturingBackgroundService dataCapturingBackgroundService) {
         Log.d(BACKGROUND_TAG, "No strategy provided for the handleSpaceWarning event. Ignoring.");
     }
 
     @Override
-    public Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
+    public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
         Validate.notNull("No context provided!", context);
 
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
@@ -78,14 +94,13 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
             notificationManager.createNotificationChannel(channel);
         }
 
-        return new NotificationCompat.Builder(context, CHANNEL_ID).setContentTitle("Cyface")
-                .setSmallIcon(R.drawable.ic_movebis_notification).setContentText("Running Cyface Data Capturing")
-                .setOngoing(true).setAutoCancel(false).setVibrate(new long[] {0L, 0L, 0L}).build();
-    }
-
-    @Override
-    public int getCapturingNotificationId() {
-        return 1;
+        return new NotificationCompat.Builder(context, channelId)
+                .setContentTitle("Cyface")
+                //.setSmallIcon(R.drawable.ic_movebis_notification)
+                .setContentText("Running Cyface Data Capturing")
+                .setOngoing(true)
+                .setAutoCancel(false)
+                .build();
     }
 
     @Override
