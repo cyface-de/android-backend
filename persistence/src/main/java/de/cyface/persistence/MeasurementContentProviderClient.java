@@ -1,6 +1,5 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
 import android.content.ContentProvider;
@@ -74,8 +73,7 @@ public class MeasurementContentProviderClient {
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
-        final Uri uri = new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH)
-                .build();
+        final Uri uri = Utils.getGeoLocationsUri(authority);
         final String[] projection = new String[] {GeoLocationsTable.COLUMN_GPS_TIME, GeoLocationsTable.COLUMN_LAT,
                 GeoLocationsTable.COLUMN_LON, GeoLocationsTable.COLUMN_SPEED, GeoLocationsTable.COLUMN_ACCURACY};
         final String selection = GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?";
@@ -140,9 +138,8 @@ public class MeasurementContentProviderClient {
     public int cleanMeasurement() throws RemoteException {
         ContentValues values = new ContentValues();
         values.put(MeasurementTable.COLUMN_STATUS, SYNCED.getDatabaseIdentifier());
-        client.update(
-                new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build(),
-                values, BaseColumns._ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
+        client.update(Utils.getMeasurementUri(authority), values, BaseColumns._ID + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         values.clear();
 
         int ret = 0;
@@ -151,30 +148,6 @@ public class MeasurementContentProviderClient {
     }
 
     public @NonNull Uri createGeoLocationTableUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
-    }
-
-    /**
-     * Loads all measurements from the content provider that are already finished capturing, but have not been
-     * synchronized yet.
-     *
-     * @param provider A client with access to the content provider containing the measurements.
-     * @param authority The content provider authority to load the measurements from.
-     * @return An initialized cursor pointing to the unsynchronized measurements.
-     * @throws RemoteException If the query to the content provider has not been successful.
-     * @throws IllegalStateException If the <code>Cursor</code> was not successfully initialized.
-     */
-    public static Cursor loadSyncableMeasurements(final @NonNull ContentProviderClient provider,
-                                                  final @NonNull String authority) throws RemoteException {
-        final Uri measurementTableUri = new Uri.Builder().scheme("content").authority(authority)
-                .appendPath(MeasurementTable.URI_PATH).build();
-        final Cursor ret = provider.query(measurementTableUri, null, MeasurementTable.COLUMN_STATUS + "=?",
-                new String[] {FINISHED.getDatabaseIdentifier()}, null);
-
-        if (ret == null) {
-            throw new IllegalStateException("Unable to load measurement from content provider!");
-        }
-
-        return ret;
+        return Utils.getGeoLocationsUri(authority);
     }
 }

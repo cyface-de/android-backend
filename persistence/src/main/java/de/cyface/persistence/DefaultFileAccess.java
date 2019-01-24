@@ -12,25 +12,20 @@ import java.io.IOException;
 import android.content.Context;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.Validate;
 
 /**
- * Utility class containing file methods used by multiple classes.
+ * Implementation of the {@link FileAccessLayer} which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 3.0.0
  * @since 3.0.0
  */
-public final class FileUtils {
+public final class DefaultFileAccess implements FileAccessLayer {
 
-    /**
-     * Returns a {@link FileFilter} which can be used to get directories from a file list.
-     *
-     * @return the {@code FileFilter}
-     */
-    static FileFilter directoryFilter() {
+    @Override
+    @NonNull
+    public FileFilter directoryFilter() {
         return new FileFilter() {
             public boolean accept(File pathname) {
                 return pathname.isDirectory();
@@ -38,13 +33,9 @@ public final class FileUtils {
         };
     }
 
-    /**
-     * Loads the bytes form a file.
-     *
-     * @param file The {@link File} to load the bytes from.
-     * @return The bytes.
-     */
-    public static byte[] loadBytes(final File file) {
+    @Override
+    @NonNull
+    public byte[] loadBytes(File file) {
         Validate.isTrue(file.exists());
         final byte[] bytes = new byte[(int)file.length()];
 
@@ -78,44 +69,22 @@ public final class FileUtils {
         }
     }
 
-    /**
-     * Returns the path of the parent directory containing all {@link Point3dFile}s of a specified type.
-     * This directory is deleted when the app is uninstalled and can only be accessed by the app.
-     *
-     * @param context The {@link Context} required to access the underlying persistence layer.
-     * @param folderName The folder name defining the type of {@link Point3d}
-     */
-    public static File getFolderPath(@NonNull final Context context, @NonNull String folderName) {
+    @Override
+    @NonNull
+    public File getFolderPath(@NonNull Context context, @NonNull String folderName) {
         return new File(context.getFilesDir() + File.separator + folderName);
     }
 
-    /**
-     * Generates the path to a specific binary file.
-     *
-     * @param context The {@link Context} required to access the underlying persistence layer.
-     * @param measurementId the identifier of the measurement for which the file is to be found
-     * @param folderName The folder name defining the {@link Point3d} type of the file
-     * @param fileExtension the extension of the file type
-     * @return The {@link File}
-     */
-    public static File getFilePath(@NonNull final Context context, final long measurementId, final String folderName,
-            final String fileExtension) {
+    @Override
+    @NonNull
+    public File getFilePath(@NonNull Context context, long measurementId, String folderName, String fileExtension) {
         final File folder = getFolderPath(context, folderName);
         return new File(folder.getPath() + File.separator + measurementId + "." + fileExtension);
     }
 
-    /**
-     * Creates a {@link File} for Cyface binary data.
-     *
-     * @param context The {@link Context} required to access the underlying persistence layer.
-     * @param measurementId the identifier of the measurement for which the file is to be found
-     * @param folderName The folder name defining the {@link Point3d} type of the file
-     * @param fileExtension the extension of the file type
-     * @return The create {@code File}.
-     * @throws IllegalStateException when the measurement folder does not exist.
-     */
-    public static File createFile(@NonNull final Context context, final long measurementId, final String folderName,
-            final String fileExtension) {
+    @Override
+    @NonNull
+    public File createFile(@NonNull Context context, long measurementId, String folderName, String fileExtension) {
         final File file = getFilePath(context, measurementId, folderName, fileExtension);
         Validate.isTrue(!file.exists(), "Failed to createFile as it already exists: " + file.getPath());
         try {
@@ -128,14 +97,8 @@ public final class FileUtils {
         return file;
     }
 
-    /**
-     * Method to write data to a file.
-     *
-     * @param file The {@link File} referencing the path to write the data to
-     * @param data The bytes to write to the file
-     * @param append True if the data should be appended to an existing file.
-     */
-    public static void write(final File file, final byte[] data, final boolean append) {
+    @Override
+    public void write(File file, byte[] data, boolean append) {
         Validate.isTrue(file.exists(), "Failed to write to file as it does not exist: " + file.getPath());
         try {
             BufferedOutputStream outputStream = null;

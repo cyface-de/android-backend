@@ -2,9 +2,9 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.insertTestGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertTestMeasurement;
-import static de.cyface.testutils.SharedTestUtils.insertTestPoint3d;
+import static de.cyface.synchronization.TestUtils.insertGeoLocation;
+import static de.cyface.synchronization.TestUtils.insertMeasurementEntry;
+import static de.cyface.testutils.SharedTestUtils.insertPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -99,29 +99,29 @@ public class DataTransmissionTest {
         ContentResolver resolver = context.getContentResolver();
         PersistenceLayer persistence = new PersistenceLayer(context, resolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
-        Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
+        Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055141000L, 49.9304133333333,
+        insertGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055141000L, 49.9304133333333,
                 8.82831833333333, 0.0, 940);
-        insertTestGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055142000L, 49.9305066666667,
-                8.82814, 8.78270530700684, 840);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+        insertGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055142000L, 49.9305066666667, 8.82814,
+                8.78270530700684, 840);
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                 Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                 Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                 Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
                 Point3dFile.ROTATION_FILE_EXTENSION, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
                 Point3dFile.ROTATION_FILE_EXTENSION, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
                 Point3dFile.ROTATION_FILE_EXTENSION, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
                 Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636010L, 7.65, -32.4, -71.4);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
                 Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636030L, 7.65, -32.550003, -71.700005);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
                 Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636050L, 7.65, -33.15, -71.700005);
 
         persistence.storePointMetaData(

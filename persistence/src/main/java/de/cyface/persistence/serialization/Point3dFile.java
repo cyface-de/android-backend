@@ -5,7 +5,8 @@ import java.util.List;
 
 import android.content.Context;
 import androidx.annotation.NonNull;
-import de.cyface.persistence.FileUtils;
+import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.utils.Validate;
@@ -57,6 +58,10 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * The identifier of the {@link Measurement} for this file
      */
     private long measurementId;
+    /**
+     * The {@link FileAccessLayer} used to interact with files.
+     */
+    private FileAccessLayer fileAccessLayer;
 
     /**
      * Constructor which actually creates a new {@link File} in the persistence layer.
@@ -68,7 +73,8 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      */
     public Point3dFile(@NonNull final Context context, final long measurementId, @NonNull final String folderName,
             @NonNull final String fileExtension) {
-        this.file = FileUtils.createFile(context, measurementId, folderName, fileExtension);
+        this.fileAccessLayer = new DefaultFileAccess();
+        this.file = fileAccessLayer.createFile(context, measurementId, folderName, fileExtension);
         this.measurementId = measurementId;
     }
 
@@ -90,7 +96,7 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
     @Override
     public void append(final List<Point3d> dataPoints) {
         final byte[] data = serialize(dataPoints);
-        FileUtils.write(file, data, true);
+        fileAccessLayer.write(file, data, true);
     }
 
     @Override
@@ -99,31 +105,20 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
     }
 
     /**
-     * This method is used in tests to load the stored data from a {@link File}.
-     *
-     * @param pointCount The number of points in this file. This number is stored in the associated measurement
-     * @return the {@link Point3d} data restored from the {@code Point3dFile}
-     * @throws FileCorruptedException when the {@link File} is corrupted
-     */
-    public List<Point3d> deserialize(final int pointCount) throws FileCorruptedException {
-        final byte[] bytes = FileUtils.loadBytes(file);
-        return MeasurementSerializer.deserializePoint3dData(bytes, pointCount);
-    }
-
-    /**
      * Loads an existing {@link Point3dFile} for a specified measurement. The {@link File} must already exist.
      * If you want to create a new {@code Point3dFile} use the Constructor.
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
+     * @param fileAccessLayer The {@link FileAccessLayer} used to access the file;
      * @param measurementId the identifier of the measurement for which the file is to be found
      * @param folderName The folder name defining the {@link Point3d} type of the file
      * @param fileExtension the extension of the file type
      * @return the {@link Point3dFile} link to the file
      * @throws IllegalStateException if there is no such file
      */
-    public static Point3dFile loadFile(@NonNull final Context context, final long measurementId,
-            @NonNull final String folderName, @NonNull final String fileExtension) {
-        final File file = FileUtils.getFilePath(context, measurementId, folderName, fileExtension);
+    public static Point3dFile loadFile(@NonNull final Context context, @NonNull FileAccessLayer fileAccessLayer,
+            final long measurementId, @NonNull final String folderName, @NonNull final String fileExtension) {
+        final File file = fileAccessLayer.getFilePath(context, measurementId, folderName, fileExtension);
         Validate.isTrue(file.exists());
         return new Point3dFile(measurementId, file);
     }

@@ -9,8 +9,6 @@ import java.io.File;
 import java.io.IOException;
 import java.io.InputStream;
 import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
-import java.util.ArrayList;
 import java.util.List;
 import java.util.zip.Deflater;
 
@@ -21,7 +19,7 @@ import android.net.Uri;
 import android.os.RemoteException;
 import android.util.Log;
 import androidx.annotation.NonNull;
-import de.cyface.persistence.FileUtils;
+import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
@@ -56,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -69,7 +67,7 @@ public final class MeasurementSerializer {
      * The current version of the transferred file. This is always specified by the first two bytes of the file
      * transferred and helps compatible APIs to process data from different client versions.
      */
-    public final static short TRANSFER_FILE_FORMAT_VERSION = 1;
+    private final static short TRANSFER_FILE_FORMAT_VERSION = 1;
     /**
      * The current version of the file format used to persist {@link Point3d} data.
      * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
@@ -85,6 +83,17 @@ public final class MeasurementSerializer {
      */
     public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
+    /**
+     * The {@link FileAccessLayer} used to interact with files.
+     */
+    private final FileAccessLayer fileAccessLayer;
+
+    /**
+     * @param fileAccessLayer The {@link FileAccessLayer} used to interact with files.
+     */
+    public MeasurementSerializer(@NonNull final FileAccessLayer fileAccessLayer) {
+        this.fileAccessLayer = fileAccessLayer;
+    }
 
     /**
      * Loads the {@link Measurement} with the provided identifier from the persistence layer as compressed and and
@@ -151,6 +160,7 @@ public final class MeasurementSerializer {
      */
     public static byte[] serialize(final @NonNull List<Point3d> dataPoints) {
         Log.d(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
+
         final ByteBuffer buffer = ByteBuffer.allocate(dataPoints.size() * BYTES_IN_ONE_POINT_3D_ENTRY);
         for (final Point3d point : dataPoints) {
             buffer.putLong(point.getTimestamp());
@@ -175,7 +185,7 @@ public final class MeasurementSerializer {
      * @param metaData Number of {@link Point3d} points in the serialized {@link Measurement}.
      * @return The header byte array.
      */
-    public byte[] serializeTransferFileHeader(final int geoLocationCount, final PointMetaData metaData) {
+    private byte[] serializeTransferFileHeader(final int geoLocationCount, final PointMetaData metaData) {
         Validate.isTrue(metaData.getPersistenceFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
         byte[] ret = new byte[18];
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
@@ -246,26 +256,31 @@ public final class MeasurementSerializer {
         final PointMetaData pointMetaData = persistence.loadPointMetaData(measurementIdentifier);
         final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, pointMetaData);
 
-        // Serialize Point3ds
-        final File accelerationFile = FileUtils.getFilePath(persistence.getContext(), measurementIdentifier,
+        // Load already serialized Point3ds
+        final File accelerationFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
-        final File rotationFile = FileUtils.getFilePath(persistence.getContext(), measurementIdentifier,
+        final File rotationFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
-        final File directionFile = FileUtils.getFilePath(persistence.getContext(), measurementIdentifier,
+        final File directionFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
         final byte[] serializedAccelerations = pointMetaData.getAccelerationPointCounter() > 0
-                ? FileUtils.loadBytes(accelerationFile)
+                ? fileAccessLayer.loadBytes(accelerationFile)
                 : new byte[] {};
         final byte[] serializedRotations = pointMetaData.getRotationPointCounter() > 0
-                ? FileUtils.loadBytes(rotationFile)
+                ? fileAccessLayer.loadBytes(rotationFile)
                 : new byte[] {};
         final byte[] serializedDirections = pointMetaData.getDirectionPointCounter() > 0
-                ? FileUtils.loadBytes(directionFile)
+                ? fileAccessLayer.loadBytes(directionFile)
                 : new byte[] {};
 
         // Create transfer file
-        final ByteBuffer buffer = ByteBuffer.allocate(transferFileHeader.length + serializedGeoLocations.length
-                + serializedAccelerations.length + serializedRotations.length + serializedDirections.length);
+        final int headerLength = transferFileHeader.length;
+        final int serializedGeoLocationsLength = serializedGeoLocations.length;
+        final int serializedAccelerationsLength = serializedAccelerations.length;
+        final int serializedRotationsLength = serializedRotations.length;
+        final int serializedDirectionsLength = serializedDirections.length;
+        final ByteBuffer buffer = ByteBuffer.allocate(headerLength + serializedGeoLocationsLength
+                + serializedAccelerationsLength + serializedRotationsLength + serializedDirectionsLength);
         buffer.put(transferFileHeader);
         buffer.put(serializedGeoLocations);
         buffer.put(serializedAccelerations);
@@ -275,34 +290,5 @@ public final class MeasurementSerializer {
 
         Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
         return result;
-    }
-
-    /**
-     * Deserialized {@link Point3d} data.
-     *
-     * @param point3dFileBytes The bytes loaded from the {@link Point3dFile}
-     * @return The {@link Point3d} loaded from the file
-     */
-    static List<Point3d> deserializePoint3dData(final byte[] point3dFileBytes, final int pointCount) {
-
-        Validate.isTrue(point3dFileBytes.length == pointCount * BYTES_IN_ONE_POINT_3D_ENTRY);
-        if (pointCount == 0) {
-            return new ArrayList<>();
-        }
-
-        // Deserialize bytes
-        final List<Point3d> points = new ArrayList<>();
-        final ByteBuffer buffer = ByteBuffer.wrap(point3dFileBytes);
-        for (int i = 0; i < pointCount; i++) {
-            final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
-            final double x = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
-            final double y = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
-            final double z = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
-            // final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
-            points.add(new Point3d((float)x, (float)y, (float)z, timestamp));
-        }
-
-        Log.d(TAG, "Deserialized Points: " + points.size());
-        return points;
     }
 }

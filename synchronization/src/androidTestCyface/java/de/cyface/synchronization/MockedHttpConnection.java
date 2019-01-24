@@ -8,7 +8,6 @@ import java.net.URL;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
-import androidx.annotation.RecentlyNonNull;
 import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
@@ -30,14 +29,14 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull URL url, @RecentlyNonNull SSLContext sslContext, boolean hasBinaryContent,
-                                                 @NonNull String jwtBearer) throws ServerUnavailableException {
+    public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
+            boolean hasBinaryContent, @NonNull String jwtBearer) throws ServerUnavailableException {
         return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull URL url, @RecentlyNonNull SSLContext sslContext, boolean hasBinaryContent)
-            throws ServerUnavailableException {
+    public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
+            boolean hasBinaryContent) throws ServerUnavailableException {
         try {
             return (HttpsURLConnection)url.openConnection();
         } catch (IOException e) {
@@ -54,7 +53,7 @@ final class MockedHttpConnection implements Http {
 
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId,
-                             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+            long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException, BadRequestException {
         progressListener.updatedProgress(1.0f); // 100%

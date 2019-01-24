@@ -1,9 +1,13 @@
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.synchronization.TestUtils.clear;
-import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurement;
+import static de.cyface.synchronization.TestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
@@ -30,11 +34,14 @@ import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -47,19 +54,19 @@ import de.cyface.utils.Validate;
  */
 @RunWith(AndroidJUnit4.class)
 public final class SyncAdapterTest {
-    Context context;
-    ContentResolver contentResolver;
+    private Context context;
+    private ContentResolver contentResolver;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
-        clear(context, contentResolver);
+        clear(context, contentResolver, AUTHORITY);
     }
 
     @After
     public void tearDown() {
-        clear(context, contentResolver);
+        clear(context, contentResolver, AUTHORITY);
         contentResolver = null;
         context = null;
     }
@@ -68,10 +75,11 @@ public final class SyncAdapterTest {
      * Tests whether points are correctly marked as synced.
      */
     @Test
-    public void testOnPerformSync() throws NoSuchMeasurementException {
+    public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        MeasurementPersistence persistence = new MeasurementPersistence(context, AUTHORITY);
+        PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
+                new DefaultPersistenceBehaviour());
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
@@ -84,8 +92,8 @@ public final class SyncAdapterTest {
 
         // Insert data to be synced
         final ContentResolver contentResolver = context.getContentResolver();
-        final Measurement insertedMeasurement = insertSampleMeasurement(context, MeasurementStatus.FINISHED,
-                persistence);
+        final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+                MeasurementStatus.FINISHED, persistence);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
 
         // Mock - nothing to do
@@ -93,7 +101,7 @@ public final class SyncAdapterTest {
         // Act: sync
         ContentProviderClient client = null;
         try {
-            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri());
+            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             final SyncResult result = new SyncResult();
             Validate.notNull(client);
             syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
@@ -122,7 +130,7 @@ public final class SyncAdapterTest {
      * @return The cursor for the track of geolocation objects ordered by time ascending.
      */
     public Cursor loadTrack(final ContentResolver resolver, final long measurementId) {
-        return resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+        return resolver.query(getGeoLocationsUri(AUTHORITY), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {String.valueOf(measurementId)}, GeoLocationsTable.COLUMN_GPS_TIME + " ASC");
     }
 
@@ -133,7 +141,7 @@ public final class SyncAdapterTest {
      * @return The cursor for the loaded measurement.
      */
     public Cursor loadMeasurement(final ContentResolver resolver, final long measurementId) {
-        return resolver.query(getMeasurementUri(), null, BaseColumns._ID + "=?",
+        return resolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
                 new String[] {String.valueOf(measurementId)}, null);
     }
 }

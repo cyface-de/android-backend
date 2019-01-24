@@ -1,13 +1,13 @@
 package de.cyface.persistence;
 
-import android.content.ContentValues;
-import android.database.Cursor;
-import android.database.sqlite.SQLiteDatabase;
-
 import java.util.Arrays;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+
+import android.content.ContentValues;
+import android.database.Cursor;
+import android.database.sqlite.SQLiteDatabase;
 
 /**
  * Abstract base class for all Cyface measurement tables implementing common functionality.
@@ -81,10 +81,14 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
 
     @Override
     public Cursor query(final SQLiteDatabase database, final String[] projection, final String selection,
-                        final String[] selectionArgs, final String sortOrder) {
+            final String[] selectionArgs, final String sortOrder) {
         checkColumns(projection);
-        /*LOGGER.debug("Querying database table {} with projection {} selection {} and arguments {} limit {} isACountingQuery: {}",
-                getName(), projection, selection, Arrays.toString(selectionArgs), queryLimit, isACountingQuery(projection));*/
+        /*
+         * LOGGER.
+         * debug("Querying database table {} with projection {} selection {} and arguments {} limit {} isACountingQuery: {}"
+         * ,
+         * getName(), projection, selection, Arrays.toString(selectionArgs), queryLimit, isACountingQuery(projection));
+         */
         return database.query(getName(), projection, selection, selectionArgs, null, null, sortOrder);
     }
 
@@ -101,8 +105,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
     protected abstract String[] getDatabaseTableColumns();
 
     @Override
-    public int update(SQLiteDatabase database, ContentValues values, String selection,
-                      String[] selectionArgs) {
+    public int update(SQLiteDatabase database, ContentValues values, String selection, String[] selectionArgs) {
         return database.update(getName(), values, selection, selectionArgs);
     }
 

@@ -2,10 +2,11 @@ package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.synchronization.TestUtils.clear;
-import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
-import static de.cyface.testutils.SharedTestUtils.getMeasurementUri;
+import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
 import static org.junit.Assert.assertThat;
@@ -36,6 +37,8 @@ import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
@@ -223,14 +226,20 @@ public class CapturedDataWriterTest {
 
         // Check if the captured data was persisted
         Cursor geoLocationsCursor = null;
+        FileAccessLayer fileAccessLayer = new DefaultFileAccess();
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
-            List<Point3d> accelerations = Point3dFile.loadFile(context, measurement.getIdentifier(),
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).deserialize(3);
-            List<Point3d> rotations = Point3dFile.loadFile(context, measurement.getIdentifier(),
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).deserialize(3);
-            List<Point3d> directions = Point3dFile.loadFile(context, measurement.getIdentifier(),
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).deserialize(3);
+
+            Point3dFile accelerationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+            Point3dFile rotationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+            Point3dFile directionsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+
+            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), 3);
+            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), 3);
+            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), 3);
 
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);

@@ -30,6 +30,7 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -91,7 +92,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(TAG, "Sync started.");
 
         final Context context = getContext();
-        final MeasurementSerializer serializer = new MeasurementSerializer();
+        final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
         final PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), authority,
                 new DefaultPersistenceBehaviour());
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

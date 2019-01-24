@@ -1,12 +1,12 @@
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getIdentifierUri;
+import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
-import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
-import static de.cyface.testutils.SharedTestUtils.getIdentifierUri;
-import static de.cyface.testutils.SharedTestUtils.getMeasurementUri;
-import static de.cyface.testutils.SharedTestUtils.insertTestPoint3d;
+import static de.cyface.testutils.SharedTestUtils.insertPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -21,8 +21,9 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.FileUtils;
+import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -71,7 +72,7 @@ public final class TestUtils {
     /**
      * Path to an API available for testing.
      */
-    // ignore unused - because this is used in the cyface flavour
+    @SuppressWarnings("unused") // because this is used in the cyface flavour
     final static String TEST_API_URL = "https://s1.cyface.de:9090/api/v2";
 
     /**
@@ -84,9 +85,9 @@ public final class TestUtils {
      * @param speed The fake test speed of the {@code GeoLocation}.
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
-    static void insertTestGeoLocation(final ContentResolver resolver, final String authority,
-                                      final long measurementIdentifier, final long timestamp, final double lat, final double lon,
-                                      final double speed, final int accuracy) {
+    static void insertGeoLocation(final ContentResolver resolver, final String authority,
+            final long measurementIdentifier, final long timestamp, final double lat, final double lon,
+            final double speed, final int accuracy) {
 
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
@@ -101,7 +102,7 @@ public final class TestUtils {
     /**
      * Inserts a test {@code Measurement} into the database content provider accessed by the test. To add data to the
      * {@code Measurement} use some or all of
-     * {@link #insertTestGeoLocation(ContentResolver, String, long, long, double, double, double, int)}
+     * {@link #insertGeoLocation(ContentResolver, String, long, long, double, double, double, int)}
      * {@link SharedTestUtils#insertTestAcceleration(Context, long, long, double, double, double)},
      * {@link SharedTestUtils#insertTestRotation(Context, long, long, double, double, double)},
      * {@link SharedTestUtils#insertTestDirection(Context, long, long, double, double, double)}
@@ -110,8 +111,8 @@ public final class TestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    static Measurement insertTestMeasurement(final @NonNull PersistenceLayer persistence,
-                                             final @NonNull Vehicle vehicle) throws CursorIsNullException {
+    static Measurement insertMeasurementEntry(final @NonNull PersistenceLayer persistence,
+            final @NonNull Vehicle vehicle) throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
@@ -120,22 +121,22 @@ public final class TestUtils {
     }
 
     /**
-     * This method inserts a {@link Measurement} into the persistence layer but does not use the
+     * This method inserts a {@link Measurement} into the persistence layer. Does not use the
      * {@code CapturingPersistenceBehaviour} but the {@link DefaultPersistenceBehaviour}.
      */
-    static Measurement insertSampleMeasurement(@NonNull final Context context, final String authority,
+    static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
             final MeasurementStatus status, final PersistenceLayer persistence)
             throws NoSuchMeasurementException, CursorIsNullException {
 
-        final Measurement measurement = insertTestMeasurement(persistence, Vehicle.UNKNOWN);
+        final Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
-        insertTestGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
+        insertGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
                 49.9304133333333, 8.82831833333333, 0.0, 940);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
                 Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
                 Point3dFile.ROTATION_FILE_EXTENSION, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertTestPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
+        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
                 Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636010L, 7.65, -32.4, -71.4);
 
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
@@ -184,13 +185,15 @@ public final class TestUtils {
      *         includes the {@link Point3dFile}s.
      */
     public static int clear(@NonNull final Context context, @NonNull final ContentResolver resolver,
-            final String authority) {
+            @NonNull final String authority) {
+
+        final FileAccessLayer fileAccessLayer = new DefaultFileAccess();
 
         // Remove {@code Point3dFile}s and their parent folders
         int removedFiles = 0;
-        final File accelerationFolder = FileUtils.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
-        final File rotationFolder = FileUtils.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
-        final File directionFolder = FileUtils.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+        final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
+        final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
+        final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
         final List<File> accelerationFiles = new ArrayList<>(Arrays.asList(accelerationFolder.listFiles()));
         final List<File> rotationFiles = new ArrayList<>(Arrays.asList(rotationFolder.listFiles()));
         final List<File> directionFiles = new ArrayList<>(Arrays.asList(directionFolder.listFiles()));

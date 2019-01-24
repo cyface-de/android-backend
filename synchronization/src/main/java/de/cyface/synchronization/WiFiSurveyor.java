@@ -21,6 +21,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.utils.Validate;
 
 /**
  * An instance of this class is responsible for surveying the state of the devices WiFi connection. If WiFi is active,
@@ -80,7 +81,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     /**
      * The Android <code>ConnectivityManager</code> used to check the device's current connection status.
      */
-    private final ConnectivityManager connectivityManager;
+    final ConnectivityManager connectivityManager;
     /**
      * A callback which handles changes on the connectivity starting at API {@link Build.VERSION_CODES#LOLLIPOP}
      */
@@ -133,6 +134,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
             ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
 
+        // FIXME: We want to test this on newer devices if we want to leave this in!
+        // Roboelectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnWiFiOnly) {
@@ -153,7 +156,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // TODO: because ...?
+    @SuppressWarnings({"unused"}) // TODO: because ...?
     public void stopSurveillance() throws SynchronisationException {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
@@ -288,6 +291,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     @SuppressWarnings("WeakerAccess") // TODO: because?
     public boolean isConnected() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+            Validate.notNull(connectivityManager); // for testing
             final Network activeNetwork = connectivityManager.getActiveNetwork();
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);

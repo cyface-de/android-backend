@@ -1,14 +1,14 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.insertSampleMeasurement;
-import static de.cyface.testutils.SharedTestUtils.getGeoLocationsUri;
-import static de.cyface.testutils.SharedTestUtils.getMeasurementUri;
+import static de.cyface.synchronization.TestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -16,8 +16,6 @@ import static org.junit.Assert.assertThat;
 import java.util.Arrays;
 import java.util.List;
 
-import de.cyface.utils.CursorIsNullException;
-import de.cyface.utils.Validate;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -27,7 +25,6 @@ import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
-import android.os.Build;
 import android.os.RemoteException;
 import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -40,9 +37,11 @@ import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
- * Tests that instances of the <code>MeasurementContentProviderClient</code> do work correctly.
+ * Tests that instances of the {@link MeasurementContentProviderClient} do work correctly.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -199,19 +198,18 @@ public class MeasurementContentProviderClientTest {
         PersistenceLayer persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
 
-        // Create a not finished measurement
-        insertSampleMeasurement(context, AUTHORITY, OPEN, persistenceLayer);
+        // Create an open measurement
+        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer);
 
-        // Create a not synced finished measurement
-        Measurement finishedMeasurement = insertSampleMeasurement(context, AUTHORITY, FINISHED, persistenceLayer);
+        // Create a finished measurement
+        Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED, persistenceLayer);
 
         // Create a synchronized measurement
-        insertSampleMeasurement(context, AUTHORITY, SYNCED, persistenceLayer);
+        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);
 
+        // Check that syncable measurements = finishedMeasurement
         final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
-
         assertThat(loadedMeasurements.size(), is(1));
         assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
-
     }
 }

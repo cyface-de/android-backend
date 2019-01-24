@@ -19,11 +19,11 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
     /**
      * The path segment in the table URI identifying the identifier table.
      */
-    public final static String URI_PATH = "identifiers";
+    final static String URI_PATH = "identifier";
     /**
      * A String value which contains an identifier for this device.
      */
-    public final static String COLUMN_DEVICE_ID = "device_id";
+    final static String COLUMN_DEVICE_ID = "device_id";
 
     /**
      * An array containing all columns from this table in default order.

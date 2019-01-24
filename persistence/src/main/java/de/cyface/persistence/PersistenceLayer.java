@@ -62,6 +62,10 @@ public class PersistenceLayer {
      * differentiate if the {@link PersistenceLayer} is used for live capturing and or to load existing data.
      */
     private PersistenceBehaviour persistenceBehaviour;
+    /**
+     * The {@link FileAccessLayer} used to interact with files.
+     */
+    private FileAccessLayer fileAccessLayer;
 
     /**
      * This constructor is only for testing. It's required by the {@code DataCapturingLocalTest} to be able to
@@ -71,6 +75,7 @@ public class PersistenceLayer {
         this.context = null;
         this.resolver = null;
         this.authority = null;
+        this.fileAccessLayer = new DefaultFileAccess();
     }
 
     /**
@@ -89,6 +94,7 @@ public class PersistenceLayer {
         this.resolver = resolver;
         this.authority = authority;
         this.persistenceBehaviour = persistenceBehaviour;
+        this.fileAccessLayer = new DefaultFileAccess();
         persistenceBehaviour.onStart(this);
     }
 
@@ -282,19 +288,19 @@ public class PersistenceLayer {
         final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
 
         if (pointMetaData.getAccelerationPointCounter() > 0) {
-            final File accelerationFile = Point3dFile.loadFile(context, measurement.getIdentifier(),
+            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
             Validate.isTrue(accelerationFile.delete());
         }
 
         if (pointMetaData.getRotationPointCounter() > 0) {
-            final File rotationFile = Point3dFile.loadFile(context, measurement.getIdentifier(),
+            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
             Validate.isTrue(rotationFile.delete());
         }
 
         if (pointMetaData.getDirectionPointCounter() > 0) {
-            final File directionFile = Point3dFile.loadFile(context, measurement.getIdentifier(),
+            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
             Validate.isTrue(directionFile.delete());
         }
@@ -356,25 +362,25 @@ public class PersistenceLayer {
         }
 
         // Delete {@link Point3dFile}s if existent
-        final File accelerationFolder = FileUtils.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
-        final File rotationFolder = FileUtils.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
-        final File directionFolder = FileUtils.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+        final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
+        final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
+        final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
         if (accelerationFolder.exists()) {
-            final File accelerationFile = FileUtils.getFilePath(context, measurement.getIdentifier(),
+            final File accelerationFile = fileAccessLayer.getFilePath(context, measurement.getIdentifier(),
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
             if (accelerationFile.exists()) {
                 Validate.isTrue(accelerationFile.delete());
             }
         }
         if (rotationFolder.exists()) {
-            final File rotationFile = FileUtils.getFilePath(context, measurement.getIdentifier(),
+            final File rotationFile = fileAccessLayer.getFilePath(context, measurement.getIdentifier(),
                     Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
             if (rotationFile.exists()) {
                 Validate.isTrue(rotationFile.delete());
             }
         }
         if (directionFolder.exists()) {
-            final File directionFile = FileUtils.getFilePath(context, measurement.getIdentifier(),
+            final File directionFile = fileAccessLayer.getFilePath(context, measurement.getIdentifier(),
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
             if (directionFile.exists()) {
                 Validate.isTrue(directionFile.delete());
@@ -442,22 +448,22 @@ public class PersistenceLayer {
     /**
      * @return The content provider {@link Uri} for the {@link MeasurementTable}.
      */
-    public Uri getMeasurementUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(MeasurementTable.URI_PATH).build();
+    private Uri getMeasurementUri() {
+        return Utils.getMeasurementUri(authority);
     }
 
     /**
      * @return The content provider {@link Uri} for the {@link GeoLocationsTable}.
      */
     public Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTable.URI_PATH).build();
+        return Utils.getGeoLocationsUri(authority);
     }
 
     /**
      * @return The content provider URI for the {@link IdentifierTable}
      */
-    public Uri getIdentifierUri() {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
+    private Uri getIdentifierUri() {
+        return Utils.getIdentifierUri(authority);
     }
 
     /**
