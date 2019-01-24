@@ -9,7 +9,6 @@ import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.hasSize;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
@@ -23,9 +22,7 @@ import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.Arrays;
-import java.util.HashMap;
 import java.util.List;
-import java.util.Map;
 import java.util.zip.DataFormatException;
 import java.util.zip.Inflater;
 
@@ -50,6 +47,8 @@ import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -61,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 2.0.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -101,46 +100,51 @@ public class MeasurementSerializerTest {
     private final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
             + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
 
+    private final int samplePoint3ds = 3;
+    private final int sampleGeoLocations = 3;
+    private final double sampleDoubleValue = 1.0;
+    private final long sampleLongValue = 1L;
+    private final long sampleMeasurementId = 0L;
+
     @Before
     public void setUp() throws RemoteException, CursorIsNullException {
 
         // Mock GeoLocation database access
         Uri geoLocationUri = Utils.getGeoLocationsUri(AUTHORITY);
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
-        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(3);
+        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK)).thenReturn(sampleGeoLocations);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 
         // Mock point counters
-        when(persistence.loadPointMetaData(anyLong()))
-                .thenReturn(new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION));
+        when(persistence.loadPointMetaData(anyLong())).thenReturn(new PointMetaData(samplePoint3ds, samplePoint3ds,
+                samplePoint3ds, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION));
         when(persistence.getContext()).thenReturn(mockedContext);
-        when(mockedContext.getFilesDir()).thenReturn(new File("/mocked-files-dir/"));
-        when(geoLocationsCursor.getCount()).thenReturn(3);
+        when(geoLocationsCursor.getCount()).thenReturn(sampleGeoLocations);
 
         // Mock insert of 3 GeoLocations
         when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
 
         // Mock load sample GeoLocation data
-        when(geoLocationsCursor.getColumnIndex(any(String.class))).thenReturn(0);
-        when(geoLocationsCursor.getDouble(0)).thenReturn(1.0);
-        when(geoLocationsCursor.getLong(0)).thenReturn(1L);
-        when(geoLocationsCursor.getInt(0)).thenReturn(1);
+        int sampleColumnIndex = 0;
+        when(geoLocationsCursor.getColumnIndex(any(String.class))).thenReturn(sampleColumnIndex);
+        when(geoLocationsCursor.getDouble(sampleColumnIndex)).thenReturn(sampleDoubleValue);
+        when(geoLocationsCursor.getLong(sampleColumnIndex)).thenReturn(sampleLongValue);
+        int sampleIntValue = 1;
+        when(geoLocationsCursor.getInt(sampleColumnIndex)).thenReturn(sampleIntValue);
 
         // Mock load sample Point3dFile data
         List<Point3d> point3ds = new ArrayList<>();
-        point3ds.add(new Point3d(1.0f, 1.0f, 1.0f, 1L));
-        point3ds.add(new Point3d(1.0f, 1.0f, 1.0f, 1L));
-        point3ds.add(new Point3d(1.0f, 1.0f, 1.0f, 1L));
+        point3ds.add(new Point3d((float)sampleDoubleValue, (float)sampleDoubleValue, (float)sampleDoubleValue,
+                sampleLongValue));
+        point3ds.add(new Point3d((float)sampleDoubleValue, (float)sampleDoubleValue, (float)sampleDoubleValue,
+                sampleLongValue));
+        point3ds.add(new Point3d((float)sampleDoubleValue, (float)sampleDoubleValue, (float)sampleDoubleValue,
+                sampleLongValue));
         final byte[] serializedPoint3ds = serialize(point3ds);
         Validate.notNull(serializedPoint3ds);
         // because this is null as we did not mock the mockedFileAccessLayer.getFilePath()
         when(mockedFileAccessLayer.loadBytes(Mockito.<File> any())).thenReturn(serializedPoint3ds);
 
-        /*
-         * when(pointsCursor.getColumnIndex(any(String.class))).thenReturn(0);
-         * when(pointsCursor.getDouble(0)).thenReturn(1.0);
-         * when(pointsCursor.getLong(0)).thenReturn(1L);
-         */
         oocut = new MeasurementSerializer(mockedFileAccessLayer);
     }
 
@@ -151,7 +155,7 @@ public class MeasurementSerializerTest {
     @Test
     public void testSerializeMeasurement() throws CursorIsNullException {
 
-        byte[] data = oocut.loadSerialized(loader, 0, persistence);
+        byte[] data = oocut.loadSerialized(loader, sampleMeasurementId, persistence);
         assertThat(data.length, is(equalTo(SERIALIZED_SIZE)));
     }
 
@@ -164,42 +168,10 @@ public class MeasurementSerializerTest {
     @Test
     public void testDeserializeMeasurement() throws CursorIsNullException {
 
-        byte[] measurementBytes = oocut.loadSerialized(loader, 0, persistence);
-        // byte[] individualBytes = new byte[SERIALIZED_SIZE];
-        assertThat(/* stream.read(individualBytes) */measurementBytes.length, is(equalTo(SERIALIZED_SIZE)));
+        byte[] uncompressedTransferFileBytes = oocut.loadSerialized(loader, sampleMeasurementId, persistence);
+        assertThat(uncompressedTransferFileBytes.length, is(equalTo(SERIALIZED_SIZE)));
 
-        ByteBuffer buffer = ByteBuffer.wrap(measurementBytes);
-        short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
-        assertThat(formatVersion, is(equalTo((short)1)));
-        int numberOfGeoLocations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(2);
-        assertThat(numberOfGeoLocations, is(equalTo(3)));
-        int numberOfAccelerations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(6);
-        assertThat(numberOfAccelerations, is(equalTo(3)));
-        int numberOfRotations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(10);
-        assertThat(numberOfRotations, is(equalTo(3)));
-        int numberOfDirections = buffer.order(ByteOrder.BIG_ENDIAN).getInt(14);
-        assertThat(numberOfDirections, is(equalTo(3)));
-        int beginOfGeoLocationsIndex = BYTES_IN_HEADER;
-        int beginOfAccelerationsIndex = beginOfGeoLocationsIndex
-                + numberOfGeoLocations * BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-        int beginOfRotationsIndex = beginOfAccelerationsIndex + numberOfAccelerations * BYTES_IN_ONE_POINT_3D_ENTRY;
-        int beginOfDirectionsIndex = beginOfRotationsIndex + numberOfRotations * BYTES_IN_ONE_POINT_3D_ENTRY;
-
-        List<Map<String, ?>> geoLocations = deserializeGeoLocations(
-                Arrays.copyOfRange(measurementBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
-        assertThat(geoLocations, hasSize(3));
-
-        List<Map<String, ?>> accelerations = deserializePoint3D(
-                Arrays.copyOfRange(measurementBytes, beginOfAccelerationsIndex, beginOfRotationsIndex));
-        assertThat(accelerations, hasSize(3));
-
-        List<Map<String, ?>> rotations = deserializePoint3D(
-                Arrays.copyOfRange(measurementBytes, beginOfRotationsIndex, beginOfDirectionsIndex));
-        assertThat(rotations, hasSize(3));
-
-        List<Map<String, ?>> directions = deserializePoint3D(
-                Arrays.copyOfRange(measurementBytes, beginOfDirectionsIndex, measurementBytes.length));
-        assertThat(directions, hasSize(3));
+        deserializeAndCheck(uncompressedTransferFileBytes);
     }
 
     /**
@@ -223,11 +195,11 @@ public class MeasurementSerializerTest {
     @Test
     public void testDecompressDeserialize() throws IOException, DataFormatException, CursorIsNullException {
 
-        byte[] serializedData = oocut.loadSerialized(loader, 0, persistence);
-        InputStream compressedStream = oocut.loadSerializedCompressed(loader, 0, persistence);
+        // Assemble serialized compressed bytes
+        InputStream compressedStream = oocut.loadSerializedCompressed(loader, sampleMeasurementId, persistence);
+        byte[] compressedBytes = new byte[compressedStream.available()];
 
         // Decompress the compressed bytes and check length and bytes
-        byte[] compressedBytes = new byte[compressedStream.available()];
         DataInputStream dis = new DataInputStream(compressedStream);
         dis.readFully(compressedBytes);
         Inflater inflater = new Inflater();
@@ -236,57 +208,157 @@ public class MeasurementSerializerTest {
         int decompressedLength = inflater.inflate(decompressedBytes);
         inflater.end();
         assertThat(decompressedLength, is(equalTo(SERIALIZED_SIZE)));
-        assertThat(Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE), is(equalTo(serializedData)));
+
+        // Deserialize
+        byte[] decompressedTransferFileBytes = Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE);
+
+        // Deserialize bytes back to Objects and check their values
+        deserializeAndCheck(decompressedTransferFileBytes);
+
+        // Prepare comparison bytes which were not compressed at all
+        // Mock insert of 3 GeoLocations (again)
+        when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
+        byte[] uncompressedTransferFileBytes = oocut.loadSerialized(loader, sampleMeasurementId, persistence);
+        deserializeAndCheck(uncompressedTransferFileBytes); // just to be sure
+
+        // We check the bytes after we checked the object values because in the bytes it's hard to find the error
+        assertThat(decompressedTransferFileBytes, is(equalTo(uncompressedTransferFileBytes)));
+    }
+
+    private void deserializeAndCheck(byte[] uncompressedTransferFileBytes) {
+        MeasurementData measurementData = deserializeTransferFile(uncompressedTransferFileBytes);
+
+        // Check header
+        assertThat(measurementData.transferFileFormat, is(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION));
+        assertThat(measurementData.geoLocations.size(), is(sampleGeoLocations));
+        assertThat(measurementData.accelerations.size(), is(samplePoint3ds));
+        assertThat(measurementData.rotations.size(), is(samplePoint3ds));
+        assertThat(measurementData.directions.size(), is(samplePoint3ds));
+
+        // check values
+        for (int i = 0; i < sampleGeoLocations; i++) {
+            assertThat(measurementData.geoLocations.get(i).getAccuracy(), is((float)sampleDoubleValue));
+            assertThat(measurementData.geoLocations.get(i).getLat(), is(sampleDoubleValue));
+            assertThat(measurementData.geoLocations.get(i).getLon(), is(sampleDoubleValue));
+            assertThat(measurementData.geoLocations.get(i).getSpeed(), is(sampleDoubleValue));
+            assertThat(measurementData.geoLocations.get(i).getTimestamp(), is(sampleLongValue));
+        }
+        for (int i = 0; i < samplePoint3ds; i++) {
+            assertThat(measurementData.accelerations.get(i).getX(), is((float)sampleDoubleValue));
+            assertThat(measurementData.accelerations.get(i).getY(), is((float)sampleDoubleValue));
+            assertThat(measurementData.accelerations.get(i).getZ(), is((float)sampleDoubleValue));
+            assertThat(measurementData.accelerations.get(i).getTimestamp(), is(sampleLongValue));
+            assertThat(measurementData.rotations.get(i).getX(), is((float)sampleDoubleValue));
+            assertThat(measurementData.rotations.get(i).getY(), is((float)sampleDoubleValue));
+            assertThat(measurementData.rotations.get(i).getZ(), is((float)sampleDoubleValue));
+            assertThat(measurementData.rotations.get(i).getTimestamp(), is(sampleLongValue));
+            assertThat(measurementData.directions.get(i).getX(), is((float)sampleDoubleValue));
+            assertThat(measurementData.directions.get(i).getY(), is((float)sampleDoubleValue));
+            assertThat(measurementData.directions.get(i).getZ(), is((float)sampleDoubleValue));
+            assertThat(measurementData.directions.get(i).getTimestamp(), is(sampleLongValue));
+        }
+    }
+
+    private MeasurementData deserializeTransferFile(byte[] uncompressedTransferFileBytes) {
+
+        ByteBuffer buffer = ByteBuffer.wrap(uncompressedTransferFileBytes);
+        short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
+        int numberOfGeoLocations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(2);
+        assertThat(numberOfGeoLocations, is(equalTo(3)));
+        int numberOfAccelerations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(6);
+        assertThat(numberOfAccelerations, is(equalTo(3)));
+        int numberOfRotations = buffer.order(ByteOrder.BIG_ENDIAN).getInt(10);
+        assertThat(numberOfRotations, is(equalTo(3)));
+        int numberOfDirections = buffer.order(ByteOrder.BIG_ENDIAN).getInt(14);
+        assertThat(numberOfDirections, is(equalTo(3)));
+        int beginOfGeoLocationsIndex = BYTES_IN_HEADER;
+        int beginOfAccelerationsIndex = beginOfGeoLocationsIndex
+                + numberOfGeoLocations * BYTES_IN_ONE_GEO_LOCATION_ENTRY;
+        int beginOfRotationsIndex = beginOfAccelerationsIndex + numberOfAccelerations * BYTES_IN_ONE_POINT_3D_ENTRY;
+        int beginOfDirectionsIndex = beginOfRotationsIndex + numberOfRotations * BYTES_IN_ONE_POINT_3D_ENTRY;
+
+        List<GeoLocation> geoLocations = deserializeGeoLocations(
+                Arrays.copyOfRange(uncompressedTransferFileBytes, beginOfGeoLocationsIndex, beginOfAccelerationsIndex));
+
+        List<Point3d> accelerations = deserializePoint3D(
+                Arrays.copyOfRange(uncompressedTransferFileBytes, beginOfAccelerationsIndex, beginOfRotationsIndex));
+
+        List<Point3d> rotations = deserializePoint3D(
+                Arrays.copyOfRange(uncompressedTransferFileBytes, beginOfRotationsIndex, beginOfDirectionsIndex));
+
+        List<Point3d> directions = deserializePoint3D(Arrays.copyOfRange(uncompressedTransferFileBytes,
+                beginOfDirectionsIndex, uncompressedTransferFileBytes.length));
+
+        return new MeasurementData(formatVersion, geoLocations, accelerations, rotations, directions);
     }
 
     /**
-     * Deserializes a list of 3D sample points (i.e. acceleration, rotation or direction) from an array of bytes in
-     * Cyface binary format.
+     * Deserializes a list of {@link Point3d}s (i.e. acceleration, rotation or direction) from an array of bytes in
+     * Cyface {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}.
      *
-     * @param bytes The bytes array to deserialize the sample points from.
-     * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 4 entries for x, y, z and
-     *         timestamp
-     *         with the corresponding values. A timestamp is a <code>long</code>, all other values are
-     *         <code>double</code>.
+     * @param bytes The bytes array to deserialize the {@code Point3d}s from.
+     * @return A list of the deserialized {@code Point3d}s.
      */
-    private List<Map<String, ?>> deserializePoint3D(byte[] bytes) {
-        List<Map<String, ?>> ret = new ArrayList<>();
+    private List<Point3d> deserializePoint3D(byte[] bytes) {
+        List<Point3d> point3ds = new ArrayList<>();
 
         for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_POINT_3D_ENTRY) {
             ByteBuffer buffer = ByteBuffer.wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_POINT_3D_ENTRY));
-            Map<String, Object> entry = new HashMap<>(4);
-            entry.put("timestamp", buffer.getLong());
-            entry.put("x", buffer.getDouble());
-            entry.put("y", buffer.getDouble());
-            entry.put("z", buffer.getDouble());
 
-            ret.add(entry);
+            // Don't change the order how the bytes are read from the buffer
+            final long timestamp = buffer.getLong();
+            final double x = buffer.getDouble();
+            final double y = buffer.getDouble();
+            final double z = buffer.getDouble();
+            Point3d point3d = new Point3d((float)x, (float)y, (float)z, timestamp);
+            point3ds.add(point3d);
         }
 
-        return ret;
+        return point3ds;
     }
 
     /**
-     * Deserializes a list of geo locations from an array of bytes in Cyface binary format.
+     * Deserializes a list of {@link GeoLocation}s from an array of bytes in Cyface
+     * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}.
      *
-     * @param bytes The bytes array to deserialize the geo locations from.
-     * @return A poor mans list of objects (i.e. <code>Map</code>). Each map contains 5 entries keyed with "timestamp",
-     *         "lat", "lon", "speed" and "accuracy" with the appropriate values. The timestamp is a <code>long</code>,
-     *         accuracy is an <code>int</code> and all other values are <code>double</code> values.
+     * @param bytes The bytes array to deserialize the {@code GeoLocation}s from.
+     * @return A list of the deserialized {@code GeoLocation}s.
      */
-    private List<Map<String, ?>> deserializeGeoLocations(byte[] bytes) {
-        List<Map<String, ?>> ret = new ArrayList<>();
+    private List<GeoLocation> deserializeGeoLocations(byte[] bytes) {
+        List<GeoLocation> geoLocations = new ArrayList<>();
         for (int i = 0; i < bytes.length; i += BYTES_IN_ONE_GEO_LOCATION_ENTRY) {
             ByteBuffer buffer = ByteBuffer.wrap(Arrays.copyOfRange(bytes, i, i + BYTES_IN_ONE_GEO_LOCATION_ENTRY));
-            Map<String, Object> entry = new HashMap<>(5);
-            entry.put("timestamp", buffer.getLong());
-            entry.put("lat", buffer.getDouble());
-            entry.put("lon", buffer.getDouble());
-            entry.put("speed", buffer.getDouble());
-            entry.put("accuracy", buffer.getInt());
 
-            ret.add(entry);
+            // Don't change the order how the bytes are read from the buffer
+            final long timestamp = buffer.getLong();
+            final double lat = buffer.getDouble();
+            final double lon = buffer.getDouble();
+            final double speed = buffer.getDouble();
+            final int accuracy = buffer.getInt();
+            GeoLocation geoLocation = new GeoLocation(lat, lon, timestamp, speed, accuracy);
+            geoLocations.add(geoLocation);
         }
-        return ret;
+        return geoLocations;
+    }
+
+    /**
+     * Helper class for testing which wraps all data of a {@link Measurement} which was serialized into the
+     * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}.
+     */
+    private class MeasurementData {
+        short transferFileFormat;
+        List<GeoLocation> geoLocations;
+        List<Point3d> accelerations;
+        List<Point3d> rotations;
+        List<Point3d> directions;
+
+        MeasurementData(short transferFileFormat, List<GeoLocation> geoLocations, List<Point3d> accelerations,
+                List<Point3d> rotations, List<Point3d> directions) {
+            this.transferFileFormat = transferFileFormat;
+            this.geoLocations = geoLocations;
+            this.accelerations = accelerations;
+            this.rotations = rotations;
+            this.directions = directions;
+        }
     }
 }

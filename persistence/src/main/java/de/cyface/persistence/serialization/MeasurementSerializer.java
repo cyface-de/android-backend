@@ -67,7 +67,7 @@ public final class MeasurementSerializer {
      * The current version of the transferred file. This is always specified by the first two bytes of the file
      * transferred and helps compatible APIs to process data from different client versions.
      */
-    private final static short TRANSFER_FILE_FORMAT_VERSION = 1;
+    public final static short TRANSFER_FILE_FORMAT_VERSION = 1;
     /**
      * The current version of the file format used to persist {@link Point3d} data.
      * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
