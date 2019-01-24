@@ -1,10 +1,28 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2017 Cyface GmbH
+
+ This file is part of the Cyface SDK for Android.
+
+ The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ The Cyface SDK for Android is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+-->
 <resources>
     <string name="capturing_service_description">Used to collect sensor data (GPS, accelerometer, gyroscope, magnetometer) and to send it to your local community, where it is used to improve the mobility infrastructure.</string>
     <string name="capturing_active">Thank you for your participation</string>
-    <string name="cyface_notification_channel_id" translatable="false">Cyface</string>
-    <string name="notification_channel_id" translatable="false">STADTRADELN</string>
+    <string name="cyface_notification_channel_id" translatable="false">de.cyface.notification</string>
     <string name="notification_title">Capturing in progress</string>
+    <string name="notification_text">Loading &#8230;</string>
     <string name="notification_channel_description_running">Notification which shows that there is a measurement running.</string>
     <string name="ticker_text" translatable="false">Ticker</string>
 

@@ -76,6 +76,11 @@ cyfaceDataCapturingService.stopAsync(new ShutDownFinishedHandler() {..});
 cyfaceDataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {});
 ```
 
+### Provide a custom Capturing Notification
+Note that the capturing notification is always shown using notification identifier 74.656.
+Due to limitations in the Android framework, this is not configurable.
+You must not use the same notification identifier for any other notification used by your app!
+
 ### TODO: add code sample for the usage of:
 
 * ErrorHandler
@@ -85,3 +90,21 @@ cyfaceDataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECOND
 * Show Measurements and GpsTraces
 * Delete measurements manually
 * Usage of Camera, Bluetooth
+
+### License
+Copyright 2017 Cyface GmbH
+
+This file is part of the Cyface SDK for Android.
+
+The Cyface SDK for Android is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The Cyface SDK for Android is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.

@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * 
+ * This file is part of the Cyface SDK for Android.
+ * 
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -38,6 +56,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -91,6 +110,7 @@ public abstract class DataCapturingService {
     /**
      * {@code true} if data capturing is running; {@code false} otherwise.
      */
+     */
     private boolean isRunning;
 
     /**
@@ -121,10 +141,6 @@ public abstract class DataCapturingService {
      * <code>MessageHandler</code> receiving messages from the service via the <code>fromServiceMessenger</code>.
      */
     private final FromServiceMessageHandler fromServiceMessageHandler;
-    /**
-     * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
-     */
-    private Messenger toServiceMessenger;
     /**
      * This object observers the current WiFi state and starts and stops synchronization based on whether WiFi is active
      * or not. If the WiFi is active it should activate synchronization. If WiFi connectivity is lost it deactivates the
@@ -163,6 +179,30 @@ public abstract class DataCapturingService {
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     private final CapturingPersistenceBehaviour capturingBehaviour;
+
+    /**
+     * Creates a new completely initialized {@link DataCapturingService}.
+     *
+     * @param context The context (i.e. <code>Activity</code>) handling this service.
+     * @param resolver The <code>ContentResolver</code> used to access the data layer.
+     * @param authority The <code>ContentProvider</code> authority required to request a sync operation in the
+     *            {@link WiFiSurveyor}. You should use something world wide unique, like your domain, to avoid
+     *            collisions between different apps using the Cyface SDK.
+     * @param accountType The type of the account to use to synchronize data with.
+     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+     *            this service.
+     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
+     *            triggered by the {@link DataCapturingBackgroundService}.
+     * @throws SetupException If writing the components preferences fails.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
+            final @NonNull String authority, final @NonNull String accountType,
+            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
+            throws SetupException, CursorIsNullException {
+        this.context = new WeakReference<>(context);
+        this.authority = authority;
+        this.serviceConnection = new BackgroundServiceConnection();
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -635,6 +675,13 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * @param uiListener A listener for events which the UI might be interested in.
+     */
+    public void setUiListener(final @NonNull UIListener uiListener) {
+        this.uiListener = uiListener;
+    }
+
+    /**
      * @return The current Android <code>Context</code> used by this service or <code>null</code> if there currently is
      *         none.
      */
@@ -846,14 +893,6 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
-     */
-    private void setIsRunning(final boolean isRunning) {
-        Log.d(TAG, "Setting isRunning to " + isRunning);
-        this.isRunning = isRunning;
-    }
-
-    /**
      * @return {@code true} if data capturing is running; {@code false} otherwise.
      */
     @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
@@ -863,13 +902,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @param isStoppingOrHasStopped A flag indicating whether the background service is currently stopped or in the
-     *            process of stopping. This flag is used to prevent multiple lifecycle method from interrupting a stop
-     *            process or being called, while no service is running.
+     * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
      */
-    private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
-        Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
-        this.isStoppingOrHasStopped = isStoppingOrHasStopped;
+    private void setIsRunning(final boolean isRunning) {
+        Log.d(TAG, "Setting isRunning to " + isRunning);
+        this.isRunning = isRunning;
     }
 
     /**
@@ -880,6 +917,16 @@ public abstract class DataCapturingService {
     private boolean getIsStoppingOrHasStopped() {
         Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
         return isStoppingOrHasStopped;
+    }
+
+    /**
+     * @param isStoppingOrHasStopped A flag indicating whether the background service is currently stopped or in the
+     *            process of stopping. This flag is used to prevent multiple lifecycle method from interrupting a stop
+     *            process or being called, while no service is running.
+     */
+    private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
+        Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
+        this.isStoppingOrHasStopped = isStoppingOrHasStopped;
     }
 
     /**
@@ -912,56 +959,6 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
-     * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private class BackgroundServiceConnection implements ServiceConnection {
-
-        @Override
-        public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
-            Log.d(TAG, "DataCapturingService connected to background service.");
-            toServiceMessenger = new Messenger(binder);
-            Message registerClient = new Message();
-            registerClient.replyTo = fromServiceMessenger;
-            registerClient.what = MessageCodes.REGISTER_CLIENT;
-            try {
-                toServiceMessenger.send(registerClient);
-            } catch (RemoteException e) {
-                throw new IllegalStateException(e);
-            }
-
-            Log.d(TAG, "ServiceConnection established!");
-        }
-
-        @Override
-        public void onServiceDisconnected(final @NonNull ComponentName componentName) {
-            Log.d(TAG, "Service disconnected!");
-            toServiceMessenger = null;
-
-        }
-
-        @Override
-        public void onBindingDied(final @NonNull ComponentName name) {
-            if (context.get() == null) {
-                throw new IllegalStateException("Unable to rebind. Context was null.");
-            }
-
-            Log.d(TAG, "Binding died, unbinding & rebinding ...");
-            try {
-                unbind();
-            } catch (DataCapturingException e) {
-                throw new IllegalStateException(e);
-            }
-            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-            context.get().bindService(rebindIntent, this, 0);
-        }
-    }
-
-    /**
      * A handler for messages coming from the {@link DataCapturingBackgroundService}.
      *
      * @author Klemens Muthmann
@@ -971,19 +968,17 @@ public abstract class DataCapturingService {
     private static class FromServiceMessageHandler extends Handler {
 
         /**
-         * A listener that is notified of important events during data capturing.
-         */
-        private Collection<DataCapturingListener> listener;
-
-        /**
          * The Android context this handler is running under.
          */
         private final Context context;
-
         /**
          * The service which calls this handler.
          */
         private final DataCapturingService dataCapturingService;
+        /**
+         * A listener that is notified of important events during data capturing.
+         */
+        private Collection<DataCapturingListener> listener;
 
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
@@ -1100,6 +1095,56 @@ public abstract class DataCapturingService {
         @SuppressWarnings("unused") // because we need to support this API - TODO: really?
         void removeListener(final @NonNull DataCapturingListener listener) {
             this.listener.remove(listener);
+        }
+    }
+
+    /**
+     * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
+     * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private class BackgroundServiceConnection implements ServiceConnection {
+
+        @Override
+        public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
+            Log.d(TAG, "DataCapturingService connected to background service.");
+            toServiceMessenger = new Messenger(binder);
+            Message registerClient = new Message();
+            registerClient.replyTo = fromServiceMessenger;
+            registerClient.what = MessageCodes.REGISTER_CLIENT;
+            try {
+                toServiceMessenger.send(registerClient);
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e);
+            }
+
+            Log.d(TAG, "ServiceConnection established!");
+        }
+
+        @Override
+        public void onServiceDisconnected(final @NonNull ComponentName componentName) {
+            Log.d(TAG, "Service disconnected!");
+            toServiceMessenger = null;
+
+        }
+
+        @Override
+        public void onBindingDied(final @NonNull ComponentName name) {
+            if (context.get() == null) {
+                throw new IllegalStateException("Unable to rebind. Context was null.");
+            }
+
+            Log.d(TAG, "Binding died, unbinding & rebinding ...");
+            try {
+                unbind();
+            } catch (DataCapturingException e) {
+                throw new IllegalStateException(e);
+            }
+            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            context.get().bindService(rebindIntent, this, 0);
         }
     }
 }

@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
@@ -74,9 +92,16 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
     /**
-     * A wake lock used to keep the application active during data capturing.
+     * The Cyface notification identifier used to display system notification while the service is running. This needs
+     * to be unique for the whole app, so we chose a very unlikely one.
+     *
+     * This is also the registration number of the starship Voyager.
      */
-    private PowerManager.WakeLock wakeLock;
+    private static final int NOTIFICATION_ID = 74656;
+    /**
+     * The tag used to identify logging messages send to logcat.
+     */
+    private final static String TAG = BACKGROUND_TAG;
     /**
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
@@ -86,6 +111,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The list of clients receiving messages from this service as well as sending control messages.
      */
     private final Set<Messenger> clients = new HashSet<>();
+    /**
+     * A wake lock used to keep the application active during data capturing.
+     */
+    private PowerManager.WakeLock wakeLock;
     /**
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
@@ -139,6 +168,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public void onCreate() {
         super.onCreate();
         Log.d(TAG, "onCreate");
+        // FIXME: Try to call this even before super.onCreate()?
+        // We only have 5 seconds to call startForeground before the service crashes, so we call it as early as possible
+        // with a placeholder notification. This is substituted by the provided notification in onStartCommand. On most
+        // devices the user should not even see this happening.
+        startForeground(NOTIFICATION_ID, PlaceholderNotificationBuilder.build(this));
 
         // Prevents this process from being killed by the system.
         final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
@@ -149,7 +183,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
 
-        // Allows other parties to ping this service to see if it is running
+        // Allows other parties to ping this service to see if it is running.
         Log.v(TAG, "Registering Ping Receiver");
         registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(getApplicationContext())));
         Log.d(TAG, "finishedOnCreate");
@@ -223,13 +257,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
         Validate.notNull(eventHandlingStrategy);
         final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
-        if (notification != null) {
-            /*
-             * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
-             * However this might cause problems if the service has already been killed at this stage.
-             */
-            startForeground(eventHandlingStrategy.getCapturingNotificationId(), notification);
-        }
+        /*
+        * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
+        * However this might cause problems if the service has already been killed at this stage.
+        */
+        startForeground(NOTIFICATION_ID, notification);
+        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
+
 
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
