@@ -1,8 +1,11 @@
 package de.cyface.persistence;
 
+import android.content.ContentProvider;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * The {@link PersistenceBehaviour} defines how the {@link PersistenceLayer} is works. Select a behaviour depending on
@@ -30,4 +33,16 @@ public interface PersistenceBehaviour {
      * This is called when the {@link PersistenceLayer} is no longer needed by {@link PersistenceLayer#shutdown()}.
      */
     void shutdown();
+
+    /**
+     * Loads the current {@link Measurement} if an {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
+     * {@code Measurement} exists.
+     *
+     * @return The currently captured {@code Measurement}
+     * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
+     *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} {@code Measurement}
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @NonNull
+    Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException;
 }

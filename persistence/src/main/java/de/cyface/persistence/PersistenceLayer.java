@@ -547,6 +547,33 @@ public class PersistenceLayer {
     }
 
     /**
+     * Loads the currently captured {@link Measurement} from the {@link PersistenceLayer}. This method should only be
+     * called if capturing is active. It throws an error otherwise.
+     *
+     * This is a public api which can be used by SDK implementing apps.
+     *
+     * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
+     *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
+     *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @return the currently captured {@link Measurement}
+     */
+    public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+        Log.d(Constants.TAG, "Trying to load currently captured measurement from PersistenceLayer!");
+
+        final List<Measurement> openMeasurements = loadMeasurements(MeasurementStatus.OPEN);
+        final List<Measurement> pausedMeasurements = loadMeasurements(MeasurementStatus.PAUSED);
+        if (openMeasurements.size() == 0 && pausedMeasurements.size() == 0) {
+            throw new NoSuchMeasurementException("No currently captured measurement found!");
+        }
+        if (openMeasurements.size() + pausedMeasurements.size() > 1) {
+            throw new IllegalStateException("More than one currently captured measurement found!");
+        }
+
+        return (openMeasurements.size() == 1 ? openMeasurements : pausedMeasurements).get(0);
+    }
+
+    /**
      * Updates the {@link MeasurementStatus} in the data persistence layer.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated

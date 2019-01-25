@@ -3,7 +3,6 @@ package de.cyface.datacapturing.persistence;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 
-import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -136,18 +135,34 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     }
 
     /**
+     * Loads the currently captured measurement and refreshes the {@link #currentMeasurementIdentifier} reference. This
+     * method should only be called if capturing is active. It throws an error otherwise.
+     *
+     * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
+     *             use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an actual
+     *             {@link MeasurementStatus#OPEN} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    private void refreshIdentifierOfCurrentlyCapturedMeasurement()
+            throws NoSuchMeasurementException, CursorIsNullException {
+
+        final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        currentMeasurementIdentifier = measurement.getIdentifier();
+        Log.d(Constants.TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
+    }
+
+    /**
      * Loads the current {@link Measurement} from the internal cache if possible, or from the persistence layer if an
-     * {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
-     * {@code Measurement} exists.
+     * {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} {@code Measurement} exists.
      *
      * @return The currently captured {@code Measurement}
      * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
-     *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}
-     *             {@code Measurement}
+     *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} {@code Measurement}
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public @NonNull Measurement loadCurrentlyCapturedMeasurement()
-            throws NoSuchMeasurementException, CursorIsNullException {
+    @Override
+    @NonNull
+    public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         synchronized (this) {
             if (currentMeasurementIdentifier == null && (persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     || persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))) {
@@ -162,30 +177,6 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
 
             return new Measurement(currentMeasurementIdentifier);
         }
-    }
-
-    /**
-     * Loads the currently captured measurement and refreshes the {@link #currentMeasurementIdentifier} reference. This
-     * method should only be called if capturing is active. It throws an error otherwise.
-     *
-     * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
-     *             use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an actual
-     *             {@link MeasurementStatus#OPEN} measurement.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    private void refreshIdentifierOfCurrentlyCapturedMeasurement()
-            throws NoSuchMeasurementException, CursorIsNullException {
-        Log.d(Constants.TAG, "Trying to load currently captured measurement from persistence layer!");
-
-        final List<Measurement> openMeasurements = persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
-        if (openMeasurements.size() == 0) {
-            throw new NoSuchMeasurementException("No open measurement found!");
-        }
-        if (openMeasurements.size() > 1) {
-            throw new IllegalStateException("More than one measurement is open.");
-        }
-        currentMeasurementIdentifier = openMeasurements.get(0).getIdentifier();
-        Log.d(Constants.TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
     }
 
     /**

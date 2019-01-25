@@ -2,6 +2,7 @@ package de.cyface.persistence;
 
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is only used to access existing
@@ -12,9 +13,12 @@ import de.cyface.persistence.model.Measurement;
  * @since 3.0.0
  */
 public class DefaultPersistenceBehaviour implements PersistenceBehaviour {
+
+    PersistenceLayer persistenceLayer;
+
     @Override
     public void onStart(@NonNull PersistenceLayer persistenceLayer) {
-        // nothing to do
+        this.persistenceLayer = persistenceLayer;
     }
 
     @Override
@@ -25,5 +29,19 @@ public class DefaultPersistenceBehaviour implements PersistenceBehaviour {
     @Override
     public void shutdown() {
         // nothing to do
+    }
+
+    @NonNull
+    @Override
+    public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+
+        // The {@code DefaultPersistenceBehaviour} does not have a cache for this so load it from the persistence
+        final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        if (measurement == null) {
+            throw new NoSuchMeasurementException(
+                    "Trying to load currently captured measurement while no measurement was open or paused!");
+        }
+
+        return measurement;
     }
 }
