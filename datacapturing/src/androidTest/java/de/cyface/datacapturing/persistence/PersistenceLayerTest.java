@@ -163,12 +163,12 @@ public class PersistenceLayerTest {
         PersistenceLayer persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
 
+        // Create a synchronized measurement
+        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);
+
         // Create a finished measurement
         Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
                 persistenceLayer);
-
-        // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);
 
         // Create an open measurement - must be created at last (life-cycle checks in PersistenceLayer.setStatus)
         insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer);

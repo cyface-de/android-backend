@@ -1,6 +1,7 @@
 package de.cyface.persistence;
 
 import static android.provider.BaseColumns._ID;
+import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_ACCELERATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
@@ -153,7 +154,7 @@ public class PersistenceLayer {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public boolean hasMeasurement(@NonNull MeasurementStatus status) throws CursorIsNullException {
-        Log.d(Constants.TAG, "Checking if app has an " + status + " measurement.");
+        Log.d(TAG, "Checking if app has an " + status + " measurement.");
 
         Cursor cursor = null;
         try {
@@ -163,7 +164,7 @@ public class PersistenceLayer {
                 Validate.softCatchNullCursor(cursor);
 
                 final boolean hasMeasurement = cursor.getCount() > 0;
-                Log.d(Constants.TAG, hasMeasurement ? "At least one measurement is " + status + "."
+                Log.d(TAG, hasMeasurement ? "At least one measurement is " + status + "."
                         : "No measurement is " + status + ".");
                 return hasMeasurement;
             }
@@ -337,7 +338,7 @@ public class PersistenceLayer {
      * @return The device is as string
      */
     public final String restoreOrCreateDeviceId() throws CursorIsNullException {
-        Log.d(Constants.TAG, "Trying to load device identifier from content provider!");
+        Log.d(TAG, "Trying to load device identifier from content provider!");
         Cursor deviceIdentifierQueryCursor = null;
         try {
             synchronized (this) {
@@ -352,7 +353,7 @@ public class PersistenceLayer {
                     final int indexOfMeasurementIdentifierColumn = deviceIdentifierQueryCursor
                             .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
                     final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
-                    Log.d(Constants.TAG, "Providing device identifier " + did);
+                    Log.d(TAG, "Providing device identifier " + did);
                     return did;
                 }
 
@@ -362,7 +363,7 @@ public class PersistenceLayer {
                 values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
                 final Uri resultUri = resolver.insert(getIdentifierUri(), values);
                 Validate.notNull("New device id could not be created!", resultUri);
-                Log.d(Constants.TAG, "Created new device id " + deviceId);
+                Log.d(TAG, "Created new device id " + deviceId);
                 return deviceId;
             }
         } finally {
@@ -500,6 +501,8 @@ public class PersistenceLayer {
      * @param measurementId The id of the measurement associated with the {@link PointMetaData}
      */
     public void storePointMetaData(@NonNull final PointMetaData pointMetaData, final long measurementId) {
+        Log.d(TAG, "Storing point meta data.");
+
         final ContentValues pointMetaDataValues = new ContentValues();
         pointMetaDataValues.put(COLUMN_ACCELERATIONS, pointMetaData.getAccelerationPointCounter());
         pointMetaDataValues.put(COLUMN_ROTATIONS, pointMetaData.getRotationPointCounter());
@@ -579,7 +582,7 @@ public class PersistenceLayer {
                 throw new IllegalArgumentException("Not supported");
         }
 
-        Log.d(Constants.TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
+        Log.d(TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
     }
 
     public Context getContext() {

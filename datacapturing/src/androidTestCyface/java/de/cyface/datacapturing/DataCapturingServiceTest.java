@@ -276,7 +276,7 @@ public class DataCapturingServiceTest {
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
+        // Ensure that the DataCapturingBackgroundService was not running during the callCheckForRunning
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
         assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
 
@@ -576,16 +576,12 @@ public class DataCapturingServiceTest {
             NoSuchMeasurementException, CursorIsNullException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
-
-        // Check measurements
         final List<Measurement> measurements = oocut.getCachedMeasurements();
-        assertThat(measurements.size() > 0, is(equalTo(true)));
+        assertThat(measurements.size(), is(equalTo(1)));
 
         pauseAndCheckThatStopped(measurementIdentifier);
 
         resumeAndCheckThatLaunched(measurementIdentifier);
-
-        // Check measurements again
         final List<Measurement> newMeasurements = oocut.getCachedMeasurements();
         assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
 

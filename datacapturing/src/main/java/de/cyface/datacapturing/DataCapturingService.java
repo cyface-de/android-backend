@@ -79,7 +79,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.2.0
+ * @version 9.3.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -245,8 +245,13 @@ public abstract class DataCapturingService {
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
-        Log.d(TAG, "Starting asynchronously and locking lifecycle!");
+        Log.d(TAG, "Starting asynchronously.");
+        if (getContext() == null) {
+            return;
+        }
+
         lifecycleLock.lock();
+        Log.v(TAG, "Locking in asynchronous start.");
         try {
             if (getIsRunning()) {
                 Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
@@ -404,18 +409,22 @@ public abstract class DataCapturingService {
     @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void resume(final @NonNull StartUpFinishedHandler finishedHandler) throws DataCapturingException,
             MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
+        Log.d(TAG, "Resuming asynchronously.");
         if (getContext() == null) {
             return;
         }
-        if (getIsRunning()) {
-            Log.w(TAG, "Ignoring duplicate resume call because service is already running");
-            return;
-        }
 
-        Log.d(TAG, "Resume asynchronously.");
         lifecycleLock.lock();
         Log.v(TAG, "Locking in asynchronous resume.");
         try {
+            if (getIsRunning()) {
+                Log.w(TAG, "Ignoring duplicate resume call because service is already running");
+                return;
+            }
+            // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
+            // stopping the service.
+            setIsStoppingOrHasStopped(false);
+
             if (!checkFineLocationAccess(getContext())) {
                 capturingBehaviour.updateRecentMeasurement(FINISHED);
                 throw new MissingPermissionException();
@@ -816,7 +825,9 @@ public abstract class DataCapturingService {
         lifecycleLock.lock();
         Log.v(TAG, "Locking bind.");
         try {
+            Log.d(TAG, "Binding BackgroundServiceConnection");
             if (getIsStoppingOrHasStopped()) {
+                Log.w(TAG, "Ignoring BackgroundServiceConnection bind as getIsStoppingOrHasStopped() is true!");
                 return false;
             }
 

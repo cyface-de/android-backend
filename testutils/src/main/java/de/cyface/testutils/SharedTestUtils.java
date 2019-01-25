@@ -169,11 +169,8 @@ public class SharedTestUtils {
         // Remove database entries
         final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
         final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
-        int removedDatabaseRows = 0;
-        removedDatabaseRows += resolver.delete(getIdentifierUri(authority), null, null);
-        removedDatabaseRows += removedGeoLocations;
-        removedDatabaseRows += removedMeasurements;
-        return removedFiles + removedDatabaseRows;
+        final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
+        return removedFiles + removedIdentifierRows + removedGeoLocations + removedMeasurements;
     }
 
     /**
@@ -195,7 +192,7 @@ public class SharedTestUtils {
         final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
         insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
         insertPoint3d(rotationsFile, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
         insertPoint3d(directionsFile, 1501662636010L, 7.65, -32.4, -71.4);

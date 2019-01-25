@@ -274,20 +274,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         return Service.START_NOT_STICKY;
     }
 
-    /**
-     * This method allows the {@code DataCapturingLocalTest} to use methods of the {@link CapturingPersistenceBehaviour}
-     * which requires an initialized {@link PersistenceLayer}.
-     * More details: as the {@link #onStartCommand(Intent, int, int)} is not called in this test we need to be able to
-     * inject an {@param authority} for the {@link PersistenceLayer} because else we got a {@link NullPointerException}.
-     * 
-     * @param authority The authority to access the database.
-     *            FIXME: remove/
-     *            void initPersistenceLayer(@NonNull final String authority) {
-     *            persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority,
-     *            new CapturingPersistenceBehaviour());
-     *            }
-     */
-
     /*
      * MARK: Methods
      */
@@ -327,10 +313,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             msg.setData(dataBundle);
         }
 
-        Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
+        Log.d(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
             try {
+                Log.d(TAG, "Sending IPC message to caller " + caller + ": service stopped.");
                 caller.send(msg);
             } catch (final RemoteException e) {
                 Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
