@@ -1,10 +1,7 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.Constants.TAG;
-
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
-import android.util.Log;
 import androidx.annotation.NonNull;
 
 /**
@@ -46,7 +43,6 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
     /* Don't forget to update the DatabaseHelper's DATABASE_VERSION */
     @Override
     public void onUpgrade(@NonNull final SQLiteDatabase database, final int oldVersion, final int newVersion) {
-        Log.d(TAG, "Upgrading " + getName() + " from version " + oldVersion + " to " + newVersion + " ...");
         // switch (oldVersion) {
         // case 10:
         // no break, thus, the upgrade process continues with the next incremental upgrade step

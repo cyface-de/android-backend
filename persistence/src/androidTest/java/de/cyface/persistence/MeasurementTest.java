@@ -9,15 +9,15 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.rule.provider.ProviderTestRule;
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
@@ -33,35 +33,29 @@ import de.cyface.utils.Validate;
 @RunWith(AndroidJUnit4.class)
 public class MeasurementTest {
     /**
-     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
-     */
-    @Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
-            .build();
-    /**
      * A <code>ContentValues</code> object as prototype to create measurements in the database.
      */
     private ContentValues fixtureMeasurement;
     /**
      * A mock resolver for accessing the mocked content provider.
      */
-    private ContentResolver mockContentResolver;
+    private ContentResolver resolver;
 
     /**
-     * Initializes the <code>ProviderTestCase2</code> as well as the fixture measurement.
+     * Initializes the <code>ContentProvider</code> as well as the fixture measurement.
      */
     @Before
     public void setUp() {
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        resolver = context.getContentResolver();
         fixtureMeasurement = new ContentValues();
-        fixtureMeasurement.put(MeasurementTable.COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
+        fixtureMeasurement.put(MeasurementTable.COLUMN_STATUS, MeasurementStatus.SYNCED.getDatabaseIdentifier());
         fixtureMeasurement.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
         fixtureMeasurement.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_ROTATIONS, 0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
-
-        mockContentResolver = providerRule.getResolver();
     }
 
     /**
@@ -69,18 +63,18 @@ public class MeasurementTest {
      */
     @Test
     public void testCascadingDeleteOneMeasurement() {
-        final long identifier = TestUtils.create(mockContentResolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
 
+        // Create measurement with data
+        final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
         final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
-        // FIXME: delete point3d points too
+        TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGpsPoint);
 
-        TestUtils.create(mockContentResolver, getGeoLocationsUri(AUTHORITY), fixtureGpsPoint);
-
+        // Test load the create measurement
         Cursor measurementCursor = null;
         try {
-            measurementCursor = mockContentResolver.query(getMeasurementUri(AUTHORITY), null,
+            measurementCursor = resolver.query(getMeasurementUri(AUTHORITY), null,
                     MeasurementTable.COLUMN_STATUS + "=?",
-                    new String[] {MeasurementStatus.FINISHED.getDatabaseIdentifier()}, null);
+                    new String[] {MeasurementStatus.SYNCED.getDatabaseIdentifier()}, null);
             Validate.notNull(measurementCursor);
             assertThat(measurementCursor.getCount() > 0, is(equalTo(true)));
         } finally {
@@ -89,29 +83,28 @@ public class MeasurementTest {
             }
         }
 
-        final int rowsDeleted = mockContentResolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 5, is(rowsDeleted));
-        assertThat(TestUtils.count(mockContentResolver, getGeoLocationsUri(AUTHORITY)), is(0));
+        // Ensure deletion of measurement with data works
+        final int rowsDeleted = resolver.delete(getMeasurementUri(AUTHORITY), null, null);
+        assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 2, is(rowsDeleted));
+        assertThat(TestUtils.count(resolver, getGeoLocationsUri(AUTHORITY)), is(0));
     }
 
     /**
      * Tests whether it is possible to delete multiple measurements and their corresponding data in one go.
      */
     @Test
-    public void cascadingDeleteMeasurements() {
+    public void testCascadingDeleteMultipleMeasurements() {
+
+        // Create measurements with data
         for (int i = 0; i < 2; i++) {
-            final long identifier = TestUtils.create(mockContentResolver, getMeasurementUri(AUTHORITY),
-                    fixtureMeasurement);
-
-            // FIXME delete sample points too
-
+            final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
             final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
-
-            TestUtils.create(mockContentResolver, getGeoLocationsUri(AUTHORITY), fixtureGpsPoint);
+            TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGpsPoint);
         }
 
-        final int rowsDeleted = mockContentResolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 10, is(rowsDeleted));
+        // Ensure deletion of measurements with data works
+        final int rowsDeleted = resolver.delete(getMeasurementUri(AUTHORITY), null, null);
+        assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 4, is(rowsDeleted));
     }
 
     /**
@@ -132,30 +125,11 @@ public class MeasurementTest {
     }
 
     /**
-     * Provides a set of <code>ContentValues</code> to create a row in the table for accelerations.
-     *
-     * @param measurementIdentifier The identifier of the measurement the new acceleration should reference.
-     * @return The filled out <code>ContentValues</code>.
-     *         /
-     *         private ContentValues accelerationContentValues(final long measurementIdentifier) {
-     *         final ContentValues ret = new ContentValues();
-     *         ret.put(AccelerationPointTable.COLUMN_TIME, 10000L);
-     *         ret.put(AccelerationPointTable.COLUMN_IS_SYNCED, false);
-     *         ret.put(AccelerationPointTable.COLUMN_AX, 1.0);
-     *         ret.put(AccelerationPointTable.COLUMN_AY, 1.0);
-     *         ret.put(AccelerationPointTable.COLUMN_AZ, 1.0);
-     *         ret.put(AccelerationPointTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-     *         return ret;
-     *         }
-     */
-
-    /**
      * Shuts down the test and makes sure the database is empty for the next test.
      */
     @After
     public void tearDown() {
-        mockContentResolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
-        mockContentResolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        // FIXME: points and device identifier, too
+        resolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
+        resolver.delete(getMeasurementUri(AUTHORITY), null, null);
     }
 }

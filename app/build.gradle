@@ -3,7 +3,7 @@
  *
  * author Armin Schnabel
  * author Klemens Muthmann
- * version 1.0.0
+ * version 1.0.1
  * since 2.5.0
  */
 
@@ -29,5 +29,4 @@ android {
 
 dependencies {
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
-    //androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 }

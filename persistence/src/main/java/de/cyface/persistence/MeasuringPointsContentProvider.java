@@ -17,21 +17,10 @@ import de.cyface.utils.Validate;
  * transferring the data to the server.
  *
  * @author Klemens Muthmann
- * @version 1.1.3
+ * @version 1.1.4
  * @since 1.0.0
  */
 public final class MeasuringPointsContentProvider extends ContentProvider {
-
-    /**
-     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant
-     * contains the integer value used to represent <code>false</code> values in an SQLite database.
-     */
-    public static final int SQLITE_FALSE = 0;
-    /**
-     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant
-     * contains the integer value used to represent <code>true</code> values in an SQLite database.
-     */
-    public static final int SQLITE_TRUE = 1;
 
     /**
      * A representation of the database manged by this <code>ContentProvider</code>.

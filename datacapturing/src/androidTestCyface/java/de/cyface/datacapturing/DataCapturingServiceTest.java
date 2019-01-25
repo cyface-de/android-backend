@@ -2,6 +2,8 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -36,8 +38,10 @@ import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
@@ -515,33 +519,31 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If permission to access geo location sensor is missing.
      * @throws DataCapturingException If any unexpected error occurs during the test.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     *             / FIXME: broken
-     * @Test
-     *       public void testResumeTwice() throws MissingPermissionException, DataCapturingException,
-     *       NoSuchMeasurementException,
-     *       CursorIsNullException {
-     * 
-     *       // Start, pause
-     *       final long measurementIdentifier = startAndCheckThatLaunched();
-     *       pauseAndCheckThatStopped(measurementIdentifier);
-     * 
-     *       // Resume 1
-     *       resumeAndCheckThatLaunched(measurementIdentifier);
-     * 
-     *       // Resume 2: must be ignored by resumeAsync
-     *       PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
-     *       new CapturingPersistenceBehaviour());
-     *       final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
-     *       oocut.resume(startUpFinishedHandler);
-     *       TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-     *       TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-     *       assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
-     *       assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(OPEN)));
-     * 
-     *       stopAndCheckThatStopped(measurementIdentifier);
-     *       assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(FINISHED)));
-     *       }
      */
+    @Test
+    public void testResumeTwice() throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException,
+            CursorIsNullException {
+
+        // Start, pause
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        pauseAndCheckThatStopped(measurementIdentifier);
+
+        // Resume 1
+        resumeAndCheckThatLaunched(measurementIdentifier);
+
+        // Resume 2: must be ignored by resumeAsync
+        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+                new CapturingPersistenceBehaviour());
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        oocut.resume(startUpFinishedHandler);
+        TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
+        assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(OPEN)));
+
+        stopAndCheckThatStopped(measurementIdentifier);
+        assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(FINISHED)));
+    }
 
     /**
      * Tests that stopping a paused service does work successfully.
@@ -568,28 +570,27 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     *             / FIXME : broken
-     * @Test
-     *       public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
-     *       NoSuchMeasurementException, CursorIsNullException {
-     * 
-     *       final long measurementIdentifier = startAndCheckThatLaunched();
-     * 
-     *       // Check measurements
-     *       final List<Measurement> measurements = oocut.getCachedMeasurements();
-     *       assertThat(measurements.size() > 0, is(equalTo(true)));
-     * 
-     *       pauseAndCheckThatStopped(measurementIdentifier);
-     * 
-     *       resumeAndCheckThatLaunched(measurementIdentifier);
-     * 
-     *       // Check measurements again
-     *       final List<Measurement> newMeasurements = oocut.getCachedMeasurements();
-     *       assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
-     * 
-     *       stopAndCheckThatStopped(measurementIdentifier);
-     *       }
      */
+    @Test
+    public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
+            NoSuchMeasurementException, CursorIsNullException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+
+        // Check measurements
+        final List<Measurement> measurements = oocut.getCachedMeasurements();
+        assertThat(measurements.size() > 0, is(equalTo(true)));
+
+        pauseAndCheckThatStopped(measurementIdentifier);
+
+        resumeAndCheckThatLaunched(measurementIdentifier);
+
+        // Check measurements again
+        final List<Measurement> newMeasurements = oocut.getCachedMeasurements();
+        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
+
+        stopAndCheckThatStopped(measurementIdentifier);
+    }
 
     /**
      * Tests whether actual sensor data is captured after running the method
