@@ -4,7 +4,7 @@ import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
-import static de.cyface.testutils.SharedTestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -79,7 +79,7 @@ public class PersistenceLayerTest {
      */
     @After
     public void tearDown() {
-        clear(context, resolver, AUTHORITY);
+        clearPersistenceLayer(context, resolver, AUTHORITY);
         oocut.shutdown();
     }
 

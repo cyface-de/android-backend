@@ -9,7 +9,7 @@ import static de.cyface.synchronization.TestUtils.DEFAULT_PASSWORD;
 import static de.cyface.synchronization.TestUtils.DEFAULT_USERNAME;
 import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
-import static de.cyface.testutils.SharedTestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertGeoLocation;
 import static de.cyface.testutils.SharedTestUtils.insertMeasurementEntry;
 import static de.cyface.testutils.SharedTestUtils.insertPoint3d;
@@ -69,12 +69,12 @@ public class UploadProgressTest {
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
-        clear(context, contentResolver, AUTHORITY);
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
     }
 
     @After
     public void tearDown() {
-        clear(context, contentResolver, AUTHORITY);
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
         contentResolver = null;
         context = null;
     }

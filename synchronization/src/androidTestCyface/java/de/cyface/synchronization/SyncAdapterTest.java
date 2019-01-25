@@ -4,7 +4,7 @@ import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.testutils.SharedTestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -57,12 +57,12 @@ public final class SyncAdapterTest {
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
-        clear(context, contentResolver, AUTHORITY);
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
     }
 
     @After
     public void tearDown() {
-        clear(context, contentResolver, AUTHORITY);
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
         contentResolver = null;
         context = null;
     }

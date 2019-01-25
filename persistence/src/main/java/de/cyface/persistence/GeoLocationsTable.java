@@ -19,7 +19,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     /**
      * The path segment in the table URI identifying the {@link GeoLocationsTable}.
      */
-    final static String URI_PATH = "geo_location";
+    final static String URI_PATH = "locations";
     /**
      * Column name for the column storing the {@link GeoLocation} timestamp.
      */

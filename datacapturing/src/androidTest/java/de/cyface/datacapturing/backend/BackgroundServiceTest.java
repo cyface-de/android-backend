@@ -2,7 +2,7 @@ package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.testutils.SharedTestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -97,7 +97,7 @@ public class BackgroundServiceTest {
 
     @After
     public void tearDown() {
-        clear(context, context.getContentResolver(), AUTHORITY);
+        clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         testMeasurement = null;
     }
 

@@ -149,20 +149,37 @@ public class DataCapturingServiceTest {
     @After
     public void tearDown() throws Exception {
         if (isDataCapturingServiceRunning()) {
-            ShutDownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+
+            // Stop zombie
+            final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock,
+                    condition);
             oocut.stop(shutDownFinishedHandler);
+
+            // Ensure the zombie sent a stopped message back to the DataCapturingService
             TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
             assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
+
+            // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
+            TestUtils.callCheckForRunning(oocut, runningStatusCallback);
+            TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+            // Ensure that the zombie was not running during the callCheckForRunning
+            assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
+            assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
         }
-        SharedTestUtils.clear(context, context.getContentResolver(), AUTHORITY);
+
+        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
     }
 
     /**
      * Makes sure a test did not forget to stop the capturing.
      */
     private boolean isDataCapturingServiceRunning() {
+
+        // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
         return runningStatusCallback.wasRunning() && !runningStatusCallback.timedOut;
     }
 
@@ -333,15 +350,25 @@ public class DataCapturingServiceTest {
 
         // Now let's make sure all measurements started and stopped as expected
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+
+        List<Measurement> measurements = oocut.getCachedMeasurements();
+        assertThat(measurements.size(), is(equalTo(3)));
+
         final long measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier;
-        assertThat(measurementId1, is(not(equalTo(-1L))));
-        assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
+        assertThat(measurements.get(0).getIdentifier(), is(equalTo(measurementId1)));
         final long measurementId2 = startUpFinishedHandler2.receivedMeasurementIdentifier;
-        assertThat(measurementId2, is(not(equalTo(-1L))));
-        assertThat(shutDownFinishedHandler2.receivedMeasurementIdentifier, is(equalTo(measurementId2)));
+        assertThat(measurements.get(1).getIdentifier(), is(equalTo(measurementId2)));
         final long measurementId3 = startUpFinishedHandler3.receivedMeasurementIdentifier;
-        assertThat(measurementId3, is(not(equalTo(-1L))));
-        assertThat(shutDownFinishedHandler3.receivedMeasurementIdentifier, is(equalTo(measurementId3)));
+        assertThat(measurements.get(2).getIdentifier(), is(equalTo(measurementId3)));
+
+        /*
+         * assertThat(measurementId1, is(not(equalTo(-1L))));
+         * assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
+         * assertThat(measurementId2, is(not(equalTo(-1L))));
+         * assertThat(shutDownFinishedHandler2.receivedMeasurementIdentifier, is(equalTo(measurementId2)));
+         * assertThat(measurementId3, is(not(equalTo(-1L))));
+         * assertThat(shutDownFinishedHandler3.receivedMeasurementIdentifier, is(equalTo(measurementId3)));
+         */
     }
 
     /**

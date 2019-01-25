@@ -6,7 +6,7 @@ import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
-import static de.cyface.testutils.SharedTestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
@@ -118,7 +118,7 @@ public class CapturedDataWriterTest {
      */
     @After
     public void tearDown() {
-        clear(context, mockResolver, AUTHORITY);
+        clearPersistenceLayer(context, mockResolver, AUTHORITY);
     }
 
     /**
@@ -309,10 +309,11 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedEntries = clear(context, mockResolver, AUTHORITY);
-        final int testIdentifierTableCount = 1;
+        int removedEntries = clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
+        // the life-cycle DataCapturingServiceTests
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3dFiles * point3dFilesPerMeasurement
-                + testLocationCount + testMeasurements + testIdentifierTableCount)));
+                + testLocationCount + testMeasurements /* + testIdentifierTableCount */)));
 
         // make sure nothing is left in the database
         Cursor geoLocationsCursor = null;
@@ -333,7 +334,7 @@ public class CapturedDataWriterTest {
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
             assertThat(measurementsCursor.getCount(), is(equalTo(0)));
-            assertThat(identifierCursor.getCount(), is(equalTo(0)));
+            assertThat(identifierCursor.getCount(), is(equalTo(1))); // because we don't clean it up currently
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();

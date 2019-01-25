@@ -21,7 +21,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * The path segment in the table URI identifying the measurements table.
      */
-    static final String URI_PATH = "measurement";
+    static final String URI_PATH = "measurements";
     /**
      * Column name for {@link MeasurementStatus#getDatabaseIdentifier()} of the {@link Measurement}.
      * Usually only one measurement should be in the {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED}

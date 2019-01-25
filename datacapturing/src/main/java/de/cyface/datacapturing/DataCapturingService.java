@@ -457,7 +457,7 @@ public abstract class DataCapturingService {
      *         list if there are no such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO: really?
     public @NonNull List<Measurement> getCachedMeasurements() throws CursorIsNullException {
         return persistenceLayer.loadMeasurements();
     }
@@ -470,6 +470,7 @@ public abstract class DataCapturingService {
      *         such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings("unused") // TODO because?
     public @NonNull List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status)
             throws CursorIsNullException {
         return persistenceLayer.loadMeasurements(status);
@@ -567,7 +568,7 @@ public abstract class DataCapturingService {
      *
      * @throws DataCapturingException If service was not connected.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO really?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO really?
     public void disconnect() throws DataCapturingException {
         unbind();
     }

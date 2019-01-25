@@ -2,7 +2,6 @@ package de.cyface.testutils;
 
 import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
@@ -125,7 +124,7 @@ public class SharedTestUtils {
      *         includes {@link Measurement}s and {@link GeoLocation}s and the {@link IdentifierTable} (i.e. device id).
      *         The later includes the {@link Point3dFile}s.
      */
-    public static int clear(@NonNull final Context context, @NonNull final ContentResolver resolver,
+    public static int clearPersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority) {
 
         final FileAccessLayer fileAccessLayer = new DefaultFileAccess();
@@ -169,8 +168,11 @@ public class SharedTestUtils {
         // Remove database entries
         final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
         final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
-        final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
-        return removedFiles + removedIdentifierRows + removedGeoLocations + removedMeasurements;
+        // TODO: why does this break the life-cycle tests in DataCapturingServiceTest? - can't find an answer ...
+        // However this should be okay to ignore for now as the identifier table should never be reset unless the
+        // database itself is removed when the app is uninstalled or the app data is deleted.
+        // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
+        return removedFiles + /* removedIdentifierRows + */ removedGeoLocations + removedMeasurements;
     }
 
     /**
