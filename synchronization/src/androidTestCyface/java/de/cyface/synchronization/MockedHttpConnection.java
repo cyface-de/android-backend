@@ -18,7 +18,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.2.0
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
@@ -46,16 +46,14 @@ final class MockedHttpConnection implements Http {
 
     @Override
     public HttpResponse post(HttpURLConnection connection, JSONObject payload, boolean compress)
-            throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException {
+            throws ResponseParsingException, UnauthorizedException, BadRequestException {
         return new HttpResponse(201, "");
     }
 
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId,
             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
-            throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException {
+            throws ResponseParsingException, UnauthorizedException, BadRequestException {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }

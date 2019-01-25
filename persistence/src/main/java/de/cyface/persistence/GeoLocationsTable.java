@@ -76,11 +76,12 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
         // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
         switch (oldVersion) {
-            case 9:
+            case 8:
                 // The upgrade from 8 to 9 is executed for all SDK versions below 3 (which is version 10).
                 // We don't support an upgrade for data captured before version 3 so all old data is deleted.
                 database.beginTransaction();
-                database.execSQL("DELETE FROM " + getName() + ";");
+                database.execSQL("DELETE FROM measuring;"); // this was the old name for GeoLocations before v 10
+                onCreate(database);
                 database.endTransaction();
                 // continues with the next incremental upgrade until return ! -->
         }

@@ -1,18 +1,13 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
-
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
-import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
-import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -25,7 +20,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.1.0
  * @since 2.0.0
  */
 public class MeasurementContentProviderClient {
@@ -125,26 +120,6 @@ public class MeasurementContentProviderClient {
                 cursor.close();
             }
         }
-    }
-
-    /**
-     * Cleans the {@link Measurement} by marking the measurement as {@link MeasurementStatus#SYNCED}. This operation can
-     * not be revoked. Your data will be lost afterwards.
-     * FIXME: is this still used? before, the point 3d data was clear to. this is missing now.
-     *
-     * @return The amount of deleted data points. FIXME
-     * @throws RemoteException If the content provider is not accessible.
-     */
-    public int cleanMeasurement() throws RemoteException {
-        ContentValues values = new ContentValues();
-        values.put(MeasurementTable.COLUMN_STATUS, SYNCED.getDatabaseIdentifier());
-        client.update(Utils.getMeasurementUri(authority), values, BaseColumns._ID + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
-        values.clear();
-
-        int ret = 0;
-        // data points FIXME: not in the database anymore
-        return ret;
     }
 
     public @NonNull Uri createGeoLocationTableUri() {

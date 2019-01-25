@@ -2,8 +2,8 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.insertGeoLocation;
-import static de.cyface.synchronization.TestUtils.insertMeasurementEntry;
+import static de.cyface.testutils.SharedTestUtils.insertGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.insertMeasurementEntry;
 import static de.cyface.testutils.SharedTestUtils.insertPoint3d;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -106,24 +106,23 @@ public class DataTransmissionTest {
                 8.82831833333333, 0.0, 940);
         insertGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055142000L, 49.9305066666667, 8.82814,
                 8.78270530700684, 840);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
-                Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
-                Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.ACCELERATIONS_FOLDER_NAME,
-                Point3dFile.ACCELERATIONS_FILE_EXTENSION, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
-                Point3dFile.ROTATION_FILE_EXTENSION, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
-                Point3dFile.ROTATION_FILE_EXTENSION, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.ROTATIONS_FOLDER_NAME,
-                Point3dFile.ROTATION_FILE_EXTENSION, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
-                Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636010L, 7.65, -32.4, -71.4);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
-                Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636030L, 7.65, -32.550003, -71.700005);
-        insertPoint3d(context, measurementIdentifier, Point3dFile.DIRECTIONS_FOLDER_NAME,
-                Point3dFile.DIRECTION_FILE_EXTENSION, 1501662636050L, 7.65, -33.15, -71.700005);
+
+        // Insert file base data
+        final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
+                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+        final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
+                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+        final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
+                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+        insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
+        insertPoint3d(accelerationsFile, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
+        insertPoint3d(accelerationsFile, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
+        insertPoint3d(rotationsFile, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
+        insertPoint3d(rotationsFile, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
+        insertPoint3d(rotationsFile, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
+        insertPoint3d(directionsFile, 1501662636010L, 7.65, -32.4, -71.4);
+        insertPoint3d(directionsFile, 1501662636030L, 7.65, -32.550003, -71.700005);
+        insertPoint3d(directionsFile, 1501662636050L, 7.65, -33.15, -71.700005);
 
         persistence.storePointMetaData(
                 new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),

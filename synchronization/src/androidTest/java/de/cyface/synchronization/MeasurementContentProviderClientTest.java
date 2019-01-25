@@ -3,18 +3,14 @@ package de.cyface.synchronization;
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
-import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
-import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.synchronization.TestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
-import java.util.List;
 
 import org.junit.Ignore;
 import org.junit.Test;
@@ -30,15 +26,10 @@ import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.NoSuchMeasurementException;
-import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -151,19 +142,20 @@ public class MeasurementContentProviderClientTest {
         assertThat(numberOfLoadedGeoLocations, is(equalTo(numberOftestEntries)));
     }
 
+    /**
+     * Tests the basic {@link MeasurementContentProviderClient} methods.
+     */
     @Test
     public void test() throws RemoteException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentProviderClient client = null;
-        // FIXME: here were the sensor points, too, but they were removed as they are not loaded via content provider
 
         try {
             client = context.getContentResolver().acquireContentProviderClient(AUTHORITY);
-            if (client == null) {
-                throw new IllegalStateException(String.format(
-                        "Unable to initialize content provider client for content provider \"(%s)\"", AUTHORITY));
-            }
+            Validate.notNull(String.format("Unable to initialize content provider client for content provider \"(%s)\"",
+                    AUTHORITY), client);
 
+            // Create test measurement data
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
@@ -172,11 +164,14 @@ public class MeasurementContentProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+
+            // Insert test measurement
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
             Validate.notNull("Measurement insertion failed!", result);
             Validate.notNull(result.getLastPathSegment());
             long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
+            // Create GeoLocation data
             ContentValues geoLocationValues = new ContentValues();
             geoLocationValues.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
@@ -184,44 +179,20 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1L);
             geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
+
+            // Insert GeoLocations
             client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);
             client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);
 
+            // Check loadGeoLocations()
             MeasurementContentProviderClient oocut = new MeasurementContentProviderClient(measurementIdentifier, client,
                     AUTHORITY);
-
-            // FIXME: here was the method tested which marks the measurement as synced and deleted the point3d data
-            assertThat(oocut.cleanMeasurement(), is(equalTo(9)));
+            Cursor geoLocationCursor = oocut.loadGeoLocations(0, DATABASE_QUERY_LIMIT);
+            assertThat(geoLocationCursor.getCount(), is(equalTo(2)));
         } finally {
             if (client != null) {
                 client.close();
             }
         }
-    }
-
-    /**
-     * Tests whether the sync adapter loads the correct measurements for synchronization.
-     *
-     */
-    @Test
-    public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        PersistenceLayer persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
-
-        // Create an open measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer);
-
-        // Create a finished measurement
-        Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
-                persistenceLayer);
-
-        // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);
-
-        // Check that syncable measurements = finishedMeasurement
-        final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
-        assertThat(loadedMeasurements.size(), is(1));
-        assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
     }
 }

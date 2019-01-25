@@ -269,7 +269,8 @@ public class CapturedDataWriterTest {
      */
     @Test
     public void testCascadingClearMeasurements() {
-        // Insert some test data
+
+        // Insert test measurements
         final int testMeasurements = 2;
         oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
@@ -288,6 +289,8 @@ public class CapturedDataWriterTest {
             }
         };
 
+        final int testMeasurementsWithPoint3dFiles = 1;
+        final int point3dFilesPerMeasurement = 3;
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
         // Store PointMetaData
@@ -308,8 +311,6 @@ public class CapturedDataWriterTest {
         // clear the test data
         int removedEntries = clear(context, mockResolver, AUTHORITY);
         final int testIdentifierTableCount = 1;
-        final int testMeasurementsWithPoint3dFiles = 1;
-        final int point3dFilesPerMeasurement = 3;
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3dFiles * point3dFilesPerMeasurement
                 + testLocationCount + testMeasurements + testIdentifierTableCount)));
 

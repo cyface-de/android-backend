@@ -100,9 +100,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
         // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
         // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
         switch (oldVersion) {
-            case 9:
-                // This upgrade from 9 to 10 is executed for all SDK versions below 3 (which starts with version 10).
-                Log.w(TAG, "Upgrading from version 9 to 10: Dropping old tables");
+            case 8:
+                // This upgrade from 8 to 9 is executed for all SDK versions below 3 (which starts with version 10).
+                Log.w(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + ": Dropping old tables");
                 db.execSQL("DELETE FROM sample_points;");
                 db.execSQL("DROP TABLE sample_points;");
                 db.execSQL("DELETE FROM rotation_points;");

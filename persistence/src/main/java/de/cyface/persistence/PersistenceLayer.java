@@ -296,7 +296,8 @@ public class PersistenceLayer {
 
     /**
      * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as
-     * {@link MeasurementStatus#SYNCED} and deletes the sensor data.
+     * {@link MeasurementStatus#SYNCED} and deletes the sensor data but does not update the pointMetaDate in the
+     * measurement!
      *
      * @param measurement The measurement to remove.
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
@@ -306,7 +307,7 @@ public class PersistenceLayer {
         Validate.isTrue(loadMeasurementStatus(measurement.getIdentifier()) == FINISHED);
         setStatus(measurement.getIdentifier(), SYNCED);
 
-        // FIXME: for movebis we only delete sensor data not GPS points (+move to synchronized)
+        // TODO: for movebis we only delete sensor data not GPS points (+move to synchronized)
         // how do we want to handle this on Cyface ?
         final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
 

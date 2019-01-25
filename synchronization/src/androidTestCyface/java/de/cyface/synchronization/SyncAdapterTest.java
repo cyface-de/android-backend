@@ -2,20 +2,18 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
-import static de.cyface.synchronization.TestUtils.clear;
-import static de.cyface.synchronization.TestUtils.insertSampleMeasurementWithData;
+import static de.cyface.testutils.SharedTestUtils.clear;
+import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.util.List;
-import java.util.UUID;
 
+import androidx.test.filters.FlakyTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,11 +24,9 @@ import android.accounts.AccountManager;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -75,6 +71,7 @@ public final class SyncAdapterTest {
      * Tests whether points are correctly marked as synced.
      */
     @Test
+    @FlakyTest // because this is currently still dependent on a real test api (see logcat)
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
@@ -84,17 +81,15 @@ public final class SyncAdapterTest {
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
-        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
-        editor.apply();
+        persistence.restoreOrCreateDeviceId();
 
         // Insert data to be synced
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
+        final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
         // Mock - nothing to do
 
@@ -112,13 +107,12 @@ public final class SyncAdapterTest {
         }
 
         // Assert: synced data is marked as synced
-        // Measurement entry
-        final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
-        final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
-        assertThat(loadedStatus, is(equalTo(MeasurementStatus.SYNCED)));
-        assertThat(loadedMeasurement, notNullValue());
+        final MeasurementStatus newStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(newStatus, is(equalTo(MeasurementStatus.SYNCED)));
 
         // GPS Point
+        final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
+        assertThat(loadedMeasurement, notNullValue());
         List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
         assertThat(geoLocations.size(), is(1));
     }
