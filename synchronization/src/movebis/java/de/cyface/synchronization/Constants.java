@@ -21,6 +21,7 @@ public final class Constants {
      * The Cyface account type used to identify all Cyface system accounts.
      */
     public final static String ACCOUNT_TYPE = "de.cyface";
+    @SuppressWarnings("unused") // Because this allows the sdk integrating app to add a sync account
     public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
 
     /**
