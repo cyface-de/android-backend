@@ -55,11 +55,12 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import android.util.Log;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -141,6 +142,10 @@ public abstract class DataCapturingService {
      * <code>MessageHandler</code> receiving messages from the service via the <code>fromServiceMessenger</code>.
      */
     private final FromServiceMessageHandler fromServiceMessageHandler;
+    /**
+     * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
+     */
+    private Messenger toServiceMessenger;
     /**
      * This object observers the current WiFi state and starts and stops synchronization based on whether WiFi is active
      * or not. If the WiFi is active it should activate synchronization. If WiFi connectivity is lost it deactivates the
@@ -675,10 +680,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @param uiListener A listener for events which the UI might be interested in.
+     * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
+     *         been no previous call to {@link #setUiListener(UIListener)}.
      */
-    public void setUiListener(final @NonNull UIListener uiListener) {
-        this.uiListener = uiListener;
+    UIListener getUiListener() {
+        return uiListener;
     }
 
     /**
@@ -910,13 +916,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @return A flag indicating whether the background service is currently stopped or in the process of stopping. This
-     *         flag is used to prevent multiple lifecycle method from interrupting a stop process or being called, while
-     *         no service is running.
+     * @return {@code true} if data capturing is running; {@code false} otherwise.
      */
-    private boolean getIsStoppingOrHasStopped() {
-        Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
-        return isStoppingOrHasStopped;
+    public boolean getIsRunning() {
+        Log.d(TAG, "Getting isRunning with value " + isRunning);
+        return isRunning;
     }
 
     /**
@@ -927,6 +931,16 @@ public abstract class DataCapturingService {
     private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
         Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
         this.isStoppingOrHasStopped = isStoppingOrHasStopped;
+    }
+
+    /**
+     * @return A flag indicating whether the background service is currently stopped or in the process of stopping. This
+     *         flag is used to prevent multiple lifecycle method from interrupting a stop process or being called, while
+     *         no service is running.
+     */
+    private boolean getIsStoppingOrHasStopped() {
+        Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
+        return isStoppingOrHasStopped;
     }
 
     /**
@@ -959,6 +973,56 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
+     * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private class BackgroundServiceConnection implements ServiceConnection {
+
+        @Override
+        public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
+            Log.d(TAG, "DataCapturingService connected to background service.");
+            toServiceMessenger = new Messenger(binder);
+            Message registerClient = new Message();
+            registerClient.replyTo = fromServiceMessenger;
+            registerClient.what = MessageCodes.REGISTER_CLIENT;
+            try {
+                toServiceMessenger.send(registerClient);
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e);
+            }
+
+            Log.d(TAG, "ServiceConnection established!");
+        }
+
+        @Override
+        public void onServiceDisconnected(final @NonNull ComponentName componentName) {
+            Log.d(TAG, "Service disconnected!");
+            toServiceMessenger = null;
+
+        }
+
+        @Override
+        public void onBindingDied(final @NonNull ComponentName name) {
+            if (context.get() == null) {
+                throw new IllegalStateException("Unable to rebind. Context was null.");
+            }
+
+            Log.d(TAG, "Binding died, unbinding & rebinding ...");
+            try {
+                unbind();
+            } catch (DataCapturingException e) {
+                throw new IllegalStateException(e);
+            }
+            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            context.get().bindService(rebindIntent, this, 0);
+        }
+    }
+
+    /**
      * A handler for messages coming from the {@link DataCapturingBackgroundService}.
      *
      * @author Klemens Muthmann
@@ -968,6 +1032,10 @@ public abstract class DataCapturingService {
     private static class FromServiceMessageHandler extends Handler {
 
         /**
+         * A listener that is notified of important events during data capturing.
+         */
+        private Collection<DataCapturingListener> listener;
+        /**
          * The Android context this handler is running under.
          */
         private final Context context;
@@ -975,10 +1043,6 @@ public abstract class DataCapturingService {
          * The service which calls this handler.
          */
         private final DataCapturingService dataCapturingService;
-        /**
-         * A listener that is notified of important events during data capturing.
-         */
-        private Collection<DataCapturingListener> listener;
 
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
@@ -1095,56 +1159,6 @@ public abstract class DataCapturingService {
         @SuppressWarnings("unused") // because we need to support this API - TODO: really?
         void removeListener(final @NonNull DataCapturingListener listener) {
             this.listener.remove(listener);
-        }
-    }
-
-    /**
-     * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
-     * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.0
-     * @since 2.0.0
-     */
-    private class BackgroundServiceConnection implements ServiceConnection {
-
-        @Override
-        public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
-            Log.d(TAG, "DataCapturingService connected to background service.");
-            toServiceMessenger = new Messenger(binder);
-            Message registerClient = new Message();
-            registerClient.replyTo = fromServiceMessenger;
-            registerClient.what = MessageCodes.REGISTER_CLIENT;
-            try {
-                toServiceMessenger.send(registerClient);
-            } catch (RemoteException e) {
-                throw new IllegalStateException(e);
-            }
-
-            Log.d(TAG, "ServiceConnection established!");
-        }
-
-        @Override
-        public void onServiceDisconnected(final @NonNull ComponentName componentName) {
-            Log.d(TAG, "Service disconnected!");
-            toServiceMessenger = null;
-
-        }
-
-        @Override
-        public void onBindingDied(final @NonNull ComponentName name) {
-            if (context.get() == null) {
-                throw new IllegalStateException("Unable to rebind. Context was null.");
-            }
-
-            Log.d(TAG, "Binding died, unbinding & rebinding ...");
-            try {
-                unbind();
-            } catch (DataCapturingException e) {
-                throw new IllegalStateException(e);
-            }
-            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-            context.get().bindService(rebindIntent, this, 0);
         }
     }
 }
