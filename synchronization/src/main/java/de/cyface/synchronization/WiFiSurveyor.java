@@ -157,13 +157,17 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    @SuppressWarnings({"unused"}) // TODO: because ...?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // TODO: because ...?
     public void stopSurveillance() throws SynchronisationException {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
         }
 
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
+            if (networkCallback == null) {
+                Log.w(TAG, "Unable to unregister NetworkCallback because it's null.");
+                return;
+            }
             connectivityManager.unregisterNetworkCallback(networkCallback);
         } else {
             try {
