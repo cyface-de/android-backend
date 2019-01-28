@@ -99,9 +99,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private static final int NOTIFICATION_ID = 74656;
     /**
-     * The tag used to identify logging messages send to logcat.
+     * A wake lock used to keep the application active during data capturing.
      */
-    private final static String TAG = BACKGROUND_TAG;
+    private PowerManager.WakeLock wakeLock;
     /**
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
@@ -111,10 +111,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The list of clients receiving messages from this service as well as sending control messages.
      */
     private final Set<Messenger> clients = new HashSet<>();
-    /**
-     * A wake lock used to keep the application active during data capturing.
-     */
-    private PowerManager.WakeLock wakeLock;
     /**
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
