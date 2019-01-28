@@ -139,7 +139,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnWiFiOnly) {
-                requestBuilder.addTransportType(NET_CAPABILITY_NOT_METERED);
+                // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
+                requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
             networkCallback = new NetworkCallback(this, currentSynchronizationAccount, authority);
             connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
