@@ -55,11 +55,12 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import android.util.Log;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -113,7 +114,6 @@ public abstract class DataCapturingService {
      * running.
      */
     private boolean isStoppingOrHasStopped;
-
     /**
      * A weak reference to the calling context. This is a weak reference since the calling context (i.e.
      * <code>Activity</code>) might have been destroyed, in which case there is no context anymore.
@@ -135,6 +135,10 @@ public abstract class DataCapturingService {
      * <code>MessageHandler</code> receiving messages from the service via the <code>fromServiceMessenger</code>.
      */
     private final FromServiceMessageHandler fromServiceMessageHandler;
+    /**
+     * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
+     */
+    private Messenger toServiceMessenger;
     /**
      * This object observers the current WiFi state and starts and stops synchronization based on whether WiFi is active
      * or not. If the WiFi is active it should activate synchronization. If WiFi connectivity is lost it deactivates the
@@ -629,13 +633,6 @@ public abstract class DataCapturingService {
 
     /**
      * @param uiListener A listener for events which the UI might be interested in.
-     */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
-    public void setUiListener(final @NonNull UIListener uiListener) {
-        this.uiListener = uiListener;
-    }
-
-    /**
      * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
      *         been no previous call to {@link #setUiListener(UIListener)}.
      */
@@ -942,10 +939,6 @@ public abstract class DataCapturingService {
          * The service which calls this handler.
          */
         private final DataCapturingService dataCapturingService;
-        /**
-         * A listener that is notified of important events during data capturing.
-         */
-        private Collection<DataCapturingListener> listener;
 
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.

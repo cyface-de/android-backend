@@ -91,6 +91,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * points they are split into multiple messages.
      */
     final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
+     * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
+     * points they are split into multiple messages.
+     */
+    final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
     /**
      * The Cyface notification identifier used to display system notification while the service is running. This needs
      * to be unique for the whole app, so we chose a very unlikely one.
