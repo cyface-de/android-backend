@@ -18,7 +18,9 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
@@ -116,7 +118,8 @@ public final class MeasurementSerializer {
         compressor.finish();
         byte[] output = new byte[serializedMeasurement.length];
         int lengthOfCompressedData = compressor.deflate(output);
-        Log.d(TAG, String.format("Compressed data to %d bytes.", lengthOfCompressedData));
+        Log.d(TAG, String.format("Compressed data to %s.",
+                DefaultFileAccess.humanReadableByteCount(lengthOfCompressedData, true)));
         return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
     }
 
@@ -288,7 +291,8 @@ public final class MeasurementSerializer {
         buffer.put(serializedDirections);
         final byte[] result = buffer.array();
 
-        Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %d bytes.", result.length));
+        Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %s.",
+                DefaultFileAccess.humanReadableByteCount(result.length, true)));
         return result;
     }
 }
