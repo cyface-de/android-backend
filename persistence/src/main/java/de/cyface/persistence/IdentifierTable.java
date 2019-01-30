@@ -2,6 +2,7 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -40,13 +41,24 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
                 + COLUMN_DEVICE_ID + " TEXT NOT NULL);";
     }
 
-    /* Don't forget to update the DatabaseHelper's DATABASE_VERSION */
+    /**
+     * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
+     *
+     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     */
     @Override
     public void onUpgrade(@NonNull final SQLiteDatabase database, final int oldVersion, final int newVersion) {
-        // switch (oldVersion) {
-        // case 10:
-        // no break, thus, the upgrade process continues with the next incremental upgrade step
-        // }
+
+        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
+        /*
+         * switch (oldVersion) {
+         * case 10:
+         * database.beginTransaction();
+         * database.execSQL("DELETE FROM " + getName() + ";");
+         * database.endTransaction();
+         * // continues with the next incremental upgrade until return ! -->
+         * }
+         */
     }
 
     @Override
