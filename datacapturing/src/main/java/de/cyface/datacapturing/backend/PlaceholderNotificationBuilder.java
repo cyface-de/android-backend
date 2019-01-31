@@ -64,16 +64,16 @@ final class PlaceholderNotificationBuilder {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
                 && notificationManager.getNotificationChannel(channelId) == null) {
             final NotificationChannel channel = new NotificationChannel(channelId,
-                    context.getString(R.string.notification_text), NotificationManager.IMPORTANCE_DEFAULT);
+                    context.getString(R.string.notification_text), NotificationManager.IMPORTANCE_LOW);
             notificationManager.createNotificationChannel(channel);
         }
 
-        return new NotificationCompat.Builder(context, channelId)
-                .setContentTitle(context.getString(R.string.notification_title))
-                //.setSmallIcon(R.drawable.ic_movebis_notification)
-                .setContentText(context.getString(R.string.notification_text))
-                .setOngoing(true)
-                .setAutoCancel(false)
-                .build();
+        NotificationCompat.Builder builder = new NotificationCompat.Builder(context, channelId);
+        builder.setContentTitle(context.getString(R.string.notification_title));
+                builder.setSmallIcon(R.drawable.ic_hourglass_empty_black_24dp);
+                builder.setContentText(context.getString(R.string.notification_text));
+                builder.setOngoing(true);
+                builder.setAutoCancel(false);
+        return builder.build();
     }
 }

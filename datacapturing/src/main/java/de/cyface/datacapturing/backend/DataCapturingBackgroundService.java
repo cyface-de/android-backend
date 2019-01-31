@@ -33,6 +33,7 @@ import java.util.Set;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -91,10 +92,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * points they are split into multiple messages.
      */
     final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
-     * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
-     * points they are split into multiple messages.
-     */
-    final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
     /**
      * The Cyface notification identifier used to display system notification while the service is running. This needs
      * to be unique for the whole app, so we chose a very unlikely one.
@@ -102,14 +99,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * This is also the registration number of the starship Voyager.
      */
     private static final int NOTIFICATION_ID = 74656;
-    /**
-     * A wake lock used to keep the application active during data capturing.
-     */
-    private static final int NOTIFICATION_ID = 74656;
-    /**
-     * The tag used to identify logging messages send to logcat.
-     */
-    private final static String TAG = BACKGROUND_TAG;
     /**
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
@@ -119,6 +108,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The list of clients receiving messages from this service as well as sending control messages.
      */
     private final Set<Messenger> clients = new HashSet<>();
+    /**
+     * A wake lock used to keep the application active during data capturing.
+     */
+    private PowerManager.WakeLock wakeLock;
     /**
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
@@ -170,13 +163,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @SuppressLint("WakelockTimeout") // We can not provide a timeout since our service might need to run for hours.
     @Override
     public void onCreate() {
-        super.onCreate();
         Log.d(TAG, "onCreate");
-        // FIXME: Try to call this even before super.onCreate()?
         // We only have 5 seconds to call startForeground before the service crashes, so we call it as early as possible
         // with a placeholder notification. This is substituted by the provided notification in onStartCommand. On most
         // devices the user should not even see this happening.
         startForeground(NOTIFICATION_ID, PlaceholderNotificationBuilder.build(this));
+        super.onCreate();
 
         // Prevents this process from being killed by the system.
         final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
@@ -261,11 +253,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
         Validate.notNull(eventHandlingStrategy);
         final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
-        /*
-        * This has been moved from onCreate to here, since we have no eventHandlingStrategy in onCreate.
-        * However this might cause problems if the service has already been killed at this stage.
-        */
-        startForeground(NOTIFICATION_ID, notification);
+        final NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        // Update the placeholder notification
+        notificationManager.notify(NOTIFICATION_ID, notification);
 
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);

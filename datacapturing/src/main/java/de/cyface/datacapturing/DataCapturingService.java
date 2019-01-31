@@ -633,6 +633,13 @@ public abstract class DataCapturingService {
 
     /**
      * @param uiListener A listener for events which the UI might be interested in.
+     */
+    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
+    public void setUiListener(final @NonNull UIListener uiListener) {
+        this.uiListener = uiListener;
+    }
+
+    /**
      * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
      *         been no previous call to {@link #setUiListener(UIListener)}.
      */
@@ -853,20 +860,20 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
+     */
+    private void setIsRunning(final boolean isRunning) {
+        Log.d(TAG, "Setting isRunning to " + isRunning);
+        this.isRunning = isRunning;
+    }
+
+    /**
      * @return {@code true} if data capturing is running; {@code false} otherwise.
      */
     @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
     public boolean getIsRunning() {
         Log.d(TAG, "Getting isRunning with value " + isRunning);
         return isRunning;
-    }
-
-    /**
-     * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
-     */
-    private void setIsRunning(final boolean isRunning) {
-        Log.d(TAG, "Setting isRunning to " + isRunning);
-        this.isRunning = isRunning;
     }
 
     /**
@@ -916,6 +923,56 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO: really?
     public void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
+    }
+
+    /**
+     * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
+     * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
+     *
+     * @author Klemens Muthmann
+     * @version 1.0.0
+     * @since 2.0.0
+     */
+    private class BackgroundServiceConnection implements ServiceConnection {
+
+        @Override
+        public void onServiceConnected(final @NonNull ComponentName componentName, final @NonNull IBinder binder) {
+            Log.d(TAG, "DataCapturingService connected to background service.");
+            toServiceMessenger = new Messenger(binder);
+            Message registerClient = new Message();
+            registerClient.replyTo = fromServiceMessenger;
+            registerClient.what = MessageCodes.REGISTER_CLIENT;
+            try {
+                toServiceMessenger.send(registerClient);
+            } catch (RemoteException e) {
+                throw new IllegalStateException(e);
+            }
+
+            Log.d(TAG, "ServiceConnection established!");
+        }
+
+        @Override
+        public void onServiceDisconnected(final @NonNull ComponentName componentName) {
+            Log.d(TAG, "Service disconnected!");
+            toServiceMessenger = null;
+
+        }
+
+        @Override
+        public void onBindingDied(final @NonNull ComponentName name) {
+            if (context.get() == null) {
+                throw new IllegalStateException("Unable to rebind. Context was null.");
+            }
+
+            Log.d(TAG, "Binding died, unbinding & rebinding ...");
+            try {
+                unbind();
+            } catch (DataCapturingException e) {
+                throw new IllegalStateException(e);
+            }
+            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            context.get().bindService(rebindIntent, this, 0);
+        }
     }
 
     /**
