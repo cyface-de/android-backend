@@ -8,7 +8,7 @@ import java.util.concurrent.locks.Lock;
 
 import de.cyface.datacapturing.IsRunningCallback;
 
-import static de.cyface.datacapturing.ServiceTestUtils.TAG;
+import static de.cyface.datacapturing.TestUtils.TAG;
 
 /**
  * A callback used to check whether the service has successfully started or not.

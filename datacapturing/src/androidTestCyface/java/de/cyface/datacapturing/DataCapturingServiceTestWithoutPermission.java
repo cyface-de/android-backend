@@ -1,38 +1,41 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.ServiceTestUtils.ACCOUNT_TYPE;
-import static de.cyface.datacapturing.ServiceTestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
+
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
+import android.accounts.AccountAuthenticatorActivity;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.location.Location;
-import androidx.test.InstrumentationRegistry;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.MediumTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
-
+import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Vehicle;
-import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.synchronization.CyfaceAuthenticator;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Checks if missing permissions are correctly detected before starting a service.
  *
  * @author Klemens Muthmann
- * @version 1.0.3
+ * @author Armin Schnabel
+ * @version 2.1.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -45,14 +48,26 @@ public class DataCapturingServiceTestWithoutPermission {
      * An object of the class under test.
      */
     private DataCapturingService oocut;
+    /**
+     * Lock used to synchronize with the background service.
+     */
+    private Lock lock;
+    /**
+     * Condition waiting for the background service to wake up this test case.
+     */
+    private Condition condition;
 
     /**
      * Initializes the object of class under test.
      */
     @Before
     public void setUp() {
-        final Context context = InstrumentationRegistry.getTargetContext();
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final ContentResolver contentResolver = context.getContentResolver();
+
+        // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
+        CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
+
         final String dataUploadServerAddress = "https://localhost:8080";
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
@@ -60,11 +75,13 @@ public class DataCapturingServiceTestWithoutPermission {
                 try {
                     oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
                             dataUploadServerAddress, new IgnoreEventsStrategy());
-                } catch (SetupException e) {
+                } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
         });
+        lock = new ReentrantLock();
+        condition = lock.newCondition();
     }
 
     /**
@@ -76,80 +93,29 @@ public class DataCapturingServiceTestWithoutPermission {
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      */
     @Test(expected = MissingPermissionException.class)
-    public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException {
-        oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKNOWN);
+    public void testServiceDoesNotStartWithoutPermission()
+            throws MissingPermissionException, DataCapturingException, CursorIsNullException {
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
+        // if the test fails we might need to wait a bit as we're async
     }
 
     /**
      * Tests whether a set {@link UIListener} is correctly informed about a missing permission.
      */
     @Test
-    public void testUIListenerIsInformedOfMissingPermission() {
+    public void testUIListenerIsInformedOfMissingPermission() throws CursorIsNullException {
         TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 
         boolean exceptionCaught = false;
         try {
-            oocut.startSync(new NonSynchronizedTestListener(), Vehicle.UNKNOWN);
+            final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+            oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCaught = true;
         }
         assertThat(exceptionCaught, is(equalTo(true)));
-    }
-
-    /**
-     * A <code>DataCapturingListener</code> that can be used for testing, which is not synchronized with the test.
-     *
-     * @author Klemens Muthmann
-     * @version 1.0.1
-     * @since 2.0.0
-     */
-    private static class NonSynchronizedTestListener implements DataCapturingListener {
-
-        @Override
-        public void onFixAcquired() {
-
-        }
-
-        @Override
-        public void onFixLost() {
-
-        }
-
-        @Override
-        public void onNewGeoLocationAcquired(GeoLocation position) {
-
-        }
-
-        @Override
-        public void onNewSensorDataAcquired(CapturedData data) {
-
-        }
-
-        @Override
-        public void onLowDiskSpace(DiskConsumption allocation) {
-
-        }
-
-        @Override
-        public void onSynchronizationSuccessful() {
-
-        }
-
-        @Override
-        public void onErrorState(Exception e) {
-
-        }
-
-        @Override
-        public boolean onRequiresPermission(String permission, Reason reason) {
-            return false;
-        }
-
-        @Override
-        public void onCapturingStopped() {
-
-        }
     }
 }

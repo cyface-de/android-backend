@@ -2,7 +2,7 @@
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.3
  * @since 2.2.0
  */
 

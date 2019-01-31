@@ -1,16 +1,17 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.Constants.BASE_PATH;
 import static de.cyface.datacapturing.Constants.MINIMUM_MEGABYTES_REQUIRED;
 
 import java.util.Locale;
 
+import android.os.Environment;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.os.StatFs;
-import androidx.annotation.NonNull;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import de.cyface.persistence.model.Measurement;
 
 /**
  * Objects of this class represent the current disk (or rather SD card) space used and available. This space is mostly
@@ -19,7 +20,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.0.5
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {
@@ -135,7 +136,7 @@ public final class DiskConsumption implements Parcelable {
      * @return The number of bytes of space available.
      */
     public static long bytesAvailable() {
-        final StatFs stat = new StatFs(BASE_PATH);
+        final StatFs stat = new StatFs(Environment.getExternalStorageDirectory().getPath());
         final long bytesAvailable;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) {
             bytesAvailable = stat.getBlockSizeLong() * stat.getAvailableBlocksLong();
@@ -152,7 +153,7 @@ public final class DiskConsumption implements Parcelable {
      * @return The number of bytes of storage.
      */
     public static long storageSize() {
-        final StatFs stat = new StatFs(BASE_PATH);
+        final StatFs stat = new StatFs(Environment.getExternalStorageDirectory().getPath());
         final long bytesStorage;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.JELLY_BEAN_MR2) {
             bytesStorage = stat.getBlockSizeLong() * stat.getBlockCountLong();

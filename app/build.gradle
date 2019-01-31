@@ -1,3 +1,12 @@
+/**
+ * Gradle's build file for the placeholder app module required by Android Studio.
+ *
+ * @author Armin Schnabel
+ * @author Klemens Muthmann
+ * @version 1.0.2
+ * @since 2.5.0
+ */
+
 apply plugin: 'com.android.application'
 
 android {
@@ -20,5 +29,4 @@ android {
 
 dependencies {
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
-    //androidTestImplementation 'com.android.support.test.espresso:espresso-core:3.0.1'
 }

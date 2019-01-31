@@ -1,5 +1,7 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -10,31 +12,29 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.Manifest;
 import android.content.Context;
-import androidx.test.InstrumentationRegistry;
-import androidx.test.filters.FlakyTest;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
+import androidx.test.filters.SdkSuppress;
+import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
-import androidx.test.runner.AndroidJUnit4;
-
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @author Armin Schnabel
+ * @version 2.2.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 @LargeTest
 public final class MovebisTest {
 
@@ -75,12 +75,10 @@ public final class MovebisTest {
 
     /**
      * Initializes the object of class under test.
-     *
-     * @throws SetupException If the <code>MovebisDataCapturingService</code> was not created properly.
      */
     @Before
-    public void setUp() throws SetupException {
-        context = InstrumentationRegistry.getTargetContext();
+    public void setUp() {
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
         testUIListener = new TestUIListener(lock, condition);
@@ -88,8 +86,9 @@ public final class MovebisTest {
             @Override
             public void run() {
                 try {
-                    oocut = new MovebisDataCapturingService(context, "https://localhost:8080", testUIListener, 0L);
-                } catch (SetupException e) {
+                    oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080",
+                            testUIListener, 0L, new IgnoreEventsStrategy());
+                } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
@@ -100,14 +99,10 @@ public final class MovebisTest {
     /**
      * Tests if one lifecycle of starting and stopping location updates works as expected.
      * FlakyTest: This integration test may be dependent on position / GPS updates on real devices.
-     * Ignored: Currently this test only runs on Pixel 2 emulators which is not available on our CI
-     *
-     * @throws SetupException Should not happen. For further details look at the documentation of
-     *             {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long)}.
      */
     @Test
-    @Ignore
-    public void testUiLocationUpdateLifecycle() throws SetupException {
+    @SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators (only on the CI)
+    public void testUiLocationUpdateLifecycle() {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -115,7 +110,7 @@ public final class MovebisTest {
             }
         });
 
-        ServiceTestUtils.lockAndWait(10L, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(10L, TimeUnit.SECONDS, lock, condition);
         oocut.stopUILocationUpdates();
 
         assertThat(testUIListener.receivedUpdates.isEmpty(), is(equalTo(false)));

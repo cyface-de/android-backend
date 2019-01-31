@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.initSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
@@ -21,8 +21,8 @@ import javax.net.ssl.SSLContext;
 
 import android.content.Context;
 import android.content.SyncResult;
-import androidx.annotation.NonNull;
 import android.util.Log;
+import androidx.annotation.NonNull;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -30,7 +30,7 @@ import android.util.Log;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.6
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -78,7 +78,7 @@ class SyncPerformer {
      * @param dataServerUrl The server URL to send the data to.
      * @param measurementIdentifier The measurement identifier of the transmitted measurement.
      * @param deviceIdentifier The device identifier of the device transmitting the measurement.
-     * @param data The data to transmit as JSON measurement slice.
+     * @param data The data to transmit
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      *
@@ -95,7 +95,7 @@ class SyncPerformer {
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
-            Log.i(TAG, String.format(Locale.US, "Uploading %s to %s", fileName, url.toString()));
+            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
                 http.post(connection, data, deviceIdentifier, measurementIdentifier, fileName, progressListener);

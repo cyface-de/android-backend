@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SharedConstants.DEFAULT_CHARSET;
+import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -24,9 +24,8 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.os.Build;
-import androidx.annotation.NonNull;
 import android.util.Log;
-
+import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
 
@@ -35,7 +34,7 @@ import de.cyface.utils.ValidationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.4
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -54,7 +53,7 @@ public class HttpConnection implements Http {
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(final @NonNull URL url, final @NonNull SSLContext sslContext,
+    public HttpsURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
             final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
         final HttpsURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
@@ -62,7 +61,7 @@ public class HttpConnection implements Http {
     }
 
     @Override
-    public HttpsURLConnection openHttpConnection(final @NonNull URL url, final @NonNull SSLContext sslContext,
+    public HttpsURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
             final boolean hasBinaryContent) throws ServerUnavailableException {
         HttpsURLConnection connection;
         try {
@@ -77,7 +76,8 @@ public class HttpConnection implements Http {
         connection.setHostnameVerifier(new HostnameVerifier() {
             @Override
             public boolean verify(final String hostname, final SSLSession session) {
-                return true; // FIXME: create or attach task id
+                HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+                return hv.verify(url.getHost(), session);
             }
         });
 
@@ -129,7 +129,7 @@ public class HttpConnection implements Http {
             UploadProgressListener progressListener) throws RequestParsingException, SynchronisationException,
             ResponseParsingException, BadRequestException, UnauthorizedException {
 
-        // FIXME This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
+        // TODO This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
         // returns only the data currently in memory or something similar.
         final int dataSize;
         try {
@@ -184,24 +184,26 @@ public class HttpConnection implements Http {
     }
 
     private byte[] gzip(byte[] input) {
-        GZIPOutputStream gzipOutputStream = null;
         try {
-            ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
-            gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
-            gzipOutputStream.write(input);
-            gzipOutputStream.flush();
-            gzipOutputStream.close();
-            gzipOutputStream = null;
-            return byteArrayOutputStream.toByteArray();
-        } catch (Exception e) {
-            throw new IllegalStateException(e);
-        } finally {
-            if (gzipOutputStream != null) {
+            GZIPOutputStream gzipOutputStream = null;
+            try {
+                ByteArrayOutputStream byteArrayOutputStream = new ByteArrayOutputStream();
+                gzipOutputStream = new GZIPOutputStream(byteArrayOutputStream);
                 try {
+                    gzipOutputStream.write(input);
+                    gzipOutputStream.flush();
+                } finally {
                     gzipOutputStream.close();
-                } catch (Exception ignored) {
+                }
+                gzipOutputStream = null;
+                return byteArrayOutputStream.toByteArray();
+            } finally {
+                if (gzipOutputStream != null) {
+                    gzipOutputStream.close();
                 }
             }
+        } catch (final IOException e) {
+            throw new IllegalStateException("Failed to gzip.");
         }
     }
 
@@ -216,7 +218,7 @@ public class HttpConnection implements Http {
 
     private String setContentLength(final HttpURLConnection connection, final int dataSize,
             final String deviceIdentifier, final long measurementIdentifier, final String fileName) {
-        final String userIdPart = addPart("deviceId", deviceIdentifier, BOUNDARY);
+        final String deviceIdPart = addPart("deviceId", deviceIdentifier, BOUNDARY);
         final String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
                 BOUNDARY);
         final String deviceTypePart = addPart("deviceType", android.os.Build.MODEL, BOUNDARY);
@@ -228,7 +230,7 @@ public class HttpConnection implements Http {
 
         final String fileHeader2 = "Content-length: " + dataSize + "\r\n";
         final String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
-        final String stringData = userIdPart + measurementIdPart + deviceTypePart + androidVersion + fileHeader;
+        final String stringData = deviceIdPart + measurementIdPart + deviceTypePart + androidVersion + fileHeader;
 
         final long requestLength = stringData.length() + dataSize;
         connection.setRequestProperty("Content-length", "" + requestLength);

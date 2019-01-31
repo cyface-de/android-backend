@@ -14,16 +14,14 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.HandlerThread;
-
-import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 
 /**
  * Tests the correct workings of the data capturing functionality.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
 public class DataCapturingTest {
@@ -49,12 +47,12 @@ public class DataCapturingTest {
     @Mock
     private CapturingProcessListener listener;
     /**
-     * A mocked <code>HandlerThread</code> for events occuring on new locations.
+     * A mocked <code>HandlerThread</code> for events occurring on new locations.
      */
     @Mock
     private HandlerThread locationEventHandler;
     /**
-     * A mocked <code>HandlerThread</code> for events occuring on new sensor values.
+     * A mocked <code>HandlerThread</code> for events occurring on new sensor values.
      */
     @Mock
     private HandlerThread sensorEventHandler;
@@ -81,7 +79,7 @@ public class DataCapturingTest {
      * Tests if <code>CapturingProcessListener</code> is correctly informed about new geo locations.
      */
     @Test
-    public void testSuccessfulDataCapturing() throws DataCapturingException {
+    public void testSuccessfulDataCapturing() {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(51.03624633);
         when(location.getLongitude()).thenReturn(13.78828128);
@@ -102,7 +100,7 @@ public class DataCapturingTest {
      * Usually below 2 seconds.
      */
     @Test
-    public void testDataCapturingInterval() throws DataCapturingException {
+    public void testDataCapturingInterval() {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(1.0);
         when(location.getLongitude()).thenReturn(1.0);

@@ -1,10 +1,6 @@
-/*
- * Created at 17:41:23 on 19.01.2015
- */
 package de.cyface.persistence;
 
 import java.util.Arrays;
-import java.util.Map;
 
 import android.content.ContentProvider;
 import android.content.ContentUris;
@@ -14,25 +10,17 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
+import de.cyface.utils.Validate;
 
 /**
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to
  * transferring the data to the server.
  *
  * @author Klemens Muthmann
- * @version 1.1.2
+ * @version 1.1.4
  * @since 1.0.0
  */
 public final class MeasuringPointsContentProvider extends ContentProvider {
-
-    /**
-     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant contains the integer value used to represent <code>false</code> values in an SQLite database.
-     */
-    public static final int SQLITE_FALSE = 0;
-    /**
-     * SQLite does not support boolean values. It uses an integer typed column for that. For convenience this constant contains the integer value used to represent <code>true</code> values in an SQLite database.
-     */
-    public static final int SQLITE_TRUE = 1;
 
     /**
      * A representation of the database manged by this <code>ContentProvider</code>.
@@ -46,6 +34,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
     @Override
     public boolean onCreate() {
         context = getContext();
+        Validate.notNull(context);
         database = new DatabaseHelper(context);
         return true;
     }
@@ -71,32 +60,33 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
     }
 
     @Override
-    public String getType(final Uri uri) {
+    public String getType(@NonNull final Uri uri) {
         return database.getType(uri);
     }
 
     @Override
-    public Uri insert(final Uri uri, final ContentValues values) {
+    public Uri insert(@NonNull final Uri uri, final ContentValues values) {
         long newRowIdentifier = database.insertRow(uri, values);
         context.getContentResolver().notifyChange(uri, null);
         return Uri.parse(uri.getLastPathSegment() + "/" + newRowIdentifier);
     }
 
     @Override
-    public int bulkInsert(Uri uri, ContentValues[] values) {
+    public int bulkInsert(@NonNull final Uri uri, @NonNull final ContentValues[] values) {
         return database.bulkInsert(uri, Arrays.asList(values)).length;
     }
 
     @Override
-    public Cursor query(final Uri uri, final String[] projection, final String selection, final String[] selectionArgs,
-            final String sortOrder) {
+    public Cursor query(@NonNull final Uri uri, final String[] projection, final String selection,
+            final String[] selectionArgs, final String sortOrder) {
         final Cursor cursor = database.query(uri, projection, selection, selectionArgs, sortOrder);
         cursor.setNotificationUri(context.getContentResolver(), uri);
         return cursor;
     }
 
     @Override
-    public int update(final Uri uri, final ContentValues values, final String selection, final String[] selectionArgs) {
+    public int update(@NonNull final Uri uri, final ContentValues values, final String selection,
+            final String[] selectionArgs) {
         int rowsUpdated = database.update(uri, values, selection, selectionArgs);
         context.getContentResolver().notifyChange(uri, null);
         return rowsUpdated;

@@ -1,13 +1,12 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TAG;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.fail;
-
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TAG;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -15,21 +14,20 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import android.content.ContentResolver;
-import android.content.SyncInfo;
-import android.content.SyncStatusObserver;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.content.ContentResolver;
+import android.content.SyncInfo;
+import android.content.SyncStatusObserver;
 import android.os.Bundle;
-import androidx.annotation.NonNull;
-import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.filters.FlakyTest;
-import androidx.test.filters.LargeTest;
-import androidx.test.ext.junit.runners.AndroidJUnit4;
 import android.util.Log;
+import androidx.annotation.NonNull;
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.LargeTest;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 /**
  * Tests that the sync adapter implemented by this component gets called. This test is not so much about transmitting
@@ -42,11 +40,10 @@ import android.util.Log;
  * 
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.0.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
-@FlakyTest
 @LargeTest
 public final class SyncAdapterTest {
 

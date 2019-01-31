@@ -1,11 +1,11 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
+
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.preference.PreferenceManager;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
-import de.cyface.synchronization.SyncService;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
@@ -13,7 +13,7 @@ import de.cyface.synchronization.SyncService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.7
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -69,12 +69,12 @@ public class MessageCodes {
     /**
      * Global Broadcast (inter-process) action identifier for ping messages sent by the
      * {@link DataCapturingService}'s {@link PongReceiver} to the
-     * {@link DataCapturingBackgroundService#pingReceiver}, to check if the {@link DataCapturingBackgroundService} is
+     * {@link de.cyface.datacapturing.backend.PingReceiver}, to check if the {@link DataCapturingBackgroundService} is
      */
     private static final String GLOBAL_BROADCAST_PING = "de.cyface.ping";
     /**
      * Global Broadcast (inter-process) action identifier for pong messages sent by the
-     * {@link DataCapturingBackgroundService#pingReceiver} as answer to a received ping.
+     * {@link de.cyface.datacapturing.backend.PingReceiver} as answer to a received ping.
      */
     private static final String GLOBAL_BROADCAST_PONG = "de.cyface.pong";
 
@@ -84,7 +84,7 @@ public class MessageCodes {
      */
     public static String getServiceStartedActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
     }
 
@@ -93,8 +93,9 @@ public class MessageCodes {
      * this a action identifier for global broadcasts (for inter process communication)
      */
     public static String getPingActionId(final Context context) {
+        // TODO [MOV-442]: Read did from database
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PING;
     }
 
@@ -104,7 +105,7 @@ public class MessageCodes {
      */
     public static String getPongActionId(final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(SyncService.DEVICE_IDENTIFIER_KEY, null);
+        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PONG;
     }
 
