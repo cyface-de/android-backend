@@ -1069,8 +1069,7 @@ public abstract class DataCapturingService {
                         // The background service already received a stopSelf command but as it's still
                         // bound to this service it should be still alive. We unbind it from this service via the
                         // stopService method (to reduce code duplicity).
-                        Validate.isTrue(dataCapturingService.stopService(new Measurement(measurementId),
-                                synchronizationReceiver));
+                        Validate.isTrue(dataCapturingService.stopService(synchronizationReceiver));
 
                         // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
                         dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
