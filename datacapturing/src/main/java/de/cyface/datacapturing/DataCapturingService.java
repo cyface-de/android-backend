@@ -103,14 +103,8 @@ import de.cyface.utils.Validate;
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
-
-    /*
-     * MARK: Properties
-     */
-
     /**
      * {@code true} if data capturing is running; {@code false} otherwise.
-     */
      */
     private boolean isRunning;
 
@@ -184,30 +178,6 @@ public abstract class DataCapturingService {
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     private final CapturingPersistenceBehaviour capturingBehaviour;
-
-    /**
-     * Creates a new completely initialized {@link DataCapturingService}.
-     *
-     * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param resolver The <code>ContentResolver</code> used to access the data layer.
-     * @param authority The <code>ContentProvider</code> authority required to request a sync operation in the
-     *            {@link WiFiSurveyor}. You should use something world wide unique, like your domain, to avoid
-     *            collisions between different apps using the Cyface SDK.
-     * @param accountType The type of the account to use to synchronize data with.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
-     * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
-     *            triggered by the {@link DataCapturingBackgroundService}.
-     * @throws SetupException If writing the components preferences fails.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
-            throws SetupException, CursorIsNullException {
-        this.context = new WeakReference<>(context);
-        this.authority = authority;
-        this.serviceConnection = new BackgroundServiceConnection();
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -680,14 +650,6 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
-     *         been no previous call to {@link #setUiListener(UIListener)}.
-     */
-    UIListener getUiListener() {
-        return uiListener;
-    }
-
-    /**
      * @return The current Android <code>Context</code> used by this service or <code>null</code> if there currently is
      *         none.
      */
@@ -913,14 +875,6 @@ public abstract class DataCapturingService {
     private void setIsRunning(final boolean isRunning) {
         Log.d(TAG, "Setting isRunning to " + isRunning);
         this.isRunning = isRunning;
-    }
-
-    /**
-     * @return {@code true} if data capturing is running; {@code false} otherwise.
-     */
-    public boolean getIsRunning() {
-        Log.d(TAG, "Getting isRunning with value " + isRunning);
-        return isRunning;
     }
 
     /**

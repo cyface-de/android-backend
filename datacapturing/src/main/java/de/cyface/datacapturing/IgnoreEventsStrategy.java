@@ -26,6 +26,7 @@ import android.app.NotificationManager;
 import android.content.Context;
 import android.os.Parcel;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
@@ -84,23 +85,20 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
         Validate.notNull("No context provided!", context);
 
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
-        NotificationManager notificationManager = (NotificationManager)context
+        final String channelId = context.getString(R.string.cyface_notification_channel_id);
+        final NotificationManager notificationManager = (NotificationManager)context
                 .getSystemService(Context.NOTIFICATION_SERVICE);
         Validate.notNull(notificationManager);
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O
-                && notificationManager.getNotificationChannel(CHANNEL_ID) == null) {
-            final NotificationChannel channel = new NotificationChannel(CHANNEL_ID, "Cyface Data Capturing",
+                && notificationManager.getNotificationChannel(channelId) == null) {
+            final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing",
                     NotificationManager.IMPORTANCE_LOW); // to disable vibration
             notificationManager.createNotificationChannel(channel);
         }
 
-        return new NotificationCompat.Builder(context, channelId)
-                .setContentTitle("Cyface")
-                //.setSmallIcon(R.drawable.ic_movebis_notification)
-                .setContentText("Running Cyface Data Capturing")
-                .setOngoing(true)
-                .setAutoCancel(false)
-                .build();
+        return new NotificationCompat.Builder(context, channelId).setContentTitle("Cyface")
+                // .setSmallIcon(R.drawable.ic_movebis_notification)
+                .setContentText("Running Cyface Data Capturing").setOngoing(true).setAutoCancel(false).build();
     }
 
     @Override
