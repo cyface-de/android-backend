@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -178,6 +178,9 @@ public class SharedTestUtils {
     /**
      * This method inserts a {@link Measurement} into the persistence layer. Does not use the
      * {@code CapturingPersistenceBehaviour} but the {@link DefaultPersistenceBehaviour}.
+     *
+     * @throws NoSuchMeasurementException – if there was no measurement with the id .
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
             final MeasurementStatus status, final PersistenceLayer persistence)

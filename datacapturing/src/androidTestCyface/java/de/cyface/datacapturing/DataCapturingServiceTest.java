@@ -26,6 +26,7 @@ import org.junit.runner.RunWith;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
+import android.content.ContentProvider;
 import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
@@ -39,10 +40,12 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.testutils.SharedTestUtils;
@@ -56,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.0
+ * @version 5.2.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -145,9 +148,16 @@ public class DataCapturingServiceTest {
 
     /**
      * Tries to stop the DataCapturingService if a test failed to do so.
+     *
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
+     *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
+     *             there was no call to
+     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             prior to stopping.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @After
-    public void tearDown() throws Exception {
+    public void tearDown() throws CursorIsNullException, NoSuchMeasurementException {
         if (isDataCapturingServiceRunning()) {
 
             // Stop zombie
@@ -187,6 +197,12 @@ public class DataCapturingServiceTest {
      * Starts a {@link DataCapturingService} and checks that it's running afterwards.
      *
      * @return the measurement id of the started capturing
+     * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
+     *             Android context was available.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
+     *             register a {@link UIListener} to ask the user for this permission and prevent the
+     *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     private long startAndCheckThatLaunched()
             throws MissingPermissionException, DataCapturingException, CursorIsNullException {
@@ -201,6 +217,12 @@ public class DataCapturingServiceTest {
      * Pauses a {@link DataCapturingService} and checks that it's not running afterwards.
      *
      * @param measurementIdentifier The if of the measurement expected to be closed.
+     * @throws DataCapturingException In case the service was not stopped successfully.
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
+     *             service. This usually occurs if there was no call to
+     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to
+     *             pausing.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void pauseAndCheckThatStopped(long measurementIdentifier)
             throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
@@ -215,6 +237,16 @@ public class DataCapturingServiceTest {
      * Resumes a {@link DataCapturingService} and checks that it's running afterwards.
      *
      * @param measurementIdentifier The id of the measurement which is expected to be resumed
+     * @throws DataCapturingException If starting the background service was not successful.
+     * @throws MissingPermissionException If permission to access geo location via satellite has not been granted or
+     *             revoked. The current measurement is closed if you receive this <code>Exception</code>. If you get the
+     *             permission in the future you need to start a new measurement and not call <code>resumeSync</code>
+     *             again.
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
+     *             service. This usually occurs if there was no call to
+     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to
+     *             pausing.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void resumeAndCheckThatLaunched(long measurementIdentifier) throws MissingPermissionException,
             DataCapturingException, CursorIsNullException, NoSuchMeasurementException {
@@ -230,6 +262,13 @@ public class DataCapturingServiceTest {
      * Stops a {@link DataCapturingService} and checks that it's not running afterwards.
      *
      * @param measurementIdentifier The if of the measurement expected to be closed.
+     * 
+     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
+     *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
+     *             there was no call to
+     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             prior to stopping.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void stopAndCheckThatStopped(final long measurementIdentifier)
             throws NoSuchMeasurementException, CursorIsNullException {
@@ -307,6 +346,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStartStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
@@ -326,6 +366,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     @Ignore
@@ -401,6 +442,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testDoubleStart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
@@ -423,6 +465,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test(expected = NoSuchMeasurementException.class)
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
@@ -441,6 +484,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleDisconnect() throws DataCapturingException, MissingPermissionException,
@@ -459,6 +503,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException,
@@ -477,6 +522,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testDoubleReconnect() throws DataCapturingException, MissingPermissionException,
@@ -500,6 +546,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testDisconnectReconnectTwice() throws DataCapturingException, MissingPermissionException,
@@ -526,6 +573,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testRestart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
@@ -546,6 +594,7 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If permission to access geo location sensor is missing.
      * @throws DataCapturingException If any unexpected error occurs during the test.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testResumeTwice() throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException,
@@ -578,6 +627,7 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStartPauseStop() throws MissingPermissionException, DataCapturingException,
@@ -597,6 +647,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
@@ -628,6 +679,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException If any unexpected errors occur during data capturing.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     @LargeTest

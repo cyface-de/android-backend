@@ -39,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.0
+ * @version 1.4.1
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -87,7 +87,8 @@ public class PersistenceLayerTest {
      * Inserts two measurements into the database; one finished and one still running and checks, that the
      * <code>loadFinishedMeasurements</code> method returns a list of size 1.
      *
-     * @throws NoSuchMeasurementException Fails the test if anything unexpected happens.
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
@@ -104,6 +105,8 @@ public class PersistenceLayerTest {
     /**
      * Checks that calling {@link PersistenceLayer#loadMeasurements(MeasurementStatus)} on an empty database
      * returns an empty list.
+     *
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testLoadFinishedMeasurements_noMeasurements() throws CursorIsNullException {
@@ -111,8 +114,14 @@ public class PersistenceLayerTest {
     }
 
     /**
-     * Test that loading an open and a closed measurement works as expected.
+     * Test that loading a {@link MeasurementStatus#FINISHED} {@link Measurement} works as expected.
      *
+     * We don't create a FINISHED measurement because this will never happen like this in the code.
+     * As a consequence we create an {@link MeasurementStatus#OPEN} as it would happen in the code,
+     * then finish this measurement and then load it as FINISHED measurement as we usually do to synchronize them.
+     *
+     * @throws NoSuchMeasurementException – if there was no measurement with the id .
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
@@ -129,6 +138,8 @@ public class PersistenceLayerTest {
     /**
      * Test that marking a measurement as synced works as expected.
      *
+     * @throws NoSuchMeasurementException – if there was no measurement with the id .
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
@@ -156,6 +167,8 @@ public class PersistenceLayerTest {
     /**
      * Tests whether the sync adapter loads the correct measurements for synchronization.
      *
+     * @throws NoSuchMeasurementException – if there was no measurement with the id .
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {

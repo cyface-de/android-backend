@@ -15,6 +15,7 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.AccountAuthenticatorActivity;
+import android.content.ContentProvider;
 import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
@@ -35,7 +36,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -88,6 +89,7 @@ public class PingPongTest {
      * @throws MissingPermissionException Should not happen, since there is a JUnit rule to prevent it.
      * @throws DataCapturingException If data capturing was not possible after starting the service.
      * @throws NoSuchMeasurementException If the service lost track of the measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testWithRunningService() throws MissingPermissionException, DataCapturingException,

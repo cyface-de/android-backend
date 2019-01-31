@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.3.0
+ * @version 5.3.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -94,13 +94,15 @@ public class CapturedDataWriterTest {
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     private CapturingPersistenceBehaviour capturingBehaviour;
-    private int testLocationCount = 1;
-    private int testDataCount = 3;
+    private final static int TEST_LOCATION_COUNT = 1;
+    private final static int TEST_DATA_COUNT = 3;
 
     /**
      * Initializes the test case as explained in the <a href=
      * "https://developer.android.com/training/testing/integration-testing/content-provider-testing.html#build">Android
      * documentation</a>.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Before
     public void setUp() throws CursorIsNullException {
@@ -123,6 +125,9 @@ public class CapturedDataWriterTest {
 
     /**
      * Tests whether creating and closing a measurement works as expected.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
      */
     @Test
     public void testCreateNewMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
@@ -218,7 +223,7 @@ public class CapturedDataWriterTest {
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
         // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(testDataCount, testDataCount, testDataCount,
+        oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
 
         lock.lock();
@@ -240,7 +245,7 @@ public class CapturedDataWriterTest {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(testLocationCount)));
+            assertThat(geoLocationsCursor.getCount(), is(equalTo(TEST_LOCATION_COUNT)));
 
             // Point3ds
             Point3dFile accelerationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
@@ -250,13 +255,13 @@ public class CapturedDataWriterTest {
             Point3dFile directionsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
 
-            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), testDataCount);
-            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), testDataCount);
-            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), testDataCount);
+            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), TEST_DATA_COUNT);
+            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), TEST_DATA_COUNT);
+            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), TEST_DATA_COUNT);
 
-            assertThat(accelerations.size(), is(equalTo(testDataCount)));
-            assertThat(rotations.size(), is(equalTo(testDataCount)));
-            assertThat(directions.size(), is(equalTo(testDataCount)));
+            assertThat(accelerations.size(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(rotations.size(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(directions.size(), is(equalTo(TEST_DATA_COUNT)));
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
@@ -294,7 +299,7 @@ public class CapturedDataWriterTest {
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
         // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(testDataCount, testDataCount, testDataCount,
+        oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
 
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
@@ -313,7 +318,7 @@ public class CapturedDataWriterTest {
         // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
         // the life-cycle DataCapturingServiceTests
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3dFiles * point3dFilesPerMeasurement
-                + testLocationCount + testMeasurements /* + testIdentifierTableCount */)));
+                + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */)));
 
         // make sure nothing is left in the database
         Cursor geoLocationsCursor = null;

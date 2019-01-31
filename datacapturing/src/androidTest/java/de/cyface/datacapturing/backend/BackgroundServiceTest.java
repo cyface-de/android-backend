@@ -42,7 +42,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -103,6 +103,8 @@ public class BackgroundServiceTest {
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
+     *
+     * @throws TimeoutException if timed out waiting for a successful connection with the service.
      */
     @Test
     public void testStartDataCapturing() throws TimeoutException {
@@ -150,6 +152,8 @@ public class BackgroundServiceTest {
 
     /**
      * This test case checks that starting the service works and that the service actually returns some data.
+     *
+     * @throws TimeoutException if timed out waiting for a successful connection with the service.
      */
     @Test
     public void testStartDataCapturingTwice() throws TimeoutException {
