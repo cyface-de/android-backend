@@ -51,6 +51,7 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
@@ -59,6 +60,7 @@ import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
@@ -292,7 +294,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
+        final String deviceId;
+        try {
+            deviceId = persistenceLayer.loadDeviceId();
+        } catch (CursorIsNullException | NoDeviceIdException e) {
+            throw new IllegalStateException(e);
+        }
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(deviceId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
 

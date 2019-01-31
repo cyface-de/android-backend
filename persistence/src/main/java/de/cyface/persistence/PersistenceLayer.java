@@ -24,6 +24,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -341,6 +342,29 @@ public class PersistenceLayer {
      * @return The device is as string
      */
     public final String restoreOrCreateDeviceId() throws CursorIsNullException {
+        try {
+            return loadDeviceId();
+        } catch (final NoDeviceIdException e) {
+            // Create a new device id
+            final String deviceId = UUID.randomUUID().toString();
+            final ContentValues identifierValues = new ContentValues();
+            identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
+            final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
+            Validate.notNull("New device id could not be created!", resultUri);
+            Log.d(TAG, "Created new device id " + deviceId);
+            return deviceId;
+        }
+    }
+
+    /**
+     * Loads the device identifier from the persistence layer.
+     *
+     * @return The device is as string
+     * @throws CursorIsNullException when accessing the {@link ContentProvider} failed
+     * @throws NoDeviceIdException when there are no entries in the {@link IdentifierTable}
+     */
+    @NonNull
+    public final String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
         Log.d(TAG, "Trying to load device identifier from content provider!");
         Cursor deviceIdentifierQueryCursor = null;
         try {
@@ -357,17 +381,11 @@ public class PersistenceLayer {
                             .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
                     final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
                     Log.d(TAG, "Providing device identifier " + did);
+                    Validate.notNull(did);
                     return did;
                 }
 
-                // Update measurement id counter
-                final String deviceId = UUID.randomUUID().toString();
-                final ContentValues values = new ContentValues();
-                values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
-                final Uri resultUri = resolver.insert(getIdentifierUri(), values);
-                Validate.notNull("New device id could not be created!", resultUri);
-                Log.d(TAG, "Created new device id " + deviceId);
-                return deviceId;
+                throw new NoDeviceIdException("No entries in IdentifierTable.");
             }
         } finally {
             // This can be null, see documentation

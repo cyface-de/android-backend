@@ -1,5 +1,9 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.TestUtils.TAG;
+
+import java.util.concurrent.TimeUnit;
+
 import android.content.ComponentName;
 import android.content.Context;
 import android.content.ServiceConnection;
@@ -7,15 +11,11 @@ import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
-import androidx.annotation.NonNull;
 import android.util.Log;
 
-import java.util.concurrent.TimeUnit;
-
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
-
-import static de.cyface.datacapturing.TestUtils.TAG;
 
 /**
  * Connection from the test to the capturing service.
@@ -37,14 +37,21 @@ class ToServiceConnection implements ServiceConnection {
      * The <code>Messenger</code> handling messages comming from the <code>DataCapturingBackgroundService</code>.
      */
     private Messenger fromServiceMessenger;
+    /**
+     * The device id used to generate an unique broadcast id
+     */
+    private final String deviceId;
 
     /**
      * Creates a new completely initialized <code>ToServiceConnection</code>.
      *
-     * @param fromServiceMessenger The <code>Messenger</code> handling messages comming from the <code>DataCapturingBackgroundService</code>.
+     * @param fromServiceMessenger The <code>Messenger</code> handling messages comming from the
+     *            <code>DataCapturingBackgroundService</code>.
+     * @param deviceId The device id used to generate an unique broadcast id
      */
-    public ToServiceConnection(final @NonNull Messenger fromServiceMessenger) {
+    ToServiceConnection(final @NonNull Messenger fromServiceMessenger, @NonNull final String deviceId) {
         this.fromServiceMessenger = fromServiceMessenger;
+        this.deviceId = deviceId;
     }
 
     @Override
@@ -63,13 +70,13 @@ class ToServiceConnection implements ServiceConnection {
             throw new IllegalStateException(e);
         }
 
-        PongReceiver isRunningChecker = new PongReceiver(context);
+        PongReceiver isRunningChecker = new PongReceiver(context, deviceId);
         isRunningChecker.checkIsRunningAsync(1, TimeUnit.MINUTES, callback);
     }
 
     @Override
     public void onServiceDisconnected(ComponentName componentName) {
-        Log.d(TAG, "onServiceDisonnected");
+        Log.d(TAG, "onServiceDisconnected");
     }
 
     @Override

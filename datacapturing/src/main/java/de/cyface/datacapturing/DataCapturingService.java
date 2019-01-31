@@ -25,7 +25,6 @@ import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -55,12 +54,11 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import android.util.Log;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -205,17 +203,17 @@ public abstract class DataCapturingService {
         this.persistenceLayer = new PersistenceLayer(context, resolver, authority, capturingBehaviour);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
 
-        // Setup required device identifier, if not generated previously // TODO [MOV-442]: Read did from database
-        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
-        sharedPreferencesEditor.putString(DEVICE_IDENTIFIER_KEY, deviceIdentifier);
-        Validate.notNull(deviceIdentifier,
-                "Sync canceled: No installation identifier for this application set in its preferences.");
-        // We cache the did in the preferences as it's hard or not possible to access the database
+        // FIXME: We cache the did in the preferences as it's hard or not possible to access the database
         // where it's persisted, e.g. in the getAuthToken method.
 
+        // Setup required device identifier, if not already existent
+        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
+        Validate.notNull(deviceIdentifier,
+                "Sync canceled: No installation identifier for this application set in its preferences.");
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
         sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
@@ -569,7 +567,7 @@ public abstract class DataCapturingService {
     @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.d(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext());
+        final PongReceiver pongReceiver = new PongReceiver(getContext(), deviceIdentifier);
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -669,7 +667,7 @@ public abstract class DataCapturingService {
         final Context context = getContext();
         Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
         context.registerReceiver(startUpFinishedHandler,
-                new IntentFilter(MessageCodes.getServiceStartedActionId(context)));
+                new IntentFilter(MessageCodes.getServiceStartedActionId(deviceIdentifier)));
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);

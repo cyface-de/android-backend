@@ -22,6 +22,7 @@ import org.junit.runner.RunWith;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -31,6 +32,7 @@ import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -80,17 +82,17 @@ public class BackgroundServiceTest {
      */
     private Condition condition;
     private Context context;
+    private PersistenceLayer persistenceLayer;
 
     @Before
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
         // Required to create a test measurement.
-        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
-                capturingBehaviour);
+        persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        persistence.restoreOrCreateDeviceId();
-        testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
+        persistenceLayer.restoreOrCreateDeviceId();
+        testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
     }
@@ -105,9 +107,11 @@ public class BackgroundServiceTest {
      * This test case checks that starting the service works and that the service actually returns some data.
      *
      * @throws TimeoutException if timed out waiting for a successful connection with the service.
+     * @throws CursorIsNullException when the content provider is not accessible
+     * @throws NoDeviceIdException when the device id was not set
      */
     @Test
-    public void testStartDataCapturing() throws TimeoutException {
+    public void testStartDataCapturing() throws TimeoutException, CursorIsNullException, NoDeviceIdException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
 
@@ -118,7 +122,8 @@ public class BackgroundServiceTest {
                 fromServiceMessenger = new Messenger(fromServiceMessageHandler);
             }
         });
-        final ToServiceConnection toServiceConnection = new ToServiceConnection(fromServiceMessenger);
+        final ToServiceConnection toServiceConnection = new ToServiceConnection(fromServiceMessenger,
+                persistenceLayer.loadDeviceId());
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -171,7 +176,12 @@ public class BackgroundServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                PongReceiver isRunningChecker = new PongReceiver(context);
+                PongReceiver isRunningChecker;
+                try {
+                    isRunningChecker = new PongReceiver(context, persistenceLayer.loadDeviceId());
+                } catch (CursorIsNullException | NoDeviceIdException e) {
+                    throw new IllegalStateException(e);
+                }
                 isRunningChecker.checkIsRunningAsync(2, TimeUnit.SECONDS, testCallback);
             }
         });

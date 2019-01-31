@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
@@ -29,10 +28,12 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
@@ -95,7 +96,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
         final PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), authority,
                 new DefaultPersistenceBehaviour());
-        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
                 null, null);
@@ -111,14 +111,17 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
             }
 
+            final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
             final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
 
-            // TODO [MOV-442]: Read did from database
-            final String deviceId = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
-            Validate.notNull(deviceId,
-                    "Sync canceled: No installation identifier for this application set in its preferences.");
+            final String deviceId;
+            try {
+                deviceId = persistence.loadDeviceId();
+            } catch (final NoDeviceIdException e) {
+                throw new IllegalStateException(e);
+            }
 
             // Load all Measurements that are finished capturing
             final List<Measurement> syncableMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED);
