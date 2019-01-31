@@ -93,6 +93,7 @@ public class MessageCodes {
      * this a action identifier for global broadcasts (for inter process communication)
      */
     public static String getPingActionId(final Context context) {
+        // TODO [MOV-442]: Read did from database
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
         return deviceIdentifier + "_" + GLOBAL_BROADCAST_PING;

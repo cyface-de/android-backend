@@ -194,7 +194,7 @@ public abstract class DataCapturingService {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
 
-        // Setup required device identifier, if not generated previously
+        // Setup required device identifier, if not generated previously // TODO [MOV-442]: Read did from database
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
         sharedPreferencesEditor.putString(DEVICE_IDENTIFIER_KEY, deviceIdentifier);
         Validate.notNull(deviceIdentifier,
@@ -308,7 +308,7 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(true);
             final Measurement measurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
 
-            if (!stopService(measurement, finishedHandler)) {
+            if (!stopService(finishedHandler)) {
                 // The background service was not active. This can happen when the measurement was paused.
                 // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
                 sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
@@ -363,7 +363,7 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(true);
             final Measurement currentMeasurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
 
-            if (!stopService(currentMeasurement, finishedHandler)) {
+            if (!stopService(finishedHandler)) {
                 throw new DataCapturingException("No active service found to be paused.");
             }
         } finally {
@@ -611,7 +611,7 @@ public abstract class DataCapturingService {
                 Log.w(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
             }
         } catch (InterruptedException e) {
-            throw new DataCapturingException(e); // TODO: throw this hard?
+            throw new IllegalStateException(e);
         } finally {
             lock.unlock();
         }
@@ -679,14 +679,12 @@ public abstract class DataCapturingService {
      * Stops the running <code>DataCapturingBackgroundService</code>, calling the provided <code>finishedHandler</code>
      * after successful execution.
      *
-     * @param measurement The measurement that is currently captured.
      * @param finishedHandler The handler to call after receiving the stop message from the
      *            <code>DataCapturingBackgroundService</code>. There are some cases where this never happens, so be
      *            careful when using this method.
      * @return True if there was a service running which was stopped
      */
-    private boolean stopService(final @NonNull Measurement measurement, // FIXME: can we remove this parameter?
-            final @NonNull ShutDownFinishedHandler finishedHandler) {
+    private boolean stopService(final @NonNull ShutDownFinishedHandler finishedHandler) {
         Log.d(TAG, "Stopping the background service.");
         setIsRunning(false);
         final Context context = getContext();
@@ -803,21 +801,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @return A facade object providing access to the data stored by this <code>DataCapturingService</code>.
-     */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
-    private PersistenceLayer getPersistenceLayer() {
-        return persistenceLayer;
-    }
-
-    /**
      * Binds this <code>DataCapturingService</code> facade to the underlying {@link DataCapturingBackgroundService}.
      *
-     * @return <code>true</code> if successfully bound to a running service; <code>false</code> otherwise.
      * @throws DataCapturingException If binding fails.
      */
-    @SuppressWarnings("UnusedReturnValue") // because we need to support this API - TODO: really?
-    private boolean bind() throws DataCapturingException {
+    private void bind() throws DataCapturingException {
         if (context.get() == null) {
             throw new DataCapturingException("No valid context for binding!");
         }
@@ -829,13 +817,11 @@ public abstract class DataCapturingService {
             Log.d(TAG, "Binding BackgroundServiceConnection");
             if (getIsStoppingOrHasStopped()) {
                 Log.w(TAG, "Ignoring BackgroundServiceConnection bind as getIsStoppingOrHasStopped() is true!");
-                return false;
             }
 
             Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             boolean ret = context.get().bindService(startIntent, serviceConnection, 0);
             setIsRunning(ret);
-            return ret;
         } finally {
             Log.v(TAG, "Unlocking bind.");
             lifecycleLock.unlock();

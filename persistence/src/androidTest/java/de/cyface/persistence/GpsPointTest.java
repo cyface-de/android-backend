@@ -28,7 +28,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -79,7 +79,7 @@ public final class GpsPointTest {
      *
      * @return A test fixture with one geo location.
      */
-    private ContentValues getTextFixture() {
+    private ContentValues getTestFixture() {
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_GPS_TIME, 1234567890L);
         values.put(GeoLocationsTable.COLUMN_LAT, 51.03624633f);
@@ -95,7 +95,7 @@ public final class GpsPointTest {
      */
     @Test
     public void testDeleteAllMeasuringPoints() {
-        mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTextFixture());
+        mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
 
         assertThat(mockResolver.delete(getGeoLocationsUri(AUTHORITY), null, null) > 0, is(equalTo(true)));
     }
@@ -105,7 +105,7 @@ public final class GpsPointTest {
      */
     @Test
     public void testDeleteMeasuringPointViaSelection() {
-        Uri createdRowUri = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTextFixture());
+        Uri createdRowUri = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
@@ -119,7 +119,7 @@ public final class GpsPointTest {
      */
     @Test
     public void testDeleteMeasuringPointViaURL() {
-        Uri createdRowUri = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTextFixture());
+        Uri createdRowUri = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
@@ -133,7 +133,7 @@ public final class GpsPointTest {
      */
     @Test
     public void testCreateMeasuringPoint() {
-        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTextFixture());
+        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
         assertThat(lastPathSegment, not(equalTo("-1")));
@@ -147,7 +147,7 @@ public final class GpsPointTest {
      */
     @Test
     public void testReadMeasuringPoint() {
-        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTextFixture());
+        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
 
@@ -160,9 +160,9 @@ public final class GpsPointTest {
             Validate.notNull(urlQuery);
             Validate.notNull(selectionQuery);
             Validate.notNull(allQuery);
-            cursorEqualsValues("Unable to load all measuring points via URI.", urlQuery, getTextFixture());
-            cursorEqualsValues("Unable to load measuring point via selection.", selectionQuery, getTextFixture());
-            cursorEqualsValues("Unable to load all measuring points via URI.", allQuery, getTextFixture());
+            cursorEqualsValues("Unable to load all measuring points via URI.", urlQuery, getTestFixture());
+            cursorEqualsValues("Unable to load measuring point via selection.", selectionQuery, getTestFixture());
+            cursorEqualsValues("Unable to load all measuring points via URI.", allQuery, getTestFixture());
         }
     }
 
@@ -171,7 +171,7 @@ public final class GpsPointTest {
      */
     @Test
     public void testUpdateMeasuringPoint() throws CursorIsNullException {
-        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTextFixture());
+        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
 

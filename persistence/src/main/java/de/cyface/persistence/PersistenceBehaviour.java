@@ -8,11 +8,11 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.CursorIsNullException;
 
 /**
- * The {@link PersistenceBehaviour} defines how the {@link PersistenceLayer} is works. Select a behaviour depending on
+ * The {@link PersistenceBehaviour} defines how the {@link PersistenceLayer} works. Select a behaviour depending on
  * if you want to use the {@code PersistenceLayer} to capture a new {@link Measurement} or to load existing data.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 3.0.0
  */
 public interface PersistenceBehaviour {

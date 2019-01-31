@@ -10,7 +10,6 @@ import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 
-import java.lang.reflect.Field;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.Random;
@@ -35,7 +34,7 @@ import de.cyface.persistence.model.PointMetaData;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 public class DataCapturingLocalTest {
@@ -75,15 +74,9 @@ public class DataCapturingLocalTest {
     public void setUp() throws NoSuchFieldException, IllegalAccessException {
 
         // Replace attributes of DataCapturingBackgroundService with mocked objects
-        Field persistenceLayer = DataCapturingBackgroundService.class.getDeclaredField("persistenceLayer");
-        Field capturingBehaviour = DataCapturingBackgroundService.class.getDeclaredField("capturingBehaviour");
-        Field pointMetaData = DataCapturingBackgroundService.class.getDeclaredField("pointMetaData");
-        persistenceLayer.setAccessible(true);
-        persistenceLayer.set(oocut, mockPersistence);
-        capturingBehaviour.setAccessible(true);
-        capturingBehaviour.set(oocut, mockBehaviour);
-        pointMetaData.setAccessible(true);
-        pointMetaData.set(oocut, mockPointMetaData);
+        oocut.persistenceLayer = mockPersistence;
+        oocut.capturingBehaviour = mockBehaviour;
+        oocut.pointMetaData = mockPointMetaData;
     }
 
     /**

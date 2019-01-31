@@ -115,6 +115,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
 
+            // TODO [MOV-442]: Read did from database
             final String deviceId = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
             Validate.notNull(deviceId,
                     "Sync canceled: No installation identifier for this application set in its preferences.");

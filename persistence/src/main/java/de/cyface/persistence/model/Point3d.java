@@ -7,7 +7,7 @@ import android.os.Parcelable;
  * A measured {@code DataPoint} with three coordinates such as an acceleration-, rotation- or magnetic value point.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 public final class Point3d extends DataPoint {
@@ -49,7 +49,7 @@ public final class Point3d extends DataPoint {
      * @param timestamp The time when this point was measured in milliseconds since 1.1.1970.
      */
     public Point3d(final float x, final float y, final float z, final long timestamp) {
-        this(null,x,y,z,timestamp);
+        this(null, x, y, z, timestamp);
     }
 
     /**

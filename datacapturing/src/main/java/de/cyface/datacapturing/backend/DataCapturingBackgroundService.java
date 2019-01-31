@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.4.0
+ * @version 4.4.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -94,7 +94,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
      */
-    private PersistenceLayer persistenceLayer;
+    PersistenceLayer persistenceLayer;
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
@@ -110,11 +110,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Meta information required for deserialization of {@link Point3dFile}s.
      */
-    private PointMetaData pointMetaData;
+    PointMetaData pointMetaData;
     /**
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
-    private CapturingPersistenceBehaviour capturingBehaviour;
+    CapturingPersistenceBehaviour capturingBehaviour;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {

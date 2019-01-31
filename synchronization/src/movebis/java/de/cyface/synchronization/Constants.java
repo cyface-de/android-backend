@@ -28,6 +28,7 @@ public final class Constants {
      * The settings key used to identify the settings storing the device or rather installation identifier of the
      * current app. This identifier is used to anonymously group measurements from the same device together.
      */
+    // TODO [MOV-442]: Read did from database
     public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     private Constants() {
