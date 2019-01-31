@@ -1,9 +1,9 @@
 /**
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
- * author Armin Schnabel
- * version 1.0.3
- * since 3.0.0
+ * @author Armin Schnabel
+ * @version 1.0.4
+ * @since 3.0.0
  */
 
 apply plugin: 'com.android.library'

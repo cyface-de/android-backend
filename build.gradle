@@ -2,10 +2,10 @@
  * Gradle's top-level build file which defines the repositories to pull the dependencies from
  * and the default dependency versions used in most modules.
  *
- * author Armin Schnabel
- * author Klemens Muthmann
- * version 2.2.0
- * since 1.0.0
+ * @author Armin Schnabel
+ * @author Klemens Muthmann
+ * @version 2.2.1
+ * @since 1.0.0
  */
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
