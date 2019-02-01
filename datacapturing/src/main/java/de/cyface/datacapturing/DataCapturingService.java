@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * 
+ * This file is part of the Cyface SDK for Android.
+ * 
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * 
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * 
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -37,10 +55,12 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
-import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+import android.util.Log;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -83,11 +103,6 @@ import de.cyface.utils.Validate;
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
-
-    /*
-     * MARK: Properties
-     */
-
     /**
      * {@code true} if data capturing is running; {@code false} otherwise.
      */
@@ -99,7 +114,6 @@ public abstract class DataCapturingService {
      * running.
      */
     private boolean isStoppingOrHasStopped;
-
     /**
      * A weak reference to the calling context. This is a weak reference since the calling context (i.e.
      * <code>Activity</code>) might have been destroyed, in which case there is no context anymore.
@@ -974,12 +988,10 @@ public abstract class DataCapturingService {
          * A listener that is notified of important events during data capturing.
          */
         private Collection<DataCapturingListener> listener;
-
         /**
          * The Android context this handler is running under.
          */
         private final Context context;
-
         /**
          * The service which calls this handler.
          */
