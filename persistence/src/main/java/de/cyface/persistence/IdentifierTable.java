@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
  * This class represents the table containing the measurement-independent identifiers stored on this device.
  *
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.2.0
  * @since 3.0.0
  */
 public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
@@ -37,7 +37,7 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
 
     @Override
     protected String getCreateStatement() {
-        return "CREATE TABLE " + getName() + "(" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+        return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_DEVICE_ID + " TEXT NOT NULL);";
     }
 
@@ -54,9 +54,7 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
             case 8:
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
-                database.beginTransaction();
-                database.execSQL(getCreateStatement());
-                database.endTransaction();
+                onCreate(database);
                 // continues with the next incremental upgrade until return ! -->
         }
     }

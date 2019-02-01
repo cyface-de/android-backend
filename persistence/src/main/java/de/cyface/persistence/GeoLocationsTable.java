@@ -62,7 +62,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
 
     @Override
     protected String getCreateStatement() {
-        return "CREATE TABLE " + getName() + "(" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+        return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_GPS_TIME + " INTEGER NOT NULL, " + COLUMN_LAT + " REAL NOT NULL, " + COLUMN_LON
                 + " REAL NOT NULL, " + COLUMN_SPEED + " REAL NOT NULL, " + COLUMN_ACCURACY + " INTEGER NOT NULL, "
                 + COLUMN_MEASUREMENT_FK + " INTEGER NOT NULL);";
@@ -81,11 +81,13 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
             case 8:
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
-                database.beginTransaction();
+
+                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
+                // was not created in time for the first database query.
+
                 database.execSQL("DELETE FROM gps_points;");
                 database.execSQL("DROP TABLE gps_points;");
-                database.execSQL(getCreateStatement());
-                database.endTransaction();
+                onCreate(database);
                 // continues with the next incremental upgrade until return ! -->
         }
 

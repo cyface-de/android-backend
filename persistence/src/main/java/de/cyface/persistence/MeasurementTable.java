@@ -65,7 +65,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
     @Override
     protected String getCreateStatement() {
-        return "CREATE TABLE " + getName() + "(" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
+        return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, " + COLUMN_ACCELERATIONS
                 + " INTEGER NOT NULL, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
                 + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " SHORT INTEGER NOT NULL);";
@@ -84,11 +84,13 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
             case 8:
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
-                database.beginTransaction();
+
+                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
+                // was not created in time for the first database query.
+
                 database.execSQL("DELETE FROM measurement;");
                 database.execSQL("DROP TABLE measurement;");
-                database.execSQL(getCreateStatement());
-                database.endTransaction();
+                onCreate(database);
                 // continues with the next incremental upgrade until return ! -->
         }
 
