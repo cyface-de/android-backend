@@ -97,9 +97,9 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
         }
 
         return new NotificationCompat.Builder(context, channelId)
-                .setContentTitle("Cyface")
+                .setContentTitle(context.getString(R.string.notification_title))
                 .setSmallIcon(R.drawable.ic_hourglass_empty_black_24dp)
-                .setContentText("Running Cyface Data Capturing")
+                .setContentText(context.getString(R.string.notification_text))
                 .setOngoing(true)
                 .setAutoCancel(false)
                 .build();
