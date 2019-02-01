@@ -7,9 +7,11 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 
@@ -17,7 +19,7 @@ import de.cyface.utils.Validate;
  * Implementation of the {@link FileAccessLayer} which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {
@@ -37,7 +39,8 @@ public final class DefaultFileAccess implements FileAccessLayer {
                     inputStream = new DataInputStream(bufferedInputStream);
                     try {
                         inputStream.readFully(bytes);
-                        Log.d(Constants.TAG, "Read " + bytes.length + " bytes (from " + file.getPath() + ")");
+                        Log.d(Constants.TAG, "Read " + humanReadableByteCount(bytes.length, true) + " (from "
+                                + file.getName() + ")");
                     } finally {
                         inputStream.close();
                         bufferedInputStream.close();
@@ -106,5 +109,15 @@ public final class DefaultFileAccess implements FileAccessLayer {
         } catch (final IOException e) {
             throw new IllegalStateException("Failed to append data to file.");
         }
+    }
+
+    // From https://stackoverflow.com/a/3758880/5815054
+    public static String humanReadableByteCount(final long bytes, final boolean si) {
+        final int unit = si ? 1000 : 1024;
+        if (bytes < unit)
+            return bytes + " B";
+        final int exp = (int)(Math.log(bytes) / Math.log(unit));
+        final String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
+        return String.format(Locale.GERMAN, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }

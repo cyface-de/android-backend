@@ -2,6 +2,7 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
+
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 
@@ -11,7 +12,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.2.0
  * @since 1.0.0
  */
 public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
@@ -56,7 +57,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
      * Provides a completely initialized object as a representation of a table containing geo locations in the database.
      */
     protected GeoLocationsTable() {
-        super("gps_points");
+        super(URI_PATH);
     }
 
     @Override
@@ -74,17 +75,20 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
      */
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
+
         // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
         switch (oldVersion) {
             case 8:
-                // The upgrade from 8 to 9 is executed for all SDK versions below 3 (which is version 10).
-                // We don't support an upgrade for data captured before version 3 so all old data is deleted.
+                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
+                // We don't support an soft-upgrade there but reset the database
                 database.beginTransaction();
-                database.execSQL("DELETE FROM measuring;"); // this was the old name for GeoLocations before v 10
-                onCreate(database);
+                database.execSQL("DELETE FROM gps_points;");
+                database.execSQL("DROP TABLE gps_points;");
+                database.execSQL(getCreateStatement());
                 database.endTransaction();
                 // continues with the next incremental upgrade until return ! -->
         }
+
     }
 
     @Override

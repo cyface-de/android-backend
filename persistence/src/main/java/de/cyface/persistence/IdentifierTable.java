@@ -2,13 +2,14 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
+
 import androidx.annotation.NonNull;
 
 /**
  * This class represents the table containing the measurement-independent identifiers stored on this device.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.1.0
  * @since 3.0.0
  */
 public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
@@ -40,13 +41,24 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
                 + COLUMN_DEVICE_ID + " TEXT NOT NULL);";
     }
 
-    /* Don't forget to update the DatabaseHelper's DATABASE_VERSION */
+    /**
+     * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
+     *
+     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     */
     @Override
     public void onUpgrade(@NonNull final SQLiteDatabase database, final int oldVersion, final int newVersion) {
-        // switch (oldVersion) {
-        // case 10:
-        // no break, thus, the upgrade process continues with the next incremental upgrade step
-        // }
+
+        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
+        switch (oldVersion) {
+            case 8:
+                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
+                // We don't support an soft-upgrade there but reset the database
+                database.beginTransaction();
+                database.execSQL(getCreateStatement());
+                database.endTransaction();
+                // continues with the next incremental upgrade until return ! -->
+        }
     }
 
     @Override
