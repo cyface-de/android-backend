@@ -97,7 +97,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.3.0
+ * @version 9.3.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -203,9 +203,6 @@ public abstract class DataCapturingService {
         this.persistenceLayer = new PersistenceLayer(context, resolver, authority, capturingBehaviour);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
-
-        // FIXME: We cache the did in the preferences as it's hard or not possible to access the database
-        // where it's persisted, e.g. in the getAuthToken method.
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();

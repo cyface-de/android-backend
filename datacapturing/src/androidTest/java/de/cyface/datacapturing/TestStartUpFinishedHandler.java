@@ -29,6 +29,13 @@ final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
      */
     private final Lock lock;
 
+    /**
+     * Creates a new completely initialized object of this class
+     *
+     * @param lock The lock used to synchronize this handler with the calling test.
+     * @param condition The condition used to synchronize this handler with the calling test.
+     * @param deviceId The device id used to generate unique global broadcast ids.
+     */
     TestStartUpFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition,
             @NonNull final String deviceId) {
         super(deviceId);

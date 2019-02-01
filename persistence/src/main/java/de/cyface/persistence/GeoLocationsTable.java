@@ -12,7 +12,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.3.0
  * @since 1.0.0
  */
 public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {

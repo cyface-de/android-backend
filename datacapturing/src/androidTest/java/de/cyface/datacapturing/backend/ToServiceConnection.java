@@ -21,7 +21,8 @@ import de.cyface.datacapturing.PongReceiver;
  * Connection from the test to the capturing service.
  *
  * @author Klemens Muthmann
- * @version 1.1.4
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 2.0.0
  */
 class ToServiceConnection implements ServiceConnection {
