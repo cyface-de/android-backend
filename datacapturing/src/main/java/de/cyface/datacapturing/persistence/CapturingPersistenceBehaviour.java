@@ -10,6 +10,7 @@ import java.util.concurrent.TimeUnit;
 import android.content.ContentProvider;
 import android.content.ContentValues;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
@@ -175,6 +176,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                         "Trying to load measurement identifier while no measurement was open or paused!");
             }
 
+            // TODO [STAD] we need to load the measurement now from the database to have the most recent meta fields
             return new Measurement(currentMeasurementIdentifier);
         }
     }

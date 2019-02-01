@@ -20,6 +20,7 @@ import android.net.NetworkRequest;
 import android.os.Build;
 import android.os.Bundle;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 
@@ -300,6 +301,11 @@ public class WiFiSurveyor extends BroadcastReceiver {
             final Network activeNetwork = connectivityManager.getActiveNetwork();
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
+            if (networkCapabilities == null) {
+                // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
+                return false;
+            }
+
             return syncOnWiFiOnly
                     ? networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED) && activeNetworkInfo != null
                             && activeNetworkInfo.isConnected()
