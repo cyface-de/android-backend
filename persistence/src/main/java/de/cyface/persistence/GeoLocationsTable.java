@@ -12,7 +12,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.2.0
  * @since 1.0.0
  */
 public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
@@ -77,15 +77,18 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
 
         // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
-        /*
-         * switch (oldVersion) {
-         * case 10:
-         * database.beginTransaction();
-         * database.execSQL("DELETE FROM " + getName() + ";");
-         * database.endTransaction();
-         * // continues with the next incremental upgrade until return ! -->
-         * }
-         */
+        switch (oldVersion) {
+            case 8:
+                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
+                // We don't support an soft-upgrade there but reset the database
+                database.beginTransaction();
+                database.execSQL("DELETE FROM gps_points;");
+                database.execSQL("DROP TABLE gps_points;");
+                database.execSQL(getCreateStatement());
+                database.endTransaction();
+                // continues with the next incremental upgrade until return ! -->
+        }
+
     }
 
     @Override

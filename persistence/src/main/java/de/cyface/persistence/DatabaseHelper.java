@@ -25,7 +25,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.2.0
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -84,12 +84,12 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * The onUpgrade method is called when the app is upgraded and the DATABASE_VERSION changed.
      * The incremental database upgrades are executed to reach the current version.
      *
-     * @param db the database which shall be upgraded
+     * @param database the database which shall be upgraded
      * @param oldVersion the database version the app was in before the upgrade
      * @param newVersion the database version of the new, upgraded app which shall be reached
      */
     @Override
-    public void onUpgrade(final SQLiteDatabase db, final int oldVersion, final int newVersion) {
+    public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
         Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
 
         // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
@@ -100,26 +100,23 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 // We don't support an soft-upgrade there but reset the database
                 Log.w(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + ": Resetting database");
                 // The following tables and table names are deprecated, thus, hard-coded
-                db.execSQL("DELETE FROM sample_points;");
-                db.execSQL("DROP TABLE sample_points;");
-                db.execSQL("DELETE FROM rotation_points;");
-                db.execSQL("DROP TABLE rotation_points;");
-                db.execSQL("DELETE FROM magnetic_value_points;");
-                db.execSQL("DROP TABLE magnetic_value_points;");
-                db.execSQL("DELETE FROM gps_points;");
-                db.execSQL("DROP TABLE gps_points;");
-                db.execSQL("DELETE FROM measurement;");
-                db.execSQL("DROP TABLE measurement;");
-                db.execSQL("DELETE FROM sqlite_sequence;");
-                onCreate(db);
+                database.beginTransaction();
+                database.execSQL("DELETE FROM sample_points;");
+                database.execSQL("DROP TABLE sample_points;");
+                database.execSQL("DELETE FROM rotation_points;");
+                database.execSQL("DROP TABLE rotation_points;");
+                database.execSQL("DELETE FROM magnetic_value_points;");
+                database.execSQL("DROP TABLE magnetic_value_points;");
+                database.execSQL("DELETE FROM sqlite_sequence;");
+                database.endTransaction();
                 // continues with the next incremental upgrade until return ! -->
         }
 
         // Incremental upgrades for existing tables
         // tables contains each table 2 times. We do need to call onUpgrade only once per table
-        measurementTable.onUpgrade(db, oldVersion, newVersion);
-        geoLocationsTable.onUpgrade(db, oldVersion, newVersion);
-        identifierTable.onUpgrade(db, oldVersion, newVersion);
+        measurementTable.onUpgrade(database, oldVersion, newVersion);
+        geoLocationsTable.onUpgrade(database, oldVersion, newVersion);
+        identifierTable.onUpgrade(database, oldVersion, newVersion);
     }
 
     /**
