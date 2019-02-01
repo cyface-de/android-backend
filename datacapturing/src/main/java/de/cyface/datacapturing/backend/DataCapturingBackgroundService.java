@@ -126,7 +126,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
-    private PingReceiver pingReceiver = new PingReceiver();
+    private PingReceiver pingReceiver;
     /**
      * The identifier of the measurement to save all the captured data to.
      */
@@ -180,10 +180,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
-
-        // Allows other parties to ping this service to see if it is running.
-        Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(getApplicationContext())));
         Log.d(TAG, "finishedOnCreate");
     }
 
@@ -251,6 +247,27 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
         Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
 
+        // Loads authority / persistence layer
+        if (!intent.hasExtra(AUTHORITY_ID)) {
+            throw new IllegalStateException(
+                    "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
+                            + AUTHORITY_ID);
+        }
+        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+        capturingBehaviour = new CapturingPersistenceBehaviour();
+        persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
+
+        // Allows other parties to ping this service to see if it is running
+        final String deviceId;
+        try {
+            deviceId = persistenceLayer.loadDeviceId();
+        } catch (CursorIsNullException | NoDeviceIdException e) {
+            throw new IllegalStateException(e);
+        }
+        pingReceiver = new PingReceiver(deviceId);
+        Log.v(TAG, "Registering Ping Receiver");
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(deviceId)));
+
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
         Validate.notNull(eventHandlingStrategy);
@@ -265,16 +282,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             throw new IllegalStateException("No valid measurement identifier for started service provided.");
         }
         this.currentMeasurementIdentifier = measurementIdentifier;
-
-        // Loads authority / persistence layer
-        if (!intent.hasExtra(AUTHORITY_ID)) {
-            throw new IllegalStateException(
-                    "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
-                            + AUTHORITY_ID);
-        }
-        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-        capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
 
         // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
         try {
@@ -294,12 +301,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final String deviceId;
-        try {
-            deviceId = persistenceLayer.loadDeviceId();
-        } catch (CursorIsNullException | NoDeviceIdException e) {
-            throw new IllegalStateException(e);
-        }
         final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(deviceId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
