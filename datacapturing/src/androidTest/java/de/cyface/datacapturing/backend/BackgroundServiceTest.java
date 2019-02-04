@@ -40,11 +40,11 @@ import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
- * GPS signal availability it is a flaky test.
+ * location signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

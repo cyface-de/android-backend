@@ -74,7 +74,7 @@ public class CapturingProcessTest {
      */
     @Before
     public void setUp() {
-        oocut = new GPSCapturingProcess(locationManager, sensorManager,
+        oocut = new GeoLocationCapturingProcess(locationManager, sensorManager,
                 new GeoLocationDeviceStatusHandler(locationManager) {
                     @Override
                     void shutdown() {
@@ -82,7 +82,7 @@ public class CapturingProcessTest {
                     }
 
                     @Override
-                    boolean hasGpsFix() {
+                    boolean hasLocationFix() {
                         return true;
                     }
                 }, geoLocationEventHandlerThread, sensorEventHandlerThread);

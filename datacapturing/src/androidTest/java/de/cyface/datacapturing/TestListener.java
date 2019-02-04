@@ -20,7 +20,7 @@ import de.cyface.datacapturing.ui.Reason;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.2
+ * @version 1.2.3
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
@@ -63,12 +63,12 @@ class TestListener implements DataCapturingListener {
 
     @Override
     public void onFixLost() {
-        Log.d(TAG, "GPS fix lost!");
+        Log.d(TAG, "GNSS fix lost!");
     }
 
     @Override
     public void onNewGeoLocationAcquired(final @NonNull GeoLocation position) {
-        Log.d(TAG, String.format("New GPS position (lat:%f,lon:%f)", position.getLat(), position.getLon()));
+        Log.d(TAG, String.format("New GNSS position (lat:%f,lon:%f)", position.getLat(), position.getLon()));
         capturedPositions.add(position);
     }
 

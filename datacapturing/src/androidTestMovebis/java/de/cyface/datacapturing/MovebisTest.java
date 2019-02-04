@@ -31,7 +31,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.2.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -98,7 +98,7 @@ public final class MovebisTest {
 
     /**
      * Tests if one lifecycle of starting and stopping location updates works as expected.
-     * FlakyTest: This integration test may be dependent on position / GPS updates on real devices.
+     * FlakyTest: This integration test may be dependent on position / location updates on real devices.
      */
     @Test
     @SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators (only on the CI)

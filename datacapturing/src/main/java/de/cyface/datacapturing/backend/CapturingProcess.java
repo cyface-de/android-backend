@@ -21,10 +21,10 @@ import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
 import androidx.annotation.NonNull;
+import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.utils.Validate;
 
 /**
@@ -33,7 +33,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.5
+ * @version 1.3.6
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -73,7 +73,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Status handler watching the geo location device for fix status updates (basically fix or no-fix).
      */
-    private final GeoLocationDeviceStatusHandler gpsStatusHandler;
+    private final GeoLocationDeviceStatusHandler locationStatusHandler;
     /**
      * Time offset used to move event time on devices measuring that time in milliseconds since device activation and
      * not Unix timestamp format. If event time is already in Unix timestamp format this should always be 0.
@@ -85,7 +85,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     private long lastSensorEventTime = 0;
     /**
      * Remembers how long geo location devices did not have a fix anymore. This prevents the system from sending
-     * inaccurate values to the database. In such cases GPS values are filled up with zeros.
+     * inaccurate values to the database. In such cases location values are filled up with zeros.
      */
     private long lastNoGeoLocationFixUpdateTime = 0;
     /**
@@ -118,7 +118,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             final @NonNull HandlerThread sensorEventHandlerThread) throws SecurityException {
         Validate.notNull("Illegal argument: locationManager was null!", locationManager);
         Validate.notNull("Illegal argument: sensorService was null!", sensorService);
-        Validate.notNull("Illegal argument: gpsHandler was null!", geoLocationDeviceStatusHandler);
+        Validate.notNull("Illegal argument: geoLocationDeviceStatusHandler was null!", geoLocationDeviceStatusHandler);
         Validate.notNull("Illegal argument: locationEventHandlerThread was null!", locationEventHandlerThread);
         Validate.notNull("Illegal argument: sensorEventHandlerThread was null!", sensorEventHandlerThread);
 
@@ -128,7 +128,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.listener = new HashSet<>();
         this.locationManager = locationManager;
         this.sensorService = sensorService;
-        this.gpsStatusHandler = geoLocationDeviceStatusHandler;
+        this.locationStatusHandler = geoLocationDeviceStatusHandler;
         this.locationEventHandlerThread = locationEventHandlerThread;
         this.sensorEventHandlerThread = sensorEventHandlerThread;
 
@@ -154,7 +154,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     void addCapturingProcessListener(final CapturingProcessListener listener) {
         this.listener.add(listener);
-        gpsStatusHandler.setDataCapturingListener(this.listener);
+        locationStatusHandler.setDataCapturingListener(this.listener);
     }
 
     @Override
@@ -162,18 +162,19 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (location == null) {
             return;
         }
-        gpsStatusHandler.setTimeOfLastLocationUpdate(System.currentTimeMillis());
+        locationStatusHandler.setTimeOfLastLocationUpdate(System.currentTimeMillis());
 
-        if (gpsStatusHandler.hasGpsFix()) {
+        if (locationStatusHandler.hasLocationFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
-            long gpsTime = location.getTime();
+            long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
-            float gpsAccuracy = location.getAccuracy();
+            float locationAccuracy = location.getAccuracy();
 
             synchronized (this) {
                 for (CapturingProcessListener listener : this.listener) {
-                    listener.onLocationCaptured(new GeoLocation(latitude, longitude, gpsTime, speed, gpsAccuracy));
+                    listener.onLocationCaptured(
+                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracy));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {
@@ -220,8 +221,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         }
         long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffset;
 
-        // Notify client about sensor update & bulkInsert data into database even without gps fix
-        if (!gpsStatusHandler.hasGpsFix() && (lastNoGeoLocationFixUpdateTime == 0
+        // Notify client about sensor update & bulkInsert data into database even without location fix
+        if (!locationStatusHandler.hasLocationFix() && (lastNoGeoLocationFixUpdateTime == 0
                 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1_000))) {
             try {
                 for (CapturingProcessListener listener : this.listener) {
@@ -242,7 +243,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
         // Get sensor values from event
         if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER))) {
-            // Check if there are irregular gaps between sensor events (e.g. no GPS fix or data loss)
+            // Check if there are irregular gaps between sensor events (e.g. no location fix or data loss)
             logIrregularSensorValues(thisSensorEventTime);
             saveSensorValue(event, accelerations);
         } else if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE))) {
@@ -259,7 +260,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      *            format).
      */
     private void logIrregularSensorValues(final long thisSensorEventTime) {
-        // Check if there are irregular gaps between sensor events (e.g. no GPS fix or data loss)
+        // Check if there are irregular gaps between sensor events (e.g. no location fix or data loss)
         if (lastSensorEventTime != 0 && (thisSensorEventTime - lastSensorEventTime > 100
                 || thisSensorEventTime - lastSensorEventTime < -100)) {
             Log.d(TAG,
@@ -278,12 +279,12 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Shuts down this sensor listener freeing the sensors used to capture data.
      *
-     * @throws SecurityException If user did not provide permission to access GPS location.
+     * @throws SecurityException If user did not provide permission to access fine location.
      */
     @Override
     public void close() throws SecurityException {
         locationManager.removeUpdates(this);
-        gpsStatusHandler.shutdown();
+        locationStatusHandler.shutdown();
         sensorService.unregisterListener(this);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
             sensorEventHandlerThread.quitSafely();

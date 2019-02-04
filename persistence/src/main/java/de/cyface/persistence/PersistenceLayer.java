@@ -43,7 +43,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.1.0
+ * @version 8.1.1
  * @since 2.0.0
  */
 public class PersistenceLayer {
@@ -312,7 +312,7 @@ public class PersistenceLayer {
         Validate.isTrue(loadMeasurementStatus(measurement.getIdentifier()) == FINISHED);
         setStatus(measurement.getIdentifier(), SYNCED);
 
-        // TODO: for movebis we only delete sensor data not GPS points (+move to synchronized)
+        // TODO: for movebis we only delete sensor data not GeoLocations (+move to synchronized)
         // how do we want to handle this on Cyface ?
         final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
 
@@ -461,7 +461,7 @@ public class PersistenceLayer {
         try {
             cursor = resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
-                    GeoLocationsTable.COLUMN_GPS_TIME + " ASC");
+                    GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
             if (cursor == null) {
                 return Collections.emptyList();
             }
@@ -470,7 +470,7 @@ public class PersistenceLayer {
             while (cursor.moveToNext()) {
                 final double lat = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
                 final double lon = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
-                final long timestamp = cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME));
+                final long timestamp = cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
                 final double speed = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
                 final float accuracy = cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
                 geoLocations.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));

@@ -138,7 +138,7 @@ public final class MeasurementSerializer {
 
         while (geoLocationsCursor.moveToNext()) {
             buffer.putLong(
-                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME)));
+                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
             buffer.putDouble(
                     geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT)));
             buffer.putDouble(

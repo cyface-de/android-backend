@@ -24,7 +24,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     /**
      * Column name for the column storing the {@link GeoLocation} timestamp.
      */
-    public static final String COLUMN_GPS_TIME = "gps_time";
+    public static final String COLUMN_GEOLOCATION_TIME = "gps_time";
     /**
      * Column name for the column storing the {@link GeoLocation} latitude.
      */
@@ -50,7 +50,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     /**
      * An array containing all the column names used by a geo location table.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_GPS_TIME, COLUMN_LAT, COLUMN_LON, COLUMN_SPEED,
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_GEOLOCATION_TIME, COLUMN_LAT, COLUMN_LON, COLUMN_SPEED,
             COLUMN_ACCURACY, COLUMN_MEASUREMENT_FK};
 
     /**
@@ -63,7 +63,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     @Override
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_GPS_TIME + " INTEGER NOT NULL, " + COLUMN_LAT + " REAL NOT NULL, " + COLUMN_LON
+                + COLUMN_GEOLOCATION_TIME + " INTEGER NOT NULL, " + COLUMN_LAT + " REAL NOT NULL, " + COLUMN_LON
                 + " REAL NOT NULL, " + COLUMN_SPEED + " REAL NOT NULL, " + COLUMN_ACCURACY + " INTEGER NOT NULL, "
                 + COLUMN_MEASUREMENT_FK + " INTEGER NOT NULL);";
     }

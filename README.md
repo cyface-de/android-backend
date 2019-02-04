@@ -116,7 +116,7 @@ You must not use the same notification identifier for any other notification dis
 * Force Synchronization
 * ConnectionStatusListener
 * Disable synchronization
-* Show Measurements and GpsTraces
+* Show Measurements and GeoLocationTraces
 * Delete measurements manually
 * Usage of Camera, Bluetooth
 

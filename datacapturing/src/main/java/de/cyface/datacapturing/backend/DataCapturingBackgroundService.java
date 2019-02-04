@@ -1,17 +1,3 @@
-/*
- * Copyright 2017 Cyface GmbH
- * This file is part of the Cyface SDK for Android.
- * The Cyface SDK for Android is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * The Cyface SDK for Android is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * You should have received a copy of the GNU General Public License
- * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
- */
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
@@ -77,7 +63,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.5.0
+ * @version 4.5.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -313,20 +299,20 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Initializes this service
      *
-     * @return the {@link GPSCapturingProcess}
+     * @return the {@link GeoLocationCapturingProcess}
      */
-    private GPSCapturingProcess initializeCapturingProcess() {
+    private GeoLocationCapturingProcess initializeCapturingProcess() {
         Log.d(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         Validate.notNull(locationManager);
-        final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+        final GeoLocationDeviceStatusHandler locationStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
-                : new GPSStatusListener(locationManager);
+                : new GeoLocationStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         Validate.notNull(sensorManager);
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
-        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread,
+        return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler, geoLocationEventHandlerThread,
                 sensorEventHandlerThread);
     }
 
@@ -419,12 +405,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onLocationFix() {
-        informCaller(MessageCodes.GPS_FIX, null);
+        informCaller(MessageCodes.GEOLOCATION_FIX, null);
     }
 
     @Override
     public void onLocationFixLost() {
-        informCaller(MessageCodes.NO_GPS_FIX, null);
+        informCaller(MessageCodes.NO_GEOLOCATION_FIX, null);
     }
 
     /**

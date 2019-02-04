@@ -9,14 +9,14 @@ import de.cyface.datacapturing.DataCapturingService;
  * user interface relevant events.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 public interface UIListener {
     /**
-     * Handler for location changes occuring even while no tracking is active.
+     * Handler for location changes occurring even while no tracking is active.
      *
-     * @param location The new location from the system's location provider (i.e. GPS).
+     * @param location The new location from the system's location provider (i.e. GNSS).
      */
     void onLocationUpdate(Location location);
 

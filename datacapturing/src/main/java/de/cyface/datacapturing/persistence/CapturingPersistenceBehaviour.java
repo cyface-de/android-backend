@@ -126,7 +126,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         final ContentValues values = new ContentValues();
         // Android gets the accuracy in meters but we save it in centimeters to reduce size during transmission
         values.put(GeoLocationsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy() * 100));
-        values.put(GeoLocationsTable.COLUMN_GPS_TIME, location.getTimestamp());
+        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, location.getTimestamp());
         values.put(GeoLocationsTable.COLUMN_LAT, location.getLat());
         values.put(GeoLocationsTable.COLUMN_LON, location.getLon());
         values.put(GeoLocationsTable.COLUMN_SPEED, location.getSpeed());

@@ -272,7 +272,7 @@ public class SharedTestUtils {
 
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
-        values.put(GeoLocationsTable.COLUMN_GPS_TIME, timestamp);
+        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, timestamp);
         values.put(GeoLocationsTable.COLUMN_LAT, lat);
         values.put(GeoLocationsTable.COLUMN_LON, lon);
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);

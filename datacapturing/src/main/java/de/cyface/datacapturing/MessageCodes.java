@@ -8,7 +8,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -32,12 +32,12 @@ public class MessageCodes {
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if it believes it has a valid geo location fix.
      */
-    public static final int GPS_FIX = 6;
+    public static final int GEOLOCATION_FIX = 6;
     /**
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if it believes it lost the geo location fix.
      */
-    public static final int NO_GPS_FIX = 7;
+    public static final int NO_GEOLOCATION_FIX = 7;
     /**
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if permission to access geo locations via satellite is not granted.

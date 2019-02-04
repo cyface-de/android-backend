@@ -18,7 +18,7 @@ import static android.content.ContentValues.TAG;
  * A handler for messages received from the capturing service.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @version 1.0.3
  * @since 2.0.0
  */
 class FromServiceMessageHandler extends Handler {
@@ -55,7 +55,7 @@ class FromServiceMessageHandler extends Handler {
 
                 Log.d(TAG, String.format("Test received location %f,%f", location.getLat(), location.getLon()));
                 break;
-            case MessageCodes.GPS_FIX:
+            case MessageCodes.GEOLOCATION_FIX:
                 Log.d(TAG, String.format("Test received geo location fix."));
                 break;
             case MessageCodes.ERROR_PERMISSION:

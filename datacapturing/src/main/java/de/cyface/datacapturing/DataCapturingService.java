@@ -1,21 +1,3 @@
-/*
- * Copyright 2017 Cyface GmbH
- * 
- * This file is part of the Cyface SDK for Android.
- * 
- * The Cyface SDK for Android is free software: you can redistribute it and/or modify
- * it under the terms of the GNU General Public License as published by
- * the Free Software Foundation, either version 3 of the License, or
- * (at your option) any later version.
- * 
- * The Cyface SDK for Android is distributed in the hope that it will be useful,
- * but WITHOUT ANY WARRANTY; without even the implied warranty of
- * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
- * GNU General Public License for more details.
- * 
- * You should have received a copy of the GNU General Public License
- * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
- */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -97,7 +79,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.3.1
+ * @version 9.3.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -765,7 +747,7 @@ public abstract class DataCapturingService {
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         if (!permissionAlreadyGranted && uiListener != null) {
             return uiListener.onRequirePermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
-                    "This app uses GPS sensors to display your position. If you would like your position to be shown as exactly as possible please allow access to the GPS sensors."));
+                    "This app uses the GNSS (GPS) receiver to display your position. If you would like your position to be shown as exactly as possible please allow access to the GNSS (GPS) sensors."));
         } else {
             return permissionAlreadyGranted;
         }
@@ -974,7 +956,7 @@ public abstract class DataCapturingService {
      * A handler for messages coming from the {@link DataCapturingBackgroundService}.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
+     * @version 1.0.1
      * @since 2.0.0
      */
     private static class FromServiceMessageHandler extends Handler {
@@ -1032,10 +1014,10 @@ public abstract class DataCapturingService {
                             listener.onNewSensorDataAcquired(capturedData);
                         }
                         break;
-                    case MessageCodes.GPS_FIX:
+                    case MessageCodes.GEOLOCATION_FIX:
                         listener.onFixAcquired();
                         break;
-                    case MessageCodes.NO_GPS_FIX:
+                    case MessageCodes.NO_GEOLOCATION_FIX:
                         listener.onFixLost();
                         break;
                     case MessageCodes.ERROR_PERMISSION:

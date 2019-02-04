@@ -55,12 +55,12 @@ import de.cyface.utils.Validate;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
- * relies on external sensors and the availability of a GPS signal. Each tests waits a few seconds to actually capture
+ * relies on external sensors and the availability of a GNSS signal. Each tests waits a few seconds to actually capture
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.3
+ * @version 5.2.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
