@@ -1,1 +1,1 @@
-include ':app', ':datacapturing', ':persistence', ':synchronization'
+include ':app', ':datacapturing', ':persistence', ':synchronization', ':utils', ':testutils'

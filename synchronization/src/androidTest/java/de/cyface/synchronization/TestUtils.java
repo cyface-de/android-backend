@@ -1,51 +1,68 @@
 package de.cyface.synchronization;
 
-import android.net.Uri;
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
+import static de.cyface.testutils.SharedTestUtils.insertPoint3d;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.CoreMatchers.notNullValue;
+import static org.junit.Assert.assertThat;
 
-import de.cyface.persistence.GpsPointsTable;
-import de.cyface.persistence.MagneticValuePointTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.RotationPointTable;
-import de.cyface.persistence.SamplePointTable;
+import java.util.List;
+
+import android.content.ContentResolver;
+import android.content.ContentValues;
+import android.content.Context;
+import androidx.annotation.NonNull;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
+import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.testutils.SharedTestUtils;
+import de.cyface.utils.CursorIsNullException;
 
 /**
  * Contains utility methods and constants required by the tests within the synchronization project.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @author Armin Schnabel
+ * @version 2.3.0
  * @since 2.1.0
  */
-final class TestUtils {
+public final class TestUtils {
     /**
      * The tag used to identify Logcat messages from this module.
      */
-    final static String TAG = "de.cyface.synchronization.test";
+    final static String TAG = Constants.TAG + ".test";
     /**
-     * The content provider authority used during tests. This must be the same as in the manifest and the authenticator configuration.
+     * The content provider authority used during tests. This must be the same as in the manifest and the authenticator
+     * configuration.
      */
-    final static String AUTHORITY = "de.cyface.synchronization.provider.test";
+    final static String AUTHORITY = "de.cyface.synchronization.test.provider";
     /**
      * The account type used during testing. This must be the same as in the authenticator configuration.
      */
-    final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
-
-    static Uri getMeasurementUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MeasurementTable.URI_PATH).build();
-    }
-
-    static Uri getGeoLocationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(GpsPointsTable.URI_PATH).build();
-    }
-
-    static Uri getAccelerationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(SamplePointTable.URI_PATH).build();
-    }
-
-    static Uri getRotationsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(RotationPointTable.URI_PATH).build();
-    }
-
-    static Uri getDirectionsUri() {
-        return new Uri.Builder().scheme("content").authority(AUTHORITY).appendPath(MagneticValuePointTable.URI_PATH).build();
-    }
+    final static String ACCOUNT_TYPE = "de.cyface.synchronization.test";
+    /**
+     * An username used by the tests to set up a Cyface account for synchronization.
+     */
+    final static String DEFAULT_USERNAME = "admin";
+    /**
+     * A password used by the tests to set up a Cyface account for synchronization.
+     */
+    final static String DEFAULT_PASSWORD = "secret";
+    /**
+     * Path to an API available for testing.
+     */
+    @SuppressWarnings("unused") // because this is used in the cyface flavour
+    final static String TEST_API_URL = "https://s1.cyface.de:9090/api/v2";
 }

@@ -1,10 +1,12 @@
 package de.cyface.datacapturing;
 
-import android.support.annotation.NonNull;
-import android.util.Log;
+import static de.cyface.datacapturing.Constants.TAG;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import androidx.annotation.NonNull;
+import android.util.Log;
 
 /**
  * Callback used for reconnecting the foreground service controlled by an Android application, with a probably running
@@ -12,16 +14,12 @@ import java.util.concurrent.locks.Lock;
  * This class is used by a {@link PongReceiver} to inform a reconnection process about the status and wake it up.
  * 
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.4
  * @since 2.0.1
  * @see DataCapturingService#reconnect()
  */
 abstract class ReconnectCallback implements IsRunningCallback {
 
-    /**
-     * The tag used to mark Logcat messages from this class.
-     */
-    private final static String TAG = "de.cyface.capturing";
     /**
      * Flag indicating whether the background service was running after the callback has returned. This is
      * <code>true</code> if the service was running and <code>false</code> otherwise.
@@ -42,7 +40,7 @@ abstract class ReconnectCallback implements IsRunningCallback {
     private final Condition condition;
 
     /**
-     * Creates a new completely intialized callback.
+     * Creates a new completely initialized callback.
      *
      * @param lock A <code>lock</code> provided to this callback to protect the wake up process of the calling thread.
      * @param condition A <code>condition</code> used to wake up the calling process.
@@ -54,8 +52,7 @@ abstract class ReconnectCallback implements IsRunningCallback {
 
     @Override
     public void isRunning() {
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "ReconnectCallback.isRunning(): Entering!");
+        Log.v(TAG, "ReconnectCallback.isRunning(): Entering!");
         lock.lock();
         try {
             if (!hasTimedOut()) {
@@ -67,8 +64,7 @@ abstract class ReconnectCallback implements IsRunningCallback {
         } finally {
             lock.unlock();
         }
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "ReconnectCallback.isRunning(): Leaving!");
+        Log.v(TAG, "ReconnectCallback.isRunning(): Leaving!");
     }
 
     /**
@@ -78,8 +74,7 @@ abstract class ReconnectCallback implements IsRunningCallback {
 
     @Override
     public void timedOut() {
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "ReconnectCallback.timedOut(): Entering!");
+        Log.v(TAG, "ReconnectCallback.timedOut(): Entering!");
         lock.lock();
         try {
             if (!wasRunning()) {
@@ -91,8 +86,7 @@ abstract class ReconnectCallback implements IsRunningCallback {
         } finally {
             lock.unlock();
         }
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "ReconnectCallback.timedOut(): Leaving!");
+        Log.v(TAG, "ReconnectCallback.timedOut(): Leaving!");
     }
 
     /**

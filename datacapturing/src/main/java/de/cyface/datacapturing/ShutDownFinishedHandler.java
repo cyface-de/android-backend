@@ -1,13 +1,15 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.datacapturing.Constants.TAG;
+
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import android.support.annotation.NonNull;
 import android.util.Log;
-
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import androidx.annotation.NonNull;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
  * Handler for shutdown finished events. Just implement the {@link #shutDownFinished(long)} method with the code you
@@ -17,19 +19,16 @@ import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.5
  * @since 2.0.0
- * @see DataCapturingService#pauseAsync(ShutDownFinishedHandler)
- * @see DataCapturingService#stopAsync(ShutDownFinishedHandler)
+ * @see DataCapturingService#pause(ShutDownFinishedHandler)
+ * @see DataCapturingService#stop(ShutDownFinishedHandler)
  */
 public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
-    /**
-     * The tag used to identify Logcat messages from objects of this class.
-     */
-    private static final String TAG = "de.cyface.capturing";
 
     /**
-     * This is set to <code>true</code> if either a <code>MessageCodes.BROADCAST_SERVICE_STOPPED</code> broadcast has
+     * This is set to <code>true</code> if either a <code>MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED</code> broadcast
+     * has
      * been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code> otherwise.
      */
     private boolean receivedServiceStopped;
@@ -48,13 +47,14 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
         if (intent.getAction() == null) {
             throw new IllegalStateException("Received broadcast with null action.");
         }
+        // noinspection SwitchStatementWithTooFewBranches
         switch (intent.getAction()) {
-            case MessageCodes.BROADCAST_SERVICE_STOPPED:
+            case MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED:
                 Log.v(TAG, "Received Service stopped broadcast!");
                 receivedServiceStopped = true;
-                boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY,false);
+                boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY, false);
                 long measurementIdentifier = -1;
-                if(serviceWasStoppedSuccessfully) {
+                if (serviceWasStoppedSuccessfully) {
                     measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
                     if (measurementIdentifier == -1) {
                         throw new IllegalStateException("No measurement identifier provided for stopped service!");
@@ -67,7 +67,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
         }
 
         try {
-            context.unregisterReceiver(this);
+            LocalBroadcastManager.getInstance(context).unregisterReceiver(this);
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
         }
@@ -75,7 +75,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     }
 
     /**
-     * @return This is set to <code>true</code> if either a <code>MessageCodes.BROADCAST_SERVICE_STOPPED</code>
+     * @return This is set to <code>true</code> if either a <code>MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED</code>
      *         broadcast has
      *         been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code>
      *         otherwise.

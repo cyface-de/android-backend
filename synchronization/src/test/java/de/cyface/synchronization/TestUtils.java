@@ -13,7 +13,7 @@ final class TestUtils {
      */
     public final static String AUTHORITY = "de.cyface.synchronization.provider.test";
     /**
-     * The type for accounts used during testing.
+     * The account type used during testing. This must be the same as in the authenticator configuration.
      */
     public final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
 

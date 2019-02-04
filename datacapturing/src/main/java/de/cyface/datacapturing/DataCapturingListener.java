@@ -1,16 +1,19 @@
 package de.cyface.datacapturing;
 
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
 import de.cyface.datacapturing.ui.Reason;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
  * {@link DataCapturingService} via
- * {@link DataCapturingService#startSync(DataCapturingListener,de.cyface.datacapturing.model.Vehicle)}.
+ * {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}.
  *
  * @author Klemens Muthmann
- * @version 1.2.0
+ * @author Armin Schnabel
+ * @version 1.3.2
  * @since 1.0.0
  */
 public interface DataCapturingListener {
@@ -44,6 +47,8 @@ public interface DataCapturingListener {
      *
      * @param allocation Information about the applications disk (or rather SD card) space consumption.
      */
+    // Because this is used in the custom {@link EventHandlingStrategy}s of SDK implementing apps
+    @SuppressWarnings("unused")
     void onLowDiskSpace(DiskConsumption allocation);
 
     /**
@@ -60,11 +65,19 @@ public interface DataCapturingListener {
 
     /**
      * Called if the service notices missing permissions required to run.
+     * 
      * @param permission The permission the service requires in the form of an Android permission {@link String}.
      * @param reason A reason for why the service requires that permission. You may show the reason to the user before
      *            asking for the permission or create your own message from it.
      *
      * @return <code>true</code> if the permission was granted; <code>false</code> otherwise.
      */
+    @SuppressWarnings({"UnusedReturnValue"}) // Because this might be useful for SDK implementing apps
     boolean onRequiresPermission(String permission, Reason reason);
+
+    /**
+     * This method is called when the capturing stopped. This can occurs when a {@link EventHandlingStrategy}
+     * was implemented which stops the {@link DataCapturingBackgroundService} when the space is low.
+     */
+    void onCapturingStopped();
 }

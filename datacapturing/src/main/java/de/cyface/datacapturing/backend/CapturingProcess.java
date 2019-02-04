@@ -1,5 +1,7 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+
 import java.io.Closeable;
 import java.util.Collection;
 import java.util.HashSet;
@@ -17,13 +19,13 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
-import android.support.annotation.NonNull;
 import android.util.Log;
-
-import de.cyface.datacapturing.exception.DataCapturingException;
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.utils.Validate;
 
 /**
  * Implements the data capturing functionality for Cyface. This class implements the SensorEventListener to listen to
@@ -31,7 +33,7 @@ import de.cyface.datacapturing.model.Point3D;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.5
+ * @version 1.3.5
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -39,7 +41,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * The tag used to identify log messages send to logcat.
      */
-    private final static String TAG = "de.cyface.background";
+    private final static String TAG = BACKGROUND_TAG;
     /**
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */
@@ -47,15 +49,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
-    private final List<Point3D> accelerations;
+    private final List<Point3d> accelerations;
     /**
      * Cache for captured but not yet processed points from the gyroscope.
      */
-    private final List<Point3D> rotations;
+    private final List<Point3d> rotations;
     /**
      * Cache for captured but not yet processed points from the compass.
      */
-    private final List<Point3D> directions;
+    private final List<Point3d> directions;
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -102,19 +104,23 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param sensorService The {@link SensorManager} used to get updates from the devices Accelerometer, Gyroscope and
      *            Compass.
      * @param geoLocationDeviceStatusHandler Handler that is notified if there is a geo location fix or not.
+     * @param locationEventHandlerThread A <code>HandlerThread</code> to handle new locations in the background without
+     *            blocking the calling thread.
+     * @param sensorEventHandlerThread A <code>HandlerThread</code> to handle new sensor events in the background
+     *            without blocking the calling thread. This is based on information from
+     *            <a href=
+     *            "https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please">StackOverflow</a>.
      * @throws SecurityException If user did not provide permission to access geo location.
      */
-    CapturingProcess(final LocationManager locationManager, final SensorManager sensorService,
-            final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler) throws SecurityException {
-        if (locationManager == null) {
-            throw new IllegalArgumentException("Illegal argument: locationManager was null!");
-        }
-        if (sensorService == null) {
-            throw new IllegalArgumentException("Illegal argument: sensorService was null!");
-        }
-        if (geoLocationDeviceStatusHandler == null) {
-            throw new IllegalArgumentException("Illegal argument: gpsHandler was null!");
-        }
+    CapturingProcess(final @NonNull LocationManager locationManager, final @NonNull SensorManager sensorService,
+            final @NonNull GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
+            final @NonNull HandlerThread locationEventHandlerThread,
+            final @NonNull HandlerThread sensorEventHandlerThread) throws SecurityException {
+        Validate.notNull("Illegal argument: locationManager was null!", locationManager);
+        Validate.notNull("Illegal argument: sensorService was null!", sensorService);
+        Validate.notNull("Illegal argument: gpsHandler was null!", geoLocationDeviceStatusHandler);
+        Validate.notNull("Illegal argument: locationEventHandlerThread was null!", locationEventHandlerThread);
+        Validate.notNull("Illegal argument: sensorEventHandlerThread was null!", sensorEventHandlerThread);
 
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);
@@ -123,11 +129,12 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.locationManager = locationManager;
         this.sensorService = sensorService;
         this.gpsStatusHandler = geoLocationDeviceStatusHandler;
-        this.locationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
-        this.sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
+        this.locationEventHandlerThread = locationEventHandlerThread;
+        this.sensorEventHandlerThread = sensorEventHandlerThread;
 
         locationEventHandlerThread.start();
-        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this, locationEventHandlerThread.getLooper());
+        this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,
+                locationEventHandlerThread.getLooper());
 
         // Registering Sensors
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
@@ -135,9 +142,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
-        //registerSensor(accelerometer, sensorEventHandler);
-        //registerSensor(gyroscope, sensorEventHandler);
-        //registerSensor(magnetometer, sensorEventHandler);
+        registerSensor(accelerometer, sensorEventHandler);
+        registerSensor(gyroscope, sensorEventHandler);
+        registerSensor(magnetometer, sensorEventHandler);
     }
 
     /**
@@ -269,7 +276,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     }
 
     /**
-     * Shuts down this sensor listener freeing the sensors used to caputre data.
+     * Shuts down this sensor listener freeing the sensors used to capture data.
      *
      * @throws SecurityException If user did not provide permission to access GPS location.
      */
@@ -295,8 +302,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
-    private void saveSensorValue(final SensorEvent event, final List<Point3D> storage) {
-        Point3D dataPoint = new Point3D(event.values[0], event.values[1], event.values[2],
+    private void saveSensorValue(final SensorEvent event, final List<Point3d> storage) {
+        Point3d dataPoint = new Point3d(event.values[0], event.values[1], event.values[2],
                 event.timestamp / 1000000L + eventTimeOffset);
         storage.add(dataPoint);
     }

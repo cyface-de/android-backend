@@ -1,0 +1,44 @@
+/**
+ * Gradle's build file for the module which contains cross cutting code used by all other modules.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.4
+ * @since 3.0.0
+ */
+
+apply plugin: 'com.android.library'
+
+android {
+    compileSdkVersion rootProject.ext.compileSdkVersion
+    buildToolsVersion rootProject.ext.buildToolsVersion
+
+    defaultConfig {
+        minSdkVersion rootProject.ext.minSdkVersion
+        targetSdkVersion rootProject.ext.targetSdkVersion
+
+        versionCode 1 // this must be incremented if new apk should be pushed to play store
+        // this is shown to the users, see Confluence/Android Client for naming guideline
+        versionName rootProject.ext.version
+
+        testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+    }
+
+    // Enable Proguard for the release build type.
+    buildTypes {
+        release {
+            minifyEnabled true
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+        }
+    }
+
+}
+
+dependencies {
+    implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
+
+    implementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
+    implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
+
+    implementation project(":utils")
+    implementation project(':persistence')
+}

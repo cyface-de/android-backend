@@ -1,7 +1,10 @@
 package de.cyface.synchronization;
 
+import static android.os.Build.VERSION_CODES.KITKAT;
+import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -10,10 +13,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowConnectivityManager;
+import org.robolectric.shadows.ShadowNetwork;
 import org.robolectric.shadows.ShadowNetworkInfo;
 
 import android.accounts.Account;
@@ -22,38 +25,45 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import androidx.test.core.app.ApplicationProvider;
+import de.cyface.utils.Validate;
 
 /**
  * Tests the correct functionality of the <code>WiFiSurveyor</code> class. This test requires an active WiFi connection
  * and thus is a <code>FlakyTest</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(constants = BuildConfig.class)
+@Config(sdk=KITKAT) // Because the Roboelectric test don't work on newer devices
 public class WiFiSurveyorTest {
 
     /**
      * The Robolectric shadow used for the Android <code>ConnectivityManager</code>.
      */
     private ShadowConnectivityManager shadowConnectivityManager;
+    private ConnectivityManager connectivityManager;
+    private ShadowNetwork shadowOfActiveNetwork;
+    private ShadowNetworkInfo shadowOfActiveNetworkInfo;
     /**
      * An object of the class under test.
      */
     private WiFiSurveyor oocut;
+    /**
+     * The Android test <code>Context</code> to use for testing.
+     */
+    private Context context;
 
     /**
      * Initializes the properties for each test case individually.
      */
     @Before
     public void setUp() {
-        /*
-         * The Android test <code>Context</code> to use for testing.
-         */
-        Context context = RuntimeEnvironment.application;
-        ConnectivityManager connectivityManager = getConnectivityManager();
+        context = ApplicationProvider.getApplicationContext();
+        connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
         oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
     }
@@ -66,6 +76,15 @@ public class WiFiSurveyorTest {
      */
     @Test
     public void testWifiConnectivity() throws SynchronisationException {
+
+        // Added this block while trying to set the connectivityManager to not null -.-
+        NetworkInfo networkInfo = ShadowNetworkInfo.newInstance(NetworkInfo.DetailedState.CONNECTED,
+                ConnectivityManager.TYPE_WIFI, 0, true, NetworkInfo.State.CONNECTED);
+        shadowConnectivityManager.setActiveNetworkInfo(networkInfo);
+        NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
+        assertTrue(activeInfo != null && activeInfo.isConnected());
+        Validate.notNull(oocut.connectivityManager);
+
         switchWiFiConnection(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
         Account account = oocut.getOrCreateAccount("test");
@@ -78,11 +97,9 @@ public class WiFiSurveyorTest {
     /**
      * Tests if mobile and WiFi connectivity is detected correctly if both are allowed.
      *
-     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
-     *             <code>Context</code> is available.
      */
     @Test
-    public void testMobileConnectivity() throws SynchronisationException {
+    public void testMobileConnectivity() {
         switchMobileConnection(false);
 
         switchWiFiConnection(false);
@@ -96,7 +113,7 @@ public class WiFiSurveyorTest {
      * @return An appropriate <code>ConnectivityManager</code> from Robolectric.
      */
     private ConnectivityManager getConnectivityManager() {
-        return (ConnectivityManager)RuntimeEnvironment.application.getSystemService(Context.CONNECTIVITY_SERVICE);
+        return (ConnectivityManager)context.getSystemService(Context.CONNECTIVITY_SERVICE);
     }
 
     /**
@@ -118,7 +135,7 @@ public class WiFiSurveyorTest {
         }
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
         broadcastIntent.putExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, enabled);
-        RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
+        context.sendBroadcast(broadcastIntent);
     }
 
     /**
@@ -139,7 +156,7 @@ public class WiFiSurveyorTest {
             shadowConnectivityManager.setActiveNetworkInfo(null);
         }
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
-        RuntimeEnvironment.application.sendBroadcast(broadcastIntent);
+        context.sendBroadcast(broadcastIntent);
     }
 
 }

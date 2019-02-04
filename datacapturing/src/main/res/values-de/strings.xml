@@ -1,8 +1,29 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+ Copyright 2017 Cyface GmbH
+
+ This file is part of the Cyface SDK for Android.
+
+ The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ it under the terms of the GNU General Public License as published by
+ the Free Software Foundation, either version 3 of the License, or
+ (at your option) any later version.
+
+ The Cyface SDK for Android is distributed in the hope that it will be useful,
+ but WITHOUT ANY WARRANTY; without even the implied warranty of
+ MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ GNU General Public License for more details.
+
+ You should have received a copy of the GNU General Public License
+ along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+-->
+
 <resources>
     <string name="capturing_service_description">Sammelt Sensordaten von deinem Smartphone (GPS, Beschleunigungen, Drehungen, Kompassdaten) und sendet sie anonymisiert an deine Kommune zur Verbesserung der Verkehrsinfrastruktur.</string>
     <string name="capturing_active">Vielen Dank für Ihren Beitrag</string>
-    <string name="missing_data_error">Die Nachricht enhält keine aufgezeichneten Daten.</string>
+    <string name="missing_data_error">Die Nachricht enthält keine aufgezeichneten Daten.</string>
     <string name="unknown_message_error">Unbekannte Nachricht %d aus Datenerfassungsdienst erhalten!</string>
     <string name="notification_title">Datenerfassung läuft</string>
+    <string name="notification_text">Lädt &#8230;</string>
+    <string name="notification_channel_description_running">Benachrichtigung die auf eine laufende Messunge hinweist.</string>
 </resources>

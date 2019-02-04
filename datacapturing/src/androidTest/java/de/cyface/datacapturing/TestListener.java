@@ -1,30 +1,30 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.TestUtils.TAG;
+
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
 
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.datacapturing.ui.Reason;
 
 /**
  * A listener for events from the capturing service, only used by tests.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @author Armin Schnabel
+ * @version 1.2.2
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
-    /**
-     * The tag used to log messages to Logcat.
-     */
-    private final static String TAG = "de.cyface.test";
+
     /**
      * Lock used to secure the <code>Condition</code>, prior to sending a signal.
      */
@@ -37,6 +37,10 @@ class TestListener implements DataCapturingListener {
      * Geo locations captured during the test run.
      */
     private final List<GeoLocation> capturedPositions;
+    /**
+     * Sensor data captured during the test run.
+     */
+    private final List<CapturedData> capturedData;
 
     /**
      * Creates a new completely initialized <code>TestListener</code> signaling the creating thread via the provided
@@ -47,6 +51,7 @@ class TestListener implements DataCapturingListener {
      */
     TestListener(final @NonNull Lock lock, final @NonNull Condition condition) {
         capturedPositions = new ArrayList<>();
+        capturedData = new ArrayList<>();
         this.lock = lock;
         this.condition = condition;
     }
@@ -68,8 +73,9 @@ class TestListener implements DataCapturingListener {
     }
 
     @Override
-    public void onNewSensorDataAcquired(CapturedData data) {
+    public void onNewSensorDataAcquired(final @NonNull CapturedData data) {
         Log.d(TAG, "New Sensor data.");
+        capturedData.add(data);
     }
 
     @Override
@@ -92,11 +98,24 @@ class TestListener implements DataCapturingListener {
         return false;
     }
 
+    @Override
+    public void onCapturingStopped() {
+        // Nothing to do here
+    }
+
     /**
      * @return The captured positions received during the test run.
      */
     public List<GeoLocation> getCapturedPositions() {
         return Collections.unmodifiableList(capturedPositions);
 
+    }
+
+    /**
+     *
+     * @return The captured sensor data received during the test run.
+     */
+    public List<CapturedData> getCapturedData() {
+        return Collections.unmodifiableList(capturedData);
     }
 }

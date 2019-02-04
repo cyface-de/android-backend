@@ -25,24 +25,23 @@
 
     <application>
         <service
-            android:name="de.cyface.synchronization.SyncService"
-            android:exported="false"
-            android:process=":sync">
+                android:name="de.cyface.synchronization.SyncService"
+                android:exported="false"
+                android:process=":sync">
             <intent-filter>
                 <action android:name="android.content.SyncAdapter" />
             </intent-filter>
             <meta-data
-                android:name="android.content.SyncAdapter"
-                android:resource="@xml/syncadapter" />
+                    android:name="android.content.SyncAdapter"
+                    android:resource="@xml/sync_adapter" />
         </service>
-
         <service android:name="de.cyface.synchronization.AuthenticatorService">
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>
             <meta-data
-                android:name="android.accounts.AccountAuthenticator"
-                android:resource="@xml/authenticator" />
+                    android:name="android.accounts.AccountAuthenticator"
+                    android:resource="@xml/authenticator" />
         </service>
     </application>
 </manifest>

@@ -7,28 +7,23 @@ import static org.mockito.Mockito.when;
 
 import org.junit.Before;
 import org.junit.Test;
-import org.junit.runner.RunWith;
 import org.mockito.Mock;
 import org.mockito.MockitoAnnotations;
-import org.robolectric.RobolectricTestRunner;
 
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
-
-import de.cyface.datacapturing.exception.DataCapturingException;
-import de.cyface.datacapturing.model.GeoLocation;
+import android.os.HandlerThread;
+import de.cyface.persistence.model.GeoLocation;
 
 /**
- * Tests the correct workings of the data capturing functionality. Since this requires an Android <code>Looper</code> in
- * the background it needs to be a Robolectric test case.
+ * Tests the correct workings of the data capturing functionality.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
-@RunWith(RobolectricTestRunner.class)
 public class DataCapturingTest {
 
     /**
@@ -52,6 +47,16 @@ public class DataCapturingTest {
     @Mock
     private CapturingProcessListener listener;
     /**
+     * A mocked <code>HandlerThread</code> for events occurring on new locations.
+     */
+    @Mock
+    private HandlerThread locationEventHandler;
+    /**
+     * A mocked <code>HandlerThread</code> for events occurring on new sensor values.
+     */
+    @Mock
+    private HandlerThread sensorEventHandler;
+    /**
      * The status handler for the geo location device.
      */
     private GeoLocationDeviceStatusHandler gpsStatusHandler;
@@ -74,14 +79,14 @@ public class DataCapturingTest {
      * Tests if <code>CapturingProcessListener</code> is correctly informed about new geo locations.
      */
     @Test
-    public void testSuccessfulDataCapturing() throws DataCapturingException {
+    public void testSuccessfulDataCapturing() {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(51.03624633);
         when(location.getLongitude()).thenReturn(13.78828128);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
         try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService,
-                gpsStatusHandler);) {
+                gpsStatusHandler, locationEventHandler, sensorEventHandler);) {
             dataCapturing.addCapturingProcessListener(listener);
             gpsStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
@@ -95,14 +100,14 @@ public class DataCapturingTest {
      * Usually below 2 seconds.
      */
     @Test
-    public void testDataCapturingInterval() throws DataCapturingException {
+    public void testDataCapturingInterval() {
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(1.0);
         when(location.getLongitude()).thenReturn(1.0);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
         try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService,
-                gpsStatusHandler);) {
+                gpsStatusHandler, locationEventHandler, sensorEventHandler);) {
             dataCapturing.addCapturingProcessListener(listener);
             dataCapturing.onLocationChanged(location);
             dataCapturing.onLocationChanged(location);

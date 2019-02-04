@@ -3,7 +3,7 @@ package de.cyface.datacapturing;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 
 /**
  * A handler that can be used to receive the event sent on shutdown finished and get the measurement identifier

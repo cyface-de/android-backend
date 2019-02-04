@@ -1,10 +1,8 @@
 package de.cyface.datacapturing.backend;
 
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.hasSize;
-import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
-import static org.robolectric.Shadows.shadowOf;
+import static org.mockito.Mockito.mock;
+import static org.mockito.Mockito.when;
 
 import java.lang.reflect.Field;
 import java.util.ArrayList;
@@ -12,49 +10,60 @@ import java.util.Collections;
 import java.util.List;
 import java.util.Random;
 
+import org.hamcrest.Matchers;
 import org.junit.Before;
+import org.junit.Rule;
 import org.junit.Test;
-import org.junit.runner.RunWith;
-import org.robolectric.RobolectricTestRunner;
-import org.robolectric.RuntimeEnvironment;
-import org.robolectric.annotation.Config;
-import org.robolectric.shadow.api.Shadow;
-import org.robolectric.shadows.ShadowLocationManager;
-import org.robolectric.shadows.ShadowSensorManager;
+import org.mockito.Mock;
+import org.mockito.Mockito;
+import org.mockito.junit.MockitoJUnit;
+import org.mockito.junit.MockitoRule;
 
-import android.content.Context;
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
-import android.support.annotation.NonNull;
-
+import android.os.HandlerThread;
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.utils.Validate;
 
 /**
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 2.0.1
  * @since 2.0.0
  */
-@RunWith(RobolectricTestRunner.class)
-@Config(sdk=17) // Test currently only works for SDK 17 and below, due to bugs in Robolectric
 public class CapturingProcessTest {
+    @Rule
+    public MockitoRule mockitoRule = MockitoJUnit.rule();
     /**
      * An object of the class under test.
      */
     private CapturingProcess oocut;
     /**
-     * A Robolectric shadow for a real Android <code>SensorManager</code>.
+     * A mock <code>SensorManager</code> for a real Android <code>SensorManager</code>.
      */
-    private ShadowSensorManager shadowSensorManager;
+    @Mock
+    private SensorManager sensorManager;
     /**
-     * A Robolectric shadow for a real Android <code>LocationManager</code>.
+     * A mock <code>LocationManager</code> for a real Android <code>LocationManager</code>.
      */
-    private ShadowLocationManager shadowLocationManager;
+    @Mock
+    private LocationManager locationManager;
+    /**
+     * A mock for the thread handling occurrence of new geo locations.
+     */
+    @Mock
+    private HandlerThread geoLocationEventHandlerThread;
+    /**
+     * A mock for the thread handling the occurrnce of new sensor values.
+     */
+    @Mock
+    private HandlerThread sensorEventHandlerThread;
     /**
      * A listener for the capturing process used to receive test events and assert against those events.
      */
@@ -64,18 +73,7 @@ public class CapturingProcessTest {
      * Initializes all required properties and adds the <code>testListener</code> to the <code>CapturingProcess</code>.
      */
     @Before
-    public void setUp() throws NoSuchFieldException, IllegalAccessException {
-        LocationManager locationManager = (LocationManager)RuntimeEnvironment.application
-                .getSystemService(Context.LOCATION_SERVICE);
-        SensorManager sensorManager = (SensorManager)RuntimeEnvironment.application
-                .getSystemService(Context.SENSOR_SERVICE);
-        shadowSensorManager = shadowOf(sensorManager);
-
-        initSensor(shadowSensorManager, Sensor.TYPE_ACCELEROMETER, "accelerometer");
-        initSensor(shadowSensorManager, Sensor.TYPE_MAGNETIC_FIELD, "magnetometer");
-        initSensor(shadowSensorManager, Sensor.TYPE_GYROSCOPE, "gyroscope");
-
-        shadowLocationManager = shadowOf(locationManager);
+    public void setUp() {
         oocut = new GPSCapturingProcess(locationManager, sensorManager,
                 new GeoLocationDeviceStatusHandler(locationManager) {
                     @Override
@@ -87,9 +85,11 @@ public class CapturingProcessTest {
                     boolean hasGpsFix() {
                         return true;
                     }
-                });
+                }, geoLocationEventHandlerThread, sensorEventHandlerThread);
         testListener = new TestCapturingProcessListener();
         oocut.addCapturingProcessListener(testListener);
+        final Sensor accelerometer = initSensor(Sensor.TYPE_ACCELEROMETER, "accelerometer");
+        when(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)).thenReturn(accelerometer);
     }
 
     /**
@@ -101,20 +101,23 @@ public class CapturingProcessTest {
         Random random = new Random(System.currentTimeMillis());
         for (int i = 1; i <= 400; i++) {
             long currentTimestamp = Integer.valueOf(i).longValue() * 5L;
-            SensorEvent sensorEvent = createSensorEvent(shadowSensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER),
-                    random.nextFloat(), random.nextFloat(), random.nextFloat(), currentTimestamp * 1_000_000L);
+            Sensor accelerometer = sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
+            SensorEvent sensorEvent = createSensorEvent(accelerometer, random.nextFloat(), random.nextFloat(),
+                    random.nextFloat(), currentTimestamp * 1_000_000L);
             oocut.onSensorChanged(sensorEvent);
             if ((i % 200) == 0) {
-                Location location = new Location("");
-                location.setTime(currentTimestamp);
+                Location location = mock(Location.class);
+                when(location.getTime()).thenReturn(currentTimestamp);
                 oocut.onLocationChanged(location);
             }
         }
 
-        assertThat(testListener.getCapturedData(), hasSize(2));
-        assertThat(testListener.getCapturedData().get(0).getAccelerations().size()
-                + testListener.getCapturedData().get(1).getAccelerations().size(), is(equalTo(400)));
-        assertThat(testListener.getCapturedLocations(), hasSize(2));
+        assertThat(testListener.getCapturedData(), Matchers.hasSize(2));
+        assertThat(
+                testListener.getCapturedData().get(0).getAccelerations().size()
+                        + testListener.getCapturedData().get(1).getAccelerations().size(),
+                Matchers.is(Matchers.equalTo(400)));
+        assertThat(testListener.getCapturedLocations(), Matchers.hasSize(2));
     }
 
     /**
@@ -132,7 +135,7 @@ public class CapturingProcessTest {
     private SensorEvent createSensorEvent(final @NonNull Sensor sensor, final float x, final float y, final float z,
             final long timestamp) {
         try {
-            SensorEvent sensorEvent = shadowSensorManager.createSensorEvent();
+            SensorEvent sensorEvent = Mockito.mock(SensorEvent.class);
             sensorEvent.sensor = sensor;
 
             Field valuesField = sensorEvent.getClass().getField("values");
@@ -150,15 +153,20 @@ public class CapturingProcessTest {
         }
     }
 
-    private void initSensor(final @NonNull ShadowSensorManager shadowManager, final int sensorType, final @NonNull String name) throws NoSuchFieldException, IllegalAccessException {
-        Sensor sensor = Shadow.newInstanceOf(Sensor.class);
-        Field nameField = Sensor.class.getDeclaredField("mName");
-        nameField.setAccessible(true);
-        Field vendorField = Sensor.class.getDeclaredField("mVendor");
-        vendorField.setAccessible(true);
-        nameField.set(sensor, name);
-        vendorField.set(sensor, "Cyface");
-        shadowSensorManager.addSensor(sensorType, sensor);
+    /**
+     * Initializes a sensor with the provided type and name.
+     *
+     * @param sensorType The type of the sensor usually given as a static variable.
+     * @param name The name of the sensor
+     * @return The newly initialized <code>Sensor</code>.
+     */
+    private Sensor initSensor(final int sensorType, final @NonNull String name) {
+        Validate.notEmpty(name);
+
+        Sensor sensor = Mockito.mock(Sensor.class);
+        when(sensor.getName()).thenReturn(name);
+        when(sensor.getVendor()).thenReturn("Cyfac");
+        return sensor;
     }
 
     /**
@@ -204,14 +212,14 @@ public class CapturingProcessTest {
         /**
          * @return <code>GeoLocation</code> instances this listener was informed about.
          */
-        public List<GeoLocation> getCapturedLocations() {
+        List<GeoLocation> getCapturedLocations() {
             return Collections.unmodifiableList(capturedLocations);
         }
 
         /**
          * @return Captured sensor data this listener was informed about.
          */
-        public List<CapturedData> getCapturedData() {
+        List<CapturedData> getCapturedData() {
             return Collections.unmodifiableList(capturedData);
         }
     }

@@ -1,9 +1,29 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.MessageCodes.ACTION_PING;
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -12,6 +32,8 @@ import java.util.List;
 import java.util.Set;
 
 import android.annotation.SuppressLint;
+import android.app.Notification;
+import android.app.NotificationManager;
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -21,23 +43,32 @@ import android.location.LocationManager;
 import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
+import android.os.HandlerThread;
 import android.os.IBinder;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
-import android.support.annotation.NonNull;
 import android.util.Log;
-
-import de.cyface.datacapturing.BuildConfig;
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.datacapturing.DataCapturingService;
+import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.datacapturing.model.GeoLocation;
-import de.cyface.datacapturing.model.Point3D;
-import de.cyface.datacapturing.persistence.MeasurementPersistence;
-import de.cyface.datacapturing.ui.CapturingNotification;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * This is the implementation of the data capturing process running in the background while a Cyface measuring is
@@ -48,53 +79,39 @@ import de.cyface.datacapturing.ui.CapturingNotification;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.6
+ * @version 4.4.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
     /**
      * The tag used to identify logging messages send to logcat.
      */
-    private final static String TAG = "de.cyface.background";
+    private static final String TAG = BACKGROUND_TAG;
     /**
      * The maximum size of captured data transmitted to clients of this service in one call. If there are more captured
      * points they are split into multiple messages.
      */
     final static int MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE = 800;
     /**
-     * Reference to the R files identifier for the notification channel name.
+     * The Cyface notification identifier used to display system notification while the service is running. This needs
+     * to be unique for the whole app, so we chose a very unlikely one.
+     *
+     * This is also the registration number of the starship Voyager.
      */
-    private final static int NOTIFICATION_CHANNEL_ID = BuildConfig.NOTIFICATION_CHANNEL;
-    /**
-     * Reference to the R files identifier for the notification title.
-     */
-    private final static int NOTIFICATION_TITEL_ID = BuildConfig.NOTIFICATION_TITLE;
-    /**
-     * Reference to the R files identifier for the notification text.
-     */
-    private final static int NOTIFICATION_TEXT_ID = BuildConfig.NOTIFICATION_TEXT;
-    /**
-     * Reference to the R files identifier for the notification logo.
-     */
-    private final static int NOTIFICATION_LOGO_ID = BuildConfig.NOTIFICATION_LOGO;
-    // TODO: Add this! But not used for the moment.
-    /**
-     * Reference to the R files identifier for the large logo shown as part of the notification.
-     */
-    private final static int NOTIFICATION_LARGE_LOGO_ID = 0;
-    /**
-     * A wake lock used to keep the application active during data capturing.
-     */
-    private PowerManager.WakeLock wakeLock;
+    private static final int NOTIFICATION_ID = 74656;
     /**
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
      */
     private final Messenger callerMessenger = new Messenger(new MessageHandler(this));
     /**
-     * The list of clients receiving messages from this service as well as sending controll messages.
+     * The list of clients receiving messages from this service as well as sending control messages.
      */
     private final Set<Messenger> clients = new HashSet<>();
+    /**
+     * A wake lock used to keep the application active during data capturing.
+     */
+    private PowerManager.WakeLock wakeLock;
     /**
      * A <code>CapturingProcess</code> implementation which is responsible for actual data capturing.
      */
@@ -103,7 +120,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
      */
-    private MeasurementPersistence persistenceLayer;
+    PersistenceLayer persistenceLayer;
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
@@ -112,66 +129,66 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The identifier of the measurement to save all the captured data to.
      */
     private long currentMeasurementIdentifier;
-
-    /*
-     * MARK: Service Lifecycle Methods
+    /**
+     * The strategy used to respond to selected events triggered by this service.
      */
+    private EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * Meta information required for deserialization of {@link Point3dFile}s.
+     */
+    PointMetaData pointMetaData;
+    /**
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     */
+    CapturingPersistenceBehaviour capturingBehaviour;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
+        Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
         return callerMessenger.getBinder();
     }
 
     @Override
     public boolean onUnbind(final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Unbinding from data capturing service.");
+        Log.d(TAG, "Unbinding from data capturing service.");
         return true; // I want to receive calls to onRebind
     }
 
     @Override
     public void onRebind(final @NonNull Intent intent) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Rebinding to data capturing service.");
+        Log.d(TAG, "Rebinding to data capturing service.");
         super.onRebind(intent);
     }
 
     @SuppressLint("WakelockTimeout") // We can not provide a timeout since our service might need to run for hours.
     @Override
     public void onCreate() {
+        Log.d(TAG, "onCreate");
+        // We only have 5 seconds to call startForeground before the service crashes, so we call it as early as possible
+        // with a placeholder notification. This is substituted by the provided notification in onStartCommand. On most
+        // devices the user should not even see this happening.
+        startForeground(NOTIFICATION_ID, PlaceholderNotificationBuilder.build(this));
         super.onCreate();
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "onCreate");
-        /* Notification shown to the user while the data capturing is active. */
-        // This needs to go in onCreate or it will be called to late from time to time!
-        CapturingNotification capturingNotification = new CapturingNotification(NOTIFICATION_CHANNEL_ID,
-                NOTIFICATION_TITEL_ID, NOTIFICATION_TEXT_ID, NOTIFICATION_LOGO_ID, NOTIFICATION_LARGE_LOGO_ID);
-        startForeground(capturingNotification.getNotificationId(), capturingNotification.getNotification(this));
 
-        // Prevent this process from being killed by the system.
-        PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
+        // Prevents this process from being killed by the system.
+        final PowerManager powerManager = (PowerManager)getSystemService(POWER_SERVICE);
         if (powerManager != null) {
-            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface.wakelock");
+            wakeLock = powerManager.newWakeLock(PowerManager.PARTIAL_WAKE_LOCK, "de.cyface:wakelock");
             wakeLock.acquire();
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(ACTION_PING));
 
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "finishedOnCreate");
+        // Allows other parties to ping this service to see if it is running.
+        Log.v(TAG, "Registering Ping Receiver");
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(getApplicationContext())));
+        Log.d(TAG, "finishedOnCreate");
     }
 
     @Override
     public void onDestroy() {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "onDestroy");
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Unregistering Ping receiver.");
+        Log.d(TAG, "onDestroy");
+        Log.v(TAG, "Unregistering Ping receiver.");
         unregisterReceiver(pingReceiver);
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
@@ -182,44 +199,105 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         if (persistenceLayer != null) {
             persistenceLayer.shutdown();
         }
-        // Since on some devices the broadcast seems not to work we are sending a message here.
-        // informCaller(MessageCodes.SERVICE_STOPPED,null);
+
+        // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Sending broadcast service stopped.");
-        Intent serviceStoppedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STOPPED);
-        serviceStoppedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
-        serviceStoppedIntent.putExtra(STOPPED_SUCCESSFULLY, true);
-        sendBroadcast(serviceStoppedIntent);
+        sendStoppedMessage();
+        persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
     }
 
+    /**
+     * Sends an IPC message to interested parties that the service stopped successfully.
+     */
+    private void sendStoppedMessage() {
+        Log.v(TAG, "Sending IPC message: service stopped.");
+
+        // Attention: the bundle is bundled again by informCaller !
+        final Bundle bundle = new Bundle();
+        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        bundle.putBoolean(STOPPED_SUCCESSFULLY, true);
+        informCaller(MessageCodes.SERVICE_STOPPED, bundle);
+    }
+
+    /**
+     * Sends an IPC message to interested parties that the service stopped itself. This must be called
+     * when the {@code stopSelf()} method is called on this service without a prior intent from the
+     * {@link DataCapturingService} to do so to unbind the {@link DataCapturingService}, e.g. from an
+     * {@link EventHandlingStrategy} implementation.
+     *
+     * Attention: This method is very rarely executed and so be careful when you change it's logic.
+     * The task for the missing test is CY-4111. Currently only tested manually.
+     */
+    @SuppressWarnings("unused") // Because must be callable by custom {@link EventHandlingStrategy} implementations
+    public void sendStoppedItselfMessage() {
+        Log.v(TAG, "Sending IPC message: service stopped itself.");
+        // Attention: the bundle is bundled again by informCaller !
+        final Bundle bundle = new Bundle();
+        bundle.putLong(MEASUREMENT_ID, currentMeasurementIdentifier);
+        informCaller(MessageCodes.SERVICE_STOPPED_ITSELF, bundle);
+    }
+
+    /**
+     * We don't use {@link #startService(Intent)} to pause of stop the service because we prefer to use a lock and
+     * finally in the {@link DataCapturingService}'s life-cycle methods instead. This also avoids headaches with
+     * replacing the return statement from {@link #stopService(Intent)} by the return by {@code #startService()}.
+     *
+     * For the remaining documentation see the overwritten {@code #onStartCommand(Intent, int, int)}
+     */
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        if (BuildConfig.DEBUG)
-            Log.d(TAG, "Starting data capturing service.");
-        if (intent != null) { // If this is the initial start command call init.
-            long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
-            if (measurementIdentifier == -1) {
-                throw new IllegalStateException("No valid measurement identifier for started service provided.");
-            }
-            this.currentMeasurementIdentifier = measurementIdentifier;
+        Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
+        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
 
-            if (!intent.hasExtra(AUTHORITY_ID)) {
-                throw new IllegalStateException(
-                        "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
-                                + AUTHORITY_ID);
-            }
-            String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-            persistenceLayer = new MeasurementPersistence(this.getContentResolver(), authority);
+        // Loads EventHandlingStrategy
+        this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
+        Validate.notNull(eventHandlingStrategy);
+        final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
+        final NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
+        // Update the placeholder notification
+        notificationManager.notify(NOTIFICATION_ID, notification);
 
-            init();
+        // Loads measurement id
+        final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
+        if (measurementIdentifier == -1) {
+            throw new IllegalStateException("No valid measurement identifier for started service provided.");
         }
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, "Sending broadcast service started.");
-        Intent serviceStartedIntent = new Intent(MessageCodes.BROADCAST_SERVICE_STARTED);
+        this.currentMeasurementIdentifier = measurementIdentifier;
+
+        // Loads authority / persistence layer
+        if (!intent.hasExtra(AUTHORITY_ID)) {
+            throw new IllegalStateException(
+                    "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
+                            + AUTHORITY_ID);
+        }
+        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+        capturingBehaviour = new CapturingPersistenceBehaviour();
+        persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
+
+        // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
+        try {
+            pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+        } catch (final CursorIsNullException e) {
+            // because onStartCommand is called by Android so we can't throw soft exception.
+            throw new IllegalStateException(e);
+        }
+        Validate.isTrue(
+                pointMetaData
+                        .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                "Cannot resume a measurement of a previous persistence file format version!");
+
+        // Init capturing process
+        dataCapturing = initializeCapturingProcess();
+        dataCapturing.addCapturingProcessListener(this);
+
+        // Informs about the service start
+        Log.v(TAG, "Sending broadcast service started.");
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
-        return Service.START_STICKY;
+
+        // NOT_STICKY to avoid recreation of the process which could mess up the life-cycle
+        return Service.START_NOT_STICKY;
     }
 
     /*
@@ -227,22 +305,23 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
 
     /**
-     * Initializes this service when it is first started. Since the initialising {@code Intent} sometimes comes with
-     * onBind and sometimes with
-     * onStartCommand and since the {@code Intent} contains the details about the Bluetooth setup,
-     * this method makes sure it is only called once and only if the correct {@code Intent} is
-     * available.
+     * Initializes this service
+     *
+     * @return the {@link GPSCapturingProcess}
      */
-    private void init() {
-        LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
-
-        GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+    private GPSCapturingProcess initializeCapturingProcess() {
+        Log.d(TAG, "Initializing capturing process");
+        final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
+        Validate.notNull(locationManager);
+        final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
                 : new GPSStatusListener(locationManager);
-        SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
-        dataCapturing = new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler);
-
-        dataCapturing.addCapturingProcessListener(this);
+        final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
+        Validate.notNull(sensorManager);
+        final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
+        final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
+        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread,
+                sensorEventHandlerThread);
     }
 
     /**
@@ -252,25 +331,25 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @param data The data to send appended to this message. This may be <code>null</code> if no data needs to be send.
      */
     void informCaller(final int messageCode, final Parcelable data) {
-        Message msg = Message.obtain(null, messageCode);
+        final Message msg = Message.obtain(null, messageCode);
 
         if (data != null) {
-            Bundle dataBundle = new Bundle();
+            final Bundle dataBundle = new Bundle();
             dataBundle.putParcelable("data", data);
             msg.setData(dataBundle);
         }
 
-        if (BuildConfig.DEBUG)
-            Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
-        Set<Messenger> iterClients = new HashSet<>(clients);
-        for (Messenger caller : iterClients) {
+        Log.d(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
+        final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
+        for (final Messenger caller : temporaryCallerSet) {
             try {
+                Log.d(TAG, "Sending IPC message to caller " + caller + ": service stopped.");
                 caller.send(msg);
-            } catch (RemoteException e) {
+            } catch (final RemoteException e) {
                 Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
                 clients.remove(caller);
 
-            } catch (NullPointerException e) {
+            } catch (final NullPointerException e) {
                 // Caller may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
                 clients.remove(caller);
@@ -284,29 +363,49 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        List<Point3D> accelerations = data.getAccelerations();
-        List<Point3D> rotations = data.getRotations();
-        List<Point3D> directions = data.getDirections();
-        int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
+        final List<Point3d> accelerations = data.getAccelerations();
+        final List<Point3d> rotations = data.getRotations();
+        final List<Point3d> directions = data.getDirections();
+        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
         for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
-            CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i), sampleSubList(rotations, i),
-                    sampleSubList(directions, i));
+            final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
+                    sampleSubList(rotations, i), sampleSubList(directions, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
-            persistenceLayer.storeData(dataSublist, currentMeasurementIdentifier);
+            capturingBehaviour.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
+                @Override
+                public void writingDataCompleted() {
+                    // Nothing to do here!
+                }
+            });
+            pointMetaData.incrementPointCounters(data.getAccelerations().size(), data.getRotations().size(),
+                    data.getDirections().size());
         }
     }
 
-    private @NonNull List<Point3D> sampleSubList(final @NonNull List<Point3D> completeList, final int i) {
-        int endIndex = i + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
-        int toIndex = Math.min(endIndex, completeList.size());
-        return (i >= toIndex) ? Collections.<Point3D> emptyList() : completeList.subList(i, toIndex);
+    /**
+     * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
+     *
+     * @param completeList The {@link List<Point3d>} to extract a subset from
+     * @param fromIndex The low endpoint (inclusive) of the subList
+     * @return The extracted sublist
+     */
+    private @NonNull List<Point3d> sampleSubList(final @NonNull List<Point3d> completeList, final int fromIndex) {
+        final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+        final int toIndex = Math.min(endIndex, completeList.size());
+        return (fromIndex >= toIndex) ? Collections.<Point3d> emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override
     public void onLocationCaptured(final @NonNull GeoLocation location) {
+        Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        persistenceLayer.storeLocation(location, currentMeasurementIdentifier);
+        capturingBehaviour.storeLocation(location, currentMeasurementIdentifier);
+
+        if (!spaceAvailable()) {
+            Log.d(TAG, "Space warning event triggered.");
+            eventHandlingStrategy.handleSpaceWarning(this);
+        }
     }
 
     @Override
@@ -325,7 +424,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * - We don't use Broadcasts here to reduce the amount of broadcasts.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
+     * @version 1.0.1
      * @since 1.0.0
      */
     private final static class MessageHandler extends Handler {
@@ -351,15 +450,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            if (BuildConfig.DEBUG)
-                Log.d(TAG, String.format("Service received message %s", msg.what));
+            Log.d(TAG, String.format("Service received message %s", msg.what));
 
-            DataCapturingBackgroundService service = context.get();
+            final DataCapturingBackgroundService service = context.get();
 
+            // noinspection SwitchStatementWithTooFewBranches
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
-                    if (BuildConfig.DEBUG)
-                        Log.d(TAG, "Registering client!");
+                    Log.d(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
                         Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }
