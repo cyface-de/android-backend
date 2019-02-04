@@ -12,7 +12,7 @@ import de.cyface.utils.CursorIsNullException;
  * if you want to use the {@code PersistenceLayer} to capture a new {@link Measurement} or to load existing data.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 3.0.0
  */
 public interface PersistenceBehaviour {

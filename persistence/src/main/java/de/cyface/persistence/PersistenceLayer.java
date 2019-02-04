@@ -580,9 +580,9 @@ public class PersistenceLayer {
      * @return the currently captured {@link Measurement}
      */
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
-        // FIXME: why does this API method not use the PersistenceBehaviour.loadCurrentlyCapturedMeasurement() methods
+        // TODO [STAD]: why does this API method not use the PersistenceBehaviour.loadCurrentlyCapturedMeasurement() methods
         // which in capturing case uses the cached mid?
-        // FIXME: I think this shared code method (used by both PersistenceBehaviour implementations) should be package
+        // I think this shared code method (used by both PersistenceBehaviour implementations) should be package
         // private and there should be another public method with the same name which calls the behaviours method!
         Log.d(Constants.TAG, "Trying to load currently captured measurement from PersistenceLayer!");
 

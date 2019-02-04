@@ -44,7 +44,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 2.2.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -136,7 +136,6 @@ public class BackgroundServiceTest {
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
 
-        // FIXME: This was missing here ... how did this work before ?
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
