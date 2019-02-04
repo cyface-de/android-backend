@@ -335,12 +335,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
             try {
-                Log.d(TAG, "Sending IPC message to caller " + caller + ": service stopped.");
                 caller.send(msg);
             } catch (final RemoteException e) {
                 Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
                 clients.remove(caller);
-
             } catch (final NullPointerException e) {
                 // Caller may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);

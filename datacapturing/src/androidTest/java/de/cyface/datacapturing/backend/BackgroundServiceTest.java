@@ -87,10 +87,9 @@ public class BackgroundServiceTest {
     @Before
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
-        // Required to create a test measurement.
-        persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
+        CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
+        persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
         persistenceLayer.restoreOrCreateDeviceId();
         testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
@@ -113,8 +112,10 @@ public class BackgroundServiceTest {
     @Test
     public void testStartDataCapturing() throws TimeoutException, CursorIsNullException, NoDeviceIdException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
         final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
 
+        // Generate from/to service connection
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -126,13 +127,28 @@ public class BackgroundServiceTest {
                 persistenceLayer.loadDeviceId());
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
+
+        // Start and bind background service
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
-
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
+
+        // FIXME: This was missing here ... how did this work before ?
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                PongReceiver isRunningChecker;
+                try {
+                    isRunningChecker = new PongReceiver(context, persistenceLayer.loadDeviceId());
+                } catch (CursorIsNullException | NoDeviceIdException e) {
+                    throw new IllegalStateException(e);
+                }
+                isRunningChecker.checkIsRunningAsync(2, TimeUnit.SECONDS, testCallback);
+            }
+        });
 
         // This must not run on the main thread or it will produce an ANR.
         lock.lock();
@@ -148,6 +164,7 @@ public class BackgroundServiceTest {
             lock.unlock();
         }
 
+        // Unbind background service
         serviceTestRule.unbindService();
 
         assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
@@ -164,14 +181,15 @@ public class BackgroundServiceTest {
     public void testStartDataCapturingTwice() throws TimeoutException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
+        final TestCallback testCallback = new TestCallback("testStartDataCapturingTwice", lock, condition);
+
+        // Start background service twice
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
-
-        final TestCallback testCallback = new TestCallback("testStartDataCapturingTwice", lock, condition);
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override

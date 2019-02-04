@@ -365,7 +365,6 @@ public class PersistenceLayer {
      */
     @NonNull
     public final String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
-        Log.d(TAG, "Trying to load device identifier from content provider!");
         Cursor deviceIdentifierQueryCursor = null;
         try {
             synchronized (this) {
