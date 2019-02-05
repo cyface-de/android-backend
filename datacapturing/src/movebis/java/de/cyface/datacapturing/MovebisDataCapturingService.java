@@ -17,8 +17,10 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
 
@@ -138,8 +140,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
             final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
-        super(context, context.getContentResolver(), authority, accountType, dataUploadServerAddress,
-                eventHandlingStrategy);
+        super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy, new PersistenceLayer<>(
+                context, context.getContentResolver(), authority, new CapturingPersistenceBehaviour()));
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

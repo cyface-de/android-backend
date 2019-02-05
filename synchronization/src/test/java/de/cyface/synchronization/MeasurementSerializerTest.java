@@ -80,7 +80,7 @@ public class MeasurementSerializerTest {
      * A mock persistence layer, not accessing any files.
      */
     @Mock
-    PersistenceLayer<C> persistence;
+    PersistenceLayer persistence;
     /**
      * A mock mockedContext, to be able to mock-generate file paths
      */

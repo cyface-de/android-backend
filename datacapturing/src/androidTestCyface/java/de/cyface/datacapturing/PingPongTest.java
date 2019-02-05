@@ -41,7 +41,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.1
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -90,7 +90,7 @@ public class PingPongTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        PersistenceLayer<C> persistence = new PersistenceLayer<C>(context, context.getContentResolver(), AUTHORITY,
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId();
 

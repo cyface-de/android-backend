@@ -22,7 +22,6 @@ import org.junit.runner.RunWith;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
-
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -44,7 +43,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.3.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -82,14 +81,14 @@ public class BackgroundServiceTest {
      */
     private Condition condition;
     private Context context;
-    private PersistenceLayer<C> persistenceLayer;
+    private PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
 
     @Before
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer<C>(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
+        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
         persistenceLayer.restoreOrCreateDeviceId();
         testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
