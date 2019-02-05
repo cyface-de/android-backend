@@ -96,25 +96,25 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
         final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
-                null, null);
+        final AccountManagerFuture<Bundle> loginFuture = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null,
+                false, null, null);
 
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
 
-            // Load header info
-            final Bundle result = future.getResult(1, TimeUnit.SECONDS);
-            final String jwtAuthToken = result.getString(AccountManager.KEY_AUTHTOKEN);
+            // Check if user can log in before synchronization
+            final Bundle loginResult = loginFuture.getResult(1, TimeUnit.SECONDS);
+            String jwtAuthToken = loginResult.getString(AccountManager.KEY_AUTHTOKEN);
             if (jwtAuthToken == null) {
                 // Because of Movebis we don't throw an IllegalStateException if there is no auth token
                 throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
             }
 
+            // Load api url and device id
             final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
             final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
-
             final String deviceId;
             try {
                 deviceId = persistence.loadDeviceId();
@@ -143,7 +143,15 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 final InputStream data = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(),
                         persistence);
 
+                // Acquire a new auth token for synchronization as the old one could be expired
+                final AccountManagerFuture<Bundle> authFuture = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE,
+                        null, false, null, null);
+                final Bundle authResult = authFuture.getResult(1, TimeUnit.SECONDS);
+                jwtAuthToken = authResult.getString(AccountManager.KEY_AUTHTOKEN);
+                Log.d(TAG, "Fresh authToken: **" + jwtAuthToken.substring(jwtAuthToken.length()-7));
+
                 // Synchronize measurement
+                Validate.notNull(jwtAuthToken);
                 Validate.notNull(endPointUrl);
                 Validate.notNull(deviceId);
                 final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
