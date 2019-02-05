@@ -118,13 +118,13 @@ public class PongReceiver extends BroadcastReceiver {
         timeoutHandler.postAtTime(new Runnable() {
             @Override
             public void run() {
-                Log.d(TAG,
+                Log.v(TAG,
                         "PongReceiver.checkIsRunningAsync(): Timeout for pong " + pingPongIdentifier + " reached after "
                                 + unit.toMillis(timeout) + " milliseconds. Executed at: " + SystemClock.uptimeMillis());
                 lock.lock();
                 try {
                     if (!isRunning) {
-                        Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
+                        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
                         context.unregisterReceiver(PongReceiver.this);
@@ -146,12 +146,12 @@ public class PongReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
-        Log.d(TAG, "PongReceiver.onReceive(): Received pong with identifier "
+        Log.v(TAG, "PongReceiver.onReceive(): Received pong with identifier "
                 + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
             if (!isTimedOut && MessageCodes.getPongActionId(deviceId).equals(intent.getAction())) {
-                Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
+                Log.v(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
                 this.context.unregisterReceiver(this);

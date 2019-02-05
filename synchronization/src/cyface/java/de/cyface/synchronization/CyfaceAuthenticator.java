@@ -128,7 +128,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                 // Get Auth token
                 try {
                     authToken = initSync(account.name, password, sslContext);
-                    Log.v(TAG, String.format("Auth token: %s", authToken));
+                    Log.v(TAG, String.format("Auth token: **%s", authToken.substring(authToken.length()-7)));
                 } catch (final ServerUnavailableException e) {
                     sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);

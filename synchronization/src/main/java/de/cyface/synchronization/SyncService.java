@@ -38,7 +38,7 @@ public final class SyncService extends Service {
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "sync service on create");
+        Log.v(TAG, "sync service on create");
         synchronized (LOCK) {
             if (syncAdapter == null) {
                 syncAdapter = new SyncAdapter(getApplicationContext(), true, new HttpConnection());
@@ -48,7 +48,7 @@ public final class SyncService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.d(TAG, "sync service on bind");
+        Log.v(TAG, "sync service on bind");
         return syncAdapter.getSyncAdapterBinder();
     }
 }

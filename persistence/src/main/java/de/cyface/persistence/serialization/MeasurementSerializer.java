@@ -132,7 +132,7 @@ public final class MeasurementSerializer {
      */
     private byte[] serializeGeoLocations(final @NonNull Cursor geoLocationsCursor) {
         // Allocate enough space for all geo locations
-        Log.d(TAG, String.format("Serializing %d GeoLocations for synchronization.", geoLocationsCursor.getCount()));
+        Log.v(TAG, String.format("Serializing %d GeoLocations for synchronization.", geoLocationsCursor.getCount()));
         final ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
@@ -161,7 +161,7 @@ public final class MeasurementSerializer {
      * @return A <code>byte</code> array containing all the data.
      */
     public static byte[] serialize(final @NonNull List<Point3d> dataPoints) {
-        Log.d(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
+        Log.v(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
 
         final ByteBuffer buffer = ByteBuffer.allocate(dataPoints.size() * BYTES_IN_ONE_POINT_3D_ENTRY);
         for (final Point3d point : dataPoints) {

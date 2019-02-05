@@ -53,7 +53,7 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
     @Override
     public void onCapabilitiesChanged(@NonNull final Network network, @NonNull final NetworkCapabilities capabilities) {
-        Log.d(TAG, "NetworkCapabilities changed");
+        Log.v(TAG, "NetworkCapabilities changed");
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;

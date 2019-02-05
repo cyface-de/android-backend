@@ -143,7 +143,7 @@ public final class DiskConsumption implements Parcelable {
         } else {
             bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks();
         }
-        Log.d(TAG, "Space available: " + (bytesAvailable / (1024 * 1024)) + " MB");
+        Log.v(TAG, "Space available: " + (bytesAvailable / (1024 * 1024)) + " MB");
         return bytesAvailable;
     }
 
