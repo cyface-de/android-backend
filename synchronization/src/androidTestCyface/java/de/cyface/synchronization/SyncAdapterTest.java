@@ -75,7 +75,7 @@ public final class SyncAdapterTest {
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
+        PersistenceLayer<C> persistence = new PersistenceLayer<C>(context, contentResolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);

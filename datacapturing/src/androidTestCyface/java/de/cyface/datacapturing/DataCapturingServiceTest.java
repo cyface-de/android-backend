@@ -615,7 +615,7 @@ public class DataCapturingServiceTest {
         resumeAndCheckThatLaunched(measurementIdentifier);
 
         // Resume 2: must be ignored by resumeAsync
-        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+        PersistenceLayer<C> persistence = new PersistenceLayer<C>(context, context.getContentResolver(), AUTHORITY,
                 new CapturingPersistenceBehaviour());
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());

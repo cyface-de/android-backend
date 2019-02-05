@@ -90,7 +90,7 @@ public class PingPongTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+        PersistenceLayer<C> persistence = new PersistenceLayer<C>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId();
 

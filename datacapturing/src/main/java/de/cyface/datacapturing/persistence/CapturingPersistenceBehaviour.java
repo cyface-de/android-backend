@@ -29,7 +29,7 @@ import de.cyface.utils.Validate;
  * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is used to capture a {@link Measurement}s.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 3.0.0
  */
 public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
@@ -147,7 +147,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     private void refreshIdentifierOfCurrentlyCapturedMeasurement()
             throws NoSuchMeasurementException, CursorIsNullException {
 
-        final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurementFromPersistence();
         currentMeasurementIdentifier = measurement.getIdentifier();
         Log.d(Constants.TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
     }

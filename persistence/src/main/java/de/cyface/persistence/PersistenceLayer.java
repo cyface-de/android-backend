@@ -43,10 +43,10 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.1.1
+ * @version 9.0.0
  * @since 2.0.0
  */
-public class PersistenceLayer {
+public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * The {@link Context} required to locate the app's internal storage directory.
@@ -64,7 +64,7 @@ public class PersistenceLayer {
      * The {@link PersistenceBehaviour} defines how the {@code Persistence} layer is works. We need this behaviour to
      * differentiate if the {@link PersistenceLayer} is used for live capturing and or to load existing data.
      */
-    private PersistenceBehaviour persistenceBehaviour;
+    private B persistenceBehaviour;
     /**
      * The {@link FileAccessLayer} used to interact with files.
      */
@@ -95,7 +95,7 @@ public class PersistenceLayer {
      *            We can't just make it package private because it's used by datacapturing.backend and datacapturing.
      */
     public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
-            @NonNull final String authority, @NonNull final PersistenceBehaviour persistenceBehaviour) {
+            @NonNull final String authority, @NonNull final B persistenceBehaviour) {
         this.context = context;
         this.resolver = resolver;
         this.authority = authority;
@@ -568,8 +568,8 @@ public class PersistenceLayer {
     }
 
     /**
-     * Loads the currently captured {@link Measurement} from the {@link PersistenceLayer}. This method should only be
-     * called if capturing is active. It throws an error otherwise.
+     * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
+     * {@link PersistenceLayer}.
      *
      * This is a public api which can be used by SDK implementing apps.
      *
@@ -580,10 +580,22 @@ public class PersistenceLayer {
      * @return the currently captured {@link Measurement}
      */
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
-        // TODO [STAD]: why does this API method not use the PersistenceBehaviour.loadCurrentlyCapturedMeasurement() methods
-        // which in capturing case uses the cached mid?
-        // I think this shared code method (used by both PersistenceBehaviour implementations) should be package
-        // private and there should be another public method with the same name which calls the behaviours method!
+        return persistenceBehaviour.loadCurrentlyCapturedMeasurement();
+    }
+
+    /**
+     * Loads the currently captured {@link Measurement} explicitly from the {@link PersistenceLayer}.
+     *
+     * SDK implementing app should use the {@link #loadCurrentlyCapturedMeasurement} instead.
+     *
+     * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
+     *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
+     *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @return the currently captured {@link Measurement}
+     */
+    public Measurement loadCurrentlyCapturedMeasurementFromPersistence()
+            throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(Constants.TAG, "Trying to load currently captured measurement from PersistenceLayer!");
 
         final List<Measurement> openMeasurements = loadMeasurements(MeasurementStatus.OPEN);
@@ -647,5 +659,9 @@ public class PersistenceLayer {
 
     public FileAccessLayer getFileAccessLayer() {
         return fileAccessLayer;
+    }
+
+    public B getPersistenceBehaviour() {
+        return persistenceBehaviour;
     }
 }

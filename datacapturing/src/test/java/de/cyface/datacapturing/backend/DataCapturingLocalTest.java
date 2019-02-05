@@ -56,7 +56,7 @@ public class DataCapturingLocalTest {
      * Mocking the persistence layer to avoid calling Android system functions.
      */
     @Spy
-    PersistenceLayer mockPersistence;
+    PersistenceLayer<C> mockPersistence;
 
     /**
      * Mocking the persistence behaviour to avoid calling Android system functions.

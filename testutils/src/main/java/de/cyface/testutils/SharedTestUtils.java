@@ -183,7 +183,7 @@ public class SharedTestUtils {
      * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
-            final MeasurementStatus status, final PersistenceLayer persistence)
+            final MeasurementStatus status, final PersistenceLayer<C> persistence)
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
@@ -247,7 +247,7 @@ public class SharedTestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    public static Measurement insertMeasurementEntry(final @NonNull PersistenceLayer persistence,
+    public static Measurement insertMeasurementEntry(final @NonNull PersistenceLayer<C> persistence,
             final @NonNull Vehicle vehicle) throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor

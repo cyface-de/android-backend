@@ -1,18 +1,14 @@
 /*
  * Copyright 2017 Cyface GmbH
- *
  * This file is part of the Cyface SDK for Android.
- *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
- *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -81,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.5.1
+ * @version 4.6.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -122,7 +118,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
      */
-    PersistenceLayer persistenceLayer;
+    PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
@@ -255,7 +251,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
+        persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
 
         // Allows other parties to ping this service to see if it is running
         final String deviceId;
@@ -275,6 +271,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final NotificationManager notificationManager = (NotificationManager)getSystemService(
                 Context.NOTIFICATION_SERVICE);
         // Update the placeholder notification
+        Validate.notNull(notificationManager);
         notificationManager.notify(NOTIFICATION_ID, notification);
 
         // Loads measurement id
@@ -330,8 +327,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Validate.notNull(sensorManager);
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
-        return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler, geoLocationEventHandlerThread,
-                sensorEventHandlerThread);
+        return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler,
+                geoLocationEventHandlerThread, sensorEventHandlerThread);
     }
 
     /**

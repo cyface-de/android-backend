@@ -49,7 +49,7 @@ public class PersistenceLayerTest {
     /**
      * An object of the class under test. It is setup prior to each test execution.
      */
-    private PersistenceLayer oocut;
+    private PersistenceLayer<C> oocut;
     /**
      * {@link Context} used to access the persistence layer
      */
@@ -71,7 +71,7 @@ public class PersistenceLayerTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         resolver = context.getContentResolver();
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new PersistenceLayer(context, resolver, AUTHORITY, capturingBehaviour);
+        oocut = new PersistenceLayer<C>(context, resolver, AUTHORITY, capturingBehaviour);
     }
 
     /**
@@ -173,7 +173,7 @@ public class PersistenceLayerTest {
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        PersistenceLayer persistenceLayer = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+        PersistenceLayer<C> persistenceLayer = new PersistenceLayer<C>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
 
         // Create a synchronized measurement

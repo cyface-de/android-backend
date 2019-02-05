@@ -94,7 +94,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
-        final PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), authority,
+        final PersistenceLayer persistence = new PersistenceLayer<>(context, context.getContentResolver(), authority,
                 new DefaultPersistenceBehaviour());
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
