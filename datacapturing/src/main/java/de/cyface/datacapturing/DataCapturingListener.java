@@ -16,6 +16,7 @@ import de.cyface.persistence.model.Vehicle;
  * @version 1.3.2
  * @since 1.0.0
  */
+// Needs to be public as this interface is implemented by sdk implementing apps (SR)
 public interface DataCapturingListener {
     /**
      * Called everytime the capturing service received a location Fix and thus is able to track its position.
