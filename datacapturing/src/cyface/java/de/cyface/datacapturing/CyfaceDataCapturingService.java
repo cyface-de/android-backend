@@ -38,7 +38,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // TODO because?
+    @SuppressWarnings("WeakerAccess") // TODO because??
     public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver contentResolver,
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
