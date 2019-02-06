@@ -12,6 +12,7 @@ import de.cyface.datacapturing.DataCapturingService;
  * @version 1.0.1
  * @since 2.0.0
  */
+// Needs to be public as this interface is implemented by sdk implementing apps (SR)
 public interface UIListener {
     /**
      * Handler for location changes occurring even while no tracking is active.
