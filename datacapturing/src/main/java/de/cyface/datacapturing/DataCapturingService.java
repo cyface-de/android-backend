@@ -482,10 +482,10 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * @return The identifier used to qualify measurements from this capturing service with the server receiving the
-     *         measurements. This needs to be world wide unique.
+     * @return The identifier used to qualify {@link Measurement}s from this capturing service with the server receiving
+     *         the {@code Measurement}s. This needs to be world wide unique.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings("unused") // because implementing apps (SR) uses this to access the device id
     public @NonNull String getDeviceIdentifier() {
         return deviceIdentifier;
     }
