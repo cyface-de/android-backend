@@ -195,7 +195,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), errorMessage);
         } finally {
-            Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
+            Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();
             }

@@ -64,7 +64,17 @@ public class SharedTestUtils {
             final double y, final double z) {
         final List<Point3d> points = new ArrayList<>();
         points.add(new Point3d((float)x, (float)y, (float)z, timestamp));
-        point3dFile.append(points);
+        insertPoint3ds(point3dFile, points);
+    }
+
+    /**
+     * Inserts {@link Point3d}s into the database content provider accessed by the test.
+     *
+     * @param point3dFile existing file to append the data to
+     * @param point3ds Test fake {@code Point3d}s.
+     */
+    public static void insertPoint3ds(@NonNull final Point3dFile point3dFile, final List<Point3d> point3ds) {
+        point3dFile.append(point3ds);
     }
 
     /**
@@ -179,17 +189,23 @@ public class SharedTestUtils {
      * This method inserts a {@link Measurement} into the persistence layer. Does not use the
      * {@code CapturingPersistenceBehaviour} but the {@link DefaultPersistenceBehaviour}.
      *
+     * @param point3dCount The number of point3ds to insert (of each sensor type).
+     * @param locationCount The number of location points to insert.
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
      * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
-            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence)
+            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence, final int point3dCount, final int locationCount)
             throws NoSuchMeasurementException, CursorIsNullException {
+        Validate.isTrue(point3dCount > 0);
+        Validate.isTrue(locationCount > 0);
 
         Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
-        insertGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
-                49.9304133333333, 8.82831833333333, 0.0, 940);
+        for (int i = 0; i < locationCount; i++) {
+            insertGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
+                    49.9304133333333, 8.82831833333333, 0.0, 940);
+        }
 
         // Insert file base data
         final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
@@ -198,9 +214,39 @@ public class SharedTestUtils {
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
                 Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-        insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertPoint3d(rotationsFile, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertPoint3d(directionsFile, 1501662636010L, 7.65, -32.4, -71.4);
+
+        final List<Point3d> aPoints = new ArrayList<>();
+        final List<Point3d> rPoints = new ArrayList<>();
+        final List<Point3d> dPoints = new ArrayList<>();
+
+        int alreadyInserted = 0;
+        for (int i = 0; i < point3dCount; i++) {
+            // We add some salt to make sure the compression of the data is realistic
+            // This is required as the testOnPerformSyncWithLargeData test requires large data
+            final float salt = (float)Math.random();
+            aPoints.add(new Point3d(10.1189575f + salt, -0.15088624f + salt, 0.2921924f + salt, 1501662635973L + i));
+            rPoints.add(
+                    new Point3d(0.001524045f + salt, 0.0025423833f + salt, -0.0010279021f + salt, 1501662635981L + i));
+            dPoints.add(new Point3d(7.65f + salt, -32.4f + salt, -71.4f + salt, 1501662636010L + i));
+
+            // Avoid OOM when adding too much data at once
+            final int insertLimit = 100_000;
+            if (i - alreadyInserted > insertLimit) {
+                insertPoint3ds(accelerationsFile, aPoints);
+                insertPoint3ds(rotationsFile, rPoints);
+                insertPoint3ds(directionsFile, dPoints);
+                aPoints.clear();
+                rPoints.clear();
+                dPoints.clear();
+                alreadyInserted += insertLimit;
+                Log.d(TAG, "Inserted "+alreadyInserted);
+            }
+        }
+        insertPoint3ds(accelerationsFile, aPoints);
+        insertPoint3ds(rotationsFile, rPoints);
+        insertPoint3ds(directionsFile, dPoints);
+        alreadyInserted += point3dCount - alreadyInserted;
+        Log.d(TAG, "Inserted "+alreadyInserted);
 
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
             // Store PointMetaData
@@ -222,7 +268,7 @@ public class SharedTestUtils {
 
         // Check the GeoLocations
         List<GeoLocation> geoLocations = persistence.loadTrack(measurementIdentifier);
-        assertThat(geoLocations.size(), is(1));
+        assertThat(geoLocations.size(), is(locationCount));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {

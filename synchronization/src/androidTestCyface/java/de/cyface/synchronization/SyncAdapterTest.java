@@ -27,8 +27,10 @@ import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.BaseColumns;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
+import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
@@ -86,7 +88,7 @@ public final class SyncAdapterTest {
         // Insert data to be synced
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
-                MeasurementStatus.FINISHED, persistence);
+                MeasurementStatus.FINISHED, persistence, 1, 1);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
@@ -115,6 +117,64 @@ public final class SyncAdapterTest {
         assertThat(loadedMeasurement, notNullValue());
         List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement.getIdentifier());
         assertThat(geoLocations.size(), is(1));
+    }
+
+    /**
+     * Tests whether points are correctly marked as synced when transmitting a large measurement.
+     *
+     * This test was created to try to reproduce #MOV-515 which it didn't so far.
+     * (!) This test produces an OOM - depending on the memory size of the test device #MOV-528
+     */
+    @Test
+    @FlakyTest // because this is currently still dependent on a real test api (see logcat)
+    @LargeTest // ~ 1.5 minutes
+    public void testOnPerformSyncWithLargeData() throws NoSuchMeasurementException, CursorIsNullException {
+
+        // Arrange
+        PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
+                new DefaultPersistenceBehaviour());
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
+        final AccountManager manager = AccountManager.get(context);
+        final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+        persistence.restoreOrCreateDeviceId();
+
+        // Insert data to be synced
+        // point3dCount chosen as bug #MOV-515 failed with ~80 MB data / 30s compression
+        // TODO: add task: 2m APs worked, 3m (each type!) crashed because of OOM on N5X emulator
+        final int point3dCount = 2_000_000;
+        final int locationCount = 15_000;
+        final ContentResolver contentResolver = context.getContentResolver();
+        final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+                MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
+        final long measurementIdentifier = insertedMeasurement.getIdentifier();
+        final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
+
+        // Mock - nothing to do
+
+        // Act: sync
+        ContentProviderClient client = null;
+        try {
+            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
+            final SyncResult result = new SyncResult();
+            Validate.notNull(client);
+            syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
+        } finally {
+            if (client != null) {
+                client.close();
+            }
+        }
+
+        // Assert: synced data is marked as synced
+        final MeasurementStatus newStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(newStatus, is(equalTo(MeasurementStatus.SYNCED)));
+
+        // GeoLocation
+        final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
+        assertThat(loadedMeasurement, notNullValue());
+        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
+        assertThat(geoLocations.size(), is(locationCount));
     }
 
     /**
