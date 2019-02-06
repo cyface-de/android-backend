@@ -13,7 +13,7 @@ import de.cyface.persistence.model.Vehicle;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.2
+ * @version 1.3.3
  * @since 1.0.0
  */
 // Needs to be public as this interface is implemented by sdk implementing apps (SR)
