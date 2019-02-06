@@ -134,6 +134,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (isConnected()) {
             ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
+        currentSynchronizationAccount = account;
 
         // FIXME: We want to test this on newer devices if we want to leave this in!
         // Roboelectric is currently only testing the deprecated code, see class documentation
@@ -148,7 +149,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
         } else {
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            currentSynchronizationAccount = account;
             context.get().registerReceiver(this, intentFilter);
         }
     }
