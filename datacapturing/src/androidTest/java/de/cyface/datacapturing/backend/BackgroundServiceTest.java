@@ -89,10 +89,12 @@ public class BackgroundServiceTest {
     @Before
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        // This is normally called in the <code>DataCapturingService#Constructor</code>
         CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
         persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
+
+        // This is normally called in the <code>DataCapturingService#Constructor</code>
         persistenceLayer.restoreOrCreateDeviceId();
+
         testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();

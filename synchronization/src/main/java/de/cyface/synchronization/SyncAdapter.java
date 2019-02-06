@@ -148,6 +148,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         null, false, null, null);
                 final Bundle authResult = authFuture.getResult(1, TimeUnit.SECONDS);
                 jwtAuthToken = authResult.getString(AccountManager.KEY_AUTHTOKEN);
+                Validate.notNull(jwtAuthToken);
                 Log.d(TAG, "Fresh authToken: **" + jwtAuthToken.substring(jwtAuthToken.length()-7));
 
                 // Synchronize measurement

@@ -108,7 +108,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         accountManager.invalidateAuthToken(account.type, authToken);
         authToken = ""; // To request a new token
 
-        // Lets give another try to authenticate the user
+        // Re-authenticate the user to get a fresh authToken
         if (TextUtils.isEmpty(authToken)) {
             Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
             final String password = accountManager.getPassword(account);
@@ -128,7 +128,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                 // Get Auth token
                 try {
                     authToken = initSync(account.name, password, sslContext);
-                    Log.v(TAG, String.format("Auth token: **%s", authToken.substring(authToken.length()-7)));
+                    Log.v(TAG, String.format("initSync returned authToken: **%s", authToken.substring(authToken.length()-7)));
                 } catch (final ServerUnavailableException e) {
                     sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
                     throw new NetworkErrorException(e);
