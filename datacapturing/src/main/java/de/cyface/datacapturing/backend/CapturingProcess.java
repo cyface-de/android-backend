@@ -20,11 +20,14 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -158,10 +161,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     }
 
     @Override
-    public void onLocationChanged(final Location location) {
-        if (location == null) {
-            return;
-        }
+    public void onLocationChanged(@NonNull final Location location) {
         locationStatusHandler.setTimeOfLastLocationUpdate(System.currentTimeMillis());
 
         if (locationStatusHandler.hasLocationFix()) {
@@ -172,9 +172,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             float locationAccuracy = location.getAccuracy();
 
             synchronized (this) {
-                for (CapturingProcessListener listener : this.listener) {
-                    listener.onLocationCaptured(
-                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracy));
+                for (final CapturingProcessListener listener : this.listener) {
+                    try {
+                        listener.onLocationCaptured(
+                                new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracy));
+                    } catch (final CursorIsNullException | NoSuchMeasurementException e) {
+                        throw new IllegalStateException(e);
+                    }
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {

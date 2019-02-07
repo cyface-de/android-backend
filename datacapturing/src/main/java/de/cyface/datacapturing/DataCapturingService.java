@@ -321,7 +321,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
+                persistenceLayer.getPersistenceBehaviour().updateStatus(FINISHED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous stop.");
                 lifecycleLock.unlock();
@@ -373,7 +373,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
+                persistenceLayer.getPersistenceBehaviour().updateStatus(PAUSED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous pause.");
                 lifecycleLock.unlock();
@@ -424,7 +424,7 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(false);
 
             if (!checkFineLocationAccess(getContext())) {
-                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
+                persistenceLayer.getPersistenceBehaviour().updateStatus(FINISHED);
                 throw new MissingPermissionException();
             }
 
@@ -439,7 +439,7 @@ public abstract class DataCapturingService {
             runService(currentMeasurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
-            persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(OPEN);
+            persistenceLayer.getPersistenceBehaviour().updateStatus(OPEN);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous resume.");
             lifecycleLock.unlock();

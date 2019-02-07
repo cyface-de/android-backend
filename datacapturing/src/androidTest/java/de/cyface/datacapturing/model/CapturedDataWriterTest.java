@@ -173,7 +173,7 @@ public class CapturedDataWriterTest {
                 measurement.getIdentifier());
 
         // Finish the measurement
-        capturingBehaviour.updateRecentMeasurement(FINISHED);
+        capturingBehaviour.updateStatus(FINISHED);
 
         // Load the finished measurement
         Cursor finishingResult = null;
@@ -466,7 +466,7 @@ public class CapturedDataWriterTest {
                     }
 
                     if (oocut.hasMeasurement(MeasurementStatus.OPEN)) {
-                        capturingBehaviour.updateRecentMeasurement(FINISHED);
+                        capturingBehaviour.updateStatus(FINISHED);
                     }
                 } catch (final NoSuchMeasurementException | CursorIsNullException e) {
                     throw new IllegalStateException(e);

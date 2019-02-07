@@ -102,7 +102,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     }
 
     @Override
-    public double updateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
+    public double calculateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
         // FIXME
         return 0;
     }
