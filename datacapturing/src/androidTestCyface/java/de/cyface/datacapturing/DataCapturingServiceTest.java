@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.4
+ * @version 5.2.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -398,7 +398,7 @@ public class DataCapturingServiceTest {
         // Now let's make sure all measurements started and stopped as expected
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        List<Measurement> measurements = oocut.getCachedMeasurements();
+        List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(3)));
 
         final long measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier;
@@ -662,13 +662,13 @@ public class DataCapturingServiceTest {
             NoSuchMeasurementException, CursorIsNullException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
-        final List<Measurement> measurements = oocut.getCachedMeasurements();
+        final List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
 
         pauseAndCheckThatStopped(measurementIdentifier);
 
         resumeAndCheckThatLaunched(measurementIdentifier);
-        final List<Measurement> newMeasurements = oocut.getCachedMeasurements();
+        final List<Measurement> newMeasurements = oocut.loadMeasurements();
         assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
 
         stopAndCheckThatStopped(measurementIdentifier);
@@ -698,7 +698,7 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         // Check sensor data
-        final List<Measurement> measurements = oocut.getCachedMeasurements();
+        final List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
         TestUtils.lockAndWait(3, TimeUnit.SECONDS, lock, condition);
         assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true)));
@@ -710,10 +710,9 @@ public class DataCapturingServiceTest {
      * Tests whether reconnect throws no exception when called without a running background service and leaves the
      * DataCapturingService in the correct state (<code>isDataCapturingServiceRunning</code> is <code>false</code>.
      *
-     * @throws DataCapturingException Fails the test if anything goes wrong.
      */
     @Test
-    public void testReconnectOnNonRunningServer() throws DataCapturingException {
+    public void testReconnectOnNonRunningServer() {
         oocut.reconnect();
         assertThat(oocut.getIsRunning(), is(equalTo(false)));
     }

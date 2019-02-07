@@ -38,9 +38,10 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 5.0.0
  * @since 2.0.0
  */
+@SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
 public class MovebisDataCapturingService extends DataCapturingService {
 
     /**
@@ -101,7 +102,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // TODO - because?
+    @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this to create the DataCapturingService
     public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
@@ -113,7 +114,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * Creates a new completely initialized {@link MovebisDataCapturingService}.
      * This variant is required to test the ContentProvider.
      *
-     * (!) ATTENTION: This constructor is only for testing to be able to inject authority and account type. Use
+     * ATTENTION: This constructor is only for testing to be able to inject authority and account type. Use
      * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
      * instead.
      *
@@ -149,34 +150,12 @@ public class MovebisDataCapturingService extends DataCapturingService {
     }
 
     /**
-     * Creates a new completely initialized {@link MovebisDataCapturingService}.
-     *
-     * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
-     * @param uiListener A listener for events which the UI might be interested in.
-     * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
-     *            if you would like to be notified as often as possible.
-     * @throws SetupException If initialization of this service facade fails or writing the components preferences
-     *             fails.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     *
-     *             FIXME: can we remove one of these constructors?
-     */
-    @SuppressWarnings("unused") // Because?
-    public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate)
-            throws SetupException, CursorIsNullException {
-        this(context, dataUploadServerAddress, uiListener, locationUpdateRate, new IgnoreEventsStrategy());
-    }
-
-    /**
      * Starts the reception of location updates for the user interface. No tracking is started with this method. This is
      * purely intended for display purposes. The received locations are forwarded to the {@link UIListener} provided to
      * the constructor.
      */
-    @SuppressWarnings("WeakerAccess") // TODO Because ?
-    @SuppressLint("MissingPermission") // This is ok. We are checking the permission, but lint is too dump to notice.
+    @SuppressWarnings("WeakerAccess") // Because sdk implementing apps (SR) use this method to receive location updates
+    @SuppressLint("MissingPermission") // Because we are checking the permission, but lint does not notice this.
     public void startUILocationUpdates() {
         if (uiUpdatesActive) {
             return;
@@ -194,7 +173,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
                     0L, locationListener);
             uiUpdatesActive = true;
         }
-
     }
 
     /**
@@ -202,7 +180,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *
      * @see #startUILocationUpdates()
      */
-    @SuppressWarnings("WeakerAccess") // TODO: Because?
+    @SuppressWarnings("WeakerAccess") // Because sdk implementing apps (SR) use this method to receive location updates
     public void stopUILocationUpdates() {
         if (!uiUpdatesActive) {
             return;
@@ -219,7 +197,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param token The auth token to add.
      * @throws SynchronisationException If unable to create an appropriate account with the Android account system.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // Because this is required by the STADTRADELN app
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
     public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
             throws SynchronisationException {
         AccountManager accountManager = AccountManager.get(getContext());
@@ -232,28 +210,27 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
     /**
      * Removes the <a href="https://jwt.io/">JWT</a> auth token for a specific username from the system. If that
-     * username was not registered with
-     * {@link #registerJWTAuthToken(String, String)} this method simply does nothing.
+     * username was not registered with {@link #registerJWTAuthToken(String, String)} this method simply does nothing.
      *
      * @param username The username of the user to remove the auth token for.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // Because this is required by the STADTRADELN app
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
     public void deregisterJWTAuthToken(final @NonNull String username) {
         getWiFiSurveyor().deleteAccount(username);
     }
 
-    /**
+    /*
+     * Uncommented as this seems not to be used by SR.
      * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
      * connections.
-     * 
      * @param state If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
-     *            connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
-     *            available. The second option might use up the users data plan rapidly so use it sparingly.
+     * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
+     * available. The second option might use up the users data plan rapidly so use it sparingly.
+     * /
+     * public void syncOnWiFiOnly(final boolean state) {
+     * getWiFiSurveyor().syncOnWiFiOnly(state);
+     * }
      */
-    @SuppressWarnings("unused") // TODO: Because?
-    public void syncOnWiFiOnly(final boolean state) {
-        getWiFiSurveyor().syncOnWiFiOnly(state);
-    }
 
     /**
      * Checks whether the user has granted the <code>ACCESS_COARSE_LOCATION</code> permission and notifies the UI to ask

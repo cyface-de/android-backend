@@ -93,15 +93,15 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.3.3
+ * @version 10.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
+
     /**
      * {@code true} if data capturing is running; {@code false} otherwise.
      */
     private boolean isRunning;
-
     /**
      * A flag indicating whether the background service is currently stopped or in the process of stopping. This flag is
      * used to prevent multiple lifecycle methods from interrupting a stop process or being called, while no service is
@@ -247,6 +247,7 @@ public abstract class DataCapturingService {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
+    // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
@@ -299,7 +300,7 @@ public abstract class DataCapturingService {
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API
+    @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Stopping asynchronously!");
@@ -354,7 +355,7 @@ public abstract class DataCapturingService {
      *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API
+    @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void pause(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
@@ -366,7 +367,6 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous pause.");
         try {
             setIsStoppingOrHasStopped(true);
-            final Measurement currentMeasurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
 
             if (!stopService(finishedHandler)) {
                 throw new DataCapturingException("No active service found to be paused.");
@@ -411,7 +411,7 @@ public abstract class DataCapturingService {
      *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API
+    @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void resume(final @NonNull StartUpFinishedHandler finishedHandler) throws DataCapturingException,
             MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Resuming asynchronously.");
@@ -454,16 +454,15 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Returns all {@link Measurement}s currently on this device. This includes currently running ones
-     * ({@link MeasurementStatus#OPEN}, {@link MeasurementStatus#PAUSED}, {@link MeasurementStatus#FINISHED} and
-     * {@link MeasurementStatus#SYNCED} measurements.
+     * Returns all {@link Measurement}s currently on this device, no matter the current {@link MeasurementStatus}.
      *
      * @return A list containing all {@code Measurement}s currently stored on this device by this application. An empty
      *         list if there are no such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO: really?
-    public @NonNull List<Measurement> getCachedMeasurements() throws CursorIsNullException {
+    @SuppressWarnings({"unused"}) // Used by cyface flavour tests
+    @NonNull
+    List<Measurement> loadMeasurements() throws CursorIsNullException {
         return persistenceLayer.loadMeasurements();
     }
 
@@ -475,17 +474,17 @@ public abstract class DataCapturingService {
      *         such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("unused") // TODO because?
+    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this api to load the finished measurements
     public @NonNull List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status)
             throws CursorIsNullException {
         return persistenceLayer.loadMeasurements(status);
     }
 
     /**
-     * @return The identifier used to qualify measurements from this capturing service with the server receiving the
-     *         measurements. This needs to be world wide unique.
+     * @return The identifier used to qualify {@link Measurement}s from this capturing service with the server receiving
+     *         the {@code Measurement}s. This needs to be world wide unique.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // sdk implementing apps (SR) uses this to access the device id
     public @NonNull String getDeviceIdentifier() {
         return deviceIdentifier;
     }
@@ -494,20 +493,20 @@ public abstract class DataCapturingService {
      * @param measurementIdentifier The identifier of the measurement to load.
      * @return The measurement corresponding to the provided <code>measurementIdentifier</code> or <code>null</code> if
      *         no such measurement exists.
-     * @throws DataCapturingException If accessing the data storage fails.
-     *             /
-     *             public Measurement loadMeasurement(final long measurementIdentifier) throws DataCapturingException {
-     *             return persistenceLayer.loadMeasurement(measurementIdentifier);
-     *             } TODO: required?
+     * @throws CursorIsNullException when the {@link ContentProvider} is inaccessible
      */
+    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to load single measurements
+    public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
+        return persistenceLayer.loadMeasurement(measurementIdentifier);
+    }
 
     /**
-     * Forces the service to synchronize all Measurements now if a connection is available. If this is not called the
-     * service might wait for an opportune moment to start synchronization.
+     * Forces the service to synchronize all {@link Measurement}s now if a connection is available. If this is not
+     * called the service might wait for an opportune moment to start synchronization.
      *
      * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // because we need to support this API - TODO: really?
+    @SuppressWarnings({"WeakerAccess", "unused"}) // TODO: not used by SR. Is this required by our app?
     public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
         Account account = getWiFiSurveyor().getOrCreateAccount(username);
         getWiFiSurveyor().scheduleSyncNow(account);
@@ -522,7 +521,7 @@ public abstract class DataCapturingService {
      *
      *         TODO provide a custom list implementation that loads only small portions into memory.
      */
-    @SuppressWarnings("unused") // Because we need to support this interface for the Movebis project
+    @SuppressWarnings("unused") // Because sdk implementing apps (RS) use this api to display the tracks
     public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
         return persistenceLayer.loadTrack(measurement);
     }
@@ -535,19 +534,15 @@ public abstract class DataCapturingService {
      * @throws NoSuchMeasurementException If the provided measurement was <code>null</code> due to some unknown reasons.
      *             This is an API violation. You are not supposed to provide <code>null</code> measurements to this
      *             method.
-     *             /
-     *             public void deleteMeasurement(final @NonNull Measurement measurement) throws
-     *             NoSuchMeasurementException {
-     *             persistenceLayer.delete(measurement);
-     *             }
-     *
-     *             TODO [MOV-487]: do we still need to offer this interface or can we delete the method?
      */
+    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to delete measurements
+    public void deleteMeasurement(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
+        persistenceLayer.delete(measurement);
+    }
 
     /**
      * This method checks for whether the service is currently running or not. Since this requires an asynchronous inter
-     * process communication, it should be
-     * considered a long running operation.
+     * process communication, it should be considered a long running operation.
      *
      * @param timeout The timeout of how long to wait for the service to answer before deciding it is not running. After
      *            this timeout has passed the <code>IsRunningCallback#timedOut()</code> method is called. Since the
@@ -557,23 +552,23 @@ public abstract class DataCapturingService {
      * @param unit The unit of time specified by timeout.
      * @param callback Called as soon as the current state of the service has become clear.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API
+    @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this method to check for capturing after resume
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
-        Log.d(TAG, "Checking isRunning?");
+        Log.v(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext(), deviceIdentifier);
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
     /**
-     * Disconnects your app from the <code>DataCapturingService</code>. Data capturing will continue in the background
+     * Disconnects your app from the {@link DataCapturingService}. Data capturing will continue in the background
      * but you will not receive any updates about this. This frees some resources used for communication and cleanly
-     * shuts down the connection. You should call this method in your <code>Activity</code> lifecycle
-     * <code>onStop</code>. You may call <code>reconnect</code> if you would like to receive updates again, like in your
-     * <code>Activity</code> lifecycle <code>onRestart</code> method.
+     * shuts down the connection. You should call this method in your {@link android.app.Activity} lifecycle
+     * {@code Activity#onStop()}. You may call {@link #reconnect()} if you would like to receive updates again, as in
+     * {@code Activity#onRestart()}.
      *
      * @throws DataCapturingException If service was not connected.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO really?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // TODO: not used by RS. Do we use it in our app?
     public void disconnect() throws DataCapturingException {
         unbind();
     }
@@ -587,8 +582,9 @@ public abstract class DataCapturingService {
      *
      * @throws IllegalStateException If communication with background service is not successful.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
-    public void reconnect() throws DataCapturingException {
+    @SuppressWarnings("WeakerAccess") // TODO: not used by RS. But should be used by all apps to rebind the app after it
+                                      // has been shut down. -> add example to Readme
+    public void reconnect() {
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -605,7 +601,7 @@ public abstract class DataCapturingService {
             }
         };
 
-        // TODO: Maybe move the timeout time to a parameter.
+        // TODO: Maybe move the timeout time to a parameter. [already fixed in open PR]
         isRunning(500L, TimeUnit.MILLISECONDS, reconnectCallback); // throws IllegalStateException
 
         // Wait for isRunning to return.
@@ -625,8 +621,7 @@ public abstract class DataCapturingService {
     /**
      * @param uiListener A listener for events which the UI might be interested in.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO really?
-    public void setUiListener(final @NonNull UIListener uiListener) {
+    void setUiListener(final @NonNull UIListener uiListener) {
         this.uiListener = uiListener;
     }
 
@@ -634,7 +629,7 @@ public abstract class DataCapturingService {
      * @return A listener for events which the UI might be interested in. This might be <code>null</code> if there has
      *         been no previous call to {@link #setUiListener(UIListener)}.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings("unused") // Used by MovebisDataCapturingService
     UIListener getUiListener() {
         return uiListener;
     }
@@ -753,8 +748,8 @@ public abstract class DataCapturingService {
      * @param context Current <code>Activity</code> context.
      * @return Either <code>true</code> if permission was or has been granted; <code>false</code> otherwise.
      */
-    // BooleanMethodIsAlwaysInverted - because it's better readable this way
-    // WeakerAccess - //TODO because ?
+    // BooleanMethodIsAlwaysInverted: Better readable this way
+    // WeakerAccess: Used by MovebisDataCapturingService
     @SuppressWarnings({"BooleanMethodIsAlwaysInverted", "WeakerAccess"})
     boolean checkFineLocationAccess(final @NonNull Context context) {
         boolean permissionAlreadyGranted = ActivityCompat.checkSelfPermission(context,
@@ -861,8 +856,8 @@ public abstract class DataCapturingService {
     /**
      * @return {@code true} if data capturing is running; {@code false} otherwise.
      */
-    @SuppressWarnings("WeakerAccess") // because we need to support this API - TODO: really?
-    public boolean getIsRunning() {
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by a test in the cyface flavour
+    boolean getIsRunning() {
         Log.d(TAG, "Getting isRunning with value " + isRunning);
         return isRunning;
     }
@@ -892,7 +887,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings("unused") // TODO not used by SR. Does our app use this?
     public void addConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionStatusReceiver.addListener(listener);
     }
@@ -903,7 +898,7 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that is notified of important events during synchronization.
      */
-    @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+    @SuppressWarnings("unused") // TODO not used by SR. Does our app use this?
     public void removeConnectionStatusListener(final @NonNull ConnectionStatusListener listener) {
         this.connectionStatusReceiver.removeListener(listener);
     }
@@ -911,8 +906,8 @@ public abstract class DataCapturingService {
     /**
      * Unregisters the {@link ConnectionStatusReceiver} when no more needed.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // because we need to support this API - TODO: really?
-    public void shutdownConnectionStatusReceiver() {
+    @SuppressWarnings({"unused"}) // TODO: Used by CyfaceDataCapturingService but is the caller used?
+    void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
     }
 
@@ -1100,7 +1095,7 @@ public abstract class DataCapturingService {
          *
          * @param listener A listener that is notified of important events during data capturing.
          */
-        @SuppressWarnings("unused") // because we need to support this API - TODO: really?
+        @SuppressWarnings("unused") // TODO why is this method not used anywhere?
         void removeListener(final @NonNull DataCapturingListener listener) {
             this.listener.remove(listener);
         }
