@@ -139,6 +139,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     CapturingPersistenceBehaviour capturingBehaviour;
+    /**
+     * The last captured {@link GeoLocation} used to calculate the distance to the next {@code GeoLocation}.
+     */
+    private GeoLocation lastLocation = null;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -241,7 +245,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
-        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
+        Log.v(TAG, "Starting DataCapturingBackgroundService");
 
         // Loads authority / persistence layer
         if (!intent.hasExtra(AUTHORITY_ID)) {
@@ -283,7 +287,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
         try {
-            pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+            final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
+            pointMetaData = new PointMetaData(measurement.getAccelerations(), measurement.getRotations(),
+                    measurement.getDirections(), measurement.getFileFormatVersion());
         } catch (final CursorIsNullException e) {
             // because onStartCommand is called by Android so we can't throw soft exception.
             throw new IllegalStateException(e);
@@ -402,13 +408,18 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     @Override
-    public void onLocationCaptured(final @NonNull GeoLocation location) {
+    public void onLocationCaptured(final @NonNull GeoLocation newLocation) {
         Log.d(TAG, "Location captured");
-        informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        capturingBehaviour.storeLocation(location, currentMeasurementIdentifier);
-        // TODO[STAD]: store last location, calculate distance to new location and update measurement.distance field
-        // add DistanceCalculationStrategy to onCreate which calculates the diff between the two locations
-        // use Android's Location.distanceTo(location)
+        informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
+        capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
+
+        // Update the {@code Measurement#distance) and the {@code #lastLocation}, in this order!
+        if (lastLocation != null) {
+            final double distance = eventHandlingStrategy.updateDistance(lastLocation, newLocation);
+            capturingBehaviour.updateDistance(distance);
+            Log.d(TAG, "Distance updated: " + distance);
+        }
+        this.lastLocation = newLocation;
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");

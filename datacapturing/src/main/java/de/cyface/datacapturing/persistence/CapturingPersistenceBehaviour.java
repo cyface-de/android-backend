@@ -176,8 +176,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                         "Trying to load measurement identifier while no measurement was open or paused!");
             }
 
-            // TODO [STAD] we need to load the measurement now from the database to have the most recent meta fields
-            return new Measurement(currentMeasurementIdentifier);
+            return persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
         }
     }
 
@@ -225,5 +224,14 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                 }
             }
         }
+    }
+
+    /**
+     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     *
+     * @param distance The new distance value to be stored.
+     */
+    public void updateDistance(final double distance) {
+        // FIXME
     }
 }
