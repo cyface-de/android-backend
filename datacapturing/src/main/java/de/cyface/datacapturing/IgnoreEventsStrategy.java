@@ -27,11 +27,12 @@ import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.Validate;
 
 /**
  * A default implementation of the {@link EventHandlingStrategy} used if not strategy was provided.
- * This does practically nothing and just allows the strategy to be optional.
+ * For most events it does practically nothing and just allows the strategy to be optional.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
@@ -39,6 +40,11 @@ import de.cyface.utils.Validate;
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
+
+    /**
+     * The strategy used to calculate the {@link Measurement#distance} from two subsequent {@link GeoLocation}s.
+     */
+    private DefaultDistanceCalculationStrategy distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
@@ -103,8 +109,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
 
     @Override
     public double calculateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
-        // FIXME
-        return 0;
+        return distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
     }
 
     @Override
