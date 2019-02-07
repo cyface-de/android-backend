@@ -45,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,7 +75,7 @@ public final class SyncAdapterTest {
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);

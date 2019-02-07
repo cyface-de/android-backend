@@ -35,7 +35,6 @@ import android.Manifest;
 import android.accounts.Account;
 import android.content.ComponentName;
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
@@ -64,7 +63,6 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.NoSuchMeasurementException;
-import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -93,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.0
+ * @version 11.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -120,7 +118,7 @@ public abstract class DataCapturingService {
     /**
      * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
-    private final PersistenceLayer persistenceLayer;
+    private final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
@@ -167,16 +165,11 @@ public abstract class DataCapturingService {
      * The strategy used to respond to selected events triggered by this service.
      */
     private final EventHandlingStrategy eventHandlingStrategy;
-    /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
-     */
-    private final CapturingPersistenceBehaviour capturingBehaviour;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param resolver The <code>ContentResolver</code> used to access the data layer.
      * @param authority The <code>ContentProvider</code> authority required to request a sync operation in the
      *            {@link WiFiSurveyor}. You should use something world wide unique, like your domain, to avoid
      *            collisions between different apps using the Cyface SDK.
@@ -188,15 +181,15 @@ public abstract class DataCapturingService {
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public DataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
+    public DataCapturingService(@NonNull final Context context,
+                                @NonNull final String authority, @NonNull final String accountType,
+                                @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+                                @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer)
             throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
+        this.persistenceLayer = persistenceLayer;
         this.serviceConnection = new BackgroundServiceConnection();
-        this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        this.persistenceLayer = new PersistenceLayer(context, resolver, authority, capturingBehaviour);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
 
@@ -312,7 +305,7 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous stop.");
         try {
             setIsStoppingOrHasStopped(true);
-            final Measurement measurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
+            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
 
             if (!stopService(finishedHandler)) {
                 // The background service was not active. This can happen when the measurement was paused.
@@ -328,7 +321,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                capturingBehaviour.updateRecentMeasurement(FINISHED);
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous stop.");
                 lifecycleLock.unlock();
@@ -380,7 +373,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                capturingBehaviour.updateRecentMeasurement(PAUSED);
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous pause.");
                 lifecycleLock.unlock();
@@ -431,7 +424,7 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(false);
 
             if (!checkFineLocationAccess(getContext())) {
-                capturingBehaviour.updateRecentMeasurement(FINISHED);
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
                 throw new MissingPermissionException();
             }
 
@@ -442,11 +435,11 @@ public abstract class DataCapturingService {
             }
 
             // Resume paused measurement
-            final Measurement currentMeasurement = capturingBehaviour.loadCurrentlyCapturedMeasurement();
+            final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
             runService(currentMeasurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
-            capturingBehaviour.updateRecentMeasurement(OPEN);
+            persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(OPEN);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous resume.");
             lifecycleLock.unlock();

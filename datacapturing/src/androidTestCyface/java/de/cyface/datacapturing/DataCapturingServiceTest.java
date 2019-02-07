@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.5
+ * @version 5.2.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -615,7 +615,7 @@ public class DataCapturingServiceTest {
         resumeAndCheckThatLaunched(measurementIdentifier);
 
         // Resume 2: must be ignored by resumeAsync
-        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+        PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
                 new CapturingPersistenceBehaviour());
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());

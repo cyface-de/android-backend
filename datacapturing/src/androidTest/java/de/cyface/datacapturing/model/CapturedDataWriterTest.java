@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.3.2
+ * @version 5.3.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -81,7 +81,7 @@ public class CapturedDataWriterTest {
     /**
      * The object of the class under test.
      */
-    private PersistenceLayer oocut;
+    private PersistenceLayer<CapturingPersistenceBehaviour> oocut;
     /**
      * An Android <code>ContentResolver</code> provided for executing tests.
      */
@@ -110,7 +110,7 @@ public class CapturedDataWriterTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new PersistenceLayer(context, mockResolver, AUTHORITY, capturingBehaviour);
+        oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
     }

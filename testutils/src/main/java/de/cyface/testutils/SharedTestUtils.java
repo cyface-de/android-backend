@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.1.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -183,7 +183,7 @@ public class SharedTestUtils {
      * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
-            final MeasurementStatus status, final PersistenceLayer persistence)
+            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence)
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
@@ -247,8 +247,9 @@ public class SharedTestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    public static Measurement insertMeasurementEntry(final @NonNull PersistenceLayer persistence,
-            final @NonNull Vehicle vehicle) throws CursorIsNullException {
+    public static Measurement insertMeasurementEntry(
+            final @NonNull PersistenceLayer<DefaultPersistenceBehaviour> persistence, final @NonNull Vehicle vehicle)
+            throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();

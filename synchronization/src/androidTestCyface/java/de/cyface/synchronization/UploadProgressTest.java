@@ -56,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -64,7 +64,7 @@ import de.cyface.utils.Validate;
 public class UploadProgressTest {
     private Context context;
     private ContentResolver contentResolver;
-    private PersistenceLayer persistenceLayer;
+    private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
 
     /**
      * @throws CursorIsNullException When the {@link ContentProvider} is not accessible
@@ -74,7 +74,7 @@ public class UploadProgressTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
-        persistenceLayer = new PersistenceLayer(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
     }
 

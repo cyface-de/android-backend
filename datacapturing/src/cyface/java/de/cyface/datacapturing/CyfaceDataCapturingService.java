@@ -6,9 +6,12 @@ import android.accounts.Account;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
+
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
 
@@ -17,7 +20,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.0
+ * @version 6.0.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -26,7 +29,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param contentResolver Resolver used to access the content provider for storing measurements.
+     * @param resolver Resolver used to access the content provider for storing measurements.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
      *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
@@ -38,12 +41,13 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // TODO because??
-    public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver contentResolver,
+    @SuppressWarnings("WeakerAccess") // TODO because?
+    public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
             final @NonNull String authority, final @NonNull String accountType,
             final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
             throws SetupException, CursorIsNullException {
-        super(context, contentResolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy);
+        super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+                new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()));
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
