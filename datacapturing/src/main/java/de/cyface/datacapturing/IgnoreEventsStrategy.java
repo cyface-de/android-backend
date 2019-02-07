@@ -1,18 +1,14 @@
 /*
  * Copyright 2017 Cyface GmbH
- *
  * This file is part of the Cyface SDK for Android.
- *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
- *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -30,6 +26,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.utils.Validate;
 
 /**
@@ -76,12 +73,13 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     }
 
     @Override
-    public void handleSpaceWarning(final @NonNull DataCapturingBackgroundService dataCapturingBackgroundService) {
+    public void handleSpaceWarning(@NonNull final DataCapturingBackgroundService dataCapturingBackgroundService) {
         Log.d(BACKGROUND_TAG, "No strategy provided for the handleSpaceWarning event. Ignoring.");
     }
 
     @Override
-    public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
+    @NonNull
+    public Notification buildCapturingNotification(@NonNull final DataCapturingBackgroundService context) {
         Validate.notNull("No context provided!", context);
 
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
@@ -99,10 +97,14 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
         return new NotificationCompat.Builder(context, channelId)
                 .setContentTitle(context.getString(R.string.notification_title))
                 .setSmallIcon(R.drawable.ic_hourglass_empty_black_24dp)
-                .setContentText(context.getString(R.string.notification_text))
-                .setOngoing(true)
-                .setAutoCancel(false)
+                .setContentText(context.getString(R.string.notification_text)).setOngoing(true).setAutoCancel(false)
                 .build();
+    }
+
+    @Override
+    public double updateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
+        // FIXME
+        return 0;
     }
 
     @Override
