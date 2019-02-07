@@ -51,6 +51,7 @@ import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
@@ -581,7 +582,8 @@ public abstract class DataCapturingService {
      *
      * @throws IllegalStateException If communication with background service is not successful.
      */
-    @SuppressWarnings("WeakerAccess") // TODO: not used by RS. Do we use it in our app?
+    @SuppressWarnings("WeakerAccess") // TODO: not used by RS. But should be used by all apps to rebind the app after it
+                                      // has been shut down. -> add example to Readme
     public void reconnect() {
 
         final Lock lock = new ReentrantLock();
