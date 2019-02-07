@@ -16,6 +16,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -56,6 +57,7 @@ public class MeasurementTest {
         fixtureMeasurement.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+        fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
     }
 
     /**
