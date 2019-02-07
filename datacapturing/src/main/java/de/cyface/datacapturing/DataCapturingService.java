@@ -181,10 +181,10 @@ public abstract class DataCapturingService {
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public DataCapturingService(@NonNull final Context context,
-                                @NonNull final String authority, @NonNull final String accountType,
-                                @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
-                                @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer)
+    public DataCapturingService(@NonNull final Context context, @NonNull final String authority,
+            @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer)
             throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
@@ -509,28 +509,26 @@ public abstract class DataCapturingService {
      * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
      * memory. For large tracks this could slow down the device or even reach the applications memory limit.
      *
-     * @param measurement The <code>measurement</code> to load all the geo locations for.
-     * @return The track associated with the measurement as a list of ordered (by timestamp) geo locations.
+     * @param measurementIdentifier The id of the {@code Measurement} to load all the {@link GeoLocation}s for.
+     * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)
+     *         {@code GeoLocation}s.
      *
      *         TODO provide a custom list implementation that loads only small portions into memory.
      */
     @SuppressWarnings("unused") // Because sdk implementing apps (RS) use this api to display the tracks
-    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        return persistenceLayer.loadTrack(measurement);
+    public List<GeoLocation> loadTrack(final long measurementIdentifier) {
+        return persistenceLayer.loadTrack(measurementIdentifier);
     }
 
     /**
      * Deletes a {@link Measurement} from this device.
      *
-     * @param measurement The {@link Measurement} to delete.
+     * @param measurementIdentifier The id of the {@link Measurement} to delete.
      *
-     * @throws NoSuchMeasurementException If the provided measurement was <code>null</code> due to some unknown reasons.
-     *             This is an API violation. You are not supposed to provide <code>null</code> measurements to this
-     *             method.
      */
     @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to delete measurements
-    public void deleteMeasurement(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        persistenceLayer.delete(measurement);
+    public void deleteMeasurement(final long measurementIdentifier) {
+        persistenceLayer.delete(measurementIdentifier);
     }
 
     /**

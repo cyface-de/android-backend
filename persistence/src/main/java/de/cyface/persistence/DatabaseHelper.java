@@ -38,7 +38,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      */
-    private final static int DATABASE_VERSION = 10;
+    private final static int DATABASE_VERSION = 11;
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
