@@ -18,6 +18,7 @@ import org.junit.runner.RunWith;
 import android.accounts.AccountAuthenticatorActivity;
 import android.content.ContentResolver;
 import android.content.Context;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.MediumTest;
@@ -35,7 +36,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -95,7 +96,8 @@ public class DataCapturingServiceTestWithoutPermission {
     @Test(expected = MissingPermissionException.class)
     public void testServiceDoesNotStartWithoutPermission()
             throws MissingPermissionException, DataCapturingException, CursorIsNullException {
-        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
         oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
@@ -110,7 +112,8 @@ public class DataCapturingServiceTestWithoutPermission {
 
         boolean exceptionCaught = false;
         try {
-            final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+            final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                    oocut.getDeviceIdentifier());
             oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));

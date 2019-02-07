@@ -27,7 +27,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -66,8 +66,8 @@ public class MeasurementTest {
 
         // Create measurement with data
         final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
-        final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
-        TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGpsPoint);
+        final ContentValues fixtureGeoLocation = geoLocationContentValues(identifier);
+        TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
 
         // Test load the create measurement
         Cursor measurementCursor = null;
@@ -98,8 +98,8 @@ public class MeasurementTest {
         // Create measurements with data
         for (int i = 0; i < 2; i++) {
             final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
-            final ContentValues fixtureGpsPoint = geoLocationContentValues(identifier);
-            TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGpsPoint);
+            final ContentValues fixtureGeoLocation = geoLocationContentValues(identifier);
+            TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
         }
 
         // Ensure deletion of measurements with data works
@@ -115,7 +115,7 @@ public class MeasurementTest {
      */
     private ContentValues geoLocationContentValues(final long measurementIdentifier) {
         final ContentValues ret = new ContentValues();
-        ret.put(GeoLocationsTable.COLUMN_GPS_TIME, 10000L);
+        ret.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 10000L);
         ret.put(GeoLocationsTable.COLUMN_LAT, 13.0);
         ret.put(GeoLocationsTable.COLUMN_LON, 51.0);
         ret.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);

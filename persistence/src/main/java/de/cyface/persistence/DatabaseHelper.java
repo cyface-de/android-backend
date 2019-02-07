@@ -25,7 +25,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.0
+ * @version 4.3.0
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -75,9 +75,9 @@ class DatabaseHelper extends SQLiteOpenHelper {
      */
     @Override
     public void onCreate(final SQLiteDatabase db) {
+        identifierTable.onCreate(db);
         measurementTable.onCreate(db);
         geoLocationsTable.onCreate(db);
-        identifierTable.onCreate(db);
     }
 
     /**
@@ -99,16 +99,18 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
                 Log.w(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + ": Resetting database");
+
+                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
+                // was not created in time for the first database query.
+
                 // The following tables and table names are deprecated, thus, hard-coded
-                database.beginTransaction();
+                database.execSQL("DELETE FROM sqlite_sequence;");
                 database.execSQL("DELETE FROM sample_points;");
                 database.execSQL("DROP TABLE sample_points;");
                 database.execSQL("DELETE FROM rotation_points;");
                 database.execSQL("DROP TABLE rotation_points;");
                 database.execSQL("DELETE FROM magnetic_value_points;");
                 database.execSQL("DROP TABLE magnetic_value_points;");
-                database.execSQL("DELETE FROM sqlite_sequence;");
-                database.endTransaction();
                 // continues with the next incremental upgrade until return ! -->
         }
 

@@ -1,5 +1,6 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -17,6 +18,7 @@ import org.junit.runner.RunWith;
 import android.accounts.AccountAuthenticatorActivity;
 import android.content.ContentProvider;
 import android.content.Context;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -25,7 +27,10 @@ import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
+import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.CursorIsNullException;
@@ -36,7 +41,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.2.0
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -74,12 +79,22 @@ public class PingPongTest {
 
     /**
      * Sets up all the instances required by all tests in this test class.
+     *
+     * @throws CursorIsNullException Then the content provider is not accessible
+     * @throws NoDeviceIdException When the device id is not set
      */
     @Before
-    public void setUp() {
+    public void setUp() throws CursorIsNullException, NoDeviceIdException {
         lock = new ReentrantLock();
         condition = lock.newCondition();
-        oocut = new PongReceiver(InstrumentationRegistry.getInstrumentation().getTargetContext());
+        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
+        // This is normally called in the <code>DataCapturingService#Constructor</code>
+        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
+                new DefaultPersistenceBehaviour());
+        persistence.restoreOrCreateDeviceId();
+
+        oocut = new PongReceiver(context, persistence.loadDeviceId());
     }
 
     /**
@@ -112,7 +127,8 @@ public class PingPongTest {
             }
         });
         DataCapturingListener listener = new TestListener(lock, condition);
-        StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                dcs.getDeviceIdentifier());
 
         dcs.start(listener, Vehicle.UNKNOWN, finishedHandler);
 

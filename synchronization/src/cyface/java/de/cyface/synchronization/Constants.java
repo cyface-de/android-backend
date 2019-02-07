@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.7
+ * @version 1.3.0
  * @since 2.0.0
  */
 public final class Constants {
@@ -18,11 +18,6 @@ public final class Constants {
      */
     @SuppressWarnings("WeakerAccess") // Because this allows the sdk integrating app to add a sync account
     public final static String AUTH_TOKEN_TYPE = "de.cyface.auth_token_type";
-    /**
-     * The settings key used to identify the settings storing the device or rather installation identifier of the
-     * current app. This identifier is used to anonymously group measurements from the same device together.
-     */
-    public static final String DEVICE_IDENTIFIER_KEY = "de.cyface.identifier.device";
 
     private Constants() {
         // Nothing to do here.

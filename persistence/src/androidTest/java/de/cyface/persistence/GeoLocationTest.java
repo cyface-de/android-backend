@@ -28,11 +28,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 2.0.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
-public final class GpsPointTest {
+public final class GeoLocationTest {
     /**
      * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
      */
@@ -55,8 +55,8 @@ public final class GpsPointTest {
         assertThat(message, 1, is(cursor.getCount()));
         cursor.moveToFirst();
 
-        assertThat(values.getAsLong(GeoLocationsTable.COLUMN_GPS_TIME),
-                is(cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME))));
+        assertThat(values.getAsLong(GeoLocationsTable.COLUMN_GEOLOCATION_TIME),
+                is(cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME))));
         assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_LAT),
                 is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT))));
         assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_LON),
@@ -81,7 +81,7 @@ public final class GpsPointTest {
      */
     private ContentValues getTestFixture() {
         ContentValues values = new ContentValues();
-        values.put(GeoLocationsTable.COLUMN_GPS_TIME, 1234567890L);
+        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1234567890L);
         values.put(GeoLocationsTable.COLUMN_LAT, 51.03624633f);
         values.put(GeoLocationsTable.COLUMN_LON, 13.78828128f);
         values.put(GeoLocationsTable.COLUMN_SPEED, 2.0f);

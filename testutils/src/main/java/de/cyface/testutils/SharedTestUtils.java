@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -272,7 +272,7 @@ public class SharedTestUtils {
 
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
-        values.put(GeoLocationsTable.COLUMN_GPS_TIME, timestamp);
+        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, timestamp);
         values.put(GeoLocationsTable.COLUMN_LAT, lat);
         values.put(GeoLocationsTable.COLUMN_LON, lon);
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);

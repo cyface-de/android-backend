@@ -66,8 +66,8 @@ public void createAccountIfNoneExists(final Context context) {
 * Start / stop Capturing and register your implementation of a DataCapturingListener
 
 ```java
-cyfaceDataCapturingService.startAsync(dataCapturingListener, vehicle, new StartUpFinishedHandler() {...});
-cyfaceDataCapturingService.stopAsync(new ShutDownFinishedHandler() {..});
+cyfaceDataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {...});
+cyfaceDataCapturingService.stop(new ShutDownFinishedHandler() {..});
 ```
 
 * To check if the capturing is running  
@@ -116,7 +116,7 @@ You must not use the same notification identifier for any other notification dis
 * Force Synchronization
 * ConnectionStatusListener
 * Disable synchronization
-* Show Measurements and GpsTraces
+* Show Measurements and GeoLocationTraces
 * Delete measurements manually
 * Usage of Camera, Bluetooth
 

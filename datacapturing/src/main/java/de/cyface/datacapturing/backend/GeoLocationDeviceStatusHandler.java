@@ -11,7 +11,7 @@ import android.location.LocationManager;
  * change.
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 1.0.0
  */
 abstract class GeoLocationDeviceStatusHandler {
@@ -71,7 +71,7 @@ abstract class GeoLocationDeviceStatusHandler {
     /**
      * @return <code>true</code> if the service has a geo location fix; <code>false</code> otherwise.
      */
-    boolean hasGpsFix() {
+    boolean hasLocationFix() {
         return hasGeoLocationFix;
     }
 
@@ -105,13 +105,13 @@ abstract class GeoLocationDeviceStatusHandler {
      */
     void handleFirstFix() {
         hasGeoLocationFix = true;
-        handleGpsFixEvent();
+        handleLocationFixEvent();
     }
 
     /**
      * Informs all listeners if fix has been lost or is still available.
      */
-    private void handleGpsFixEvent() {
+    private void handleLocationFixEvent() {
         if (hasGeoLocationFix) {
             for (CapturingProcessListener listener : this.listener) {
                 listener.onLocationFix();

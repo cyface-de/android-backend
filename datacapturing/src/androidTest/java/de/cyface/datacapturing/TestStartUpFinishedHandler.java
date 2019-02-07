@@ -1,16 +1,17 @@
 package de.cyface.datacapturing;
 
-import androidx.annotation.NonNull;
-
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
+
+import androidx.annotation.NonNull;
 
 /**
  * A handler that can be used to receive the event sent on shutdown started and get the measurement identifier
  * transmitted with that event. You may assert on that identifier.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 2.2.0
  */
 final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
@@ -28,7 +29,16 @@ final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
      */
     private final Lock lock;
 
-    TestStartUpFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition) {
+    /**
+     * Creates a new completely initialized object of this class
+     *
+     * @param lock The lock used to synchronize this handler with the calling test.
+     * @param condition The condition used to synchronize this handler with the calling test.
+     * @param deviceId The device id used to generate unique global broadcast ids.
+     */
+    TestStartUpFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition,
+            @NonNull final String deviceId) {
+        super(deviceId);
         this.lock = lock;
         this.condition = condition;
     }

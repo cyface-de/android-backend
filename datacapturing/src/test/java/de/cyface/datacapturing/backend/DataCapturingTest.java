@@ -21,7 +21,7 @@ import de.cyface.persistence.model.GeoLocation;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 1.0.0
  */
 public class DataCapturingTest {
@@ -59,7 +59,7 @@ public class DataCapturingTest {
     /**
      * The status handler for the geo location device.
      */
-    private GeoLocationDeviceStatusHandler gpsStatusHandler;
+    private GeoLocationDeviceStatusHandler locationStatusHandler;
 
     /**
      * Initializes mocks and the status handler.
@@ -67,7 +67,7 @@ public class DataCapturingTest {
     @Before
     public void setUp() {
         MockitoAnnotations.initMocks(this);
-        gpsStatusHandler = new GeoLocationDeviceStatusHandler(mockedLocationManager) {
+        locationStatusHandler = new GeoLocationDeviceStatusHandler(mockedLocationManager) {
             @Override
             void shutdown() {
 
@@ -85,18 +85,18 @@ public class DataCapturingTest {
         when(location.getLongitude()).thenReturn(13.78828128);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
-        try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService,
-                gpsStatusHandler, locationEventHandler, sensorEventHandler);) {
+        try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager, mockedSensorService,
+                locationStatusHandler, locationEventHandler, sensorEventHandler);) {
             dataCapturing.addCapturingProcessListener(listener);
-            gpsStatusHandler.handleFirstFix();
+            locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
             verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f));
         }
     }
 
     /**
-     * Tests whether a point captured event is successfully issued after two gps points and one
-     * satellite status event are received and the two gps points occured in short succession.
+     * Tests whether a point captured event is successfully issued after two location points and one
+     * satellite status event are received and the two location points occurred in short succession.
      * Usually below 2 seconds.
      */
     @Test
@@ -106,12 +106,12 @@ public class DataCapturingTest {
         when(location.getLongitude()).thenReturn(1.0);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
-        try (CapturingProcess dataCapturing = new GPSCapturingProcess(mockedLocationManager, mockedSensorService,
-                gpsStatusHandler, locationEventHandler, sensorEventHandler);) {
+        try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager, mockedSensorService,
+                locationStatusHandler, locationEventHandler, sensorEventHandler);) {
             dataCapturing.addCapturingProcessListener(listener);
             dataCapturing.onLocationChanged(location);
             dataCapturing.onLocationChanged(location);
-            gpsStatusHandler.handleFirstFix();
+            locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
             verify(listener, times(1)).onLocationCaptured(any(GeoLocation.class));
         }

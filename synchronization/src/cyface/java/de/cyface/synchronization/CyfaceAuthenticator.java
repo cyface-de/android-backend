@@ -41,8 +41,10 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.text.TextUtils;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import de.cyface.utils.Validate;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -51,7 +53,7 @@ import androidx.annotation.Nullable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.4
+ * @version 1.4.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -269,10 +271,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         Log.v(TAG, "Init Sync!");
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String installationIdentifier = preferences.getString(Constants.DEVICE_IDENTIFIER_KEY, null);
-        if (installationIdentifier == null) {
-            throw new IllegalStateException("No installation identifier for this application set in its preferences.");
-        }
         final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         if (url == null) {
             throw new IllegalStateException(
@@ -298,6 +296,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             }
         }
 
+        Validate.notNull(connection);
         return connection.getHeaderField("Authorization");
     }
 }

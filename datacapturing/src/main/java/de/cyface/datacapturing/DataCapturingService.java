@@ -1,18 +1,14 @@
 /*
  * Copyright 2017 Cyface GmbH
- * 
  * This file is part of the Cyface SDK for Android.
- * 
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- * 
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
- * 
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -25,7 +21,6 @@ import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -55,12 +50,11 @@ import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
 import android.preference.PreferenceManager;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
-import android.util.Log;
-
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -99,7 +93,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.3.0
+ * @version 9.3.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -205,17 +199,14 @@ public abstract class DataCapturingService {
         this.persistenceLayer = new PersistenceLayer(context, resolver, authority, capturingBehaviour);
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
 
-        // Setup required device identifier, if not generated previously // TODO [MOV-442]: Read did from database
+        // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
-        sharedPreferencesEditor.putString(DEVICE_IDENTIFIER_KEY, deviceIdentifier);
         Validate.notNull(deviceIdentifier,
                 "Sync canceled: No installation identifier for this application set in its preferences.");
-        // We cache the did in the preferences as it's hard or not possible to access the database
-        // where it's persisted, e.g. in the getAuthToken method.
 
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
         sharedPreferencesEditor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, dataUploadServerAddress);
         if (!sharedPreferencesEditor.commit()) {
             throw new SetupException("Unable to write preferences!");
@@ -569,7 +560,7 @@ public abstract class DataCapturingService {
     @SuppressWarnings("WeakerAccess") // because we need to support this API
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.d(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext());
+        final PongReceiver pongReceiver = new PongReceiver(getContext(), deviceIdentifier);
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -669,7 +660,7 @@ public abstract class DataCapturingService {
         final Context context = getContext();
         Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
         context.registerReceiver(startUpFinishedHandler,
-                new IntentFilter(MessageCodes.getServiceStartedActionId(context)));
+                new IntentFilter(MessageCodes.getServiceStartedActionId(deviceIdentifier)));
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -770,7 +761,7 @@ public abstract class DataCapturingService {
                 Manifest.permission.ACCESS_FINE_LOCATION) == PackageManager.PERMISSION_GRANTED;
         if (!permissionAlreadyGranted && uiListener != null) {
             return uiListener.onRequirePermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
-                    "This app uses GPS sensors to display your position. If you would like your position to be shown as exactly as possible please allow access to the GPS sensors."));
+                    "This app uses the GNSS (GPS) receiver to display your position. If you would like your position to be shown as exactly as possible please allow access to the GNSS (GPS) sensors."));
         } else {
             return permissionAlreadyGranted;
         }
@@ -979,7 +970,7 @@ public abstract class DataCapturingService {
      * A handler for messages coming from the {@link DataCapturingBackgroundService}.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
+     * @version 1.0.1
      * @since 2.0.0
      */
     private static class FromServiceMessageHandler extends Handler {
@@ -1037,10 +1028,10 @@ public abstract class DataCapturingService {
                             listener.onNewSensorDataAcquired(capturedData);
                         }
                         break;
-                    case MessageCodes.GPS_FIX:
+                    case MessageCodes.GEOLOCATION_FIX:
                         listener.onFixAcquired();
                         break;
-                    case MessageCodes.NO_GPS_FIX:
+                    case MessageCodes.NO_GEOLOCATION_FIX:
                         listener.onFixLost();
                         break;
                     case MessageCodes.ERROR_PERMISSION:

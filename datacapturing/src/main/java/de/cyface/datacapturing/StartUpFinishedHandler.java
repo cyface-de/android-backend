@@ -7,6 +7,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
@@ -20,7 +21,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 3.0.0
  * @since 2.0.0
  * @see DataCapturingService#resume(StartUpFinishedHandler)
  * @see DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)
@@ -32,6 +33,18 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
      * been received and is <code>false</code> otherwise.
      */
     private boolean receivedServiceStarted;
+    /**
+     * The device id is used to ensure unique broadcast ids between different SDK implementing apps.
+     * For more details see {@link MessageCodes#getServiceStartedActionId(String)}
+     */
+    private final String deviceId;
+
+    /**
+     * @param deviceId The device id used to make global broadcast ids unique
+     */
+    public StartUpFinishedHandler(String deviceId) {
+        this.deviceId = deviceId;
+    }
 
     /**
      * Method called if start up has been finished.
@@ -43,7 +56,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
     @Override
     public void onReceive(@NonNull Context context, @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(context))) {
+        if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(deviceId))) {
             receivedServiceStarted = true;
             long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
             Log.v(TAG, "Received Service started broadcast, mid: " + measurementIdentifier);

@@ -28,6 +28,7 @@ import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.ContentProvider;
 import android.content.Context;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
@@ -54,12 +55,12 @@ import de.cyface.utils.Validate;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
- * relies on external sensors and the availability of a GPS signal. Each tests waits a few seconds to actually capture
+ * relies on external sensors and the availability of a GNSS signal. Each tests waits a few seconds to actually capture
  * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.2
+ * @version 5.2.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -207,7 +208,8 @@ public class DataCapturingServiceTest {
     private long startAndCheckThatLaunched()
             throws MissingPermissionException, DataCapturingException, CursorIsNullException {
 
-        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
         oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
@@ -251,7 +253,8 @@ public class DataCapturingServiceTest {
     private void resumeAndCheckThatLaunched(long measurementIdentifier) throws MissingPermissionException,
             DataCapturingException, CursorIsNullException, NoSuchMeasurementException {
 
-        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
         oocut.resume(startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
@@ -372,9 +375,12 @@ public class DataCapturingServiceTest {
     @Ignore
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException {
-        final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock, condition);
-        final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock, condition);
-        final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
+        final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
+        final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
         final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock, condition);
         final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock, condition);
         final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock, condition);
@@ -451,7 +457,8 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         // Second start - should not launch anything
-        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
         oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
@@ -610,7 +617,8 @@ public class DataCapturingServiceTest {
         // Resume 2: must be ignored by resumeAsync
         PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
                 new CapturingPersistenceBehaviour());
-        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition);
+        final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                oocut.getDeviceIdentifier());
         oocut.resume(startUpFinishedHandler);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);

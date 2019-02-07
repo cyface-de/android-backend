@@ -13,7 +13,7 @@ import de.cyface.persistence.model.Point3d;
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.2
+ * @version 3.0.3
  * @since 1.0.0
  */
 public final class CapturedData implements Parcelable {
@@ -39,11 +39,11 @@ public final class CapturedData implements Parcelable {
      * We could try it with Serializable?
      *
      * @param accelerations The raw acceleration values as points in a 3D space.
-     *            The list contains all captured values since the last GPS fix.
+     *            The list contains all captured values since the last GNSS fix.
      * @param rotations The raw rotational acceleration values as returned by the gyroscope.
-     *            - * The list contains all captured values since the last GPS fix.
+     *            - * The list contains all captured values since the last GNSS fix.
      * @param directions The intensity of the earth's magnetic field on each of the three axis in space.
-     *            The list contains all captured values since the last GPS fix.
+     *            The list contains all captured values since the last GNSS fix.
      */
     public CapturedData(final @NonNull List<Point3d> accelerations, final @NonNull List<Point3d> rotations,
                         final @NonNull List<Point3d> directions) {

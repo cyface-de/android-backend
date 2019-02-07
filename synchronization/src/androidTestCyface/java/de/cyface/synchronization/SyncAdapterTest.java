@@ -45,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -110,7 +110,7 @@ public final class SyncAdapterTest {
         final MeasurementStatus newStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(newStatus, is(equalTo(MeasurementStatus.SYNCED)));
 
-        // GPS Point
+        // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
         List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
@@ -125,7 +125,7 @@ public final class SyncAdapterTest {
      */
     public Cursor loadTrack(final ContentResolver resolver, final long measurementId) {
         return resolver.query(getGeoLocationsUri(AUTHORITY), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {String.valueOf(measurementId)}, GeoLocationsTable.COLUMN_GPS_TIME + " ASC");
+                new String[] {String.valueOf(measurementId)}, GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
     }
 
     /**
