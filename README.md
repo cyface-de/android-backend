@@ -35,45 +35,71 @@ CyfaceAuthenticator.LOGIN_ACTIVITY = LoginActivity.class;
 * Start the DataCapturingService to communicate with the SDK
 
 ```java
-CyfaceDataCapturingService cyfaceDataCapturingService = new CyfaceDataCapturingService(...,
+DataCapturingService dataCapturingService = new CyfaceDataCapturingService(...,
 AUTHORITY, ACCOUNT_TYPE, apiUrl, yourEventHandlingStrategyImplementation);
+```
+
+or
+
+```java
+DataCapturingService dataCapturingService = MovebisDataCapturingService(context, 
+dataUploadServerAddress, uiListener, locationUpdateRate, customEventHandlingStrategy);
 ```
 
 * Create an account for synchronization & start WifiSurveyor
 
 ```java
-createAccountIfNoneExists(...);
+public void startSynchronization(final Context context) {
+    final AccountManager accountManager = AccountManager.get(context);
+    final boolean validAccountExists = accountWithTokenExists(accountManager);
 
-public void createAccountIfNoneExists(final Context context) {
-    if (!accountManager.peekAuthToken(account, de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE) != null)) {
-        cyfaceDataCapturingService.startWifiSurveyor();
+    if (validAccountExists) {
+        try {
+            dataCapturingService.startWifiSurveyor();
+        } catch (SetupException e) {
+            throw new IllegalStateException(e);
+        }
         return;
     }
 
-    accountManager.addAccount(ACCOUNT_TYPE, de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE, null,
-            null, getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
+    accountManager.addAccount(Constants.ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
+            getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
                 @Override
                 public void run(AccountManagerFuture<Bundle> future) {
-                    final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
-                    ContentResolver.setIsSyncable(account, AUTHORITY, 1);
-                    ContentResolver.setSyncAutomatically(account, AUTHORITY, true);
-                    cyfaceDataCapturingService.startWifiSurveyor();
+                    try {
+                        final Bundle bundle = future.getResult();
+                        setAccountAutoSyncable(context, true);
+
+                        dataCapturingService.startWifiSurveyor();
+                    } catch (OperationCanceledException e) {
+                        // This closes the app when the LoginActivity is closed
+                        getMainActivityFromContext(context).finish();
+                    } catch (AuthenticatorException | IOException | SetupException e) {
+                        throw new IllegalStateException(e);
+                    }
                 }
             }, null);
+}
+
+private static boolean accountWithTokenExists(final AccountManager accountManager) {
+    final Account[] existingAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+    Validate.isTrue(existingAccounts.length < 2, "More than one account exists.");
+    return existingAccounts.length != 0
+            && accountManager.peekAuthToken(existingAccounts[0], AUTH_TOKEN_TYPE) != null;
 }
 ```
           
 * Start / stop Capturing and register your implementation of a DataCapturingListener
 
 ```java
-cyfaceDataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {...});
-cyfaceDataCapturingService.stop(new ShutDownFinishedHandler() {..});
+dataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {...});
+dataCapturingService.stop(new ShutDownFinishedHandler() {..});
 ```
 
 * To check if the capturing is running  
 
 ```java
-cyfaceDataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {});
+dataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {});
 ```
 
 ### Provide a custom Capturing Notification
