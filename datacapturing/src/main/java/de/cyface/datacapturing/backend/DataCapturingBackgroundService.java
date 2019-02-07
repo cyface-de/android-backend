@@ -57,6 +57,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.NoDeviceIdException;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
@@ -143,6 +144,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The last captured {@link GeoLocation} used to calculate the distance to the next {@code GeoLocation}.
      */
     private GeoLocation lastLocation = null;
+    private double lastDistance;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -285,11 +287,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         this.currentMeasurementIdentifier = measurementIdentifier;
 
-        // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
+        // Restore PointMetaData and distance (if the counters are larger than 0 we're resuming a measurement)
         try {
             final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
             pointMetaData = new PointMetaData(measurement.getAccelerations(), measurement.getRotations(),
                     measurement.getDirections(), measurement.getFileFormatVersion());
+            lastDistance = measurement.getDistance();
         } catch (final CursorIsNullException e) {
             // because onStartCommand is called by Android so we can't throw soft exception.
             throw new IllegalStateException(e);
@@ -413,11 +416,17 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
 
-        // Update the {@code Measurement#distance) and the {@code #lastLocation}, in this order!
+        // Update {@code Measurement#distance), {@code lastDistance} and {@code #lastLocation}, in this order!
         if (lastLocation != null) {
-            final double distance = eventHandlingStrategy.updateDistance(lastLocation, newLocation);
-            capturingBehaviour.updateDistance(distance);
-            Log.d(TAG, "Distance updated: " + distance);
+            final double distanceToAdd = eventHandlingStrategy.calculateDistance(lastLocation, newLocation);
+            final double newDistance = lastDistance + distanceToAdd;
+            try {
+                capturingBehaviour.updateDistance(newDistance);
+            } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+                throw new IllegalStateException(e);
+            }
+            lastDistance = newDistance;
+            Log.d(TAG, "Distance updated: " + distanceToAdd);
         }
         this.lastLocation = newLocation;
 

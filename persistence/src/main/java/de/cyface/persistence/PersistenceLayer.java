@@ -600,20 +600,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newStatus The new {@code MeasurementStatus}
-     * @throws NoSuchMeasurementException if there was no measurement with the id {@param measurementIdentifier}.
+     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
+     *             {@param measurementIdentifier}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
             throws NoSuchMeasurementException, CursorIsNullException {
-        final ContentValues statusValue = new ContentValues();
-        statusValue.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
 
-        int updatedRows = resolver.update(getMeasurementUri(), statusValue, _ID + "=" + measurementIdentifier, null);
-        Validate.isTrue(updatedRows < 2, "Duplicate measurement id entries.");
-        if (updatedRows == 0) {
-            throw new NoSuchMeasurementException("The measurement could not be updated as it does not exist.");
-        }
-
+        // Validate the status switch is allowed by the life-cycle
         switch (newStatus) {
             case OPEN:
                 Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
@@ -631,7 +625,44 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 throw new IllegalArgumentException("Not supported");
         }
 
+        final ContentValues values = new ContentValues();
+        values.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
+        updateMeasurement(measurementIdentifier, values);
+
         Log.d(TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
+    }
+
+    /**
+     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     *
+     * @param measurementIdentifier The id of the {@link Measurement} to be updated
+     * @param newDistance The new {@code Measurement#distance} to be stored.
+     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
+     *             {@param measurementIdentifier}.
+     */
+    public void setDistance(final long measurementIdentifier, final double newDistance)
+            throws NoSuchMeasurementException {
+        final ContentValues values = new ContentValues();
+        values.put(COLUMN_DISTANCE, newDistance);
+        updateMeasurement(measurementIdentifier, values);
+    }
+
+    /**
+     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     *
+     * @param measurementIdentifier The id of the {@link Measurement} to be updated
+     * @param values The new {@link ContentValues} to be stored.
+     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
+     *             {@param measurementIdentifier}.
+     */
+    private void updateMeasurement(final long measurementIdentifier, @NonNull final ContentValues values)
+            throws NoSuchMeasurementException {
+
+        final int updatedRows = resolver.update(getMeasurementUri(), values, _ID + "=" + measurementIdentifier, null);
+        Validate.isTrue(updatedRows < 2, "Duplicate measurement id entries.");
+        if (updatedRows == 0) {
+            throw new NoSuchMeasurementException("The measurement could not be updated as it does not exist.");
+        }
     }
 
     public Context getContext() {

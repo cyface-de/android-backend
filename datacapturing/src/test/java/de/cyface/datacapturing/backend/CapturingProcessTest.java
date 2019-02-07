@@ -174,7 +174,8 @@ public class CapturingProcessTest {
      * whether the test did run correctly.
      *
      * @author Klemens Muthmann
-     * @version 1.0.0
+     * @author Armin Schnabel
+     * @version 2.0.0
      * @since 2.0.0
      */
     private static class TestCapturingProcessListener implements CapturingProcessListener {
@@ -190,23 +191,23 @@ public class CapturingProcessTest {
         private List<CapturedData> capturedData = new ArrayList<>();
 
         @Override
-        public void onLocationCaptured(GeoLocation location) {
+        public void onLocationCaptured(@NonNull GeoLocation location) {
             capturedLocations.add(location);
         }
 
         @Override
-        public void onDataCaptured(CapturedData data) {
+        public void onDataCaptured(@NonNull CapturedData data) {
             capturedData.add(data);
         }
 
         @Override
         public void onLocationFix() {
-
+            // nothing to do
         }
 
         @Override
         public void onLocationFixLost() {
-
+            // nothing to do
         }
 
         /**

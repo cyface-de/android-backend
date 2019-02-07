@@ -95,7 +95,7 @@ public class PersistenceLayerTest {
             throws NoSuchMeasurementException, CursorIsNullException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
-        capturingBehaviour.updateRecentMeasurement(FINISHED);
+        capturingBehaviour.updateStatus(FINISHED);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(false)));
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
@@ -129,7 +129,7 @@ public class PersistenceLayerTest {
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
-        capturingBehaviour.updateRecentMeasurement(FINISHED);
+        capturingBehaviour.updateStatus(FINISHED);
         List<Measurement> finishedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(finishedMeasurements.size(), is(equalTo(1)));
         assertThat(finishedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
@@ -144,7 +144,7 @@ public class PersistenceLayerTest {
     @Test
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
-        capturingBehaviour.updateRecentMeasurement(FINISHED);
+        capturingBehaviour.updateStatus(FINISHED);
         oocut.markAsSynchronized(measurement);
 
         // Check that measurement was marked as synced

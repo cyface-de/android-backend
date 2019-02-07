@@ -189,7 +189,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      *             {@link MeasurementStatus#OPEN}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public void updateRecentMeasurement(@NonNull final MeasurementStatus newStatus)
+    public void updateStatus(@NonNull final MeasurementStatus newStatus)
             throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(
                 newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
@@ -229,9 +229,17 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     /**
      * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
      *
-     * @param distance The new distance value to be stored.
+     * @param newDistance The new distance value to be stored.
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public void updateDistance(final double distance) {
-        // FIXME
+    public void updateDistance(final double newDistance) throws NoSuchMeasurementException, CursorIsNullException {
+        Validate.isTrue(newDistance >= 0.0);
+
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
+
+        synchronized (this) {
+            persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance);
+        }
     }
 }

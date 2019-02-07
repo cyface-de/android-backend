@@ -64,5 +64,5 @@ public interface EventHandlingStrategy extends Parcelable {
      * @param newLocation The {@code GeoLocation} captured after {@param lastLocation}
      * @return The distance which is added to the {@code Measurement} based on the provided {@code GeoLocation}s.
      */
-    double updateDistance(@NonNull final GeoLocation lastLocation, @NonNull final GeoLocation newLocation);
+    double calculateDistance(@NonNull final GeoLocation lastLocation, @NonNull final GeoLocation newLocation);
 }
