@@ -37,7 +37,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -93,7 +93,7 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1);
             geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
             for (int i = 0; i < numberOftestEntries; i++) {
@@ -177,7 +177,7 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_GPS_TIME, 1L);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1L);
             geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
 
             // Insert GeoLocations

@@ -20,7 +20,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 public class MeasurementContentProviderClient {
@@ -69,7 +69,7 @@ public class MeasurementContentProviderClient {
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
         final Uri uri = Utils.getGeoLocationsUri(authority);
-        final String[] projection = new String[] {GeoLocationsTable.COLUMN_GPS_TIME, GeoLocationsTable.COLUMN_LAT,
+        final String[] projection = new String[] {GeoLocationsTable.COLUMN_GEOLOCATION_TIME, GeoLocationsTable.COLUMN_LAT,
                 GeoLocationsTable.COLUMN_LON, GeoLocationsTable.COLUMN_SPEED, GeoLocationsTable.COLUMN_ACCURACY};
         final String selection = GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?";
         final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};

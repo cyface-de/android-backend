@@ -34,7 +34,7 @@ import de.cyface.utils.Validate;
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -74,7 +74,7 @@ public class CapturingProcessTest {
      */
     @Before
     public void setUp() {
-        oocut = new GPSCapturingProcess(locationManager, sensorManager,
+        oocut = new GeoLocationCapturingProcess(locationManager, sensorManager,
                 new GeoLocationDeviceStatusHandler(locationManager) {
                     @Override
                     void shutdown() {
@@ -82,7 +82,7 @@ public class CapturingProcessTest {
                     }
 
                     @Override
-                    boolean hasGpsFix() {
+                    boolean hasLocationFix() {
                         return true;
                     }
                 }, geoLocationEventHandlerThread, sensorEventHandlerThread);

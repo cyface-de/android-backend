@@ -31,6 +31,7 @@ import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -38,11 +39,11 @@ import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
- * GPS signal availability it is a flaky test.
+ * location signal availability it is a flaky test.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.2.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -80,17 +81,16 @@ public class BackgroundServiceTest {
      */
     private Condition condition;
     private Context context;
+    private PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
 
     @Before
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
-        // Required to create a test measurement.
-        PersistenceLayer persistence = new PersistenceLayer(context, context.getContentResolver(), AUTHORITY,
-                capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        persistence.restoreOrCreateDeviceId();
-        testMeasurement = persistence.newMeasurement(Vehicle.BICYCLE);
+        CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
+        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
+        persistenceLayer.restoreOrCreateDeviceId();
+        testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();
     }
@@ -105,12 +105,16 @@ public class BackgroundServiceTest {
      * This test case checks that starting the service works and that the service actually returns some data.
      *
      * @throws TimeoutException if timed out waiting for a successful connection with the service.
+     * @throws CursorIsNullException when the content provider is not accessible
+     * @throws NoDeviceIdException when the device id was not set
      */
     @Test
-    public void testStartDataCapturing() throws TimeoutException {
+    public void testStartDataCapturing() throws TimeoutException, CursorIsNullException, NoDeviceIdException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+
         final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
 
+        // Generate from/to service connection
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -118,16 +122,31 @@ public class BackgroundServiceTest {
                 fromServiceMessenger = new Messenger(fromServiceMessageHandler);
             }
         });
-        final ToServiceConnection toServiceConnection = new ToServiceConnection(fromServiceMessenger);
+        final ToServiceConnection toServiceConnection = new ToServiceConnection(fromServiceMessenger,
+                persistenceLayer.loadDeviceId());
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
+
+        // Start and bind background service
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
-
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
+
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
+            @Override
+            public void run() {
+                PongReceiver isRunningChecker;
+                try {
+                    isRunningChecker = new PongReceiver(context, persistenceLayer.loadDeviceId());
+                } catch (CursorIsNullException | NoDeviceIdException e) {
+                    throw new IllegalStateException(e);
+                }
+                isRunningChecker.checkIsRunningAsync(2, TimeUnit.SECONDS, testCallback);
+            }
+        });
 
         // This must not run on the main thread or it will produce an ANR.
         lock.lock();
@@ -143,6 +162,7 @@ public class BackgroundServiceTest {
             lock.unlock();
         }
 
+        // Unbind background service
         serviceTestRule.unbindService();
 
         assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
@@ -159,6 +179,9 @@ public class BackgroundServiceTest {
     public void testStartDataCapturingTwice() throws TimeoutException {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
+        final TestCallback testCallback = new TestCallback("testStartDataCapturingTwice", lock, condition);
+
+        // Start background service twice
         Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
@@ -166,12 +189,15 @@ public class BackgroundServiceTest {
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 
-        final TestCallback testCallback = new TestCallback("testStartDataCapturingTwice", lock, condition);
-
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                PongReceiver isRunningChecker = new PongReceiver(context);
+                PongReceiver isRunningChecker;
+                try {
+                    isRunningChecker = new PongReceiver(context, persistenceLayer.loadDeviceId());
+                } catch (CursorIsNullException | NoDeviceIdException e) {
+                    throw new IllegalStateException(e);
+                }
                 isRunningChecker.checkIsRunningAsync(2, TimeUnit.SECONDS, testCallback);
             }
         });

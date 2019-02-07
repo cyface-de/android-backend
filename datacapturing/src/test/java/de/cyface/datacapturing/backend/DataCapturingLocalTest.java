@@ -34,7 +34,7 @@ import de.cyface.persistence.model.PointMetaData;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.0.0
  */
 public class DataCapturingLocalTest {
@@ -56,7 +56,7 @@ public class DataCapturingLocalTest {
      * Mocking the persistence layer to avoid calling Android system functions.
      */
     @Spy
-    PersistenceLayer mockPersistence;
+    PersistenceLayer<CapturingPersistenceBehaviour> mockPersistence;
 
     /**
      * Mocking the persistence behaviour to avoid calling Android system functions.
@@ -71,7 +71,7 @@ public class DataCapturingLocalTest {
     PointMetaData mockPointMetaData;
 
     @Before
-    public void setUp() throws NoSuchFieldException, IllegalAccessException {
+    public void setUp() {
 
         // Replace attributes of DataCapturingBackgroundService with mocked objects
         oocut.persistenceLayer = mockPersistence;

@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.1.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -183,7 +183,7 @@ public class SharedTestUtils {
      * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
-            final MeasurementStatus status, final PersistenceLayer persistence)
+            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence)
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
@@ -247,8 +247,9 @@ public class SharedTestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    public static Measurement insertMeasurementEntry(final @NonNull PersistenceLayer persistence,
-            final @NonNull Vehicle vehicle) throws CursorIsNullException {
+    public static Measurement insertMeasurementEntry(
+            final @NonNull PersistenceLayer<DefaultPersistenceBehaviour> persistence, final @NonNull Vehicle vehicle)
+            throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
@@ -272,7 +273,7 @@ public class SharedTestUtils {
 
         ContentValues values = new ContentValues();
         values.put(GeoLocationsTable.COLUMN_ACCURACY, accuracy);
-        values.put(GeoLocationsTable.COLUMN_GPS_TIME, timestamp);
+        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, timestamp);
         values.put(GeoLocationsTable.COLUMN_LAT, lat);
         values.put(GeoLocationsTable.COLUMN_LON, lon);
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);

@@ -1,10 +1,5 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
-
-import android.content.Context;
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 
 /**
@@ -13,7 +8,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.7
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -37,12 +32,12 @@ public class MessageCodes {
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if it believes it has a valid geo location fix.
      */
-    public static final int GPS_FIX = 6;
+    public static final int GEOLOCATION_FIX = 6;
     /**
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if it believes it lost the geo location fix.
      */
-    public static final int NO_GPS_FIX = 7;
+    public static final int NO_GEOLOCATION_FIX = 7;
     /**
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if permission to access geo locations via satellite is not granted.
@@ -81,32 +76,31 @@ public class MessageCodes {
     /**
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
+     * 
+     * @param deviceId The device id used to make global broadcast ids unique
      */
-    public static String getServiceStartedActionId(final Context context) {
-        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
-        return deviceIdentifier + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
+    public static String getServiceStartedActionId(final String deviceId) {
+        return deviceId + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
     }
 
     /**
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
+     *
+     * @param deviceId The device id used to make global broadcast ids unique
      */
-    public static String getPingActionId(final Context context) {
-        // TODO [MOV-442]: Read did from database
-        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
-        return deviceIdentifier + "_" + GLOBAL_BROADCAST_PING;
+    public static String getPingActionId(final String deviceId) {
+        return deviceId + "_" + GLOBAL_BROADCAST_PING;
     }
 
     /**
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
+     *
+     * @param deviceId The device id used to make global broadcast ids unique
      */
-    public static String getPongActionId(final Context context) {
-        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String deviceIdentifier = preferences.getString(DEVICE_IDENTIFIER_KEY, null);
-        return deviceIdentifier + "_" + GLOBAL_BROADCAST_PONG;
+    public static String getPongActionId(final String deviceId) {
+        return deviceId + "_" + GLOBAL_BROADCAST_PONG;
     }
 
     /**

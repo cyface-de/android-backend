@@ -5,9 +5,9 @@ import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import androidx.annotation.NonNull;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
@@ -18,7 +18,8 @@ import de.cyface.utils.Validate;
  * This can be used to check if the service is alive.
  *
  * @author Klemens Muthmann
- * @version 1.0.7
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -27,12 +28,23 @@ public class PingReceiver extends BroadcastReceiver {
      * The tag used to identify Logcat messages.
      */
     private static final String TAG = BACKGROUND_TAG;
+    /**
+     * The device id used to generate unique broadcast ids
+     */
+    private final String deviceId;
+
+    /**
+     * @param deviceId The device id used to generate unique broadcast ids
+     */
+    public PingReceiver(String deviceId) {
+        this.deviceId = deviceId;
+    }
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(MessageCodes.getPingActionId(context))) {
-            Intent pongIntent = new Intent(MessageCodes.getPongActionId(context));
+        if (intent.getAction().equals(MessageCodes.getPingActionId(deviceId))) {
+            Intent pongIntent = new Intent(MessageCodes.getPongActionId(deviceId));
             if (BuildConfig.DEBUG) {
                 String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier

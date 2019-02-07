@@ -4,10 +4,10 @@
  * support that service. Most of the business logic is implemented by the
  * {@link de.cyface.datacapturing.backend.CapturingProcess} and
  * {@link de.cyface.datacapturing.backend.GeoLocationDeviceStatusHandler}. The former reads actual sensor values while the latter
- * checks whether GPS fix is available or not.
+ * checks whether location fix is available or not.
  * 
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 2.0.0
  */
 package de.cyface.datacapturing.backend;

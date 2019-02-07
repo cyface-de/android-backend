@@ -11,7 +11,8 @@ import androidx.annotation.NonNull;
  * of the <code>DataCapturingService</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @author Armin Schnabel
+ * @version 1.1.0
  * @since 2.0.0
  */
 public class StartSynchronizer extends StartUpFinishedHandler {
@@ -27,13 +28,16 @@ public class StartSynchronizer extends StartUpFinishedHandler {
      *
      * @param lock The lock used for synchronization. Usually a <code>ReentrantLock</code>.
      * @param condition The condition waiting for a signal from this <code>StartSynchronizer</code>.
+     * @param deviceId used to make the global broadcast id in {@link StartUpFinishedHandler} unique
      */
-    public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition) {
+    public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition,
+            @NonNull final String deviceId) {
+        super(deviceId);
         synchronizer = new Synchronizer(lock, condition);
     }
 
     @Override
-    public void startUpFinished(final @NonNull long measurementIdentifier) {
+    public void startUpFinished(final long measurementIdentifier) {
         synchronizer.signal();
     }
 }

@@ -3,7 +3,7 @@
 
     <!-- Required to keep the app from being send to sleep by the system. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
-    <!-- Required to access GPS and similar location providers -->
+    <!-- Required to access GNSS location providers -->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Required to change periodic synchronisation intervals in the background -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />

@@ -1,18 +1,14 @@
 /*
  * Copyright 2017 Cyface GmbH
- *
  * This file is part of the Cyface SDK for Android.
- *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
- *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
- *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -51,6 +47,7 @@ import android.os.Parcelable;
 import android.os.PowerManager;
 import android.os.RemoteException;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
@@ -59,6 +56,7 @@ import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
@@ -79,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.4.1
+ * @version 4.6.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -120,11 +118,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * A facade handling reading and writing data from and to the Android content provider used to store and retrieve
      * measurement data.
      */
-    PersistenceLayer persistenceLayer;
+    PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
-    private PingReceiver pingReceiver = new PingReceiver();
+    private PingReceiver pingReceiver;
     /**
      * The identifier of the measurement to save all the captured data to.
      */
@@ -178,10 +176,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
-
-        // Allows other parties to ping this service to see if it is running.
-        Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(getApplicationContext())));
         Log.d(TAG, "finishedOnCreate");
     }
 
@@ -249,21 +243,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
         Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
 
-        // Loads EventHandlingStrategy
-        this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
-        Validate.notNull(eventHandlingStrategy);
-        final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
-        final NotificationManager notificationManager = (NotificationManager)getSystemService(Context.NOTIFICATION_SERVICE);
-        // Update the placeholder notification
-        notificationManager.notify(NOTIFICATION_ID, notification);
-
-        // Loads measurement id
-        final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
-        if (measurementIdentifier == -1) {
-            throw new IllegalStateException("No valid measurement identifier for started service provided.");
-        }
-        this.currentMeasurementIdentifier = measurementIdentifier;
-
         // Loads authority / persistence layer
         if (!intent.hasExtra(AUTHORITY_ID)) {
             throw new IllegalStateException(
@@ -272,7 +251,35 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer(this, this.getContentResolver(), authority, capturingBehaviour);
+        persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
+
+        // Allows other parties to ping this service to see if it is running
+        final String deviceId;
+        try {
+            deviceId = persistenceLayer.loadDeviceId();
+        } catch (CursorIsNullException | NoDeviceIdException e) {
+            throw new IllegalStateException(e);
+        }
+        pingReceiver = new PingReceiver(deviceId);
+        Log.v(TAG, "Registering Ping Receiver");
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(deviceId)));
+
+        // Loads EventHandlingStrategy
+        this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
+        Validate.notNull(eventHandlingStrategy);
+        final Notification notification = eventHandlingStrategy.buildCapturingNotification(this);
+        final NotificationManager notificationManager = (NotificationManager)getSystemService(
+                Context.NOTIFICATION_SERVICE);
+        // Update the placeholder notification
+        Validate.notNull(notificationManager);
+        notificationManager.notify(NOTIFICATION_ID, notification);
+
+        // Loads measurement id
+        final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
+        if (measurementIdentifier == -1) {
+            throw new IllegalStateException("No valid measurement identifier for started service provided.");
+        }
+        this.currentMeasurementIdentifier = measurementIdentifier;
 
         // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
         try {
@@ -292,7 +299,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(this));
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(deviceId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
 
@@ -307,21 +314,21 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Initializes this service
      *
-     * @return the {@link GPSCapturingProcess}
+     * @return the {@link GeoLocationCapturingProcess}
      */
-    private GPSCapturingProcess initializeCapturingProcess() {
+    private GeoLocationCapturingProcess initializeCapturingProcess() {
         Log.d(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         Validate.notNull(locationManager);
-        final GeoLocationDeviceStatusHandler gpsStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
+        final GeoLocationDeviceStatusHandler locationStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
                 ? new GnssStatusCallback(locationManager)
-                : new GPSStatusListener(locationManager);
+                : new GeoLocationStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         Validate.notNull(sensorManager);
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
-        return new GPSCapturingProcess(locationManager, sensorManager, gpsStatusHandler, geoLocationEventHandlerThread,
-                sensorEventHandlerThread);
+        return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler,
+                geoLocationEventHandlerThread, sensorEventHandlerThread);
     }
 
     /**
@@ -343,12 +350,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
             try {
-                Log.d(TAG, "Sending IPC message to caller " + caller + ": service stopped.");
                 caller.send(msg);
             } catch (final RemoteException e) {
                 Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
                 clients.remove(caller);
-
             } catch (final NullPointerException e) {
                 // Caller may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
@@ -401,6 +406,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(TAG, "Location captured");
         informCaller(MessageCodes.LOCATION_CAPTURED, location);
         capturingBehaviour.storeLocation(location, currentMeasurementIdentifier);
+        // TODO[STAD]: store last location, calculate distance to new location and update measurement.distance field
+        // add DistanceCalculationStrategy to onCreate which calculates the diff between the two locations
+        // use Android's Location.distanceTo(location)
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");
@@ -410,12 +418,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onLocationFix() {
-        informCaller(MessageCodes.GPS_FIX, null);
+        informCaller(MessageCodes.GEOLOCATION_FIX, null);
     }
 
     @Override
     public void onLocationFixLost() {
-        informCaller(MessageCodes.NO_GPS_FIX, null);
+        informCaller(MessageCodes.NO_GEOLOCATION_FIX, null);
     }
 
     /**

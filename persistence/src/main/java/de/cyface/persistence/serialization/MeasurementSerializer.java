@@ -56,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.1
+ * @version 3.1.2
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -138,7 +138,7 @@ public final class MeasurementSerializer {
 
         while (geoLocationsCursor.moveToNext()) {
             buffer.putLong(
-                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME)));
+                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
             buffer.putDouble(
                     geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT)));
             buffer.putDouble(

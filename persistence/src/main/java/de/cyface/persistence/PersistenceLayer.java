@@ -24,6 +24,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -42,10 +43,10 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 9.0.0
  * @since 2.0.0
  */
-public class PersistenceLayer {
+public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * The {@link Context} required to locate the app's internal storage directory.
@@ -63,7 +64,7 @@ public class PersistenceLayer {
      * The {@link PersistenceBehaviour} defines how the {@code Persistence} layer is works. We need this behaviour to
      * differentiate if the {@link PersistenceLayer} is used for live capturing and or to load existing data.
      */
-    private PersistenceBehaviour persistenceBehaviour;
+    private B persistenceBehaviour;
     /**
      * The {@link FileAccessLayer} used to interact with files.
      */
@@ -94,7 +95,7 @@ public class PersistenceLayer {
      *            We can't just make it package private because it's used by datacapturing.backend and datacapturing.
      */
     public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
-            @NonNull final String authority, @NonNull final PersistenceBehaviour persistenceBehaviour) {
+            @NonNull final String authority, @NonNull final B persistenceBehaviour) {
         this.context = context;
         this.resolver = resolver;
         this.authority = authority;
@@ -311,7 +312,7 @@ public class PersistenceLayer {
         Validate.isTrue(loadMeasurementStatus(measurement.getIdentifier()) == FINISHED);
         setStatus(measurement.getIdentifier(), SYNCED);
 
-        // TODO: for movebis we only delete sensor data not GPS points (+move to synchronized)
+        // TODO: for movebis we only delete sensor data not GeoLocations (+move to synchronized)
         // how do we want to handle this on Cyface ?
         final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
 
@@ -341,7 +342,29 @@ public class PersistenceLayer {
      * @return The device is as string
      */
     public final String restoreOrCreateDeviceId() throws CursorIsNullException {
-        Log.d(TAG, "Trying to load device identifier from content provider!");
+        try {
+            return loadDeviceId();
+        } catch (final NoDeviceIdException e) {
+            // Create a new device id
+            final String deviceId = UUID.randomUUID().toString();
+            final ContentValues identifierValues = new ContentValues();
+            identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
+            final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
+            Validate.notNull("New device id could not be created!", resultUri);
+            Log.d(TAG, "Created new device id " + deviceId);
+            return deviceId;
+        }
+    }
+
+    /**
+     * Loads the device identifier from the persistence layer.
+     *
+     * @return The device is as string
+     * @throws CursorIsNullException when accessing the {@link ContentProvider} failed
+     * @throws NoDeviceIdException when there are no entries in the {@link IdentifierTable}
+     */
+    @NonNull
+    public final String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
         Cursor deviceIdentifierQueryCursor = null;
         try {
             synchronized (this) {
@@ -357,17 +380,11 @@ public class PersistenceLayer {
                             .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
                     final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
                     Log.d(TAG, "Providing device identifier " + did);
+                    Validate.notNull(did);
                     return did;
                 }
 
-                // Update measurement id counter
-                final String deviceId = UUID.randomUUID().toString();
-                final ContentValues values = new ContentValues();
-                values.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
-                final Uri resultUri = resolver.insert(getIdentifierUri(), values);
-                Validate.notNull("New device id could not be created!", resultUri);
-                Log.d(TAG, "Created new device id " + deviceId);
-                return deviceId;
+                throw new NoDeviceIdException("No entries in IdentifierTable.");
             }
         } finally {
             // This can be null, see documentation
@@ -443,7 +460,7 @@ public class PersistenceLayer {
         try {
             cursor = resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
-                    GeoLocationsTable.COLUMN_GPS_TIME + " ASC");
+                    GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
             if (cursor == null) {
                 return Collections.emptyList();
             }
@@ -452,7 +469,7 @@ public class PersistenceLayer {
             while (cursor.moveToNext()) {
                 final double lat = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
                 final double lon = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
-                final long timestamp = cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GPS_TIME));
+                final long timestamp = cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
                 final double speed = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
                 final float accuracy = cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
                 geoLocations.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));
@@ -551,8 +568,8 @@ public class PersistenceLayer {
     }
 
     /**
-     * Loads the currently captured {@link Measurement} from the {@link PersistenceLayer}. This method should only be
-     * called if capturing is active. It throws an error otherwise.
+     * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
+     * {@link PersistenceLayer}.
      *
      * This is a public api which can be used by SDK implementing apps.
      *
@@ -563,6 +580,22 @@ public class PersistenceLayer {
      * @return the currently captured {@link Measurement}
      */
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+        return persistenceBehaviour.loadCurrentlyCapturedMeasurement();
+    }
+
+    /**
+     * Loads the currently captured {@link Measurement} explicitly from the {@link PersistenceLayer}.
+     *
+     * SDK implementing app should use the {@link #loadCurrentlyCapturedMeasurement} instead.
+     *
+     * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
+     *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
+     *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @return the currently captured {@link Measurement}
+     */
+    public Measurement loadCurrentlyCapturedMeasurementFromPersistence()
+            throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(Constants.TAG, "Trying to load currently captured measurement from PersistenceLayer!");
 
         final List<Measurement> openMeasurements = loadMeasurements(MeasurementStatus.OPEN);
@@ -626,5 +659,9 @@ public class PersistenceLayer {
 
     public FileAccessLayer getFileAccessLayer() {
         return fileAccessLayer;
+    }
+
+    public B getPersistenceBehaviour() {
+        return persistenceBehaviour;
     }
 }

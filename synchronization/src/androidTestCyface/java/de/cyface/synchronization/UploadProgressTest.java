@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.synchronization.Constants.DEVICE_IDENTIFIER_KEY;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
@@ -19,9 +18,7 @@ import static org.junit.Assert.assertThat;
 
 import java.util.LinkedList;
 import java.util.List;
-import java.util.UUID;
 
-import androidx.test.filters.FlakyTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -30,6 +27,7 @@ import org.junit.runner.RunWith;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.BroadcastReceiver;
+import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -40,7 +38,9 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -56,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.3.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -64,12 +64,18 @@ import de.cyface.utils.Validate;
 public class UploadProgressTest {
     private Context context;
     private ContentResolver contentResolver;
+    private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
 
+    /**
+     * @throws CursorIsNullException When the {@link ContentProvider} is not accessible
+     */
     @Before
-    public void setUp() {
+    public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
+        persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistenceLayer.restoreOrCreateDeviceId();
     }
 
     @After
@@ -90,7 +96,6 @@ public class UploadProgressTest {
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.putString(DEVICE_IDENTIFIER_KEY, UUID.randomUUID().toString());
         editor.apply();
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
@@ -103,9 +108,7 @@ public class UploadProgressTest {
         ContentProviderClient client = null;
         try {
             ContentResolver contentResolver = context.getContentResolver();
-            final PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
-                    new DefaultPersistenceBehaviour());
-            Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
+            Measurement measurement = insertMeasurementEntry(persistenceLayer, Vehicle.UNKNOWN);
             long measurementIdentifier = measurement.getIdentifier();
             insertGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055141000L, 49.9304133333333,
                     8.82831833333333, 0.0, 940);
