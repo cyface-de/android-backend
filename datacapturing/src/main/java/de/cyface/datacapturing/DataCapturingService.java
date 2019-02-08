@@ -14,6 +14,7 @@
  */
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -165,6 +166,10 @@ public abstract class DataCapturingService {
      * The strategy used to respond to selected events triggered by this service.
      */
     private final EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
+     */
+    private final DistanceCalculationStrategy distanceCalculationStrategy;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -178,13 +183,16 @@ public abstract class DataCapturingService {
      *            this service.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
+     *            {@link Measurement#distance}
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public DataCapturingService(@NonNull final Context context, @NonNull final String authority,
             @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer)
+            @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer,
+            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy)
             throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
@@ -192,6 +200,7 @@ public abstract class DataCapturingService {
         this.serviceConnection = new BackgroundServiceConnection();
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
+        this.distanceCalculationStrategy = distanceCalculationStrategy;
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
@@ -653,6 +662,7 @@ public abstract class DataCapturingService {
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
 
         final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {

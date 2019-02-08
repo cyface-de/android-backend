@@ -15,6 +15,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -51,6 +52,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
+import de.cyface.datacapturing.DistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
@@ -132,6 +134,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to respond to selected events triggered by this service.
      */
     private EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
+     */
+    private DistanceCalculationStrategy distanceCalculationStrategy;
     /**
      * Meta information required for deserialization of {@link Point3dFile}s.
      */
@@ -220,11 +226,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     /**
-     * Sends an IPC message to interested parties that the service stopped itself. This must be called
-     * when the {@code stopSelf()} method is called on this service without a prior intent from the
-     * {@link DataCapturingService} to do so to unbind the {@link DataCapturingService}, e.g. from an
-     * {@link EventHandlingStrategy} implementation.
-     *
+     * Sends an IPC message to interested parties that the service stopped itself.
+     * <p>
+     * This method must be called when {@link #stopSelf()} is called on this service without a prior intent
+     * from the {@link DataCapturingService}. It must be called e.g. from an
+     * {@link EventHandlingStrategy#handleSpaceWarning(DataCapturingBackgroundService)} implementation
+     * to unbind the {@link DataCapturingBackgroundService} from the {@link DataCapturingService}.
+     * <p>
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
      * The task for the missing test is CY-4111. Currently only tested manually.
      */
@@ -279,6 +287,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Update the placeholder notification
         Validate.notNull(notificationManager);
         notificationManager.notify(NOTIFICATION_ID, notification);
+
+        // Loads DistanceCalculationStrategy
+        this.distanceCalculationStrategy = intent.getParcelableExtra(DISTANCE_CALCULATION_STRATEGY_ID);
+        Validate.notNull(distanceCalculationStrategy);
 
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
@@ -418,7 +430,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Update {@code Measurement#distance), {@code lastDistance} and {@code #lastLocation}, in this order!
         if (lastLocation != null) {
-            final double distanceToAdd = eventHandlingStrategy.calculateDistance(lastLocation, newLocation);
+            final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
             final double newDistance = lastDistance + distanceToAdd;
             try {
                 capturingBehaviour.updateDistance(newDistance);

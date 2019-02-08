@@ -19,19 +19,15 @@ import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Measurement;
 
 /**
  * Interface for strategies to respond to events triggered by the {@link DataCapturingBackgroundService}.
  * E.g.: Show a notification when little space is available and stop the capturing.
+ * <p>
  * Must be {@code Parcelable} to be passed from the {@link DataCapturingService} via {@code Intent}.
  * <p>
  * An implementation of this class must also provide a {@code Notification} shown by the data capturing service,
  * during capturing.
- * <p>
- * Another event which is handled is the {@link Measurement#distance} calculation when the
- * {@link DataCapturingBackgroundService#onLocationCaptured(GeoLocation)} event is triggered.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
@@ -56,13 +52,4 @@ public interface EventHandlingStrategy extends Parcelable {
      */
     @NonNull
     Notification buildCapturingNotification(@NonNull final DataCapturingBackgroundService context);
-
-    /**
-     * Implements a strategy to calculate the {@link Measurement#distance} based on two subsequent {@link GeoLocation}s.
-     *
-     * @param lastLocation The {@code GeoLocation} captured before {@param newLocation}
-     * @param newLocation The {@code GeoLocation} captured after {@param lastLocation}
-     * @return The distance which is added to the {@code Measurement} based on the provided {@code GeoLocation}s.
-     */
-    double calculateDistance(@NonNull final GeoLocation lastLocation, @NonNull final GeoLocation newLocation);
 }
