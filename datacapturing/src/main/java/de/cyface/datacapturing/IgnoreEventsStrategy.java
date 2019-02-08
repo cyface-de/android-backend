@@ -26,8 +26,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.Validate;
 
 /**
@@ -40,11 +38,6 @@ import de.cyface.utils.Validate;
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
-
-    /**
-     * The strategy used to calculate the {@link Measurement#distance} from two subsequent {@link GeoLocation}s.
-     */
-    private DefaultDistanceCalculationStrategy distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
@@ -108,16 +101,13 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     }
 
     @Override
-    public double calculateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
-        return distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
-    }
-
-    @Override
     public int describeContents() {
+        // Nothing to do
         return 0;
     }
 
     @Override
     public void writeToParcel(final Parcel dest, final int flags) {
+        // Nothing to do
     }
 }

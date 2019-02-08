@@ -9,6 +9,7 @@ package de.cyface.datacapturing;
  * @since 2.1.0
  */
 public class BundlesExtrasCodes {
+
     /**
      * Code that identifies the extra transmitted to the background service to tell it which measurement to capture.
      */
@@ -33,6 +34,10 @@ public class BundlesExtrasCodes {
      * Code that identifies the {@link EventHandlingStrategy} if transmitted via an Android bundle.
      */
     public static final String EVENT_HANDLING_STRATEGY_ID = "de.cyface.event_handling_strategy.id";
+    /**
+     * Code that identifies the {@link DistanceCalculationStrategy} if transmitted via an Android bundle.
+     */
+    public static final String DISTANCE_CALCULATION_STRATEGY_ID = "de.cyface.distance_calculation_strategy.id";
 
     /**
      * Constructor is private to prevent creation of utility class.
