@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 
 import android.content.ContentResolver;
 import android.content.Context;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -145,7 +146,7 @@ public class PersistenceLayerTest {
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         capturingBehaviour.updateStatus(FINISHED);
-        oocut.markAsSynchronized(measurement);
+        oocut.markAsSynchronized(measurement.getIdentifier());
 
         // Check that measurement was marked as synced
         List<Measurement> syncedMeasurements = oocut.loadMeasurements(SYNCED);
@@ -173,8 +174,8 @@ public class PersistenceLayerTest {
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
+                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Create a synchronized measurement
         insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);

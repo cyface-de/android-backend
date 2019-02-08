@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -186,7 +187,7 @@ public class SharedTestUtils {
             final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence)
             throws NoSuchMeasurementException, CursorIsNullException {
 
-        final Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
+        Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
         insertGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
                 49.9304133333333, 8.82831833333333, 0.0, 940);
@@ -211,7 +212,7 @@ public class SharedTestUtils {
         }
 
         if (status == SYNCED) {
-            persistence.markAsSynchronized(measurement);
+            persistence.markAsSynchronized(measurementIdentifier);
         }
 
         // Assert that data is in the database
@@ -221,16 +222,17 @@ public class SharedTestUtils {
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
 
         // Check the GeoLocations
-        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
+        List<GeoLocation> geoLocations = persistence.loadTrack(measurementIdentifier);
         assertThat(geoLocations.size(), is(1));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {
-            final PointMetaData pointMetaData = persistence.loadPointMetaData(measurementIdentifier);
-            assertThat(pointMetaData.getAccelerationPointCounter(), is(equalTo(1)));
-            assertThat(pointMetaData.getRotationPointCounter(), is(equalTo(1)));
-            assertThat(pointMetaData.getDirectionPointCounter(), is(equalTo(1)));
-            assertThat(pointMetaData.getPersistenceFileFormatVersion(),
+            // we explicitly reload the measurement to make sure we have it's current attributes
+            measurement = persistence.loadMeasurement(measurementIdentifier);
+            assertThat(measurement.getAccelerations(), is(equalTo(1)));
+            assertThat(measurement.getRotations(), is(equalTo(1)));
+            assertThat(measurement.getDirections(), is(equalTo(1)));
+            assertThat(measurement.getFileFormatVersion(),
                     is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
         }
         return measurement;
