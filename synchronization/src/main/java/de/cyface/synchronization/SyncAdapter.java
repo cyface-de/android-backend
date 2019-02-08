@@ -158,7 +158,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         }, jwtAuthToken);
                 if (transmissionSuccessful) {
                     try {
-                        persistence.markAsSynchronized(measurement);
+                        persistence.markAsSynchronized(measurement.getIdentifier());
                     } catch (final NoSuchMeasurementException e) {
                         throw new IllegalStateException(e);
                     }

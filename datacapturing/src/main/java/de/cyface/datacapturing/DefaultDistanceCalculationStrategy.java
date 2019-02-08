@@ -24,8 +24,17 @@ import de.cyface.persistence.model.Measurement;
 /**
  * The default implementation of the {@link DistanceCalculationStrategy} which calculates the
  * {@link Measurement#distance} using simply {@link Location#distanceTo(Location)}.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 3.2.0
  */
 public class DefaultDistanceCalculationStrategy implements DistanceCalculationStrategy {
+
+    /**
+     * The {@link Location#getProvider()} String used to create a new {@link Location}.
+     */
+    final static String DEFAULT_PROVIDER = "default";
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
@@ -46,7 +55,7 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
      * No arguments constructor is redeclared here, since it is overwritten by the constructor required by
      * <code>Parcelable</code>.
      */
-    public DefaultDistanceCalculationStrategy() {
+    DefaultDistanceCalculationStrategy() {
         // Nothing to do here
     }
 
@@ -59,11 +68,7 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
         // Nothing to do here.
     }
 
-    /**
-     * The {@link Location#getProvider()} String used to create a new {@link Location}.
-     */
-    private final static String DEFAULT_PROVIDER = "default";
-
+    @Override
     public double calculateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
 
         final Location previousLocation = new Location(DEFAULT_PROVIDER);

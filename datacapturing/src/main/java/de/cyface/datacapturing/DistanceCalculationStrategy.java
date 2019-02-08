@@ -28,9 +28,8 @@ import de.cyface.persistence.model.Measurement;
  * Must be {@code Parcelable} to be passed from the {@link DataCapturingService} via {@code Intent}.
  *
  * @author Armin Schnabel
- * @author Klemens Muthmann
- * @version 2.0.0
- * @since 2.5.0
+ * @version 1.0.0
+ * @since 3.2.0
  */
 public interface DistanceCalculationStrategy extends Parcelable {
 

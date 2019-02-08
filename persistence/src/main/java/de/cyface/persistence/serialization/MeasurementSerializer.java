@@ -29,7 +29,6 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -137,8 +136,8 @@ public final class MeasurementSerializer {
         final ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
-            buffer.putLong(
-                    geoLocationsCursor.getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
+            buffer.putLong(geoLocationsCursor
+                    .getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
             buffer.putDouble(
                     geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT)));
             buffer.putDouble(
@@ -185,11 +184,12 @@ public final class MeasurementSerializer {
      * (!) Attention: Changes to this format must be discussed with compatible API providers.
      *
      * @param geoLocationCount Number of {@link GeoLocation} in the serialized {@code Measurement}.
-     * @param metaData Number of {@link Point3d} points in the serialized {@link Measurement}.
+     * @param measurement the {@link Measurement} containing the number of {@link Point3d} points in the serialized
+     *            {@code Measurement}.
      * @return The header byte array.
      */
-    private byte[] serializeTransferFileHeader(final int geoLocationCount, final PointMetaData metaData) {
-        Validate.isTrue(metaData.getPersistenceFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
+    private byte[] serializeTransferFileHeader(final int geoLocationCount, final Measurement measurement) {
+        Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
         byte[] ret = new byte[18];
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
@@ -197,18 +197,18 @@ public final class MeasurementSerializer {
         ret[3] = (byte)(geoLocationCount >> 16);
         ret[4] = (byte)(geoLocationCount >> 8);
         ret[5] = (byte)geoLocationCount;
-        ret[6] = (byte)(metaData.getAccelerationPointCounter() >> 24);
-        ret[7] = (byte)(metaData.getAccelerationPointCounter() >> 16);
-        ret[8] = (byte)(metaData.getAccelerationPointCounter() >> 8);
-        ret[9] = (byte)metaData.getAccelerationPointCounter();
-        ret[10] = (byte)(metaData.getRotationPointCounter() >> 24);
-        ret[11] = (byte)(metaData.getRotationPointCounter() >> 16);
-        ret[12] = (byte)(metaData.getRotationPointCounter() >> 8);
-        ret[13] = (byte)metaData.getRotationPointCounter();
-        ret[14] = (byte)(metaData.getDirectionPointCounter() >> 24);
-        ret[15] = (byte)(metaData.getDirectionPointCounter() >> 16);
-        ret[16] = (byte)(metaData.getDirectionPointCounter() >> 8);
-        ret[17] = (byte)metaData.getDirectionPointCounter();
+        ret[6] = (byte)(measurement.getAccelerations() >> 24);
+        ret[7] = (byte)(measurement.getAccelerations() >> 16);
+        ret[8] = (byte)(measurement.getAccelerations() >> 8);
+        ret[9] = (byte)measurement.getAccelerations();
+        ret[10] = (byte)(measurement.getRotations() >> 24);
+        ret[11] = (byte)(measurement.getRotations() >> 16);
+        ret[12] = (byte)(measurement.getRotations() >> 8);
+        ret[13] = (byte)measurement.getRotations();
+        ret[14] = (byte)(measurement.getDirections() >> 24);
+        ret[15] = (byte)(measurement.getDirections() >> 16);
+        ret[16] = (byte)(measurement.getDirections() >> 8);
+        ret[17] = (byte)measurement.getDirections();
         return ret;
     }
 
@@ -256,8 +256,8 @@ public final class MeasurementSerializer {
         }
 
         // Generate transfer file header
-        final PointMetaData pointMetaData = persistence.loadPointMetaData(measurementIdentifier);
-        final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, pointMetaData);
+        final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
+        final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, measurement);
 
         // Load already serialized Point3ds
         final File accelerationFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
@@ -266,14 +266,12 @@ public final class MeasurementSerializer {
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final File directionFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-        final byte[] serializedAccelerations = pointMetaData.getAccelerationPointCounter() > 0
+        final byte[] serializedAccelerations = measurement.getAccelerations() > 0
                 ? fileAccessLayer.loadBytes(accelerationFile)
                 : new byte[] {};
-        final byte[] serializedRotations = pointMetaData.getRotationPointCounter() > 0
-                ? fileAccessLayer.loadBytes(rotationFile)
+        final byte[] serializedRotations = measurement.getRotations() > 0 ? fileAccessLayer.loadBytes(rotationFile)
                 : new byte[] {};
-        final byte[] serializedDirections = pointMetaData.getDirectionPointCounter() > 0
-                ? fileAccessLayer.loadBytes(directionFile)
+        final byte[] serializedDirections = measurement.getDirections() > 0 ? fileAccessLayer.loadBytes(directionFile)
                 : new byte[] {};
 
         // Create transfer file

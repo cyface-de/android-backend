@@ -24,10 +24,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -173,12 +171,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
-                    try {
-                        listener.onLocationCaptured(
-                                new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracy));
-                    } catch (final CursorIsNullException | NoSuchMeasurementException e) {
-                        throw new IllegalStateException(e);
-                    }
+                    listener.onLocationCaptured(
+                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracy));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {
