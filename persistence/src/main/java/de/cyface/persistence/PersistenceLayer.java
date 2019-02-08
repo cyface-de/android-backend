@@ -73,8 +73,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     private FileAccessLayer fileAccessLayer;
 
     /**
-     * This constructor is only for testing. It's required by the {@code DataCapturingLocalTest} to be able to
-     * {@link @Spy} on this object.
+     * <b>This constructor is only for testing.</b>
+     * <p>
+     * It's required by the {@code DataCapturingLocalTest} to be able to {@link @Spy} on this object.
      */
     public PersistenceLayer() {
         this.context = null;
@@ -125,6 +126,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Creates a new, {@link MeasurementStatus#OPEN} {@link Measurement} for the provided {@link Vehicle}.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
      * @param vehicle The {@code Vehicle} to create a new {@code Measurement} for.
      * @return The newly created {@code Measurement}.
@@ -184,12 +187,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Returns all {@link Measurement}s. If you only want measurements of a specific {@link MeasurementStatus} call
+     * Returns all {@link Measurement}s, no matter the current {@link MeasurementStatus}.
+     * If you only want measurements of a specific {@link MeasurementStatus} call
      * {@link #loadMeasurements(MeasurementStatus)} instead.
      *
-     * @return All {@code Measurement}s currently in the local persistent data storage.
+     * @return A list containing all {@code Measurement}s currently stored on this device by this application. An empty
+     *         list if there are no such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings({"unused"}) // Used by cyface flavour tests and possibly by implementing apps
     public @NonNull List<Measurement> loadMeasurements() throws CursorIsNullException {
         Cursor cursor = null;
         try {
@@ -241,6 +247,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return The loaded {@code Measurement} if it exists; <code>null</code> otherwise.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to load single measurements
     public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
         final Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier))
                 .build();
@@ -267,7 +274,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Provide the {@link MeasurementStatus} of one specific measurement from the data storage.
+     * Provide the {@link MeasurementStatus} of one specific {@link Measurement} from the data storage.
+     * <p>
+     * <b>ATTENTION:</b> Please be aware that the returned status is only valid at the time this
+     * method is called. Changes of the {@code MeasurementStatus} in the persistence layer are not pushed
+     * to the {@code MeasurementStatus} returned by this method.
      *
      * @param measurementIdentifier The device wide unique identifier of the measurement to load.
      * @return The loaded {@code MeasurementStatus}
@@ -298,13 +309,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads all {@link Measurement} which are in a specific {@link MeasurementStatus} from the local persistent data
+     * Loads all {@link Measurement} which are in a specific {@link MeasurementStatus} from the data
      * storage.
      *
      * @param status the {@code MeasurementStatus} for which all {@code Measurement}s are to be loaded
-     * @return All the {code Measurement}s in the specified {@param state}
+     * @return All the {code Measurement}s in the specified {@param state}. An empty list if there are no
+     *         such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings("unused") // Implementing apps (SR) use this api to load the finished measurements
     public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) throws CursorIsNullException {
         Cursor cursor = null;
 
@@ -330,6 +343,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as {@link MeasurementStatus#SYNCED} and deletes
      * the sensor data but does not update the {@link PointMetaData} in the {@link Measurement}!
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to remove.
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
@@ -365,6 +380,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * We want to make sure the device id is stored at the same location as the next measurement id counter.
      * This way we ensure ether both or none of both is reset upon re-installation or app reset.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK. Use
+     * {@code DataCapturingService#getDeviceIdentifier()} instead.
      *
      * @return The device is as string
      */
@@ -385,6 +403,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Loads the device identifier from the persistence layer.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK. Use
+     * {@code DataCapturingService#getDeviceIdentifier()} instead.
      *
      * @return The device is as string
      * @throws CursorIsNullException when accessing the {@link ContentProvider} failed
@@ -426,6 +447,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The id of the {@code Measurement} to remove.
      */
+    @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to delete measurements
     public void delete(final long measurementIdentifier) {
 
         // Delete {@link Point3dFile}s if existent
@@ -461,15 +483,20 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}.
+     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}. This method loads the
+     * complete track into memory. For large tracks this could slow down the device or even reach the applications
+     * memory limit.
      *
      * TODO [#CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
      *
+     * TODO provide a custom list implementation that loads only small portions into memory.
+     *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
-     * @return The loaded track of <code>GeoLocation</code> objects ordered by time ascending or an empty list if
-     *         accessing the content provider fails which should hardly ever happen.
+     * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)
+     *         {@code GeoLocation}s.
      */
+    @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
     public List<GeoLocation> loadTrack(final long measurementIdentifier) {
 
         Cursor cursor = null;
@@ -501,6 +528,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * This method cleans up when the persistence layer is no longer needed by the caller.
+     * <p>
+     * <b>ATTENTION:</b> This method is called automatically and should not be called from outside the SDK.
      */
     public void shutdown() {
         persistenceBehaviour.shutdown();
@@ -508,6 +537,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider {@link Uri} for the {@link MeasurementTable}.
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     @SuppressWarnings("WeakerAccess") // Because this is used to view measurements in an SDK implementing app
     public Uri getMeasurementUri() {
@@ -516,6 +547,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider {@link Uri} for the {@link GeoLocationsTable}.
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     public Uri getGeoLocationsUri() {
         return Utils.getGeoLocationsUri(authority);
@@ -523,6 +556,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider URI for the {@link IdentifierTable}
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     private Uri getIdentifierUri() {
         return Utils.getIdentifierUri(authority);
@@ -533,6 +568,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} in the {@link Measurement} to make sure we can
      * deserialize the {@link Point3dFile}s with deprecated {@code PERSISTENCE_FILE_FORMAT_VERSION}s. This also could
      * avoid corrupting {@code Point3dFile}s when the last bytes could not be written successfully.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
      * @param pointMetaData The {@code Point3dFile} meta information required for deserialization
      * @param measurementId The id of the measurement associated with the {@link PointMetaData}
@@ -556,22 +593,21 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
      * {@link PersistenceLayer}.
      *
-     * This is a public api which can be used by SDK implementing apps.
-     *
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
      *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @return the currently captured {@link Measurement}
      */
+    @SuppressWarnings("unused") // Implementing apps use this to get the ongoing measurement info
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         return persistenceBehaviour.loadCurrentlyCapturedMeasurement();
     }
 
     /**
      * Loads the currently captured {@link Measurement} explicitly from the {@link PersistenceLayer}.
-     *
-     * SDK implementing app should use the {@link #loadCurrentlyCapturedMeasurement} instead.
+     * <p>
+     * <b>ATTENTION:</b> SDK implementing apps should use {@link #loadCurrentlyCapturedMeasurement()} instead.
      *
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
@@ -597,6 +633,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Updates the {@link MeasurementStatus} in the data persistence layer.
+     * <p>
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newStatus The new {@code MeasurementStatus}
@@ -634,6 +672,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     * <p>
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newDistance The new {@code Measurement#distance} to be stored.
@@ -665,18 +705,34 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         }
     }
 
+    /**
+     * @return the {@link #context}
+     */
     public Context getContext() {
         return context;
     }
 
+    /**
+     * @return the {@link #resolver}
+     */
     public ContentResolver getResolver() {
         return resolver;
     }
 
+    /**
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
+     *
+     * @return the {@link #fileAccessLayer}
+     */
     public FileAccessLayer getFileAccessLayer() {
         return fileAccessLayer;
     }
 
+    /**
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
+     *
+     * @return the {@link #persistenceBehaviour}
+     */
     public B getPersistenceBehaviour() {
         return persistenceBehaviour;
     }

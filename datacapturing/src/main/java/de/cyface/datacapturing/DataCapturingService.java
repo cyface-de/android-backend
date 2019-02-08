@@ -26,7 +26,6 @@ import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -456,50 +455,12 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Returns all {@link Measurement}s currently on this device, no matter the current {@link MeasurementStatus}.
-     *
-     * @return A list containing all {@code Measurement}s currently stored on this device by this application. An empty
-     *         list if there are no such measurements, but never <code>null</code>.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    @SuppressWarnings({"unused"}) // Used by cyface flavour tests
-    @NonNull
-    List<Measurement> loadMeasurements() throws CursorIsNullException {
-        return persistenceLayer.loadMeasurements();
-    }
-
-    /**
-     * Loads all {@link Measurement}s in a given {@link MeasurementStatus}.
-     *
-     * @param status The status of the measurements to return
-     * @return The {@code Measurement}s which are in the given {@code MeasurementStatus}. An empty list if there are no
-     *         such measurements, but never <code>null</code>.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this api to load the finished measurements
-    public @NonNull List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status)
-            throws CursorIsNullException {
-        return persistenceLayer.loadMeasurements(status);
-    }
-
-    /**
      * @return The identifier used to qualify {@link Measurement}s from this capturing service with the server receiving
      *         the {@code Measurement}s. This needs to be world wide unique.
      */
     @SuppressWarnings({"unused", "WeakerAccess"}) // sdk implementing apps (SR) uses this to access the device id
     public @NonNull String getDeviceIdentifier() {
         return deviceIdentifier;
-    }
-
-    /**
-     * @param measurementIdentifier The identifier of the measurement to load.
-     * @return The measurement corresponding to the provided <code>measurementIdentifier</code> or <code>null</code> if
-     *         no such measurement exists.
-     * @throws CursorIsNullException when the {@link ContentProvider} is inaccessible
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to load single measurements
-    public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
-        return persistenceLayer.loadMeasurement(measurementIdentifier);
     }
 
     /**
@@ -512,32 +473,6 @@ public abstract class DataCapturingService {
     public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
         Account account = getWiFiSurveyor().getOrCreateAccount(username);
         getWiFiSurveyor().scheduleSyncNow(account);
-    }
-
-    /**
-     * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
-     * memory. For large tracks this could slow down the device or even reach the applications memory limit.
-     *
-     * @param measurementIdentifier The id of the {@code Measurement} to load all the {@link GeoLocation}s for.
-     * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)
-     *         {@code GeoLocation}s.
-     *
-     *         TODO provide a custom list implementation that loads only small portions into memory.
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (RS) use this api to display the tracks
-    public List<GeoLocation> loadTrack(final long measurementIdentifier) {
-        return persistenceLayer.loadTrack(measurementIdentifier);
-    }
-
-    /**
-     * Deletes a {@link Measurement} from this device.
-     *
-     * @param measurementIdentifier The id of the {@link Measurement} to delete.
-     *
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to delete measurements
-    public void deleteMeasurement(final long measurementIdentifier) {
-        persistenceLayer.delete(measurementIdentifier);
     }
 
     /**

@@ -30,6 +30,7 @@ How to integrate the SDK
 
 ```java
 public class CustomApplication extends Application {
+    
     @Override
     public void onCreate() {
         super.onCreate();
@@ -42,6 +43,7 @@ public class CustomApplication extends Application {
 
 ```java
 public class MainFragment extends Fragment implements ConnectionStatusListener {
+    
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
@@ -57,6 +59,7 @@ or
 ```java
 
 public class MainFragment extends Fragment implements ConnectionStatusListener {
+    
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
@@ -71,6 +74,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
 
 ```java
 public class MainFragment extends Fragment implements ConnectionStatusListener {
+    
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
@@ -135,6 +139,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
 
 ```java
 public class DataCapturingButton implements AbstractButton, DataCapturingListener {
+    
     @Override
     public void onClick(View view) {
         dataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {/*...*/});
@@ -147,6 +152,7 @@ public class DataCapturingButton implements AbstractButton, DataCapturingListene
 
 ```java
 public class DataCapturingButton implements AbstractButton, DataCapturingListener {
+    
     @Override
     public void onCreateView(final ImageButton button, final DonutProgress ISNULL) {
         dataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {
@@ -175,6 +181,7 @@ This can look like:
 
 ```java
 public class EventHandlingStrategyImpl implements EventHandlingStrategy {
+    
     @Override
     public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
       final String channelId = "channel";
@@ -204,7 +211,7 @@ You must not use the same notification identifier for any other notification dis
 
 
 ### Get details on (ongoing) measurements
-You manage measurements via the PersistenceLayer<DefaultPersistencBehaviour> (see below).
+You can manage measurements via the `PersistenceLayer<DefaultPersistenceBehaviour>`:
 
 ```java
 public class MeasurementOverviewFragment extends Fragment {
@@ -261,17 +268,20 @@ public class MeasurementOverviewFragment extends Fragment {
 }
 ```
 
-When you only have the id of a measurement and need the Measurement object please use dataCapturingService.loadMeasurement(mid)
-as this will load the correct metaData of the measurement from the database.
+When you only have the id of a measurement and need the `Measurement` object please use `persistenceLayer.loadMeasurement(mid)`
+to load the measurement with its metadata from the database.
 
-* Please be aware that the measurement metaData is only correct at the time when it’s loaded from the database but
-changes after this call are not pushed into the object returned by this call.
+* **ATTENTION** The metadata of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
+measurements is only valid in the moment it's loaded from the database. Changes
+after this call are not pushed into the `Measurement` object returned by this call.
+In order to display the distance for an ongoing measurement (which changes about each second)
+make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` on each location
+update to always have the correct distance. Implement the `DataCapturingListener`
+interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
 
-* This data also contains the distance based on the GeoLocations captured. If capturing is still ongoing,
-the distance changes (~ each second) so make sure to call the persistenceLayer.loadCurrentlyCapturedMeasurement()
-method on each location update to always have the correct distance.
+* The metadata also contains the **distance** of the measurement based on the GeoLocations captured.
 
-* For already finished measurements use loadMeasurement(mid) or loadMeasurements() or loadMeasurements(MeasurementStatus).
+* To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
 
 
 ### TODO: add code sample for the usage of:
