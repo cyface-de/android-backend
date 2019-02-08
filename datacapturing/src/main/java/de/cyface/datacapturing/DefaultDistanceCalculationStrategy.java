@@ -34,7 +34,7 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
     /**
      * The {@link Location#getProvider()} String used to create a new {@link Location}.
      */
-    final static String DEFAULT_PROVIDER = "default";
+    private final static String DEFAULT_PROVIDER = "default";
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.

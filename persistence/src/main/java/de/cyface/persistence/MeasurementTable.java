@@ -97,7 +97,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 database.execSQL("DELETE FROM measurement;");
                 database.execSQL("DROP TABLE measurement;");
                 onCreate(database);
-                // continues with the next incremental upgrade until return ! -->
+                break; // As always the newest onCreate() is used, there is no need for further upgrades!
             case 10:
                 database.execSQL("ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL;");
                 // continues with the next incremental upgrade until return ! -->
