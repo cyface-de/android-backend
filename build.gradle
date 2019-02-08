@@ -93,19 +93,12 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
 
         publishing {
             publications {
-                "${project.name}-mock"(MavenPublication) {
-                    groupId project.group
-                    artifactId "${project.name}-mock"
-                    version android.defaultConfig.versionName
-                    artifact(sourceJar)
-                    artifact("$buildDir/outputs/aar/${project.name}-mock-release.aar")
-                }
                 "${project.name}-full"(MavenPublication) {
                     groupId project.group
                     artifactId "${project.name}"
                     version android.defaultConfig.versionName
                     artifact(sourceJar)
-                    artifact("$buildDir/outputs/aar/${project.name}-full-release.aar")
+                    artifact("$buildDir/outputs/aar/${project.name}.aar")
                 }
             }
             repositories {
