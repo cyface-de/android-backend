@@ -645,7 +645,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
             throws NoSuchMeasurementException, CursorIsNullException {
 
-        // Validate the status switch is allowed by the life-cycle
+        final ContentValues values = new ContentValues();
+        values.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
+        updateMeasurement(measurementIdentifier, values);
+
+        // Make sure the database state **after** the status update is still valid
         switch (newStatus) {
             case OPEN:
                 Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
@@ -662,10 +666,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             default:
                 throw new IllegalArgumentException("Not supported");
         }
-
-        final ContentValues values = new ContentValues();
-        values.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
-        updateMeasurement(measurementIdentifier, values);
 
         Log.d(TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
     }
