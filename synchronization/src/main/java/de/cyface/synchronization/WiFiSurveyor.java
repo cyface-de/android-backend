@@ -306,16 +306,18 @@ public class WiFiSurveyor extends BroadcastReceiver {
                 return false;
             }
 
-            return syncOnWiFiOnly
-                    ? networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED) && activeNetworkInfo != null
-                            && activeNetworkInfo.isConnected()
-                    : activeNetworkInfo != null && activeNetworkInfo.isConnected();
+            final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
+            final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
+            final boolean result = isConnected && (isNotMeteredNetwork || !syncOnWiFiOnly);
+            Log.d(TAG, "allowSync: " + result + " (" + (isNotMeteredNetwork ? "not" : "") + "metered)");
+
+            return result;
         } else {
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-            return syncOnWiFiOnly
-                    ? activeNetworkInfo != null && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI
-                            && activeNetworkInfo.isConnected()
-                    : activeNetworkInfo != null && activeNetworkInfo.isConnected();
+            final boolean isWifiNetwork = activeNetworkInfo != null
+                    && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
+            final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
+            return isConnected && (isWifiNetwork || !syncOnWiFiOnly);
         }
     }
 
