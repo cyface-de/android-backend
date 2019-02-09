@@ -848,6 +848,16 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * see {@link WiFiSurveyor#isConnected()}
+     */
+    // Implementing apps (C) may want to force sync. This allows to show a message to the user when it's not possible
+    // because there is not connection.
+    @SuppressWarnings("unused")
+    public boolean isConnected() {
+        return getWiFiSurveyor().isConnected();
+    }
+
+    /**
      * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
      * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
      *
