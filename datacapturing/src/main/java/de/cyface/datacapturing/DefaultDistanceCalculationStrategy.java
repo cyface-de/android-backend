@@ -55,7 +55,7 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
      * No arguments constructor is redeclared here, since it is overwritten by the constructor required by
      * <code>Parcelable</code>.
      */
-    DefaultDistanceCalculationStrategy() {
+    public DefaultDistanceCalculationStrategy() {
         // Nothing to do here
     }
 
