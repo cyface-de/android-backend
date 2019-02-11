@@ -7,7 +7,8 @@ package de.cyface.synchronization;
  * @version 1.1.0
  * @since 2.1.0
  */
-final class TestUtils {
+public final class TestUtils {
+
     /**
      * The content provider authority used for testing.
      */

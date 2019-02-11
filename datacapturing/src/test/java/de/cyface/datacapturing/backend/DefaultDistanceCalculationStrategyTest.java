@@ -1,14 +1,15 @@
-package de.cyface.datacapturing;
+package de.cyface.datacapturing.backend;
 
-import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
+import static de.cyface.datacapturing.backend.TestUtils.generateGeoLocation;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.robolectric.RobolectricTestRunner;
 
 import android.location.Location;
 
-import androidx.test.ext.junit.runners.AndroidJUnit4;
+import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.Validate;
@@ -22,7 +23,7 @@ import de.cyface.utils.Validate;
  * @version 1.0.0
  * @since 3.2.0
  */
-@RunWith(AndroidJUnit4.class)
+@RunWith(RobolectricTestRunner.class)
 public class DefaultDistanceCalculationStrategyTest {
 
     /**
