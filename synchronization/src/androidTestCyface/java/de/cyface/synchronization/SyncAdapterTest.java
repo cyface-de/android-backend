@@ -4,6 +4,7 @@ import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -13,6 +14,8 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
+import android.content.SharedPreferences;
+import android.preference.PreferenceManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,7 +30,6 @@ import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.BaseColumns;
-
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
@@ -47,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.3
+ * @version 2.1.4
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -60,6 +62,11 @@ public final class SyncAdapterTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
+
+        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        SharedPreferences.Editor editor = preferences.edit();
+        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
+        editor.apply();
     }
 
     @After
@@ -131,8 +138,8 @@ public final class SyncAdapterTest {
     public void testOnPerformSyncWithLargeData() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        PersistenceLayer persistence = new PersistenceLayer(context, contentResolver, AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
+                AUTHORITY, new DefaultPersistenceBehaviour());
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
@@ -173,7 +180,7 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
+        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement.getIdentifier());
         assertThat(geoLocations.size(), is(locationCount));
     }
 
