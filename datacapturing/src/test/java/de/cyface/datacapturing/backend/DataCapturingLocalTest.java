@@ -1,7 +1,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
-import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
+import static de.cyface.datacapturing.backend.TestUtils.generateGeoLocation;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
