@@ -25,7 +25,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.3.0
+ * @version 4.3.1
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {

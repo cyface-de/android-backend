@@ -34,7 +34,7 @@ import de.cyface.utils.Validate;
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 1.0.1
  * @since 2.0.0
  */
 public class CapturingProcessTest {

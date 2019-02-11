@@ -12,14 +12,6 @@ import de.cyface.persistence.model.GeoLocation;
 final class TestUtils {
 
     /**
-     * The content provider authority used for testing.
-     */
-    public final static String AUTHORITY = "de.cyface.synchronization.provider.test";
-    /**
-     * The account type used during testing. This must be the same as in the authenticator configuration.
-     */
-    public final static String ACCOUNT_TYPE = "de.cyface.synchronization.account.test";
-    /**
      * The following constants were selected so that adding each base+constant results in coordinates with approximately
      * 1 meter distance between base coordinates and base+1*constant coordinates
      */
