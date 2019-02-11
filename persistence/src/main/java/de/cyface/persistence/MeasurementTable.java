@@ -99,7 +99,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 onCreate(database);
                 break; // As always the newest onCreate() is used, there is no need for further upgrades!
             case 10:
-                database.execSQL("ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL;");
+                // When there are aleady measurement entries during update we need a default value
+                database.execSQL("ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL DEFAULT 0.0;");
                 // continues with the next incremental upgrade until return ! -->
         }
 
