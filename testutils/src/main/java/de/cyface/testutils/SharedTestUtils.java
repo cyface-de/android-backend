@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -46,7 +47,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 3.0.0
  * @since 3.0.0
  */
 public class SharedTestUtils {

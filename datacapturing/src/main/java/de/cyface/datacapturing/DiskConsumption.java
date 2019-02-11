@@ -20,7 +20,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.5
+ * @version 1.0.6
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {

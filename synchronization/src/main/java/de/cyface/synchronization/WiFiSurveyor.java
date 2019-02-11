@@ -30,7 +30,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.2
+ * @version 3.2.3
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
