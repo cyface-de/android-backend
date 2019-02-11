@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -13,6 +14,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -133,6 +135,7 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
 
@@ -187,6 +190,7 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 
