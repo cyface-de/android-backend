@@ -22,6 +22,7 @@ import org.junit.runner.RunWith;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -220,5 +221,4 @@ public class BackgroundServiceTest {
         assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
                 is(equalTo(false)));
     }
-
 }

@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.TestUtils.generateGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -28,11 +28,11 @@ public class DefaultDistanceCalculationStrategyTest {
     /**
      * The object of the class under test
      */
-    private DefaultDistanceCalculationStrategy oocut;
+    private DefaultDistanceCalculationStrategy distanceCalculationStrategy;
 
     @Before
     public void setUp() {
-        oocut = new DefaultDistanceCalculationStrategy();
+        distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
     }
 
     /**
@@ -48,7 +48,7 @@ public class DefaultDistanceCalculationStrategyTest {
         // Mock - nothing to do
 
         // Act
-        final double distance = oocut.calculateDistance(previousLocation, nextLocation);
+        final double distance = distanceCalculationStrategy.calculateDistance(previousLocation, nextLocation);
 
         // Assert
         // FIXME: stehe gerade auf dem Schlauch wie ich das is(closeTo()) hier mache ohne closeTo()

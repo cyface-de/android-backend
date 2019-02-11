@@ -133,11 +133,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * The strategy used to respond to selected events triggered by this service.
      */
-    private EventHandlingStrategy eventHandlingStrategy;
+    EventHandlingStrategy eventHandlingStrategy;
     /**
      * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
      */
-    private DistanceCalculationStrategy distanceCalculationStrategy;
+    DistanceCalculationStrategy distanceCalculationStrategy;
     /**
      * Meta information required for deserialization of {@link Point3dFile}s.
      */
