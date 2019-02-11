@@ -12,7 +12,7 @@ import de.cyface.persistence.model.GeoLocation;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 5.0.3
  * @since 1.0.0
  */
 public interface CapturingProcessListener {

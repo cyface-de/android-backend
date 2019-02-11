@@ -40,7 +40,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.2
+ * @version 1.5.0
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -194,7 +194,7 @@ public class PersistenceLayerTest {
     }
 
     /**
-     * Test that updating the distance during capturing works as expected.
+     * Test that updating the distance in the {@link PersistenceLayer} during capturing works as expected.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
      * @throws CursorIsNullException – If ContentProvider was inaccessible

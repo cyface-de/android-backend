@@ -5,7 +5,7 @@ package de.cyface.datacapturing;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.4.0
  * @since 2.1.0
  */
 public class BundlesExtrasCodes {
