@@ -166,7 +166,7 @@ public abstract class DataCapturingService {
      */
     private final EventHandlingStrategy eventHandlingStrategy;
     /**
-     * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
+     * The strategy used to calculate the {@code Measurement#distance} from {@link GeoLocation} pairs
      */
     private final DistanceCalculationStrategy distanceCalculationStrategy;
 

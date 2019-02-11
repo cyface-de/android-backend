@@ -13,7 +13,6 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
-import androidx.test.filters.FlakyTest;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -29,6 +28,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
@@ -45,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.2
+ * @version 2.1.3
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,8 +75,8 @@ public final class SyncAdapterTest {
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
+                AUTHORITY, new DefaultPersistenceBehaviour());
         final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
@@ -113,7 +113,7 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement);
+        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement.getIdentifier());
         assertThat(geoLocations.size(), is(1));
     }
 
