@@ -216,8 +216,8 @@ public final class MeasurementSerializer {
      * Implements the core algorithm of loading a {@link Measurement} with all its data from the
      * {@link PersistenceLayer} and serializing it into an array of bytes in the
      * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
-     *
-     * We use the {@param loader} to access the
+     *<p>
+     * We use the {@param loader} to access the measurement data.
      *
      * TODO: test this on weak devices for large measurements
      *
@@ -275,7 +275,20 @@ public final class MeasurementSerializer {
                 : new byte[] {};
 
         // Create transfer file
-        final int headerLength = transferFileHeader.length;
+        final byte[] transferFileBytes;
+        final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+        try {
+            outputStream.write(transferFileHeader);
+            outputStream.write(serializedGeoLocations);
+            outputStream.write(serializedAccelerations);
+            outputStream.write(serializedRotations);
+            outputStream.write(serializedDirections);
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
+        transferFileBytes = outputStream.toByteArray();
+
+        /*final int headerLength = transferFileHeader.length;
         final int serializedGeoLocationsLength = serializedGeoLocations.length;
         final int serializedAccelerationsLength = serializedAccelerations.length;
         final int serializedRotationsLength = serializedRotations.length;
@@ -287,10 +300,10 @@ public final class MeasurementSerializer {
         buffer.put(serializedAccelerations);
         buffer.put(serializedRotations);
         buffer.put(serializedDirections);
-        final byte[] result = buffer.array();
+        final byte[] result = buffer.array();*/
 
         Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %s.",
-                DefaultFileAccess.humanReadableByteCount(result.length, true)));
-        return result;
+                DefaultFileAccess.humanReadableByteCount(transferFileBytes.length, true)));
+        return transferFileBytes;
     }
 }
