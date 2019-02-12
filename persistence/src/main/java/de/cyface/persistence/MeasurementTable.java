@@ -2,7 +2,6 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
-
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -15,7 +14,7 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.0
+ * @version 2.4.1
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -85,7 +84,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
 
-        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
         switch (oldVersion) {
             case 8:
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
@@ -99,8 +97,9 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 onCreate(database);
                 break; // As always the newest onCreate() is used, there is no need for further upgrades!
             case 10:
-                // When there are aleady measurement entries during update we need a default value
-                database.execSQL("ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL DEFAULT 0.0;");
+                // When there are already measurement entries during update we need a default value
+                database.execSQL(
+                        "ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL DEFAULT 0.0;");
                 // continues with the next incremental upgrade until return ! -->
         }
 

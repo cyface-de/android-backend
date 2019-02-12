@@ -189,7 +189,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      *             {@link MeasurementStatus#OPEN}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public void updateStatus(@NonNull final MeasurementStatus newStatus)
+    public void updateRecentMeasurement(@NonNull final MeasurementStatus newStatus)
             throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(
                 newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);

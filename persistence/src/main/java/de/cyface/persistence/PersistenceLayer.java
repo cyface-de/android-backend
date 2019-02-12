@@ -26,7 +26,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -346,32 +345,32 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
-     * @param measurementIdentifier The id of the {@link Measurement} to remove.
+     * @param measurement The {@link Measurement} to remove.
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
      */
-    public void markAsSynchronized(final long measurementIdentifier)
+    public void markAsSynchronized(final Measurement measurement)
             throws NoSuchMeasurementException, CursorIsNullException {
-        Validate.isTrue(loadMeasurementStatus(measurementIdentifier) == FINISHED);
-        setStatus(measurementIdentifier, SYNCED);
 
-        // TODO: for movebis we only delete sensor data not GeoLocations (+move to synchronized)
-        // how do we want to handle this on Cyface ?
-        final Measurement measurement = loadMeasurement(measurementIdentifier);
+        // The status in the database could be different from the one in the object so load it again
+        final long measurementId = measurement.getIdentifier();
+        Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
+        setStatus(measurementId, SYNCED);
 
+        // TODO: implement cyface variant where not only sensor data but also GeoLocations are deleted
         if (measurement.getAccelerations() > 0) {
-            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementIdentifier,
+            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
             Validate.isTrue(accelerationFile.delete());
         }
 
         if (measurement.getRotations() > 0) {
-            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementIdentifier,
+            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
             Validate.isTrue(rotationFile.delete());
         }
 
         if (measurement.getDirections() > 0) {
-            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementIdentifier,
+            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
             Validate.isTrue(directionFile.delete());
         }
@@ -671,7 +670,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
      * <p>
      * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
      *
@@ -688,7 +687,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param values The new {@link ContentValues} to be stored.

@@ -29,7 +29,6 @@ import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 
 import android.os.Parcelable;
-
 import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
@@ -47,7 +46,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.2.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -126,7 +125,7 @@ public class DataCapturingLocalTest {
         // Act
         oocut.onLocationCaptured(location1);
         oocut.onLocationCaptured(location2); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3); // Not the two distances should be added
+        oocut.onLocationCaptured(location3); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);

@@ -1,6 +1,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.backend.TestUtils.generateGeoLocation;
+import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
 import org.junit.Test;
@@ -8,14 +9,11 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
 import android.location.Location;
-
 import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Measurement;
-import de.cyface.utils.Validate;
 
 /**
- * Tests that the {@link Measurement#distance} is calculated as expected.
+ * Tests that the {@code Measurement#distance} is calculated as expected.
  * <p>
  * This has to be an integration test as we use Android's {@link Location} class for distance calculation.
  *
@@ -52,7 +50,6 @@ public class DefaultDistanceCalculationStrategyTest {
         final double distance = distanceCalculationStrategy.calculateDistance(previousLocation, nextLocation);
 
         // Assert
-        // FIXME: stehe gerade auf dem Schlauch wie ich das is(closeTo()) hier mache ohne closeTo()
-        Validate.isTrue(Math.abs(distance - expectedDistance) < 0.010);
+        assertEquals(expectedDistance, distance, 0.010);
     }
 }
