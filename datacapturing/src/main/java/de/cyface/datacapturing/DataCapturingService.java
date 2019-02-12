@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.0
+ * @version 12.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -329,7 +329,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.getPersistenceBehaviour().updateStatus(FINISHED);
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous stop.");
                 lifecycleLock.unlock();
@@ -381,7 +381,7 @@ public abstract class DataCapturingService {
 
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
                 // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.getPersistenceBehaviour().updateStatus(PAUSED);
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous pause.");
                 lifecycleLock.unlock();
@@ -432,7 +432,7 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(false);
 
             if (!checkFineLocationAccess(getContext())) {
-                persistenceLayer.getPersistenceBehaviour().updateStatus(FINISHED);
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
                 throw new MissingPermissionException();
             }
 
@@ -447,7 +447,7 @@ public abstract class DataCapturingService {
             runService(currentMeasurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
-            persistenceLayer.getPersistenceBehaviour().updateStatus(OPEN);
+            persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(OPEN);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous resume.");
             lifecycleLock.unlock();

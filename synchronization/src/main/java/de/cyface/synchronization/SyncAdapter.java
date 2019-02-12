@@ -28,7 +28,6 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -47,7 +46,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.3
+ * @version 2.2.4
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -94,8 +93,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
-        final PersistenceLayer persistence = new PersistenceLayer<>(context, context.getContentResolver(), authority,
-                new DefaultPersistenceBehaviour());
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+                context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
         final AccountManager accountManager = AccountManager.get(getContext());
         final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
                 null, null);
@@ -158,7 +157,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         }, jwtAuthToken);
                 if (transmissionSuccessful) {
                     try {
-                        persistence.markAsSynchronized(measurement.getIdentifier());
+                        persistence.markAsSynchronized(measurement);
                     } catch (final NoSuchMeasurementException e) {
                         throw new IllegalStateException(e);
                     }
@@ -171,7 +170,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
-        } catch (final RequestParsingException/* | SynchronisationException */ e) {
+        } catch (final RequestParsingException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());

@@ -20,7 +20,6 @@ import org.junit.runner.RunWith;
 
 import android.content.ContentResolver;
 import android.content.Context;
-
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -40,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.0
+ * @version 1.5.1
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -96,7 +95,7 @@ public class PersistenceLayerTest {
             throws NoSuchMeasurementException, CursorIsNullException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
-        capturingBehaviour.updateStatus(FINISHED);
+        capturingBehaviour.updateRecentMeasurement(FINISHED);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(false)));
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
@@ -130,7 +129,7 @@ public class PersistenceLayerTest {
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
-        capturingBehaviour.updateStatus(FINISHED);
+        capturingBehaviour.updateRecentMeasurement(FINISHED);
         List<Measurement> finishedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(finishedMeasurements.size(), is(equalTo(1)));
         assertThat(finishedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
@@ -145,8 +144,8 @@ public class PersistenceLayerTest {
     @Test
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
-        capturingBehaviour.updateStatus(FINISHED);
-        oocut.markAsSynchronized(measurement.getIdentifier());
+        capturingBehaviour.updateRecentMeasurement(FINISHED);
+        oocut.markAsSynchronized(measurement);
 
         // Check that measurement was marked as synced
         List<Measurement> syncedMeasurements = oocut.loadMeasurements(SYNCED);
