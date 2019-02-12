@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import java.io.InputStream;
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -77,8 +77,8 @@ interface Http {
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
-    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId,
-            long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile, @NonNull String deviceId,
+                      long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException, BadRequestException;
 }

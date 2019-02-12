@@ -5,13 +5,13 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 
@@ -23,6 +23,45 @@ import de.cyface.utils.Validate;
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {
+
+    @Override
+    public void writeToOutputStream(@NonNull final File file,
+            @NonNull final BufferedOutputStream bufferedOutputStream) {
+
+        final FileInputStream fileInputStream;
+        try {
+            fileInputStream = new FileInputStream(file);
+        } catch (final FileNotFoundException e) {
+            throw new IllegalStateException();
+        }
+
+        int bytesRead, bytesAvailable, bufferSize;
+        byte[] buffer;
+        // noinspection PointlessArithmeticExpression - makes semantically more sense
+        int maxBufferSize = 1 * 1024 * 1024; // from sample code, optimize if performance problems
+        try {
+            try {
+                bytesAvailable = fileInputStream.available();
+                bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                buffer = new byte[bufferSize];
+
+                bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                while (bytesRead > 0) {
+                    bufferedOutputStream.write(buffer, 0, bufferSize);
+                    bytesAvailable = fileInputStream.available();
+                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                    bytesRead = fileInputStream.read(buffer, 0, bufferSize);
+                }
+            } catch (final IOException e) {
+                throw new IllegalStateException(e);
+            } finally {
+                fileInputStream.close();
+            }
+        } catch (final IOException e) {
+            // This catches the IOException thrown in the close
+            throw new IllegalStateException(e);
+        }
+    }
 
     @Override
     @NonNull

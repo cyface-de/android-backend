@@ -15,10 +15,10 @@ import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.anyLong;
 import static org.mockito.Mockito.when;
 
-import java.io.DataInputStream;
+import java.io.BufferedOutputStream;
 import java.io.File;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -43,6 +43,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
+import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
@@ -61,7 +62,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -98,8 +99,8 @@ public class MeasurementSerializerTest {
 
     private MeasurementSerializer oocut;
 
-    private final int SERIALIZED_SIZE = BYTES_IN_HEADER + 3 * BYTES_IN_ONE_GEO_LOCATION_ENTRY
-            + 3 * 3 * BYTES_IN_ONE_POINT_3D_ENTRY;
+    private final long SERIALIZED_SIZE = BYTES_IN_HEADER + 3L * BYTES_IN_ONE_GEO_LOCATION_ENTRY
+            + 3L * 3L * BYTES_IN_ONE_POINT_3D_ENTRY;
 
     private final int samplePoint3ds = 3;
     private final int sampleGeoLocations = 3;
@@ -118,7 +119,7 @@ public class MeasurementSerializerTest {
 
         // Mock point counters
         final Measurement measurement = new Measurement(1, OPEN, Vehicle.UNKNOWN, samplePoint3ds, samplePoint3ds,
-                samplePoint3ds, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0);
+                samplePoint3ds, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0);
         when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
         when(geoLocationsCursor.getCount()).thenReturn(sampleGeoLocations);
@@ -152,13 +153,22 @@ public class MeasurementSerializerTest {
 
     /**
      * Tests if serialization of a measurement is successful.
-     *
      */
     @Test
-    public void testSerializeMeasurement() throws CursorIsNullException {
+    public void testSerializeMeasurement() throws IOException, CursorIsNullException {
 
-        byte[] data = oocut.loadSerialized(loader, sampleMeasurementId, persistence);
-        assertThat(data.length, is(equalTo(SERIALIZED_SIZE)));
+        final File serializedFile = File.createTempFile("serializedTestFile", ".tmp");
+        try {
+            final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
+            final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+            oocut.loadSerialized(bufferedFileOutputStream, loader, sampleMeasurementId, persistence);
+
+            assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
+        } finally {
+            if (serializedFile.exists()) {
+                Validate.isTrue(serializedFile.delete());
+            }
+        }
     }
 
     /**
@@ -168,27 +178,39 @@ public class MeasurementSerializerTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testDeserializeMeasurement() throws CursorIsNullException {
+    public void testDeserializeMeasurement() throws CursorIsNullException, IOException {
 
-        byte[] uncompressedTransferFileBytes = oocut.loadSerialized(loader, sampleMeasurementId, persistence);
-        assertThat(uncompressedTransferFileBytes.length, is(equalTo(SERIALIZED_SIZE)));
+        final File serializedFile = File.createTempFile("serializedTestFile", ".tmp");
+        try {
+            final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
+            final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+            oocut.loadSerialized(bufferedFileOutputStream, loader, sampleMeasurementId, persistence);
+            assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
 
-        deserializeAndCheck(uncompressedTransferFileBytes);
+            deserializeAndCheck(new DefaultFileAccess().loadBytes(serializedFile));
+        } finally {
+            if (serializedFile.exists()) {
+                Validate.isTrue(serializedFile.delete());
+            }
+        }
     }
 
     /**
      * Tests successful serialization of a measurement to a compressed state.
      *
-     * @throws IOException Thrown on streaming errors. Since this only uses ByteArrayStreams the exception should not
-     *             occur.
      */
     @Test
-    public void testSerializeCompressedMeasurement() throws IOException, CursorIsNullException {
+    public void testSerializeCompressedMeasurement() throws CursorIsNullException {
 
-        InputStream input = oocut.loadSerializedCompressed(loader, 0, persistence);
-
-        final int SERIALIZED_COMPRESSED_SIZE = 30;
-        assertThat(input.available(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+        final long SERIALIZED_COMPRESSED_SIZE = 30L;
+        final File compressedTransferFile = oocut.loadSerializedCompressed(loader, 0, persistence);
+        try {
+            assertThat(compressedTransferFile.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
+        } finally {
+            if (compressedTransferFile.exists()) {
+                Validate.isTrue(compressedTransferFile.delete());
+            }
+        }
     }
 
     /**
@@ -196,23 +218,35 @@ public class MeasurementSerializerTest {
      */
     @Test
     public void testDecompressDeserialize() throws IOException, DataFormatException, CursorIsNullException {
+        final DefaultFileAccess defaultFileAccess = new DefaultFileAccess();
 
         // Assemble serialized compressed bytes
-        InputStream compressedStream = oocut.loadSerializedCompressed(loader, sampleMeasurementId, persistence);
-        byte[] compressedBytes = new byte[compressedStream.available()];
+        final byte[] compressedBytes;
+        final File compressedTransferFile = oocut.loadSerializedCompressed(loader, sampleMeasurementId, persistence);
+        try {
+            // Load bytes from compressedTransferFile
+            compressedBytes = defaultFileAccess.loadBytes(compressedTransferFile);
+            /*
+             * final byte[] compressedBytes = new byte[(int) compressedTransferFile.length()];
+             * DataInputStream dis = new DataInputStream(new FileInputStream(compressedTransferFile));
+             * dis.readFully(compressedBytes);
+             */
+        } finally {
+            if (compressedTransferFile.exists()) {
+                Validate.isTrue(compressedTransferFile.delete());
+            }
+        }
 
         // Decompress the compressed bytes and check length and bytes
-        DataInputStream dis = new DataInputStream(compressedStream);
-        dis.readFully(compressedBytes);
         Inflater inflater = new Inflater();
         inflater.setInput(compressedBytes, 0, compressedBytes.length);
         byte[] decompressedBytes = new byte[1000];
-        int decompressedLength = inflater.inflate(decompressedBytes);
+        long decompressedLength = inflater.inflate(decompressedBytes);
         inflater.end();
         assertThat(decompressedLength, is(equalTo(SERIALIZED_SIZE)));
 
         // Deserialize
-        byte[] decompressedTransferFileBytes = Arrays.copyOfRange(decompressedBytes, 0, SERIALIZED_SIZE);
+        byte[] decompressedTransferFileBytes = Arrays.copyOfRange(decompressedBytes, 0, (int)SERIALIZED_SIZE);
 
         // Deserialize bytes back to Objects and check their values
         deserializeAndCheck(decompressedTransferFileBytes);
@@ -220,8 +254,21 @@ public class MeasurementSerializerTest {
         // Prepare comparison bytes which were not compressed at all
         // Mock insert of 3 GeoLocations (again)
         when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
-        byte[] uncompressedTransferFileBytes = oocut.loadSerialized(loader, sampleMeasurementId, persistence);
-        deserializeAndCheck(uncompressedTransferFileBytes); // just to be sure
+        final File serializedFile = File.createTempFile("serializedTestFile", ".tmp");
+        final byte[] uncompressedTransferFileBytes;
+        try {
+            final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
+            final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+            oocut.loadSerialized(bufferedFileOutputStream, loader, sampleMeasurementId, persistence);
+            assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
+
+            uncompressedTransferFileBytes = new DefaultFileAccess().loadBytes(serializedFile);
+            deserializeAndCheck(uncompressedTransferFileBytes); // just to be sure
+        } finally {
+            if (serializedFile.exists()) {
+                Validate.isTrue(serializedFile.delete());
+            }
+        }
 
         // We check the bytes after we checked the object values because in the bytes it's hard to find the error
         assertThat(decompressedTransferFileBytes, is(equalTo(uncompressedTransferFileBytes)));

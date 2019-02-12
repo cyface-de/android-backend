@@ -14,8 +14,6 @@ import static org.junit.Assert.assertThat;
 
 import java.util.List;
 
-import android.content.SharedPreferences;
-import android.preference.PreferenceManager;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -26,9 +24,11 @@ import android.accounts.AccountManager;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
 import android.os.Bundle;
+import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
@@ -128,13 +128,14 @@ public final class SyncAdapterTest {
 
     /**
      * Tests whether points are correctly marked as synced when transmitting a large measurement.
-     *
-     * This test was created to try to reproduce #MOV-515 which it didn't so far.
-     * (!) This test produces an OOM - depending on the memory size of the test device #MOV-528
+     * <p>
+     * This test was created as it reproduced:
+     * - #MOV-528: OOM on large uploads (depending on the device memory)
+     * - #MOV-515: 401 on medium uploads (was not reliably reproducible)
      */
     @Test
-    @FlakyTest // because this is currently still dependent on a real test api (see logcat)
-    @LargeTest // ~ 1.5 minutes
+    @FlakyTest // TODO: last time I checked it seemed to use the MockedHttpConnection so it would not be flaky - check!
+    @LargeTest // ~ 2+ minutes
     public void testOnPerformSyncWithLargeData() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
@@ -146,9 +147,7 @@ public final class SyncAdapterTest {
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
         persistence.restoreOrCreateDeviceId();
 
-        // Insert data to be synced
-        // point3dCount chosen as bug #MOV-515 failed with ~80 MB data / 30s compression
-        // TODO: add task: 2m APs worked, 3m (each type!) crashed because of OOM on N5X emulator
+        // Insert data to be synced - 2_000_000 point3dCount chosen this reproduced the bugs mentioned above
         final int point3dCount = 2_000_000;
         final int locationCount = 15_000;
         final ContentResolver contentResolver = context.getContentResolver();

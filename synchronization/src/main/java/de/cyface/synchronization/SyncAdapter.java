@@ -8,8 +8,8 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -28,7 +28,6 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -135,45 +134,55 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
             for (final Measurement measurement : syncableMeasurements) {
 
-                // Load measurement serialized compressed
+                // Load compressed transfer file for measurement
                 Log.d(Constants.TAG,
                         String.format("Measurement with identifier %d is about to be loaded for transmission.",
                                 measurement.getIdentifier()));
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                         measurement.getIdentifier(), provider, authority);
-                final InputStream data = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(),
-                        persistence);
+                final File compressedTransferTempFile = serializer.loadSerializedCompressed(loader,
+                        measurement.getIdentifier(), persistence);
 
-                // Acquire a new auth token for synchronization as the old one could be expired
-                final AccountManagerFuture<Bundle> authFuture = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE,
-                        null, false, null, null);
-                final Bundle authResult = authFuture.getResult(1, TimeUnit.SECONDS);
-                jwtAuthToken = authResult.getString(AccountManager.KEY_AUTHTOKEN);
-                Validate.notNull(jwtAuthToken);
-                Log.d(TAG, "Fresh authToken: **" + jwtAuthToken.substring(jwtAuthToken.length()-7));
+                // Try to sync the transfer file and remove it afterwards
+                try {
 
-                // Synchronize measurement
-                Validate.notNull(jwtAuthToken);
-                Validate.notNull(endPointUrl);
-                Validate.notNull(deviceId);
-                final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                        measurement.getIdentifier(), deviceId, data, new UploadProgressListener() {
-                            @Override
-                            public void updatedProgress(float percent) {
-                                for (final ConnectionStatusListener listener : progressListener) {
-                                    listener.onProgress(percent, measurement.getIdentifier());
+                    // Acquire a new auth token for synchronization as the old one could be expired
+                    final AccountManagerFuture<Bundle> authFuture = accountManager.getAuthToken(account,
+                            AUTH_TOKEN_TYPE, null, false, null, null);
+                    final Bundle authResult = authFuture.getResult(1, TimeUnit.SECONDS);
+                    jwtAuthToken = authResult.getString(AccountManager.KEY_AUTHTOKEN);
+                    Validate.notNull(jwtAuthToken);
+                    Validate.notNull(endPointUrl);
+                    Validate.notNull(deviceId);
+                    Log.d(TAG, "Fresh authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
+
+                    // Synchronize measurement
+                    final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
+                            measurement.getIdentifier(), deviceId, compressedTransferTempFile,
+                            new UploadProgressListener() {
+                                @Override
+                                public void updatedProgress(float percent) {
+                                    for (final ConnectionStatusListener listener : progressListener) {
+                                        listener.onProgress(percent, measurement.getIdentifier());
+                                    }
                                 }
-                            }
-                        }, jwtAuthToken);
-                if (transmissionSuccessful) {
+                            }, jwtAuthToken);
+                    if (!transmissionSuccessful) {
+                        break;
+                    }
+
+                    // Mark successfully transmitted measurement as synced
                     try {
                         persistence.markAsSynchronized(measurement);
                     } catch (final NoSuchMeasurementException e) {
                         throw new IllegalStateException(e);
                     }
                     Log.d(Constants.TAG, "Measurement marked as synced.");
-                } else {
-                    break;
+
+                } finally {
+                    if (compressedTransferTempFile.exists()) {
+                        Validate.isTrue(compressedTransferTempFile.delete());
+                    }
                 }
             }
         } catch (final CursorIsNullException e) {

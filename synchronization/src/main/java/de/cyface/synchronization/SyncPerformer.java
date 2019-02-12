@@ -10,8 +10,8 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
@@ -78,7 +78,7 @@ class SyncPerformer {
      * @param dataServerUrl The server URL to send the data to.
      * @param measurementIdentifier The measurement identifier of the transmitted measurement.
      * @param deviceIdentifier The device identifier of the device transmitting the measurement.
-     * @param data The data to transmit
+     * @param compressedTransferTempFile The data to transmit
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      *
@@ -86,9 +86,9 @@ class SyncPerformer {
      *             from the measurement slice.
      */
     boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl,
-            final long measurementIdentifier, final @NonNull String deviceIdentifier, final @NonNull InputStream data,
-            final @NonNull UploadProgressListener progressListener, final @NonNull String jwtAuthToken)
-            throws RequestParsingException, BadRequestException {
+            final long measurementIdentifier, final @NonNull String deviceIdentifier,
+            final @NonNull File compressedTransferTempFile, final @NonNull UploadProgressListener progressListener,
+            final @NonNull String jwtAuthToken) throws RequestParsingException, BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
@@ -98,7 +98,8 @@ class SyncPerformer {
             Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, data, deviceIdentifier, measurementIdentifier, fileName, progressListener);
+                http.post(connection, compressedTransferTempFile, deviceIdentifier, measurementIdentifier, fileName,
+                        progressListener);
             } finally {
                 if (connection != null) {
                     connection.disconnect();
