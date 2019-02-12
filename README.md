@@ -193,6 +193,7 @@ public class EventHandlingStrategyImpl implements EventHandlingStrategy {
     
       return new NotificationCompat.Builder(context, channelId)
         .setContentTitle("Cyface")
+        .setSmallIcon(R.drawable.your_icon)
         .setContentText("Running Data Capturing")
         .setOngoing(true)
         .setAutoCancel(false)
