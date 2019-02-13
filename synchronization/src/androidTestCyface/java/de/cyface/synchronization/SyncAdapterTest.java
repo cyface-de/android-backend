@@ -80,7 +80,6 @@ public final class SyncAdapterTest {
      * Tests whether points are correctly marked as synced.
      */
     @Test
-    @FlakyTest // because this is currently still dependent on a real test api (see logcat)
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
@@ -134,22 +133,21 @@ public final class SyncAdapterTest {
      * - #MOV-515: 401 on medium uploads (was not reliably reproducible)
      */
     @Test
-    @FlakyTest // TODO: last time I checked it seemed to use the MockedHttpConnection so it would not be flaky - check!
     @LargeTest // ~ 2+ minutes
     public void testOnPerformSyncWithLargeData() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
         PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
                 AUTHORITY, new DefaultPersistenceBehaviour());
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, /*FIXME: undo new MockedHttpConnection()*/ new HttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
         persistence.restoreOrCreateDeviceId();
 
         // Insert data to be synced - 2_000_000 point3dCount chosen this reproduced the bugs mentioned above
-        final int point3dCount = 2_000_000;
-        final int locationCount = 15_000;
+        final int point3dCount = 1_000; // FIXME undo
+        final int locationCount = 1_000; // FIXME undo
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
