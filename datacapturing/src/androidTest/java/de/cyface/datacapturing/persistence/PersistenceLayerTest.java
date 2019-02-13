@@ -20,6 +20,7 @@ import org.junit.runner.RunWith;
 
 import android.content.ContentResolver;
 import android.content.Context;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -177,14 +178,14 @@ public class PersistenceLayerTest {
                 context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);
+        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer, 1, 1);
 
         // Create a finished measurement
         Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
-                persistenceLayer);
+                persistenceLayer, 1, 1);
 
         // Create an open measurement - must be created at last (life-cycle checks in PersistenceLayer.setStatus)
-        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer);
+        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer, 1, 1);
 
         // Check that syncable measurements = finishedMeasurement
         final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
