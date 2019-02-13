@@ -14,6 +14,7 @@ import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
 
 import android.content.ContentProvider;
 import android.content.ContentResolver;
@@ -21,6 +22,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
@@ -87,6 +89,14 @@ public final class MeasurementSerializer {
     public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
     /**
+     * In iOS there are no parameters to set nowrap to false as it is default in Android.
+     * In order for the iOS and Android Cyface SDK to be compatible we set nowrap explicitly to true
+     * <p>
+     * <b>ATTENTION:</b> When decompressing in Android you need to pass this parameter to the {@link Inflater}'s
+     * constructor.
+     */
+    public static final boolean COMPRESSION_NOWRAP = true;
+    /**
      * The {@link FileAccessLayer} used to interact with files.
      */
     private final FileAccessLayer fileAccessLayer;
@@ -135,7 +145,8 @@ public final class MeasurementSerializer {
         // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
         // Wrapping the streams with Buffered streams for performance reasons
         final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-        final Deflater compressor = new Deflater(3);
+        final int DEFLATER_LEVEL = 9; // 'cause Steve Jobs said so
+        final Deflater compressor = new Deflater(DEFLATER_LEVEL, COMPRESSION_NOWRAP);
         // As we wrap the injected outputStream with Deflater the serialized data is automatically compressed
         final DeflaterOutputStream deflaterStream = new DeflaterOutputStream(bufferedFileOutputStream, compressor);
 
@@ -331,6 +342,12 @@ public final class MeasurementSerializer {
         }
         if (measurement.getDirections() > 0) {
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
+        }
+
+        try {
+            bufferedOutputStream.flush();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 }
