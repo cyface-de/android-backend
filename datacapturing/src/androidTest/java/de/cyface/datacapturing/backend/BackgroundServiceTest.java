@@ -1,5 +1,6 @@
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -13,6 +14,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -22,6 +24,7 @@ import org.junit.runner.RunWith;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -43,7 +46,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.1
+ * @version 2.2.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -132,6 +135,7 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(startIntent, toServiceConnection, 0);
 
@@ -186,6 +190,7 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         serviceTestRule.startService(startIntent);
         serviceTestRule.startService(startIntent);
 
@@ -220,5 +225,4 @@ public class BackgroundServiceTest {
         assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
                 is(equalTo(false)));
     }
-
 }

@@ -15,6 +15,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -51,12 +52,14 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
+import de.cyface.datacapturing.DistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.NoDeviceIdException;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
@@ -77,7 +80,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.6.0
+ * @version 5.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -130,7 +133,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * The strategy used to respond to selected events triggered by this service.
      */
-    private EventHandlingStrategy eventHandlingStrategy;
+    EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
+     */
+    DistanceCalculationStrategy distanceCalculationStrategy;
     /**
      * Meta information required for deserialization of {@link Point3dFile}s.
      */
@@ -139,6 +146,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     CapturingPersistenceBehaviour capturingBehaviour;
+    /**
+     * The last captured {@link GeoLocation} used to calculate the distance to the next {@code GeoLocation}.
+     */
+    private GeoLocation lastLocation = null;
+    private double lastDistance;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -214,11 +226,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     /**
-     * Sends an IPC message to interested parties that the service stopped itself. This must be called
-     * when the {@code stopSelf()} method is called on this service without a prior intent from the
-     * {@link DataCapturingService} to do so to unbind the {@link DataCapturingService}, e.g. from an
-     * {@link EventHandlingStrategy} implementation.
-     *
+     * Sends an IPC message to interested parties that the service stopped itself.
+     * <p>
+     * This method must be called when {@link #stopSelf()} is called on this service without a prior intent
+     * from the {@link DataCapturingService}. It must be called e.g. from an
+     * {@link EventHandlingStrategy#handleSpaceWarning(DataCapturingBackgroundService)} implementation
+     * to unbind the {@link DataCapturingBackgroundService} from the {@link DataCapturingService}.
+     * <p>
      * Attention: This method is very rarely executed and so be careful when you change it's logic.
      * The task for the missing test is CY-4111. Currently only tested manually.
      */
@@ -241,7 +255,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
-        Log.d(TAG, "Starting DataCapturingBackgroundService with intent: " + intent);
+        Log.v(TAG, "Starting DataCapturingBackgroundService");
 
         // Loads authority / persistence layer
         if (!intent.hasExtra(AUTHORITY_ID)) {
@@ -274,6 +288,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Validate.notNull(notificationManager);
         notificationManager.notify(NOTIFICATION_ID, notification);
 
+        // Loads DistanceCalculationStrategy
+        this.distanceCalculationStrategy = intent.getParcelableExtra(DISTANCE_CALCULATION_STRATEGY_ID);
+        Validate.notNull(distanceCalculationStrategy);
+
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
         if (measurementIdentifier == -1) {
@@ -281,9 +299,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         this.currentMeasurementIdentifier = measurementIdentifier;
 
-        // Restore PointMetaData (if the counters are larger than 0 we're resuming a measurement)
+        // Restore PointMetaData and distance (if the counters are larger than 0 we're resuming a measurement)
         try {
-            pointMetaData = persistenceLayer.loadPointMetaData(currentMeasurementIdentifier);
+            final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
+            pointMetaData = new PointMetaData(measurement.getAccelerations(), measurement.getRotations(),
+                    measurement.getDirections(), measurement.getFileFormatVersion());
+            lastDistance = measurement.getDistance();
         } catch (final CursorIsNullException e) {
             // because onStartCommand is called by Android so we can't throw soft exception.
             throw new IllegalStateException(e);
@@ -402,13 +423,24 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     @Override
-    public void onLocationCaptured(final @NonNull GeoLocation location) {
+    public void onLocationCaptured(final @NonNull GeoLocation newLocation) {
         Log.d(TAG, "Location captured");
-        informCaller(MessageCodes.LOCATION_CAPTURED, location);
-        capturingBehaviour.storeLocation(location, currentMeasurementIdentifier);
-        // TODO[STAD]: store last location, calculate distance to new location and update measurement.distance field
-        // add DistanceCalculationStrategy to onCreate which calculates the diff between the two locations
-        // use Android's Location.distanceTo(location)
+        informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
+        capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
+
+        // Update {@code Measurement#distance), {@code lastDistance} and {@code #lastLocation}, in this order!
+        if (lastLocation != null) {
+            final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
+            final double newDistance = lastDistance + distanceToAdd;
+            try {
+                capturingBehaviour.updateDistance(newDistance);
+            } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+                throw new IllegalStateException(e);
+            }
+            lastDistance = newDistance;
+            Log.d(TAG, "Distance updated: " + distanceToAdd);
+        }
+        this.lastLocation = newLocation;
 
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");

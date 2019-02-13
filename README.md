@@ -29,77 +29,145 @@ How to integrate the SDK
 * Define which Activity should be launched to request the user to log in 
 
 ```java
-CyfaceAuthenticator.LOGIN_ACTIVITY = LoginActivity.class;
+public class CustomApplication extends Application {
+    
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        CyfaceAuthenticator.LOGIN_ACTIVITY = LoginActivity.class;
+    }
+}
 ```
 
 * Start the DataCapturingService to communicate with the SDK
 
 ```java
-DataCapturingService dataCapturingService = new CyfaceDataCapturingService(...,
-AUTHORITY, ACCOUNT_TYPE, apiUrl, yourEventHandlingStrategyImplementation);
+public class MainFragment extends Fragment implements ConnectionStatusListener {
+    
+    @Nullable
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+        final Bundle savedInstanceState) {
+        DataCapturingService dataCapturingService = new CyfaceDataCapturingService(/*...,*/
+        AUTHORITY, ACCOUNT_TYPE, apiUrl, yourEventHandlingStrategyImplementation);
+    }
+}
 ```
 
 or
 
 ```java
-DataCapturingService dataCapturingService = MovebisDataCapturingService(context, 
-dataUploadServerAddress, uiListener, locationUpdateRate, customEventHandlingStrategy);
+
+public class MainFragment extends Fragment implements ConnectionStatusListener {
+    
+    @Nullable
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+        final Bundle savedInstanceState) {
+        DataCapturingService dataCapturingService = MovebisDataCapturingService(context, 
+        dataUploadServerAddress, uiListener, locationUpdateRate, customEventHandlingStrategy);
+    }
+}
 ```
 
 * Create an account for synchronization & start WifiSurveyor
 
 ```java
-public void startSynchronization(final Context context) {
-    final AccountManager accountManager = AccountManager.get(context);
-    final boolean validAccountExists = accountWithTokenExists(accountManager);
-
-    if (validAccountExists) {
+public class MainFragment extends Fragment implements ConnectionStatusListener {
+    
+    @Nullable
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
+        fragmentRoot = inflater.inflate(R.layout.fragment_capturing, container, false);
         try {
-            dataCapturingService.startWifiSurveyor();
-        } catch (SetupException e) {
+            dataCapturingService = new CyfaceDataCapturingService(fragmentRoot.getContext(),
+                    fragmentRoot.getContext().getContentResolver(), Constants.AUTHORITY, Constants.ACCOUNT_TYPE,
+                    BuildConfig.cyfaceServer, new EventHandlingStrategyImpl());
+            // Needs to be called after new CyfaceDataCapturingService() for the SDK to check and throw
+            // a specific exception when the LOGIN_ACTIVITY was not set from the SDK using app.
+            startSynchronization(fragmentRoot.getContext());
+            dataCapturingService.addConnectionStatusListener(this);
+        } catch (final SetupException | CursorIsNullException e) {
             throw new IllegalStateException(e);
         }
-        return;
     }
-
-    accountManager.addAccount(Constants.ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
-            getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
-                @Override
-                public void run(AccountManagerFuture<Bundle> future) {
-                    try {
-                        final Bundle bundle = future.getResult();
-                        setAccountAutoSyncable(context, true);
-
-                        dataCapturingService.startWifiSurveyor();
-                    } catch (OperationCanceledException e) {
-                        // This closes the app when the LoginActivity is closed
-                        getMainActivityFromContext(context).finish();
-                    } catch (AuthenticatorException | IOException | SetupException e) {
-                        throw new IllegalStateException(e);
+    
+    @SuppressWarnings("WeakerAccess")
+    public void startSynchronization(final Context context) {
+        final AccountManager accountManager = AccountManager.get(context);
+        final boolean validAccountExists = accountWithTokenExists(accountManager);
+    
+        if (validAccountExists) {
+            try {
+                dataCapturingService.startWifiSurveyor();
+            } catch (SetupException e) {
+                throw new IllegalStateException(e);
+            }
+            return;
+        }
+    
+        accountManager.addAccount(Constants.ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
+                getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
+                    @Override
+                    public void run(AccountManagerFuture<Bundle> future) {
+                        try {
+                            final Bundle bundle = future.getResult();
+                            setAccountAutoSyncable(context, true);
+    
+                            dataCapturingService.startWifiSurveyor();
+                        } catch (OperationCanceledException e) {
+                            // This closes the app when the LoginActivity is closed
+                            getMainActivityFromContext(context).finish();
+                        } catch (AuthenticatorException | IOException | SetupException e) {
+                            throw new IllegalStateException(e);
+                        }
                     }
-                }
-            }, null);
-}
-
-private static boolean accountWithTokenExists(final AccountManager accountManager) {
-    final Account[] existingAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
-    Validate.isTrue(existingAccounts.length < 2, "More than one account exists.");
-    return existingAccounts.length != 0
-            && accountManager.peekAuthToken(existingAccounts[0], AUTH_TOKEN_TYPE) != null;
+                }, null);
+    }
+    
+    private static boolean accountWithTokenExists(final AccountManager accountManager) {
+        final Account[] existingAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        Validate.isTrue(existingAccounts.length < 2, "More than one account exists.");
+        return existingAccounts.length != 0
+                && accountManager.peekAuthToken(existingAccounts[0], AUTH_TOKEN_TYPE) != null;
+    }
 }
 ```
           
 * Start / stop Capturing and register your implementation of a DataCapturingListener
 
 ```java
-dataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {...});
-dataCapturingService.stop(new ShutDownFinishedHandler() {..});
+public class DataCapturingButton implements AbstractButton, DataCapturingListener {
+    
+    @Override
+    public void onClick(View view) {
+        dataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {/*...*/});
+        dataCapturingService.stop(new ShutDownFinishedHandler() {/*...*/});
+    }
+}
 ```
 
 * To check if the capturing is running  
 
 ```java
-dataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {});
+public class DataCapturingButton implements AbstractButton, DataCapturingListener {
+    
+    @Override
+    public void onCreateView(final ImageButton button, final DonutProgress ISNULL) {
+        dataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {
+            @Override
+            public void isRunning() {
+                setButtonStatus(button, true);
+            }
+            @Override
+            public void timedOut() {
+                setButtonStatus(button, false);
+            }            
+        });
+        
+    }
+}
 ```
 
 ### Provide a custom Capturing Notification
@@ -108,23 +176,29 @@ The Cyface data capturing runs as such a service and thus needs to display such 
 Applications using the Cyface SDK may configure style and behaviour of this notification by providing an implementation of `de.cyface.datacapturing.EventHandlingStrategy` to the constructor of the `de.cyface.datacapturing.DataCapturingService`.
 An example implementation is provided by `de.cyface.datacapturing.IgnoreEventsStrategy`.
 The most important step is to implement the method `de.cyface.datacapturing.EventHandlingStrategy#buildCapturingNotification(DataCapturingBackgroundService)`.
-This can look like:
-```java
-@Override
-public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
-  final String channelId = "channel";
-  NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-  if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(channelId)==null) {
-    final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
-    notificationManager.createNotificationChannel(channel);
-  }
 
-  return new NotificationCompat.Builder(context, channelId)
-    .setContentTitle("Cyface")
-    .setContentText("Running Data Capturing")
-    .setOngoing(true)
-    .setAutoCancel(false)
-    .build();
+This can look like:
+
+```java
+public class EventHandlingStrategyImpl implements EventHandlingStrategy {
+    
+    @Override
+    public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
+      final String channelId = "channel";
+      NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(channelId)==null) {
+        final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
+        notificationManager.createNotificationChannel(channel);
+      }
+    
+      return new NotificationCompat.Builder(context, channelId)
+        .setContentTitle("Cyface")
+        .setSmallIcon(R.drawable.your_icon)
+        .setContentText("Running Data Capturing")
+        .setOngoing(true)
+        .setAutoCancel(false)
+        .build();
+    }
 }
 ```
 
@@ -135,6 +209,81 @@ The most likely adaptation an application using the Cyface SDK for Android shoul
 This identifier is 74.656.
 Due to limitations in the Android framework, this is not configurable.
 You must not use the same notification identifier for any other notification displayed by your app!
+
+
+### Get details on (ongoing) measurements
+You can manage measurements via the `PersistenceLayer<DefaultPersistenceBehaviour>`:
+
+```java
+public class MeasurementOverviewFragment extends Fragment {
+    
+    private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+    
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
+        persistenceLayer = new PersistenceLayer<>(inflater.getContext(), inflater.getContext().getContentResolver(),
+                AUTHORITY, new DefaultPersistenceBehaviour());
+    }
+    
+    private void deleteMeasurement(final long measurementId) throws CursorIsNullException {
+        
+        // To make sure you don't delete the ongoing measurement because this leads to an exception
+        Measurement currentlyCapturedMeasurement;
+        try {
+            currentlyCapturedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        } catch (NoSuchMeasurementException e) {
+            // do nothing
+        }
+        
+        if (currentlyCapturedMeasurement == null || currentlyCapturedMeasurement.getIdentifier() != measurementId) {
+            new DeleteFromDBTask()
+                    .execute(new DeleteFromDBTaskParams(persistenceLayer, this, measurementId));
+        } else {
+            Log.d(TAG, "Not deleting currently captured measurement: " + measurementId);
+        }
+    }
+
+    private static class DeleteFromDBTaskParams {
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+        final long measurementId;
+
+        DeleteFromDBTaskParams(final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer,
+                final long measurementId) {
+            this.persistenceLayer = persistenceLayer;
+            this.measurementId = measurementId;
+        }
+    }
+
+    private class DeleteFromDBTask extends AsyncTask<DeleteFromDBTaskParams, Void, Void> {
+        protected Void doInBackground(final DeleteFromDBTaskParams... params) {
+            final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = params[0].persistenceLayer;
+            final long measurementId = params[0].measurementId;
+            persistenceLayer.delete(measurementId);
+        }
+
+        protected void onPostExecute(Void v) {
+            // Your logic
+        }
+    }
+}
+```
+
+When you only have the id of a measurement and need the `Measurement` object please use `persistenceLayer.loadMeasurement(mid)`
+to load the measurement with its metadata from the database.
+
+* **ATTENTION** The metadata of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
+measurements is only valid in the moment it's loaded from the database. Changes
+after this call are not pushed into the `Measurement` object returned by this call.
+In order to display the distance for an ongoing measurement (which changes about each second)
+make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` on each location
+update to always have the correct distance. Implement the `DataCapturingListener`
+interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
+
+* The metadata also contains the **distance** of the measurement based on the GeoLocations captured.
+
+* To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
+
 
 ### TODO: add code sample for the usage of:
 

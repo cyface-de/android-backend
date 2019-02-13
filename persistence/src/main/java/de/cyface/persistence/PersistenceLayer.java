@@ -4,11 +4,13 @@ import static android.provider.BaseColumns._ID;
 import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_ACCELERATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
+import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_ROTATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 
 import java.io.File;
@@ -24,7 +26,6 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
-
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -43,7 +44,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.0
+ * @version 10.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -71,8 +72,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     private FileAccessLayer fileAccessLayer;
 
     /**
-     * This constructor is only for testing. It's required by the {@code DataCapturingLocalTest} to be able to
-     * {@link @Spy} on this object.
+     * <b>This constructor is only for testing.</b>
+     * <p>
+     * It's required by the {@code DataCapturingLocalTest} to be able to {@link @Spy} on this object.
      */
     public PersistenceLayer() {
         this.context = null;
@@ -123,6 +125,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Creates a new, {@link MeasurementStatus#OPEN} {@link Measurement} for the provided {@link Vehicle}.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
      * @param vehicle The {@code Vehicle} to create a new {@code Measurement} for.
      * @return The newly created {@code Measurement}.
@@ -136,6 +140,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         measurementValues.put(COLUMN_DIRECTIONS, 0);
         measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+        measurementValues.put(COLUMN_DISTANCE, 0.0);
 
         // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
@@ -145,7 +150,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
             final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
-            return new Measurement(measurementId);
+            return new Measurement(measurementId, OPEN, vehicle, 0, 0, 0,
+                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0);
         }
     }
 
@@ -180,12 +186,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Returns all {@link Measurement}s. If you only want measurements of a specific {@link MeasurementStatus} call
+     * Returns all {@link Measurement}s, no matter the current {@link MeasurementStatus}.
+     * If you only want measurements of a specific {@link MeasurementStatus} call
      * {@link #loadMeasurements(MeasurementStatus)} instead.
      *
-     * @return All {@code Measurement}s currently in the local persistent data storage.
+     * @return A list containing all {@code Measurement}s currently stored on this device by this application. An empty
+     *         list if there are no such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings({"unused"}) // Used by cyface flavour tests and possibly by implementing apps
     public @NonNull List<Measurement> loadMeasurements() throws CursorIsNullException {
         Cursor cursor = null;
         try {
@@ -194,8 +203,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             Validate.softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
-                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
-                ret.add(new Measurement(measurementIdentifier));
+                final Measurement measurement = loadMeasurement(cursor);
+                ret.add(measurement);
             }
 
             return ret;
@@ -207,12 +216,37 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
+     * Loads a {@link Measurement} objects from a {@link Cursor} which points to a {@code Measurement}.
+     *
+     * @param cursor a {@code Cursor} which points to a {@code Measurement}
+     * @return the {@code Measurement} of the {@code Cursor}
+     */
+    private Measurement loadMeasurement(@NonNull final Cursor cursor) {
+        final long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
+        final MeasurementStatus status = MeasurementStatus
+                .valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
+        final Vehicle vehicle = Vehicle.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_VEHICLE)));
+        final int accelerations = cursor.getInt(cursor.getColumnIndex(COLUMN_ACCELERATIONS));
+        final int rotations = cursor.getInt(cursor.getColumnIndex(COLUMN_ROTATIONS));
+        final int directions = cursor.getInt(cursor.getColumnIndex(COLUMN_DIRECTIONS));
+        final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
+        final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
+        return new Measurement(measurementIdentifier, status, vehicle, accelerations, rotations, directions,
+                fileFormatVersion, distance);
+    }
+
+    /**
      * Provide one specific {@link Measurement} from the data storage if it exists.
+     *
+     * Attention: At the loaded {@code Measurement} object and the persistent version of it in the
+     * {@link PersistenceLayer} are not directly connected the loaded object is not notified when
+     * the it's counterpart in the {@code PersistenceLayer} is changed (e.g. the {@link MeasurementStatus}).
      *
      * @param measurementIdentifier The device wide unique identifier of the {@code Measurement} to load.
      * @return The loaded {@code Measurement} if it exists; <code>null</code> otherwise.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to load single measurements
     public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
         final Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier))
                 .build();
@@ -227,7 +261,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
 
             if (cursor.moveToFirst()) {
-                return new Measurement(measurementIdentifier);
+                return loadMeasurement(cursor);
             } else {
                 return null;
             }
@@ -239,7 +273,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Provide the {@link MeasurementStatus} of one specific measurement from the data storage.
+     * Provide the {@link MeasurementStatus} of one specific {@link Measurement} from the data storage.
+     * <p>
+     * <b>ATTENTION:</b> Please be aware that the returned status is only valid at the time this
+     * method is called. Changes of the {@code MeasurementStatus} in the persistence layer are not pushed
+     * to the {@code MeasurementStatus} returned by this method.
      *
      * @param measurementIdentifier The device wide unique identifier of the measurement to load.
      * @return The loaded {@code MeasurementStatus}
@@ -270,13 +308,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads all {@link Measurement} which are in a specific {@link MeasurementStatus} from the local persistent data
+     * Loads all {@link Measurement} which are in a specific {@link MeasurementStatus} from the data
      * storage.
      *
      * @param status the {@code MeasurementStatus} for which all {@code Measurement}s are to be loaded
-     * @return All the {code Measurement}s in the specified {@param state}
+     * @return All the {code Measurement}s in the specified {@param state}. An empty list if there are no
+     *         such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
+    @SuppressWarnings("unused") // Implementing apps (SR) use this api to load the finished measurements
     public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) throws CursorIsNullException {
         Cursor cursor = null;
 
@@ -287,8 +327,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             Validate.softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
-                long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
-                measurements.add(new Measurement(measurementIdentifier));
+                final Measurement measurement = loadMeasurement(cursor);
+                measurements.add(measurement);
             }
 
             return measurements;
@@ -300,36 +340,37 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as
-     * {@link MeasurementStatus#SYNCED} and deletes the sensor data but does not update the pointMetaDate in the
-     * measurement!
+     * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as {@link MeasurementStatus#SYNCED} and deletes
+     * the sensor data but does not update the {@link PointMetaData} in the {@link Measurement}!
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
-     * @param measurement The measurement to remove.
+     * @param measurement The {@link Measurement} to remove.
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
      */
-    public void markAsSynchronized(@NonNull final Measurement measurement)
+    public void markAsSynchronized(final Measurement measurement)
             throws NoSuchMeasurementException, CursorIsNullException {
-        Validate.isTrue(loadMeasurementStatus(measurement.getIdentifier()) == FINISHED);
-        setStatus(measurement.getIdentifier(), SYNCED);
 
-        // TODO: for movebis we only delete sensor data not GeoLocations (+move to synchronized)
-        // how do we want to handle this on Cyface ?
-        final PointMetaData pointMetaData = loadPointMetaData(measurement.getIdentifier());
+        // The status in the database could be different from the one in the object so load it again
+        final long measurementId = measurement.getIdentifier();
+        Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
+        setStatus(measurementId, SYNCED);
 
-        if (pointMetaData.getAccelerationPointCounter() > 0) {
-            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+        // TODO: implement cyface variant where not only sensor data but also GeoLocations are deleted
+        if (measurement.getAccelerations() > 0) {
+            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
             Validate.isTrue(accelerationFile.delete());
         }
 
-        if (pointMetaData.getRotationPointCounter() > 0) {
-            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+        if (measurement.getRotations() > 0) {
+            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
             Validate.isTrue(rotationFile.delete());
         }
 
-        if (pointMetaData.getDirectionPointCounter() > 0) {
-            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+        if (measurement.getDirections() > 0) {
+            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
             Validate.isTrue(directionFile.delete());
         }
@@ -338,6 +379,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * We want to make sure the device id is stored at the same location as the next measurement id counter.
      * This way we ensure ether both or none of both is reset upon re-installation or app reset.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK. Use
+     * {@code DataCapturingService#getDeviceIdentifier()} instead.
      *
      * @return The device is as string
      */
@@ -358,6 +402,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Loads the device identifier from the persistence layer.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK. Use
+     * {@code DataCapturingService#getDeviceIdentifier()} instead.
      *
      * @return The device is as string
      * @throws CursorIsNullException when accessing the {@link ContentProvider} failed
@@ -397,35 +444,31 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * Removes one {@link Measurement} from the local persistent data storage.
      *
-     * @param measurement The {@code Measurement} to remove.
-     * @throws NoSuchMeasurementException If the provided measurement was <code>null</code>.
+     * @param measurementIdentifier The id of the {@code Measurement} to remove.
      */
-    public void delete(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        if (measurement == null) { // FIXME: do we need to support this for RM? if so, annotate this here with
-                                   // //noinspection
-            throw new NoSuchMeasurementException("Unable to delete null measurement!");
-        }
+    @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to delete measurements
+    public void delete(final long measurementIdentifier) {
 
         // Delete {@link Point3dFile}s if existent
         final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
         final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
         final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
         if (accelerationFolder.exists()) {
-            final File accelerationFile = fileAccessLayer.getFilePath(context, measurement.getIdentifier(),
+            final File accelerationFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
             if (accelerationFile.exists()) {
                 Validate.isTrue(accelerationFile.delete());
             }
         }
         if (rotationFolder.exists()) {
-            final File rotationFile = fileAccessLayer.getFilePath(context, measurement.getIdentifier(),
+            final File rotationFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
                     Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
             if (rotationFile.exists()) {
                 Validate.isTrue(rotationFile.delete());
             }
         }
         if (directionFolder.exists()) {
-            final File directionFile = fileAccessLayer.getFilePath(context, measurement.getIdentifier(),
+            final File directionFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
             if (directionFile.exists()) {
                 Validate.isTrue(directionFile.delete());
@@ -434,32 +477,31 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         // Delete {@link GeoLocation}s and {@link Measurement} entry from database
         resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurement.getIdentifier()).toString()});
-        resolver.delete(getMeasurementUri(), _ID + "=?",
-                new String[] {Long.valueOf(measurement.getIdentifier()).toString()});
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
     }
 
     /**
-     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}.
+     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}. This method loads the
+     * complete track into memory. For large tracks this could slow down the device or even reach the applications
+     * memory limit.
      *
      * TODO [#CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
      *
-     * @param measurement The {@code Measurement} to load the track for.
-     * @return The loaded track of <code>GeoLocation</code> objects ordered by time ascending or an empty list if
-     *         accessing the content provider fails which should hardly ever happen.
-     * @throws NoSuchMeasurementException If the provided {@param Measurement} was <code>null</code>.
+     * TODO provide a custom list implementation that loads only small portions into memory.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)
+     *         {@code GeoLocation}s.
      */
-    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        if (measurement == null) {// FIXME: do we need to support this for RM? if so, annotate this here with
-            // //noinspection
-            throw new NoSuchMeasurementException("Unable to load track for null measurement!");
-        }
+    @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
+    public List<GeoLocation> loadTrack(final long measurementIdentifier) {
 
         Cursor cursor = null;
         try {
             cursor = resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()},
+                    new String[] {Long.valueOf(measurementIdentifier).toString()},
                     GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
             if (cursor == null) {
                 return Collections.emptyList();
@@ -485,6 +527,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * This method cleans up when the persistence layer is no longer needed by the caller.
+     * <p>
+     * <b>ATTENTION:</b> This method is called automatically and should not be called from outside the SDK.
      */
     public void shutdown() {
         persistenceBehaviour.shutdown();
@@ -492,6 +536,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider {@link Uri} for the {@link MeasurementTable}.
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     @SuppressWarnings("WeakerAccess") // Because this is used to view measurements in an SDK implementing app
     public Uri getMeasurementUri() {
@@ -500,6 +546,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider {@link Uri} for the {@link GeoLocationsTable}.
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     public Uri getGeoLocationsUri() {
         return Utils.getGeoLocationsUri(authority);
@@ -507,6 +555,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider URI for the {@link IdentifierTable}
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     private Uri getIdentifierUri() {
         return Utils.getIdentifierUri(authority);
@@ -517,6 +567,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} in the {@link Measurement} to make sure we can
      * deserialize the {@link Point3dFile}s with deprecated {@code PERSISTENCE_FILE_FORMAT_VERSION}s. This also could
      * avoid corrupting {@code Point3dFile}s when the last bytes could not be written successfully.
+     * <p>
+     * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
      * @param pointMetaData The {@code Point3dFile} meta information required for deserialization
      * @param measurementId The id of the measurement associated with the {@link PointMetaData}
@@ -537,41 +589,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads the {@code PointMetaData} for a specific measurement, e.g. to resume the capturing.
-     *
-     * @param measurementId The id of the measurement to load the {@code PointMetaData} for
-     * @return the requested {@link PointMetaData}
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    public PointMetaData loadPointMetaData(final long measurementId) throws CursorIsNullException {
-        Cursor cursor = null;
-        try {
-            cursor = resolver.query(getMeasurementUri(),
-                    new String[] {COLUMN_ACCELERATIONS, COLUMN_ROTATIONS, COLUMN_DIRECTIONS,
-                            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION},
-                    _ID + "=?", new String[] {String.valueOf(measurementId)}, null);
-            Validate.softCatchNullCursor(cursor);
-            Validate.isTrue(cursor.moveToNext(),
-                    "Failed to load PointMetaData for non existent measurement" + measurementId);
-
-            final int accelerations = cursor.getInt(cursor.getColumnIndex(COLUMN_ACCELERATIONS));
-            final int rotations = cursor.getInt(cursor.getColumnIndex(COLUMN_ROTATIONS));
-            final int directions = cursor.getInt(cursor.getColumnIndex(COLUMN_DIRECTIONS));
-            final short persistenceFileFormatVersion = cursor
-                    .getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
-            return new PointMetaData(accelerations, rotations, directions, persistenceFileFormatVersion);
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
-    /**
      * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
      * {@link PersistenceLayer}.
-     *
-     * This is a public api which can be used by SDK implementing apps.
      *
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
@@ -579,14 +598,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @return the currently captured {@link Measurement}
      */
+    @SuppressWarnings("unused") // Implementing apps use this to get the ongoing measurement info
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         return persistenceBehaviour.loadCurrentlyCapturedMeasurement();
     }
 
     /**
      * Loads the currently captured {@link Measurement} explicitly from the {@link PersistenceLayer}.
-     *
-     * SDK implementing app should use the {@link #loadCurrentlyCapturedMeasurement} instead.
+     * <p>
+     * <b>ATTENTION:</b> SDK implementing apps should use {@link #loadCurrentlyCapturedMeasurement()} instead.
      *
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
@@ -612,23 +632,23 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Updates the {@link MeasurementStatus} in the data persistence layer.
+     * <p>
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newStatus The new {@code MeasurementStatus}
-     * @throws NoSuchMeasurementException if there was no measurement with the id {@param measurementIdentifier}.
+     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
+     *             {@param measurementIdentifier}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
             throws NoSuchMeasurementException, CursorIsNullException {
-        final ContentValues statusValue = new ContentValues();
-        statusValue.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
 
-        int updatedRows = resolver.update(getMeasurementUri(), statusValue, _ID + "=" + measurementIdentifier, null);
-        Validate.isTrue(updatedRows < 2, "Duplicate measurement id entries.");
-        if (updatedRows == 0) {
-            throw new NoSuchMeasurementException("The measurement could not be updated as it does not exist.");
-        }
+        final ContentValues values = new ContentValues();
+        values.put(COLUMN_STATUS, newStatus.getDatabaseIdentifier());
+        updateMeasurement(measurementIdentifier, values);
 
+        // Make sure the database state **after** the status update is still valid
         switch (newStatus) {
             case OPEN:
                 Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
@@ -649,18 +669,69 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Log.d(TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
     }
 
+    /**
+     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
+     * <p>
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
+     *
+     * @param measurementIdentifier The id of the {@link Measurement} to be updated
+     * @param newDistance The new {@code Measurement#distance} to be stored.
+     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
+     *             {@param measurementIdentifier}.
+     */
+    public void setDistance(final long measurementIdentifier, final double newDistance)
+            throws NoSuchMeasurementException {
+        final ContentValues values = new ContentValues();
+        values.put(COLUMN_DISTANCE, newDistance);
+        updateMeasurement(measurementIdentifier, values);
+    }
+
+    /**
+     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
+     *
+     * @param measurementIdentifier The id of the {@link Measurement} to be updated
+     * @param values The new {@link ContentValues} to be stored.
+     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
+     *             {@param measurementIdentifier}.
+     */
+    private void updateMeasurement(final long measurementIdentifier, @NonNull final ContentValues values)
+            throws NoSuchMeasurementException {
+
+        final int updatedRows = resolver.update(getMeasurementUri(), values, _ID + "=" + measurementIdentifier, null);
+        Validate.isTrue(updatedRows < 2, "Duplicate measurement id entries.");
+        if (updatedRows == 0) {
+            throw new NoSuchMeasurementException("The measurement could not be updated as it does not exist.");
+        }
+    }
+
+    /**
+     * @return the {@link #context}
+     */
     public Context getContext() {
         return context;
     }
 
+    /**
+     * @return the {@link #resolver}
+     */
     public ContentResolver getResolver() {
         return resolver;
     }
 
+    /**
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
+     *
+     * @return the {@link #fileAccessLayer}
+     */
     public FileAccessLayer getFileAccessLayer() {
         return fileAccessLayer;
     }
 
+    /**
+     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
+     *
+     * @return the {@link #persistenceBehaviour}
+     */
     public B getPersistenceBehaviour() {
         return persistenceBehaviour;
     }

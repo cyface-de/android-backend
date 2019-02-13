@@ -13,6 +13,7 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
@@ -34,13 +35,13 @@ import de.cyface.utils.CursorIsNullException;
  * <code>ACCESS_COARSE_LOCATION</code> and <code>ACCESS_FINE_LOCATION</code> permission requests.
  * <p>
  * Before you try to measure any data you should provide a valid JWT auth token for data synchronization. You may do
- * this using {@link #registerJWTAuthToken(String, String)} with a token for a certain username. For anonymization it
+ * this using {@link #registerJWTAuthToken(String, String)} with a token for a certain username. To anonymize the user
  * is ok to use some garbage username here. If a user is no longer required, you can deregister it using
  * {@link #deregisterJWTAuthToken(String)}.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.1
+ * @version 6.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -115,7 +116,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
     /**
      * Creates a new completely initialized {@link MovebisDataCapturingService}.
      * This variant is required to test the ContentProvider.
-     *
+     * <p>
      * ATTENTION: This constructor is only for testing to be able to inject authority and account type. Use
      * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
      * instead.
@@ -140,8 +141,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
             final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
             final @NonNull UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
-        super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy, new PersistenceLayer<>(
-                context, context.getContentResolver(), authority, new CapturingPersistenceBehaviour()));
+        super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+                new PersistenceLayer<>(context, context.getContentResolver(), authority,
+                        new CapturingPersistenceBehaviour()),
+                new DefaultDistanceCalculationStrategy());
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

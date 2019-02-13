@@ -4,10 +4,11 @@ package de.cyface.synchronization;
  * Contains constants and utility methods required during testing.
  *
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.1.0
  */
-final class TestUtils {
+public final class TestUtils {
+
     /**
      * The content provider authority used for testing.
      */

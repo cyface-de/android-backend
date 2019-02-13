@@ -1,14 +1,17 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
+import static de.cyface.datacapturing.backend.TestUtils.generateGeoLocation;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.Matchers.any;
 import static org.mockito.Matchers.eq;
 import static org.mockito.Mockito.doNothing;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
+import static org.mockito.Mockito.when;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -17,26 +20,36 @@ import java.util.Random;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
+import org.junit.runner.RunWith;
 import org.mockito.ArgumentCaptor;
 import org.mockito.Mock;
 import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
+import org.robolectric.RobolectricTestRunner;
 
+import android.os.Parcelable;
+import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
+import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.utils.CursorIsNullException;
 
 /**
- * Tests the inner workings of the data capturing without any calls to the Android system. Uses fake data.
+ * Tests the inner workings of the {@link DataCapturingBackgroundService} without any calls to the Android system. Uses
+ * fake data.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 2.2.1
  * @since 2.0.0
  */
+@RunWith(RobolectricTestRunner.class)
 public class DataCapturingLocalTest {
 
     /**
@@ -70,6 +83,12 @@ public class DataCapturingLocalTest {
     @Mock
     PointMetaData mockPointMetaData;
 
+    @Mock
+    DefaultDistanceCalculationStrategy distanceCalculationStrategy;
+
+    @Mock
+    EventHandlingStrategy mockEventHandlingStrategy;
+
     @Before
     public void setUp() {
 
@@ -77,6 +96,40 @@ public class DataCapturingLocalTest {
         oocut.persistenceLayer = mockPersistence;
         oocut.capturingBehaviour = mockBehaviour;
         oocut.pointMetaData = mockPointMetaData;
+        oocut.eventHandlingStrategy = mockEventHandlingStrategy;
+        oocut.distanceCalculationStrategy = distanceCalculationStrategy;
+    }
+
+    /**
+     * This test case checks the internal workings of the onLocationCaptured method.
+     *
+     * @throws CursorIsNullException when the content provider is not accessible
+     */
+    @Test
+    public void testOnLocationCapturedDistanceCalculation() throws CursorIsNullException, NoSuchMeasurementException {
+
+        // Arrange
+        final int base = 0;
+        final int expectedDistance = 2;
+        GeoLocation location1 = generateGeoLocation(base);
+        GeoLocation location2 = generateGeoLocation(base + expectedDistance);
+        GeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+
+        // Mock
+        when(distanceCalculationStrategy.calculateDistance(location1, location2))
+                .thenReturn(Double.valueOf(expectedDistance));
+        when(distanceCalculationStrategy.calculateDistance(location2, location3))
+                .thenReturn(Double.valueOf(expectedDistance));
+        doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
+
+        // Act
+        oocut.onLocationCaptured(location1);
+        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3); // Now the two distances should be added
+
+        // Assert
+        verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
+        verify(mockBehaviour, times(1)).updateDistance(2 * expectedDistance);
     }
 
     /**

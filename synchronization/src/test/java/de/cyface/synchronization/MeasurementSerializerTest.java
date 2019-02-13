@@ -1,6 +1,7 @@
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.KITKAT;
+import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
@@ -50,7 +51,7 @@ import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -60,7 +61,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -116,8 +117,9 @@ public class MeasurementSerializerTest {
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 
         // Mock point counters
-        when(persistence.loadPointMetaData(anyLong())).thenReturn(new PointMetaData(samplePoint3ds, samplePoint3ds,
-                samplePoint3ds, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION));
+        final Measurement measurement = new Measurement(1, OPEN, Vehicle.UNKNOWN, samplePoint3ds, samplePoint3ds,
+                samplePoint3ds, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0);
+        when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
         when(geoLocationsCursor.getCount()).thenReturn(sampleGeoLocations);
 
