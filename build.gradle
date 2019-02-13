@@ -4,7 +4,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.2
+ * @version 2.2.3
  * @since 1.0.0
  */
 
@@ -32,7 +32,7 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "3.1.0"
+    version = "3.2.0"
 
     minSdkVersion = 16
     targetSdkVersion = 28
@@ -93,19 +93,12 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
 
         publishing {
             publications {
-                "${project.name}-mock"(MavenPublication) {
-                    groupId project.group
-                    artifactId "${project.name}-mock"
-                    version android.defaultConfig.versionName
-                    artifact(sourceJar)
-                    artifact("$buildDir/outputs/aar/${project.name}-mock-release.aar")
-                }
                 "${project.name}-full"(MavenPublication) {
                     groupId project.group
                     artifactId "${project.name}"
                     version android.defaultConfig.versionName
                     artifact(sourceJar)
-                    artifact("$buildDir/outputs/aar/${project.name}-full-release.aar")
+                    artifact("$buildDir/outputs/aar/${project.name}.aar")
                 }
             }
             repositories {
