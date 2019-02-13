@@ -28,7 +28,6 @@ public final class DefaultFileAccess implements FileAccessLayer {
     public void writeToOutputStream(@NonNull final File file,
             @NonNull final BufferedOutputStream bufferedOutputStream) {
 
-        System.out.println("I AM IN writeToOutputStream(accelerationFile, ...)");
         final FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(file);
