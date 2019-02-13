@@ -29,7 +29,7 @@ import de.cyface.utils.Validate;
  * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is used to capture a {@link Measurement}s.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 2.0.0
  * @since 3.0.0
  */
 public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
@@ -176,8 +176,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                         "Trying to load measurement identifier while no measurement was open or paused!");
             }
 
-            // TODO [STAD] we need to load the measurement now from the database to have the most recent meta fields
-            return new Measurement(currentMeasurementIdentifier);
+            return persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
         }
     }
 
@@ -224,6 +223,23 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                     currentMeasurementIdentifier = null;
                 }
             }
+        }
+    }
+
+    /**
+     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     *
+     * @param newDistance The new distance value to be stored.
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    public void updateDistance(final double newDistance) throws NoSuchMeasurementException, CursorIsNullException {
+        Validate.isTrue(newDistance >= 0.0);
+
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
+
+        synchronized (this) {
+            persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance);
         }
     }
 }

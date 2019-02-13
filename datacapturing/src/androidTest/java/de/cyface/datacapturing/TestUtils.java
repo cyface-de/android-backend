@@ -11,10 +11,11 @@ import androidx.test.platform.app.InstrumentationRegistry;
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Armin Schnabel
- * @version 1.1.7
+ * @version 1.1.8
  * @since 2.0.0
  */
 public class TestUtils {
+
     /**
      * The tag used to identify log messages send to logcat.
      */

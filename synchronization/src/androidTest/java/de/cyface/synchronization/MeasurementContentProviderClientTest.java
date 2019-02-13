@@ -37,7 +37,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -83,6 +83,7 @@ public class MeasurementContentProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+            measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
             Validate.notNull("Measurement insertion failed!", result);
             Validate.notNull(result.getLastPathSegment());
@@ -164,6 +165,7 @@ public class MeasurementContentProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+            measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
 
             // Insert test measurement
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);

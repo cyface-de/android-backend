@@ -32,11 +32,11 @@ import android.content.Context;
 import android.database.Cursor;
 import android.provider.BaseColumns;
 import android.util.Log;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
-import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DefaultFileAccess;
@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.3.3
+ * @version 5.3.4
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -160,6 +160,7 @@ public class CapturedDataWriterTest {
             assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_DIRECTIONS)), is(equalTo(0)));
             assertThat(result.getShort(result.getColumnIndex(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
                     is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
+            assertThat(result.getDouble(result.getColumnIndex(MeasurementTable.COLUMN_DISTANCE)), is(equalTo(0.0)));
 
         } finally {
             if (result != null) {
@@ -367,12 +368,9 @@ public class CapturedDataWriterTest {
     /**
      * Tests whether loading {@link Measurement}s from the data storage via <code>PersistenceLayer</code> is
      * working as expected.
-     *
-     * @throws NoSuchMeasurementException If the test measurement was null for some reason. This should only happen if
-     *             there was a very serious database error.
      */
     @Test
-    public void testLoadMeasurements() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testLoadMeasurements() throws CursorIsNullException {
         oocut.newMeasurement(Vehicle.UNKNOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
@@ -380,18 +378,15 @@ public class CapturedDataWriterTest {
         assertThat(loadedMeasurements.size(), is(equalTo(2)));
 
         for (Measurement measurement : loadedMeasurements) {
-            oocut.delete(measurement);
+            oocut.delete(measurement.getIdentifier());
         }
     }
 
     /**
      * Tests whether deleting a measurement actually remove that measurement together with all corresponding data.
-     *
-     * @throws NoSuchMeasurementException If the test measurement was null for some reason. This should only happen if
-     *             there was a very serious database error.
      */
     @Test
-    public void testDeleteMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testDeleteMeasurement() throws CursorIsNullException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
         final Lock lock = new ReentrantLock();
@@ -420,7 +415,7 @@ public class CapturedDataWriterTest {
         }
 
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
-        oocut.delete(measurement);
+        oocut.delete(measurement.getIdentifier());
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
 
@@ -444,17 +439,16 @@ public class CapturedDataWriterTest {
     /**
      * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
      *
-     * @throws NoSuchMeasurementException if the created measurement is null for some unexpected reason.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack() throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
+    public void testLoadTrack() throws CursorIsNullException {
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement loadedMeasurement : measurements) {
-            assertThat(oocut.loadTrack(loadedMeasurement).size(), is(equalTo(1)));
+            assertThat(oocut.loadTrack(loadedMeasurement.getIdentifier()).size(), is(equalTo(1)));
         }
     }
 

@@ -2,7 +2,7 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
-
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
@@ -14,13 +14,13 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.4.1
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
     /**
-     * The path segment in the table URI identifying the measurements table.
+     * The path segment in the table URI identifying the {@link MeasurementTable}.
      */
     static final String URI_PATH = "measurements";
     /**
@@ -51,10 +51,14 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
     /**
+     * Column name for the distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
+     */
+    public static final String COLUMN_DISTANCE = "distance";
+    /**
      * An array containing all columns from this table in default order.
      */
     private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_VEHICLE, COLUMN_ACCELERATIONS,
-            COLUMN_ROTATIONS, COLUMN_DIRECTIONS, COLUMN_PERSISTENCE_FILE_FORMAT_VERSION};
+            COLUMN_ROTATIONS, COLUMN_DIRECTIONS, COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE};
 
     /**
      * Creates a new completely initialized {@code MeasurementTable} using the name {@link #URI_PATH}.
@@ -68,7 +72,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, " + COLUMN_ACCELERATIONS
                 + " INTEGER NOT NULL, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
-                + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " SHORT INTEGER NOT NULL);";
+                + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " SHORT INTEGER NOT NULL, "
+                + COLUMN_DISTANCE + " REAL NOT NULL);";
     }
 
     /**
@@ -79,7 +84,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
 
-        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
         switch (oldVersion) {
             case 8:
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
@@ -91,6 +95,11 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 database.execSQL("DELETE FROM measurement;");
                 database.execSQL("DROP TABLE measurement;");
                 onCreate(database);
+                break; // As always the newest onCreate() is used, there is no need for further upgrades!
+            case 10:
+                // When there are already measurement entries during update we need a default value
+                database.execSQL(
+                        "ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL DEFAULT 0.0;");
                 // continues with the next incremental upgrade until return ! -->
         }
 

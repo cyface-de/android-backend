@@ -39,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.2
+ * @version 1.5.1
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -173,8 +173,8 @@ public class PersistenceLayerTest {
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
+                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Create a synchronized measurement
         insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer);
@@ -190,5 +190,30 @@ public class PersistenceLayerTest {
         final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
         assertThat(loadedMeasurements.size(), is(1));
         assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
+    }
+
+    /**
+     * Test that updating the distance in the {@link PersistenceLayer} during capturing works as expected.
+     *
+     * @throws NoSuchMeasurementException – if there was no measurement with the id .
+     * @throws CursorIsNullException – If ContentProvider was inaccessible
+     */
+    @Test
+    public void testUpdateDistanceDuringCapturing() throws NoSuchMeasurementException, CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+
+        // Act
+        oocut.setDistance(measurement.getIdentifier(), 2.0);
+
+        // Assert
+        Measurement loadedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
+        assertThat(loadedMeasurement.getDistance(), is(equalTo(2.0)));
+
+        // Ensure a second distance update works as well
+        oocut.setDistance(measurement.getIdentifier(), 4.0);
+        loadedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
+        assertThat(loadedMeasurement.getDistance(), is(equalTo(4.0)));
     }
 }

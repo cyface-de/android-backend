@@ -14,6 +14,7 @@
  */
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -25,7 +26,6 @@ import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.0
+ * @version 12.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -165,6 +165,10 @@ public abstract class DataCapturingService {
      * The strategy used to respond to selected events triggered by this service.
      */
     private final EventHandlingStrategy eventHandlingStrategy;
+    /**
+     * The strategy used to calculate the {@code Measurement#distance} from {@link GeoLocation} pairs
+     */
+    private final DistanceCalculationStrategy distanceCalculationStrategy;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -178,13 +182,16 @@ public abstract class DataCapturingService {
      *            this service.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
+     *            {@link Measurement#distance}
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public DataCapturingService(@NonNull final Context context,
-                                @NonNull final String authority, @NonNull final String accountType,
-                                @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
-                                @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer)
+    public DataCapturingService(@NonNull final Context context, @NonNull final String authority,
+            @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer,
+            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy)
             throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
@@ -192,6 +199,7 @@ public abstract class DataCapturingService {
         this.serviceConnection = new BackgroundServiceConnection();
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
+        this.distanceCalculationStrategy = distanceCalculationStrategy;
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
@@ -447,50 +455,12 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Returns all {@link Measurement}s currently on this device, no matter the current {@link MeasurementStatus}.
-     *
-     * @return A list containing all {@code Measurement}s currently stored on this device by this application. An empty
-     *         list if there are no such measurements, but never <code>null</code>.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    @SuppressWarnings({"unused"}) // Used by cyface flavour tests
-    @NonNull
-    List<Measurement> loadMeasurements() throws CursorIsNullException {
-        return persistenceLayer.loadMeasurements();
-    }
-
-    /**
-     * Loads all {@link Measurement}s in a given {@link MeasurementStatus}.
-     *
-     * @param status The status of the measurements to return
-     * @return The {@code Measurement}s which are in the given {@code MeasurementStatus}. An empty list if there are no
-     *         such measurements, but never <code>null</code>.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this api to load the finished measurements
-    public @NonNull List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status)
-            throws CursorIsNullException {
-        return persistenceLayer.loadMeasurements(status);
-    }
-
-    /**
      * @return The identifier used to qualify {@link Measurement}s from this capturing service with the server receiving
      *         the {@code Measurement}s. This needs to be world wide unique.
      */
     @SuppressWarnings({"unused", "WeakerAccess"}) // sdk implementing apps (SR) uses this to access the device id
     public @NonNull String getDeviceIdentifier() {
         return deviceIdentifier;
-    }
-
-    /**
-     * @param measurementIdentifier The identifier of the measurement to load.
-     * @return The measurement corresponding to the provided <code>measurementIdentifier</code> or <code>null</code> if
-     *         no such measurement exists.
-     * @throws CursorIsNullException when the {@link ContentProvider} is inaccessible
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to load single measurements
-    public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
-        return persistenceLayer.loadMeasurement(measurementIdentifier);
     }
 
     /**
@@ -503,34 +473,6 @@ public abstract class DataCapturingService {
     public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
         Account account = getWiFiSurveyor().getOrCreateAccount(username);
         getWiFiSurveyor().scheduleSyncNow(account);
-    }
-
-    /**
-     * Loads a track of geo locations for an existing {@link Measurement}. This method loads the complete track into
-     * memory. For large tracks this could slow down the device or even reach the applications memory limit.
-     *
-     * @param measurement The <code>measurement</code> to load all the geo locations for.
-     * @return The track associated with the measurement as a list of ordered (by timestamp) geo locations.
-     *
-     *         TODO provide a custom list implementation that loads only small portions into memory.
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (RS) use this api to display the tracks
-    public List<GeoLocation> loadTrack(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        return persistenceLayer.loadTrack(measurement);
-    }
-
-    /**
-     * Deletes a {@link Measurement} from this device.
-     *
-     * @param measurement The {@link Measurement} to delete.
-     *
-     * @throws NoSuchMeasurementException If the provided measurement was <code>null</code> due to some unknown reasons.
-     *             This is an API violation. You are not supposed to provide <code>null</code> measurements to this
-     *             method.
-     */
-    @SuppressWarnings("unused") // Because sdk implementing apps (SR) use this to delete measurements
-    public void deleteMeasurement(final @NonNull Measurement measurement) throws NoSuchMeasurementException {
-        persistenceLayer.delete(measurement);
     }
 
     /**
@@ -655,6 +597,7 @@ public abstract class DataCapturingService {
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
 
         final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
@@ -902,6 +845,16 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"unused"}) // TODO: Used by CyfaceDataCapturingService but is the caller used?
     void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
+    }
+
+    /**
+     * see {@link WiFiSurveyor#isConnected()}
+     */
+    // Implementing apps (C) may want to force sync. This allows to show a message to the user when it's not possible
+    // because there is not connection.
+    @SuppressWarnings("unused")
+    public boolean isConnected() {
+        return getWiFiSurveyor().isConnected();
     }
 
     /**
