@@ -6,7 +6,6 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileNotFoundException;
@@ -28,6 +27,7 @@ import org.json.JSONObject;
 
 import android.os.Build;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
@@ -37,7 +37,7 @@ import de.cyface.utils.ValidationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.4
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -129,8 +129,8 @@ public class HttpConnection implements Http {
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull File transferTempFile,
             @NonNull final String deviceId, final long measurementId, @NonNull final String fileName,
-            UploadProgressListener progressListener) throws SynchronisationException,
-            ResponseParsingException, BadRequestException, UnauthorizedException {
+            UploadProgressListener progressListener)
+            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
         FileInputStream fileInputStream;
@@ -144,35 +144,19 @@ public class HttpConnection implements Http {
         final long dataSize = transferTempFile.length() + TAIL.length();
         Validate.isTrue(dataSize > 0);
 
-        // connection.setUseCaches(true); // from movebis but this is the default setting
         final String header = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
             connection.connect();
-            //DataOutputStream out = null;
             try {
-                //out = new DataOutputStream(outputStream);
                 outputStream.write(header.getBytes());
                 outputStream.flush();
-                //out.writeBytes(header);
-                //out.flush();
 
                 int progress = 0;
                 int bytesRead;
 
-                // OLD
-                //byte buf[] = new byte[1024];
-                /*while ((bytesRead = bufferedFileInputStream.read(buf)) != -1) {
-                    // write output
-                    out.write(buf, 0, bytesRead);
-                    out.flush();
-                    progress += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((progress * 100.0f) / dataSize);
-                }*/
-
-                // NEW - ATTENTION: I used bufferedIS instead of IS so if this doesn't work ...
-                //noinspection PointlessArithmeticExpression - makes semantically more sense
+                // noinspection PointlessArithmeticExpression - makes semantically more sense
                 final int maxBufferSize = 1 * 1024 * 1024;
                 int bytesAvailable, bufferSize;
                 byte[] buffer;
@@ -183,7 +167,7 @@ public class HttpConnection implements Http {
                 bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
                 while (bytesRead > 0) {
                     outputStream.write(buffer, 0, bufferSize);
-                    outputStream.flush(); // added
+                    outputStream.flush();
                     progress += bytesRead; // Here progress is total uploaded bytes
                     progressListener.updatedProgress((progress * 100.0f) / dataSize);
 
@@ -200,8 +184,6 @@ public class HttpConnection implements Http {
             }
         } catch (final IOException e) {
             throw new IllegalStateException(e);
-            /*throw new RequestParsingException(String.format("Error %s. Unable to parse http request.", e.getMessage()),
-                    e);*/
         }
 
         // Get server response

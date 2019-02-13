@@ -30,7 +30,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.6
+ * @version 2.0.0
  * @since 2.0.0
  */
 class SyncPerformer {

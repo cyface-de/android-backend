@@ -12,7 +12,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  * Interface access {@link File}s. This helps to mock the file access away during testing.
  *
  * @author Amin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 3.0.0
  */
 public interface FileAccessLayer {

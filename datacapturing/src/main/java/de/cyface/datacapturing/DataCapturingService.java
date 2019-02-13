@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.1
+ * @version 12.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
