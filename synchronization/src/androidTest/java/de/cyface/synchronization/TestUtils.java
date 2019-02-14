@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.1
+ * @version 2.3.2
  * @since 2.1.0
  */
 public final class TestUtils {
@@ -25,7 +25,7 @@ public final class TestUtils {
     /**
      * An username used by the tests to set up a Cyface account for synchronization.
      */
-    final static String DEFAULT_USERNAME = "admin";
+    final static String DEFAULT_USERNAME = "test";
     /**
      * A password used by the tests to set up a Cyface account for synchronization.
      */
