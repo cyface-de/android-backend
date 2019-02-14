@@ -115,14 +115,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             String jwtAuthToken;
             try {
                 // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
-                jwtAuthToken = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null)
-                        .getString(AccountManager.KEY_AUTHTOKEN);
+                final Bundle bundle = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null);
+                if (bundle == null) {
+                    // Because of Movebis we don't throw an IllegalStateException if there is no auth token
+                    throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
+                }
+                jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
             } catch (final NetworkErrorException e) {
                 throw new IllegalStateException(e);
-            }
-            if (jwtAuthToken == null) {
-                // Because of Movebis we don't throw an IllegalStateException if there is no auth token
-                throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
             }
             Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 

@@ -17,6 +17,7 @@ import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
+import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
@@ -77,9 +78,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * For documentation see
      * {@link AbstractAccountAuthenticator#getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}
      */
+    @SuppressWarnings("RedundantThrows") // Because the cyface flavour variant throws it, too
     @Override
+    @Nullable
     public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
-            final @NonNull String authTokenType, final Bundle options) {
+            final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {
 
         // Extract the username and password from the Account Manager, and ask
         // the server for an appropriate AuthToken.
