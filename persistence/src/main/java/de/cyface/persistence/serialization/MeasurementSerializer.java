@@ -332,19 +332,28 @@ public final class MeasurementSerializer {
             throw new IllegalStateException(e);
         }
 
-        Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
         if (measurement.getAccelerations() > 0) {
+            // noinspection ConstantConditions // can happen in tests
+            if (accelerationFile != null) {
+                Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
+                        DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
+            }
             fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
-        Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
         if (measurement.getRotations() > 0) {
+            // noinspection ConstantConditions // can happen in tests
+            if (rotationFile != null) {
+                Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
+                        DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
+            }
             fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
         }
-        Log.v(TAG, String.format("Serializing %s directions for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
         if (measurement.getDirections() > 0) {
+            // noinspection ConstantConditions // can happen in tests
+            if (directionFile != null) {
+                Log.v(TAG, String.format("Serializing %s directions for synchronization.",
+                        DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
+            }
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
         }
 
