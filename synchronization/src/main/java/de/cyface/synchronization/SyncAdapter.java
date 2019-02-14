@@ -114,6 +114,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
             String jwtAuthToken;
             try {
+                // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
                 jwtAuthToken = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null)
                         .getString(AccountManager.KEY_AUTHTOKEN);
             } catch (final NetworkErrorException e) {
@@ -148,6 +149,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // Acquire new auth token before each synchronization (old one could be expired)
                 try {
+                    // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
                     jwtAuthToken = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null)
                             .getString(AccountManager.KEY_AUTHTOKEN);
                 } catch (final NetworkErrorException e) {

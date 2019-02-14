@@ -49,6 +49,10 @@ import de.cyface.utils.Validate;
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
  * tasks such as getting stored auth-tokens, opening the login activity and handling user authentication
  * against the Cyface server.
+ * <p>
+ * <b>ATTENTION:</b> The {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)} method is only
+ * called by the system if no token is cached. As our logic to invalidate token currently is in this method, we call it
+ * directly where we need a fresh token.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -62,20 +66,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     private final Http http;
     /**
      * A reference to the implementation of the {@link AccountAuthenticatorActivity} which is called by Android and its
-     * {@link AccountManager}. This happens e.g. when a new token is requested via
-     * {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)} but none is cached FIXME
-     *
-     * FIXME really?.
-     *
-     * if you set the auth token for the account, then your getAuthToken method will not be called until the token is
-     * invalidated. You generally do this by calling invalidateAuthToken upon receiving a 401 or 403 or what have you
-     * from the web service.
-     *
-     * From the Javadoc for the getAuthToken methods:
-     *
-     * If a previously generated auth token is cached for this account and type, then it is returned. Otherwise, if a
-     * saved password is available, it is sent to the server to generate a new auth token. Otherwise, the user is
-     * prompted to enter a password.
+     * {@link AccountManager}. This happens e.g. when a token is requested while none is cached, using
+     * {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}.
      */
     public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
@@ -106,6 +98,14 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         return null;
     }
 
+    /**
+     * <b>ATTENTION:</b> The {@code #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)} method is only
+     * called by the system if no token is cached. As our logic to invalidate token currently is in this method, we call
+     * it directly where we need a fresh token.
+     * <p>
+     * For documentation see
+     * {@link AbstractAccountAuthenticator#getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}
+     */
     @Override
     public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
             final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {

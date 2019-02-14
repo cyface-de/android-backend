@@ -21,12 +21,17 @@ import android.content.Context;
 import android.os.Bundle;
 import android.text.TextUtils;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
  * tasks such as getting stored auth-tokens and handling user authentication against the Movebis server.
+ * <p>
+ * <b>ATTENTION:</b> The {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)} method is only
+ * called by the system if no token is cached. As our cyface flavour logic to invalidate token currently is in this
+ * method, we call it directly where we need a fresh token.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -64,6 +69,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * The getAuthToken handling is different from the Cyface flavour: There we request a new token on each
      * request but on here it's set up once for each account and valid until the end of the campaign.
      * If the Movebis server is offline, the app should silently do nothing.
+     * <p>
+     * <b>ATTENTION:</b> The {@code #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)} method is only
+     * called by the system if no token is cached. As our logic to invalidate token currently is in this method, we call
+     * it directly where we need a fresh token.
+     * <p>
+     * For documentation see
+     * {@link AbstractAccountAuthenticator#getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}
      */
     @Override
     public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
