@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.synchronization.CyfaceAuthenticator.initSslContext;
+import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
@@ -55,7 +55,7 @@ class SyncPerformer {
 
         // Load SSLContext
         try {
-            sslContext = initSslContext(context);
+            sslContext = loadSslContext(context);
         } catch (final IOException e) {
             throw new IllegalStateException("Trust store file failed while closing", e);
         } catch (final SynchronisationException e) {

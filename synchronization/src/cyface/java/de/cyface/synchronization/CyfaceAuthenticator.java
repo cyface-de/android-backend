@@ -39,7 +39,6 @@ import android.content.Intent;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -99,82 +98,86 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {
         Log.v(TAG, "CUSTOM GET AUTH TOKEN");
 
-        // Extract the username and password from the Account Manager, and ask
-        // the server for an appropriate AuthToken.
+        // Invalidate existing token. They expire after 60 seconds, so it's more resourceful to
+        // invalidate request a new token for each request.
         final AccountManager accountManager = AccountManager.get(context);
+        final String oldAuthToken = accountManager.peekAuthToken(account, authTokenType);
+        accountManager.invalidateAuthToken(account.type, oldAuthToken);
 
-        // Check if there is an existing token. As they expire after 60 seconds currently it's takes less
-        // resources to invalidate old ones and request a new one instead of checking the old one via request.
-        String authToken = accountManager.peekAuthToken(account, authTokenType);
-        accountManager.invalidateAuthToken(account.type, authToken);
-        authToken = null; // To request a new token
-
-        // Re-authenticate the user to get a fresh authToken
-        Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
+        // Request login if no password is stored to get new authToken
+        final String freshAuthToken;
         final String password = accountManager.getPassword(account);
-        Log.v(TAG, String.format("Password: %s", password));
-
-        if (password != null) {
-            // Load SSLContext
-            final SSLContext sslContext;
-            try {
-                sslContext = initSslContext(context);
-            } catch (final IOException e) {
-                throw new IllegalStateException("Trust store file failed while closing", e);
-            } catch (final SynchronisationException e) {
-                throw new IllegalStateException(e);
-            }
-
-            // Get Auth token
-            try {
-                authToken = initSync(account.name, password, sslContext);
-                Log.v(TAG, String.format("initSync returned authToken: **%s",
-                        authToken.substring(authToken.length() - 7)));
-            } catch (final ServerUnavailableException e) {
-                sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final MalformedURLException e) {
-                sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final JSONException e) {
-                sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final SynchronisationException | RequestParsingException e) {
-                sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final DataTransmissionException e) {
-                sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final ResponseParsingException e) {
-                sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final UnauthorizedException e) {
-                sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            } catch (final BadRequestException e) {
-                sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
-                throw new NetworkErrorException(e);
-            }
+        if (password == null) {
+            Validate.notNull(response);
+            return getLoginActivityIntent(response, account, authTokenType);
         }
 
-        // If we get an authToken - we return it
-        if (!TextUtils.isEmpty(authToken)) {
-            Log.v(TAG, "Returning authToken: " + authToken);
-            final Bundle result = new Bundle();
-            result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
-            result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
-            result.putString(AccountManager.KEY_AUTHTOKEN, authToken);
-            return result;
+        // Login to get a new authToken
+        final SSLContext sslContext;
+        try {
+            sslContext = loadSslContext(context);
+        } catch (final IOException e) {
+            throw new IllegalStateException("Trust store file failed while closing", e);
+        } catch (final SynchronisationException e) {
+            throw new IllegalStateException(e);
+        }
+        try {
+            freshAuthToken = login(account.name, password, sslContext);
+            Log.v(TAG, String.format("login returned authToken: **%s",
+                    freshAuthToken.substring(freshAuthToken.length() - 7)));
+        } catch (final ServerUnavailableException e) {
+            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final MalformedURLException e) {
+            sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final JSONException e) {
+            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final SynchronisationException | RequestParsingException e) {
+            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final DataTransmissionException e) {
+            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final ResponseParsingException e) {
+            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final UnauthorizedException e) {
+            sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final BadRequestException e) {
+            sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
         }
 
+        // Return a bundle containing the token
+        Log.v(TAG, "Returning authToken: " + freshAuthToken);
+        final Bundle result = new Bundle();
+        result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
+        result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
+        result.putString(AccountManager.KEY_AUTHTOKEN, freshAuthToken);
+        return result;
+    }
+
+    /**
+     * Returns an {@link Intent} which displays the {@link AccountAuthenticatorActivity} to re-prompt for their
+     * credentials.
+     *
+     * @param response the {@link AccountAuthenticatorResponse} requested by
+     *            {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}
+     * @param account the {@link Account} for whom an authToken was requested
+     * @param authTokenType the {@link AccountManager#KEY_AUTHTOKEN} type requested
+     * @return the {@link Bundle} containing the requesting {@code Intent}
+     */
+    @Nullable
+    private Bundle getLoginActivityIntent(@NonNull final AccountAuthenticatorResponse response,
+            @NonNull final Account account, @NonNull final String authTokenType) {
         if (LOGIN_ACTIVITY == null) {
             Log.w(TAG, "Please set LOGIN_ACTIVITY.");
             return null;
         }
 
-        // If we get here, then we couldn't access the user's password - so we
-        // need to re-prompt them for their credentials. We do that by creating
-        // an intent to display our AuthenticatorActivity.
         Log.v(TAG, "Requesting new login as no password exists.");
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
@@ -194,7 +197,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws SynchronisationException when the SSLContext could not be loaded
      * @throws IOException if the trustStoreFile failed while closing.
      */
-    static SSLContext initSslContext(final Context context) throws SynchronisationException, IOException {
+    static SSLContext loadSslContext(final Context context) throws SynchronisationException, IOException {
         final SSLContext sslContext;
 
         InputStream trustStoreFile = null;
@@ -249,7 +252,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     }
 
     /**
-     * Initializes the synchronisation by logging in to the server.
+     * Logs into the server to get a valid authToken.
      *
      * @param username The username that is used by the application to login to the
      *            server.
@@ -266,12 +269,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      */
-    private String initSync(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
+    private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
             DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
             BadRequestException {
         Log.v(TAG, "Init Sync!");
 
+        // Load authUrl
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         if (url == null) {
