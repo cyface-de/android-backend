@@ -9,17 +9,14 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
 import java.io.File;
-import java.io.IOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
+import android.accounts.NetworkErrorException;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.Context;
@@ -114,8 +111,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             }
 
             // Ensure user is authorized before starting synchronization
-            final AccountManager accountManager = AccountManager.get(getContext());
-            String jwtAuthToken = acquireAuthToken(accountManager, account);
+            final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
+            String jwtAuthToken;
+            try {
+                jwtAuthToken = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null)
+                        .getString(AccountManager.KEY_AUTHTOKEN);
+            } catch (final NetworkErrorException e) {
+                throw new IllegalStateException(e);
+            }
             if (jwtAuthToken == null) {
                 // Because of Movebis we don't throw an IllegalStateException if there is no auth token
                 throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
@@ -144,7 +147,13 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         measurement.getIdentifier(), persistence);
 
                 // Acquire new auth token before each synchronization (old one could be expired)
-                jwtAuthToken = acquireAuthToken(accountManager, account);
+                try {
+                    jwtAuthToken = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null)
+                            .getString(AccountManager.KEY_AUTHTOKEN);
+                } catch (final NetworkErrorException e) {
+                    throw new IllegalStateException(e);
+                }
+                Validate.notNull(jwtAuthToken);
                 Log.d(TAG, "Sync authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
                 // Try to sync the transfer file and remove it afterwards
@@ -194,38 +203,16 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numConflictDetectedExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
-        } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
-            // OperationCanceledException is thrown with error message = null which leads to an NPE
-            final String errorMessage = e.getMessage() != null ? e.getMessage()
-                    : "onPerformSync threw " + e.getClass().getSimpleName();
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + errorMessage);
+        } catch (final AuthenticatorException e) {
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), errorMessage);
+            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
         } finally {
             Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();
             }
         }
-    }
-
-    /**
-     * Acquired the authToken from the {@link AccountManager}.
-     *
-     * @param accountManager the {@code AccountManager} required to get the auth token
-     * @param account The {@link Account} to get the auth token for
-     * @return the auth token as string
-     * @throws AuthenticatorException see {@link AccountManagerFuture#getResult()}
-     * @throws OperationCanceledException see {@link AccountManagerFuture#getResult()}
-     * @throws IOException see {@link AccountManagerFuture#getResult()}
-     */
-    private String acquireAuthToken(@NonNull final AccountManager accountManager, @NonNull final Account account)
-            throws AuthenticatorException, OperationCanceledException, IOException {
-
-        final AccountManagerFuture<Bundle> loginFuture = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null,
-                false, null, null);
-        final Bundle loginResult = loginFuture.getResult(1, TimeUnit.SECONDS);
-        return loginResult.getString(AccountManager.KEY_AUTHTOKEN);
     }
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {

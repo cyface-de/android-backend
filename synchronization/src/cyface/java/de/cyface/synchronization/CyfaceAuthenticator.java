@@ -61,8 +61,21 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     private final static String TAG = "de.cyface.auth";
     private final Http http;
     /**
-     * A reference to the LoginActivity for the Android's AccountManager workflow to start when
-     * an authToken is requested but not available.
+     * A reference to the implementation of the {@link AccountAuthenticatorActivity} which is called by Android and its
+     * {@link AccountManager}. This happens e.g. when a new token is requested via
+     * {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)} but none is cached FIXME
+     *
+     * FIXME really?.
+     *
+     * if you set the auth token for the account, then your getAuthToken method will not be called until the token is
+     * invalidated. You generally do this by calling invalidateAuthToken upon receiving a 401 or 403 or what have you
+     * from the web service.
+     *
+     * From the Javadoc for the getAuthToken methods:
+     *
+     * If a previously generated auth token is cached for this account and type, then it is returned. Otherwise, if a
+     * saved password is available, it is sent to the server to generate a new auth token. Otherwise, the user is
+     * prompted to enter a password.
      */
     public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
