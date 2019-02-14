@@ -309,7 +309,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
             final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
             final boolean result = isConnected && (isNotMeteredNetwork || !syncOnWiFiOnly);
-            Log.d(TAG, "allowSync: " + result + " (" + (isNotMeteredNetwork ? "not" : "") + "metered)");
+            Log.v(TAG, "allowSync: " + result + " (" + (isNotMeteredNetwork ? "not" : "") + "metered)");
 
             return result;
         } else {

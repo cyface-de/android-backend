@@ -31,7 +31,6 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -85,14 +84,13 @@ public final class SyncAdapterTest {
         // Arrange
         PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
                 AUTHORITY, new DefaultPersistenceBehaviour());
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, /* FIXME: undo new MockedHttpConnection()*/ new HttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
         persistence.restoreOrCreateDeviceId();
 
         // Insert data to be synced
-        final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, 1, 1);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();

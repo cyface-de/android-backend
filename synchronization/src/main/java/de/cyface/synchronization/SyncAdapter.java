@@ -157,6 +157,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     Log.d(TAG, "Fresh authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
                     // Synchronize measurement
+                    Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
+                            DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
                             measurement.getIdentifier(), deviceId, compressedTransferTempFile,
                             new UploadProgressListener() {

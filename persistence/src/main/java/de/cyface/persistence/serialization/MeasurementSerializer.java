@@ -158,9 +158,7 @@ public final class MeasurementSerializer {
 
                 // Injecting the outputStream into which the serialized (in this case compressed) data is written to
                 loadSerialized(bufferedDeflaterOutputStream, loader, measurementId, persistenceLayer);
-                Log.d(TAG, String.format("Compressed measurement to %s.",
-                        DefaultFileAccess.humanReadableByteCount(compressedTempFile.length(), true)));
-
+                bufferedDeflaterOutputStream.flush();
                 return compressedTempFile;
             } finally {
                 if (bufferedDeflaterOutputStream != null) {
