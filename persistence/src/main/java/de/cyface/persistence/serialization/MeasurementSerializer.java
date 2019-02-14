@@ -59,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -333,17 +333,17 @@ public final class MeasurementSerializer {
         }
 
         Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(accelerationFile.length())));
+                DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
         if (measurement.getAccelerations() > 0) {
             fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
         Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(rotationFile.length())));
+                DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
         if (measurement.getRotations() > 0) {
             fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
         }
         Log.v(TAG, String.format("Serializing %s directions for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(directionFile.length())));
+                DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
         if (measurement.getDirections() > 0) {
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
         }

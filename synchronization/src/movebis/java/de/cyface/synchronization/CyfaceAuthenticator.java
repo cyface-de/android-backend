@@ -35,7 +35,7 @@ import androidx.annotation.Nullable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 3.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {

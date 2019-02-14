@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.3.0
+ * @version 2.4.0
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -163,7 +163,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // Synchronize measurement
                     Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
-                            DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length())));
+                            DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
                     Validate.notNull(endPointUrl);
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
                             measurement.getIdentifier(), deviceId, compressedTransferTempFile,

@@ -28,7 +28,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.1.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

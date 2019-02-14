@@ -22,7 +22,7 @@ import androidx.annotation.NonNull;
  * FIXME: We need to test this on API >= 21 devices !!
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
