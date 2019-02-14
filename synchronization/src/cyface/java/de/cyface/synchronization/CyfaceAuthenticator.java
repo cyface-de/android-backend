@@ -96,13 +96,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     @Override
     public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
             final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {
-        Log.v(TAG, "CUSTOM GET AUTH TOKEN");
 
         // Invalidate existing token. They expire after 60 seconds, so it's more resourceful to
         // invalidate request a new token for each request.
         final AccountManager accountManager = AccountManager.get(context);
-        final String oldAuthToken = accountManager.peekAuthToken(account, authTokenType);
-        accountManager.invalidateAuthToken(account.type, oldAuthToken);
+        accountManager.invalidateAuthToken(account.type, accountManager.peekAuthToken(account, authTokenType));
 
         // Request login if no password is stored to get new authToken
         final String freshAuthToken;
@@ -123,8 +121,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         }
         try {
             freshAuthToken = login(account.name, password, sslContext);
-            Log.v(TAG, String.format("login returned authToken: **%s",
-                    freshAuthToken.substring(freshAuthToken.length() - 7)));
         } catch (final ServerUnavailableException e) {
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
@@ -152,7 +148,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         }
 
         // Return a bundle containing the token
-        Log.v(TAG, "Returning authToken: " + freshAuthToken);
+        Log.v(TAG, "Fresh authToken: **" + freshAuthToken.substring(freshAuthToken.length() - 7));
         final Bundle result = new Bundle();
         result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
         result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
@@ -178,7 +174,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             return null;
         }
 
-        Log.v(TAG, "Requesting new login as no password exists.");
+        Log.v(TAG, "Spawn LoginActivity as no password exists.");
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type);
@@ -273,7 +269,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
             DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
             BadRequestException {
-        Log.v(TAG, "Init Sync!");
+        Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

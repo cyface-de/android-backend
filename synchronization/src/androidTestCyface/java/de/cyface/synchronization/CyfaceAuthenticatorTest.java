@@ -62,12 +62,8 @@ public class CyfaceAuthenticatorTest {
                 Log.i(TAG, "Getting auth token finished!");
                 try {
                     Log.i(TAG, future.getResult().toString());
-                } catch (OperationCanceledException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (AuthenticatorException e) {
-                    e.printStackTrace();
+                } catch (OperationCanceledException | IOException | AuthenticatorException e) {
+                    throw new IllegalStateException(e);
                 }
             }
         };
