@@ -111,7 +111,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws SynchronisationException when the SSLContext could not be loaded
      * @throws IOException if the trustStoreFile failed while closing.
      */
-    static SSLContext initSslContext(final Context context) throws SynchronisationException, IOException {
+    static SSLContext loadSslContext(final Context context) throws SynchronisationException, IOException {
         final SSLContext sslContext;
 
         InputStream trustStoreFile = null;
