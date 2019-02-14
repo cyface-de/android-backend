@@ -235,8 +235,9 @@ public class SharedTestUtils {
         final List<Point3d> aPoints = new ArrayList<>();
         final List<Point3d> rPoints = new ArrayList<>();
         final List<Point3d> dPoints = new ArrayList<>();
-
-        for (int i = 0; i < point3dCount; i++) {
+        final int createLimit = 100_000;
+        int alreadyInserted = 0;
+        for (int i = 0; i+alreadyInserted < point3dCount; i++) {
             // We add some salt to make sure the compression of the data is realistic
             // This is required as the testOnPerformSyncWithLargeData test requires large data
             final float salt = (float)Math.random();
@@ -244,6 +245,18 @@ public class SharedTestUtils {
             rPoints.add(
                     new Point3d(0.001524045f + salt, 0.0025423833f + salt, -0.0010279021f + salt, 1501662635981L + i));
             dPoints.add(new Point3d(7.65f + salt, -32.4f + salt, -71.4f + salt, 1501662636010L + i));
+
+            // Avoid OOM when creating too much test data at once
+            if (i >= createLimit) {
+                insertPoint3ds(accelerationsFile, aPoints);
+                insertPoint3ds(rotationsFile, rPoints);
+                insertPoint3ds(directionsFile, dPoints);
+                alreadyInserted += aPoints.size();
+                aPoints.clear();
+                rPoints.clear();
+                dPoints.clear();
+                i = 0;
+            }
         }
         insertPoint3ds(accelerationsFile, aPoints);
         insertPoint3ds(rotationsFile, rPoints);

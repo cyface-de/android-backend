@@ -30,6 +30,7 @@ import android.database.Cursor;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -76,7 +77,7 @@ public final class SyncAdapterTest {
     }
 
     /**
-     * Tests whether points are correctly marked as synced.
+     * Tests whether measurements are correctly marked as synced.
      */
     @Test
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
@@ -84,7 +85,7 @@ public final class SyncAdapterTest {
         // Arrange
         PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
                 AUTHORITY, new DefaultPersistenceBehaviour());
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, /* FIXME: undo new MockedHttpConnection()*/ new HttpConnection());
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
@@ -124,28 +125,32 @@ public final class SyncAdapterTest {
     }
 
     /**
-     * Tests whether points are correctly marked as synced when transmitting a large measurement.
+     * Test to reproduce problems occurring when large measurement uploads are not handled correctly,
+     * e.g. OOM during serialization or compression.
      * <p>
-     * This test was created as it reproduced:
-     * - #MOV-528: OOM on large uploads (depending on the device memory)
-     * - #MOV-515: 401 on medium uploads (was not reliably reproducible)
+     * This test was used to reproduce:
+     * - MOV-528: OOM on large uploads (depending on the device memory, e.g. 2-3 mio AP)
+     * - MOV-515: 401 when upload takes longer than the token validation time (server-side).
+     * (!) This bug is only triggered when you replace MockedHttpConnection with HttpConnection
      */
     @Test
-    @LargeTest // ~ 2+ minutes
+    @LargeTest // ~ 7-10 minutes
+    // @Ignore // Because this test takes forever, depending on the number of points generated
     public void testOnPerformSyncWithLargeData() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
         PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
                 AUTHORITY, new DefaultPersistenceBehaviour());
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, /*FIXME: undo new MockedHttpConnection()*/ new HttpConnection());
+        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
         final AccountManager manager = AccountManager.get(context);
         final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
         persistence.restoreOrCreateDeviceId();
 
-        // Insert data to be synced - 2_000_000 point3dCount chosen this reproduced the bugs mentioned above
-        final int point3dCount = 1; // FIXME undo
-        final int locationCount = 1;
+        // Insert data to be synced - 2_000_000 as this reproduced the bugs mentioned above
+        final int point3dCount = 2_000_000; // FIXME: go back to pre-OOM-fix branch and check the minimum count required
+                                            // for an OOM to be thrown on a N5X emulator
+        final int locationCount = 15_000;
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
