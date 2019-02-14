@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -237,7 +238,7 @@ public class SharedTestUtils {
         final List<Point3d> dPoints = new ArrayList<>();
         final int createLimit = 100_000;
         int alreadyInserted = 0;
-        for (int i = 0; i+alreadyInserted < point3dCount; i++) {
+        for (int i = 0; i + alreadyInserted < point3dCount; i++) {
             // We add some salt to make sure the compression of the data is realistic
             // This is required as the testOnPerformSyncWithLargeData test requires large data
             final float salt = (float)Math.random();

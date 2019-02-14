@@ -129,14 +129,13 @@ public final class SyncAdapterTest {
      * e.g. OOM during serialization or compression.
      * <p>
      * This test was used to reproduce:
-     * - MOV-528: OOM on large uploads (depending on the device memory, e.g. 2-3 mio AP)
+     * - MOV-528: OOM on large uploads (depending on the device memory)
      * - MOV-515: 401 when upload takes longer than the token validation time (server-side).
      * (!) This bug is only triggered when you replace MockedHttpConnection with HttpConnection
      */
     @Test
-    @LargeTest // ~ 7-10 minutes
-    // @Ignore // Because this test takes forever, depending on the number of points generated
-    public void testOnPerformSyncWithLargeData() throws NoSuchMeasurementException, CursorIsNullException {
+    @LargeTest // ~ 8-10 minutes
+    public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
         PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
@@ -147,10 +146,9 @@ public final class SyncAdapterTest {
         manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
         persistence.restoreOrCreateDeviceId();
 
-        // Insert data to be synced - 2_000_000 as this reproduced the bugs mentioned above
-        final int point3dCount = 2_000_000; // FIXME: go back to pre-OOM-fix branch and check the minimum count required
-                                            // for an OOM to be thrown on a N5X emulator
-        final int locationCount = 15_000;
+        // Insert data to be synced - 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
+        final int point3dCount = 3_000_000;
+        final int locationCount = 3_000;
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
