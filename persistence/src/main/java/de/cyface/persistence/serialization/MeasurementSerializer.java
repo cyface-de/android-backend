@@ -332,12 +332,18 @@ public final class MeasurementSerializer {
             throw new IllegalStateException(e);
         }
 
+        Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
+                DefaultFileAccess.humanReadableByteCount(accelerationFile.length())));
         if (measurement.getAccelerations() > 0) {
             fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
+        Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
+                DefaultFileAccess.humanReadableByteCount(rotationFile.length())));
         if (measurement.getRotations() > 0) {
             fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
         }
+        Log.v(TAG, String.format("Serializing %s directions for synchronization.",
+                DefaultFileAccess.humanReadableByteCount(directionFile.length())));
         if (measurement.getDirections() > 0) {
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
         }

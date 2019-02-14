@@ -144,8 +144,8 @@ public final class SyncAdapterTest {
         persistence.restoreOrCreateDeviceId();
 
         // Insert data to be synced - 2_000_000 point3dCount chosen this reproduced the bugs mentioned above
-        final int point3dCount = 1_000; // FIXME undo
-        final int locationCount = 1_000; // FIXME undo
+        final int point3dCount = 1; // FIXME undo
+        final int locationCount = 1;
         final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);

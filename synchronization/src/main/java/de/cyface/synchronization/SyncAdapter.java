@@ -28,6 +28,7 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -95,20 +96,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
-        final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> loginFuture = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null,
-                false, null, null);
 
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
-
-            // Check if user can log in before synchronization
-            final Bundle loginResult = loginFuture.getResult(1, TimeUnit.SECONDS);
-            String jwtAuthToken = loginResult.getString(AccountManager.KEY_AUTHTOKEN);
-            if (jwtAuthToken == null) {
-                // Because of Movebis we don't throw an IllegalStateException if there is no auth token
-                throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
-            }
 
             // Load api url and device id
             final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -118,9 +108,19 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             final String deviceId;
             try {
                 deviceId = persistence.loadDeviceId();
+                Validate.notNull(deviceId);
             } catch (final NoDeviceIdException e) {
                 throw new IllegalStateException(e);
             }
+
+            // Ensure user is authorized before starting synchronization
+            final AccountManager accountManager = AccountManager.get(getContext());
+            String jwtAuthToken = acquireAuthToken(accountManager, account);
+            if (jwtAuthToken == null) {
+                // Because of Movebis we don't throw an IllegalStateException if there is no auth token
+                throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
+            }
+            Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
             // Load all Measurements that are finished capturing
             final List<Measurement> syncableMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED);
@@ -143,22 +143,17 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 final File compressedTransferTempFile = serializer.loadSerializedCompressed(loader,
                         measurement.getIdentifier(), persistence);
 
+                // Acquire new auth token before each synchronization (old one could be expired)
+                jwtAuthToken = acquireAuthToken(accountManager, account);
+                Log.d(TAG, "Sync authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
+
                 // Try to sync the transfer file and remove it afterwards
                 try {
 
-                    // Acquire a new auth token for synchronization as the old one could be expired
-                    final AccountManagerFuture<Bundle> authFuture = accountManager.getAuthToken(account,
-                            AUTH_TOKEN_TYPE, null, false, null, null);
-                    final Bundle authResult = authFuture.getResult(1, TimeUnit.SECONDS);
-                    jwtAuthToken = authResult.getString(AccountManager.KEY_AUTHTOKEN);
-                    Validate.notNull(jwtAuthToken);
-                    Validate.notNull(endPointUrl);
-                    Validate.notNull(deviceId);
-                    Log.d(TAG, "Fresh authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
-
                     // Synchronize measurement
                     Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
-                            DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
+                            DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length())));
+                    Validate.notNull(endPointUrl);
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
                             measurement.getIdentifier(), deviceId, compressedTransferTempFile,
                             new UploadProgressListener() {
@@ -212,6 +207,25 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 listener.onSyncFinished();
             }
         }
+    }
+
+    /**
+     * Acquired the authToken from the {@link AccountManager}.
+     *
+     * @param accountManager the {@code AccountManager} required to get the auth token
+     * @param account The {@link Account} to get the auth token for
+     * @return the auth token as string
+     * @throws AuthenticatorException see {@link AccountManagerFuture#getResult()}
+     * @throws OperationCanceledException see {@link AccountManagerFuture#getResult()}
+     * @throws IOException see {@link AccountManagerFuture#getResult()}
+     */
+    private String acquireAuthToken(@NonNull final AccountManager accountManager, @NonNull final Account account)
+            throws AuthenticatorException, OperationCanceledException, IOException {
+
+        final AccountManagerFuture<Bundle> loginFuture = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null,
+                false, null, null);
+        final Bundle loginResult = loginFuture.getResult(1, TimeUnit.SECONDS);
+        return loginResult.getString(AccountManager.KEY_AUTHTOKEN);
     }
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {

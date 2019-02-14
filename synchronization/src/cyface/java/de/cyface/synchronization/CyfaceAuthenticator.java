@@ -97,6 +97,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     @Override
     public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
             final @NonNull String authTokenType, final Bundle options) throws NetworkErrorException {
+        Log.v(TAG, "CUSTOM GET AUTH TOKEN");
 
         // Extract the username and password from the Account Manager, and ask
         // the server for an appropriate AuthToken.
@@ -106,59 +107,59 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // resources to invalidate old ones and request a new one instead of checking the old one via request.
         String authToken = accountManager.peekAuthToken(account, authTokenType);
         accountManager.invalidateAuthToken(account.type, authToken);
-        authToken = ""; // To request a new token
+        authToken = null; // To request a new token
 
         // Re-authenticate the user to get a fresh authToken
-        if (TextUtils.isEmpty(authToken)) {
-            Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
-            final String password = accountManager.getPassword(account);
-            Log.v(TAG, String.format("Password: %s", password));
+        Log.v(TAG, String.format("Auth Token was empty for account %s!", account.name));
+        final String password = accountManager.getPassword(account);
+        Log.v(TAG, String.format("Password: %s", password));
 
-            if (password != null) {
-                // Load SSLContext
-                final SSLContext sslContext;
-                try {
-                    sslContext = initSslContext(context);
-                } catch (final IOException e) {
-                    throw new IllegalStateException("Trust store file failed while closing", e);
-                } catch (final SynchronisationException e) {
-                    throw new IllegalStateException(e);
-                }
+        if (password != null) {
+            // Load SSLContext
+            final SSLContext sslContext;
+            try {
+                sslContext = initSslContext(context);
+            } catch (final IOException e) {
+                throw new IllegalStateException("Trust store file failed while closing", e);
+            } catch (final SynchronisationException e) {
+                throw new IllegalStateException(e);
+            }
 
-                // Get Auth token
-                try {
-                    authToken = initSync(account.name, password, sslContext);
-                    Log.v(TAG, String.format("initSync returned authToken: **%s", authToken.substring(authToken.length()-7)));
-                } catch (final ServerUnavailableException e) {
-                    sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final MalformedURLException e) {
-                    sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final JSONException e) {
-                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final SynchronisationException | RequestParsingException e) {
-                    sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final DataTransmissionException e) {
-                    sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final ResponseParsingException e) {
-                    sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final UnauthorizedException e) {
-                    sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                } catch (final BadRequestException e) {
-                    sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
-                    throw new NetworkErrorException(e);
-                }
+            // Get Auth token
+            try {
+                authToken = initSync(account.name, password, sslContext);
+                Log.v(TAG, String.format("initSync returned authToken: **%s",
+                        authToken.substring(authToken.length() - 7)));
+            } catch (final ServerUnavailableException e) {
+                sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final MalformedURLException e) {
+                sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final JSONException e) {
+                sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final SynchronisationException | RequestParsingException e) {
+                sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final DataTransmissionException e) {
+                sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final ResponseParsingException e) {
+                sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final UnauthorizedException e) {
+                sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } catch (final BadRequestException e) {
+                sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
             }
         }
 
         // If we get an authToken - we return it
         if (!TextUtils.isEmpty(authToken)) {
+            Log.v(TAG, "Returning authToken: " + authToken);
             final Bundle result = new Bundle();
             result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name);
             result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
@@ -174,6 +175,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // If we get here, then we couldn't access the user's password - so we
         // need to re-prompt them for their credentials. We do that by creating
         // an intent to display our AuthenticatorActivity.
+        Log.v(TAG, "Requesting new login as no password exists.");
         final Intent intent = new Intent(context, LOGIN_ACTIVITY);
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response);
         intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type);

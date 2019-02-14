@@ -12,6 +12,7 @@ import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 
@@ -78,7 +79,7 @@ public final class DefaultFileAccess implements FileAccessLayer {
                     inputStream = new DataInputStream(bufferedInputStream);
                     try {
                         inputStream.readFully(bytes);
-                        Log.d(Constants.TAG, "Read " + humanReadableByteCount(bytes.length, true) + " (from "
+                        Log.d(Constants.TAG, "Read " + humanReadableByteCount(bytes.length) + " (from "
                                 + file.getName() + ")");
                     } finally {
                         inputStream.close();
@@ -151,7 +152,9 @@ public final class DefaultFileAccess implements FileAccessLayer {
     }
 
     // From https://stackoverflow.com/a/3758880/5815054
-    public static String humanReadableByteCount(final long bytes, final boolean si) {
+    @SuppressWarnings("ConstantConditions") // We probably need this later on
+    public static String humanReadableByteCount(final long bytes) {
+        final boolean si = true;
         final int unit = si ? 1000 : 1024;
         if (bytes < unit)
             return bytes + " B";
