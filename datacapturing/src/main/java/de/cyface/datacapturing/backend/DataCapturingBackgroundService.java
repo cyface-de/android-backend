@@ -14,11 +14,11 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
@@ -50,7 +50,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.DistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;

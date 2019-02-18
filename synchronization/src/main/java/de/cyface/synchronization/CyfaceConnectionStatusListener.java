@@ -1,9 +1,11 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
 import static de.cyface.synchronization.Constants.TAG;
 
 import android.content.Context;
 import android.content.Intent;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -12,21 +14,18 @@ import androidx.annotation.NonNull;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.3
+ * @version 2.1.4
  * @since 1.0.0
  */
 public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {
 
-    // TODO: do they need to be public? if so, annotate please
-    public final static String SYNC_STARTED = TAG + ".started";
-    public final static String SYNC_FINISHED = TAG + ".finished";
-    public final static String SYNC_PROGRESS = TAG + ".progress";
-    public final static String SYNC_PERCENTAGE = TAG + ".percentage";
-    public final static String SYNC_MEASUREMENT_ID = TAG + ".measurement_id";
+    final static String SYNC_STARTED = TAG + ".started";
+    final static String SYNC_FINISHED = TAG + ".finished";
+    final static String SYNC_PROGRESS = TAG + ".progress";
+    final static String SYNC_MEASUREMENT_ID = TAG + ".measurement_id";
     private final Context context;
 
-    // TODO: need to be public? if so, annotate please
-    public CyfaceConnectionStatusListener(final @NonNull Context context) {
+    CyfaceConnectionStatusListener(final @NonNull Context context) {
         this.context = context;
     }
 
@@ -39,7 +38,7 @@ public final class CyfaceConnectionStatusListener implements ConnectionStatusLis
     @Override
     public void onProgress(final float percent, final long measurementId) {
         final Intent intent = new Intent(SYNC_PROGRESS);
-        intent.putExtra(SYNC_PERCENTAGE, percent);
+        intent.putExtra(SYNC_PERCENTAGE_ID, percent);
         intent.putExtra(SYNC_MEASUREMENT_ID, measurementId);
         context.sendBroadcast(intent);
     }

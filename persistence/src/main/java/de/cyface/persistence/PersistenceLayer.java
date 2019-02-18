@@ -26,6 +26,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -92,9 +93,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param authority The authority used to identify the Android content provider.
      * @param persistenceBehaviour A {@link PersistenceBehaviour} which tells if this {@link PersistenceLayer} is used
      *            to capture live data.
-     *            FIXME: How can we make sure the SDK implementing apps only use the DefaultPersistenceBehaviour?
-     *            reason: We don't want anyone to mess with the files directly by accident.
-     *            We can't just make it package private because it's used by datacapturing.backend and datacapturing.
      */
     public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final B persistenceBehaviour) {

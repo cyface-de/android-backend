@@ -19,6 +19,7 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.synchronization.BundlesExtrasCodes;
 
 /**
  * A <code>BroadcastReceiver</code> and sender that send a <code>MessageCodes.PING</code> event to the system and

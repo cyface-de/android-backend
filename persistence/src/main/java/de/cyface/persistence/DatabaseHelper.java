@@ -122,9 +122,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Deletes a row or multiple rows (depending on the format of the provided URI) from the database. If you delete a
+     * Deletes one or multiple rows (depending on the format of the provided URI) from the database. If you delete a
      * {@link Measurement} all corresponding {@link GeoLocation} data is cascadingly deleted as well.
-     * FIXME: check if the sensor data files should be deleted here as well
      *
      * @param uri The URI specifying the table to delete from. If this ends with a single numeric identifier that row is
      *            deleted otherwise multiple rows might be deleted depending on the <code>selection</code> and
@@ -154,10 +153,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         // continues here until return ! -->
                     case GeoLocationsTable.URI_PATH:
                         // Add the id specified by the URI to implement expected behaviour of a content resolver, where
-                        // the
-                        // last element
-                        // of the path is the identifier of the element requested. This is only necessary for single row
-                        // deletions.
+                        // the last element of the path is the identifier of the element requested. This is only
+                        // necessary for single row deletions.
                         String adaptedSelection = BaseColumns._ID + "=" + rowIdentifier
                                 + (selection == null ? "" : " AND " + selection);
                         ret += table.deleteRow(getWritableDatabase(), adaptedSelection, selectionArgs);
@@ -204,8 +201,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Cascadingly deletes all data for a single {@link Measurement} from the database (but not the
-     * {@link Point3dFile}s. // FIXME: sensor points, too?
+     * Cascadingly deletes all data for a single {@link Measurement} from the database. This currently only includes
+     * {@link GeoLocation}s but not the {@link Point3dFile}s as they are not stored in database.
      *
      * @param database The database object to delete from.
      * @param measurementIdentifier The device wide unique identifier of the measurement to delete.

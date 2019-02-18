@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.Constants.TAG;
 
 import android.content.BroadcastReceiver;

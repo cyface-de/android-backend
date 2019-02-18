@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
+import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.DEFAULT_PASSWORD;
@@ -56,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.1
+ * @version 1.3.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -74,7 +74,8 @@ public class UploadProgressTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
-        persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
+                new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
     }
 
@@ -100,7 +101,6 @@ public class UploadProgressTest {
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
-        filter.addAction(CyfaceConnectionStatusListener.SYNC_PERCENTAGE); // FIXME: drop
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
         context.registerReceiver(receiver, filter);
@@ -163,7 +163,7 @@ class TestReceiver extends BroadcastReceiver {
                 Log.d(TAG, "SYNC FINISHED");
                 break;
             case CyfaceConnectionStatusListener.SYNC_PROGRESS:
-                final float percentage = intent.getFloatExtra(SYNC_PERCENTAGE, -1.0f);
+                final float percentage = intent.getFloatExtra(SYNC_PERCENTAGE_ID, -1.0f);
                 collectedPercentages.add(percentage);
                 Log.d(TAG, "SYNC PROGRESS: " + percentage + " % ");
                 break;

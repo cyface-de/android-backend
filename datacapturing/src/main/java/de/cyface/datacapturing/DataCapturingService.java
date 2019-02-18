@@ -14,14 +14,14 @@
  */
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
+import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
@@ -68,6 +68,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
@@ -169,6 +170,10 @@ public abstract class DataCapturingService {
      * The strategy used to calculate the {@code Measurement#distance} from {@link GeoLocation} pairs
      */
     private final DistanceCalculationStrategy distanceCalculationStrategy;
+    /**
+     * The number of ms to wait for the callback, see {@link #isRunning(long, TimeUnit, IsRunningCallback)}.
+     */
+    public final static long ISRUNNING_CALLBACK_TIMEOUT = 500L;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -469,7 +474,7 @@ public abstract class DataCapturingService {
      *
      * @throws SynchronisationException If synchronisation account information is invalid or not available.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // TODO: not used by SR. Is this required by our app?
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Used by implementing app (CY)
     public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
         Account account = getWiFiSurveyor().getOrCreateAccount(username);
         getWiFiSurveyor().scheduleSyncNow(account);
@@ -498,12 +503,12 @@ public abstract class DataCapturingService {
      * Disconnects your app from the {@link DataCapturingService}. Data capturing will continue in the background
      * but you will not receive any updates about this. This frees some resources used for communication and cleanly
      * shuts down the connection. You should call this method in your {@link android.app.Activity} lifecycle
-     * {@code Activity#onStop()}. You may call {@link #reconnect()} if you would like to receive updates again, as in
-     * {@code Activity#onRestart()}.
+     * {@code Activity#onStop()}. You may call {@link #reconnect(long)} if you would like to receive updates again, as
+     * in {@code Activity#onRestart()}.
      *
      * @throws DataCapturingException If service was not connected.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // TODO: not used by RS. Do we use it in our app?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by DataCapturingListeners (CY)
     public void disconnect() throws DataCapturingException {
         unbind();
     }
@@ -515,11 +520,12 @@ public abstract class DataCapturingService {
      * <b>ATTENTION</b>: This method might take some time to check for a running service. Always consider this to be a
      * long running operation and never call it on the main thread.
      *
+     * @param isRunningTimeout the number of ms to wait for the callback, see
+     *            {@link #isRunning(long, TimeUnit, IsRunningCallback)}. Default is {@link #ISRUNNING_CALLBACK_TIMEOUT}
      * @throws IllegalStateException If communication with background service is not successful.
      */
-    @SuppressWarnings("WeakerAccess") // TODO: not used by RS. But should be used by all apps to rebind the app after it
-                                      // has been shut down. -> add example to Readme
-    public void reconnect() {
+    @SuppressWarnings("WeakerAccess") // Used by DataCapturingListeners (CY)
+    public void reconnect(final long isRunningTimeout) {
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -536,14 +542,13 @@ public abstract class DataCapturingService {
             }
         };
 
-        // TODO: Maybe move the timeout time to a parameter. [already fixed in open PR]
-        isRunning(500L, TimeUnit.MILLISECONDS, reconnectCallback); // throws IllegalStateException
+        isRunning(isRunningTimeout, TimeUnit.MILLISECONDS, reconnectCallback);
 
         // Wait for isRunning to return.
         lock.lock();
         try {
             Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
-            if (!condition.await(500L, TimeUnit.MILLISECONDS)) {
+            if (!condition.await(isRunningTimeout, TimeUnit.MILLISECONDS)) {
                 Log.w(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
             }
         } catch (InterruptedException e) {

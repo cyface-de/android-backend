@@ -9,7 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BuildConfig;
-import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.utils.Validate;
 

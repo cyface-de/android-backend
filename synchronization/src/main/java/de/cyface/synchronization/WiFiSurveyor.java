@@ -136,7 +136,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
         }
         currentSynchronizationAccount = account;
 
-        // FIXME: We want to test this on newer devices if we want to leave this in!
         // Roboelectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
@@ -187,7 +186,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void scheduleSyncNow(final @NonNull Account account) {
         if (isConnected()) {
-            ContentResolver.requestSync(account, authority, Bundle.EMPTY);
+            final Bundle params = new Bundle();
+            params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+            params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+            ContentResolver.requestSync(account, authority, params);
         }
     }
 
@@ -225,6 +227,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @param username The username of the account to delete.
      */
+    @SuppressWarnings("unused") // {@link MovebisDataCapturingService} uses this to deregister a token
     public void deleteAccount(final @NonNull String username) {
         AccountManager accountManager = AccountManager.get(context.get());
         Account account = new Account(username, accountType);
