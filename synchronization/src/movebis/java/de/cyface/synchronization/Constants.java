@@ -15,7 +15,7 @@ public final class Constants {
      */
     public final static String TAG = "de.cyface.sync";
 
-    // TODO: Change these strings between two (STADTRADELN) campaigns.
+    // TODO [MOV-555]: Change these strings between two (STADTRADELN) campaigns.
 
     /**
      * The Cyface account type used to identify all Cyface system accounts.

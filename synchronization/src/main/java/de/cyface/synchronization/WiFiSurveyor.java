@@ -157,7 +157,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // TODO: because ...?
+    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by CyfaceDataCapturingService
     public void stopSurveillance() throws SynchronisationException {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
@@ -297,7 +297,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @return <code>true</code> if WiFi is available; <code>false</code> otherwise.
      */
-    @SuppressWarnings("WeakerAccess") // TODO: because?
     public boolean isConnected() {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
             Validate.notNull(connectivityManager); // for testing
@@ -329,7 +328,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *         if
      *         synchronization is active and <code>false</code> otherwise.
      */
-    @SuppressWarnings("WeakerAccess") // TODO because?
     public boolean synchronizationIsActive() {
         return synchronizationIsActive;
     }

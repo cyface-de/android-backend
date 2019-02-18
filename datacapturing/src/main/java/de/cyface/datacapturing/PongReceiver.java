@@ -86,8 +86,8 @@ public class PongReceiver extends BroadcastReceiver {
         this.deviceId = deviceId;
     }
 
-    // TODO: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and iAmRunning
-    // would be more readable.
+    // TODO [CY-3950]: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and
+    // iAmRunning would be more readable.
     /**
      * Sends the <code>MessageCodes.PING</code> message to the system and waits for the timeout to occur or the service
      * to answer with a <code>MessageCodes.PONG</code>.

@@ -175,7 +175,6 @@ class TestReceiver extends BroadcastReceiver {
         }
     }
 
-    @SuppressWarnings("WeakerAccess") // TODO - because?
     public List<Float> getCollectedPercentages() {
         return collectedPercentages;
     }

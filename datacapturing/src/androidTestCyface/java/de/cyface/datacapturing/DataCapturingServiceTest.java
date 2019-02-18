@@ -440,7 +440,7 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         oocut.disconnect();
-        oocut.reconnect(DataCapturingService.ISRUNNING_CALLBACK_TIMEOUT);
+        oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -545,8 +545,8 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
         oocut.disconnect();
 
-        oocut.reconnect(DataCapturingService.ISRUNNING_CALLBACK_TIMEOUT);
-        oocut.reconnect(DataCapturingService.ISRUNNING_CALLBACK_TIMEOUT);
+        oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
+        oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -569,9 +569,9 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         oocut.disconnect();
-        oocut.reconnect(DataCapturingService.ISRUNNING_CALLBACK_TIMEOUT);
+        oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
         oocut.disconnect();
-        oocut.reconnect(DataCapturingService.ISRUNNING_CALLBACK_TIMEOUT);
+        oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
 
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -720,7 +720,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testReconnectOnNonRunningServer() {
-        oocut.reconnect(DataCapturingService.ISRUNNING_CALLBACK_TIMEOUT);
+        oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
         assertThat(oocut.getIsRunning(), is(equalTo(false)));
     }
 }

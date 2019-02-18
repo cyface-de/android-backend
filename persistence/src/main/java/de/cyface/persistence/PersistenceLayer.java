@@ -354,7 +354,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
         setStatus(measurementId, SYNCED);
 
-        // TODO: implement cyface variant where not only sensor data but also GeoLocations are deleted
+        // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
         if (measurement.getAccelerations() > 0) {
             final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
@@ -484,10 +484,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * complete track into memory. For large tracks this could slow down the device or even reach the applications
      * memory limit.
      *
-     * TODO [#CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
+     * TODO [CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
      *
-     * TODO provide a custom list implementation that loads only small portions into memory.
+     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
      * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)

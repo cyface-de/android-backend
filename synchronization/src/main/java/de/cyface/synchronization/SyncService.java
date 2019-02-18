@@ -28,7 +28,7 @@ public final class SyncService extends Service {
     /**
      * The synchronisation adapter this service is supposed to call.
      */
-    // TODO Ugh. Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to
+    // Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to
     // change this after it runs.
     private static SyncAdapter syncAdapter = null;
     /**
