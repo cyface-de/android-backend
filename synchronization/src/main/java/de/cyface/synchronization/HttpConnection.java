@@ -133,10 +133,10 @@ public class HttpConnection implements Http {
             throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
-        FileInputStream fileInputStream;
+        final FileInputStream fileInputStream;
         try {
             fileInputStream = new FileInputStream(transferTempFile);
-        } catch (FileNotFoundException e) {
+        } catch (final FileNotFoundException e) {
             throw new IllegalStateException(e);
         }
         final BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);

@@ -19,7 +19,9 @@ import static org.mockito.Mockito.doAnswer;
 import static org.mockito.Mockito.when;
 
 import java.io.BufferedOutputStream;
+import java.io.DataInputStream;
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.nio.ByteBuffer;
@@ -215,17 +217,11 @@ public class MeasurementSerializerTest {
      *
      */
     @Test
-    public void testSerializeCompressedMeasurement() throws CursorIsNullException {
+    public void testSerializeCompressedMeasurement() throws CursorIsNullException, IOException {
 
         final long SERIALIZED_COMPRESSED_SIZE = 24L; // When compression Deflater(level 9, true)
-        final File compressedTransferFile = oocut.loadSerializedCompressed(loader, 0, persistence);
-        try {
-            assertThat(compressedTransferFile.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
-        } finally {
-            if (compressedTransferFile.exists()) {
-                Validate.isTrue(compressedTransferFile.delete());
-            }
-        }
+        final FileInputStream compressedTransferBytes = oocut.writeSerializedCompressed(loader, 0, persistence);
+        assertThat(compressedTransferBytes.available(), is(equalTo((int)SERIALIZED_COMPRESSED_SIZE)));
     }
 
     /**
@@ -233,24 +229,14 @@ public class MeasurementSerializerTest {
      */
     @Test
     public void testDecompressDeserialize() throws IOException, DataFormatException, CursorIsNullException {
-        final DefaultFileAccess defaultFileAccess = new DefaultFileAccess();
 
         // Assemble serialized compressed bytes
-        final byte[] compressedBytes;
-        final File compressedTransferFile = oocut.loadSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID, persistence);
-        try {
-            // Load bytes from compressedTransferFile
-            compressedBytes = defaultFileAccess.loadBytes(compressedTransferFile);
-            /*
-             * final byte[] compressedBytes = new byte[(int) compressedTransferFile.length()];
-             * DataInputStream dis = new DataInputStream(new FileInputStream(compressedTransferFile));
-             * dis.readFully(compressedBytes);
-             */
-        } finally {
-            if (compressedTransferFile.exists()) {
-                Validate.isTrue(compressedTransferFile.delete());
-            }
-        }
+        final FileInputStream compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
+                persistence);
+        // Load bytes from compressedTransferFile
+        final byte[] compressedBytes = new byte[compressedTransferBytes.available()];
+        DataInputStream dis = new DataInputStream(compressedTransferBytes);
+        dis.readFully(compressedBytes);
 
         // Decompress the compressed bytes and check length and bytes
         Inflater inflater = new Inflater(COMPRESSION_NOWRAP);

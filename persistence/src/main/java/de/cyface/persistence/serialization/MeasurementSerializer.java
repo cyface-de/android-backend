@@ -6,7 +6,7 @@ import static de.cyface.persistence.Constants.TAG;
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
-import java.io.FileNotFoundException;
+import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
@@ -110,41 +110,82 @@ public final class MeasurementSerializer {
 
     /**
      * Loads the {@link Measurement} with the provided identifier from the persistence layer serialized and compressed
-     * in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
+     * in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format and writes it to a temp file, ready to
+     * be transferred.
      * <p>
-     * The standard Android GZIP compression is used.
-     * <p>
-     * <b>ATTENTION</b>: The caller needs to delete the returned file when no longer needed or on program crash!
+     * <b>ATTENTION</b>: The caller needs to delete the file which is referenced by the returned {@code FileInputStream}
+     * when no longer needed or on program crash!
      * 
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
-     * @return A {@link File} pointing to a temporary file containing the serialized compressed data for transfer.
+     * @return A {@link FileInputStream} containing the serialized compressed data for transfer.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public File loadSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
+    public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
             final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
-        final File compressedTempFile;
-        try {
-            compressedTempFile = File.createTempFile("compressedTransferFile", ".tmp");
-        } catch (final IOException e) {
-            throw new IllegalStateException(e);
-        }
-
-        // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
+        File compressedTempFile = null;
         final FileOutputStream fileOutputStream;
         try {
+            compressedTempFile = File.createTempFile("compressedTransferFile", ".tmp");
+
+            // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
             fileOutputStream = new FileOutputStream(compressedTempFile);
-        } catch (FileNotFoundException e) {
-            // No need to close this stream as it failed to open and is null
+        } catch (final IOException e) {
+            if (compressedTempFile != null && compressedTempFile.exists()) {
+                Validate.isTrue(compressedTempFile.delete());
+            }
+
+            // No need to close fileOutputStream as it failed to open and is null
             throw new IllegalStateException(e);
         }
 
+        try {
+            try {
+                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
+            } catch (final IOException e) {
+                fileOutputStream.close();
+
+                if (compressedTempFile.exists()) {
+                    Validate.isTrue(compressedTempFile.delete());
+                }
+            }
+        } catch (final IOException e) {
+            if (compressedTempFile.exists()) {
+                Validate.isTrue(compressedTempFile.delete());
+            }
+
+            // This catches, among others, the IOException thrown in the close
+            throw new IllegalStateException(e);
+        }
+
+        return compressedTempFile;
+    }
+
+    /**
+     * Writes the {@link Measurement} with the provided identifier from the persistence layer serialized and compressed
+     * in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
+     * <p>
+     * The Deflater ZLIB (RFC-1950) compression is used.
+     *
+     * @param fileOutputStream the {@link FileInputStream} to write the compressed data to
+     * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
+     * @param measurementId The id of the {@link Measurement} to load
+     * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws IOException When flushing or closing the {@link OutputStream} fails
+     */
+    private void loadSerializedCompressed(@NonNull final FileOutputStream fileOutputStream,
+            @NonNull final MeasurementContentProviderClient loader, final long measurementId,
+            @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
+
         // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
+
         // Wrapping the streams with Buffered streams for performance reasons
         final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+
         final int DEFLATER_LEVEL = 9; // 'cause Steve Jobs said so
         final Deflater compressor = new Deflater(DEFLATER_LEVEL, COMPRESSION_NOWRAP);
         // As we wrap the injected outputStream with Deflater the serialized data is automatically compressed
@@ -153,21 +194,15 @@ public final class MeasurementSerializer {
         // This architecture catches the IOException thrown by the close() called in the finally without IDE warning
         BufferedOutputStream bufferedDeflaterOutputStream = null;
         try {
-            try {
-                bufferedDeflaterOutputStream = new BufferedOutputStream(deflaterStream);
+            bufferedDeflaterOutputStream = new BufferedOutputStream(deflaterStream);
 
-                // Injecting the outputStream into which the serialized (in this case compressed) data is written to
-                loadSerialized(bufferedDeflaterOutputStream, loader, measurementId, persistenceLayer);
-                bufferedDeflaterOutputStream.flush();
-                return compressedTempFile;
-            } finally {
-                if (bufferedDeflaterOutputStream != null) {
-                    bufferedDeflaterOutputStream.close();
-                }
+            // Injecting the outputStream into which the serialized (in this case compressed) data is written to
+            loadSerialized(bufferedDeflaterOutputStream, loader, measurementId, persistenceLayer);
+            bufferedDeflaterOutputStream.flush();
+        } finally {
+            if (bufferedDeflaterOutputStream != null) {
+                bufferedDeflaterOutputStream.close();
             }
-        } catch (final IOException e) {
-            // This catches the IOException thrown in the close
-            throw new IllegalStateException(e);
         }
     }
 

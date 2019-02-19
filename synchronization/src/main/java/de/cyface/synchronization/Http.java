@@ -71,14 +71,13 @@ interface Http {
     /**
      * The serialized post request which transmits a measurement through an existing http connection
      *
-     * @throws DataTransmissionException When the server returned a non-successful status code.
-     * @throws RequestParsingException When the request could not be generated.
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
+     * @throws BadRequestException When the api responses with {@link HttpURLConnection#HTTP_BAD_REQUEST}
      */
-    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile, @NonNull String deviceId,
-                      long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
-            throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException;
+    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
+            @NonNull String deviceId, long measurementId, @NonNull String fileName,
+            UploadProgressListener progressListener)
+            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException;
 }

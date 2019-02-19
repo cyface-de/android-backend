@@ -29,17 +29,12 @@ public final class DefaultFileAccess implements FileAccessLayer {
             @NonNull final BufferedOutputStream bufferedOutputStream) {
 
         final FileInputStream fileInputStream;
-        try {
-            fileInputStream = new FileInputStream(file);
-        } catch (final FileNotFoundException e) {
-            throw new IllegalStateException();
-        }
-
         int bytesRead, bytesAvailable, bufferSize;
         byte[] buffer;
         // noinspection PointlessArithmeticExpression - makes semantically more sense
         int maxBufferSize = 1 * 1024 * 1024; // from sample code, optimize if performance problems
         try {
+            fileInputStream = new FileInputStream(file);
             try {
                 bytesAvailable = fileInputStream.available();
                 bufferSize = Math.min(bytesAvailable, maxBufferSize);
@@ -58,7 +53,7 @@ public final class DefaultFileAccess implements FileAccessLayer {
                 fileInputStream.close();
             }
         } catch (final IOException e) {
-            // This catches the IOException thrown in the close
+            // This catches, among others, the IOException thrown in the close
             throw new IllegalStateException(e);
         }
     }

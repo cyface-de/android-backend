@@ -3,7 +3,6 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
@@ -12,6 +11,7 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
@@ -82,13 +82,12 @@ class SyncPerformer {
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      *
-     * @throws RequestParsingException When the post request could not be generated or when data could not be parsed
-     *             from the measurement slice.
+     * @throws BadRequestException When the api responses with {@link HttpURLConnection#HTTP_BAD_REQUEST}
      */
     boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl,
-            final long measurementIdentifier, final @NonNull String deviceIdentifier,
-            final @NonNull File compressedTransferTempFile, final @NonNull UploadProgressListener progressListener,
-            final @NonNull String jwtAuthToken) throws RequestParsingException, BadRequestException {
+                     final long measurementIdentifier, final @NonNull String deviceIdentifier,
+                     final @NonNull File compressedTransferTempFile, final @NonNull UploadProgressListener progressListener,
+                     final @NonNull String jwtAuthToken) throws BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
@@ -117,10 +116,6 @@ class SyncPerformer {
         } catch (final ResponseParsingException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-            return false;
-        } catch (final DataTransmissionException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
             return false;
         } catch (final SynchronisationException e) {
             syncResult.stats.numParseExceptions++;

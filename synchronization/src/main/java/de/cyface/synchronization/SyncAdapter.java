@@ -6,7 +6,6 @@ import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
 import java.io.File;
 import java.util.Collection;
@@ -124,6 +123,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             } catch (final NetworkErrorException e) {
                 throw new IllegalStateException(e);
             }
+            Validate.notNull(jwtAuthToken);
             Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
             // Load all Measurements that are finished capturing
@@ -144,22 +144,22 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                                 measurement.getIdentifier()));
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                         measurement.getIdentifier(), provider, authority);
-                final File compressedTransferTempFile = serializer.loadSerializedCompressed(loader,
+                final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
                         measurement.getIdentifier(), persistence);
-
-                // Acquire new auth token before each synchronization (old one could be expired)
+                // Try to sync the transfer file - remove it afterwards
                 try {
-                    // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
-                    jwtAuthToken = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null)
-                            .getString(AccountManager.KEY_AUTHTOKEN);
-                } catch (final NetworkErrorException e) {
-                    throw new IllegalStateException(e);
-                }
-                Validate.notNull(jwtAuthToken);
-                Log.d(TAG, "Sync authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
-                // Try to sync the transfer file and remove it afterwards
-                try {
+                    // Acquire new auth token before each synchronization (old one could be expired)
+                    try {
+                        // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
+                        final Bundle authBundle = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null);
+                        Validate.notNull(authBundle);
+                        jwtAuthToken = authBundle.getString(AccountManager.KEY_AUTHTOKEN);
+                    } catch (final NetworkErrorException e) {
+                        throw new IllegalStateException(e);
+                    }
+                    Validate.notNull(jwtAuthToken);
+                    Log.d(TAG, "Sync authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
                     // Synchronize measurement
                     Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
@@ -197,10 +197,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
-        } catch (final RequestParsingException e) {
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
         } catch (final BadRequestException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numConflictDetectedExceptions++;

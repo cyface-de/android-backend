@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -142,7 +143,7 @@ public class DataTransmissionTest {
             MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
             MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
-            File compressedTransferTempFile = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(),
+            File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurement.getIdentifier(),
                     persistence);
 
             String jwtAuthToken = "replace me";
