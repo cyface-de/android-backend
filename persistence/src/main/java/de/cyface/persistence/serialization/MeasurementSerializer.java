@@ -119,7 +119,7 @@ public final class MeasurementSerializer {
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
-     * @return A {@link FileInputStream} containing the serialized compressed data for transfer.
+     * @return A {@link File} pointing to a temporary file containing the serialized compressed data for transfer.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,

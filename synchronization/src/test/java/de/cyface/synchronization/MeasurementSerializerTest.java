@@ -220,8 +220,8 @@ public class MeasurementSerializerTest {
     public void testSerializeCompressedMeasurement() throws CursorIsNullException, IOException {
 
         final long SERIALIZED_COMPRESSED_SIZE = 24L; // When compression Deflater(level 9, true)
-        final FileInputStream compressedTransferBytes = oocut.writeSerializedCompressed(loader, 0, persistence);
-        assertThat(compressedTransferBytes.available(), is(equalTo((int)SERIALIZED_COMPRESSED_SIZE)));
+        final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, 0, persistence);
+        assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
     }
 
     /**
@@ -231,11 +231,11 @@ public class MeasurementSerializerTest {
     public void testDecompressDeserialize() throws IOException, DataFormatException, CursorIsNullException {
 
         // Assemble serialized compressed bytes
-        final FileInputStream compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
+        final File compressedTransferTempFile = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
                 persistence);
         // Load bytes from compressedTransferFile
-        final byte[] compressedBytes = new byte[compressedTransferBytes.available()];
-        DataInputStream dis = new DataInputStream(compressedTransferBytes);
+        final byte[] compressedBytes = new byte[(int) compressedTransferTempFile.length()];
+        DataInputStream dis = new DataInputStream(new FileInputStream(compressedTransferTempFile));
         dis.readFully(compressedBytes);
 
         // Decompress the compressed bytes and check length and bytes
