@@ -177,7 +177,7 @@ public final class MeasurementSerializer {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws IOException When flushing or closing the {@link OutputStream} fails
      */
-    private void loadSerializedCompressed(@NonNull final FileOutputStream fileOutputStream,
+    private void loadSerializedCompressed(@NonNull final OutputStream fileOutputStream,
             @NonNull final MeasurementContentProviderClient loader, final long measurementId,
             @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
 
