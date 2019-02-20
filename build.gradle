@@ -77,7 +77,7 @@ allprojects {
 
 apply plugin: 'android-reporting'
 
-configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing"] })) {
+configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing", "utils"] })) {
     pr ->
         apply plugin: 'com.android.library'
         apply plugin: 'maven-publish'
