@@ -24,6 +24,7 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.backend.TestCallback;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
@@ -108,7 +109,7 @@ public class PingPongTest {
      */
     @Test
     public void testWithRunningService() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
@@ -157,7 +158,7 @@ public class PingPongTest {
         assertThat(testCallback.didTimeOut(), is(equalTo(false)));
 
         TestShutdownFinishedHandler shutdownHandler = new TestShutdownFinishedHandler(lock, condition);
-        dcs.stop(shutdownHandler);
+        dcs.stop(listener, shutdownHandler);
 
         lock.lock();
         try {

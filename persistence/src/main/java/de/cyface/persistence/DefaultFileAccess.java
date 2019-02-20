@@ -5,13 +5,13 @@ import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 
@@ -141,7 +141,8 @@ public final class DefaultFileAccess implements FileAccessLayer {
                 }
             }
         } catch (final IOException e) {
-            throw new IllegalStateException("Failed to append data to file.");
+            // TODO [MOV-566]: Soft catch the no space left scenario
+            throw new IllegalStateException("Failed to append data to file. Is there space left on the device?");
         }
     }
 

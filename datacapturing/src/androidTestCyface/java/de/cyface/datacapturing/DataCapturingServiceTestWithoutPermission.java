@@ -23,6 +23,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
@@ -95,7 +96,7 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Test(expected = MissingPermissionException.class)
     public void testServiceDoesNotStartWithoutPermission()
-            throws MissingPermissionException, DataCapturingException, CursorIsNullException {
+            throws MissingPermissionException, DataCapturingException, CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
         oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
@@ -106,7 +107,7 @@ public class DataCapturingServiceTestWithoutPermission {
      * Tests whether a set {@link UIListener} is correctly informed about a missing permission.
      */
     @Test
-    public void testUIListenerIsInformedOfMissingPermission() throws CursorIsNullException {
+    public void testUIListenerIsInformedOfMissingPermission() throws CursorIsNullException, CorruptedMeasurementException {
         TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 

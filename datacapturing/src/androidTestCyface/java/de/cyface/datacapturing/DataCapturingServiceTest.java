@@ -37,6 +37,7 @@ import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.backend.TestCallback;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
@@ -212,8 +213,8 @@ public class DataCapturingServiceTest {
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
-    private long startAndCheckThatLaunched()
-            throws MissingPermissionException, DataCapturingException, CursorIsNullException {
+    private long startAndCheckThatLaunched() throws MissingPermissionException, DataCapturingException,
+            CursorIsNullException, CorruptedMeasurementException {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
@@ -360,7 +361,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testStartStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException {
+            CursorIsNullException, CorruptedMeasurementException {
 
         final long receivedMeasurementIdentifier = startAndCheckThatLaunched();
         stopAndCheckThatStopped(receivedMeasurementIdentifier);
@@ -381,7 +382,7 @@ public class DataCapturingServiceTest {
     @Test
     @Ignore
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
         final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock, condition,
@@ -435,7 +436,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testDisconnectReconnect() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -459,7 +460,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testDoubleStart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException {
+            CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -483,7 +484,7 @@ public class DataCapturingServiceTest {
      */
     @Test(expected = NoSuchMeasurementException.class)
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException {
+            CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementId = startAndCheckThatLaunched();
 
@@ -502,7 +503,7 @@ public class DataCapturingServiceTest {
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleDisconnect() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -521,7 +522,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -540,7 +541,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testDoubleReconnect() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         oocut.disconnect();
@@ -564,7 +565,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testDisconnectReconnectTwice() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -591,7 +592,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testRestart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException {
+            CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         stopAndCheckThatStopped(measurementIdentifier);
@@ -612,7 +613,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testResumeTwice() throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException,
-            CursorIsNullException {
+            CursorIsNullException, CorruptedMeasurementException {
 
         // Start, pause
         final long measurementIdentifier = startAndCheckThatLaunched();
@@ -646,7 +647,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testStartPauseStop() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         pauseAndCheckThatStopped(measurementIdentifier);
@@ -666,7 +667,7 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         final List<Measurement> measurements = persistenceLayer.loadMeasurements();
@@ -700,7 +701,7 @@ public class DataCapturingServiceTest {
     @LargeTest
     @FlakyTest
     public void testSensorDataCapturing() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
