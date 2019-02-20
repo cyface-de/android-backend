@@ -171,7 +171,7 @@ public class DataCapturingServiceTest {
             // Stop zombie
             final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock,
                     condition);
-            oocut.stop(shutDownFinishedHandler);
+            oocut.stop(testListener, shutDownFinishedHandler);
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
             TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -237,7 +237,7 @@ public class DataCapturingServiceTest {
             throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
 
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
-        oocut.pause(shutDownFinishedHandler);
+        oocut.pause(testListener, shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
     }
@@ -262,7 +262,7 @@ public class DataCapturingServiceTest {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
-        oocut.resume(startUpFinishedHandler);
+        oocut.resume(testListener, startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
         assertThat(resumedMeasurementId, is(measurementIdentifier));
@@ -284,7 +284,7 @@ public class DataCapturingServiceTest {
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
-        oocut.stop(shutDownFinishedHandler);
+        oocut.stop(testListener, shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
     }
@@ -292,7 +292,7 @@ public class DataCapturingServiceTest {
     /**
      * Checks that a {@link DataCapturingService} actually started after calling the life-cycle method
      * {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
-     * {@link DataCapturingService#resume(StartUpFinishedHandler)}.
+     * {@link DataCapturingService#resume(DataCapturingListener, StartUpFinishedHandler)}
      *
      * This also updates the {@link #runningStatusCallback}.
      *
@@ -320,8 +320,8 @@ public class DataCapturingServiceTest {
 
     /**
      * Checks that a {@link DataCapturingService} actually stopped after calling the life-cycle method
-     * {@link DataCapturingService#stop(ShutDownFinishedHandler)} or
-     * {@link DataCapturingService#pause(ShutDownFinishedHandler)}.
+     * {@link DataCapturingService#stop(DataCapturingListener, ShutDownFinishedHandler)} or
+     * {@link DataCapturingService#pause(DataCapturingListener, ShutDownFinishedHandler)}.
      *
      * This also updates the {@link #runningStatusCallback}.
      *
@@ -394,13 +394,13 @@ public class DataCapturingServiceTest {
 
         // First Start/stop without waiting
         oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler1);
-        oocut.stop(shutDownFinishedHandler1);
+        oocut.stop(testListener, shutDownFinishedHandler1);
         // Second start/stop without waiting
         oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler2);
-        oocut.stop(shutDownFinishedHandler2);
+        oocut.stop(testListener, shutDownFinishedHandler2);
         // Second start/stop without waiting
         oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler3);
-        oocut.stop(shutDownFinishedHandler3);
+        oocut.stop(testListener, shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -489,7 +489,7 @@ public class DataCapturingServiceTest {
 
         stopAndCheckThatStopped(measurementId);
         // must throw NoSuchMeasurementException
-        oocut.stop(new TestShutdownFinishedHandler(lock, condition));
+        oocut.stop(testListener, new TestShutdownFinishedHandler(lock, condition));
     }
 
     /**
@@ -626,7 +626,7 @@ public class DataCapturingServiceTest {
                 context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
-        oocut.resume(startUpFinishedHandler);
+        oocut.resume(testListener, startUpFinishedHandler);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
@@ -656,8 +656,8 @@ public class DataCapturingServiceTest {
     /**
      * Tests if the service lifecycle is running successfully.
      * <p>
-     * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
-     * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
+     * Makes sure the {@link DataCapturingService#pause(DataCapturingListener, ShutDownFinishedHandler)} and
+     * {@link DataCapturingService#resume(DataCapturingListener, StartUpFinishedHandler)} work correctly.
      *
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
