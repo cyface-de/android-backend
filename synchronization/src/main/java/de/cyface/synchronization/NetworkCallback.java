@@ -20,7 +20,7 @@ import androidx.annotation.NonNull;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)

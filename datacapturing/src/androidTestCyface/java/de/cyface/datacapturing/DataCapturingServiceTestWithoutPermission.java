@@ -37,7 +37,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

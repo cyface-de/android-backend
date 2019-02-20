@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
  * This class is used by a {@link PongReceiver} to inform a reconnection process about the status and wake it up.
  * 
  * @author Klemens Muthmann
- * @version 1.0.4
+ * @version 1.0.6
  * @since 2.0.1
  * @see DataCapturingService#reconnect(long)
  */

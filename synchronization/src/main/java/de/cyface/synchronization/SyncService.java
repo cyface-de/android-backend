@@ -16,7 +16,7 @@ import android.util.Log;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.6
+ * @version 1.0.7
  * @since 2.0.0
  */
 public final class SyncService extends Service {

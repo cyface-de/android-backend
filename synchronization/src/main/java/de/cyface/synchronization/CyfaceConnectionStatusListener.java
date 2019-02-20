@@ -14,7 +14,7 @@ import androidx.annotation.NonNull;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.4
+ * @version 3.0.0
  * @since 1.0.0
  */
 public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {

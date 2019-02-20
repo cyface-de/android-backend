@@ -59,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 2.0.0
  */
 public final class MeasurementSerializer {

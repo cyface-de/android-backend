@@ -29,7 +29,7 @@ import de.cyface.synchronization.BundlesExtrasCodes;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.3
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {

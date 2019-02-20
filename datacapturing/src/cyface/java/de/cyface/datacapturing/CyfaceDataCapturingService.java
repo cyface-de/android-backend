@@ -32,7 +32,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 7.1.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -128,10 +128,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * <p>
      * This wrapper deletes "dead" {@link MeasurementStatus#OPEN} measurements because the {@link Point3d} counts
      * was lost during app crash. "Dead" {@link MeasurementStatus#PAUSED} measurements are marked as {@code FINISHED}.
-     *
-     * FIXME @Review: We can't just finish a "dead" open measurement as we do not have the point counts
-     * we would have to try to count the data in the serialized files or delete the serialized files, set the counts to
-     * zero to be able to mark the remaining measurement as FINISHED
      */
     @Override
     public void start(@NonNull DataCapturingListener listener, @NonNull Vehicle vehicle,
