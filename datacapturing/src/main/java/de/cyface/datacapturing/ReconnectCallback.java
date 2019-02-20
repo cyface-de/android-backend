@@ -16,7 +16,7 @@ import android.util.Log;
  * @author Klemens Muthmann
  * @version 1.0.4
  * @since 2.0.1
- * @see DataCapturingService#reconnect()
+ * @see DataCapturingService#reconnect(long)
  */
 abstract class ReconnectCallback implements IsRunningCallback {
 

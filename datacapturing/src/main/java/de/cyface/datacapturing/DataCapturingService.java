@@ -33,6 +33,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
 import android.accounts.Account;
+import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.Context;
@@ -497,8 +498,8 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * This method checks for whether the service is currently running or not. Since this requires an asynchronous inter
-     * process communication, it should be considered a long running operation.
+     * This method checks whether the {@link DataCapturingBackgroundService} is currently running or not. Since this
+     * requires an asynchronous inter process communication, it should be considered a long running operation.
      *
      * @param timeout The timeout of how long to wait for the service to answer before deciding it is not running. After
      *            this timeout has passed the <code>IsRunningCallback#timedOut()</code> method is called. Since the
@@ -530,8 +531,8 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Reconnects your app to the <code>DataCapturingService</code>. This might be especially useful if you have been
-     * disconnected in a previous call to <code>onStop</code> in your <code>Activity</code> lifecycle.
+     * Reconnects your app to the {@link DataCapturingBackgroundService}. This might be especially useful if you have
+     * been disconnected in a previous call to {@link Activity#onStop()}.
      * <p>
      * <b>ATTENTION</b>: This method might take some time to check for a running service. Always consider this to be a
      * long running operation and never call it on the main thread.
@@ -565,7 +566,7 @@ public abstract class DataCapturingService {
         try {
             Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
             if (!condition.await(isRunningTimeout, TimeUnit.MILLISECONDS)) {
-                Log.w(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
+                Log.d(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
             }
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);

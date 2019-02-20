@@ -716,7 +716,6 @@ public class DataCapturingServiceTest {
     /**
      * Tests whether reconnect throws no exception when called without a running background service and leaves the
      * DataCapturingService in the correct state (<code>isDataCapturingServiceRunning</code> is <code>false</code>.
-     *
      */
     @Test
     public void testReconnectOnNonRunningServer() {

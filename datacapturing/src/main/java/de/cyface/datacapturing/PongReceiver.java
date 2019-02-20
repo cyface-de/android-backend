@@ -19,12 +19,13 @@ import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.synchronization.BundlesExtrasCodes;
 
 /**
- * A <code>BroadcastReceiver</code> and sender that send a <code>MessageCodes.PING</code> event to the system and
- * expects to receive a <code>MessageCodes.PONG</code> event if the background service is running. If not a timeout will
- * tell the caller, that the service is not running.
+ * A {@link BroadcastReceiver} and sender that send a {@link MessageCodes#GLOBAL_BROADCAST_PING} event to the system and
+ * expects to receive a {@link MessageCodes#GLOBAL_BROADCAST_PONG} event if the {@link DataCapturingBackgroundService}
+ * is running. If not a timeout will tell the caller, that the service is not running.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
