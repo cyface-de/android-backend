@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.1
+ * @version 12.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -785,7 +785,7 @@ public abstract class DataCapturingService {
      * @param isRunning {@code true} if data capturing is running; {@code false} otherwise.
      */
     private void setIsRunning(final boolean isRunning) {
-        Log.d(TAG, "Setting isRunning to " + isRunning);
+        Log.v(TAG, "Setting isRunning to " + isRunning);
         this.isRunning = isRunning;
     }
 
@@ -794,7 +794,7 @@ public abstract class DataCapturingService {
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by a test in the cyface flavour
     boolean getIsRunning() {
-        Log.d(TAG, "Getting isRunning with value " + isRunning);
+        Log.v(TAG, "Getting isRunning with value " + isRunning);
         return isRunning;
     }
 
@@ -804,7 +804,7 @@ public abstract class DataCapturingService {
      *            process or being called, while no service is running.
      */
     private void setIsStoppingOrHasStopped(final boolean isStoppingOrHasStopped) {
-        Log.d(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
+        Log.v(TAG, "Setting isStoppingOrHasStopped to " + isStoppingOrHasStopped);
         this.isStoppingOrHasStopped = isStoppingOrHasStopped;
     }
 

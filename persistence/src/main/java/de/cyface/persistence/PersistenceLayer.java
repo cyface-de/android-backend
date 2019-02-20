@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.0
+ * @version 10.0.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -164,7 +164,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public boolean hasMeasurement(@NonNull MeasurementStatus status) throws CursorIsNullException {
-        Log.d(TAG, "Checking if app has an " + status + " measurement.");
+        Log.v(TAG, "Checking if app has an " + status + " measurement.");
 
         Cursor cursor = null;
         try {
@@ -174,7 +174,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 Validate.softCatchNullCursor(cursor);
 
                 final boolean hasMeasurement = cursor.getCount() > 0;
-                Log.d(TAG, hasMeasurement ? "At least one measurement is " + status + "."
+                Log.v(TAG, hasMeasurement ? "At least one measurement is " + status + "."
                         : "No measurement is " + status + ".");
                 return hasMeasurement;
             }
@@ -426,7 +426,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                     final int indexOfMeasurementIdentifierColumn = deviceIdentifierQueryCursor
                             .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
                     final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
-                    Log.d(TAG, "Providing device identifier " + did);
+                    Log.v(TAG, "Providing device identifier " + did);
                     Validate.notNull(did);
                     return did;
                 }
@@ -616,7 +616,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public Measurement loadCurrentlyCapturedMeasurementFromPersistence()
             throws NoSuchMeasurementException, CursorIsNullException {
-        Log.d(Constants.TAG, "Trying to load currently captured measurement from PersistenceLayer!");
+        Log.v(Constants.TAG, "Trying to load currently captured measurement from PersistenceLayer!");
 
         final List<Measurement> openMeasurements = loadMeasurements(MeasurementStatus.OPEN);
         final List<Measurement> pausedMeasurements = loadMeasurements(MeasurementStatus.PAUSED);

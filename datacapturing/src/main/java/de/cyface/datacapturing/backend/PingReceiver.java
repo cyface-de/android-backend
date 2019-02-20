@@ -19,7 +19,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -47,7 +47,7 @@ public class PingReceiver extends BroadcastReceiver {
             Intent pongIntent = new Intent(MessageCodes.getPongActionId(deviceId));
             if (BuildConfig.DEBUG) {
                 String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
-                Log.d(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
+                Log.v(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
                         + ". Sending Pong.");
                 pongIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
             }

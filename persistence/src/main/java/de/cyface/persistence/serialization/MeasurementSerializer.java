@@ -3,14 +3,18 @@ package de.cyface.persistence.serialization;
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.Constants.TAG;
 
-import java.io.ByteArrayInputStream;
+import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
 import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
+import java.io.OutputStream;
 import java.nio.ByteBuffer;
 import java.util.List;
 import java.util.zip.Deflater;
+import java.util.zip.DeflaterOutputStream;
+import java.util.zip.Inflater;
 
 import android.content.ContentProvider;
 import android.content.ContentResolver;
@@ -55,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.3
+ * @version 4.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -85,6 +89,14 @@ public final class MeasurementSerializer {
     public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
             + ByteSizes.INT_BYTES;
     /**
+     * In iOS there are no parameters to set nowrap to false as it is default in Android.
+     * In order for the iOS and Android Cyface SDK to be compatible we set nowrap explicitly to true
+     * <p>
+     * <b>ATTENTION:</b> When decompressing in Android you need to pass this parameter to the {@link Inflater}'s
+     * constructor.
+     */
+    public static final boolean COMPRESSION_NOWRAP = true;
+    /**
      * The {@link FileAccessLayer} used to interact with files.
      */
     private final FileAccessLayer fileAccessLayer;
@@ -97,29 +109,101 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Loads the {@link Measurement} with the provided identifier from the persistence layer as compressed and and
-     * serialized in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
-     *
-     * The standard Android GZIP compression is used.
+     * Loads the {@link Measurement} with the provided identifier from the persistence layer serialized and compressed
+     * in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format and writes it to a temp file, ready to
+     * be transferred.
+     * <p>
+     * <b>ATTENTION</b>: The caller needs to delete the file which is referenced by the returned {@code FileInputStream}
+     * when no longer needed or on program crash!
      * 
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
-     * @return An {@link InputStream} containing the serialized compressed data.
+     * @return A {@link File} pointing to a temporary file containing the serialized compressed data for transfer.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public InputStream loadSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
+    public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
             final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
-        final Deflater compressor = new Deflater();
-        final byte[] serializedMeasurement = loadSerialized(loader, measurementId, persistenceLayer);
-        compressor.setInput(serializedMeasurement);
-        compressor.finish();
-        byte[] output = new byte[serializedMeasurement.length];
-        int lengthOfCompressedData = compressor.deflate(output);
-        Log.d(TAG, String.format("Compressed data to %s.",
-                DefaultFileAccess.humanReadableByteCount(lengthOfCompressedData, true)));
-        return new ByteArrayInputStream(output, 0, lengthOfCompressedData);
+        // Store the compressed bytes into a temp file to be able to read the byte size for transmission
+        File compressedTempFile = null;
+        final FileOutputStream fileOutputStream;
+        try {
+            compressedTempFile = File.createTempFile("compressedTransferFile", ".tmp");
+
+            // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
+            fileOutputStream = new FileOutputStream(compressedTempFile);
+        } catch (final IOException e) {
+            if (compressedTempFile != null && compressedTempFile.exists()) {
+                Validate.isTrue(compressedTempFile.delete());
+            }
+
+            // No need to close fileOutputStream as it failed to open and is null
+            throw new IllegalStateException(e);
+        }
+
+        try {
+            try {
+                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
+            } catch (final IOException e) {
+                fileOutputStream.close();
+
+                if (compressedTempFile.exists()) {
+                    Validate.isTrue(compressedTempFile.delete());
+                }
+            }
+        } catch (final IOException e) {
+            if (compressedTempFile.exists()) {
+                Validate.isTrue(compressedTempFile.delete());
+            }
+
+            // This catches, among others, the IOException thrown in the close
+            throw new IllegalStateException(e);
+        }
+
+        return compressedTempFile;
+    }
+
+    /**
+     * Writes the {@link Measurement} with the provided identifier from the persistence layer serialized and compressed
+     * in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be transferred.
+     * <p>
+     * The Deflater ZLIB (RFC-1950) compression is used.
+     *
+     * @param fileOutputStream the {@link FileInputStream} to write the compressed data to
+     * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
+     * @param measurementId The id of the {@link Measurement} to load
+     * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws IOException When flushing or closing the {@link OutputStream} fails
+     */
+    private void loadSerializedCompressed(@NonNull final OutputStream fileOutputStream,
+            @NonNull final MeasurementContentProviderClient loader, final long measurementId,
+            @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
+
+        // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
+
+        // Wrapping the streams with Buffered streams for performance reasons
+        final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
+
+        final int DEFLATER_LEVEL = 9; // 'cause Steve Jobs said so
+        final Deflater compressor = new Deflater(DEFLATER_LEVEL, COMPRESSION_NOWRAP);
+        // As we wrap the injected outputStream with Deflater the serialized data is automatically compressed
+        final DeflaterOutputStream deflaterStream = new DeflaterOutputStream(bufferedFileOutputStream, compressor);
+
+        // This architecture catches the IOException thrown by the close() called in the finally without IDE warning
+        BufferedOutputStream bufferedDeflaterOutputStream = null;
+        try {
+            bufferedDeflaterOutputStream = new BufferedOutputStream(deflaterStream);
+
+            // Injecting the outputStream into which the serialized (in this case compressed) data is written to
+            loadSerialized(bufferedDeflaterOutputStream, loader, measurementId, persistenceLayer);
+            bufferedDeflaterOutputStream.flush();
+        } finally {
+            if (bufferedDeflaterOutputStream != null) {
+                bufferedDeflaterOutputStream.close();
+            }
+        }
     }
 
     /**
@@ -132,7 +216,7 @@ public final class MeasurementSerializer {
      */
     private byte[] serializeGeoLocations(final @NonNull Cursor geoLocationsCursor) {
         // Allocate enough space for all geo locations
-        Log.d(TAG, String.format("Serializing %d GeoLocations for synchronization.", geoLocationsCursor.getCount()));
+        Log.v(TAG, String.format("Serializing %d GeoLocations for synchronization.", geoLocationsCursor.getCount()));
         final ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
 
         while (geoLocationsCursor.moveToNext()) {
@@ -161,7 +245,7 @@ public final class MeasurementSerializer {
      * @return A <code>byte</code> array containing all the data.
      */
     public static byte[] serialize(final @NonNull List<Point3d> dataPoints) {
-        Log.d(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
+        Log.v(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
 
         final ByteBuffer buffer = ByteBuffer.allocate(dataPoints.size() * BYTES_IN_ONE_POINT_3D_ENTRY);
         for (final Point3d point : dataPoints) {
@@ -213,23 +297,30 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Implements the core algorithm of loading a {@link Measurement} with all its data from the
-     * {@link PersistenceLayer} and serializing it into an array of bytes in the
-     * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} format, ready to be compressed.
+     * Implements the core algorithm of loading a {@link Measurement} with its data from the {@link PersistenceLayer}
+     * and serializing it into an array of bytes in the {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}
+     * format, ready to be compressed.
+     * <p>
+     * We use the {@param loader} to access the measurement data.
+     * <p>
+     * We assemble the data using a buffer to avoid OOM exceptions.
+     * <p>
+     * <b>ATTENTION:</b> The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
+     * or the app crashes.
      *
-     * We use the {@param loader} to access the
+     * TODO: test performance on weak devices for large measurements
      *
-     * TODO: test this on weak devices for large measurements
-     *
+     * @param bufferedOutputStream The {@link OutputStream} to which the serialized data should be written. Injecting
+     *            this allows us to compress the serialized data without the need to write it into a temporary file.
+     *            We require a {@link BufferedOutputStream} for performance reasons.
      * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link GeoLocation}s.
      * @param measurementIdentifier The id of the {@code Measurement} to load
      * @param persistence The {@code PersistenceLayer} to access the file based data
-     * @return A byte array containing the serialized data.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public byte[] loadSerialized(@NonNull final MeasurementContentProviderClient loader,
-            final long measurementIdentifier, @NonNull final PersistenceLayer persistence)
-            throws CursorIsNullException {
+    public void loadSerialized(@NonNull final BufferedOutputStream bufferedOutputStream,
+            @NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier,
+            @NonNull final PersistenceLayer persistence) throws CursorIsNullException {
 
         // GeoLocations
         Cursor geoLocationsCursor = null;
@@ -259,38 +350,52 @@ public final class MeasurementSerializer {
         final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
         final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, measurement);
 
-        // Load already serialized Point3ds
+        // Get already serialized Point3dFiles
         final File accelerationFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
         final File rotationFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final File directionFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-        final byte[] serializedAccelerations = measurement.getAccelerations() > 0
-                ? fileAccessLayer.loadBytes(accelerationFile)
-                : new byte[] {};
-        final byte[] serializedRotations = measurement.getRotations() > 0 ? fileAccessLayer.loadBytes(rotationFile)
-                : new byte[] {};
-        final byte[] serializedDirections = measurement.getDirections() > 0 ? fileAccessLayer.loadBytes(directionFile)
-                : new byte[] {};
 
-        // Create transfer file
-        final int headerLength = transferFileHeader.length;
-        final int serializedGeoLocationsLength = serializedGeoLocations.length;
-        final int serializedAccelerationsLength = serializedAccelerations.length;
-        final int serializedRotationsLength = serializedRotations.length;
-        final int serializedDirectionsLength = serializedDirections.length;
-        final ByteBuffer buffer = ByteBuffer.allocate(headerLength + serializedGeoLocationsLength
-                + serializedAccelerationsLength + serializedRotationsLength + serializedDirectionsLength);
-        buffer.put(transferFileHeader);
-        buffer.put(serializedGeoLocations);
-        buffer.put(serializedAccelerations);
-        buffer.put(serializedRotations);
-        buffer.put(serializedDirections);
-        final byte[] result = buffer.array();
+        // Assemble bytes to transfer via buffered stream to avoid OOM
+        try {
+            // The stream must be closed by the called in a finally catch
+            bufferedOutputStream.write(transferFileHeader);
+            bufferedOutputStream.write(serializedGeoLocations);
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
 
-        Log.d(TAG, String.format("Serialized measurement with an uncompressed size of %s.",
-                DefaultFileAccess.humanReadableByteCount(result.length, true)));
-        return result;
+        if (measurement.getAccelerations() > 0) {
+            // noinspection ConstantConditions // can happen in tests
+            if (accelerationFile != null) {
+                Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
+                        DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
+            }
+            fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
+        }
+        if (measurement.getRotations() > 0) {
+            // noinspection ConstantConditions // can happen in tests
+            if (rotationFile != null) {
+                Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
+                        DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
+            }
+            fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
+        }
+        if (measurement.getDirections() > 0) {
+            // noinspection ConstantConditions // can happen in tests
+            if (directionFile != null) {
+                Log.v(TAG, String.format("Serializing %s directions for synchronization.",
+                        DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
+            }
+            fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
+        }
+
+        try {
+            bufferedOutputStream.flush();
+        } catch (IOException e) {
+            throw new IllegalStateException(e);
+        }
     }
 }

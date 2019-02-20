@@ -1,5 +1,6 @@
 package de.cyface.persistence;
 
+import java.io.BufferedOutputStream;
 import java.io.File;
 
 import android.content.Context;
@@ -11,18 +12,29 @@ import de.cyface.persistence.serialization.Point3dFile;
  * Interface access {@link File}s. This helps to mock the file access away during testing.
  *
  * @author Amin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 3.0.0
  */
 public interface FileAccessLayer {
 
     /**
+     * Writes the content of the {@param file} to the provided {@param bufferedOutputStream} using a buffer for
+     * performance reasons.
+     *
+     * @param file the {@link File} which content should be written to the output stream
+     * @param bufferedOutputStream the {@link BufferedOutputStream} the {@param file} content should be written to
+     */
+    void writeToOutputStream(@NonNull File file, @NonNull BufferedOutputStream bufferedOutputStream);
+
+    /**
      * Loads the bytes form a file.
+     * <p>
+     * This code is only used in the test to deserialize the serialized data for testing.
+     * However, it's in here to be able to inject a mocked file access layer in the tests.
      *
      * @param file The {@link File} to load the bytes from.
      * @return The bytes.
      */
-    @NonNull
     byte[] loadBytes(final File file);
 
     /**

@@ -30,7 +30,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.2
+ * @version 3.2.4
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -134,6 +134,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (isConnected()) {
             ContentResolver.requestSync(account, authority, Bundle.EMPTY);
         }
+        currentSynchronizationAccount = account;
 
         // FIXME: We want to test this on newer devices if we want to leave this in!
         // Roboelectric is currently only testing the deprecated code, see class documentation
@@ -148,7 +149,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
         } else {
             IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            currentSynchronizationAccount = account;
             context.get().registerReceiver(this, intentFilter);
         }
     }
@@ -309,7 +309,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
             final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
             final boolean result = isConnected && (isNotMeteredNetwork || !syncOnWiFiOnly);
-            Log.d(TAG, "allowSync: " + result + " (" + (isNotMeteredNetwork ? "not" : "") + "metered)");
+            Log.v(TAG, "allowSync: " + result + " (" + (isNotMeteredNetwork ? "not" : "") + "metered)");
 
             return result;
         } else {

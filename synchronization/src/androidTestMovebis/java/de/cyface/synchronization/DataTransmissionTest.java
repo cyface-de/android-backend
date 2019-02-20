@@ -9,6 +9,8 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.io.File;
+import java.io.FileInputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.security.MessageDigest;
@@ -39,6 +41,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -46,7 +49,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.1
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -98,7 +101,7 @@ public class DataTransmissionTest {
             CursorIsNullException, NoSuchMeasurementException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
-        PersistenceLayer persistence = new PersistenceLayer(context, resolver, AUTHORITY,
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, resolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
@@ -130,7 +133,6 @@ public class DataTransmissionTest {
         persistence.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
 
         ContentProviderClient client = null;
-        InputStream measurementData = null;
         try {
             client = resolver.acquireContentProviderClient(AUTHORITY);
 
@@ -141,25 +143,28 @@ public class DataTransmissionTest {
             MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
             MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
-            measurementData = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(), persistence);
-            // printMD5(measurementData);
+            File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurement.getIdentifier(),
+                    persistence);
 
             String jwtAuthToken = "replace me";
             SyncPerformer performer = new SyncPerformer(
                     InstrumentationRegistry.getInstrumentation().getTargetContext());
             SyncResult syncResult = new SyncResult();
-            boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
-                    measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {
-                        @Override
-                        public void updatedProgress(float percent) {
-                            Log.d(TAG, String.format("Upload Progress %f", percent));
-                        }
-                    }, jwtAuthToken);
-            assertThat(result, is(equalTo(true)));
-        } finally {
-            if (measurementData != null) {
-                measurementData.close();
+            try {
+                boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
+                        measurementIdentifier, "garbage", compressedTransferTempFile, new UploadProgressListener() {
+                            @Override
+                            public void updatedProgress(float percent) {
+                                Log.d(TAG, String.format("Upload Progress %f", percent));
+                            }
+                        }, jwtAuthToken);
+                assertThat(result, is(equalTo(true)));
+            } finally {
+                if (compressedTransferTempFile.exists()) {
+                    Validate.isTrue(compressedTransferTempFile.delete());
+                }
             }
+        } finally {
             if (client != null) {
                 client.close();
             }
