@@ -1,6 +1,9 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
+
+import java.util.List;
 
 import android.Manifest;
 import android.accounts.Account;
@@ -13,15 +16,24 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
 
@@ -254,6 +266,52 @@ public class MovebisDataCapturingService extends DataCapturingService {
                     "this app uses information about WiFi and cellular networks to display your position. Please provide your permission to track the networks you are currently using, to see your position on the map."));
         } else {
             return permissionAlreadyGranted;
+        }
+    }
+
+    /**
+     * For documentation see {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}.
+     * <p>
+     * This wrapper was requested by RM to avoid an unrecoverable state after the app crashed with an
+     * un{@link MeasurementStatus#FINISHED} {@link Measurement}.
+     * <p>
+     * This wrapper deletes "dead" {@link MeasurementStatus#OPEN} measurements because the {@link Point3d} counts
+     * was lost during app crash. "Dead" {@link MeasurementStatus#PAUSED} measurements are marked as {@code FINISHED}.
+     *
+     * FIXME @Review: We can't just finish a "dead" open measurement as we do not have the point counts
+     * we would have to try to count the data in the serialized files or delete the serialized files, set the counts to
+     * zero to be able to mark the remaining measurement as FINISHED
+     */
+    @Override
+    public void start(@NonNull DataCapturingListener listener, @NonNull Vehicle vehicle,
+            @NonNull StartUpFinishedHandler finishedHandler)
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
+
+        try {
+            super.start(listener, vehicle, finishedHandler);
+        } catch (final CorruptedMeasurementException e) {
+            final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
+            for (final Measurement measurement : openMeasurements) {
+                Log.w(TAG, "Deleting dead open measurement (mid " + measurement.getIdentifier() + ").");
+                this.persistenceLayer.delete(measurement.getIdentifier());
+            }
+            final List<Measurement> pausedMeasurements = this.persistenceLayer
+                    .loadMeasurements(MeasurementStatus.PAUSED);
+            for (final Measurement measurement : pausedMeasurements) {
+                Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
+                try {
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                } catch (NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            // Now try again to start Capturing - now there can't be any corrupted measurements
+            try {
+                super.start(listener, vehicle, finishedHandler);
+            } catch (final CorruptedMeasurementException e1) {
+                throw new IllegalStateException(e1);
+            }
         }
     }
 }

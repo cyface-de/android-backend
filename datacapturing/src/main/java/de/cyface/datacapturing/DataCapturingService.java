@@ -56,6 +56,7 @@ import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
@@ -120,7 +121,7 @@ public abstract class DataCapturingService {
     /**
      * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
-    private final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
+    final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
@@ -253,11 +254,12 @@ public abstract class DataCapturingService {
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
+     * @throws CorruptedMeasurementException when there are unfinished, dead measurements.
      */
     // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
             final @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException, CorruptedMeasurementException {
         Log.d(TAG, "Starting asynchronously.");
         if (getContext() == null) {
             return;
@@ -275,7 +277,9 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(false);
 
             // Ensure there are no unfinished measurements (wrong life-cycle call)
-            Validate.isTrue(!persistenceLayer.hasMeasurement(OPEN) && !persistenceLayer.hasMeasurement(PAUSED));
+            if (persistenceLayer.hasMeasurement(OPEN) || persistenceLayer.hasMeasurement(PAUSED)) {
+                throw new CorruptedMeasurementException("Unfinished measurement on start() found.");
+            }
 
             // Start new measurement
             Measurement measurement = prepareStart(listener, vehicle);
