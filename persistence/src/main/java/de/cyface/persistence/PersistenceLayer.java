@@ -393,7 +393,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
             final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
             Validate.notNull("New device id could not be created!", resultUri);
-            Log.d(TAG, "Created new device id " + deviceId);
+            // Show info in log so that we see if this happens more than once (or on app data reset)
+            Log.i(TAG, "Created new device id: " + deviceId);
             return deviceId;
         }
     }
