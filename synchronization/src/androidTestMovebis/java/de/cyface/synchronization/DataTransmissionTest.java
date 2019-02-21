@@ -10,9 +10,6 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
-import java.io.FileInputStream;
-import java.io.IOException;
-import java.security.NoSuchAlgorithmException;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -95,8 +92,8 @@ public class DataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart() throws BadRequestException, RequestParsingException, IOException,
-            CursorIsNullException, NoSuchMeasurementException {
+    public void testUploadSomeBytesViaMultiPart()
+            throws BadRequestException, CursorIsNullException, NoSuchMeasurementException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
         PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, resolver, AUTHORITY,
@@ -168,25 +165,4 @@ public class DataTransmissionTest {
             }
         }
     }
-
-    /**
-     * Prints the MD5 of an input stream. This is useful for debugging purposes.
-     *
-     * @param stream The stream to print the MD5 sum for.
-     * @throws IOException Thrown if the stream is not readable.
-     * @throws NoSuchAlgorithmException Thrown if MD5 Algorithm is not supported
-     *             /
-     *             private void printMD5(final @NonNull InputStream stream) throws IOException, NoSuchAlgorithmException
-     *             {
-     *             MessageDigest md = MessageDigest.getInstance("MD5");
-     *             byte[] content = new byte[stream.available()];
-     *             // noinspection ResultOfMethodCallIgnored - because we don't care
-     *             stream.read(content);
-     *             byte[] theDigest = md.digest(content);
-     *             StringBuilder sb = new StringBuilder(theDigest.length * 2);
-     *             for (byte b : theDigest)
-     *             sb.append(String.format("%02x", b));
-     *             Log.i(TAG, sb.toString());
-     *             }
-     */
 }

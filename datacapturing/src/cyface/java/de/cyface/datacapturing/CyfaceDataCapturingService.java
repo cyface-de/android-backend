@@ -18,6 +18,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
@@ -121,13 +122,34 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     }
 
     /**
-     * For documentation see {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}.
+     * Starts the capturing process with a {@link DataCapturingListener}, that is notified of important events occurring
+     * while the capturing process is running.
+     * <p>
+     * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
+     * assume the service is running, after the method returns. Please use the {@link StartUpFinishedHandler} to receive
+     * a callback, when the service has been started.
+     * <p>
+     * This method is thread safe to call.
+     * <p>
+     * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
+     * need to apply some timeout mechanism to not wait indefinitely.
      * <p>
      * This wrapper was requested by RM to avoid an unrecoverable state after the app crashed with an
-     * un{@link MeasurementStatus#FINISHED} {@link Measurement}.
-     * <p>
-     * This wrapper deletes "dead" {@link MeasurementStatus#OPEN} measurements because the {@link Point3d} counts
-     * was lost during app crash. "Dead" {@link MeasurementStatus#PAUSED} measurements are marked as {@code FINISHED}.
+     * un{@link MeasurementStatus#FINISHED} {@link Measurement}. It deletes the {@link Point3d}s of "dead"
+     * {@link MeasurementStatus#OPEN} measurements because the {@link Point3d} counts gets lost during app crash. "Dead"
+     * {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are then marked as
+     * {@code FINISHED}.
+     *
+     * @param listener A listener that is notified of important events during data capturing.
+     * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
+     * @param finishedHandler A handler called if the service started successfully.
+     * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
+     *             Android context was available.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
+     *             register a {@link UIListener} to ask the user for this permission and prevent the
+     *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     @Override
     public void start(@NonNull DataCapturingListener listener, @NonNull Vehicle vehicle,
@@ -139,8 +161,13 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
         } catch (final CorruptedMeasurementException e) {
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
             for (final Measurement measurement : openMeasurements) {
-                Log.w(TAG, "Deleting dead open measurement (mid " + measurement.getIdentifier() + ").");
-                this.persistenceLayer.delete(measurement.getIdentifier());
+                Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
+                this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
+                try {
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                } catch (NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e);
+                }
             }
             final List<Measurement> pausedMeasurements = this.persistenceLayer
                     .loadMeasurements(MeasurementStatus.PAUSED);

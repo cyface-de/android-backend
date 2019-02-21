@@ -23,7 +23,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.synchronization.BundlesExtrasCodes;
 
 /**
- * A {@link BroadcastReceiver} and sender that send a {@link MessageCodes#GLOBAL_BROADCAST_PING} event to the system and
+ * A {@code BroadcastReceiver} and sender that send a {@link MessageCodes#GLOBAL_BROADCAST_PING} event to the system and
  * expects to receive a {@link MessageCodes#GLOBAL_BROADCAST_PONG} event if the {@link DataCapturingBackgroundService}
  * is running. If not a timeout will tell the caller, that the service is not running.
  *
@@ -88,7 +88,7 @@ public class PongReceiver extends BroadcastReceiver {
     }
 
     // TODO [CY-3950]: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and
-    // iAmRunning would be more readable.
+    // iAmRunning would be more readable. (But violates standard Java coding style.)
     /**
      * Sends the <code>MessageCodes.PING</code> message to the system and waits for the timeout to occur or the service
      * to answer with a <code>MessageCodes.PONG</code>.

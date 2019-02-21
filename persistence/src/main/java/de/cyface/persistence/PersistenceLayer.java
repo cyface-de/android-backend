@@ -448,10 +448,24 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to delete measurements
     public void delete(final long measurementIdentifier) {
 
-        // Delete {@link Point3dFile}s if existent
+        deletePoint3dData(measurementIdentifier);
+
+        // Delete {@link GeoLocation}s and {@link Measurement} entry from database
+        resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
+    }
+
+    /**
+     * Removes the {@link Point3d}s for one {@link Measurement} from the local persistent data storage.
+     *
+     * @param measurementIdentifier The {@code Measurement} id of the data to remove.
+     */
+    public void deletePoint3dData(final long measurementIdentifier) {
         final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
         final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
         final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+
         if (accelerationFolder.exists()) {
             final File accelerationFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
@@ -473,11 +487,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 Validate.isTrue(directionFile.delete());
             }
         }
-
-        // Delete {@link GeoLocation}s and {@link Measurement} entry from database
-        resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
-        resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
     }
 
     /**

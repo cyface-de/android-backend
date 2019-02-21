@@ -218,15 +218,13 @@ In the code sample below this is used to delete a measurement.
 * When you only have the id of a measurement and need the `Measurement` object please use `persistenceLayer.loadMeasurement(mid)`
 to load the measurement with its metadata from the database.
                                                               
-**ATTENTION** The metadata of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
-measurements is only valid in the moment it's loaded from the database. Changes
+**ATTENTION** The attributes (such as the distance) of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
+measurements are only valid in the moment it's loaded from the database. Changes
 after this call are not pushed into the `Measurement` object returned by this call.
 In order to display the distance for an ongoing measurement (which changes about each second)
 make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` on each location
-update to always have the correct distance. Implement the `DataCapturingListener`
+update to always have the most recent information. Implement the `DataCapturingListener`
 interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
-
-* The metadata also contains the **distance** of the measurement based on the GeoLocations captured.
 
 * To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
 

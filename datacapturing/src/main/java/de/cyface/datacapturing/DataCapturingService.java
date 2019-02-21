@@ -121,7 +121,7 @@ public abstract class DataCapturingService {
     /**
      * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
-    final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
+    protected final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
@@ -233,8 +233,8 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Starts the capturing process with a listener, that is notified of important events occurring while the capturing
-     * process is running.
+     * Starts the capturing process with a {@link DataCapturingListener}, that is notified of important events occurring
+     * while the capturing process is running.
      * <p>
      * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
      * assume the service is running, after the method returns. Please use the {@link StartUpFinishedHandler} to receive
@@ -242,12 +242,13 @@ public abstract class DataCapturingService {
      * <p>
      * This method is thread safe to call.
      * <p>
-     * ATTENTION: If there are errors while starting the service, your handler might never be called. You may need to
-     * apply some timeout mechanism to not wait indefinitely.
+     * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
+     * need to apply some timeout mechanism to not wait indefinitely.
      *
      * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
+     * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      *             Android context was available.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
@@ -258,8 +259,8 @@ public abstract class DataCapturingService {
      */
     // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
-            final @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException, CursorIsNullException, CorruptedMeasurementException {
+            final @NonNull StartUpFinishedHandler finishedHandler) throws DataCapturingException,
+            MissingPermissionException, CursorIsNullException, CorruptedMeasurementException {
         Log.d(TAG, "Starting asynchronously.");
         if (getContext() == null) {
             return;
@@ -366,8 +367,9 @@ public abstract class DataCapturingService {
      *
      * @param listener A listener that was registered in
      *            {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
-     *            {@link #resume(DataCapturingListener, StartUpFinishedHandler)} and should be unregistered as data
-     *            capturing stops.
+     *            {@link #resume(DataCapturingListener, StartUpFinishedHandler)}. We unregister it on {@code #pause()}
+     *            to be able to ensure that the registering in {@code start()} and {@code resume()} is always
+     *            successful.
      * @param finishedHandler A handler that is called as soon as the background service has send a message that it has
      *            paused.
      * @throws DataCapturingException In case the service was not stopped successfully.
@@ -377,8 +379,8 @@ public abstract class DataCapturingService {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void pause(final @NonNull DataCapturingListener listener,
-            final @NonNull ShutDownFinishedHandler finishedHandler)
+    public void pause(@NonNull final DataCapturingListener listener,
+            @NonNull final ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
         if (getContext() == null) {
@@ -403,8 +405,8 @@ public abstract class DataCapturingService {
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
                 // is case the {@link DataCapturingBackgroundService} is already dead.
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
-                fromServiceMessageHandler.removeListener(listener);
             } finally {
+                fromServiceMessageHandler.removeListener(listener);
                 Log.v(TAG, "Unlocking in asynchronous pause.");
                 lifecycleLock.unlock();
             }
@@ -423,7 +425,9 @@ public abstract class DataCapturingService {
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
      * being caught in an infinite "loop".
      *
-     * @param listener A listener that is notified of important events during data capturing.
+     * @param listener A listener that is notified of important events during data capturing. It's necessary
+     *            to add the listener here again because the listener that was registered in {@code start()}
+     *            could be lost when the app is closed and resume is called after reopening.
      * @param finishedHandler A handler that is called as soon as the background service sends a message that the
      *            background service has resumed successfully.
      * @throws DataCapturingException If starting the background service was not successful.
@@ -437,8 +441,8 @@ public abstract class DataCapturingService {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void resume(final @NonNull DataCapturingListener listener,
-            final @NonNull StartUpFinishedHandler finishedHandler) throws DataCapturingException,
+    public void resume(@NonNull final DataCapturingListener listener,
+            @NonNull final StartUpFinishedHandler finishedHandler) throws DataCapturingException,
             MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Resuming asynchronously.");
         if (getContext() == null) {
@@ -1054,9 +1058,11 @@ public abstract class DataCapturingService {
          * Adds a new listener interested in events from the background service.
          *
          * @param listener A listener that is notified of important events during data capturing.
+         * @throws IllegalStateException when the listener could not be added or was already added because it's
+         *             essential that the registration is successful or else the UI does not receive capturing events
          */
         void addListener(final @NonNull DataCapturingListener listener) {
-            this.listener.add(listener);
+            Validate.isTrue(this.listener.add(listener));
         }
 
         /**
@@ -1066,7 +1072,10 @@ public abstract class DataCapturingService {
          * @param listener A listener that is notified of important events during data capturing.
          */
         void removeListener(final @NonNull DataCapturingListener listener) {
-            this.listener.remove(listener);
+            if (!this.listener.remove(listener)) {
+                // This happens when stop() is called after pause() but we need to notice this in other cases
+                Log.i(TAG, "DataCapturingListener was already removed, doing nothing.");
+            }
         }
     }
 }
