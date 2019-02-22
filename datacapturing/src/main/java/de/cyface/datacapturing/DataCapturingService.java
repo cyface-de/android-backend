@@ -547,14 +547,17 @@ public abstract class DataCapturingService {
      *
      * @param isRunningTimeout the number of ms to wait for the callback, see
      *            {@link #isRunning(long, TimeUnit, IsRunningCallback)}. Default is {@link #IS_RUNNING_CALLBACK_TIMEOUT}
+     * @return True if the background service was running and, thus, the binding method was called. The success of the
+     *         binding determines the {@code #getIsRunning()} value, see {@code #bind()}.
      * @throws IllegalStateException If communication with background service is not successful.
      */
     @SuppressWarnings("WeakerAccess") // Used by DataCapturingListeners (CY)
-    public void reconnect(final long isRunningTimeout) {
+    public boolean reconnect(final long isRunningTimeout) {
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
 
+        // The condition is used to signal that we can unlock this thread
         ReconnectCallback reconnectCallback = new ReconnectCallback(lock, condition) {
             @Override
             public void onSuccess() {
@@ -573,9 +576,12 @@ public abstract class DataCapturingService {
         lock.lock();
         try {
             Log.v(TAG, "DataCapturingService.reconnect(): Waiting for condition on isRunning!");
-            if (!condition.await(isRunningTimeout, TimeUnit.MILLISECONDS)) {
+            // We might not need the condition.await() as this should time out a bit later as the isRunning call
+            if (!condition.await(isRunningTimeout, TimeUnit.MILLISECONDS) || reconnectCallback.hasTimedOut()) {
                 Log.d(TAG, "DataCapturingService.reconnect(): Waiting for isRunning timed out!");
+                return false;
             }
+            return true;
         } catch (InterruptedException e) {
             throw new IllegalStateException(e);
         } finally {
