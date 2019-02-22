@@ -33,7 +33,6 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
 import android.accounts.Account;
-import android.app.Activity;
 import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.Context;
@@ -188,7 +187,8 @@ public abstract class DataCapturingService {
      * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#distance}
-     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data capturing.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -366,7 +366,7 @@ public abstract class DataCapturingService {
      *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
+    @SuppressWarnings({"WeakerAccess", "unused"}) // This life-cycle method is called by sdk implementing apps (e.g. SR)
     public void pause(@NonNull final ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
