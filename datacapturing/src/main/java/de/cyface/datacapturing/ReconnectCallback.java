@@ -79,7 +79,7 @@ abstract class ReconnectCallback implements IsRunningCallback {
         lock.lock();
         try {
             if (!wasRunning()) {
-                Log.w(TAG, "Reconnect called while background service was not running. Capturing seems to be paused or stopped.");
+                Log.d(TAG, "Reconnect called while background service was not running. Capturing seems to be paused or stopped.");
                 hasTimedOut = true;
                 wasRunning = false;
                 condition.signal();
