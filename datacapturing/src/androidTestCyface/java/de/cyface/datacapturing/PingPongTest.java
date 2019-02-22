@@ -91,8 +91,8 @@ public class PingPongTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId();
 
         oocut = new PongReceiver(context, persistence.loadDeviceId());
@@ -116,22 +116,22 @@ public class PingPongTest {
 
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
+        final DataCapturingListener listener = new TestListener(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
                     dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
-                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy());
+                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), listener);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
         });
-        DataCapturingListener listener = new TestListener(lock, condition);
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 dcs.getDeviceIdentifier());
 
-        dcs.start(listener, Vehicle.UNKNOWN, finishedHandler);
+        dcs.start(Vehicle.UNKNOWN, finishedHandler);
 
         lock.lock();
         try {
@@ -158,7 +158,7 @@ public class PingPongTest {
         assertThat(testCallback.didTimeOut(), is(equalTo(false)));
 
         TestShutdownFinishedHandler shutdownHandler = new TestShutdownFinishedHandler(lock, condition);
-        dcs.stop(listener, shutdownHandler);
+        dcs.stop(shutdownHandler);
 
         lock.lock();
         try {

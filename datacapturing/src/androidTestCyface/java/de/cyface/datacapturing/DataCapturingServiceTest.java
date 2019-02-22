@@ -130,12 +130,15 @@ public class DataCapturingServiceTest {
         AccountManager.get(context).addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
         // Start DataCapturingService
+        lock = new ReentrantLock();
+        condition = lock.newCondition();
+        testListener = new TestListener(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
-                            ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy());
+                            ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy(), testListener);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
@@ -145,9 +148,6 @@ public class DataCapturingServiceTest {
         // Prepare
         persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
-        lock = new ReentrantLock();
-        condition = lock.newCondition();
-        testListener = new TestListener(lock, condition);
         // A listener catching messages send to the UI in real applications.
         runningStatusCallback = new TestCallback("Default Callback", lock, condition);
 
@@ -161,7 +161,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
-     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -172,7 +172,7 @@ public class DataCapturingServiceTest {
             // Stop zombie
             final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock,
                     condition);
-            oocut.stop(testListener, shutDownFinishedHandler);
+            oocut.stop(shutDownFinishedHandler);
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
             TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -218,7 +218,7 @@ public class DataCapturingServiceTest {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
-        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
     }
@@ -230,7 +230,7 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException In case the service was not stopped successfully.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to
+     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
      *             pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -254,7 +254,7 @@ public class DataCapturingServiceTest {
      *             again.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to
+     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
      *             pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -277,7 +277,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
-     *             {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -285,15 +285,15 @@ public class DataCapturingServiceTest {
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
-        oocut.stop(testListener, shutDownFinishedHandler);
+        oocut.stop(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
     }
 
     /**
      * Checks that a {@link DataCapturingService} actually started after calling the life-cycle method
-     * {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
-     * {@link #resume(StartUpFinishedHandler)}
+     * {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} or
+     * {@link DataCapturingService#resume(StartUpFinishedHandler)}
      *
      * This also updates the {@link #runningStatusCallback}.
      *
@@ -321,8 +321,8 @@ public class DataCapturingServiceTest {
 
     /**
      * Checks that a {@link DataCapturingService} actually stopped after calling the life-cycle method
-     * {@link DataCapturingService#stop(DataCapturingListener, ShutDownFinishedHandler)} or
-     * {@link #pause(ShutDownFinishedHandler)}.
+     * {@link DataCapturingService#stop(ShutDownFinishedHandler)} or
+     * {@link DataCapturingService#pause(ShutDownFinishedHandler)}.
      *
      * This also updates the {@link #runningStatusCallback}.
      *
@@ -394,14 +394,14 @@ public class DataCapturingServiceTest {
         final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock, condition);
 
         // First Start/stop without waiting
-        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler1);
-        oocut.stop(testListener, shutDownFinishedHandler1);
+        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler1);
+        oocut.stop(shutDownFinishedHandler1);
         // Second start/stop without waiting
-        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler2);
-        oocut.stop(testListener, shutDownFinishedHandler2);
+        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler2);
+        oocut.stop(shutDownFinishedHandler2);
         // Second start/stop without waiting
-        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler3);
-        oocut.stop(testListener, shutDownFinishedHandler3);
+        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler3);
+        oocut.stop(shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
@@ -467,7 +467,7 @@ public class DataCapturingServiceTest {
         // Second start - should not launch anything
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
-        oocut.start(testListener, Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
 
@@ -490,7 +490,7 @@ public class DataCapturingServiceTest {
 
         stopAndCheckThatStopped(measurementId);
         // must throw NoSuchMeasurementException
-        oocut.stop(testListener, new TestShutdownFinishedHandler(lock, condition));
+        oocut.stop(new TestShutdownFinishedHandler(lock, condition));
     }
 
     /**
@@ -657,8 +657,8 @@ public class DataCapturingServiceTest {
     /**
      * Tests if the service lifecycle is running successfully.
      * <p>
-     * Makes sure the {@link #pause(ShutDownFinishedHandler)} and
-     * {@link #resume(StartUpFinishedHandler)} work correctly.
+     * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
+     * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
      *
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
@@ -684,7 +684,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests whether actual sensor data is captured after running the method
-     * {@link CyfaceDataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} ()}.
+     * {@link CyfaceDataCapturingService#start(Vehicle, StartUpFinishedHandler)} ()}.
      * In bug #CY-3862 only the {@link DataCapturingService} was started and measurements created
      * but no sensor data was captured as the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
      * was not started. The cause was: disables sensor capturing.

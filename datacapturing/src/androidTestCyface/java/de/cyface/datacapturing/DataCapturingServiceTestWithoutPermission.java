@@ -71,12 +71,13 @@ public class DataCapturingServiceTestWithoutPermission {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         final String dataUploadServerAddress = "https://localhost:8080";
+        final DataCapturingListener listener = new TestListener(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
-                            dataUploadServerAddress, new IgnoreEventsStrategy());
+                            dataUploadServerAddress, new IgnoreEventsStrategy(), listener);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
@@ -95,11 +96,11 @@ public class DataCapturingServiceTestWithoutPermission {
      * @throws DataCapturingException If the asynchronous background service did not start successfully.
      */
     @Test(expected = MissingPermissionException.class)
-    public void testServiceDoesNotStartWithoutPermission()
-            throws MissingPermissionException, DataCapturingException, CursorIsNullException, CorruptedMeasurementException {
+    public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
+            CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 oocut.getDeviceIdentifier());
-        oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
 
@@ -107,7 +108,8 @@ public class DataCapturingServiceTestWithoutPermission {
      * Tests whether a set {@link UIListener} is correctly informed about a missing permission.
      */
     @Test
-    public void testUIListenerIsInformedOfMissingPermission() throws CursorIsNullException, CorruptedMeasurementException {
+    public void testUIListenerIsInformedOfMissingPermission()
+            throws CursorIsNullException, CorruptedMeasurementException {
         TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 
@@ -115,7 +117,7 @@ public class DataCapturingServiceTestWithoutPermission {
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                     oocut.getDeviceIdentifier());
-            oocut.start(new TestListener(lock, condition), Vehicle.UNKNOWN, startUpFinishedHandler);
+            oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCaught = true;
