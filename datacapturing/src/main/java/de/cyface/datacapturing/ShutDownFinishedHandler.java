@@ -21,7 +21,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  * @author Klemens Muthmann
  * @version 2.0.6
  * @since 2.0.0
- * @see DataCapturingService#pause(DataCapturingListener, ShutDownFinishedHandler)
+ * @see #pause(ShutDownFinishedHandler)
  * @see DataCapturingService#stop(DataCapturingListener, ShutDownFinishedHandler)
  */
 public abstract class ShutDownFinishedHandler extends BroadcastReceiver {

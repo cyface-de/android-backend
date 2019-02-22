@@ -127,10 +127,6 @@ public abstract class DataCapturingService {
      */
     private final Messenger fromServiceMessenger;
     /**
-     * <code>MessageHandler</code> receiving messages from the service via the <code>fromServiceMessenger</code>.
-     */
-    private final FromServiceMessageHandler fromServiceMessageHandler;
-    /**
      * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
      */
     private Messenger toServiceMessenger;
@@ -189,8 +185,10 @@ public abstract class DataCapturingService {
      *            this service.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#distance}
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data capturing.
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -198,8 +196,8 @@ public abstract class DataCapturingService {
             @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer,
-            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy)
-            throws SetupException, CursorIsNullException {
+            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.persistenceLayer = persistenceLayer;
@@ -225,7 +223,9 @@ public abstract class DataCapturingService {
             throw new SetupException("Android connectivity manager is not available!");
         }
         surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
-        this.fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
+        final FromServiceMessageHandler fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
+        // The listeners are automatically removed when the service is destroyed (e.g. app kill)
+        fromServiceMessageHandler.addListener(capturingListener);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         lifecycleLock = new ReentrantLock();
         setIsRunning(false);
@@ -245,7 +245,6 @@ public abstract class DataCapturingService {
      * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
      * need to apply some timeout mechanism to not wait indefinitely.
      *
-     * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @param finishedHandler A handler called if the service started successfully.
@@ -258,9 +257,9 @@ public abstract class DataCapturingService {
      * @throws CorruptedMeasurementException when there are unfinished, dead measurements.
      */
     // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void start(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle,
-            final @NonNull StartUpFinishedHandler finishedHandler) throws DataCapturingException,
-            MissingPermissionException, CursorIsNullException, CorruptedMeasurementException {
+    public void start(final @NonNull Vehicle vehicle, final @NonNull StartUpFinishedHandler finishedHandler)
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException,
+            CorruptedMeasurementException {
         Log.d(TAG, "Starting asynchronously.");
         if (getContext() == null) {
             return;
@@ -283,7 +282,7 @@ public abstract class DataCapturingService {
             }
 
             // Start new measurement
-            Measurement measurement = prepareStart(listener, vehicle);
+            Measurement measurement = prepareStart(vehicle);
             runService(measurement, finishedHandler);
         } finally {
             Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
@@ -304,21 +303,16 @@ public abstract class DataCapturingService {
      * <p>
      * This method is thread safe.
      *
-     * @param listener A listener that was registered in
-     *            {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
-     *            {@link #resume(DataCapturingListener, StartUpFinishedHandler)} and should be unregistered as data
-     *            capturing stops.
      * @param finishedHandler A handler that gets called after the process of finishing the current measurement has
      *            completed.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
-     *             there was no call to {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}
+     *             there was no call to {@link #start(Vehicle, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void stop(final @NonNull DataCapturingListener listener,
-            final @NonNull ShutDownFinishedHandler finishedHandler)
+    public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Stopping asynchronously!");
         if (getContext() == null) {
@@ -346,7 +340,6 @@ public abstract class DataCapturingService {
                 // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
                 // is case the {@link DataCapturingBackgroundService} is already dead.
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
-                fromServiceMessageHandler.removeListener(listener);
             } finally {
                 Log.v(TAG, "Unlocking in asynchronous stop.");
                 lifecycleLock.unlock();
@@ -365,22 +358,16 @@ public abstract class DataCapturingService {
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
      * being caught in an infinite "loop".
      *
-     * @param listener A listener that was registered in
-     *            {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} or
-     *            {@link #resume(DataCapturingListener, StartUpFinishedHandler)}. We unregister it on {@code #pause()}
-     *            to be able to ensure that the registering in {@code start()} and {@code resume()} is always
-     *            successful.
      * @param finishedHandler A handler that is called as soon as the background service has send a message that it has
      *            paused.
      * @throws DataCapturingException In case the service was not stopped successfully.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
+     *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void pause(@NonNull final DataCapturingListener listener,
-            @NonNull final ShutDownFinishedHandler finishedHandler)
+    public void pause(@NonNull final ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
         if (getContext() == null) {
@@ -406,7 +393,6 @@ public abstract class DataCapturingService {
                 // is case the {@link DataCapturingBackgroundService} is already dead.
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
             } finally {
-                fromServiceMessageHandler.removeListener(listener);
                 Log.v(TAG, "Unlocking in asynchronous pause.");
                 lifecycleLock.unlock();
             }
@@ -415,7 +401,7 @@ public abstract class DataCapturingService {
 
     /**
      * Resumes the current data capturing after a previous call to
-     * {@link #pause(DataCapturingListener, ShutDownFinishedHandler)}.
+     * {@link #pause(ShutDownFinishedHandler)}.
      * <p>
      * This is an asynchronous method. You should not assume that the service has been started after the method returns.
      * The provided <code>finishedHandler</code> is called after the <code>DataCapturingBackgroundService</code> has
@@ -425,9 +411,6 @@ public abstract class DataCapturingService {
      * your handle might wait forever. You might want to consider using some timeout mechanism to prevent your app from
      * being caught in an infinite "loop".
      *
-     * @param listener A listener that is notified of important events during data capturing. It's necessary
-     *            to add the listener here again because the listener that was registered in {@code start()}
-     *            could be lost when the app is closed and resume is called after reopening.
      * @param finishedHandler A handler that is called as soon as the background service sends a message that the
      *            background service has resumed successfully.
      * @throws DataCapturingException If starting the background service was not successful.
@@ -437,12 +420,11 @@ public abstract class DataCapturingService {
      *             again.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link #start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} prior to pausing.
+     *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void resume(@NonNull final DataCapturingListener listener,
-            @NonNull final StartUpFinishedHandler finishedHandler) throws DataCapturingException,
+    public void resume(@NonNull final StartUpFinishedHandler finishedHandler) throws DataCapturingException,
             MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Resuming asynchronously.");
         if (getContext() == null) {
@@ -473,7 +455,6 @@ public abstract class DataCapturingService {
 
             // Resume paused measurement
             final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            fromServiceMessageHandler.addListener(listener);
             runService(currentMeasurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
@@ -539,8 +520,8 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Reconnects your app to the {@link DataCapturingBackgroundService}. This might be especially useful if you have
-     * been disconnected in a previous call to {@link Activity#onStop()}.
+     * Reconnects your app to this service. This might be especially useful if your app has been disconnected in a
+     * via {@code Activity#onStop()}. You must call this to receive {@link DataCapturingListener} events again.
      * <p>
      * <b>ATTENTION</b>: This method might take some time to check for a running service. Always consider this to be a
      * long running operation and never call it on the main thread.
@@ -739,7 +720,6 @@ public abstract class DataCapturingService {
      * new {@link Measurement} and initializing the message handler for messages from the data capturing background
      * service.
      *
-     * @param listener The <code>DataCapturingListener</code> receiving events during data capturing.
      * @param vehicle The type of vehicle this method is called for. If you do not know which vehicle was used you might
      *            use {@link Vehicle#UNKNOWN}.
      * @return The prepared measurement, which is ready to receive data.
@@ -754,7 +734,7 @@ public abstract class DataCapturingService {
      *             up such measurements.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    private Measurement prepareStart(final @NonNull DataCapturingListener listener, final @NonNull Vehicle vehicle)
+    private Measurement prepareStart(final @NonNull Vehicle vehicle)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
         if (context.get() == null) {
             throw new DataCapturingException("No context to start service!");
@@ -767,9 +747,7 @@ public abstract class DataCapturingService {
         Validate.isTrue(!hasOpenMeasurements, "There is a dead OPEN measurement!");
         Validate.isTrue(!hasPausedMeasurements, "There is a dead PAUSED measurement or wrong life-cycle call.");
 
-        final Measurement measurement = persistenceLayer.newMeasurement(vehicle);
-        fromServiceMessageHandler.addListener(listener);
-        return measurement;
+        return persistenceLayer.newMeasurement(vehicle);
     }
 
     /**
@@ -1062,6 +1040,8 @@ public abstract class DataCapturingService {
 
         /**
          * Adds a new listener interested in events from the background service.
+         * <p>
+         * All listeners are automatically removed when the {@link DataCapturingService} is killed.
          *
          * @param listener A listener that is notified of important events during data capturing.
          * @throws IllegalStateException when the listener could not be added or was already added because it's
@@ -1069,19 +1049,6 @@ public abstract class DataCapturingService {
          */
         void addListener(final @NonNull DataCapturingListener listener) {
             Validate.isTrue(this.listener.add(listener));
-        }
-
-        /**
-         * Removes the provided object as <code>DataCapturingListener</code> from the list of listeners notified by this
-         * object.
-         *
-         * @param listener A listener that is notified of important events during data capturing.
-         */
-        void removeListener(final @NonNull DataCapturingListener listener) {
-            if (!this.listener.remove(listener)) {
-                // This happens when stop() is called after pause() but we need to notice this in other cases
-                Log.i(TAG, "DataCapturingListener was already removed, doing nothing.");
-            }
         }
     }
 }

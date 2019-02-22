@@ -113,24 +113,27 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            if you would like to be notified as often as possible.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this to create the DataCapturingService
-    public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
+    public MovebisDataCapturingService(@NonNull final Context context, @NonNull final String dataUploadServerAddress,
+            @NonNull final UIListener uiListener, final long locationUpdateRate,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this(context, "de.cyface.provider", "de.cyface", dataUploadServerAddress, uiListener, locationUpdateRate,
-                eventHandlingStrategy);
+                eventHandlingStrategy, capturingListener);
     }
 
     /**
      * Creates a new completely initialized {@link MovebisDataCapturingService}.
      * This variant is required to test the ContentProvider.
      * <p>
-     * ATTENTION: This constructor is only for testing to be able to inject authority and account type. Use
-     * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
+     * <b>ATTENTION:</b> This constructor is only for testing to be able to inject authority and account type. Use
+     * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy, DataCapturingListener)}
      * instead.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
@@ -145,18 +148,21 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            if you would like to be notified as often as possible.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    MovebisDataCapturingService(final @NonNull Context context, final @NonNull String authority,
-            final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
+    MovebisDataCapturingService(@NonNull final Context context, @NonNull final String authority,
+            @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
+            @NonNull final UIListener uiListener, final long locationUpdateRate,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, context.getContentResolver(), authority,
                         new CapturingPersistenceBehaviour()),
-                new DefaultDistanceCalculationStrategy());
+                new DefaultDistanceCalculationStrategy(), capturingListener);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
@@ -288,7 +294,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are then marked as
      * {@code FINISHED}.
      *
-     * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @param finishedHandler A handler called if the service started successfully.
@@ -300,12 +305,11 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     @Override
-    public void start(@NonNull DataCapturingListener listener, @NonNull Vehicle vehicle,
-                      @NonNull StartUpFinishedHandler finishedHandler)
+    public void start(@NonNull Vehicle vehicle, @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
 
         try {
-            super.start(listener, vehicle, finishedHandler);
+            super.start(vehicle, finishedHandler);
         } catch (final CorruptedMeasurementException e) {
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
             for (final Measurement measurement : openMeasurements) {
@@ -330,7 +334,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {
-                super.start(listener, vehicle, finishedHandler);
+                super.start(vehicle, finishedHandler);
             } catch (final CorruptedMeasurementException e1) {
                 throw new IllegalStateException(e1);
             }

@@ -23,7 +23,7 @@ import de.cyface.utils.Validate;
  * @author Armin Schnabel
  * @version 3.0.1
  * @since 2.0.0
- * @see DataCapturingService#resume(DataCapturingListener, StartUpFinishedHandler)
+ * @see #resume(StartUpFinishedHandler)
  * @see DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)
  */
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {

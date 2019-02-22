@@ -53,17 +53,19 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#distance}
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    private CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy)
-            throws SetupException, CursorIsNullException {
+    private CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            @NonNull final String authority, @NonNull final String accountType,
+            @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
-                distanceCalculationStrategy);
+                distanceCalculationStrategy, capturingListener);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
@@ -82,16 +84,18 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            this service.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This is the constructor used by SDK implementing apps
-    public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
-            throws SetupException, CursorIsNullException {
+    public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            @NonNull final String authority, @NonNull final String accountType,
+            @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultDistanceCalculationStrategy());
+                new DefaultDistanceCalculationStrategy(), capturingListener);
     }
 
     /**
@@ -140,7 +144,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are then marked as
      * {@code FINISHED}.
      *
-     * @param listener A listener that is notified of important events during data capturing.
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
      * @param finishedHandler A handler called if the service started successfully.
@@ -152,12 +155,11 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     @Override
-    public void start(@NonNull DataCapturingListener listener, @NonNull Vehicle vehicle,
-            @NonNull StartUpFinishedHandler finishedHandler)
+    public void start(@NonNull Vehicle vehicle, @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
 
         try {
-            super.start(listener, vehicle, finishedHandler);
+            super.start(vehicle, finishedHandler);
         } catch (final CorruptedMeasurementException e) {
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
             for (final Measurement measurement : openMeasurements) {
@@ -182,7 +184,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {
-                super.start(listener, vehicle, finishedHandler);
+                super.start(vehicle, finishedHandler);
             } catch (final CorruptedMeasurementException e1) {
                 throw new IllegalStateException(e1);
             }
