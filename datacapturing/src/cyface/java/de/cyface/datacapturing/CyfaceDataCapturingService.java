@@ -138,11 +138,10 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
      * need to apply some timeout mechanism to not wait indefinitely.
      * <p>
-     * This wrapper was requested by RM to avoid an unrecoverable state after the app crashed with an
-     * un{@link MeasurementStatus#FINISHED} {@link Measurement}. It deletes the {@link Point3d}s of "dead"
-     * {@link MeasurementStatus#OPEN} measurements because the {@link Point3d} counts gets lost during app crash. "Dead"
-     * {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are then marked as
-     * {@code FINISHED}.
+     * This wrapper avoids an unrecoverable state after the app crashed with an un{@link MeasurementStatus#FINISHED}
+     * {@link Measurement}. It deletes the {@link Point3d}s of "dead" {@link MeasurementStatus#OPEN} measurements
+     * because the {@link Point3d} counts gets lost during app crash. "Dead" {@code MeasurementStatus#OPEN} and
+     * {@link MeasurementStatus#PAUSED} measurements are then marked as {@code FINISHED}.
      *
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
@@ -155,6 +154,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     @Override
+    @SuppressWarnings("unused") // This is called by the SDK implementing app to start a measurement
     public void start(@NonNull Vehicle vehicle, @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
 
