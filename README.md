@@ -42,14 +42,16 @@ public class CustomApplication extends Application {
 * Start the DataCapturingService to communicate with the SDK
 
 ```java
-public class MainFragment extends Fragment implements ConnectionStatusListener {
+public class MainFragment extends Fragment {
+    
+    private CyfaceDataCapturingService dataCapturingService;
     
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
         final Bundle savedInstanceState) {
-        DataCapturingService dataCapturingService = new CyfaceDataCapturingService(/*...,*/
-        AUTHORITY, ACCOUNT_TYPE, apiUrl, yourEventHandlingStrategyImplementation);
+        dataCapturingService = new CyfaceDataCapturingService(/*...,*/
+        customEventHandlingStrategy, capturingListener);
     }
 }
 ```
@@ -58,14 +60,16 @@ or
 
 ```java
 
-public class MainFragment extends Fragment implements ConnectionStatusListener {
+public class MainFragment extends Fragment {
+    
+    private MovebisDataCapturingService dataCapturingService;
     
     @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
         final Bundle savedInstanceState) {
-        DataCapturingService dataCapturingService = MovebisDataCapturingService(context, 
-        dataUploadServerAddress, uiListener, locationUpdateRate, customEventHandlingStrategy);
+        dataCapturingService = MovebisDataCapturingService(/*...,*/
+        uiListener, locationUpdateRate, customEventHandlingStrategy, capturingListener);
     }
 }
 ```
@@ -79,14 +83,13 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
             final Bundle savedInstanceState) {
-        fragmentRoot = inflater.inflate(R.layout.fragment_capturing, container, false);
         try {
-            dataCapturingService = new CyfaceDataCapturingService(fragmentRoot.getContext(),
-                    fragmentRoot.getContext().getContentResolver(), Constants.AUTHORITY, Constants.ACCOUNT_TYPE,
-                    BuildConfig.cyfaceServer, new EventHandlingStrategyImpl());
-            // Needs to be called after new CyfaceDataCapturingService() for the SDK to check and throw
-            // a specific exception when the LOGIN_ACTIVITY was not set from the SDK using app.
-            startSynchronization(fragmentRoot.getContext());
+            // dataCapturingService = ... - see above
+            
+            // Needs to be called after DataCapturingService()
+            startSynchronization(context);
+            
+            // If you want to receive events for the synchronization status
             dataCapturingService.addConnectionStatusListener(this);
         } catch (final SetupException | CursorIsNullException e) {
             throw new IllegalStateException(e);
@@ -135,15 +138,43 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
 }
 ```
           
-* Start / stop Capturing and register your implementation of a DataCapturingListener
+* Register your DataCapturingListener implementation and control data capturing
 
 ```java
+public class MainFragment extends Fragment {
+    
+    private DataCapturingButton dataCapturingButton;
+    
+    @Nullable
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+        final Bundle savedInstanceState) {
+        this.dataCapturingButton = new DataCapturingButton();
+        
+        // dataCapturingService = ... - see above
+        
+        this.dataCapturingButton.setDataCapturingService(dataCapturingService);
+    }
+}
+
 public class DataCapturingButton implements AbstractButton, DataCapturingListener {
     
     @Override
     public void onClick(View view) {
-        dataCapturingService.start(dataCapturingListener, vehicle, new StartUpFinishedHandler() {/*...*/});
-        dataCapturingService.stop(new ShutDownFinishedHandler() {/*...*/});
+        dataCapturingService.start(vehicle, new StartUpFinishedHandler(did) {
+            @Override
+            public void startUpFinished(final long measurementIdentifier) {
+                setButtonStatus(button, true);
+            }
+        });
+        // or
+        dataCapturingService.stop(new ShutDownFinishedHandler() {
+            @Override
+            public void shutDownFinished(final long measurementIdentifier) {
+                setButtonStatus(button, false);
+                setButtonEnabled(button);
+            }
+        });
     }
 }
 ```
@@ -153,19 +184,12 @@ public class DataCapturingButton implements AbstractButton, DataCapturingListene
 ```java
 public class DataCapturingButton implements AbstractButton, DataCapturingListener {
     
-    @Override
-    public void onCreateView(final ImageButton button, final DonutProgress ISNULL) {
-        dataCapturingService.isRunning(TIMEOUT_IS_RUNNING_MS, TimeUnit.MILLISECONDS, new IsRunningCallback() {
-            @Override
-            public void isRunning() {
-                setButtonStatus(button, true);
-            }
-            @Override
-            public void timedOut() {
-                setButtonStatus(button, false);
-            }            
-        });
-        
+    public void onResume() {
+        if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
+            setButtonStatus(button, true);
+        } else {
+            setButtonStatus(button, false);
+        }
     }
 }
 ```
@@ -211,12 +235,13 @@ Due to limitations in the Android framework, this is not configurable.
 You must not use the same notification identifier for any other notification displayed by your app!
 
 
-### Get details on (ongoing) measurements
-You can manage measurements via the `PersistenceLayer<DefaultPersistenceBehaviour>`.
-In the code sample below this is used to delete a measurement.
+### Access Measurements via PersistenceLayer
+You can manage measurements via the `PersistenceLayer<DefaultPersistenceBehaviour>` as demonstrated in the sample code below (see *Delete measurements*).
 
 * When you only have the id of a measurement and need the `Measurement` object please use `persistenceLayer.loadMeasurement(mid)`
 to load the measurement with its metadata from the database.
+
+* To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
                                                               
 **ATTENTION** The attributes (such as the distance) of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
 measurements are only valid in the moment it's loaded from the database. Changes
@@ -225,8 +250,6 @@ In order to display the distance for an ongoing measurement (which changes about
 make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` on each location
 update to always have the most recent information. Implement the `DataCapturingListener`
 interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
-
-* To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
 
 #### Delete measurements
 
