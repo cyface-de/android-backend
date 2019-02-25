@@ -1,6 +1,6 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.Constants.TAG;
 
 import android.content.BroadcastReceiver;
@@ -21,9 +21,9 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
- * @see DataCapturingService#resume(StartUpFinishedHandler)
+ * @see #resume(StartUpFinishedHandler)
  * @see DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)
  */
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {

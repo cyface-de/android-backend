@@ -9,7 +9,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BuildConfig;
-import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.utils.Validate;
 
@@ -19,7 +19,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {

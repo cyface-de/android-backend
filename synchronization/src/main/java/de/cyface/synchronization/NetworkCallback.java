@@ -19,10 +19,8 @@ import androidx.annotation.NonNull;
  * be enabled depending on the {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} capabilities of the
  * newly connected network.
  *
- * FIXME: We need to test this on API >= 21 devices !!
- *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)

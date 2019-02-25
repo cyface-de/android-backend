@@ -26,6 +26,7 @@ import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -44,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.1
+ * @version 10.1.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -92,9 +93,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param authority The authority used to identify the Android content provider.
      * @param persistenceBehaviour A {@link PersistenceBehaviour} which tells if this {@link PersistenceLayer} is used
      *            to capture live data.
-     *            FIXME: How can we make sure the SDK implementing apps only use the DefaultPersistenceBehaviour?
-     *            reason: We don't want anyone to mess with the files directly by accident.
-     *            We can't just make it package private because it's used by datacapturing.backend and datacapturing.
      */
     public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final B persistenceBehaviour) {
@@ -356,7 +354,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
         setStatus(measurementId, SYNCED);
 
-        // TODO: implement cyface variant where not only sensor data but also GeoLocations are deleted
+        // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
         if (measurement.getAccelerations() > 0) {
             final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
@@ -395,7 +393,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
             final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
             Validate.notNull("New device id could not be created!", resultUri);
-            Log.d(TAG, "Created new device id " + deviceId);
+            // Show info in log so that we see if this happens more than once (or on app data reset)
+            Log.i(TAG, "Created new device id: " + deviceId);
             return deviceId;
         }
     }
@@ -449,10 +448,24 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to delete measurements
     public void delete(final long measurementIdentifier) {
 
-        // Delete {@link Point3dFile}s if existent
+        deletePoint3dData(measurementIdentifier);
+
+        // Delete {@link GeoLocation}s and {@link Measurement} entry from database
+        resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
+    }
+
+    /**
+     * Removes the {@link Point3d}s for one {@link Measurement} from the local persistent data storage.
+     *
+     * @param measurementIdentifier The {@code Measurement} id of the data to remove.
+     */
+    public void deletePoint3dData(final long measurementIdentifier) {
         final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
         final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
         final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+
         if (accelerationFolder.exists()) {
             final File accelerationFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
@@ -474,11 +487,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 Validate.isTrue(directionFile.delete());
             }
         }
-
-        // Delete {@link GeoLocation}s and {@link Measurement} entry from database
-        resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()});
-        resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
     }
 
     /**
@@ -486,10 +494,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * complete track into memory. For large tracks this could slow down the device or even reach the applications
      * memory limit.
      *
-     * TODO [#CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
+     * TODO [CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
      *
-     * TODO provide a custom list implementation that loads only small portions into memory.
+     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
      * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)

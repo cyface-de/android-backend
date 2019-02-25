@@ -47,7 +47,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -191,7 +191,7 @@ public class SharedTestUtils {
         // Remove database entries
         final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
         final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
-        // TODO: why does this break the life-cycle tests in DataCapturingServiceTest? - can't find an answer ...
+        // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.
         // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);

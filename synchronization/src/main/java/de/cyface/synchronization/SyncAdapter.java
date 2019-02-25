@@ -29,7 +29,6 @@ import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
@@ -43,7 +42,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.0
+ * @version 2.4.1
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -96,18 +95,15 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
 
-            // Load api url and device id
+            // Load api url
             final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
             final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
-            final String deviceId;
-            try {
-                deviceId = persistence.loadDeviceId();
-                Validate.notNull(deviceId);
-            } catch (final NoDeviceIdException e) {
-                throw new IllegalStateException(e);
-            }
+
+            // Setup required device identifier, if not already existent
+            final String deviceId = persistence.restoreOrCreateDeviceId();
+            Validate.notNull(deviceId);
 
             // Ensure user is authorized before starting synchronization
             final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);

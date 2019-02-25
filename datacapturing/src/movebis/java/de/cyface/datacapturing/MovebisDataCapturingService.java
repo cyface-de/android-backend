@@ -1,6 +1,9 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
+
+import java.util.List;
 
 import android.Manifest;
 import android.accounts.Account;
@@ -13,15 +16,24 @@ import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
 
@@ -41,7 +53,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 7.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -101,24 +113,27 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            if you would like to be notified as often as possible.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this to create the DataCapturingService
-    public MovebisDataCapturingService(final @NonNull Context context, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
+    public MovebisDataCapturingService(@NonNull final Context context, @NonNull final String dataUploadServerAddress,
+            @NonNull final UIListener uiListener, final long locationUpdateRate,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this(context, "de.cyface.provider", "de.cyface", dataUploadServerAddress, uiListener, locationUpdateRate,
-                eventHandlingStrategy);
+                eventHandlingStrategy, capturingListener);
     }
 
     /**
      * Creates a new completely initialized {@link MovebisDataCapturingService}.
      * This variant is required to test the ContentProvider.
      * <p>
-     * ATTENTION: This constructor is only for testing to be able to inject authority and account type. Use
-     * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy)}
+     * <b>ATTENTION:</b> This constructor is only for testing to be able to inject authority and account type. Use
+     * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy, DataCapturingListener)}
      * instead.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
@@ -133,18 +148,21 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            if you would like to be notified as often as possible.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    MovebisDataCapturingService(final @NonNull Context context, final @NonNull String authority,
-            final @NonNull String accountType, final @NonNull String dataUploadServerAddress,
-            final @NonNull UIListener uiListener, final long locationUpdateRate,
-            @NonNull final EventHandlingStrategy eventHandlingStrategy) throws SetupException, CursorIsNullException {
+    MovebisDataCapturingService(@NonNull final Context context, @NonNull final String authority,
+            @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
+            @NonNull final UIListener uiListener, final long locationUpdateRate,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, context.getContentResolver(), authority,
                         new CapturingPersistenceBehaviour()),
-                new DefaultDistanceCalculationStrategy());
+                new DefaultDistanceCalculationStrategy(), capturingListener);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
@@ -254,6 +272,72 @@ public class MovebisDataCapturingService extends DataCapturingService {
                     "this app uses information about WiFi and cellular networks to display your position. Please provide your permission to track the networks you are currently using, to see your position on the map."));
         } else {
             return permissionAlreadyGranted;
+        }
+    }
+
+    /**
+     * Starts the capturing process with a {@link DataCapturingListener}, that is notified of important events occurring
+     * while the capturing process is running.
+     * <p>
+     * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
+     * assume the service is running, after the method returns. Please use the {@link StartUpFinishedHandler} to receive
+     * a callback, when the service has been started.
+     * <p>
+     * This method is thread safe to call.
+     * <p>
+     * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
+     * need to apply some timeout mechanism to not wait indefinitely.
+     * <p>
+     * This wrapper avoids an unrecoverable state after the app crashed with an un{@link MeasurementStatus#FINISHED}
+     * {@link Measurement}. It deletes the {@link Point3d}s of "dead" {@link MeasurementStatus#OPEN} measurements
+     * because the {@link Point3d} counts gets lost during app crash. "Dead" {@code MeasurementStatus#OPEN} and
+     * {@link MeasurementStatus#PAUSED} measurements are then marked as {@code FINISHED}.
+     *
+     * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
+     * @param finishedHandler A handler called if the service started successfully.
+     * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
+     *             Android context was available.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
+     *             register a {@link UIListener} to ask the user for this permission and prevent the
+     *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
+     */
+    @Override
+    @SuppressWarnings("unused") // This is called by the SDK implementing app to start a measurement
+    public void start(@NonNull Vehicle vehicle, @NonNull StartUpFinishedHandler finishedHandler)
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
+
+        try {
+            super.start(vehicle, finishedHandler);
+        } catch (final CorruptedMeasurementException e) {
+            final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
+            for (final Measurement measurement : openMeasurements) {
+                Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
+                this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
+                try {
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                } catch (NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            final List<Measurement> pausedMeasurements = this.persistenceLayer
+                    .loadMeasurements(MeasurementStatus.PAUSED);
+            for (final Measurement measurement : pausedMeasurements) {
+                Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
+                try {
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                } catch (NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            // Now try again to start Capturing - now there can't be any corrupted measurements
+            try {
+                super.start(vehicle, finishedHandler);
+            } catch (final CorruptedMeasurementException e1) {
+                throw new IllegalStateException(e1);
+            }
         }
     }
 }

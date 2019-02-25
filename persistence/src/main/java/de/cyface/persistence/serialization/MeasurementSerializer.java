@@ -59,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -232,7 +232,6 @@ public final class MeasurementSerializer {
                     geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY)));
         }
 
-        // TODO: missing documentation - what's this for?
         byte[] payload = new byte[buffer.capacity()];
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
         // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
@@ -255,7 +254,6 @@ public final class MeasurementSerializer {
             buffer.putDouble(point.getZ());
         }
 
-        // TODO: missing documentation - what's this for?
         byte[] payload = new byte[buffer.capacity()];
         ((ByteBuffer)buffer.duplicate().clear()).get(payload);
         // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
@@ -308,7 +306,7 @@ public final class MeasurementSerializer {
      * <b>ATTENTION:</b> The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
      * or the app crashes.
      *
-     * TODO: test performance on weak devices for large measurements
+     * TODO [MOV-554]: test performance on weak devices for large measurements
      *
      * @param bufferedOutputStream The {@link OutputStream} to which the serialized data should be written. Injecting
      *            this allows us to compress the serialized data without the need to write it into a temporary file.

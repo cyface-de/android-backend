@@ -1,17 +1,19 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.DataInputStream;
 import java.io.File;
 import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 
@@ -19,7 +21,7 @@ import de.cyface.utils.Validate;
  * Implementation of the {@link FileAccessLayer} which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 3.1.1
+ * @version 3.1.2
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {
@@ -112,7 +114,14 @@ public final class DefaultFileAccess implements FileAccessLayer {
     @NonNull
     public File createFile(@NonNull Context context, long measurementId, String folderName, String fileExtension) {
         final File file = getFilePath(context, measurementId, folderName, fileExtension);
-        Validate.isTrue(!file.exists(), "Failed to createFile as it already exists: " + file.getPath());
+        if (file.exists()) {
+            // Before we threw an Exception which we saw in PlayStore. The cause was probably due to a race condition
+            // when the second onDataCaptured call comes in while the first didn't finish creating the file in time.
+            // Now: soft-catch. If the following warning never occurs we might not need to create files differently.
+            Log.w(TAG, "CreateFile ignored as it already exists: " + file.getPath());
+            return file;
+        }
+
         try {
             if (!file.createNewFile()) {
                 throw new IOException("Failed to createFile: " + file.getPath());
@@ -141,7 +150,8 @@ public final class DefaultFileAccess implements FileAccessLayer {
                 }
             }
         } catch (final IOException e) {
-            throw new IllegalStateException("Failed to append data to file.");
+            // TODO [MOV-566]: Soft catch the no space left scenario
+            throw new IllegalStateException("Failed to append data to file. Is there space left on the device?");
         }
     }
 
