@@ -32,7 +32,6 @@ import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
 import android.Manifest;
-import android.accounts.Account;
 import android.content.ComponentName;
 import android.content.ContentProvider;
 import android.content.Context;
@@ -73,7 +72,6 @@ import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
-import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -82,7 +80,7 @@ import de.cyface.utils.Validate;
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
  * to an appropriate server. To avoid using the users traffic or incurring costs, the service waits for Wifi access
  * before transmitting any data. You may however force synchronization if required, using
- * {@link #forceMeasurementSynchronisation(String)}.
+ * {@link #forceMeasurementSynchronisation()}.
  * <p>
  * An object of this class is not thread safe and should only be used once per application. You may start and stop the
  * service as often as you like and reuse the object.
@@ -475,15 +473,12 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * Forces the service to synchronize all {@link Measurement}s now if a connection is available. If this is not
-     * called the service might wait for an opportune moment to start synchronization.
-     *
-     * @throws SynchronisationException If synchronisation account information is invalid or not available.
+     * Schedules data synchronization for right now. This does not mean synchronization is going to start immediately.
+     * The Android system still decides when it is convenient.
      */
     @SuppressWarnings({"WeakerAccess", "unused"}) // Used by implementing app (CY)
-    public void forceMeasurementSynchronisation(final @NonNull String username) throws SynchronisationException {
-        Account account = getWiFiSurveyor().getOrCreateAccount(username);
-        getWiFiSurveyor().scheduleSyncNow(account);
+    public void scheduleSyncNow() {
+        getWiFiSurveyor().scheduleSyncNow();
     }
 
     /**

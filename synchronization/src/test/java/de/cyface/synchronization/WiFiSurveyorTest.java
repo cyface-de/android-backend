@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.KITKAT;
-import static android.os.Build.VERSION_CODES.LOLLIPOP_MR1;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static junit.framework.TestCase.assertTrue;
@@ -87,7 +86,7 @@ public class WiFiSurveyorTest {
 
         switchWiFiConnection(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
-        Account account = oocut.getOrCreateAccount("test");
+        Account account = oocut.createAccount("test");
         oocut.startSurveillance(account);
         switchWiFiConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));

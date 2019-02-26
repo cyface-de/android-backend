@@ -22,6 +22,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.cyface.utils.Validate;
 
 /**
@@ -41,14 +42,15 @@ public class WiFiSurveyor extends BroadcastReceiver {
     private static final long SECONDS_PER_MINUTE = 60L;
     /**
      * The data synchronisation interval in minutes.
+     * <p>
+     * There is no particular reason for choosing 60 minutes. It seems reasonable and can be changed in the future.
      */
-    private static final long SYNC_INTERVAL_IN_MINUTES = 60L; // There is no particular reason for choosing 60 minutes.
-    // It seems reasonable and can be changed in the future.
+    private static final long SYNC_INTERVAL_IN_MINUTES = 60L;
     /**
      * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
      * seconds using {@link #SECONDS_PER_MINUTE}.
      */
-    static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
+    public static final long SYNC_INTERVAL = SYNC_INTERVAL_IN_MINUTES * SECONDS_PER_MINUTE;
     /**
      * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such
      * <code>Account</code> has been set.
@@ -186,17 +188,19 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Schedules data synchronization with the provided account for right now. This does not mean synchronization is
-     * going to start immediately. The Android system still decides when it is convenient.
-     *
-     * @param account The <code>Account</code> to use or synchronization.
+     * Schedules data synchronization for right now. This does not mean synchronization is going to start immediately.
+     * The Android system still decides when it is convenient.
      */
-    public void scheduleSyncNow(final @NonNull Account account) {
+    public void scheduleSyncNow() {
+        if (currentSynchronizationAccount == null) {
+            Log.w(TAG, "scheduleSyncNow aborted, not account available.");
+        }
+
         if (isConnected()) {
             final Bundle params = new Bundle();
             params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
             params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-            ContentResolver.requestSync(account, authority, params);
+            ContentResolver.requestSync(currentSynchronizationAccount, authority, params);
         }
     }
 
@@ -234,22 +238,25 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Deletes a Cyface account from the Android <code>Account</code> system. Does silently nothing if no such
+     * Deletes a Cyface account from the Android {@code Account} system. Does silently nothing if no such
      * <code>Account</code> exists.
+     * <p>
+     * <b>ATTENTION:</b> SDK implementing apps which cannot use this method to remove an account need to call
+     * {@code ContentResolver#removePeriodicSync()} themselves.
      *
      * @param username The username of the account to delete.
      */
     @SuppressWarnings("unused") // {@link MovebisDataCapturingService} uses this to deregister a token
     public void deleteAccount(final @NonNull String username) {
-        AccountManager accountManager = AccountManager.get(context.get());
-        Account account = new Account(username, accountType);
+        final AccountManager accountManager = AccountManager.get(context.get());
+        final Account account = new Account(username, accountType);
 
         if (!ContentResolver.getPeriodicSyncs(account, authority).isEmpty()) {
             ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY);
         }
 
         synchronized (this) {
-            if (Build.VERSION.SDK_INT < 22) {
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
                 accountManager.removeAccount(account, null, null);
             } else {
                 accountManager.removeAccountExplicitly(account);
@@ -259,44 +266,51 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * This method retrieves an <code>Account</code> from the Android account system. If the <code>Account</code>
-     * does not exist it is created before returning it.
+     * Creates a new {@code Account} which is required for the {@link WiFiSurveyor} to work.
      *
-     * @param username The username of the account you would like to get.
-     * @return The requested <code>Account</code>
+     * @param username The username of the account to be created.
+     * @param password The password of the account to be created. May be null if a custom {@link CyfaceAuthenticator} is
+     *            used instead of a LoginActivity to return tokens as in {@code MovebisDataCapturingService}.
+     * @return The created {@code Account}
      */
-    @SuppressWarnings("unused") // Used by MovebisDataCapturingService.registerJWTAuthToken
-    public Account getOrCreateAccount(@NonNull final String username) throws SynchronisationException {
+    @NonNull
+    @SuppressWarnings("unused") // Is used by all SDK implementations to ensure expected sync behaviour
+    public Account createAccount(@NonNull final String username, @Nullable final String password) {
 
-        final AccountManager am = AccountManager.get(context.get());
-        final Account[] cyfaceAccounts = am.getAccountsByType(accountType);
-        Validate.isTrue(cyfaceAccounts.length < 2);
-
-        if (cyfaceAccounts.length == 1) {
-            // Periodic sync is always enabled as we disable synchronization via setIsSyncable and the
-            // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
-            // FIXME: Make sure RM does not also add sync
-            ContentResolver.addPeriodicSync(cyfaceAccounts[0], authority, Bundle.EMPTY, SYNC_INTERVAL);
-            return cyfaceAccounts[0];
-        }
+        final AccountManager accountManager = AccountManager.get(context.get());
+        final Account newAccount = new Account(username, accountType);
 
         synchronized (this) {
-            final Account newAccount = new Account(username, accountType);
-            final boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
-            if (!newAccountAdded) {
-                throw new SynchronisationException("Unable to add dummy account!");
-            }
+            Validate.isTrue(accountManager.addAccountExplicitly(newAccount, password, Bundle.EMPTY));
+            Validate.isTrue(accountManager.getAccountsByType(accountType).length == 1);
+            Log.v(TAG, "New account added");
 
-            // The hard-coded setIsSyncable is only executed when a new account is created which should be ok
-            Log.v(TAG, "New account added and enabled by default");
-            ContentResolver.setIsSyncable(newAccount, authority, 1);
-
-            // Periodic sync is always enabled as we disable synchronization via setIsSyncable and the
-            // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
-            // FIXME: Make sure RM also adds accounts like this (and our app too)
-            ContentResolver.addPeriodicSync(newAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
-            return newAccount;
+            makeAccountSyncable(newAccount);
         }
+
+        return newAccount;
+    }
+
+    /**
+     * Sets up a already existing {@code Account} to work with the {@link WiFiSurveyor}.
+     * <p>
+     * <b>ATTENTION:</b> SDK implementing apps need to use this method if they have to create the account by themselves.
+     * This is required because the {@code WifiSurveyor} uses the following account flags:
+     * - {@code ContentResolver#addPeriodicSync()} is always registered until {@link #deleteAccount(String)} is called
+     * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
+     * defines if a connection is available which can be used for synchronization (dependent on
+     * {@link #syncOnWiFiOnly(boolean)}). Using this instead of the periodicSync flag fixed MOV-535.
+     * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
+     *
+     * @param newAccount The {@code Account} to be used for synchronization
+     */
+    public void makeAccountSyncable(@NonNull final Account newAccount) {
+        // FIXME: Make app use a dcs.setIsSyncable() API and ensure it's called onCreateView for a stored pref
+        // Synchronization can be disabled via *FIXME*
+        ContentResolver.setIsSyncable(newAccount, authority, 1);
+
+        // PeriodicSync must always be on and is removed in {@code #removeAccount()}
+        ContentResolver.addPeriodicSync(newAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
     }
 
     /**

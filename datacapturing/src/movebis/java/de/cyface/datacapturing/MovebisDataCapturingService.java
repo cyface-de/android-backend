@@ -225,8 +225,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
             throws SynchronisationException {
         final AccountManager accountManager = AccountManager.get(getContext());
 
-        // FIXME: is the account actually created by the SDK or by STAD?
-        final Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
+        // Create a "dummy" account used for auto synchronization. Null password as the token is static
+        final Account synchronizationAccount = getWiFiSurveyor().createAccount(username, null);
 
         accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
