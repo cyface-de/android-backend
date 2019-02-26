@@ -236,22 +236,27 @@ You must not use the same notification identifier for any other notification dis
 
 
 ### Access Measurements via PersistenceLayer
-You can manage measurements via the `PersistenceLayer<DefaultPersistenceBehaviour>` as demonstrated in the sample code below (see *Delete measurements*).
+Use the `PersistenceLayer<DefaultPersistenceBehaviour>` to manage and load measurements as demonstrated in the sample code below.
 
-* When you only have the id of a measurement and need the `Measurement` object please use `persistenceLayer.loadMeasurement(mid)`
-to load the measurement with its metadata from the database.
-
-* To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
+* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement 
+* Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
                                                               
-**ATTENTION** The attributes (such as the distance) of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
-measurements are only valid in the moment it's loaded from the database. Changes
+#### Load measurements                                                              
+                                                              
+**ATTENTION:** The attributes of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
+measurements are only valid in the moment they are loaded from the database. Changes
 after this call are not pushed into the `Measurement` object returned by this call.
-In order to display the distance for an ongoing measurement (which changes about each second)
-make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` on each location
-update to always have the most recent information. Implement the `DataCapturingListener`
+
+**Measurement distance**
+
+To display the distance for an ongoing measurement (which is updated about once per second)
+make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` *on each location
+update* to always have the most recent information. For this you need to implement the `DataCapturingListener`
 interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
 
 #### Delete measurements
+
+The following code snippet shows how to manage stored measurements:
 
 ```java
 public class MeasurementOverviewFragment extends Fragment {

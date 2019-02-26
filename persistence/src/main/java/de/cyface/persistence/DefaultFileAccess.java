@@ -115,10 +115,9 @@ public final class DefaultFileAccess implements FileAccessLayer {
     public File createFile(@NonNull Context context, long measurementId, String folderName, String fileExtension) {
         final File file = getFilePath(context, measurementId, folderName, fileExtension);
         if (file.exists()) {
-            // Before we threw an Exception which we saw in PlayStore. The cause was probably due to a race condition
-            // when the second onDataCaptured call comes in while the first didn't finish creating the file in time.
-            // Now: soft-catch. If the following warning never occurs we might not need to create files differently.
-            Log.w(TAG, "CreateFile ignored as it already exists: " + file.getPath());
+            // Before we threw an Exception which we saw in PlayStore. This happens because we call this method
+            // also when we resume a measurement in which case the files usually already exist.
+            Log.d(TAG, "CreateFile ignored as it already exists (probably resuming): " + file.getPath());
             return file;
         }
 

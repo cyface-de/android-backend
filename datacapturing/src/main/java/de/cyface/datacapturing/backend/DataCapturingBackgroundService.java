@@ -246,7 +246,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     /**
-     * We don't use {@link #startService(Intent)} to pause of stop the service because we prefer to use a lock and
+     * We don't use {@link #startService(Intent)} to pause or stop the service because we prefer to use a lock and
      * finally in the {@link DataCapturingService}'s life-cycle methods instead. This also avoids headaches with
      * replacing the return statement from {@link #stopService(Intent)} by the return by {@code #startService()}.
      *
