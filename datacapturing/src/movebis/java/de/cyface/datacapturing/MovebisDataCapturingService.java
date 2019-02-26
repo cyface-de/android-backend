@@ -223,9 +223,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
     public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
             throws SynchronisationException {
-        AccountManager accountManager = AccountManager.get(getContext());
+        final AccountManager accountManager = AccountManager.get(getContext());
 
-        Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
+        // FIXME: is the account actually created by the SDK or by STAD?
+        final Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
 
         accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);

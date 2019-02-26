@@ -131,15 +131,22 @@ public class WiFiSurveyor extends BroadcastReceiver {
             throw new SynchronisationException("No valid context available!");
         }
 
+        // OK
         if (isConnected()) {
-            ContentResolver.requestSync(account, authority, Bundle.EMPTY);
-        }
+            Log.d(TAG, "SYNC startSurveillance: connected so we start sync directly");
+            final Bundle params = new Bundle();
+            params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+            params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+            ContentResolver.requestSync(account, authority, params);
+        } else
+            Log.d(TAG, "SYNC startSurveillance: not connected so we don't start sync directly");
         currentSynchronizationAccount = account;
 
         // Roboelectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnWiFiOnly) {
+                Log.d(TAG, "SYNC startSurveillance: add WIFI filter to network callback request");
                 // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
                 requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
@@ -200,22 +207,27 @@ public class WiFiSurveyor extends BroadcastReceiver {
             return;
         }
 
-        final String action = intent.getAction();
-        if (ConnectivityManager.CONNECTIVITY_ACTION.equals(action)) {
-            if (isConnected()) {
-                // Try synchronization periodically
-                boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
-                        authority);
-                boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+        Validate.notNull(intent.getAction());
+        final boolean connectivityChanged = intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION);
+        if (connectivityChanged) {
+            final boolean connectionLost = synchronizationIsActive() && !isConnected();
+            final boolean connectionEstablished = !synchronizationIsActive() && isConnected();
 
-                if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-                    ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY,
-                            SYNC_INTERVAL);
+            if (connectionEstablished) {
+                if (!ContentResolver.getMasterSyncAutomatically()) {
+                    Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
+                    return;
                 }
+
+                // Enable auto-synchronization - periodic flag is always pre set for all account by us
+                Log.v(TAG, "onReceive: setSyncAutomatically.");
+                ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
                 synchronizationIsActive = true;
-            } else {
-                // wifi connection was lost
-                ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
+
+            } else if (connectionLost) {
+
+                Log.v(TAG, "onReceive: setSyncAutomatically to false");
+                ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
                 synchronizationIsActive = false;
             }
         }
@@ -248,28 +260,42 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
     /**
      * This method retrieves an <code>Account</code> from the Android account system. If the <code>Account</code>
-     * does
-     * not exist it is created before returning it.
+     * does not exist it is created before returning it.
      *
      * @param username The username of the account you would like to get.
      * @return The requested <code>Account</code>
      */
-    public Account getOrCreateAccount(final @NonNull String username) throws SynchronisationException {
-        AccountManager am = AccountManager.get(context.get());
-        Account[] cyfaceAccounts = am.getAccountsByType(accountType);
-        if (cyfaceAccounts.length == 0) {
-            synchronized (this) {
-                Account newAccount = new Account(username, accountType);
-                boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
-                if (!newAccountAdded) {
-                    throw new SynchronisationException("Unable to add dummy account!");
-                }
-                ContentResolver.setIsSyncable(newAccount, authority, 1);
-                ContentResolver.setSyncAutomatically(newAccount, authority, true);
-                return newAccount;
-            }
-        } else {
+    @SuppressWarnings("unused") // Used by MovebisDataCapturingService.registerJWTAuthToken
+    public Account getOrCreateAccount(@NonNull final String username) throws SynchronisationException {
+
+        final AccountManager am = AccountManager.get(context.get());
+        final Account[] cyfaceAccounts = am.getAccountsByType(accountType);
+        Validate.isTrue(cyfaceAccounts.length < 2);
+
+        if (cyfaceAccounts.length == 1) {
+            // Periodic sync is always enabled as we disable synchronization via setIsSyncable and the
+            // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
+            // FIXME: Make sure RM does not also add sync
+            ContentResolver.addPeriodicSync(cyfaceAccounts[0], authority, Bundle.EMPTY, SYNC_INTERVAL);
             return cyfaceAccounts[0];
+        }
+
+        synchronized (this) {
+            final Account newAccount = new Account(username, accountType);
+            final boolean newAccountAdded = am.addAccountExplicitly(newAccount, null, Bundle.EMPTY);
+            if (!newAccountAdded) {
+                throw new SynchronisationException("Unable to add dummy account!");
+            }
+
+            // The hard-coded setIsSyncable is only executed when a new account is created which should be ok
+            Log.v(TAG, "New account added and enabled by default");
+            ContentResolver.setIsSyncable(newAccount, authority, 1);
+
+            // Periodic sync is always enabled as we disable synchronization via setIsSyncable and the
+            // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
+            // FIXME: Make sure RM also adds accounts like this (and our app too)
+            ContentResolver.addPeriodicSync(newAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
+            return newAccount;
         }
     }
 
@@ -293,13 +319,14 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Checks whether the device is connected with a WiFi Network or not.
+     * Checks whether the device is connected with a syncable network (WiFi if {@link #syncOnWiFiOnly}).
      *
-     * @return <code>true</code> if WiFi is available; <code>false</code> otherwise.
+     * @return <code>true</code> if a syncable connection is available; <code>false</code> otherwise.
      */
     public boolean isConnected() {
+
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-            Validate.notNull(connectivityManager); // for testing
+            Validate.notNull(connectivityManager);
             final Network activeNetwork = connectivityManager.getActiveNetwork();
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
@@ -310,23 +337,28 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
             final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
             final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean result = isConnected && (isNotMeteredNetwork || !syncOnWiFiOnly);
-            Log.v(TAG, "allowSync: " + result + " (" + (isNotMeteredNetwork ? "not" : "") + "metered)");
+            final boolean isSyncableNetwork = isConnected && (isNotMeteredNetwork || !syncOnWiFiOnly);
 
-            return result;
+            Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isNotMeteredNetwork ? "not" : "") + " metered)"
+                    + " (" + (syncOnWiFiOnly ? "" : "disabled") + " syncOnWiFiOnly)");
+            return isSyncableNetwork;
         } else {
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
+
             final boolean isWifiNetwork = activeNetworkInfo != null
                     && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
             final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            return isConnected && (isWifiNetwork || !syncOnWiFiOnly);
+            final boolean isSyncableNetwork = isConnected && (isWifiNetwork || !syncOnWiFiOnly);
+
+            Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isWifiNetwork ? "not" : "") + " wifi)" + " ("
+                    + (syncOnWiFiOnly ? "" : "disabled") + " syncOnWiFiOnly)");
+            return isSyncableNetwork;
         }
     }
 
     /**
      * @return A flag that might be queried to see whether synchronization is active or not. This is <code>true</code>
-     *         if
-     *         synchronization is active and <code>false</code> otherwise.
+     *         if synchronization is active and <code>false</code> otherwise.
      */
     public boolean synchronizationIsActive() {
         return synchronizationIsActive;
@@ -340,6 +372,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *            connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
      *            available. The second option might use up the users data plan rapidly so use it sparingly. Default
      *            value is <code>true</code>.
+     *
+     *            FIXME when this is changed we need to renew the network callback request: see
+     *            requestBuilder.addTransportType above
+     *            FIXME: we also need to update the
      */
     public void syncOnWiFiOnly(boolean state) {
         syncOnWiFiOnly = state;

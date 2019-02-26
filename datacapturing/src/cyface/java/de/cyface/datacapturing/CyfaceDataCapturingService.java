@@ -6,6 +6,7 @@ import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 import java.util.List;
 
 import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -189,5 +190,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
                 throw new IllegalStateException(e1);
             }
         }
+    }
+
+    // FIXME: cleaner?
+    // to reuse the addPeriodicSync from WifiSurveyor
+    // Periodic sync is always enabled as we disable synchronization via setIsSyncable and the
+    // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
+    // In MovebisDataCapturingService this is called when the JWT token is registered
+    // FIXME: also update tests and docu same was as we change the code
+    public void addPeriodicSync(@NonNull final String username) throws SynchronisationException {
+        getWiFiSurveyor().getOrCreateAccount(username);
     }
 }

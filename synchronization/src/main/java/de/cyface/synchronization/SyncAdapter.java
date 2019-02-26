@@ -18,6 +18,7 @@ import android.accounts.AuthenticatorException;
 import android.accounts.NetworkErrorException;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
@@ -85,7 +86,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
-        Log.d(TAG, "Sync started.");
+        Log.d(TAG, "Sync started");
 
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
