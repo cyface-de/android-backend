@@ -31,7 +31,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.5
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -133,29 +133,21 @@ public class WiFiSurveyor extends BroadcastReceiver {
             throw new SynchronisationException("No valid context available!");
         }
 
-        // OK
-        if (isConnected()) {
-            Log.d(TAG, "SYNC startSurveillance: connected so we start sync directly");
-            final Bundle params = new Bundle();
-            params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-            params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-            ContentResolver.requestSync(account, authority, params);
-        } else
-            Log.d(TAG, "SYNC startSurveillance: not connected so we don't start sync directly");
         currentSynchronizationAccount = account;
+        scheduleSyncNow(); // Needs to be called after currentSynchronizationAccount is set
 
         // Roboelectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnWiFiOnly) {
-                Log.d(TAG, "SYNC startSurveillance: add WIFI filter to network callback request");
+                // TODO when syncOnWiFiOnly is changes (do we need to support this right now?) change this
                 // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
                 requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
             networkCallback = new NetworkCallback(this, currentSynchronizationAccount, authority);
             connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
         } else {
-            IntentFilter intentFilter = new IntentFilter();
+            final IntentFilter intentFilter = new IntentFilter();
             intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
             context.get().registerReceiver(this, intentFilter);
         }
@@ -274,7 +266,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * @return The created {@code Account}
      */
     @NonNull
-    @SuppressWarnings("unused") // Is used by all SDK implementations to ensure expected sync behaviour
+    @SuppressWarnings("unused") // Is used by MovebisDataCapturingService
     public Account createAccount(@NonNull final String username, @Nullable final String password) {
 
         final AccountManager accountManager = AccountManager.get(context.get());
@@ -307,9 +299,11 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @param account The {@code Account} to be used for synchronization
      */
+    @SuppressWarnings("unused") // Used by CyfaceDataCapturingService
     public void makeAccountSyncable(@NonNull final Account account) {
-        // FIXME: Make app use a dcs.setIsSyncable() API and ensure it's called onCreateView for a stored pref
-        // Synchronization can be disabled via *FIXME*
+        // TODO [MOV-580]: Make app use a dcs.setIsSyncable() API and ensure it's called onCreateView for a stored pref
+
+        // Synchronization can be disabled via *** TODO [MOV-580] add newly added API name
         ContentResolver.setIsSyncable(account, authority, 1);
 
         // PeriodicSync must always be on and is removed in {@code #removeAccount()}
@@ -392,7 +386,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      *            FIXME when this is changed we need to renew the network callback request: see
      *            requestBuilder.addTransportType above
-     *            FIXME: we also need to update the
+     *            FIXME: we also need to update the account (autoSyncEnabled, ...)
      */
     public void syncOnWiFiOnly(boolean state) {
         syncOnWiFiOnly = state;

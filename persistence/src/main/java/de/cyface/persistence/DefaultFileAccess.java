@@ -21,7 +21,7 @@ import de.cyface.utils.Validate;
  * Implementation of the {@link FileAccessLayer} which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 3.1.2
+ * @version 3.1.3
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {

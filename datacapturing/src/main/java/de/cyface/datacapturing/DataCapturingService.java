@@ -80,7 +80,7 @@ import de.cyface.utils.Validate;
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
  * to an appropriate server. To avoid using the users traffic or incurring costs, the service waits for Wifi access
  * before transmitting any data. You may however force synchronization if required, using
- * {@link #forceMeasurementSynchronisation()}.
+ * {@link #scheduleSyncNow()} ()}.
  * <p>
  * An object of this class is not thread safe and should only be used once per application. You may start and stop the
  * service as often as you like and reuse the object.
@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 13.0.0
+ * @version 14.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {

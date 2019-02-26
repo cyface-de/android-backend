@@ -35,7 +35,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.1.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -192,13 +192,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             }
         }
     }
-
-    // FIXME: cleaner?
-    // to reuse the makeAccountSyncable from WifiSurveyor
-    // Periodic sync is always enabled as we disable synchronization via setIsSyncable and the
-    // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
-    // In MovebisDataCapturingService this is called when the JWT token is registered
-    // FIXME: also update tests and docu same was as we change the code
 
     /**
      * Sets up an already existing {@code Account} to work with the {@link WiFiSurveyor}.

@@ -16,9 +16,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
 import org.junit.Test;
-import org.junit.experimental.categories.Categories;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
@@ -51,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.1
+ * @version 2.2.2
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)

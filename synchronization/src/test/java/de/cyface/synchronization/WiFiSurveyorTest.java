@@ -24,6 +24,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+
 import androidx.test.core.app.ApplicationProvider;
 import de.cyface.utils.Validate;
 
@@ -33,11 +34,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk=KITKAT) // Because the Roboelectric test don't work on newer devices
+@Config(sdk = KITKAT) // Because the Roboelectric test don't work on newer devices
 public class WiFiSurveyorTest {
 
     /**
@@ -86,7 +87,7 @@ public class WiFiSurveyorTest {
 
         switchWiFiConnection(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
-        Account account = oocut.createAccount("test");
+        Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
         switchWiFiConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));
