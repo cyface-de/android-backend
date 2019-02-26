@@ -16,7 +16,7 @@ import android.util.Log;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.5
+ * @version 1.0.7
  * @since 2.0.0
  */
 public final class SyncService extends Service {
@@ -28,7 +28,7 @@ public final class SyncService extends Service {
     /**
      * The synchronisation adapter this service is supposed to call.
      */
-    // TODO Ugh. Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to
+    // Singleton is so ugly. Nevertheless this is how it is specified in the documentation. Maybe try to
     // change this after it runs.
     private static SyncAdapter syncAdapter = null;
     /**
@@ -38,7 +38,7 @@ public final class SyncService extends Service {
 
     @Override
     public void onCreate() {
-        Log.d(TAG, "sync service on create");
+        Log.v(TAG, "sync service on create");
         synchronized (LOCK) {
             if (syncAdapter == null) {
                 syncAdapter = new SyncAdapter(getApplicationContext(), true, new HttpConnection());
@@ -48,7 +48,7 @@ public final class SyncService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.d(TAG, "sync service on bind");
+        Log.v(TAG, "sync service on bind");
         return syncAdapter.getSyncAdapterBinder();
     }
 }

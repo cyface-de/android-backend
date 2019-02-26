@@ -7,23 +7,16 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
-import java.io.IOException;
-import java.util.concurrent.TimeUnit;
-
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.accounts.AccountManagerCallback;
-import android.accounts.AccountManagerFuture;
-import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
+import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
@@ -31,58 +24,43 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 /**
+ * Tests the internal workings of the {@link CyfaceAuthenticator} using an actual api.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.1.6
  * @since 2.0.0
  */
-
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 @FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
            // required an actual api)
 public class CyfaceAuthenticatorTest {
 
-    private static final String TAG = "de.cyface.auth.test";
-
     /**
      * This test calls an actual api to test if the client can log in and request an authentication token correctly.
      */
     @Test
-    public void testAuthenticationHappyPath() throws AuthenticatorException, OperationCanceledException, IOException {
+    public void testGetAuthToken() throws NetworkErrorException {
+
+        // Arrange
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         AccountManager manager = AccountManager.get(context);
         Account requestAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         manager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
-        AccountManagerCallback callback = new AccountManagerCallback() {
-            @Override
-            public void run(AccountManagerFuture future) {
-                Log.i(TAG, "Getting auth token finished!");
-                try {
-                    Log.i(TAG, future.getResult().toString());
-                } catch (OperationCanceledException e) {
-                    e.printStackTrace();
-                } catch (IOException e) {
-                    e.printStackTrace();
-                } catch (AuthenticatorException e) {
-                    e.printStackTrace();
-                }
-            }
-        };
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.apply();
 
-        AccountManagerFuture<Bundle> future = manager.getAuthToken(requestAccount, Constants.AUTH_TOKEN_TYPE, null,
-                false, callback, null);
-        Bundle bundle = future.getResult(10, TimeUnit.SECONDS);
+        // Act
+        // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
+        Bundle bundle = new CyfaceAuthenticator(context).getAuthToken(null, requestAccount, Constants.AUTH_TOKEN_TYPE,
+                null);
 
-        Log.i(TAG, bundle.toString());
-
-        String authToken = bundle.getString("authtoken");
+        // Assert
+        String authToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
         assertThat(authToken, not(nullValue()));
         assertThat(authToken.isEmpty(), is(false));
         assertThat(authToken.startsWith("ey"), is(true));

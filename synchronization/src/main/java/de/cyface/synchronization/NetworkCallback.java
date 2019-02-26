@@ -19,10 +19,8 @@ import androidx.annotation.NonNull;
  * be enabled depending on the {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} capabilities of the
  * newly connected network.
  *
- * FIXME: We need to test this on API >= 21 devices !!
- *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.2
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -53,13 +51,12 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
     @Override
     public void onCapabilitiesChanged(@NonNull final Network network, @NonNull final NetworkCapabilities capabilities) {
-        Log.d(TAG, "NetworkCapabilities changed");
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;
         }
 
-        if (surveyor.isConnected()) {
+        if (!surveyor.synchronizationIsActive() && surveyor.isConnected()) {
             // Try synchronization periodically
             boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
                     authority);
@@ -70,7 +67,7 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
                 ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
             }
             surveyor.setSynchronizationIsActive(true);
-        } else {
+        } else if (surveyor.synchronizationIsActive() && !surveyor.isConnected()) {
             // wifi connection was lost
             Log.d(TAG, "Disabling periodic sync.");
             ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);

@@ -6,7 +6,9 @@ import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.DataOutputStream;
+import java.io.File;
+import java.io.FileInputStream;
+import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -25,6 +27,7 @@ import org.json.JSONObject;
 
 import android.os.Build;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.utils.Validate;
 import de.cyface.utils.ValidationException;
@@ -34,7 +37,7 @@ import de.cyface.utils.ValidationException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.4
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -92,7 +95,7 @@ public class HttpConnection implements Http {
         } catch (final ProtocolException e) {
             throw new IllegalStateException(e);
         }
-        // connection.setRequestProperty("User-Agent", System.getProperty("http.agent"));
+        connection.setRequestProperty("User-Agent", System.getProperty("http.agent"));
         // connection.setRequestProperty("Accept-Language", "en-US,en;q=0.5");
         return connection;
     }
@@ -124,54 +127,63 @@ public class HttpConnection implements Http {
     }
 
     @Override
-    public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull InputStream data,
+    public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull File transferTempFile,
             @NonNull final String deviceId, final long measurementId, @NonNull final String fileName,
-            UploadProgressListener progressListener) throws RequestParsingException, SynchronisationException,
-            ResponseParsingException, BadRequestException, UnauthorizedException {
+            UploadProgressListener progressListener)
+            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
 
-        // TODO This will only work correctly as long as we are using a ByteArrayInputStream. For other streams it
-        // returns only the data currently in memory or something similar.
-        final int dataSize;
+        // Use a buffered stream to upload the transfer file to avoid OOM and for performance
+        final FileInputStream fileInputStream;
         try {
-            dataSize = data.available() + TAIL.length();
-        } catch (final IOException e) {
+            fileInputStream = new FileInputStream(transferTempFile);
+        } catch (final FileNotFoundException e) {
             throw new IllegalStateException(e);
         }
-        // connection.setUseCaches(true); // from movebis but this is the default setting
-        final String stringData = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
+        final BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+
+        final long dataSize = transferTempFile.length() + TAIL.length();
+        Validate.isTrue(dataSize > 0);
+
+        final String header = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
             connection.connect();
-            DataOutputStream out = null;
             try {
-                out = new DataOutputStream(outputStream);
-                out.writeBytes(stringData);
-                out.flush();
+                outputStream.write(header.getBytes());
+                outputStream.flush();
 
                 int progress = 0;
                 int bytesRead;
-                byte buf[] = new byte[1024];
-                BufferedInputStream bufInput = new BufferedInputStream(data);
-                while ((bytesRead = bufInput.read(buf)) != -1) {
-                    // write output
-                    out.write(buf, 0, bytesRead);
-                    out.flush();
+
+                // noinspection PointlessArithmeticExpression - makes semantically more sense
+                final int maxBufferSize = 1 * 1024 * 1024;
+                int bytesAvailable, bufferSize;
+                byte[] buffer;
+                bytesAvailable = bufferedFileInputStream.available();
+                bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                buffer = new byte[bufferSize];
+
+                bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
+                while (bytesRead > 0) {
+                    outputStream.write(buffer, 0, bufferSize);
+                    outputStream.flush();
                     progress += bytesRead; // Here progress is total uploaded bytes
                     progressListener.updatedProgress((progress * 100.0f) / dataSize);
+
+                    bytesAvailable = bufferedFileInputStream.available();
+                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
+                    bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
                 }
 
                 // Write closing boundary and close stream
-                out.writeBytes(TAIL);
-                out.flush();
+                outputStream.write(TAIL.getBytes());
+                outputStream.flush();
             } finally {
-                if (out != null) {
-                    out.close();
-                }
+                outputStream.close();
             }
         } catch (final IOException e) {
-            throw new RequestParsingException(String.format("Error %s. Unable to parse http request.", e.getMessage()),
-                    e);
+            throw new IllegalStateException(e);
         }
 
         // Get server response
@@ -210,13 +222,14 @@ public class HttpConnection implements Http {
     private BufferedOutputStream initOutputStream(final HttpURLConnection connection) throws SynchronisationException {
         connection.setDoOutput(true); // To upload data to the server
         try {
+            // Wrapping this in a Buffered steam for performance reasons
             return new BufferedOutputStream(connection.getOutputStream());
         } catch (final IOException e) {
             throw new SynchronisationException(String.format("getOutputStream failed: %s", e.getMessage()), e);
         }
     }
 
-    private String setContentLength(final HttpURLConnection connection, final int dataSize,
+    private String setContentLength(final HttpURLConnection connection, final long dataSize,
             final String deviceIdentifier, final long measurementIdentifier, final String fileName) {
         final String deviceIdPart = addPart("deviceId", deviceIdentifier, BOUNDARY);
         final String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),

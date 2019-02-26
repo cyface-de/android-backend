@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.3.4
+ * @version 5.3.5
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -387,11 +387,13 @@ public class CapturedDataWriterTest {
      */
     @Test
     public void testDeleteMeasurement() throws CursorIsNullException {
+
+        // Arrange
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final long measurementId = measurement.getIdentifier();
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-
         WritingDataCompletedCallback callback = new WritingDataCompletedCallback() {
             @Override
             public void writingDataCompleted() {
@@ -403,8 +405,7 @@ public class CapturedDataWriterTest {
                 }
             }
         };
-        capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
-
+        capturingBehaviour.storeData(testData(), measurementId, callback);
         lock.lock();
         try {
             condition.await(2, TimeUnit.SECONDS);
@@ -413,11 +414,21 @@ public class CapturedDataWriterTest {
         } finally {
             lock.unlock();
         }
-
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
+
+        // Act
         oocut.delete(measurement.getIdentifier());
 
-        assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
+        // Assert
+        final File accelerationFile = oocut.getFileAccessLayer().getFilePath(context, measurementId,
+                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+        final File rotationFile = oocut.getFileAccessLayer().getFilePath(context, measurementId,
+                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+        final File directionFile = oocut.getFileAccessLayer().getFilePath(context, measurementId,
+                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+        assertThat(!accelerationFile.exists(), is(true));
+        assertThat(!rotationFile.exists(), is(true));
+        assertThat(!directionFile.exists(), is(true));
 
         Cursor geoLocationsCursor = null;
         try {
@@ -428,12 +439,13 @@ public class CapturedDataWriterTest {
                     geoLocationsCursor);
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-            // FIXME: load and assert sensor data count?
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
             }
         }
+
+        assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
     }
 
     /**

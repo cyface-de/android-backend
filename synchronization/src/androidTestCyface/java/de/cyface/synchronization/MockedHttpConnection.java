@@ -1,7 +1,7 @@
 package de.cyface.synchronization;
 
+import java.io.File;
 import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -18,7 +18,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 2.0.0
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
@@ -51,8 +51,8 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull InputStream data, @NonNull String deviceId,
-            long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile, @NonNull String deviceId,
+                             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
             throws ResponseParsingException, UnauthorizedException, BadRequestException {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");

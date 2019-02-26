@@ -31,7 +31,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.1
+ * @version 2.2.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -72,6 +72,10 @@ public final class MovebisTest {
      * The context of the test installation.
      */
     private Context context;
+    /**
+     * Listener for messages from the service. This is used to assert correct service startup and shutdown.
+     */
+    private TestListener testListener;
 
     /**
      * Initializes the object of class under test.
@@ -81,13 +85,15 @@ public final class MovebisTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
+        // FIXME: not sure if we can reuse the lock and condition
+        testListener = new TestListener(lock, condition);
         testUIListener = new TestUIListener(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
                     oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080",
-                            testUIListener, 0L, new IgnoreEventsStrategy());
+                            testUIListener, 0L, new IgnoreEventsStrategy(), testListener);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }

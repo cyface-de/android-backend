@@ -9,10 +9,7 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.io.IOException;
-import java.io.InputStream;
-import java.security.MessageDigest;
-import java.security.NoSuchAlgorithmException;
+import java.io.File;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -22,7 +19,7 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SyncResult;
 import android.util.Log;
-import androidx.annotation.NonNull;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
@@ -39,6 +36,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * Tests the actual data transmission code. Since this test requires a running Movebis API server, and communicates with
@@ -46,7 +44,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.2.2
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -94,11 +92,11 @@ public class DataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart() throws BadRequestException, RequestParsingException, IOException,
-            CursorIsNullException, NoSuchMeasurementException {
+    public void testUploadSomeBytesViaMultiPart()
+            throws BadRequestException, CursorIsNullException, NoSuchMeasurementException {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentResolver resolver = context.getContentResolver();
-        PersistenceLayer persistence = new PersistenceLayer(context, resolver, AUTHORITY,
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, resolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         long measurementIdentifier = measurement.getIdentifier();
@@ -130,7 +128,6 @@ public class DataTransmissionTest {
         persistence.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
 
         ContentProviderClient client = null;
-        InputStream measurementData = null;
         try {
             client = resolver.acquireContentProviderClient(AUTHORITY);
 
@@ -141,48 +138,31 @@ public class DataTransmissionTest {
             MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
             MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
-            measurementData = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(), persistence);
-            // printMD5(measurementData);
+            File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurement.getIdentifier(),
+                    persistence);
 
             String jwtAuthToken = "replace me";
             SyncPerformer performer = new SyncPerformer(
                     InstrumentationRegistry.getInstrumentation().getTargetContext());
             SyncResult syncResult = new SyncResult();
-            boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
-                    measurementIdentifier, "garbage", measurementData, new UploadProgressListener() {
-                        @Override
-                        public void updatedProgress(float percent) {
-                            Log.d(TAG, String.format("Upload Progress %f", percent));
-                        }
-                    }, jwtAuthToken);
-            assertThat(result, is(equalTo(true)));
-        } finally {
-            if (measurementData != null) {
-                measurementData.close();
+            try {
+                boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
+                        measurementIdentifier, "garbage", compressedTransferTempFile, new UploadProgressListener() {
+                            @Override
+                            public void updatedProgress(float percent) {
+                                Log.d(TAG, String.format("Upload Progress %f", percent));
+                            }
+                        }, jwtAuthToken);
+                assertThat(result, is(equalTo(true)));
+            } finally {
+                if (compressedTransferTempFile.exists()) {
+                    Validate.isTrue(compressedTransferTempFile.delete());
+                }
             }
+        } finally {
             if (client != null) {
                 client.close();
             }
         }
-    }
-
-    /**
-     * Prints the MD5 of an input stream. This is useful for debugging purposes.
-     *
-     * @param stream The stream to print the MD5 sum for.
-     * @throws IOException Thrown if the stream is not readable.
-     * @throws NoSuchAlgorithmException Thrown if MD5 Algorithm is not supported
-     */
-    @SuppressWarnings("unused") // TODO - because?
-    private void printMD5(final @NonNull InputStream stream) throws IOException, NoSuchAlgorithmException {
-        MessageDigest md = MessageDigest.getInstance("MD5");
-        byte[] content = new byte[stream.available()];
-        // noinspection ResultOfMethodCallIgnored - because we don't care
-        stream.read(content);
-        byte[] theDigest = md.digest(content);
-        StringBuilder sb = new StringBuilder(theDigest.length * 2);
-        for (byte b : theDigest)
-            sb.append(String.format("%02x", b));
-        Log.i(TAG, sb.toString());
     }
 }

@@ -20,7 +20,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.5
+ * @version 1.0.6
  * @since 1.0.0
  */
 public final class DiskConsumption implements Parcelable {
@@ -143,7 +143,7 @@ public final class DiskConsumption implements Parcelable {
         } else {
             bytesAvailable = (long)stat.getBlockSize() * (long)stat.getAvailableBlocks();
         }
-        Log.d(TAG, "Space available: " + (bytesAvailable / (1024 * 1024)) + " MB");
+        Log.v(TAG, "Space available: " + (bytesAvailable / (1024 * 1024)) + " MB");
         return bytesAvailable;
     }
 

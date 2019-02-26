@@ -24,6 +24,7 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.backend.TestCallback;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
@@ -41,7 +42,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.2.2
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -90,8 +91,8 @@ public class PingPongTest {
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId();
 
         oocut = new PongReceiver(context, persistence.loadDeviceId());
@@ -108,29 +109,29 @@ public class PingPongTest {
      */
     @Test
     public void testWithRunningService() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
+        final DataCapturingListener listener = new TestListener(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
                     dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
-                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy());
+                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), listener);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
         });
-        DataCapturingListener listener = new TestListener(lock, condition);
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 dcs.getDeviceIdentifier());
 
-        dcs.start(listener, Vehicle.UNKNOWN, finishedHandler);
+        dcs.start(Vehicle.UNKNOWN, finishedHandler);
 
         lock.lock();
         try {

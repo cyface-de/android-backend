@@ -1,8 +1,8 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_FINISHED;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_MEASUREMENT_ID;
-import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PERCENTAGE;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PROGRESS;
 import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_STARTED;
 
@@ -21,7 +21,7 @@ import de.cyface.utils.Validate;
  * to populate received broadcasts about synchronization events to registered {@link ConnectionStatusListener}s.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 2.5.0
  */
 public class ConnectionStatusReceiver extends BroadcastReceiver {
@@ -62,7 +62,7 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
                 }
                 break;
             case SYNC_PROGRESS:
-                final float percent = intent.getFloatExtra(SYNC_PERCENTAGE, -1.0f);
+                final float percent = intent.getFloatExtra(SYNC_PERCENTAGE_ID, -1.0f);
                 final long measurementId = intent.getLongExtra(SYNC_MEASUREMENT_ID, -1L);
                 Validate.isTrue(percent > 0.0f);
                 Validate.isTrue(measurementId > 0L);

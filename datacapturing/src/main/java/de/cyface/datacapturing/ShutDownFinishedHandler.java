@@ -1,7 +1,7 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.TAG;
 
 import android.content.BroadcastReceiver;
@@ -19,10 +19,10 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>.
  *
  * @author Klemens Muthmann
- * @version 2.0.5
+ * @version 2.0.6
  * @since 2.0.0
- * @see DataCapturingService#pause(ShutDownFinishedHandler)
- * @see DataCapturingService#stop(ShutDownFinishedHandler)
+ * @see #pause(ShutDownFinishedHandler)
+ * @see DataCapturingService#stop(DataCapturingListener, ShutDownFinishedHandler)
  */
 public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
 

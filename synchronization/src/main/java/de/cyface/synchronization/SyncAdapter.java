@@ -6,20 +6,16 @@ import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 
-import java.io.IOException;
-import java.io.InputStream;
+import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
-import java.util.concurrent.TimeUnit;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
-import android.accounts.AccountManagerFuture;
 import android.accounts.AuthenticatorException;
-import android.accounts.OperationCanceledException;
+import android.accounts.NetworkErrorException;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
 import android.content.Context;
@@ -28,11 +24,11 @@ import android.content.SyncResult;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
@@ -46,7 +42,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.4
+ * @version 2.4.1
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -95,32 +91,36 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
-        final AccountManager accountManager = AccountManager.get(getContext());
-        final AccountManagerFuture<Bundle> future = accountManager.getAuthToken(account, AUTH_TOKEN_TYPE, null, false,
-                null, null);
 
         try {
             final SyncPerformer syncPerformer = new SyncPerformer(context);
 
-            // Load header info
-            final Bundle result = future.getResult(1, TimeUnit.SECONDS);
-            final String jwtAuthToken = result.getString(AccountManager.KEY_AUTHTOKEN);
-            if (jwtAuthToken == null) {
-                // Because of Movebis we don't throw an IllegalStateException if there is no auth token
-                throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
-            }
-
+            // Load api url
             final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
             final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
             Validate.notNull(endPointUrl,
                     "Sync canceled: Server url not available. Please set the applications server url preference.");
 
-            final String deviceId;
+            // Setup required device identifier, if not already existent
+            final String deviceId = persistence.restoreOrCreateDeviceId();
+            Validate.notNull(deviceId);
+
+            // Ensure user is authorized before starting synchronization
+            final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
+            String jwtAuthToken;
             try {
-                deviceId = persistence.loadDeviceId();
-            } catch (final NoDeviceIdException e) {
+                // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
+                final Bundle bundle = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null);
+                if (bundle == null) {
+                    // Because of Movebis we don't throw an IllegalStateException if there is no auth token
+                    throw new AuthenticatorException("No valid auth token supplied. Aborting data synchronization!");
+                }
+                jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
+            } catch (final NetworkErrorException e) {
                 throw new IllegalStateException(e);
             }
+            Validate.notNull(jwtAuthToken);
+            Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
 
             // Load all Measurements that are finished capturing
             final List<Measurement> syncableMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED);
@@ -134,59 +134,75 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
             for (final Measurement measurement : syncableMeasurements) {
 
-                // Load measurement serialized compressed
+                // Load compressed transfer file for measurement
                 Log.d(Constants.TAG,
                         String.format("Measurement with identifier %d is about to be loaded for transmission.",
                                 measurement.getIdentifier()));
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                         measurement.getIdentifier(), provider, authority);
-                final InputStream data = serializer.loadSerializedCompressed(loader, measurement.getIdentifier(),
-                        persistence);
+                final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
+                        measurement.getIdentifier(), persistence);
+                // Try to sync the transfer file - remove it afterwards
+                try {
 
-                // Synchronize measurement
-                Validate.notNull(endPointUrl);
-                Validate.notNull(deviceId);
-                final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                        measurement.getIdentifier(), deviceId, data, new UploadProgressListener() {
-                            @Override
-                            public void updatedProgress(float percent) {
-                                for (final ConnectionStatusListener listener : progressListener) {
-                                    listener.onProgress(percent, measurement.getIdentifier());
+                    // Acquire new auth token before each synchronization (old one could be expired)
+                    try {
+                        // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
+                        final Bundle authBundle = authenticator.getAuthToken(null, account, AUTH_TOKEN_TYPE, null);
+                        Validate.notNull(authBundle);
+                        jwtAuthToken = authBundle.getString(AccountManager.KEY_AUTHTOKEN);
+                    } catch (final NetworkErrorException e) {
+                        throw new IllegalStateException(e);
+                    }
+                    Validate.notNull(jwtAuthToken);
+                    Log.d(TAG, "Sync authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
+
+                    // Synchronize measurement
+                    Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
+                            DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
+                    Validate.notNull(endPointUrl);
+                    final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
+                            measurement.getIdentifier(), deviceId, compressedTransferTempFile,
+                            new UploadProgressListener() {
+                                @Override
+                                public void updatedProgress(float percent) {
+                                    for (final ConnectionStatusListener listener : progressListener) {
+                                        listener.onProgress(percent, measurement.getIdentifier());
+                                    }
                                 }
-                            }
-                        }, jwtAuthToken);
-                if (transmissionSuccessful) {
+                            }, jwtAuthToken);
+                    if (!transmissionSuccessful) {
+                        break;
+                    }
+
+                    // Mark successfully transmitted measurement as synced
                     try {
                         persistence.markAsSynchronized(measurement);
                     } catch (final NoSuchMeasurementException e) {
                         throw new IllegalStateException(e);
                     }
                     Log.d(Constants.TAG, "Measurement marked as synced.");
-                } else {
-                    break;
+
+                } finally {
+                    if (compressedTransferTempFile.exists()) {
+                        Validate.isTrue(compressedTransferTempFile.delete());
+                    }
                 }
             }
         } catch (final CursorIsNullException e) {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
-        } catch (final RequestParsingException e) {
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
         } catch (final BadRequestException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numConflictDetectedExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
-        } catch (final AuthenticatorException | IOException | OperationCanceledException e) {
-            // OperationCanceledException is thrown with error message = null which leads to an NPE
-            final String errorMessage = e.getMessage() != null ? e.getMessage()
-                    : "onPerformSync threw " + e.getClass().getSimpleName();
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + errorMessage);
+        } catch (final AuthenticatorException e) {
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), errorMessage);
+            sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
         } finally {
-            Log.d(TAG, String.format("Sync finished. (error: %b)", syncResult.hasError()));
+            Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();
             }

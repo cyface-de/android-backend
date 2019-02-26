@@ -14,11 +14,11 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 
@@ -50,7 +50,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.DistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;
@@ -80,7 +80,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.0.2
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -154,26 +154,26 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
-        Log.d(TAG, String.format("Binding to %s", this.getClass().getName()));
+        Log.v(TAG, String.format("Binding to %s", this.getClass().getName()));
         return callerMessenger.getBinder();
     }
 
     @Override
     public boolean onUnbind(final @NonNull Intent intent) {
-        Log.d(TAG, "Unbinding from data capturing service.");
+        Log.v(TAG, "Unbinding from data capturing service.");
         return true; // I want to receive calls to onRebind
     }
 
     @Override
     public void onRebind(final @NonNull Intent intent) {
-        Log.d(TAG, "Rebinding to data capturing service.");
+        Log.v(TAG, "Rebinding to data capturing service.");
         super.onRebind(intent);
     }
 
     @SuppressLint("WakelockTimeout") // We can not provide a timeout since our service might need to run for hours.
     @Override
     public void onCreate() {
-        Log.d(TAG, "onCreate");
+        Log.v(TAG, "onCreate");
         // We only have 5 seconds to call startForeground before the service crashes, so we call it as early as possible
         // with a placeholder notification. This is substituted by the provided notification in onStartCommand. On most
         // devices the user should not even see this happening.
@@ -188,12 +188,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
-        Log.d(TAG, "finishedOnCreate");
+        Log.v(TAG, "finishedOnCreate");
     }
 
     @Override
     public void onDestroy() {
-        Log.d(TAG, "onDestroy");
+        Log.v(TAG, "onDestroy");
         Log.v(TAG, "Unregistering Ping receiver.");
         unregisterReceiver(pingReceiver);
         if (wakeLock != null && wakeLock.isHeld()) {
@@ -338,7 +338,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @return the {@link GeoLocationCapturingProcess}
      */
     private GeoLocationCapturingProcess initializeCapturingProcess() {
-        Log.d(TAG, "Initializing capturing process");
+        Log.v(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         Validate.notNull(locationManager);
         final GeoLocationDeviceStatusHandler locationStatusHandler = Build.VERSION_CODES.N <= Build.VERSION.SDK_INT
@@ -367,7 +367,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             msg.setData(dataBundle);
         }
 
-        Log.d(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
+        Log.v(TAG, String.format("Sending message %d to %d callers.", messageCode, clients.size()));
         final Set<Messenger> temporaryCallerSet = new HashSet<>(clients);
         for (final Messenger caller : temporaryCallerSet) {
             try {
@@ -490,14 +490,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         @Override
         public void handleMessage(final @NonNull Message msg) {
-            Log.d(TAG, String.format("Service received message %s", msg.what));
+            Log.v(TAG, String.format("Service received message %s", msg.what));
 
             final DataCapturingBackgroundService service = context.get();
 
             // noinspection SwitchStatementWithTooFewBranches
             switch (msg.what) {
                 case MessageCodes.REGISTER_CLIENT:
-                    Log.d(TAG, "Registering client!");
+                    Log.v(TAG, "Registering client!");
                     if (service.clients.contains(msg.replyTo)) {
                         Log.w(TAG, "Client " + msg.replyTo + " already registered.");
                     }

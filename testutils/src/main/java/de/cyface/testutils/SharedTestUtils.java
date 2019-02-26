@@ -22,6 +22,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
@@ -46,7 +47,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 4.0.1
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -64,7 +65,29 @@ public class SharedTestUtils {
             final double y, final double z) {
         final List<Point3d> points = new ArrayList<>();
         points.add(new Point3d((float)x, (float)y, (float)z, timestamp));
-        point3dFile.append(points);
+        insertPoint3ds(point3dFile, points);
+    }
+
+    /**
+     * Inserts {@link Point3d}s into the database content provider accessed by the test.
+     * <p>
+     * This increases the performance of large tests.
+     *
+     * @param point3dFile existing file to append the data to
+     * @param point3ds Test fake {@code Point3d}s.
+     */
+    private static void insertPoint3ds(@NonNull final Point3dFile point3dFile, final List<Point3d> point3ds) {
+
+        // Avoid OOM when adding too much data at once
+        final int insertLimit = 100_000;
+        int nextInsertedIndex = 0;
+        while (nextInsertedIndex < point3ds.size()) {
+            final List<Point3d> sublist = point3ds.subList(nextInsertedIndex,
+                    Math.min(nextInsertedIndex + insertLimit, point3ds.size()));
+            point3dFile.append(sublist);
+            nextInsertedIndex += sublist.size();
+            Log.d(TAG, "Inserted " + nextInsertedIndex);
+        }
     }
 
     /**
@@ -168,7 +191,7 @@ public class SharedTestUtils {
         // Remove database entries
         final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
         final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
-        // TODO: why does this break the life-cycle tests in DataCapturingServiceTest? - can't find an answer ...
+        // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.
         // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
@@ -179,17 +202,28 @@ public class SharedTestUtils {
      * This method inserts a {@link Measurement} into the persistence layer. Does not use the
      * {@code CapturingPersistenceBehaviour} but the {@link DefaultPersistenceBehaviour}.
      *
+     * @param point3dCount The number of point3ds to insert (of each sensor type).
+     * @param locationCount The number of location points to insert.
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
      * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
-            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence)
-            throws NoSuchMeasurementException, CursorIsNullException {
+            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence,
+            final int point3dCount, final int locationCount) throws NoSuchMeasurementException, CursorIsNullException {
+        Validate.isTrue(point3dCount > 0);
+        Validate.isTrue(locationCount > 0);
 
+        final List<GeoLocation> geoLocations = new ArrayList<>();
         Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
-        insertGeoLocation(context.getContentResolver(), authority, measurement.getIdentifier(), 1503055141000L,
-                49.9304133333333, 8.82831833333333, 0.0, 940);
+        for (int i = 0; i < locationCount; i++) {
+            // We add some salt to make sure the compression of the data is realistic
+            // This is required as the testOnPerformSyncWithLargeData test requires large data
+            final double salt = Math.random();
+            geoLocations.add(new GeoLocation(49.9304133333333 + salt, 8.82831833333333 + salt, 1503055141000L + i,
+                    0.0 + salt, 940f + (float)salt));
+        }
+        insertGeoLocations(context.getContentResolver(), authority, measurement.getIdentifier(), geoLocations);
 
         // Insert file base data
         final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
@@ -198,9 +232,36 @@ public class SharedTestUtils {
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
                 Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-        insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertPoint3d(rotationsFile, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertPoint3d(directionsFile, 1501662636010L, 7.65, -32.4, -71.4);
+
+        final List<Point3d> aPoints = new ArrayList<>();
+        final List<Point3d> rPoints = new ArrayList<>();
+        final List<Point3d> dPoints = new ArrayList<>();
+        final int createLimit = 100_000;
+        int alreadyInserted = 0;
+        for (int i = 0; i + alreadyInserted < point3dCount; i++) {
+            // We add some salt to make sure the compression of the data is realistic
+            // This is required as the testOnPerformSyncWithLargeData test requires large data
+            final float salt = (float)Math.random();
+            aPoints.add(new Point3d(10.1189575f + salt, -0.15088624f + salt, 0.2921924f + salt, 1501662635973L + i));
+            rPoints.add(
+                    new Point3d(0.001524045f + salt, 0.0025423833f + salt, -0.0010279021f + salt, 1501662635981L + i));
+            dPoints.add(new Point3d(7.65f + salt, -32.4f + salt, -71.4f + salt, 1501662636010L + i));
+
+            // Avoid OOM when creating too much test data at once
+            if (i >= createLimit) {
+                insertPoint3ds(accelerationsFile, aPoints);
+                insertPoint3ds(rotationsFile, rPoints);
+                insertPoint3ds(directionsFile, dPoints);
+                alreadyInserted += aPoints.size();
+                aPoints.clear();
+                rPoints.clear();
+                dPoints.clear();
+                i = 0;
+            }
+        }
+        insertPoint3ds(accelerationsFile, aPoints);
+        insertPoint3ds(rotationsFile, rPoints);
+        insertPoint3ds(directionsFile, dPoints);
 
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
             // Store PointMetaData
@@ -221,8 +282,8 @@ public class SharedTestUtils {
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
 
         // Check the GeoLocations
-        List<GeoLocation> geoLocations = persistence.loadTrack(measurementIdentifier);
-        assertThat(geoLocations.size(), is(1));
+        List<GeoLocation> loadedGeoLocations = persistence.loadTrack(measurementIdentifier);
+        assertThat(loadedGeoLocations.size(), is(locationCount));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {
@@ -261,6 +322,8 @@ public class SharedTestUtils {
     /**
      * Inserts a test {@link GeoLocation} into the database content provider accessed by the test.
      *
+     * @param resolver The {@link ContentResolver} required to access the database
+     * @param authority The authority string required to access the database
      * @param measurementIdentifier The identifier of the test {@link Measurement}.
      * @param timestamp A fake test timestamp of the {@code GeoLocation}.
      * @param lat The fake test latitude of the {@code GeoLocation}.
@@ -280,5 +343,43 @@ public class SharedTestUtils {
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         values.put(GeoLocationsTable.COLUMN_SPEED, speed);
         resolver.insert(getGeoLocationsUri(authority), values);
+    }
+
+    /**
+     * Inserts test {@link GeoLocation}s into the database content provider accessed by the test.
+     * <p>
+     * This increases the performance of large tests and avoids "failed binder transaction - parcel size ..." error.
+     *
+     * @param resolver The {@link ContentResolver} required to access the database
+     * @param authority The authority string required to access the database
+     * @param measurementIdentifier The identifier of the test {@link Measurement}.
+     * @param geoLocations Test fake {@code GeoLocation}s to add.
+     */
+    private static void insertGeoLocations(final ContentResolver resolver, final String authority,
+            final long measurementIdentifier, final List<GeoLocation> geoLocations) {
+        final List<ContentValues> valuesList = new ArrayList<>();
+        for (final GeoLocation geoLocation : geoLocations) {
+            final ContentValues values = new ContentValues();
+            values.put(GeoLocationsTable.COLUMN_ACCURACY, geoLocation.getAccuracy());
+            values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, geoLocation.getTimestamp());
+            values.put(GeoLocationsTable.COLUMN_LAT, geoLocation.getLat());
+            values.put(GeoLocationsTable.COLUMN_LON, geoLocation.getLon());
+            values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+            values.put(GeoLocationsTable.COLUMN_SPEED, geoLocation.getSpeed());
+            valuesList.add(values);
+        }
+
+        // This avoids "failed binder transaction - parcel size ..." error
+        final int maxBatchSize = 2_000;
+        int nextInsertIndex = 0;
+        while (nextInsertIndex < valuesList.size()) {
+            final List<ContentValues> sublist = valuesList.subList(nextInsertIndex,
+                    Math.min(nextInsertIndex + maxBatchSize, valuesList.size()));
+            ContentValues[] subArray = new ContentValues[sublist.size()];
+            subArray = sublist.toArray(subArray);
+            resolver.bulkInsert(getGeoLocationsUri(authority), subArray);
+            nextInsertIndex += subArray.length;
+            Log.d(TAG, "Inserted " + nextInsertIndex);
+        }
     }
 }

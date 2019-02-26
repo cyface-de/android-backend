@@ -1,7 +1,7 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
-import static de.cyface.datacapturing.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -30,7 +30,7 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
-import de.cyface.datacapturing.BundlesExtrasCodes;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
@@ -46,7 +46,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.2
+ * @version 2.2.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -89,10 +89,12 @@ public class BackgroundServiceTest {
     @Before
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        // This is normally called in the <code>DataCapturingService#Constructor</code>
         CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
         persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
+
+        // This is normally called in the <code>DataCapturingService#Constructor</code>
         persistenceLayer.restoreOrCreateDeviceId();
+
         testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
         lock = new ReentrantLock();
         condition = lock.newCondition();

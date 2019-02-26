@@ -1,18 +1,30 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
+
+import java.util.List;
 
 import android.accounts.Account;
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.exception.CorruptedMeasurementException;
+import de.cyface.datacapturing.exception.DataCapturingException;
+import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
 
@@ -21,7 +33,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 8.0.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -41,17 +53,19 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#distance}
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    private CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy)
-            throws SetupException, CursorIsNullException {
+    private CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            @NonNull final String authority, @NonNull final String accountType,
+            @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
-                distanceCalculationStrategy);
+                distanceCalculationStrategy, capturingListener);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
@@ -70,16 +84,18 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            this service.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
+     * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
+     *            capturing.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings("WeakerAccess") // This is the constructor used by SDK implementing apps
-    public CyfaceDataCapturingService(final @NonNull Context context, final @NonNull ContentResolver resolver,
-            final @NonNull String authority, final @NonNull String accountType,
-            final @NonNull String dataUploadServerAddress, final @NonNull EventHandlingStrategy eventHandlingStrategy)
-            throws SetupException, CursorIsNullException {
+    public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
+            @NonNull final String authority, @NonNull final String accountType,
+            @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultDistanceCalculationStrategy());
+                new DefaultDistanceCalculationStrategy(), capturingListener);
     }
 
     /**
@@ -106,6 +122,72 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             getWiFiSurveyor().startSurveillance(account);
         } catch (SynchronisationException e) {
             throw new SetupException(e);
+        }
+    }
+
+    /**
+     * Starts the capturing process with a {@link DataCapturingListener}, that is notified of important events occurring
+     * while the capturing process is running.
+     * <p>
+     * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
+     * assume the service is running, after the method returns. Please use the {@link StartUpFinishedHandler} to receive
+     * a callback, when the service has been started.
+     * <p>
+     * This method is thread safe to call.
+     * <p>
+     * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
+     * need to apply some timeout mechanism to not wait indefinitely.
+     * <p>
+     * This wrapper avoids an unrecoverable state after the app crashed with an un{@link MeasurementStatus#FINISHED}
+     * {@link Measurement}. It deletes the {@link Point3d}s of "dead" {@link MeasurementStatus#OPEN} measurements
+     * because the {@link Point3d} counts gets lost during app crash. "Dead" {@code MeasurementStatus#OPEN} and
+     * {@link MeasurementStatus#PAUSED} measurements are then marked as {@code FINISHED}.
+     *
+     * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
+     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
+     * @param finishedHandler A handler called if the service started successfully.
+     * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
+     *             Android context was available.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
+     *             register a {@link UIListener} to ask the user for this permission and prevent the
+     *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
+     */
+    @Override
+    @SuppressWarnings("unused") // This is called by the SDK implementing app to start a measurement
+    public void start(@NonNull Vehicle vehicle, @NonNull StartUpFinishedHandler finishedHandler)
+            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
+
+        try {
+            super.start(vehicle, finishedHandler);
+        } catch (final CorruptedMeasurementException e) {
+            final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
+            for (final Measurement measurement : openMeasurements) {
+                Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
+                this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
+                try {
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                } catch (NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e);
+                }
+            }
+            final List<Measurement> pausedMeasurements = this.persistenceLayer
+                    .loadMeasurements(MeasurementStatus.PAUSED);
+            for (final Measurement measurement : pausedMeasurements) {
+                Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
+                try {
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                } catch (NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e);
+                }
+            }
+
+            // Now try again to start Capturing - now there can't be any corrupted measurements
+            try {
+                super.start(vehicle, finishedHandler);
+            } catch (final CorruptedMeasurementException e1) {
+                throw new IllegalStateException(e1);
+            }
         }
     }
 }
