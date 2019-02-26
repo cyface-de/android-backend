@@ -292,25 +292,28 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Sets up a already existing {@code Account} to work with the {@link WiFiSurveyor}.
+     * Sets up an already existing {@code Account} to work with the {@link WiFiSurveyor}.
      * <p>
-     * <b>ATTENTION:</b> SDK implementing apps need to use this method if they have to create the account by themselves.
-     * This is required because the {@code WifiSurveyor} uses the following account flags:
-     * - {@code ContentResolver#addPeriodicSync()} is always registered until {@link #deleteAccount(String)} is called
+     * <b>ATTENTION:</b> SDK implementing apps need to use this method if they cannot use
+     * {@link WiFiSurveyor#createAccount(String, String)}.
+     * <p>
+     * This has the following reasons:
+     * - {@code ContentResolver#addPeriodicSync()} is always registered until {@link WiFiSurveyor#deleteAccount(String)}
+     * is called
      * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
      * defines if a connection is available which can be used for synchronization (dependent on
-     * {@link #syncOnWiFiOnly(boolean)}). Using this instead of the periodicSync flag fixed MOV-535.
+     * {@link WiFiSurveyor#syncOnWiFiOnly(boolean)}). Using this instead of the periodicSync flag fixed MOV-535.
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
      *
-     * @param newAccount The {@code Account} to be used for synchronization
+     * @param account The {@code Account} to be used for synchronization
      */
-    public void makeAccountSyncable(@NonNull final Account newAccount) {
+    public void makeAccountSyncable(@NonNull final Account account) {
         // FIXME: Make app use a dcs.setIsSyncable() API and ensure it's called onCreateView for a stored pref
         // Synchronization can be disabled via *FIXME*
-        ContentResolver.setIsSyncable(newAccount, authority, 1);
+        ContentResolver.setIsSyncable(account, authority, 1);
 
         // PeriodicSync must always be on and is removed in {@code #removeAccount()}
-        ContentResolver.addPeriodicSync(newAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
+        ContentResolver.addPeriodicSync(account, authority, Bundle.EMPTY, SYNC_INTERVAL);
     }
 
     /**

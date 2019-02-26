@@ -25,7 +25,9 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.synchronization.NetworkCallback;
 import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -197,6 +199,23 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     // auto-synchronization is disabled via setSyncAutomatically which fixed MOV-535.
     // In MovebisDataCapturingService this is called when the JWT token is registered
     // FIXME: also update tests and docu same was as we change the code
+
+    /**
+     * Sets up an already existing {@code Account} to work with the {@link WiFiSurveyor}.
+     * <p>
+     * <b>ATTENTION:</b> SDK implementing apps need to use this method if they cannot use
+     * {@link WiFiSurveyor#createAccount(String, String)}.
+     * <p>
+     * This has the following reasons:
+     * - {@code ContentResolver#addPeriodicSync()} is always registered until {@link WiFiSurveyor#deleteAccount(String)}
+     * is called
+     * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
+     * defines if a connection is available which can be used for synchronization (dependent on
+     * {@link WiFiSurveyor#syncOnWiFiOnly(boolean)}). Using this instead of the periodicSync flag fixed MOV-535.
+     * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
+     *
+     * @param account The {@code Account} to be used for synchronization
+     */
     public void makeAccountSyncable(@NonNull final Account account) {
         getWiFiSurveyor().makeAccountSyncable(account);
     }
