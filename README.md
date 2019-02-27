@@ -109,24 +109,36 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
             }
             return;
         }
-    
-        accountManager.addAccount(Constants.ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
-                getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
-                    @Override
-                    public void run(AccountManagerFuture<Bundle> future) {
-                        try {
-                            final Bundle bundle = future.getResult();
-                            setAccountAutoSyncable(context, true);
-    
-                            dataCapturingService.startWifiSurveyor();
-                        } catch (OperationCanceledException e) {
-                            // This closes the app when the LoginActivity is closed
-                            getMainActivityFromContext(context).finish();
-                        } catch (AuthenticatorException | IOException | SetupException e) {
-                            throw new IllegalStateException(e);
-                        }
+        
+        // Login and create account 
+        // a) Static token variant:
+        dataCapturingService.createAccount(username, token);
+        dataCapturingService.startWifiSurveyor();
+        // or b) Login via LoginActivity and using dynamic tokens
+        // The LoginActivity is called by Android which handles the account creation
+        accountManager.addAccount(ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
+            getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
+                @Override
+                public void run(AccountManagerFuture<Bundle> future) {
+                    try {
+                        // noinspection unused - this allows us to detect when LoginActivity is closed
+                        final Bundle bundle = future.getResult();
+
+                        // The LoginActivity created a temporary account which cannot yet be used for synchronization.
+                        // As the login was successful we now register the account correctly:
+                        final AccountManager accountManager = AccountManager.get(context);
+                        final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
+                        dataCapturingService.makeAccountSyncable(account, syncEnabledPreference);
+
+                        dataCapturingService.startWifiSurveyor();
+                    } catch (OperationCanceledException e) {
+                        // This closes the app when the LoginActivity is closed
+                        getMainActivityFromContext(context).finish();
+                    } catch (AuthenticatorException | IOException | SetupException e) {
+                        throw new IllegalStateException(e);
                     }
-                }, null);
+                }
+            }, null);
     }
     
     private static boolean accountWithTokenExists(final AccountManager accountManager) {
