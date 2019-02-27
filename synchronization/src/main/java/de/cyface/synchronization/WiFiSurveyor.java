@@ -277,7 +277,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             Validate.isTrue(accountManager.getAccountsByType(accountType).length == 1);
             Log.v(TAG, "New account added");
 
-            makeAccountSyncable(newAccount);
+            makeAccountSyncable(newAccount, true);
         }
 
         return newAccount;
@@ -298,13 +298,13 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
      *
      * @param account The {@code Account} to be used for synchronization
+     * @param enabled True if the synchronization should be enabled
      */
     @SuppressWarnings("unused") // Used by CyfaceDataCapturingService
-    public void makeAccountSyncable(@NonNull final Account account) {
-        // TODO [MOV-580]: Make app use a dcs.setIsSyncable() API and ensure it's called onCreateView for a stored pref
+    public void makeAccountSyncable(@NonNull final Account account, boolean enabled) {
 
-        // Synchronization can be disabled via *** TODO [MOV-580] add newly added API name
-        ContentResolver.setIsSyncable(account, authority, 1);
+        // Synchronization can be disabled via {@link #setSyncEnabled()}
+        ContentResolver.setIsSyncable(account, authority, enabled ? 1 : 0);
 
         // PeriodicSync must always be on and is removed in {@code #removeAccount()}
         ContentResolver.addPeriodicSync(account, authority, Bundle.EMPTY, SYNC_INTERVAL);
@@ -394,5 +394,21 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
     void setSynchronizationIsActive(boolean synchronizationIsActive) {
         this.synchronizationIsActive = synchronizationIsActive;
+    }
+
+    /**
+     * @return True if synchronization is enabled
+     */
+    public boolean isSyncEnabled() {
+        return ContentResolver.getIsSyncable(currentSynchronizationAccount, authority) == 1;
+    }
+
+    /**
+     * Allows to enable or disable synchronization completely.
+     *
+     * @param enabled True if synchronization should be enabled
+     */
+    public void setSyncEnabled(final boolean enabled) {
+        ContentResolver.setIsSyncable(currentSynchronizationAccount, authority, enabled ? 1 : 0);
     }
 }

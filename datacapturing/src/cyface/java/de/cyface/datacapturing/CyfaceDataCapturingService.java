@@ -208,8 +208,25 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
      *
      * @param account The {@code Account} to be used for synchronization
+     * @param enabled True if sync should be enabled
      */
-    public void makeAccountSyncable(@NonNull final Account account) {
-        getWiFiSurveyor().makeAccountSyncable(account);
+    public void makeAccountSyncable(@NonNull final Account account, boolean enabled) {
+        getWiFiSurveyor().makeAccountSyncable(account, enabled);
+    }
+
+    /**
+     * @return True if synchronization is enabled
+     */
+    public boolean isSyncEnabled() {
+        return getWiFiSurveyor().isSyncEnabled();
+    }
+
+    /**
+     * Allows to enable or disable synchronization completely.
+     *
+     * @param enabled True if synchronization should be enabled
+     */
+    public void setSyncEnabled(final boolean enabled) {
+        getWiFiSurveyor().setSyncEnabled(enabled);
     }
 }
