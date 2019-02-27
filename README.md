@@ -112,8 +112,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
         
         // Login and create account 
         // a) Static token variant:
-        dataCapturingService.createAccount(username, token);
-        dataCapturingService.startWifiSurveyor();
+        dataCapturingService.registerJWTAuthToken(username, token);
         // or b) Login via LoginActivity and using dynamic tokens
         // The LoginActivity is called by Android which handles the account creation
         accountManager.addAccount(ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,

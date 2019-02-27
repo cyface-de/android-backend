@@ -185,6 +185,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     public void scheduleSyncNow() {
         if (currentSynchronizationAccount == null) {
             Log.w(TAG, "scheduleSyncNow aborted, not account available.");
+            return;
         }
 
         if (isConnected()) {
@@ -197,6 +198,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;
@@ -204,27 +206,28 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
         Validate.notNull(intent.getAction());
         final boolean connectivityChanged = intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION);
-        if (connectivityChanged) {
-            final boolean connectionLost = synchronizationIsActive() && !isConnected();
-            final boolean connectionEstablished = !synchronizationIsActive() && isConnected();
+        if (!connectivityChanged) {
+            return;
+        }
 
-            if (connectionEstablished) {
-                if (!ContentResolver.getMasterSyncAutomatically()) {
-                    Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
-                    return;
-                }
-
-                // Enable auto-synchronization - periodic flag is always pre set for all account by us
-                Log.v(TAG, "onReceive: setSyncAutomatically.");
-                ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
-                synchronizationIsActive = true;
-
-            } else if (connectionLost) {
-
-                Log.v(TAG, "onReceive: setSyncAutomatically to false");
-                ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
-                synchronizationIsActive = false;
+        final boolean connectionLost = synchronizationIsActive() && !isConnected();
+        final boolean connectionEstablished = !synchronizationIsActive() && isConnected();
+        if (connectionEstablished) {
+            if (!ContentResolver.getMasterSyncAutomatically()) {
+                Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
+                return;
             }
+
+            // Enable auto-synchronization - periodic flag is always pre set for all account by us
+            Log.v(TAG, "onReceive: setSyncAutomatically.");
+            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
+            synchronizationIsActive = true;
+
+        } else if (connectionLost) {
+
+            Log.v(TAG, "onReceive: setSyncAutomatically to false");
+            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
+            synchronizationIsActive = false;
         }
     }
 

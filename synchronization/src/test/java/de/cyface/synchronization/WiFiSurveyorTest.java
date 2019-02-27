@@ -19,6 +19,7 @@ import org.robolectric.shadows.ShadowNetwork;
 import org.robolectric.shadows.ShadowNetworkInfo;
 
 import android.accounts.Account;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
@@ -34,7 +35,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -46,8 +47,8 @@ public class WiFiSurveyorTest {
      */
     private ShadowConnectivityManager shadowConnectivityManager;
     private ConnectivityManager connectivityManager;
-    private ShadowNetwork shadowOfActiveNetwork;
-    private ShadowNetworkInfo shadowOfActiveNetworkInfo;
+    //private ShadowNetwork shadowOfActiveNetwork;
+    //private ShadowNetworkInfo shadowOfActiveNetworkInfo;
     /**
      * An object of the class under test.
      */
@@ -85,15 +86,18 @@ public class WiFiSurveyorTest {
         assertTrue(activeInfo != null && activeInfo.isConnected());
         Validate.notNull(oocut.connectivityManager);*/
 
-        switchWiFiConnection(false);
-        assertThat(oocut.isConnected(), is(equalTo(false)));
+        //switchWiFiConnection(false);
+        //assertThat(oocut.isConnected(), is(equalTo(false)));
+
+        // Not sure why this is not set by default (in roboelectric test environment)
+        ContentResolver.setMasterSyncAutomatically(true);
 
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
 
         switchWiFiConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));
-        assertThat(oocut.synchronizationIsActive(), is(equalTo(true))); // FIXME: this is false
+        assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
     }
 
     /**
@@ -102,6 +106,10 @@ public class WiFiSurveyorTest {
      */
     @Test
     public void testMobileConnectivity() throws SynchronisationException {
+
+        // Not sure why this is not set by default (in roboelectric test environment)
+        ContentResolver.setMasterSyncAutomatically(true);
+
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
 
@@ -112,6 +120,7 @@ public class WiFiSurveyorTest {
 
         switchMobileConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));
+        assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
     }
 
     /**
