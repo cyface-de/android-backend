@@ -70,7 +70,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
      * available. The second option might use up the users data plan rapidly so use it sparingly.
      */
-    private boolean syncOnWiFiOnly;
+    private boolean syncOnUnMeteredNetworkOnly;
     /**
      * The <code>ContentProvider</code> authority used by this service to store and read data. See the
      * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
@@ -107,7 +107,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             final @NonNull String authority, final @NonNull String accountType) {
         this.context = new WeakReference<>(context);
         this.connectivityManager = connectivityManager;
-        this.syncOnWiFiOnly = true;
+        this.syncOnUnMeteredNetworkOnly = true;
         this.authority = authority;
         this.accountType = accountType;
     }
@@ -138,9 +138,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
         // Roboelectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
-            NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-            if (syncOnWiFiOnly) {
-                // TODO when syncOnWiFiOnly is changes (do we need to support this right now?) change this
+            final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
+            if (syncOnUnMeteredNetworkOnly) {
                 // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
                 requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
@@ -294,7 +293,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * is called
      * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
      * defines if a connection is available which can be used for synchronization (dependent on
-     * {@link WiFiSurveyor#syncOnWiFiOnly(boolean)}). Using this instead of the periodicSync flag fixed MOV-535.
+     * {@link WiFiSurveyor#setSyncOnUnMeteredNetworkOnly(boolean)}). Using this instead of the periodicSync flag fixed
+     * MOV-535.
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
      *
      * @param account The {@code Account} to be used for synchronization
@@ -330,7 +330,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Checks whether the device is connected with a syncable network (WiFi if {@link #syncOnWiFiOnly}).
+     * Checks whether the device is connected with a syncable network (WiFi if {@link #syncOnUnMeteredNetworkOnly}).
      *
      * @return <code>true</code> if a syncable connection is available; <code>false</code> otherwise.
      */
@@ -348,10 +348,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
             final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
             final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean isSyncableNetwork = isConnected && (isNotMeteredNetwork || !syncOnWiFiOnly);
+            final boolean isSyncableNetwork = isConnected && (isNotMeteredNetwork || !syncOnUnMeteredNetworkOnly);
 
             Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isNotMeteredNetwork ? "not" : "") + " metered)"
-                    + " (" + (syncOnWiFiOnly ? "" : "disabled") + " syncOnWiFiOnly)");
+                    + " (" + (syncOnUnMeteredNetworkOnly ? "" : "disabled") + " syncOnUnMeteredNetworkOnly)");
             return isSyncableNetwork;
         } else {
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
@@ -359,10 +359,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
             final boolean isWifiNetwork = activeNetworkInfo != null
                     && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
             final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean isSyncableNetwork = isConnected && (isWifiNetwork || !syncOnWiFiOnly);
+            final boolean isSyncableNetwork = isConnected && (isWifiNetwork || !syncOnUnMeteredNetworkOnly);
 
             Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isWifiNetwork ? "not" : "") + " wifi)" + " ("
-                    + (syncOnWiFiOnly ? "" : "disabled") + " syncOnWiFiOnly)");
+                    + (syncOnUnMeteredNetworkOnly ? "" : "disabled") + " syncOnUnMeteredNetworkOnly)");
             return isSyncableNetwork;
         }
     }
@@ -376,20 +376,26 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
-     * connections.
+     * Sets whether synchronization should happen only on
+     * {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED}
+     * networks or on all networks.
+     * <p>
+     * For Android devices lower than {@code android.os.Build.VERSION_CODES.LOLLIPOP}
+     * {@code ConnectivityManager.TYPE_WIFI}
+     * is used as a synonym for the more general "not metered" capability.
      *
-     * @param state If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
-     *            connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
-     *            available. The second option might use up the users data plan rapidly so use it sparingly. Default
-     *            value is <code>true</code>.
-     *
-     *            FIXME when this is changed we need to renew the network callback request: see
-     *            requestBuilder.addTransportType above
-     *            FIXME: we also need to update the account (autoSyncEnabled, ...)
+     * @param state If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
+     *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
+     *            {@code false} it synchronizes as soon as a data connection is available. The second option might use
+     *            up the users data plan rapidly so use it sparingly. The default value is {@code true}.
+     * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    public void syncOnWiFiOnly(boolean state) {
-        syncOnWiFiOnly = state;
+    public void setSyncOnUnMeteredNetworkOnly(final boolean state) throws SynchronisationException {
+        syncOnUnMeteredNetworkOnly = state;
+
+        // This is required to update the NetworkCallback filter and the setSyncAutomatically state
+        stopSurveillance();
+        startSurveillance(currentSynchronizationAccount);
     }
 
     void setSynchronizationIsActive(boolean synchronizationIsActive) {

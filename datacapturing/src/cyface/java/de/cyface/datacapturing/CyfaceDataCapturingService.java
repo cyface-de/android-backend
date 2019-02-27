@@ -204,7 +204,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * is called
      * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
      * defines if a connection is available which can be used for synchronization (dependent on
-     * {@link WiFiSurveyor#syncOnWiFiOnly(boolean)}). Using this instead of the periodicSync flag fixed MOV-535.
+     * {@link WiFiSurveyor#setSyncOnUnMeteredNetworkOnly(boolean)}). Using this instead of the periodicSync flag fixed
+     * MOV-535.
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
      *
      * @param account The {@code Account} to be used for synchronization

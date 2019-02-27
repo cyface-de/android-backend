@@ -99,11 +99,11 @@ public class WiFiSurveyorTest {
      *
      */
     @Test
-    public void testMobileConnectivity() {
+    public void testMobileConnectivity() throws SynchronisationException {
         switchMobileConnection(false);
 
         switchWiFiConnection(false);
-        oocut.syncOnWiFiOnly(false);
+        oocut.setSyncOnUnMeteredNetworkOnly(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
         switchMobileConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));

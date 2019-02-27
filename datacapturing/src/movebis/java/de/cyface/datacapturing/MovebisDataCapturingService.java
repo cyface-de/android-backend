@@ -35,6 +35,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -243,18 +244,23 @@ public class MovebisDataCapturingService extends DataCapturingService {
         getWiFiSurveyor().deleteAccount(username);
     }
 
-    /*
-     * Uncommented as this seems not to be used by SR.
-     * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
-     * connections.
-     * @param state If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
-     * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
-     * available. The second option might use up the users data plan rapidly so use it sparingly.
-     * /
-     * public void syncOnWiFiOnly(final boolean state) {
-     * getWiFiSurveyor().syncOnWiFiOnly(state);
-     * }
+    /**
+     * Sets whether synchronization should happen only on
+     * {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED}
+     * networks or on all networks.
+     * <p>
+     * For Android devices lower than {@code android.os.Build.VERSION_CODES.LOLLIPOP}
+     * {@code ConnectivityManager.TYPE_WIFI}
+     * is used as a synonym for the more general "not metered" capability.
+     *
+     * @param state If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
+     *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
+     *            {@code false} it synchronizes as soon as a data connection is available. The second option might use
+     *            up the users data plan rapidly so use it sparingly. The default value is {@code true}.
      */
+    public void setSyncOnUnMeteredNetworkOnly(final boolean state) {
+        getWiFiSurveyor().setSyncOnUnMeteredNetworkOnly(state);
+    }
 
     /**
      * Checks whether the user has granted the <code>ACCESS_COARSE_LOCATION</code> permission and notifies the UI to ask
