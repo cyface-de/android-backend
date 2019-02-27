@@ -257,8 +257,9 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
      *            {@code false} it synchronizes as soon as a data connection is available. The second option might use
      *            up the users data plan rapidly so use it sparingly. The default value is {@code true}.
+     * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    public void setSyncOnUnMeteredNetworkOnly(final boolean state) {
+    public void setSyncOnUnMeteredNetworkOnly(final boolean state) throws SynchronisationException {
         getWiFiSurveyor().setSyncOnUnMeteredNetworkOnly(state);
     }
 
