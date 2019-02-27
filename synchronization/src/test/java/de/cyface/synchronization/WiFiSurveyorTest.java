@@ -78,20 +78,22 @@ public class WiFiSurveyorTest {
     public void testWifiConnectivity() throws SynchronisationException {
 
         // Added this block while trying to set the connectivityManager to not null -.-
-        NetworkInfo networkInfo = ShadowNetworkInfo.newInstance(NetworkInfo.DetailedState.CONNECTED,
+        /*NetworkInfo networkInfo = ShadowNetworkInfo.newInstance(NetworkInfo.DetailedState.CONNECTED,
                 ConnectivityManager.TYPE_WIFI, 0, true, NetworkInfo.State.CONNECTED);
         shadowConnectivityManager.setActiveNetworkInfo(networkInfo);
         NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
         assertTrue(activeInfo != null && activeInfo.isConnected());
-        Validate.notNull(oocut.connectivityManager);
+        Validate.notNull(oocut.connectivityManager);*/
 
         switchWiFiConnection(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
+
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
+
         switchWiFiConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));
-        assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
+        assertThat(oocut.synchronizationIsActive(), is(equalTo(true))); // FIXME: this is false
     }
 
     /**
@@ -100,11 +102,14 @@ public class WiFiSurveyorTest {
      */
     @Test
     public void testMobileConnectivity() throws SynchronisationException {
-        switchMobileConnection(false);
+        Account account = oocut.createAccount("test", null);
+        oocut.startSurveillance(account);
 
+        switchMobileConnection(false);
         switchWiFiConnection(false);
         oocut.setSyncOnUnMeteredNetworkOnly(false);
         assertThat(oocut.isConnected(), is(equalTo(false)));
+
         switchMobileConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));
     }
