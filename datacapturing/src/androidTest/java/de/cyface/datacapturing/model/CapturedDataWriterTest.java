@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.3.5
+ * @version 5.3.6
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -460,7 +460,7 @@ public class CapturedDataWriterTest {
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement loadedMeasurement : measurements) {
-            assertThat(oocut.loadTrack(loadedMeasurement.getIdentifier()).size(), is(equalTo(1)));
+            assertThat(oocut.loadTrack(loadedMeasurement.getIdentifier()).get(0).size(), is(equalTo(1)));
         }
     }
 

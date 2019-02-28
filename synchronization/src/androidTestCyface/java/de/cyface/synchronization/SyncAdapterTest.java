@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.2
+ * @version 2.2.3
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -120,8 +120,8 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement.getIdentifier());
-        assertThat(geoLocations.size(), is(1));
+        final List<List<GeoLocation>> subTracks = persistence.loadTrack(loadedMeasurement.getIdentifier());
+        assertThat(subTracks.get(0).size(), is(1));
     }
 
     /**
@@ -178,8 +178,8 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        List<GeoLocation> geoLocations = persistence.loadTrack(loadedMeasurement.getIdentifier());
-        assertThat(geoLocations.size(), is(locationCount));
+        final List<List<GeoLocation>> subTracks = persistence.loadTrack(loadedMeasurement.getIdentifier());
+        assertThat(subTracks.get(0).size(), is(locationCount));
     }
 
     /**
