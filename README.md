@@ -265,6 +265,13 @@ make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` *on each
 update* to always have the most recent information. For this you need to implement the `DataCapturingListener`
 interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
 
+**Load Track**
+
+To display the track of a finished measurement use `persistenceLayer.loadTrack(measurementId)`
+which returns a list of lists containing `GeoLocations`. Currently there is always just one
+sub list which contains the full track. We'll change this soon so that tracks are sliced into sub tracks
+when pause/resume was used which is the reason behind the return type. 
+
 #### Delete measurements
 
 The following code snippet shows how to manage stored measurements:
