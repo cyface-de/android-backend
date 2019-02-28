@@ -1,4 +1,4 @@
-# Cyface Android SDK 3.4 Migration Guide
+# Cyface Android SDK 4.0.0-alpha1 Migration Guide
 
 This migration guide is written for apps using the `MovebisDataCapturinService`.
 
@@ -74,7 +74,7 @@ class MainFragment {
         dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
             uiListener, locationUpdateRate, eventHandlingStrategy);
         
-        // Version 3.4.0
+        // Version 4.0.0-alpha1
         dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
             uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener);
     }
@@ -98,7 +98,7 @@ public class DataCapturingButton implements DataCapturingListener {
         dataCapturingService.reconnect();
         dataCapturingService.isRunning(timeout, callbackWithSuccessLogic);
         
-        // Version 3.4.0
+        // Version 4.0.0-alpha1
         if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
             // your logic, e.g. update button
         } else {
@@ -133,7 +133,7 @@ public class DataCapturingButton implements DataCapturingListener {
         // Version 3.1.0
         dataCapturingService.start(dataCapturingListener, vehicle, startUpFinishedHandler);
         
-        // Version 3.4.0
+        // Version 4.0.0-alpha1
         dataCapturingService.start(vehicle, startUpFinishedHandler);
     }
 }
@@ -171,7 +171,7 @@ class measurementControlOrAccessClass {
         // Version 3.1.0
         dataCapturingService.loadMeasurements(MeasurementStatus.FINISHED);
         
-        // Version 3.4.0
+        // Version 4.0.0-alpha1
         persistence.loadMeasurements(MeasurementStatus.FINISHED);
     }
 }
@@ -192,7 +192,7 @@ class measurementControlOrAccessClass {
         // Version 3.1.0
         List<GeoLocation> track = dataCapturingService.loadTrack(dataCapturingService.loadMeasurement(measurementId));
         
-        // Version 3.4.0
+        // Version 4.0.0-alpha1
         List<List<GeoLocation>> subTracks = persistence.loadTrack(measurementId);
         if (subTracks.size() > 0 ) {
             List<GeoLocation> track = subTracks.get(0);
@@ -220,7 +220,7 @@ class measurementControlOrAccessClass {
         // Version 3.1.0
         dataCapturingService.deleteMeasurement(dataCapturingService.loadMeasurement(measurementId));
         
-        // Version 3.4.0
+        // Version 4.0.0-alpha1
         persistence.delete(measurementId);
     }
 }
