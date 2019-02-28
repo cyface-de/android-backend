@@ -1,5 +1,9 @@
 # Cyface Android SDK 3.4 Migration Guide
 
+This migration guide is written for apps using the `MovebisDataCapturinService`.
+
+If you use the `CyfaceDataCapturingService` instead, please contact us. 
+
 ## Upgrading from 3.1
 
 - [Service Initialization](#service-initialization)
@@ -7,53 +11,213 @@
 	- [Implement UI Listener](#implement-ui-listener)
 	- [Implement Event Handling Strategy](#implement-event-handling-strategy)
 	- [Start Service](#start-service)
+	- [Reconnect to Service](#reconnect-to-service)
 	- [De-/Register JWT Auth Tokens](#de-register-jwt-auth-tokens)
-	- [Start/Stop UI Location Updates](#start-stop-ui-location-updates)
+	- [Start/Stop UI Location Updates](#startstop-ui-location-updates)
 - [Control Capturing](#control-capturing)
-	- [Start/Stop capturing](#start-stop-capturing)
-	- [Pause/Resume Capturing](#pause-resume-capturing)
+	- [Start/Stop Capturing](#startstop-capturing)
+	- [Pause/Resume Capturing](#pauseresume-capturing)
 - [Access Measurements](#access-measurements)
 	- [Load finished measurements](#load-finished-measurements)
 	- [Load Tracks](#load-tracks)
+	- [Load Measurement Distance (new feature)](#load-measurement-distance)
 	- [Delete Measurements](#delete-measurements)
 
 ### Service Initialization
 
 #### Implement Data Capturing Listener
 
+*No API changes.*
+
 #### Implement UI Listener
+
+*No API changes.*
 
 #### Implement Event Handling Strategy
 
-#### Start Service
+The API of the `EventHandlingStrategy` interface did not change but we added a new the feature
+to get the measurement distance. To do so during an *ongoing* capturing you need to re-load
+the distance when new `GeoLocation`s are captured: 
 
 ```java
-// Version 3.1
-dataCapturingService = new MovebisDataCapturingService(...);
-dataCapturingService.reconnect();
-deviceId = dataCapturingService.getDeviceId();
+class DataCapturingListenerImpl implements DataCapturingListener {
+    
+    @Override
+    public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
+        
+        // E.g.: load current measurement distance
+        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
+                                                                                                new DefaultPersistenceBehaviour());
+        final Measurement measurement;
+        try {
+            measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+        // New in Version 3.2.0
+        final double distanceMeter = measurement.getDistance();
+    }
+}
+```
 
-// Version 3.4
-dataCapturingService = new MovebisDataCapturingService(...);
-dataCapturingService.reconnect();
-deviceId = dataCapturingService.getDeviceId();
+#### Start Service
+
+The `DataCapturingListener` is now added only once in the `DataCapturingService` constructor.
+
+```java
+class MainFragment {
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
+        
+        // Version 3.1.0
+        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
+            uiListener, locationUpdateRate, eventHandlingStrategy);
+        
+        // Version 3.4.0
+        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
+            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener);
+    }
+}
+```
+
+#### Reconnect to Service
+
+The `reconnect()` method now returns true when there was a capturing running during reconnect.
+This way we can use the `isRunning()` result from within `reconnect()` and avoid duplicate `isRunning()` calls which saves time. 
+
+```java
+public class DataCapturingButton implements DataCapturingListener {
+    public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
+        
+        // Version 3.1.0
+        dataCapturingService.reconnect();
+        dataCapturingService.isRunning(timeout, callbackWithSuccessLogic);
+        
+        // Version 3.4.0
+        if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
+            // your logic, e.g. update button
+        } else {
+            // Attention: reconnect() only returns true if there is an OPEN measurement
+            // To check for PAUSED measurements use the persistence layer.
+            PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
+                                                                                        new DefaultPersistenceBehaviour());
+            persistence.loadMeasurements(MeasurementStatus.PAUSED); // your logic
+        }
+    }
+}
 ```
 
 #### De-/Register JWT Auth Tokens
 
+*No API changes.*
+
 #### Start/Stop UI Location Updates
+
+*No API changes.*
 
 ### Control Capturing
 
 #### Start/Stop Capturing
 
+The `DataCapturingListener` is now added in the `MovebisDataCapturingService` constructor instead of in `start()`, see [Start Service](#start-service).
+
+The `stop()` API did not change. 
+
+```java
+public class DataCapturingButton implements DataCapturingListener {
+    public void onClick(View view) {
+        
+        // Version 3.1.0
+        dataCapturingService.start(dataCapturingListener, vehicle, startUpFinishedHandler);
+        
+        // Version 3.4.0
+        dataCapturingService.start(vehicle, startUpFinishedHandler);
+    }
+}
+```
+
 #### Pause/Resume Capturing
+
+*No API changes.*
 
 ### Access Measurements
 
+You now need to use the `PersistenceLayer` to access and control measurement data as we removed the APIs from the `DataCapturingService`. 
+
+```java
+class measurementControlOrAccessClass {
+    
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+}
+```
+
+Loaded `Measurement`s now contain more details than just their identifier.
+
+**Attention:** The attributes of Measurements which are not yet finished change over time so you need to make sure you reload it.
+You can find an example for this in [Implement Data Capturing Listener](#implement-data-capturing-listener).
+
 #### Load Finished Measurements
 
-#### Load Tracks 
+Please see [Access Measurements](#access-measurements).
+
+```java
+class measurementControlOrAccessClass {
+    void loadMeasurements() {
+    
+        // Version 3.1.0
+        dataCapturingService.loadMeasurements(MeasurementStatus.FINISHED);
+        
+        // Version 3.4.0
+        persistence.loadMeasurements(MeasurementStatus.FINISHED);
+    }
+}
+```
+
+#### Load Tracks
+
+The `loadTracks()` method now returns a list of lists containing `GeoLocation`s.
+The reason behind this is that we soon slice the track into subtracks when pause and resume is used.
+Until then we return the full track as the first sub list.
+
+Please see [Access Measurements](#access-measurements).
+
+```java
+class measurementControlOrAccessClass {
+    void loadTrack() {
+    
+        // Version 3.1.0
+        List<GeoLocation> track = dataCapturingService.loadTrack(dataCapturingService.loadMeasurement(measurementId));
+        
+        // Version 3.4.0
+        List<List<GeoLocation>> subTracks = persistence.loadTrack(measurementId);
+        if (subTracks.size() > 0 ) {
+            List<GeoLocation> track = subTracks.get(0);
+        }
+    }
+}
+```
+
+#### Load Measurement Distance
+
+This is a new feature added in 3.2.0.
+
+See [Implement Data Capturing Listener](#implement-data-capturing-listener) for sample code.
+
+Please also see [Access Measurements](#access-measurements). 
 
 #### Delete Measurements
 
+Please see [Access Measurements](#access-measurements).
+
+```java
+class measurementControlOrAccessClass {
+    void loadMeasurements() {
+    
+        // Version 3.1.0
+        dataCapturingService.deleteMeasurement(dataCapturingService.loadMeasurement(measurementId));
+        
+        // Version 3.4.0
+        persistence.delete(measurementId);
+    }
+}
