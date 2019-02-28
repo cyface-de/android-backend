@@ -127,7 +127,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
                         // As the login was successful we now register the account correctly:
                         final AccountManager accountManager = AccountManager.get(context);
                         final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
-                        dataCapturingService.makeAccountSyncable(account, syncEnabledPreference);
+                        dataCapturingService.getWifiSurveyor().makeAccountSyncable(account, syncEnabledPreference);
 
                         dataCapturingService.startWifiSurveyor();
                     } catch (OperationCanceledException e) {

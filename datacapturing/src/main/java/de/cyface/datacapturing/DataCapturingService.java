@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.0
+ * @version 14.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -685,7 +685,8 @@ public abstract class DataCapturingService {
      *
      * @return The currently active <code>WiFiSurveyor</code>.
      */
-    WiFiSurveyor getWiFiSurveyor() {
+    @SuppressWarnings("WeakerAccess") // SDK implementing apps (CY) use this to access control the surveyor
+    public WiFiSurveyor getWiFiSurveyor() {
         return surveyor;
     }
 

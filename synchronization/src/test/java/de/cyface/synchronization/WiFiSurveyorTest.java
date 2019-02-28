@@ -3,7 +3,6 @@ package de.cyface.synchronization;
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static junit.framework.TestCase.assertTrue;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -15,7 +14,6 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowConnectivityManager;
-import org.robolectric.shadows.ShadowNetwork;
 import org.robolectric.shadows.ShadowNetworkInfo;
 
 import android.accounts.Account;
@@ -27,7 +25,6 @@ import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
 
 import androidx.test.core.app.ApplicationProvider;
-import de.cyface.utils.Validate;
 
 /**
  * Tests the correct functionality of the <code>WiFiSurveyor</code> class. This test requires an active WiFi connection
@@ -35,7 +32,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -46,9 +43,6 @@ public class WiFiSurveyorTest {
      * The Robolectric shadow used for the Android <code>ConnectivityManager</code>.
      */
     private ShadowConnectivityManager shadowConnectivityManager;
-    private ConnectivityManager connectivityManager;
-    //private ShadowNetwork shadowOfActiveNetwork;
-    //private ShadowNetworkInfo shadowOfActiveNetworkInfo;
     /**
      * An object of the class under test.
      */
@@ -64,7 +58,7 @@ public class WiFiSurveyorTest {
     @Before
     public void setUp() {
         context = ApplicationProvider.getApplicationContext();
-        connectivityManager = getConnectivityManager();
+        ConnectivityManager connectivityManager = getConnectivityManager();
         shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
         oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
     }
@@ -78,22 +72,14 @@ public class WiFiSurveyorTest {
     @Test
     public void testWifiConnectivity() throws SynchronisationException {
 
-        // Added this block while trying to set the connectivityManager to not null -.-
-        /*NetworkInfo networkInfo = ShadowNetworkInfo.newInstance(NetworkInfo.DetailedState.CONNECTED,
-                ConnectivityManager.TYPE_WIFI, 0, true, NetworkInfo.State.CONNECTED);
-        shadowConnectivityManager.setActiveNetworkInfo(networkInfo);
-        NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
-        assertTrue(activeInfo != null && activeInfo.isConnected());
-        Validate.notNull(oocut.connectivityManager);*/
-
-        //switchWiFiConnection(false);
-        //assertThat(oocut.isConnected(), is(equalTo(false)));
-
         // Not sure why this is not set by default (in roboelectric test environment)
         ContentResolver.setMasterSyncAutomatically(true);
 
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
+
+        switchWiFiConnection(false);
+        assertThat(oocut.isConnected(), is(equalTo(false)));
 
         switchWiFiConnection(true);
         assertThat(oocut.isConnected(), is(equalTo(true)));

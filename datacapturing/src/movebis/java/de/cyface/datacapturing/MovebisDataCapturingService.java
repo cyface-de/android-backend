@@ -35,7 +35,6 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
-import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -54,7 +53,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 8.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -242,25 +241,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
     public void deregisterJWTAuthToken(final @NonNull String username) {
         getWiFiSurveyor().deleteAccount(username);
-    }
-
-    /**
-     * Sets whether synchronization should happen only on
-     * {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED}
-     * networks or on all networks.
-     * <p>
-     * For Android devices lower than {@code android.os.Build.VERSION_CODES.LOLLIPOP}
-     * {@code ConnectivityManager.TYPE_WIFI}
-     * is used as a synonym for the more general "not metered" capability.
-     *
-     * @param state If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
-     *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
-     *            {@code false} it synchronizes as soon as a data connection is available. The second option might use
-     *            up the users data plan rapidly so use it sparingly. The default value is {@code true}.
-     * @throws SynchronisationException If no current Android <code>Context</code> is available.
-     */
-    public void setSyncOnUnMeteredNetworkOnly(final boolean state) throws SynchronisationException {
-        getWiFiSurveyor().setSyncOnUnMeteredNetworkOnly(state);
     }
 
     /**

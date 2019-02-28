@@ -31,7 +31,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 5.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -113,17 +113,22 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Starts the WiFi* connection status surveillance. If a WiFi connection is active data synchronization is started.
-     * If the WiFi goes back down synchronization is deactivated.
+     * Starts the connection status surveillance. If a syncable connection is active data synchronization is started.
+     * If the connection goes back down synchronization is deactivated.
      * <p>
-     * The method also schedules an immediate synchronization run after the WiFi has been connected.
+     * You can allow metered connections as syncable by setting {@link #setSyncOnUnMeteredNetworkOnly(boolean)} to
+     * false.
+     * The default value is true.
      * <p>
-     * ATTENTION: If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the future
+     * The method also schedules an immediate synchronization run after the syncable connection has been connected.
+     * <p>
+     * <b>ATTENTION:</b> If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the
+     * future
      * or you will waste system resources.
      * <p>
-     * ATTENTION: Starting at version {@link Build.VERSION_CODES#LOLLIPOP} and higher instead of expecting only "WiFi"
-     * connections as "not metered" we use the {@link NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as
-     * suggested by Android.
+     * <b>ATTENTION:</b> Starting at version {@code Build.VERSION_CODES.O} and higher instead of
+     * treating only "WiFi" connections as "not metered" we use the
+     * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as suggested by Android.
      *
      * @param account Starts surveillance of the WiFi connection status for this account.
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
@@ -296,7 +301,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * is called
      * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
      * defines if a connection is available which can be used for synchronization (dependent on
-     * {@link WiFiSurveyor#setSyncOnUnMeteredNetworkOnly(boolean)}). Using this instead of the periodicSync flag fixed
+     * {@link #setSyncOnUnMeteredNetworkOnly(boolean)}). Using this instead of the periodicSync flag fixed
      * MOV-535.
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
      *
@@ -333,13 +338,14 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Checks whether the device is connected with a syncable network (WiFi if {@link #syncOnUnMeteredNetworkOnly}).
+     * Checks whether the device is connected with a syncable network (see
+     * {@link #setSyncOnUnMeteredNetworkOnly(boolean)}).
      *
      * @return <code>true</code> if a syncable connection is available; <code>false</code> otherwise.
      */
     public boolean isConnected() {
 
-        // Using "metered" code from 8.0+ as Wifi Networks are seen as metered in 6.0.1 MOV-568
+        // Using the newer code from 8.0+ as Wifi networks are seen as metered in 6.0.1 (MOV-568)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Validate.notNull(connectivityManager);
             final Network activeNetwork = connectivityManager.getActiveNetwork();
@@ -384,9 +390,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED}
      * networks or on all networks.
      * <p>
-     * For Android devices lower than {@code android.os.Build.VERSION_CODES.LOLLIPOP}
-     * {@code ConnectivityManager.TYPE_WIFI}
-     * is used as a synonym for the more general "not metered" capability.
+     * <b>ATTENTION:</b> Starting at version {@code Build.VERSION_CODES.O} and higher instead of
+     * treating only "WiFi" connections as "not metered" we use the
+     * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as suggested by Android.
      *
      * @param state If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
      *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
