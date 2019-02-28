@@ -31,7 +31,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -339,7 +339,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public boolean isConnected() {
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
+        // Using "metered" code from 8.0+ as Wifi Networks are seen as metered in 6.0.1 MOV-568
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
             Validate.notNull(connectivityManager);
             final Network activeNetwork = connectivityManager.getActiveNetwork();
             final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
