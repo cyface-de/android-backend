@@ -3,6 +3,17 @@ Cyface Android SDK
 
 This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
 
+- [Setup](#setup)
+- [Known Issues](#known-issues)
+- [How to Integrate the SDK](#how-to-integrate-the-sdk)
+	- [Provide a Custom Capturing Notification](#provide-a-custom-capturing-notification)
+	- [Access Measurements via PersistenceLayer](#access-measurements-via-persistenceLayer)
+	    - [Load Measurements](#load-measurements)
+	    - [Delete Measurements](#delete-measurements)
+	- [TODO: add code sample for the usage of:](#todo-add-code-sample-for-the-usage-of)
+- [Migration from Earlier Versions](#migration-from-earlier-versions)
+- [License](#license)
+
 Setup
 -----
 
@@ -24,7 +35,7 @@ manifest also is required to override the default content provider as
 declared by the persistence project. This needs to be done by each using
 application separately.
 
-How to integrate the SDK
+How to Integrate the SDK
 --------------------------
 * Define which Activity should be launched to request the user to log in 
 
@@ -205,7 +216,7 @@ public class DataCapturingButton implements AbstractButton, DataCapturingListene
 }
 ```
 
-### Provide a custom Capturing Notification
+### Provide a Custom Capturing Notification
 To continuously run an Android service, without the system killing said service, it needs to show a notification to the user in the Android status bar.
 The Cyface data capturing runs as such a service and thus needs to display such a notification.
 Applications using the Cyface SDK may configure style and behaviour of this notification by providing an implementation of `de.cyface.datacapturing.EventHandlingStrategy` to the constructor of the `de.cyface.datacapturing.DataCapturingService`.
@@ -252,7 +263,7 @@ Use the `PersistenceLayer<DefaultPersistenceBehaviour>` to manage and load measu
 * Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement 
 * Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
                                                               
-#### Load measurements                                                              
+#### Load Measurements
                                                               
 **ATTENTION:** The attributes of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
 measurements are only valid in the moment they are loaded from the database. Changes
@@ -272,7 +283,7 @@ which returns a list of lists containing `GeoLocations`. Currently there is alwa
 sub list which contains the full track. We'll change this soon so that tracks are sliced into sub tracks
 when pause/resume was used which is the reason behind the return type. 
 
-#### Delete measurements
+#### Delete Measurements
 
 The following code snippet shows how to manage stored measurements:
 
@@ -331,7 +342,6 @@ public class MeasurementOverviewFragment extends Fragment {
 }
 ```
 
-
 ### TODO: add code sample for the usage of:
 
 * ErrorHandler
@@ -341,7 +351,12 @@ public class MeasurementOverviewFragment extends Fragment {
 * Show Measurements and GeoLocationTraces
 * Usage of Camera, Bluetooth
 
-### License
+Migration from Earlier Versions
+--------------------------------
+ - [Migrate to 3.4](documentation/migation-guide_3.4.md)
+
+License
+-------------------
 Copyright 2017 Cyface GmbH
 
 This file is part of the Cyface SDK for Android.
