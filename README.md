@@ -353,7 +353,7 @@ public class MeasurementOverviewFragment extends Fragment {
 
 Migration from Earlier Versions
 --------------------------------
- - [Migrate to 3.4](documentation/migation-guide_3.4.md)
+ - [Migrate to 3.4](documentation/migration-guide_3.4.md)
 
 License
 -------------------
