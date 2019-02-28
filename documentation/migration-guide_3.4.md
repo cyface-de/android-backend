@@ -41,13 +41,14 @@ the distance when new `GeoLocation`s are captured:
 
 ```java
 class DataCapturingListenerImpl implements DataCapturingListener {
+
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
     
     @Override
     public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
         
         // E.g.: load current measurement distance
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
-                                                                                                new DefaultPersistenceBehaviour());
         final Measurement measurement;
         try {
             measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
@@ -62,7 +63,7 @@ class DataCapturingListenerImpl implements DataCapturingListener {
 
 #### Start Service
 
-The `DataCapturingListener` is now added only once in the `DataCapturingService` constructor.
+The `DataCapturingListener` is now added only once in the `DataCapturingService` constructor instead of in each `start()` call.
 
 ```java
 class MainFragment {
@@ -87,6 +88,10 @@ This way we can use the `isRunning()` result from within `reconnect()` and avoid
 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
+    
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+    
     public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
         
         // Version 3.1.0
@@ -99,8 +104,6 @@ public class DataCapturingButton implements DataCapturingListener {
         } else {
             // Attention: reconnect() only returns true if there is an OPEN measurement
             // To check for PAUSED measurements use the persistence layer.
-            PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
-                                                                                        new DefaultPersistenceBehaviour());
             persistence.loadMeasurements(MeasurementStatus.PAUSED); // your logic
         }
     }
@@ -152,14 +155,14 @@ class measurementControlOrAccessClass {
 }
 ```
 
-Loaded `Measurement`s now contain more details than just their identifier.
+Loaded `Measurement`s now contain more details than just their identifier, e.g. the [Measurement Distance](#load-measurement-distance).
 
-**Attention:** The attributes of Measurements which are not yet finished change over time so you need to make sure you reload it.
+**Attention:** The attributes of a Measurement which is not yet finished change over time so you need to make sure you reload it.
 You can find an example for this in [Implement Data Capturing Listener](#implement-data-capturing-listener).
 
 #### Load Finished Measurements
 
-Please see [Access Measurements](#access-measurements).
+Use the `PersistenceLayer` to access data, see [Access Measurements](#access-measurements).
 
 ```java
 class measurementControlOrAccessClass {
@@ -180,7 +183,7 @@ The `loadTracks()` method now returns a list of lists containing `GeoLocation`s.
 The reason behind this is that we soon slice the track into subtracks when pause and resume is used.
 Until then we return the full track as the first sub list.
 
-Please see [Access Measurements](#access-measurements).
+Use the `PersistenceLayer` to access data, see [Access Measurements](#access-measurements).
 
 ```java
 class measurementControlOrAccessClass {
@@ -204,11 +207,11 @@ This is a new feature added in 3.2.0.
 
 See [Implement Data Capturing Listener](#implement-data-capturing-listener) for sample code.
 
-Please also see [Access Measurements](#access-measurements). 
+Use the `PersistenceLayer` to access data, see [Access Measurements](#access-measurements). 
 
 #### Delete Measurements
 
-Please see [Access Measurements](#access-measurements).
+Use the `PersistenceLayer` to access data, see [Access Measurements](#access-measurements).
 
 ```java
 class measurementControlOrAccessClass {
