@@ -47,7 +47,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -282,8 +282,8 @@ public class SharedTestUtils {
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
 
         // Check the GeoLocations
-        List<GeoLocation> loadedGeoLocations = persistence.loadTrack(measurementIdentifier);
-        assertThat(loadedGeoLocations.size(), is(locationCount));
+        final List<List<GeoLocation>> loadedSubTracks = persistence.loadTrack(measurementIdentifier);
+        assertThat(loadedSubTracks.get(0).size(), is(locationCount));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {

@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.synchronization.WiFiSurveyor.SYNC_INTERVAL;
 
 import android.accounts.Account;
 import android.annotation.TargetApi;
@@ -10,8 +9,8 @@ import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.os.Build;
-import android.os.Bundle;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -20,7 +19,7 @@ import androidx.annotation.NonNull;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -56,21 +55,24 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
             return;
         }
 
-        if (!surveyor.synchronizationIsActive() && surveyor.isConnected()) {
-            // Try synchronization periodically
-            boolean cyfaceAccountSyncIsEnabled = ContentResolver.getSyncAutomatically(currentSynchronizationAccount,
-                    authority);
-            boolean masterAccountSyncIsEnabled = ContentResolver.getMasterSyncAutomatically();
+        final boolean connectionLost = surveyor.synchronizationIsActive() && !surveyor.isConnected();
+        final boolean connectionEstablished = !surveyor.synchronizationIsActive() && surveyor.isConnected();
 
-            if (cyfaceAccountSyncIsEnabled && masterAccountSyncIsEnabled) {
-                Log.d(TAG, "Enabling periodic sync.");
-                ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
+        if (connectionEstablished) {
+            if (!ContentResolver.getMasterSyncAutomatically()) {
+                Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
+                return;
             }
+
+            // Enable auto-synchronization - periodic flag is always pre set for all account by us
+            Log.v(TAG, "onCapabilitiesChanged: setSyncAutomatically.");
+            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
             surveyor.setSynchronizationIsActive(true);
-        } else if (surveyor.synchronizationIsActive() && !surveyor.isConnected()) {
-            // wifi connection was lost
-            Log.d(TAG, "Disabling periodic sync.");
-            ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
+
+        } else if (connectionLost) {
+
+            Log.v(TAG, "onCapabilitiesChanged: setSyncAutomatically to false.");
+            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
             surveyor.setSynchronizationIsActive(false);
         }
     }

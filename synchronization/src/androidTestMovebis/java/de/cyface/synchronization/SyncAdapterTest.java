@@ -71,7 +71,10 @@ public final class SyncAdapterTest {
 
             Object statusChangeListenerHandle = ContentResolver.addStatusChangeListener(
                     ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE | ContentResolver.SYNC_OBSERVER_TYPE_PENDING, observer);
-            ContentResolver.requestSync(account, AUTHORITY, Bundle.EMPTY);
+            final Bundle params = new Bundle();
+            params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+            params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+            ContentResolver.requestSync(account, AUTHORITY, params);
 
             lock.lock();
             try {

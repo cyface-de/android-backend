@@ -109,24 +109,35 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
             }
             return;
         }
-    
-        accountManager.addAccount(Constants.ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
-                getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
-                    @Override
-                    public void run(AccountManagerFuture<Bundle> future) {
-                        try {
-                            final Bundle bundle = future.getResult();
-                            setAccountAutoSyncable(context, true);
-    
-                            dataCapturingService.startWifiSurveyor();
-                        } catch (OperationCanceledException e) {
-                            // This closes the app when the LoginActivity is closed
-                            getMainActivityFromContext(context).finish();
-                        } catch (AuthenticatorException | IOException | SetupException e) {
-                            throw new IllegalStateException(e);
-                        }
+        
+        // Login and create account 
+        // a) Static token variant:
+        dataCapturingService.registerJWTAuthToken(username, token);
+        // or b) Login via LoginActivity and using dynamic tokens
+        // The LoginActivity is called by Android which handles the account creation
+        accountManager.addAccount(ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
+            getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
+                @Override
+                public void run(AccountManagerFuture<Bundle> future) {
+                    try {
+                        // noinspection unused - this allows us to detect when LoginActivity is closed
+                        final Bundle bundle = future.getResult();
+
+                        // The LoginActivity created a temporary account which cannot yet be used for synchronization.
+                        // As the login was successful we now register the account correctly:
+                        final AccountManager accountManager = AccountManager.get(context);
+                        final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
+                        dataCapturingService.getWifiSurveyor().makeAccountSyncable(account, syncEnabledPreference);
+
+                        dataCapturingService.startWifiSurveyor();
+                    } catch (OperationCanceledException e) {
+                        // This closes the app when the LoginActivity is closed
+                        getMainActivityFromContext(context).finish();
+                    } catch (AuthenticatorException | IOException | SetupException e) {
+                        throw new IllegalStateException(e);
                     }
-                }, null);
+                }
+            }, null);
     }
     
     private static boolean accountWithTokenExists(final AccountManager accountManager) {
@@ -236,22 +247,34 @@ You must not use the same notification identifier for any other notification dis
 
 
 ### Access Measurements via PersistenceLayer
-You can manage measurements via the `PersistenceLayer<DefaultPersistenceBehaviour>` as demonstrated in the sample code below (see *Delete measurements*).
+Use the `PersistenceLayer<DefaultPersistenceBehaviour>` to manage and load measurements as demonstrated in the sample code below.
 
-* When you only have the id of a measurement and need the `Measurement` object please use `persistenceLayer.loadMeasurement(mid)`
-to load the measurement with its metadata from the database.
-
-* To access all measurements, including `MeasurementStatus#FINISHED` and `MeasurementStatus#SYNCED` measurements use `loadMeasurement(mid)` or `loadMeasurements()` or `loadMeasurements(MeasurementStatus)`.
+* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement 
+* Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
                                                               
-**ATTENTION** The attributes (such as the distance) of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
-measurements are only valid in the moment it's loaded from the database. Changes
+#### Load measurements                                                              
+                                                              
+**ATTENTION:** The attributes of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
+measurements are only valid in the moment they are loaded from the database. Changes
 after this call are not pushed into the `Measurement` object returned by this call.
-In order to display the distance for an ongoing measurement (which changes about each second)
-make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` on each location
-update to always have the most recent information. Implement the `DataCapturingListener`
+
+**Measurement distance**
+
+To display the distance for an ongoing measurement (which is updated about once per second)
+make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` *on each location
+update* to always have the most recent information. For this you need to implement the `DataCapturingListener`
 interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
 
+**Load Track**
+
+To display the track of a finished measurement use `persistenceLayer.loadTrack(measurementId)`
+which returns a list of lists containing `GeoLocations`. Currently there is always just one
+sub list which contains the full track. We'll change this soon so that tracks are sliced into sub tracks
+when pause/resume was used which is the reason behind the return type. 
+
 #### Delete measurements
+
+The following code snippet shows how to manage stored measurements:
 
 ```java
 public class MeasurementOverviewFragment extends Fragment {
