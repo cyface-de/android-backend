@@ -2,6 +2,7 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
 
+import java.lang.ref.WeakReference;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Lock;
@@ -29,7 +30,7 @@ import de.cyface.synchronization.BundlesExtrasCodes;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.0.4
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -62,7 +63,7 @@ public class PongReceiver extends BroadcastReceiver {
     /**
      * Current context used to send and receive broadcasts.
      */
-    private final Context context;
+    private final WeakReference<Context> context;
     /**
      * Background thread used to handle timeout or broadcast response without blocking the calling thread.
      */
@@ -81,7 +82,7 @@ public class PongReceiver extends BroadcastReceiver {
     public PongReceiver(@NonNull final Context context, @NonNull final String deviceId) {
         pongReceiverThread = new HandlerThread(BACKGROUND_THREAD_NAME, Process.THREAD_PRIORITY_DEFAULT);
         lock = new ReentrantLock();
-        this.context = context;
+        this.context = new WeakReference<>(context);
         isRunning = false;
         isTimedOut = false;
         this.deviceId = deviceId;
@@ -106,7 +107,7 @@ public class PongReceiver extends BroadcastReceiver {
 
         pongReceiverThread.start();
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(deviceId)), null, receiverHandler);
+        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(deviceId)), null, receiverHandler);
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);
@@ -129,7 +130,11 @@ public class PongReceiver extends BroadcastReceiver {
                         Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
-                        context.unregisterReceiver(PongReceiver.this);
+
+                        final Context realContext = context.get();
+                        if (realContext != null) {
+                            realContext.unregisterReceiver(PongReceiver.this);
+                        }
                         quitBackgroundHandlerThread();
                     }
                 } finally {
@@ -142,7 +147,7 @@ public class PongReceiver extends BroadcastReceiver {
         if (BuildConfig.DEBUG) {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
-        context.sendBroadcast(broadcastIntent);
+        context.get().sendBroadcast(broadcastIntent);
         Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 
@@ -156,7 +161,7 @@ public class PongReceiver extends BroadcastReceiver {
                 Log.v(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
-                this.context.unregisterReceiver(this);
+                this.context.get().unregisterReceiver(this);
                 quitBackgroundHandlerThread();
             }
         } finally {

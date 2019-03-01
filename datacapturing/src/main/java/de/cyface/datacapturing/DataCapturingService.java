@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.1
+ * @version 14.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -507,7 +507,9 @@ public abstract class DataCapturingService {
      * {@code Activity#onStop()}. You may call {@link #reconnect(long)} if you would like to receive updates again, as
      * in {@code Activity#onRestart()}.
      *
-     * @throws DataCapturingException If service was not connected.
+     * @throws DataCapturingException If there was no ongoing capturing in the background so unbinding from the
+     *             background service failed. As there is currently no cleaner method you can capture this exception
+     *             softly for now (MOV-588).
      */
     @SuppressWarnings({"unused", "WeakerAccess"}) // Used by DataCapturingListeners (CY)
     public void disconnect() throws DataCapturingException {
