@@ -53,7 +53,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 8.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -223,9 +223,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
     public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
             throws SynchronisationException {
-        AccountManager accountManager = AccountManager.get(getContext());
+        final AccountManager accountManager = AccountManager.get(getContext());
 
-        Account synchronizationAccount = getWiFiSurveyor().getOrCreateAccount(username);
+        // Create a "dummy" account used for auto synchronization. Null password as the token is static
+        final Account synchronizationAccount = getWiFiSurveyor().createAccount(username, null);
 
         accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
@@ -241,19 +242,6 @@ public class MovebisDataCapturingService extends DataCapturingService {
     public void deregisterJWTAuthToken(final @NonNull String username) {
         getWiFiSurveyor().deleteAccount(username);
     }
-
-    /*
-     * Uncommented as this seems not to be used by SR.
-     * Sets whether this <code>MovebisDataCapturingService</code> should synchronize data only on WiFi or on all data
-     * connections.
-     * @param state If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
-     * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
-     * available. The second option might use up the users data plan rapidly so use it sparingly.
-     * /
-     * public void syncOnWiFiOnly(final boolean state) {
-     * getWiFiSurveyor().syncOnWiFiOnly(state);
-     * }
-     */
 
     /**
      * Checks whether the user has granted the <code>ACCESS_COARSE_LOCATION</code> permission and notifies the UI to ask

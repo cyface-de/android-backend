@@ -45,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.1.0
+ * @version 11.0.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -490,9 +490,12 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}. This method loads the
-     * complete track into memory. For large tracks this could slow down the device or even reach the applications
-     * memory limit.
+     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}.
+     * TODO [STAD-6]: Slice the tracks into sub tracks when the measurement was paused and resumed.
+     * Right now the full unsliced track is always the only sub track that is returned.
+     * <p>
+     * This method loads the complete track into memory. For large tracks this could slow down the device or even reach
+     * the applications memory limit.
      *
      * TODO [CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
@@ -500,12 +503,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
-     * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)
-     *         {@code GeoLocation}s.
+     * @return The sub tracks associated with the {@code Measurement}. Right now we return the full track as
+     *         the first sub track which contains list of ordered (by timestamp) {@code GeoLocation}s.
+     *         If no {@code GeoLocation}s exists, an empty list is returned.
      */
     @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
-    public List<GeoLocation> loadTrack(final long measurementIdentifier) {
+    public List<List<GeoLocation>> loadTrack(final long measurementIdentifier) {
 
+        final List<List<GeoLocation>> subTracks = new ArrayList<>();
         Cursor cursor = null;
         try {
             cursor = resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
@@ -515,17 +520,18 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 return Collections.emptyList();
             }
 
-            final List<GeoLocation> geoLocations = new ArrayList<>(cursor.getCount());
+            final List<GeoLocation> fullTrack = new ArrayList<>(cursor.getCount());
             while (cursor.moveToNext()) {
                 final double lat = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
                 final double lon = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
                 final long timestamp = cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
                 final double speed = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
                 final float accuracy = cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
-                geoLocations.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));
+                fullTrack.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));
             }
 
-            return geoLocations;
+            subTracks.add(fullTrack);
+            return subTracks;
         } finally {
             if (cursor != null) {
                 cursor.close();

@@ -42,7 +42,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.1
+ * @version 2.4.2
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -85,7 +85,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
-        Log.d(TAG, "Sync started.");
+        Log.d(TAG, "Sync started");
 
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
