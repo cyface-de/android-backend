@@ -31,7 +31,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.0.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -280,7 +280,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
         final Account newAccount = new Account(username, accountType);
 
         synchronized (this) {
-            Validate.isTrue(accountManager.addAccountExplicitly(newAccount, password, Bundle.EMPTY));
+            // When the account already exists this softly ignores this to support MovebisDataCapturingService
+            accountManager.addAccountExplicitly(newAccount, password, Bundle.EMPTY);
             Validate.isTrue(accountManager.getAccountsByType(accountType).length == 1);
             Log.v(TAG, "New account added");
 

@@ -45,7 +45,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.0
+ * @version 11.0.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -503,8 +503,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
-     * @return The track associated with the {@code Measurement} as a list of ordered (by timestamp)
-     *         {@code GeoLocation}s.
+     * @return The sub tracks associated with the {@code Measurement}. Right now we return the full track as
+     *         the first sub track which contains list of ordered (by timestamp) {@code GeoLocation}s.
+     *         If no {@code GeoLocation}s exists, an empty list is returned.
      */
     @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
     public List<List<GeoLocation>> loadTrack(final long measurementIdentifier) {
