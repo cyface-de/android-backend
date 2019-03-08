@@ -239,7 +239,7 @@ public class EventHandlingStrategyImpl implements EventHandlingStrategy {
     
       return new NotificationCompat.Builder(context, channelId)
         .setContentTitle("Cyface")
-        .setSmallIcon(R.drawable.your_icon)
+        .setSmallIcon(R.drawable.your_icon) // see "attention" notes below
         .setContentText("Running Data Capturing")
         .setOngoing(true)
         .setAutoCancel(false)
@@ -251,10 +251,17 @@ public class EventHandlingStrategyImpl implements EventHandlingStrategy {
 Further details about how to create a proper notification are available via the [Google developer documentation](https://developer.android.com/guide/topics/ui/notifiers/notifications).
 The most likely adaptation an application using the Cyface SDK for Android should do, is use the `android.app.Notification.Builder.setContentIntent(PendingIntent)` to call the applications main activity if the user presses the notification.
 
-**ATTENTION:** Service notifications require an application wide unique identifier.
-This identifier is 74.656.
-Due to limitations in the Android framework, this is not configurable.
-You must not use the same notification identifier for any other notification displayed by your app!
+**ATTENTION:**
+* Service notifications require an application wide unique identifier.
+  This identifier is 74.656.
+  Due to limitations in the Android framework, this is not configurable.
+  You must not use the same notification identifier for any other notification displayed by your app!
+* If you want to use a **vector xml drawable as Notification icon** make sure to do the follwing:
+  Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
+  on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
+  A simple fix is to have a the xml in `drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same name in the usual paths (`drawable-**dpi/icon.png`). 
+  
+
 
 
 ### Access Measurements via PersistenceLayer
