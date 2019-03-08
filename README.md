@@ -256,7 +256,7 @@ The most likely adaptation an application using the Cyface SDK for Android shoul
   This identifier is 74.656.
   Due to limitations in the Android framework, this is not configurable.
   You must not use the same notification identifier for any other notification displayed by your app!
-* If you want to use a <b>vector xml drawable as Notification icon</b> make sure to do the follwing:
+* If you want to use a **vector xml drawable as Notification icon** make sure to do the follwing:
   Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
   on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
   A simple fix is to have a the xml in `drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same name in the usual paths (`drawable-**dpi/icon.png`). 
