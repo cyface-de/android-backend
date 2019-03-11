@@ -460,7 +460,7 @@ public class CapturedDataWriterTest {
         List<Measurement> measurements = oocut.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(1)));
         for (Measurement loadedMeasurement : measurements) {
-            assertThat(oocut.loadTracks(loadedMeasurement.getIdentifier()).get(0).size(), is(equalTo(1)));
+            assertThat(oocut.loadTracks(loadedMeasurement.getIdentifier()).get(0).getGeoLocations().size(), is(equalTo(1)));
         }
     }
 

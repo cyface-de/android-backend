@@ -36,6 +36,7 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -281,9 +282,9 @@ public class SharedTestUtils {
         assertThat(loadedMeasurement, notNullValue());
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
 
-        // Check the GeoLocations
-        final List<List<GeoLocation>> loadedSubTracks = persistence.loadTracks(measurementIdentifier);
-        assertThat(loadedSubTracks.get(0).size(), is(locationCount));
+        // Check the Tracks
+        final List<Track> loadedTracks = persistence.loadTracks(measurementIdentifier);
+        assertThat(loadedTracks.get(0).getGeoLocations().size(), is(locationCount));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {
