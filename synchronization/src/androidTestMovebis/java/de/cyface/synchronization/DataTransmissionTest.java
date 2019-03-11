@@ -111,7 +111,7 @@ public class DataTransmissionTest {
         final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
         insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
         insertPoint3d(accelerationsFile, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
         insertPoint3d(accelerationsFile, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
