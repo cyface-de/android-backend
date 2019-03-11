@@ -89,7 +89,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
 
-                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
+                // We don't use a transaction as this lead to an unresolvable error where the IdentifierTable
                 // was not created in time for the first database query.
 
                 database.execSQL("DELETE FROM measurement;");

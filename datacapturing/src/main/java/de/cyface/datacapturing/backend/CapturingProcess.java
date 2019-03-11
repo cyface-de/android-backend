@@ -165,6 +165,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (locationStatusHandler.hasLocationFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
+            // FIXME: How do know if the gps-time is aligned with the sensor(end event) timestamps which are basically the System time?
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
             float locationAccuracy = location.getAccuracy();

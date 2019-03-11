@@ -282,7 +282,7 @@ public class SharedTestUtils {
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
 
         // Check the GeoLocations
-        final List<List<GeoLocation>> loadedSubTracks = persistence.loadTrack(measurementIdentifier);
+        final List<List<GeoLocation>> loadedSubTracks = persistence.loadTracks(measurementIdentifier);
         assertThat(loadedSubTracks.get(0).size(), is(locationCount));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)

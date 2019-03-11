@@ -120,7 +120,7 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        final List<List<GeoLocation>> subTracks = persistence.loadTrack(loadedMeasurement.getIdentifier());
+        final List<List<GeoLocation>> subTracks = persistence.loadTracks(loadedMeasurement.getIdentifier());
         assertThat(subTracks.get(0).size(), is(1));
     }
 
@@ -178,7 +178,7 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        final List<List<GeoLocation>> subTracks = persistence.loadTrack(loadedMeasurement.getIdentifier());
+        final List<List<GeoLocation>> subTracks = persistence.loadTracks(loadedMeasurement.getIdentifier());
         assertThat(subTracks.get(0).size(), is(locationCount));
     }
 
