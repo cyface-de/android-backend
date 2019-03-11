@@ -845,6 +845,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         contentValues.put(EventTable.COLUMN_TIMESTAMP, System.currentTimeMillis());
         contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
 
-        resolver.insert(getMeasurementUri(), contentValues);
+        resolver.insert(getEventUri(), contentValues);
     }
 }
