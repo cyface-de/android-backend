@@ -70,7 +70,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.0
+ * @version 5.4.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -301,6 +301,8 @@ public class CapturedDataWriterTest {
 
         final int testMeasurementsWithPoint3dFiles = 1;
         final int point3dFilesPerMeasurement = 3;
+        final int testEvents = 2;
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
         // Store PointMetaData
@@ -308,6 +310,7 @@ public class CapturedDataWriterTest {
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
 
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
 
         lock.lock();
         try {
@@ -323,7 +326,7 @@ public class CapturedDataWriterTest {
         // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
         // the life-cycle DataCapturingServiceTests
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3dFiles * point3dFilesPerMeasurement
-                + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */)));
+                + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents)));
 
         // make sure nothing is left in the database
         Cursor geoLocationsCursor = null;
