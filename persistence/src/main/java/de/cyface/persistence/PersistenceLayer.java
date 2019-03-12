@@ -47,7 +47,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.1
+ * @version 12.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -842,7 +842,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement) {
         final long timestamp = System.currentTimeMillis();
-        Log.v(TAG, "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
+        Log.v(TAG,
+                "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
 
         final ContentValues contentValues = new ContentValues();
         contentValues.put(EventTable.COLUMN_TYPE, eventType.getDatabaseIdentifier());

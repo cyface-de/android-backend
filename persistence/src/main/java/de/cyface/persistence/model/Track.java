@@ -25,13 +25,6 @@ public class Track {
      */
     private List<GeoLocation> geoLocations;
 
-    /**
-     * @param geoLocations The {@link GeoLocation}s collected for this {@link Track}.
-     */
-    public Track(@NonNull final List<GeoLocation> geoLocations) {
-        this.geoLocations = geoLocations;
-    }
-
     public Track() {
         this.geoLocations = new ArrayList<>();
     }

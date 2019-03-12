@@ -29,9 +29,9 @@ import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.0.2
+ * @version 4.0.3
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -146,7 +146,7 @@ public class SharedTestUtils {
      * @param context The {@link Context} required to access the file persistence layer
      * @param resolver The {@link ContentResolver} required to access the database
      * @return number of rows removed from the database and number of <b>FILES</b> (not points) deleted. The earlier
-     *         includes {@link Measurement}s and {@link GeoLocation}s and the {@link IdentifierTable} (i.e. device id).
+     *         includes {@link Measurement}s, {@link GeoLocation}s and {@link Event}s.
      *         The later includes the {@link Point3dFile}s.
      */
     public static int clearPersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
@@ -198,7 +198,7 @@ public class SharedTestUtils {
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.
         // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
-        return removedFiles + /* removedIdentifierRows + */ removedGeoLocations + removedMeasurements;
+        return removedFiles + /* removedIdentifierRows + */ removedGeoLocations + removedEvents + removedMeasurements;
     }
 
     /**

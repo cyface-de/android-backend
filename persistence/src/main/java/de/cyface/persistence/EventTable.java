@@ -41,7 +41,7 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
      * Provides a completely initialized object as a representation of a table containing {@link Event}s in the
      * database.
      */
-    protected EventTable() {
+    EventTable() {
         super(URI_PATH);
     }
 

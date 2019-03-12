@@ -34,7 +34,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.7
+ * @version 1.3.8
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -165,7 +165,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (locationStatusHandler.hasLocationFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
-            // FIXME: How do know if the gps-time is aligned with the sensor(end event) timestamps which are basically the System time?
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
             float locationAccuracy = location.getAccuracy();
