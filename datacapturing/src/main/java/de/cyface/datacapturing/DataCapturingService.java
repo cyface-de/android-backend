@@ -119,7 +119,7 @@ public abstract class DataCapturingService {
     /**
      * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
-    protected final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
+    final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
@@ -169,6 +169,7 @@ public abstract class DataCapturingService {
     /**
      * The number of ms to wait for the callback, see {@link #isRunning(long, TimeUnit, IsRunningCallback)}.
      */
+    @SuppressWarnings("WeakerAccess") // Used by SDK integrators (CY)
     public final static long IS_RUNNING_CALLBACK_TIMEOUT = 500L;
 
     /**
