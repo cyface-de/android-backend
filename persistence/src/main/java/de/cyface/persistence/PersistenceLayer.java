@@ -452,8 +452,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         deletePoint3dData(measurementIdentifier);
 
-        // Delete {@link GeoLocation}s and {@link Measurement} entry from database
+        // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
         resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getEventUri(), EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
     }

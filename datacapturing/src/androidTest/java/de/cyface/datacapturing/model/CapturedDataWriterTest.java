@@ -2,6 +2,7 @@ package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
+import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
@@ -40,6 +41,7 @@ import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.EventTable;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
@@ -47,6 +49,7 @@ import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -405,6 +408,8 @@ public class CapturedDataWriterTest {
                 }
             }
         };
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
         capturingBehaviour.storeData(testData(), measurementId, callback);
         lock.lock();
         try {
@@ -415,6 +420,7 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
         capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
 
         // Act
         oocut.delete(measurement.getIdentifier());
@@ -442,6 +448,21 @@ public class CapturedDataWriterTest {
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
+            }
+        }
+
+        Cursor eventsCursor = null;
+        try {
+            eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null,
+                    EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
+            Validate.notNull("Test failed because it was unable to load data from the content provider.",
+                    eventsCursor);
+
+            assertThat(eventsCursor.getCount(), is(equalTo(0)));
+        } finally {
+            if (eventsCursor != null) {
+                eventsCursor.close();
             }
         }
 
