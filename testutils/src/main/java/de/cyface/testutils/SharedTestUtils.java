@@ -1,6 +1,7 @@
 package de.cyface.testutils;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
@@ -191,6 +192,7 @@ public class SharedTestUtils {
 
         // Remove database entries
         final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
+        final int removedEvents = resolver.delete(getEventUri(authority), null, null);
         final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the

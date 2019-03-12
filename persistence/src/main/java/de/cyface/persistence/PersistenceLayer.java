@@ -571,6 +571,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             while (geoLocationCursor.moveToNext()) {
                 final GeoLocation location = loadGeoLocation(geoLocationCursor);
                 if (location.getTimestamp() >= eventTime) {
+                    geoLocationCursor.moveToPrevious();
                     break; // Next track reached
                 }
                 track.add(location);
@@ -840,11 +841,12 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param measurement The {@code Measurement} which is linked to the {@code Event}.
      */
     public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement) {
-        Log.v(TAG, "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier());
+        final long timestamp = System.currentTimeMillis();
+        Log.v(TAG, "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
 
         final ContentValues contentValues = new ContentValues();
         contentValues.put(EventTable.COLUMN_TYPE, eventType.getDatabaseIdentifier());
-        contentValues.put(EventTable.COLUMN_TIMESTAMP, System.currentTimeMillis());
+        contentValues.put(EventTable.COLUMN_TIMESTAMP, timestamp);
         contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
 
         resolver.insert(getEventUri(), contentValues);

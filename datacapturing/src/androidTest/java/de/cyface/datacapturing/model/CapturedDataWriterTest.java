@@ -55,6 +55,7 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -239,7 +240,7 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
 
-        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
 
         // Check if the captured data was persisted
         Cursor geoLocationsCursor = null;
@@ -306,7 +307,7 @@ public class CapturedDataWriterTest {
         oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
 
-        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
 
         lock.lock();
         try {
@@ -419,7 +420,7 @@ public class CapturedDataWriterTest {
         } finally {
             lock.unlock();
         }
-        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
 
         // Act
@@ -453,11 +454,9 @@ public class CapturedDataWriterTest {
 
         Cursor eventsCursor = null;
         try {
-            eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null,
-                    EventTable.COLUMN_MEASUREMENT_FK + "=?",
+            eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    eventsCursor);
+            Validate.notNull("Test failed because it was unable to load data from the content provider.", eventsCursor);
 
             assertThat(eventsCursor.getCount(), is(equalTo(0)));
         } finally {
@@ -475,14 +474,144 @@ public class CapturedDataWriterTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack() throws CursorIsNullException {
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
-        capturingBehaviour.storeLocation(testLocation(), measurement.getIdentifier());
-        List<Measurement> measurements = oocut.loadMeasurements();
-        assertThat(measurements.size(), is(equalTo(1)));
-        for (Measurement loadedMeasurement : measurements) {
-            assertThat(oocut.loadTracks(loadedMeasurement.getIdentifier()).get(0).getGeoLocations().size(), is(equalTo(1)));
-        }
+    public void testLoadTrack_startPauseResumeStop() throws CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement);
+        // It's possible that GeoLocations arrive just after capturing was paused
+        final long timestamp3 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
+        final long timestamp4 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp4), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
+        // It's possible that GeoLocations arrive just after stop method was triggered
+        final long timestamp5 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp5), measurement.getIdentifier());
+
+        // Act
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
+        assertThat(loadedMeasurements.size(), is(equalTo(1)));
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+
+        // Assert
+        assertThat(tracks.size(), is(equalTo(2)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(3)));
+        assertThat(tracks.get(1).getGeoLocations().size(), is(equalTo(2)));
+        assertThat(tracks.get(0).getGeoLocations().get(2).getTimestamp(), is(equalTo(timestamp3)));
+        assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(timestamp4)));
+        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(timestamp5)));
+    }
+
+    /**
+     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testLoadTrack_startPauseResumePauseStop() throws CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement);
+        // It's possible that GeoLocations arrive just after capturing was paused
+        final long timestamp3 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
+        final long timestamp4 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp4), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement);
+        // It's possible that GeoLocations arrive just after pause method was triggered
+        final long timestamp5 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp5), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
+        // It's possible that GeoLocations arrive just after stop method was triggered
+        final long timestamp6 = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp6), measurement.getIdentifier());
+
+        // Act
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
+        assertThat(loadedMeasurements.size(), is(equalTo(1)));
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+
+        // Assert
+        assertThat(tracks.size(), is(equalTo(2)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(3)));
+        assertThat(tracks.get(1).getGeoLocations().size(), is(equalTo(3)));
+        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(timestamp5)));
+        assertThat(tracks.get(1).getGeoLocations().get(2).getTimestamp(), is(equalTo(timestamp6)));
+    }
+
+    /**
+     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testLoadTrack_startPauseStop() throws CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement);
+        // It's possible that GeoLocations arrive just after capturing was paused
+        final long timestamp = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getIdentifier());
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
+
+        // Act
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
+        assertThat(loadedMeasurements.size(), is(equalTo(1)));
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+
+        // Assert
+        assertThat(tracks.size(), is(equalTo(1)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(3)));
+        assertThat(tracks.get(0).getGeoLocations().get(2).getTimestamp(), is(equalTo(timestamp)));
+    }
+
+    /**
+     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testLoadTrack_startStop() throws CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
+        // It's possible that GeoLocations arrive just after stop method was triggered
+        final long timestamp = System.currentTimeMillis();
+        capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getIdentifier());
+
+        // Act
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
+        assertThat(loadedMeasurements.size(), is(equalTo(1)));
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+
+        // Assert
+        assertThat(tracks.size(), is(equalTo(1)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(2)));
+        assertThat(tracks.get(0).getGeoLocations().get(1).getTimestamp(), is(equalTo(timestamp)));
     }
 
     @Test
@@ -509,10 +638,11 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * @return An initialized {@link GeoLocation} object with garbage data for testing.
+     * @param timestamp The timestamp in milliseconds since 1970 to use for the {@link GeoLocation}
+     * @return An initialized {@code GeoLocation} object with garbage data for testing.
      */
-    private GeoLocation testLocation() {
-        return new GeoLocation(1.0, 1.0, 1L, 1.0, 1);
+    private GeoLocation testLocation(final long timestamp) {
+        return new GeoLocation(1.0, 1.0, timestamp, 1.0, 1);
     }
 
     /**
