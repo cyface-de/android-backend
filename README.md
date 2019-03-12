@@ -57,7 +57,7 @@ servers which are certified by one its trusted Certification Authorities.
 
 #### Content Provider Authority
 
-You need to set the same provider when creating a `DataCapturingService` as well as in your `AndroidManifest.xml`.
+You need to set a provider and to make sure you use the same provider everywhere:
 
 * The `AndroidManifest.xml` is required to override the default content provider as
 declared by the persistence project. This needs to be done by each SDK integrating
@@ -92,6 +92,19 @@ application separately.
 public class Constants {
     public final static String AUTHORITY = "your.domain.app.provider"; // replace this
 }
+```
+
+* Create a resource file `src/main/res/xml/sync_adapter.xml` and use the same provider:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="your.domain.app.provider"
+    android:accountType="your.domain.app"
+    android:userVisible="false"
+    android:supportsUploading="true"
+    android:allowParallelSyncs="false"
+    android:isAlwaysSyncable="true" />
 ```
 
 ### Service Initialization
