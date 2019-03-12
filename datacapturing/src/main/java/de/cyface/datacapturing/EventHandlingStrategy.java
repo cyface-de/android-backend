@@ -31,7 +31,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.5.0
  */
 public interface EventHandlingStrategy extends Parcelable {
@@ -46,6 +46,14 @@ public interface EventHandlingStrategy extends Parcelable {
 
     /**
      * Provides an Android representation of a {@code Notification}, that can be displayed on screen.
+     * <p>
+     * <b>Attention:</b>
+     * If you want to use a **vector xml drawable as Notification icon** make sure to do the following:
+     * Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon
+     * (`notificationBuilder.setSmallIcon()`) on devices with API < 21.
+     * We assume that's because of the way we need to inject your custom notification.
+     * A simple fix is to have a the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs
+     * under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`).
      *
      * @param context The {@link DataCapturingBackgroundService} as context for the new {@code Notification}.
      * @return An Android {@code Notification} object configured to work as capturing notification.

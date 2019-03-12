@@ -1,6 +1,6 @@
 # Cyface Android SDK 4.0.0-alpha1 Migration Guide
 
-This migration guide is written for apps using the `MovebisDataCapturinService`.
+This migration guide is written for apps using the `MovebisDataCapturingService`.
 
 If you use the `CyfaceDataCapturingService` instead, please contact us. 
 
@@ -27,15 +27,7 @@ If you use the `CyfaceDataCapturingService` instead, please contact us.
 
 #### Implement Data Capturing Listener
 
-*No API changes.*
-
-#### Implement UI Listener
-
-*No API changes.*
-
-#### Implement Event Handling Strategy
-
-The API of the `EventHandlingStrategy` interface did not change but we added a new the feature
+The API of the `DataCapturingListener` interface did not change but we added a new the feature
 to get the measurement distance. To do so during an *ongoing* capturing you need to re-load
 the distance when new `GeoLocation`s are captured: 
 
@@ -60,6 +52,14 @@ class DataCapturingListenerImpl implements DataCapturingListener {
     }
 }
 ```
+
+#### Implement UI Listener
+
+*No API changes.*
+
+#### Implement Event Handling Strategy
+
+*No API changes.*
 
 #### Start Service
 
