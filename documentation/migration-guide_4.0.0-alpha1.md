@@ -224,3 +224,4 @@ class measurementControlOrAccessClass {
         persistence.delete(measurementId);
     }
 }
+```
