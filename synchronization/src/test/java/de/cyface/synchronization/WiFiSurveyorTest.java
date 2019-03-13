@@ -79,10 +79,10 @@ public class WiFiSurveyorTest {
         oocut.startSurveillance(account);
 
         switchWiFiConnection(false);
-        assertThat(oocut.isConnected(), is(equalTo(false)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
 
         switchWiFiConnection(true);
-        assertThat(oocut.isConnected(), is(equalTo(true)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
         assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
     }
 
@@ -102,10 +102,10 @@ public class WiFiSurveyorTest {
         switchMobileConnection(false);
         switchWiFiConnection(false);
         oocut.setSyncOnUnMeteredNetworkOnly(false);
-        assertThat(oocut.isConnected(), is(equalTo(false)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
 
         switchMobileConnection(true);
-        assertThat(oocut.isConnected(), is(equalTo(true)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
         assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
     }
 

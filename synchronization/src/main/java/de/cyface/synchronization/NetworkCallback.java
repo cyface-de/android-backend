@@ -1,6 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.WiFiSurveyor.TAG;
 
 import android.accounts.Account;
 import android.annotation.TargetApi;
@@ -12,6 +12,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.utils.Validate;
 
 /**
  * This callback handles status changes of the {@link Network} connectivity, e.g. to determine if synchronization should
@@ -50,28 +51,37 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
     @Override
     public void onCapabilitiesChanged(@NonNull final Network network, @NonNull final NetworkCapabilities capabilities) {
+        // Ensure this event is only triggered for not metered connections when syncOnUnMeteredNetworkOnly
+        if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
+            final boolean notMetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
+            Validate.isTrue(notMetered);
+        }
+
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;
         }
 
-        final boolean connectionLost = surveyor.synchronizationIsActive() && !surveyor.isConnected();
-        final boolean connectionEstablished = !surveyor.synchronizationIsActive() && surveyor.isConnected();
+        // Syncable ("not metered") filter is already included
+        final boolean syncableConnectionLost = surveyor.synchronizationIsActive()
+                && !surveyor.isConnectedToSyncableNetwork();
+        final boolean syncableConnectionEstablished = !surveyor.synchronizationIsActive()
+                && surveyor.isConnectedToSyncableNetwork();
+        if (syncableConnectionEstablished) {
 
-        if (connectionEstablished) {
             if (!ContentResolver.getMasterSyncAutomatically()) {
-                Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
+                Log.d(TAG, "connectionEstablished: master sync is disabled. Aborting.");
                 return;
             }
 
             // Enable auto-synchronization - periodic flag is always pre set for all account by us
-            Log.v(TAG, "onCapabilitiesChanged: setSyncAutomatically.");
+            Log.v(TAG, "connectionEstablished: setSyncAutomatically.");
             ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
             surveyor.setSynchronizationIsActive(true);
 
-        } else if (connectionLost) {
+        } else if (syncableConnectionLost) {
 
-            Log.v(TAG, "onCapabilitiesChanged: setSyncAutomatically to false.");
+            Log.v(TAG, "connectionLost: setSyncAutomatically to false.");
             ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
             surveyor.setSynchronizationIsActive(false);
         }

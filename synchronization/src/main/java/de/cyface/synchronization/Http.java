@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import android.accounts.NetworkErrorException;
+
 import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -63,10 +65,11 @@ interface Http {
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
+     * @throws NetworkErrorException when the connection's input or error stream was null
      */
     HttpResponse post(HttpURLConnection connection, JSONObject payload, boolean compress)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException;
+            ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
@@ -76,6 +79,7 @@ interface Http {
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      * @throws BadRequestException When the api responses with {@link HttpURLConnection#HTTP_BAD_REQUEST}
      */
+    @SuppressWarnings("UnusedReturnValue") // May be used in the future
     HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
             @NonNull String deviceId, long measurementId, @NonNull String fileName,
             UploadProgressListener progressListener)

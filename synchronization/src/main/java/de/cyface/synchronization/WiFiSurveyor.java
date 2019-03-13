@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED;
-import static de.cyface.synchronization.Constants.TAG;
 
 import java.lang.ref.WeakReference;
 
@@ -37,6 +36,11 @@ import de.cyface.utils.Validate;
 public class WiFiSurveyor extends BroadcastReceiver {
 
     /**
+     * Logging TAG to identify logs associated with the {@link WiFiSurveyor}.
+     */
+    @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused"}) // SDK implementing app (CY) uses this
+    public static final String TAG = Constants.TAG + ".surveyor";
+    /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
      */
     private static final long SECONDS_PER_MINUTE = 60L;
@@ -45,7 +49,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <p>
      * There is no particular reason for choosing 60 minutes. It seems reasonable and can be changed in the future.
      */
-    private static final long SYNC_INTERVAL_IN_MINUTES = 60L;
+    private static final long SYNC_INTERVAL_IN_MINUTES = 1L; // FIXME: change this back, just for testing
     /**
      * Since we need to specify the sync interval in seconds, this constant transforms the interval in minutes to
      * seconds using {@link #SECONDS_PER_MINUTE}.
@@ -61,8 +65,13 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     private WeakReference<Context> context;
     /**
-     * A flag that might be queried to see whether synchronization is active or not. This is <code>true</code> if
-     * synchronization is active and <code>false</code> otherwise.
+     * A flag which shows whether synchronization is active or not.
+     * <p>
+     * <b>Attention:</b>
+     * This flag is updated as soon as the network status and, thus, the account's auto sync flag is updated.
+     * This does, however, not cancel an ongoing synchronization (e.g. serialization).
+     *
+     * TODO [MOV-617]: Cancel ongoing synchronization (on disable) or rename this variable and adjust it's usage
      */
     private boolean synchronizationIsActive;
     /**
@@ -145,6 +154,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnUnMeteredNetworkOnly) {
+                Log.v(TAG, "startSurveillance, but only for TRANSPORT_WIFI networks");
                 // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
                 requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
@@ -193,7 +203,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             return;
         }
 
-        if (isConnected()) {
+        if (isConnectedToSyncableNetwork()) {
             final Bundle params = new Bundle();
             params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
             params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
@@ -203,34 +213,33 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        Validate.notNull(intent.getAction());
+        final boolean connectivityChanged = intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION);
+        Validate.isTrue(connectivityChanged); // We registered only this action so this should always be true
 
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;
         }
 
-        Validate.notNull(intent.getAction());
-        final boolean connectivityChanged = intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION);
-        if (!connectivityChanged) {
-            return;
-        }
+        // Syncable ("not metered") filter is already included
+        final boolean syncableConnectionLost = synchronizationIsActive() && !isConnectedToSyncableNetwork();
+        final boolean syncableConnectionEstablished = !synchronizationIsActive() && isConnectedToSyncableNetwork();
+        if (syncableConnectionEstablished) {
 
-        final boolean connectionLost = synchronizationIsActive() && !isConnected();
-        final boolean connectionEstablished = !synchronizationIsActive() && isConnected();
-        if (connectionEstablished) {
             if (!ContentResolver.getMasterSyncAutomatically()) {
                 Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
                 return;
             }
 
             // Enable auto-synchronization - periodic flag is always pre set for all account by us
-            Log.v(TAG, "onReceive: setSyncAutomatically.");
+            Log.v(TAG, "connectionEstablished: setSyncAutomatically.");
             ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
             synchronizationIsActive = true;
 
-        } else if (connectionLost) {
+        } else if (syncableConnectionLost) {
 
-            Log.v(TAG, "onReceive: setSyncAutomatically to false");
+            Log.v(TAG, "connectionLost: setSyncAutomatically to false.");
             ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
             synchronizationIsActive = false;
         }
@@ -339,43 +348,40 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Checks whether the device is connected with a syncable network (see
+     * Checks whether the device is connected with a **syncable** network (see
      * {@link #setSyncOnUnMeteredNetworkOnly(boolean)}).
      *
      * @return <code>true</code> if a syncable connection is available; <code>false</code> otherwise.
      */
-    public boolean isConnected() {
+    public boolean isConnectedToSyncableNetwork() {
+        Validate.notNull(connectivityManager);
+        final boolean isNotMeteredNetwork;
+        final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
 
-        // Using the newer code from 8.0+ as Wifi networks are seen as metered in 6.0.1 (MOV-568)
+        // We use the new code only on Android 8 and above as Wifi networks are seen as metered in 6.0.1 (MOV-568)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Validate.notNull(connectivityManager);
+
             final Network activeNetwork = connectivityManager.getActiveNetwork();
-            final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
             if (networkCapabilities == null) {
                 // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
                 return false;
             }
+            isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
 
-            final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
-            final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean isSyncableNetwork = isConnected && (isNotMeteredNetwork || !syncOnUnMeteredNetworkOnly);
-
-            Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isNotMeteredNetwork ? "not" : "") + " metered)"
-                    + " (" + (syncOnUnMeteredNetworkOnly ? "" : "disabled") + " syncOnUnMeteredNetworkOnly)");
-            return isSyncableNetwork;
         } else {
-            final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-
-            final boolean isWifiNetwork = activeNetworkInfo != null
+            isNotMeteredNetwork = activeNetworkInfo != null
                     && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
-            final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean isSyncableNetwork = isConnected && (isWifiNetwork || !syncOnUnMeteredNetworkOnly);
-
-            Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isWifiNetwork ? "not" : "") + " wifi)" + " ("
-                    + (syncOnUnMeteredNetworkOnly ? "" : "disabled") + " syncOnUnMeteredNetworkOnly)");
-            return isSyncableNetwork;
         }
+
+        final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        final boolean isSyncableConnection = isConnected && (isNotMeteredNetwork || !syncOnUnMeteredNetworkOnly);
+
+        Log.v(TAG,
+                "isConnectedToSyncableNetwork: " + isSyncableConnection + " ("
+                        + (isNotMeteredNetwork ? "notMetered" : "metered") + ", "
+                        + (syncOnUnMeteredNetworkOnly ? "with" : "without") + " syncOnUnMeteredNetworkOnly)");
+        return isSyncableConnection;
     }
 
     /**
@@ -427,5 +433,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void setSyncEnabled(final boolean enabled) {
         ContentResolver.setIsSyncable(currentSynchronizationAccount, authority, enabled ? 1 : 0);
+    }
+
+    public boolean isSyncOnUnMeteredNetworkOnly() {
+        return syncOnUnMeteredNetworkOnly;
     }
 }

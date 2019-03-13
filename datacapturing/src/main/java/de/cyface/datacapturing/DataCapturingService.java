@@ -485,7 +485,7 @@ public abstract class DataCapturingService {
      */
     @SuppressWarnings({"WeakerAccess", "unused"}) // Used by implementing app (CY)
     public void scheduleSyncNow() {
-        getWiFiSurveyor().scheduleSyncNow();
+        surveyor.scheduleSyncNow();
     }
 
     /**
@@ -867,11 +867,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * see {@link WiFiSurveyor#isConnected()}
+     * see {@link WiFiSurveyor#isConnectedToSyncableNetwork()}
      */
     @SuppressWarnings("unused") // Allows implementing apps (CY) to only trigger sync manually when connected
     public boolean isConnected() {
-        return getWiFiSurveyor().isConnected();
+        return surveyor.isConnectedToSyncableNetwork();
     }
 
     /**

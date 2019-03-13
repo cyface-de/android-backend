@@ -277,11 +277,12 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws ResponseParsingException When the http response could not be parsed.
      * @throws SynchronisationException When the new data output for the http connection failed to be created.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
+     * @throws NetworkErrorException when the connection's input or error stream was null (e.g. connection disabled)
      */
     private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
             DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
-            BadRequestException {
+            BadRequestException, NetworkErrorException {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl

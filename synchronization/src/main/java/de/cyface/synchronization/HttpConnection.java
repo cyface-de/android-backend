@@ -25,12 +25,13 @@ import javax.net.ssl.SSLSession;
 import org.json.JSONException;
 import org.json.JSONObject;
 
+import android.accounts.NetworkErrorException;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.cyface.utils.Validate;
-import de.cyface.utils.ValidationException;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
@@ -103,7 +104,7 @@ public class HttpConnection implements Http {
     @Override
     public HttpResponse post(final HttpURLConnection connection, final JSONObject payload, final boolean compress)
             throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException {
+            ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         connection.setChunkedStreamingMode(0); // we could also calculate the length here
@@ -219,6 +220,14 @@ public class HttpConnection implements Http {
         }
     }
 
+    /**
+     * Initializes a {@code BufferedOutputStream} for the provided connection.
+     *
+     * @param connection the {@code HttpURLConnection} to create the stream for.
+     * @return the {@code BufferedOutputStream} created.
+     * @throws SynchronisationException when initializing the stream failed. This happened e.g. when Wifi was manually
+     *             disabled just after synchronization started (Pixel 2 XL).
+     */
     private BufferedOutputStream initOutputStream(final HttpURLConnection connection) throws SynchronisationException {
         connection.setDoOutput(true); // To upload data to the server
         try {
@@ -265,9 +274,11 @@ public class HttpConnection implements Http {
      * @throws ResponseParsingException If the system fails in handling the HTTP response.
      * @throws UnauthorizedException If the credentials for the cyface server are wrong.
      * @throws SynchronisationException If a connection error occurred while reading the response code.
+     * @throws NetworkErrorException when the connection's input or error stream was null
      */
-    private HttpResponse readResponse(final @NonNull HttpURLConnection con) throws ResponseParsingException,
-            DataTransmissionException, UnauthorizedException, SynchronisationException, BadRequestException {
+    private HttpResponse readResponse(final @NonNull HttpURLConnection con)
+            throws ResponseParsingException, DataTransmissionException, UnauthorizedException, SynchronisationException,
+            BadRequestException, NetworkErrorException {
 
         final HttpResponse response = readResponseFromConnection(con);
         if (response.is2xxSuccessful()) {
@@ -305,9 +316,10 @@ public class HttpConnection implements Http {
      * @throws ResponseParsingException when the server response was unreadable
      * @throws SynchronisationException when a connection error occurred while reading the response code
      * @throws UnauthorizedException when the login was not successful and returned a 401 code.
+     * @throws NetworkErrorException when the connection's input or error stream was null
      */
-    private HttpResponse readResponseFromConnection(final HttpURLConnection con)
-            throws SynchronisationException, ResponseParsingException, UnauthorizedException, BadRequestException {
+    private HttpResponse readResponseFromConnection(final HttpURLConnection con) throws SynchronisationException,
+            ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException {
         String responseString;
         try {
             responseString = readInputStream(con.getInputStream());
@@ -338,13 +350,17 @@ public class HttpConnection implements Http {
      *
      * @param inputStream the {@link InputStream} to read from
      * @throws IOException if an IO error occurred
-     * @throws ValidationException if the connect() method was not executed on {@link HttpURLConnection}
+     * @throws NetworkErrorException if the provided {@code InputStream} was null
      * @return the {@link String} read from the InputStream
      */
-    private String readInputStream(@NonNull final InputStream inputStream) throws IOException {
+    private String readInputStream(@Nullable final InputStream inputStream) throws IOException, NetworkErrorException {
+        // This happened on Pixel 2 XL when wifi was manually disabled just after sync started
+        if (inputStream == null) {
+            throw new NetworkErrorException("readInputStream with null inputStream, returning empty String");
+        }
+
         BufferedReader bufferedReader = null;
         try {
-            Validate.notNull(inputStream);
             bufferedReader = new BufferedReader(new InputStreamReader(inputStream, DEFAULT_CHARSET));
             StringBuilder responseString = new StringBuilder();
             String line;
