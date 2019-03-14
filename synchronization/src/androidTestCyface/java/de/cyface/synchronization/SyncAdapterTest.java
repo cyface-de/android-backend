@@ -2,6 +2,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
+import static de.cyface.synchronization.SyncAdapter.MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
@@ -16,9 +17,10 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Ignore;
+import org.junit.FixMethodOrder;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+import org.junit.runners.MethodSorters;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -39,7 +41,6 @@ import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Track;
@@ -55,20 +56,39 @@ import de.cyface.utils.Validate;
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
+// To execute notice errors with the short running testOnPerformSync before the large
+// testOnPerformSyncWithLargeMeasurement which can save a lot of time
+@FixMethodOrder(MethodSorters.NAME_ASCENDING)
 public final class SyncAdapterTest {
+
     private Context context;
     private ContentResolver contentResolver;
+    private Account account;
+    private SyncAdapter oocut;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
+
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.apply();
+
+        // To make these tests reproducible make sure we don't reuse old sync accounts
+        AccountManager manager = AccountManager.get(context);
+        for (final Account account : manager.getAccountsByType(ACCOUNT_TYPE)) {
+            manager.removeAccountExplicitly(account);
+        }
+
+        // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
+        account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+
+        oocut = new SyncAdapter(context, false, new MockedHttpConnection());
     }
 
     @After
@@ -85,15 +105,10 @@ public final class SyncAdapterTest {
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
-                AUTHORITY, new DefaultPersistenceBehaviour());
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
-        final AccountManager manager = AccountManager.get(context);
-        final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
-        persistence.restoreOrCreateDeviceId();
-
         // Insert data to be synced
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+                contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, 1, 1);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
@@ -108,7 +123,10 @@ public final class SyncAdapterTest {
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             final SyncResult result = new SyncResult();
             Validate.notNull(client);
-            syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
+
+            final Bundle testBundle = new Bundle();
+            testBundle.putString(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE, "");
+            oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
                 client.close();
@@ -140,18 +158,11 @@ public final class SyncAdapterTest {
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, contentResolver,
-                AUTHORITY, new DefaultPersistenceBehaviour());
-        final SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
-        final AccountManager manager = AccountManager.get(context);
-        final Account account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
-        persistence.restoreOrCreateDeviceId();
-
         // Insert data to be synced - 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+                contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         final int point3dCount = 3_000_000;
         final int locationCount = 3_000;
-        final ContentResolver contentResolver = context.getContentResolver();
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
@@ -166,7 +177,10 @@ public final class SyncAdapterTest {
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             final SyncResult result = new SyncResult();
             Validate.notNull(client);
-            syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
+
+            final Bundle testBundle = new Bundle();
+            testBundle.putString(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE, "");
+            oocut.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
         } finally {
             if (client != null) {
                 client.close();

@@ -48,8 +48,18 @@ import de.cyface.utils.Validate;
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
+    /**
+     * This bundle flag allows our unit tests to mock isPeriodicSyncDisabled(). We cannot use addPeriodicSync() as we do
+     * in the production code as this is an Unit test. When this {@code Bundle} extra is set (no matter to which String)
+     * the {@link #isPeriodicSyncDisabled(Account, String)} method returns false;
+     */
+    static final String MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE = "mocked_periodic_sync_check_false";
     private final Collection<ConnectionStatusListener> progressListener;
     private final Http http;
+    /**
+     * When this is set to true the {@link #isPeriodicSyncDisabled(Account, String)} method always returns false.
+     */
+    private boolean mockIsPeriodicSyncDisabledToReturnFalse;
 
     /**
      * Creates a new completely initialized {@code SyncAdapter}. See the documentation of
@@ -86,6 +96,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
+        // This allows us to mock the isPeriodicSyncDisabled check for unit tests
+        mockIsPeriodicSyncDisabledToReturnFalse = extras.containsKey(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE);
+
         // The network setting may have changed since the initial sync call, avoid unnecessary serialization
         if (isPeriodicSyncDisabled(account, authority)) {
             return;
@@ -241,6 +254,11 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @param authority The authority string for the synchronization to check
      */
     private boolean isPeriodicSyncDisabled(@NonNull final Account account, @NonNull final String authority) {
+        if (mockIsPeriodicSyncDisabledToReturnFalse) {
+            Log.w(TAG, "mockIsPeriodicSyncDisabledToReturnFalse triggered");
+            return false;
+        }
+
         final boolean isAllowed = !ContentResolver.getPeriodicSyncs(account, authority).isEmpty();
         if (!isAllowed) {
             Log.w(TAG,
