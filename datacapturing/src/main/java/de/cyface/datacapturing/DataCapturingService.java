@@ -119,7 +119,7 @@ public abstract class DataCapturingService {
     /**
      * A facade object providing access to the data stored by this <code>DataCapturingService</code>.
      */
-    final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
+    protected final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
     /**
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */

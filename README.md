@@ -53,7 +53,7 @@ To do so place a truststore containing your key in:
     synchronization/src/main/res/raw/truststore.jks
 
 If this (by default empty) file is not replaced, the SDK can only communicate with
-servers which are certified by one its trusted Certification Authorities.
+servers which are certified by one of its trusted Certification Authorities.
 
 #### Content Provider Authority
 
@@ -85,7 +85,7 @@ application separately.
 </manifest>
 ```
 
-* Define your authority which you must use as parameter in for `new Cyface/MovebisDataCapturingService()` (see sample below). 
+* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below). 
   This must be the same as defined in the `AndroidManifest.xml` above.
   
 ```java
@@ -115,9 +115,9 @@ We provide two interfaces for this service: `CyfaceDataCapturingService` and `Mo
 Unless you are part of the *Movebis project* `CyfaceDataCapturingService` is your candidate.
 
 To keep this documentation lightweight, we currently only use `MovebisDataCapturingService` in the samples
-but the interface for `CyfaceDataCapturingService` are mostly the same.
+but the interface for `CyfaceDataCapturingService` is mostly the same.
 
-The following steps are required in communicate with this service.
+The following steps are required to communicate with this service.
 
 #### Implement Data Capturing Listener
 
@@ -209,7 +209,7 @@ The most likely adaptation an application using the Cyface SDK for Android shoul
 
   Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
   on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
-  A simple fix is to have a the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`). 
+  A simple fix is to have the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`). 
   
 #### Start Service
 
