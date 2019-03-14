@@ -3,6 +3,7 @@ package de.cyface.synchronization;
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.WiFiSurveyor.SYNC_INTERVAL;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -23,6 +24,7 @@ import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
 
@@ -32,7 +34,7 @@ import androidx.test.core.app.ApplicationProvider;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -72,18 +74,17 @@ public class WiFiSurveyorTest {
     @Test
     public void testWifiConnectivity() throws SynchronisationException {
 
-        // Not sure why this is not set by default (in roboelectric test environment)
-        ContentResolver.setMasterSyncAutomatically(true);
-
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
+        ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
 
         switchWiFiConnection(false);
-        assertThat(oocut.isConnected(), is(equalTo(false)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
 
         switchWiFiConnection(true);
-        assertThat(oocut.isConnected(), is(equalTo(true)));
-        assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
+        assertThat(oocut.isPeriodicSyncEnabled(), is(equalTo(true)));
+        ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
     }
 
     /**
@@ -93,20 +94,19 @@ public class WiFiSurveyorTest {
     @Test
     public void testMobileConnectivity() throws SynchronisationException {
 
-        // Not sure why this is not set by default (in roboelectric test environment)
-        ContentResolver.setMasterSyncAutomatically(true);
-
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
+        ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
 
         switchMobileConnection(false);
         switchWiFiConnection(false);
         oocut.setSyncOnUnMeteredNetworkOnly(false);
-        assertThat(oocut.isConnected(), is(equalTo(false)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
 
         switchMobileConnection(true);
-        assertThat(oocut.isConnected(), is(equalTo(true)));
-        assertThat(oocut.synchronizationIsActive(), is(equalTo(true)));
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
+        assertThat(oocut.isPeriodicSyncEnabled(), is(equalTo(true)));
+        ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
     }
 
     /**

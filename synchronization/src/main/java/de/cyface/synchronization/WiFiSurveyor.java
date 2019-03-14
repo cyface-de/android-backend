@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
 import static android.net.NetworkCapabilities.NET_CAPABILITY_NOT_METERED;
-import static de.cyface.synchronization.Constants.TAG;
 
 import java.lang.ref.WeakReference;
 
@@ -31,11 +30,16 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.1
+ * @version 6.0.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
 
+    /**
+     * Logging TAG to identify logs associated with the {@link WiFiSurveyor}.
+     */
+    @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused"}) // SDK implementing app (CY) uses this
+    public static final String TAG = Constants.TAG + ".surveyor";
     /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
      */
@@ -60,11 +64,6 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * The current Android context (i.e. Activity or Service).
      */
     private WeakReference<Context> context;
-    /**
-     * A flag that might be queried to see whether synchronization is active or not. This is <code>true</code> if
-     * synchronization is active and <code>false</code> otherwise.
-     */
-    private boolean synchronizationIsActive;
     /**
      * If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
      * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
@@ -123,8 +122,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * The method also schedules an immediate synchronization run after the syncable connection has been connected.
      * <p>
      * <b>ATTENTION:</b> If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the
-     * future
-     * or you will waste system resources.
+     * future or you will waste system resources.
      * <p>
      * <b>ATTENTION:</b> Starting at version {@code Build.VERSION_CODES.O} and higher instead of
      * treating only "WiFi" connections as "not metered" we use the
@@ -145,6 +143,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnUnMeteredNetworkOnly) {
+                Log.v(TAG, "startSurveillance, but only for TRANSPORT_WIFI networks");
                 // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
                 requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
@@ -159,7 +158,13 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
     /**
      * Stops surveillance of the devices connection status. This frees up all used system resources.
-     *
+     * <p>
+     * PeriodicSync does not have to be removed in here.
+     * - setSyncOnUnMeteredNetworkOnly removes the periodic sync itself
+     * - UI.onDestroyView does not expect periodic sync to be removed. (tested in MOV-619)
+     * PeriodicSync syncs this way also after onDestroyView is called if there is a syncable connection.
+     * If the syncable connection is lost after onDestroyView is called sync does not happen.
+     * 
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
     @SuppressWarnings({"unused", "WeakerAccess"}) // Used by CyfaceDataCapturingService
@@ -193,7 +198,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             return;
         }
 
-        if (isConnected()) {
+        if (isConnectedToSyncableNetwork()) {
             final Bundle params = new Bundle();
             params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
             params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
@@ -203,36 +208,25 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
+        Validate.notNull(intent.getAction());
+        final boolean connectivityChanged = intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION);
+        Validate.isTrue(connectivityChanged); // We registered only this action so this should always be true
 
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;
         }
 
-        Validate.notNull(intent.getAction());
-        final boolean connectivityChanged = intent.getAction().equals(ConnectivityManager.CONNECTIVITY_ACTION);
-        if (!connectivityChanged) {
-            return;
-        }
+        // Syncable ("not metered") filter is already included
+        final boolean syncableConnectionLost = isPeriodicSyncEnabled() && !isConnectedToSyncableNetwork();
+        final boolean syncableConnectionEstablished = !isPeriodicSyncEnabled() && isConnectedToSyncableNetwork();
 
-        final boolean connectionLost = synchronizationIsActive() && !isConnected();
-        final boolean connectionEstablished = !synchronizationIsActive() && isConnected();
-        if (connectionEstablished) {
-            if (!ContentResolver.getMasterSyncAutomatically()) {
-                Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
-                return;
-            }
-
-            // Enable auto-synchronization - periodic flag is always pre set for all account by us
-            Log.v(TAG, "onReceive: setSyncAutomatically.");
-            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
-            synchronizationIsActive = true;
-
-        } else if (connectionLost) {
-
-            Log.v(TAG, "onReceive: setSyncAutomatically to false");
-            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
-            synchronizationIsActive = false;
+        if (syncableConnectionEstablished) {
+            Log.v(TAG, "connectionEstablished: setPeriodicSyncEnabled to true");
+            setPeriodicSyncEnabled(true);
+        } else if (syncableConnectionLost) {
+            Log.v(TAG, "connectionLost: setPeriodicSyncEnabled to false.");
+            setPeriodicSyncEnabled(false);
         }
     }
 
@@ -298,13 +292,15 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * {@link WiFiSurveyor#createAccount(String, String)}.
      * <p>
      * This has the following reasons:
-     * - {@code ContentResolver#addPeriodicSync()} is always registered until {@link WiFiSurveyor#deleteAccount(String)}
-     * is called
-     * - {@code ContentResolver#setSyncAutomatically()} is automatically updated via {@link NetworkCallback}s and
+     * - {@code ContentResolver#addPeriodicSync()} is automatically added or removed via {@link NetworkCallback}s and
      * defines if a connection is available which can be used for synchronization (dependent on
-     * {@link #setSyncOnUnMeteredNetworkOnly(boolean)}). Using this instead of the periodicSync flag fixed
-     * MOV-535.
+     * {@link #setSyncOnUnMeteredNetworkOnly(boolean)}). This fixed MOV-535 and MOV-609.
      * - {@code ContentResolver#setIsSyncable()} is used to disable synchronization manually and completely
+     * - do not use setSyncAutomatically as it behaves not as expected, see MOV-609
+     * <p>
+     * Synchronization is generally enabled by default. To disabled it *completely*, use
+     * {@link #setSyncEnabled(boolean)}}. The periodic ("auto") sync is set automatically when the network changes
+     * depending on your {@link #setSyncOnUnMeteredNetworkOnly(boolean)} setting which is true by default.
      *
      * @param account The {@code Account} to be used for synchronization
      * @param enabled True if the synchronization should be enabled
@@ -312,11 +308,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     @SuppressWarnings("unused") // Used by CyfaceDataCapturingService
     public void makeAccountSyncable(@NonNull final Account account, boolean enabled) {
 
-        // Synchronization can be disabled via {@link #setSyncEnabled()}
-        ContentResolver.setIsSyncable(account, authority, enabled ? 1 : 0);
-
-        // PeriodicSync must always be on and is removed in {@code #removeAccount()}
-        ContentResolver.addPeriodicSync(account, authority, Bundle.EMPTY, SYNC_INTERVAL);
+        setSyncEnabled(enabled);
     }
 
     /**
@@ -339,51 +331,40 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
-     * Checks whether the device is connected with a syncable network (see
+     * Checks whether the device is connected with a **syncable** network (see
      * {@link #setSyncOnUnMeteredNetworkOnly(boolean)}).
      *
      * @return <code>true</code> if a syncable connection is available; <code>false</code> otherwise.
      */
-    public boolean isConnected() {
+    public boolean isConnectedToSyncableNetwork() {
+        Validate.notNull(connectivityManager);
+        final boolean isNotMeteredNetwork;
+        final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
 
-        // Using the newer code from 8.0+ as Wifi networks are seen as metered in 6.0.1 (MOV-568)
+        // We use the new code only on Android 8 and above as Wifi networks are seen as metered in 6.0.1 (MOV-568)
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-            Validate.notNull(connectivityManager);
+
             final Network activeNetwork = connectivityManager.getActiveNetwork();
-            final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
             final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
             if (networkCapabilities == null) {
                 // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
                 return false;
             }
+            isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
 
-            final boolean isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
-            final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean isSyncableNetwork = isConnected && (isNotMeteredNetwork || !syncOnUnMeteredNetworkOnly);
-
-            Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isNotMeteredNetwork ? "not" : "") + " metered)"
-                    + " (" + (syncOnUnMeteredNetworkOnly ? "" : "disabled") + " syncOnUnMeteredNetworkOnly)");
-            return isSyncableNetwork;
         } else {
-            final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
-
-            final boolean isWifiNetwork = activeNetworkInfo != null
+            isNotMeteredNetwork = activeNetworkInfo != null
                     && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
-            final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-            final boolean isSyncableNetwork = isConnected && (isWifiNetwork || !syncOnUnMeteredNetworkOnly);
-
-            Log.v(TAG, "isConnected: " + isSyncableNetwork + " (" + (isWifiNetwork ? "not" : "") + " wifi)" + " ("
-                    + (syncOnUnMeteredNetworkOnly ? "" : "disabled") + " syncOnUnMeteredNetworkOnly)");
-            return isSyncableNetwork;
         }
-    }
 
-    /**
-     * @return A flag that might be queried to see whether synchronization is active or not. This is <code>true</code>
-     *         if synchronization is active and <code>false</code> otherwise.
-     */
-    public boolean synchronizationIsActive() {
-        return synchronizationIsActive;
+        final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
+        final boolean isSyncableConnection = isConnected && (isNotMeteredNetwork || !syncOnUnMeteredNetworkOnly);
+
+        Log.v(TAG,
+                "isConnectedToSyncableNetwork: " + isSyncableConnection + " ("
+                        + (isNotMeteredNetwork ? "notMetered" : "metered") + ", "
+                        + (syncOnUnMeteredNetworkOnly ? "with" : "without") + " syncOnUnMeteredNetworkOnly)");
+        return isSyncableConnection;
     }
 
     /**
@@ -395,25 +376,60 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * treating only "WiFi" connections as "not metered" we use the
      * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as suggested by Android.
      *
-     * @param state If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
+     * @param newState If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
      *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
      *            {@code false} it synchronizes as soon as a data connection is available. The second option might use
      *            up the users data plan rapidly so use it sparingly. The default value is {@code true}.
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    public void setSyncOnUnMeteredNetworkOnly(final boolean state) throws SynchronisationException {
-        syncOnUnMeteredNetworkOnly = state;
+    public void setSyncOnUnMeteredNetworkOnly(final boolean newState) throws SynchronisationException {
 
-        // This is required to update the NetworkCallback filter and the setSyncAutomatically state
+        // In case the restrictions got hardened (disallow metered networks) remove activated syncs
+        final boolean mobileDataIsNotAllowedAnymore = !syncOnUnMeteredNetworkOnly && newState;
+        if (mobileDataIsNotAllowedAnymore) {
+            Log.d(TAG, "setSyncOnUnMeteredNetworkOnly: mobileDataIsNotAllowedAnymore, setPeriodicSyncEnabled to false");
+            setPeriodicSyncEnabled(false);
+        }
+
+        syncOnUnMeteredNetworkOnly = newState;
+        // This is required to update the NetworkCallback filter
         stopSurveillance();
         startSurveillance(currentSynchronizationAccount);
     }
 
-    void setSynchronizationIsActive(boolean synchronizationIsActive) {
-        this.synchronizationIsActive = synchronizationIsActive;
+    /**
+     * Updates the settings for the sync account, i.e. it adds or removes periodic ("auto") sync. In the earlier case it
+     * also triggers {@link #scheduleSyncNow()}.
+     * <p>
+     * We do not use {@code ContentResolver#setSyncAutomatically()} as it does not behave as expected MOV-609.
+     *
+     * @param newState True if {@code ContentResolver#addPeriodicSync()} should be activated or false if it
+     *            should be removed from the sync account.
+     */
+    void setPeriodicSyncEnabled(final boolean newState) {
+        if (newState) {
+            ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
+            scheduleSyncNow(); // With just periodicSync it does else not start directly
+        } else {
+            ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
+        }
     }
 
     /**
+     * @return A flag that might be queried to see whether synchronization is active or not. This is <code>true</code>
+     *         if synchronization is active and <code>false</code> otherwise.
+     */
+    public boolean isPeriodicSyncEnabled() {
+        return !ContentResolver.getPeriodicSyncs(currentSynchronizationAccount, authority).isEmpty();
+    }
+
+    /**
+     * Checks if the synchronization is enabled or disabled *completely* for the sync account.
+     * <p>
+     * <b>Attention:</b>
+     * If you want to check if periodic ("auto") sync is enabled which is automatically set when the network state
+     * changes, see {@link #isPeriodicSyncEnabled()}.
+     *
      * @return True if synchronization is enabled
      */
     public boolean isSyncEnabled() {
@@ -427,5 +443,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     public void setSyncEnabled(final boolean enabled) {
         ContentResolver.setIsSyncable(currentSynchronizationAccount, authority, enabled ? 1 : 0);
+    }
+
+    public boolean isSyncOnUnMeteredNetworkOnly() {
+        return syncOnUnMeteredNetworkOnly;
     }
 }

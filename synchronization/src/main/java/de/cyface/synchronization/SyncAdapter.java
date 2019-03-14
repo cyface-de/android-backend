@@ -18,6 +18,7 @@ import android.accounts.AuthenticatorException;
 import android.accounts.NetworkErrorException;
 import android.content.AbstractThreadedSyncAdapter;
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
@@ -42,13 +43,23 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.3
+ * @version 2.5.0
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
+    /**
+     * This bundle flag allows our unit tests to mock isPeriodicSyncDisabled(). We cannot use addPeriodicSync() as we do
+     * in the production code as this is an Unit test. When this {@code Bundle} extra is set (no matter to which String)
+     * the {@link #isPeriodicSyncDisabled(Account, String)} method returns false;
+     */
+    static final String MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE = "mocked_periodic_sync_check_false";
     private final Collection<ConnectionStatusListener> progressListener;
     private final Http http;
+    /**
+     * When this is set to true the {@link #isPeriodicSyncDisabled(Account, String)} method always returns false.
+     */
+    private boolean mockIsPeriodicSyncDisabledToReturnFalse;
 
     /**
      * Creates a new completely initialized {@code SyncAdapter}. See the documentation of
@@ -85,6 +96,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
+        // This allows us to mock the isPeriodicSyncDisabled check for unit tests
+        mockIsPeriodicSyncDisabledToReturnFalse = extras.containsKey(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE);
+
+        // The network setting may have changed since the initial sync call, avoid unnecessary serialization
+        if (isPeriodicSyncDisabled(account, authority)) {
+            return;
+        }
+
         Log.d(TAG, "Sync started");
 
         final Context context = getContext();
@@ -117,7 +136,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 }
                 jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
             } catch (final NetworkErrorException e) {
-                throw new IllegalStateException(e);
+                // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel 2 XL).
+                Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.");
+                return;
             }
             Validate.notNull(jwtAuthToken);
             Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
@@ -140,8 +161,14 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                                 measurement.getIdentifier()));
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                         measurement.getIdentifier(), provider, authority);
+
+                // The network setting may have changed since the initial sync call, avoid unnecessary serialization
+                if (isPeriodicSyncDisabled(account, authority)) {
+                    return;
+                }
                 final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
                         measurement.getIdentifier(), persistence);
+
                 // Try to sync the transfer file - remove it afterwards
                 try {
 
@@ -152,10 +179,19 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         Validate.notNull(authBundle);
                         jwtAuthToken = authBundle.getString(AccountManager.KEY_AUTHTOKEN);
                     } catch (final NetworkErrorException e) {
-                        throw new IllegalStateException(e);
+                        // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel
+                        // 2 XL).
+                        Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.");
+                        return;
                     }
                     Validate.notNull(jwtAuthToken);
                     Log.d(TAG, "Sync authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
+
+                    // The network setting may have changed since the initial sync call, avoid using metered network
+                    // without permission
+                    if (isPeriodicSyncDisabled(account, authority)) {
+                        return;
+                    }
 
                     // Synchronize measurement
                     Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
@@ -207,6 +243,28 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 listener.onSyncFinished();
             }
         }
+    }
+
+    /**
+     * We need to check if the network is still syncable:
+     * - this is only possible indirect, we check if the surveyor disabled auto sync for the account
+     * - the network settings could have changed between sync initial call and "now"
+     *
+     * @param account The {@code Account} to check the status for
+     * @param authority The authority string for the synchronization to check
+     */
+    private boolean isPeriodicSyncDisabled(@NonNull final Account account, @NonNull final String authority) {
+        if (mockIsPeriodicSyncDisabledToReturnFalse) {
+            Log.w(TAG, "mockIsPeriodicSyncDisabledToReturnFalse triggered");
+            return false;
+        }
+
+        final boolean isAllowed = !ContentResolver.getPeriodicSyncs(account, authority).isEmpty();
+        if (!isAllowed) {
+            Log.w(TAG,
+                    "Sync aborted: auto sync is not enabled for this account (the network is probably metered and syncOnUnMeteredNetworkOnly activated).");
+        }
+        return !isAllowed;
     }
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {

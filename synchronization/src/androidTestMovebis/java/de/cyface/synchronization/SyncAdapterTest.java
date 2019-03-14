@@ -58,7 +58,7 @@ public final class SyncAdapterTest {
         Account newAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_PASSWORD, Bundle.EMPTY)) {
             ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
-            ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
+            ContentResolver.addPeriodicSync(newAccount, AUTHORITY, Bundle.EMPTY, 1);
         }
 
         try {
