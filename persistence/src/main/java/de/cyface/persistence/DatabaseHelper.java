@@ -15,6 +15,7 @@ import android.text.TextUtils;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -25,7 +26,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.3.2
+ * @version 4.4.0
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -38,7 +39,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      */
-    private final static int DATABASE_VERSION = 11;
+    private final static int DATABASE_VERSION = 12;
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
@@ -52,6 +53,10 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * id count is reset, too.
      */
     private final IdentifierTable identifierTable;
+    /**
+     * The table to store the {@link Event}s on the device.
+     */
+    private final EventTable eventTable;
 
     /**
      * Creates a new completely initialized <code>DatabaseHelper</code>.
@@ -65,6 +70,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         measurementTable = new MeasurementTable();
         geoLocationsTable = new GeoLocationsTable();
         identifierTable = new IdentifierTable();
+        eventTable = new EventTable();
     }
 
     /**
@@ -78,6 +84,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         identifierTable.onCreate(db);
         measurementTable.onCreate(db);
         geoLocationsTable.onCreate(db);
+        eventTable.onCreate(db);
     }
 
     /**
@@ -119,6 +126,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         measurementTable.onUpgrade(database, oldVersion, newVersion);
         geoLocationsTable.onUpgrade(database, oldVersion, newVersion);
         identifierTable.onUpgrade(database, oldVersion, newVersion);
+        eventTable.onUpgrade(database, oldVersion, newVersion);
     }
 
     /**
@@ -165,6 +173,10 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 }
             } else if (pathSegments.size() == 1) {
                 switch (pathSegments.get(0)) {
+                    case EventTable.URI_PATH:
+                        ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
+                        database.setTransactionSuccessful();
+                        return ret;
                     case IdentifierTable.URI_PATH:
                         ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
                         database.setTransactionSuccessful();
@@ -201,8 +213,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Cascadingly deletes all data for a single {@link Measurement} from the database. This currently only includes
-     * {@link GeoLocation}s but not the {@link Point3dFile}s as they are not stored in database.
+     * Cascadingly deletes all data for a single {@link Measurement} from the database. This only includes
+     * {@link GeoLocation}s and {@link Event}s but not the {@link Point3dFile}s as they are not stored in database.
      *
      * @param database The database object to delete from.
      * @param measurementIdentifier The device wide unique identifier of the measurement to delete.
@@ -213,6 +225,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         int ret = 0;
 
         ret += geoLocationsTable.deleteRow(database, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
+        ret += eventTable.deleteRow(database, EventTable.COLUMN_MEASUREMENT_FK + "=?", identifierAsArgs);
         return ret;
     }
 
@@ -328,6 +341,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
                 return geoLocationsTable;
             case IdentifierTable.URI_PATH:
                 return identifierTable;
+            case EventTable.URI_PATH:
+                return eventTable;
             default:
                 throw new IllegalStateException("Unknown table with URI: " + uri);
         }

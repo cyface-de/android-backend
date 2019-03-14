@@ -1,6 +1,7 @@
 package de.cyface.testutils;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
@@ -28,14 +29,15 @@ import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.IdentifierTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -47,7 +49,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.0.2
+ * @version 4.0.3
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -144,7 +146,7 @@ public class SharedTestUtils {
      * @param context The {@link Context} required to access the file persistence layer
      * @param resolver The {@link ContentResolver} required to access the database
      * @return number of rows removed from the database and number of <b>FILES</b> (not points) deleted. The earlier
-     *         includes {@link Measurement}s and {@link GeoLocation}s and the {@link IdentifierTable} (i.e. device id).
+     *         includes {@link Measurement}s, {@link GeoLocation}s and {@link Event}s.
      *         The later includes the {@link Point3dFile}s.
      */
     public static int clearPersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
@@ -190,12 +192,13 @@ public class SharedTestUtils {
 
         // Remove database entries
         final int removedGeoLocations = resolver.delete(getGeoLocationsUri(authority), null, null);
+        final int removedEvents = resolver.delete(getEventUri(authority), null, null);
         final int removedMeasurements = resolver.delete(getMeasurementUri(authority), null, null);
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.
         // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
-        return removedFiles + /* removedIdentifierRows + */ removedGeoLocations + removedMeasurements;
+        return removedFiles + /* removedIdentifierRows + */ removedGeoLocations + removedEvents + removedMeasurements;
     }
 
     /**
@@ -281,9 +284,9 @@ public class SharedTestUtils {
         assertThat(loadedMeasurement, notNullValue());
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
 
-        // Check the GeoLocations
-        final List<List<GeoLocation>> loadedSubTracks = persistence.loadTrack(measurementIdentifier);
-        assertThat(loadedSubTracks.get(0).size(), is(locationCount));
+        // Check the Tracks
+        final List<Track> loadedTracks = persistence.loadTracks(measurementIdentifier);
+        assertThat(loadedTracks.get(0).getGeoLocations().size(), is(locationCount));
 
         // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {

@@ -1,13 +1,14 @@
 package de.cyface.persistence;
 
 import android.net.Uri;
+
 import androidx.annotation.NonNull;
 
 /**
  * This utility class contains shared static methods used by multiple modules.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 3.0.0
  */
 public class Utils {
@@ -40,5 +41,15 @@ public class Utils {
      */
     public static Uri getIdentifierUri(@NonNull final String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
+    }
+
+    /**
+     * (!) It's important to provide the authority string as parameter because depending on from where you call this
+     * you want to access your own authorities database.
+     *
+     * @param authority The authority to access the database
+     */
+    public static Uri getEventUri(@NonNull final String authority) {
+        return new Uri.Builder().scheme("content").authority(authority).appendPath(EventTable.URI_PATH).build();
     }
 }

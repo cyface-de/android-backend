@@ -2,6 +2,7 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -10,6 +11,7 @@ import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
+import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -27,7 +29,9 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.ContentProvider;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.database.Cursor;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
@@ -44,9 +48,11 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
+import de.cyface.persistence.EventTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
@@ -62,7 +68,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.2.8
+ * @version 5.3.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -655,7 +661,7 @@ public class DataCapturingServiceTest {
     }
 
     /**
-     * Tests if the service lifecycle is running successfully.
+     * Tests if the service lifecycle is running successfully and that the life-cycle {@link Event}s are logged.
      * <p>
      * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
      * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
@@ -680,6 +686,34 @@ public class DataCapturingServiceTest {
         assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
 
         stopAndCheckThatStopped(measurementIdentifier);
+
+        // Check Events
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor eventCursor = null;
+        try {
+            eventCursor = contentResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.valueOf(measurementIdentifier).toString()},
+                    EventTable.COLUMN_TIMESTAMP + " ASC");
+            Validate.softCatchNullCursor(eventCursor);
+
+            final List<Event> events = new ArrayList<>();
+            while (eventCursor.moveToNext()) {
+                final Event.EventType eventType = Event.EventType
+                        .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+                final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                events.add(new Event(eventType, eventTime));
+            }
+
+            assertThat(events.size(), is(equalTo(4)));
+            assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
+            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+        } finally {
+            if (eventCursor != null) {
+                eventCursor.close();
+            }
+        }
     }
 
     /**

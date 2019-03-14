@@ -12,7 +12,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.3.1
  * @since 1.0.0
  */
 public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
@@ -46,12 +46,11 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
      * {@link GeoLocation}.
      */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
-
     /**
      * An array containing all the column names used by a geo location table.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_GEOLOCATION_TIME, COLUMN_LAT, COLUMN_LON, COLUMN_SPEED,
-            COLUMN_ACCURACY, COLUMN_MEASUREMENT_FK};
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_GEOLOCATION_TIME, COLUMN_LAT, COLUMN_LON,
+            COLUMN_SPEED, COLUMN_ACCURACY, COLUMN_MEASUREMENT_FK};
 
     /**
      * Provides a completely initialized object as a representation of a table containing geo locations in the database.
@@ -82,7 +81,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
 
-                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
+                // We don't use a transaction as this lead to an unresolvable error where the IdentifierTable
                 // was not created in time for the first database query.
 
                 database.execSQL("DELETE FROM gps_points;");

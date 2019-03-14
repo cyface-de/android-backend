@@ -3,41 +3,273 @@ Cyface Android SDK
 
 This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
 
-- [Setup](#setup)
-- [Known Issues](#known-issues)
-- [How to Integrate the SDK](#how-to-integrate-the-sdk)
-	- [Provide a Custom Capturing Notification](#provide-a-custom-capturing-notification)
-	- [Access Measurements via PersistenceLayer](#access-measurements-via-persistenceLayer)
-	    - [Load Measurements](#load-measurements)
-	    - [Delete Measurements](#delete-measurements)
-	- [TODO: add code sample for the usage of:](#todo-add-code-sample-for-the-usage-of)
+- [How to integrate the SDK](#how-to-integrate-the-sdk)
 - [Migration from Earlier Versions](#migration-from-earlier-versions)
 - [License](#license)
 
-Setup
------
 
-Geo location tracks such as those captured by the Cyface Android SDK, should only be transmitted via a secure HTTPS connection.
-If you use a self-signed certificate the SDK requires a truststore containing the key of the server you are transmitting to.
+How to integrate the SDK
+---------------------------
+
+- [Resource Files](#resource-files)
+    - [Truststore](#truststore)
+    - [Content Provider Authority](#content-provider-authority)
+- [Service Initialization](#service-initialization)
+	- [Implement Data Capturing Listener](#implement-data-capturing-listener)
+	- [Implement UI Listener](#implement-ui-listener)
+	- [Implement Event Handling Strategy](#implement-event-handling-strategy)
+	    - [Custom Capturing Notification](#custom-capturing-notification)
+	- [Start Service](#start-service)
+	- [Reconnect to Service](#reconnect-to-service)
+	- [Link your Login Activity](#link-your-login-activity)
+	- [Start WifiSurveyor](#start-wifisurveyor)
+	- [De-/Register JWT Auth Tokens](#de-register-jwt-auth-tokens)
+	- [Start/Stop UI Location Updates](#startstop-ui-location-updates)
+- [Control Capturing](#control-capturing)
+	- [Start/Stop Capturing](#startstop-capturing)
+	- [Pause/Resume Capturing](#pauseresume-capturing)
+- [Access Measurements](#access-measurements)
+	- [Load finished measurements](#load-finished-measurements)
+	- [Load Tracks](#load-tracks)
+	- [Load Measurement Distance (new feature)](#load-measurement-distance)
+	- [Delete Measurements](#delete-measurements)
+- [Documentation Incomplete](#documentation-incomplete)
+
+### Resource Files
+
+The following steps are required before you can start coding.
+
+#### Truststore
+
+Geo location tracks such as those captured by the Cyface Android SDK, should only be transmitted
+via a secure HTTPS connection.
+
+If you use a self-signed certificate the SDK requires a truststore containing the key of the server
+you are transmitting to.
+
 Since we can not know which public key your server uses, this must be provided by you.
-To do so place a truststore containing your key in
+To do so place a truststore containing your key in:
 
     synchronization/src/main/res/raw/truststore.jks
 
-If this (by default empty) file is not replaced, the SDK can only communicate with servers which are certified by one its trusted Certification Authorities.
+If this (by default empty) file is not replaced, the SDK can only communicate with
+servers which are certified by one of its trusted Certification Authorities.
 
-Known Issues
-------------
+#### Content Provider Authority
 
-Problem that still exists is that you need to set the same provider when
-creating a DataCapturingService as well as in your manifest. The
-manifest also is required to override the default content provider as
-declared by the persistence project. This needs to be done by each using
+You need to set a provider and to make sure you use the same provider everywhere:
+
+* The `AndroidManifest.xml` is required to override the default content provider as
+declared by the persistence project. This needs to be done by each SDK integrating
 application separately.
 
-How to Integrate the SDK
---------------------------
-* Define which Activity should be launched to request the user to log in 
+```xml
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="your.domain.app"> <!-- replace this! -->
+
+    <application>
+        <!-- This overwrites the provider in the SDK. This way the app can
+        be installed next to other SDK using apps.
+        The "authorities" must match the one in your AndroidManifest.xml! -->
+        <provider
+            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:authorities="your.domain.app.provider"
+            android:exported="false"
+            android:process=":persistence_process"
+            android:syncable="true"
+            tools:replace="android:authorities" />
+    </application>
+
+</manifest>
+```
+
+* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below). 
+  This must be the same as defined in the `AndroidManifest.xml` above.
+  
+```java
+public class Constants {
+    public final static String AUTHORITY = "your.domain.app.provider"; // replace this
+}
+```
+
+* Create a resource file `src/main/res/xml/sync_adapter.xml` and use the same provider:
+
+```xml
+<?xml version="1.0" encoding="UTF-8" ?>
+<sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="your.domain.app.provider"
+    android:accountType="your.domain.app"
+    android:userVisible="false"
+    android:supportsUploading="true"
+    android:allowParallelSyncs="false"
+    android:isAlwaysSyncable="true" />
+```
+
+### Service Initialization
+
+The core of our SDK is the `DataCapturingService` which controls the capturing process.
+
+We provide two interfaces for this service: `CyfaceDataCapturingService` and `MovebisDataCapturingService`.
+Unless you are part of the *Movebis project* `CyfaceDataCapturingService` is your candidate.
+
+To keep this documentation lightweight, we currently only use `MovebisDataCapturingService` in the samples
+but the interface for `CyfaceDataCapturingService` is mostly the same.
+
+The following steps are required to communicate with this service.
+
+#### Implement Data Capturing Listener
+
+This interface informs your app about data capturing events. Implement the interface to update your UI on those events.
+
+Here is a basic example implementation:
+
+```java
+class DataCapturingListenerImpl implements DataCapturingListener {
+
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+    
+    @Override
+    public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
+        
+        // E.g.: load current measurement distance
+        final Measurement measurement;
+        try {
+            measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+        
+        final double distanceMeter = measurement.getDistance();
+        // Your logic, e.g. update the UI with the current distance
+    }
+    
+    // The other interface methods
+}
+```
+
+#### Implement UI Listener
+
+This is only required for `MovebisDataCapturingService`.
+
+#### Implement Event Handling Strategy
+
+This interface allows us to inject your custom strategies into our SDK.
+
+##### Custom Capturing Notification
+
+To continuously run an Android service, without the system killing said service,
+it needs to show a notification to the user in the Android status bar.
+
+The Cyface data capturing runs as such a service and thus needs to display such a notification.
+Applications using the Cyface SDK may configure style and behaviour of this notification by
+providing an implementation of `de.cyface.datacapturing.EventHandlingStrategy` to the constructor
+of the `de.cyface.datacapturing.DataCapturingService`.
+
+An example implementation is provided by `de.cyface.datacapturing.IgnoreEventsStrategy`.
+The most important step is to implement the method
+`de.cyface.datacapturing.EventHandlingStrategy#buildCapturingNotification(DataCapturingBackgroundService)`. 
+
+This can look like:
+
+```java
+public class EventHandlingStrategyImpl implements EventHandlingStrategy {
+    
+    @Override
+    public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
+      final String channelId = "channel";
+      NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(channelId)==null) {
+        final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
+        notificationManager.createNotificationChannel(channel);
+      }
+    
+      return new NotificationCompat.Builder(context, channelId)
+        .setContentTitle("Cyface")
+        .setSmallIcon(R.drawable.your_icon) // see "attention" notes below
+        .setContentText("Running Data Capturing")
+        .setOngoing(true)
+        .setAutoCancel(false)
+        .build();
+    }
+}
+```
+
+Further details about how to create a proper notification are available via the [Google developer documentation](https://developer.android.com/guide/topics/ui/notifiers/notifications).
+The most likely adaptation an application using the Cyface SDK for Android should do, is use the `android.app.Notification.Builder.setContentIntent(PendingIntent)` to call the applications main activity if the user presses the notification.
+
+**ATTENTION:**
+* Service notifications require an application wide unique identifier.
+  This identifier is 74.656.
+  Due to limitations in the Android framework, this is not configurable.
+  You must not use the same notification identifier for any other notification displayed by your app!
+* If you want to use a **vector xml drawable as Notification icon** make sure to do the following:
+
+  Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
+  on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
+  A simple fix is to have the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`). 
+  
+#### Start Service
+
+To save resources your should create your service when the view is created
+and reuse this instance when you need to communicate with it.
+
+```java
+class MainFragment extends Fragment {
+    
+    private MovebisDataCapturingService dataCapturingService;
+    
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
+        
+        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
+            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener);
+        
+        // dataCapturingButton is our sample DataCapturingListenerImpl
+        // Depending on your implementation you need to register the DataCapturingService:
+        this.dataCapturingButton.setDataCapturingService(dataCapturingService);
+    }
+}
+```
+
+#### Reconnect to Service
+
+When your UI resumes you need to reconnect to your service:
+
+The `reconnect()` method returns true when there was a capturing running during reconnect.
+This way we can use the `isRunning()` result from within `reconnect()` and avoid duplicate
+`isRunning()` calls which saves time. 
+
+```java
+public class DataCapturingButton implements DataCapturingListener {
+    
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+    
+    public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
+        
+        if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
+            // Your logic, e.g.:
+            setButtonStatus(button, true);
+        } else {
+            // Attention: reconnect() only returns true if there is an OPEN measurement
+            // To check for PAUSED measurements use the persistence layer.
+            persistence.loadMeasurements(MeasurementStatus.PAUSED);
+            // Your logic, e.g.:
+            setButtonStatus(button, false);
+        }
+    }
+}
+```
+
+#### Link your Login Activity
+
+This is only required for `CyfaceDataCapturingService`. 
+
+Define which Activity should be launched to request the user to log in: 
 
 ```java
 public class CustomApplication extends Application {
@@ -50,54 +282,22 @@ public class CustomApplication extends Application {
 }
 ```
 
-* Start the DataCapturingService to communicate with the SDK
+#### Start WifiSurveyor
 
-```java
-public class MainFragment extends Fragment {
-    
-    private CyfaceDataCapturingService dataCapturingService;
-    
-    @Nullable
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-        final Bundle savedInstanceState) {
-        dataCapturingService = new CyfaceDataCapturingService(/*...,*/
-        customEventHandlingStrategy, capturingListener);
-    }
-}
-```
+This is only required for `CyfaceDataCapturingService`.
 
-or
-
-```java
-
-public class MainFragment extends Fragment {
-    
-    private MovebisDataCapturingService dataCapturingService;
-    
-    @Nullable
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-        final Bundle savedInstanceState) {
-        dataCapturingService = MovebisDataCapturingService(/*...,*/
-        uiListener, locationUpdateRate, customEventHandlingStrategy, capturingListener);
-    }
-}
-```
-
-* Create an account for synchronization & start WifiSurveyor
+Create an account for synchronization and start `WifiSurveyor`:
 
 ```java
 public class MainFragment extends Fragment implements ConnectionStatusListener {
     
-    @Nullable
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
             final Bundle savedInstanceState) {
         try {
             // dataCapturingService = ... - see above
             
-            // Needs to be called after DataCapturingService()
+            // Needs to be called after new CyfaceDataCapturingService()
             startSynchronization(context);
             
             // If you want to receive events for the synchronization status
@@ -159,40 +359,38 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
     }
 }
 ```
-          
-* Register your DataCapturingListener implementation and control data capturing
+
+#### De-/Register JWT Auth Tokens
+
+This is only required for `MovebisDataCapturingService`.
+
+#### Start/Stop UI Location Updates
+
+This is only required for `MovebisDataCapturingService`.
+
+### Control Capturing
+
+Now you can actually use the `DataCapturingService` instance to capture data.
+
+#### Start/Stop Capturing
+
+To capture a measurement you need to start the capturing and stop it after some time:
 
 ```java
-public class MainFragment extends Fragment {
-    
-    private DataCapturingButton dataCapturingButton;
-    
-    @Nullable
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-        final Bundle savedInstanceState) {
-        this.dataCapturingButton = new DataCapturingButton();
-        
-        // dataCapturingService = ... - see above
-        
-        this.dataCapturingButton.setDataCapturingService(dataCapturingService);
-    }
-}
-
-public class DataCapturingButton implements AbstractButton, DataCapturingListener {
-    
-    @Override
+public class DataCapturingButton implements DataCapturingListener {
     public void onClick(View view) {
-        dataCapturingService.start(vehicle, new StartUpFinishedHandler(did) {
+        dataCapturingService.start(vehicle, new StartUpFinishedHandler(deviceId) {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
                 setButtonStatus(button, true);
             }
         });
         // or
-        dataCapturingService.stop(new ShutDownFinishedHandler() {
+        dataCapturingService.stop(vehicle, new ShutDownFinishedHandler() {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
                 setButtonStatus(button, false);
                 setButtonEnabled(button);
             }
@@ -201,113 +399,92 @@ public class DataCapturingButton implements AbstractButton, DataCapturingListene
 }
 ```
 
-* To check if the capturing is running  
+#### Pause/Resume Capturing
+
+If you want to pause and continue a measurement you can use:
 
 ```java
-public class DataCapturingButton implements AbstractButton, DataCapturingListener {
+public class DataCapturingButton implements DataCapturingListener {
+    public void onClick(View view) {
+        dataCapturingService.pause(finishedHandler);
+        // or
+        dataCapturingService.resume(finishedHandler);
+    }
+}
+```
+
+### Access Measurements
+
+You now need to use the `PersistenceLayer` to access and control captured *measurement data*. 
+
+```java
+class measurementControlOrAccessClass {
     
-    public void onResume() {
-        if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
-            setButtonStatus(button, true);
-        } else {
-            setButtonStatus(button, false);
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+}
+```
+
+* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement 
+* Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
+
+Loaded `Measurement`s contain details, e.g. the [Measurement Distance](#load-measurement-distance).
+
+**Attention:** The attributes of a Measurement which is not yet finished change
+over time so you need to make sure you reload it.
+You can find an example for this in [Implement Data Capturing Listener](#implement-data-capturing-listener).
+
+#### Load Finished Measurements
+
+Finished measurements are measurements which are stopped (i.e. not paused or ongoing).
+
+```java
+class measurementControlOrAccessClass {
+    void loadMeasurements() {
+    
+        persistence.loadMeasurements(MeasurementStatus.FINISHED);
+    }
+}
+```
+
+#### Load Tracks
+
+The `loadTracks()` method returns a chronologically ordered list of `Track`s.
+
+Each time a measurement is paused and resumed, a new `Track` is started for the same measurement.
+
+A `Track` contains the chronologically ordered `GeoLocation`s captured.
+
+```java
+class measurementControlOrAccessClass {
+    void loadTrack() {
+        
+        List<Track> tracks = persistence.loadTracks(measurementId);
+        //noinspection StatementWithEmptyBody
+        if (tracks.size() > 0 ) {
+            // your logic
         }
     }
 }
 ```
 
-### Provide a Custom Capturing Notification
-To continuously run an Android service, without the system killing said service, it needs to show a notification to the user in the Android status bar.
-The Cyface data capturing runs as such a service and thus needs to display such a notification.
-Applications using the Cyface SDK may configure style and behaviour of this notification by providing an implementation of `de.cyface.datacapturing.EventHandlingStrategy` to the constructor of the `de.cyface.datacapturing.DataCapturingService`.
-An example implementation is provided by `de.cyface.datacapturing.IgnoreEventsStrategy`.
-The most important step is to implement the method `de.cyface.datacapturing.EventHandlingStrategy#buildCapturingNotification(DataCapturingBackgroundService)`.
-
-This can look like:
-
-```java
-public class EventHandlingStrategyImpl implements EventHandlingStrategy {
-    
-    @Override
-    public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
-      final String channelId = "channel";
-      NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
-      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(channelId)==null) {
-        final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
-        notificationManager.createNotificationChannel(channel);
-      }
-    
-      return new NotificationCompat.Builder(context, channelId)
-        .setContentTitle("Cyface")
-        .setSmallIcon(R.drawable.your_icon) // see "attention" notes below
-        .setContentText("Running Data Capturing")
-        .setOngoing(true)
-        .setAutoCancel(false)
-        .build();
-    }
-}
-```
-
-Further details about how to create a proper notification are available via the [Google developer documentation](https://developer.android.com/guide/topics/ui/notifiers/notifications).
-The most likely adaptation an application using the Cyface SDK for Android should do, is use the `android.app.Notification.Builder.setContentIntent(PendingIntent)` to call the applications main activity if the user presses the notification.
-
-**ATTENTION:**
-* Service notifications require an application wide unique identifier.
-  This identifier is 74.656.
-  Due to limitations in the Android framework, this is not configurable.
-  You must not use the same notification identifier for any other notification displayed by your app!
-* If you want to use a **vector xml drawable as Notification icon** make sure to do the follwing:
-  Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
-  on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
-  A simple fix is to have a the xml in `drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same name in the usual paths (`drawable-**dpi/icon.png`). 
-  
-
-
-
-### Access Measurements via PersistenceLayer
-Use the `PersistenceLayer<DefaultPersistenceBehaviour>` to manage and load measurements as demonstrated in the sample code below.
-
-* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement 
-* Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
-                                                              
-#### Load Measurements
-                                                              
-**ATTENTION:** The attributes of `MeasurementStatus#OPEN` and `MeasurementStatus#PAUSED`
-measurements are only valid in the moment they are loaded from the database. Changes
-after this call are not pushed into the `Measurement` object returned by this call.
-
-**Measurement distance**
+#### Load Measurement Distance
 
 To display the distance for an ongoing measurement (which is updated about once per second)
 make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` *on each location
 update* to always have the most recent information. For this you need to implement the `DataCapturingListener`
 interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
 
-**Load Track**
-
-To display the track of a finished measurement use `persistenceLayer.loadTrack(measurementId)`
-which returns a list of lists containing `GeoLocations`. Currently there is always just one
-sub list which contains the full track. We'll change this soon so that tracks are sliced into sub tracks
-when pause/resume was used which is the reason behind the return type. 
+See [Implement Data Capturing Listener](#implement-data-capturing-listener) for sample code.
 
 #### Delete Measurements
 
-The following code snippet shows how to manage stored measurements:
+To delete the measurement data stored on the device for finished or synchronized measurements use:
 
 ```java
-public class MeasurementOverviewFragment extends Fragment {
+class measurementControlOrAccessClass {
     
-    private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
-    
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-            final Bundle savedInstanceState) {
-        persistenceLayer = new PersistenceLayer<>(inflater.getContext(), inflater.getContext().getContentResolver(),
-                AUTHORITY, new DefaultPersistenceBehaviour());
-    }
-    
-    private void deleteMeasurement(final long measurementId) throws CursorIsNullException {
-        
+    void deleteMeasurement(final long measurementId) throws CursorIsNullException {
         // To make sure you don't delete the ongoing measurement because this leads to an exception
         Measurement currentlyCapturedMeasurement;
         try {
@@ -323,7 +500,7 @@ public class MeasurementOverviewFragment extends Fragment {
             Log.d(TAG, "Not deleting currently captured measurement: " + measurementId);
         }
     }
-
+    
     private static class DeleteFromDBTaskParams {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
         final long measurementId;
@@ -349,18 +526,24 @@ public class MeasurementOverviewFragment extends Fragment {
 }
 ```
 
-### TODO: add code sample for the usage of:
+
+### Documentation Incomplete
+
+This documentation still lacks of samples for the following features:
 
 * ErrorHandler
 * Force Synchronization
 * ConnectionStatusListener
 * Disable synchronization
-* Show Measurements and GeoLocationTraces
-* Usage of Camera, Bluetooth
+* Enable synchronization on metered connections
+* Usage of Camera, Bluetooth (not yet implemented in the SDK)
+
 
 Migration from Earlier Versions
 --------------------------------
+ - [Migrate to 4.0.0-alpha2](documentation/migration-guide_4.0.0-alpha2.md)
  - [Migrate to 4.0.0-alpha1](documentation/migration-guide_4.0.0-alpha1.md)
+
 
 License
 -------------------

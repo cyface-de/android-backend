@@ -16,6 +16,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -41,6 +42,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Track;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -120,8 +122,8 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        final List<List<GeoLocation>> subTracks = persistence.loadTrack(loadedMeasurement.getIdentifier());
-        assertThat(subTracks.get(0).size(), is(1));
+        final List<Track> tracks = persistence.loadTracks(loadedMeasurement.getIdentifier());
+        assertThat(tracks.get(0).getGeoLocations().size(), is(1));
     }
 
     /**
@@ -178,8 +180,8 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        final List<List<GeoLocation>> subTracks = persistence.loadTrack(loadedMeasurement.getIdentifier());
-        assertThat(subTracks.get(0).size(), is(locationCount));
+        final List<Track> tracks = persistence.loadTracks(loadedMeasurement.getIdentifier());
+        assertThat(tracks.get(0).getGeoLocations().size(), is(locationCount));
     }
 
     /**

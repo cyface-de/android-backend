@@ -2,6 +2,7 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
+
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -14,7 +15,7 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.1
+ * @version 2.4.2
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -89,7 +90,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
                 // We don't support an soft-upgrade there but reset the database
 
-                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
+                // We don't use a transaction as this lead to an unresolvable error where the IdentifierTable
                 // was not created in time for the first database query.
 
                 database.execSQL("DELETE FROM measurement;");
