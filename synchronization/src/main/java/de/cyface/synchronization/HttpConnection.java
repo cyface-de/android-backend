@@ -38,7 +38,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {

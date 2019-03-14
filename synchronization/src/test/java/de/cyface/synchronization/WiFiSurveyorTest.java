@@ -34,7 +34,7 @@ import androidx.test.core.app.ApplicationProvider;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)

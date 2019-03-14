@@ -19,7 +19,7 @@ import de.cyface.utils.Validate;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
