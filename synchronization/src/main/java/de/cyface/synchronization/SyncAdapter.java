@@ -87,7 +87,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
         // The network setting may have changed since the initial sync call, avoid unnecessary serialization
-        if (isAutoSyncDisallowed(account, authority)) {
+        if (isPeriodicSyncDisabled(account, authority)) {
             return;
         }
 
@@ -150,7 +150,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         measurement.getIdentifier(), provider, authority);
 
                 // The network setting may have changed since the initial sync call, avoid unnecessary serialization
-                if (isAutoSyncDisallowed(account, authority)) {
+                if (isPeriodicSyncDisabled(account, authority)) {
                     return;
                 }
                 final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
@@ -166,7 +166,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         Validate.notNull(authBundle);
                         jwtAuthToken = authBundle.getString(AccountManager.KEY_AUTHTOKEN);
                     } catch (final NetworkErrorException e) {
-                        // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel 2 XL).
+                        // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel
+                        // 2 XL).
                         Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.");
                         return;
                     }
@@ -175,7 +176,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // The network setting may have changed since the initial sync call, avoid using metered network
                     // without permission
-                    if (isAutoSyncDisallowed(account, authority)) {
+                    if (isPeriodicSyncDisabled(account, authority)) {
                         return;
                     }
 
@@ -235,20 +236,17 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * We need to check if the network is still syncable:
      * - this is only possible indirect, we check if the surveyor disabled auto sync for the account
      * - the network settings could have changed between sync initial call and "now"
-     * - there is a bug [MOV-616] that we were not yet able to fix that SyncService is created and sync starts
-     * when no wifi is connected but mobile data, syncOnUnMeteredNetworkOnly is on, after some time
      *
      * @param account The {@code Account} to check the status for
      * @param authority The authority string for the synchronization to check
      */
-    private boolean isAutoSyncDisallowed(@NonNull final Account account, @NonNull final String authority) {
-
-        final boolean isSyncAllowed = ContentResolver.getSyncAutomatically(account, authority);
-        if (!isSyncAllowed) {
+    private boolean isPeriodicSyncDisabled(@NonNull final Account account, @NonNull final String authority) {
+        final boolean isAllowed = !ContentResolver.getPeriodicSyncs(account, authority).isEmpty();
+        if (!isAllowed) {
             Log.w(TAG,
                     "Sync aborted: auto sync is not enabled for this account (the network is probably metered and syncOnUnMeteredNetworkOnly activated).");
         }
-        return !isSyncAllowed;
+        return !isAllowed;
     }
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {

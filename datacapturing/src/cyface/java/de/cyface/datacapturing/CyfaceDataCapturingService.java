@@ -105,6 +105,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      */
     @SuppressWarnings("unused") // This is called by the SDK implementing app in its onDestroyView
     public void shutdownDataCapturingService() throws SynchronisationException {
+
         getWiFiSurveyor().stopSurveillance();
         shutdownConnectionStatusReceiver();
     }

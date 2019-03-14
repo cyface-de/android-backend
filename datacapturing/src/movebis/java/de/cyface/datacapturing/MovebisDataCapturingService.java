@@ -225,6 +225,9 @@ public class MovebisDataCapturingService extends DataCapturingService {
             throws SynchronisationException {
         final AccountManager accountManager = AccountManager.get(getContext());
 
+        // The workflow here is slightly different from the one in CyfaceDataCapturingService.
+        // If problems are reported, ensure they are exactly the same (i.e. reuse existing account).
+
         // Create a "dummy" account used for auto synchronization. Null password as the token is static
         final Account synchronizationAccount = getWiFiSurveyor().createAccount(username, null);
 

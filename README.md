@@ -321,10 +321,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
             return;
         }
         
-        // Login and create account 
-        // a) Static token variant:
-        dataCapturingService.registerJWTAuthToken(username, token);
-        // or b) Login via LoginActivity and using dynamic tokens
+        // Login via LoginActivity, create account and using dynamic tokens
         // The LoginActivity is called by Android which handles the account creation
         accountManager.addAccount(ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
             getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {

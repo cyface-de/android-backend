@@ -4,7 +4,6 @@ import static de.cyface.synchronization.WiFiSurveyor.TAG;
 
 import android.accounts.Account;
 import android.annotation.TargetApi;
-import android.content.ContentResolver;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -63,27 +62,17 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
         }
 
         // Syncable ("not metered") filter is already included
-        final boolean syncableConnectionLost = surveyor.synchronizationIsActive()
+        final boolean syncableConnectionLost = surveyor.isPeriodicSyncEnabled()
                 && !surveyor.isConnectedToSyncableNetwork();
-        final boolean syncableConnectionEstablished = !surveyor.synchronizationIsActive()
+        final boolean syncableConnectionEstablished = !surveyor.isPeriodicSyncEnabled()
                 && surveyor.isConnectedToSyncableNetwork();
+
         if (syncableConnectionEstablished) {
-
-            if (!ContentResolver.getMasterSyncAutomatically()) {
-                Log.d(TAG, "connectionEstablished: master sync is disabled. Aborting.");
-                return;
-            }
-
-            // Enable auto-synchronization - periodic flag is always pre set for all account by us
-            Log.v(TAG, "connectionEstablished: setSyncAutomatically.");
-            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
-            surveyor.setSynchronizationIsActive(true);
-
+            Log.v(TAG, "connectionEstablished: setPeriodicSyncEnabled to true");
+            surveyor.setPeriodicSyncEnabled(true);
         } else if (syncableConnectionLost) {
-
-            Log.v(TAG, "connectionLost: setSyncAutomatically to false.");
-            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
-            surveyor.setSynchronizationIsActive(false);
+            Log.v(TAG, "connectionLost: setPeriodicSyncEnabled to false.");
+            surveyor.setPeriodicSyncEnabled(false);
         }
     }
 }
