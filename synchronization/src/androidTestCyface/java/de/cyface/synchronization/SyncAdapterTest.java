@@ -52,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.4
+ * @version 2.2.6
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -156,13 +156,15 @@ public final class SyncAdapterTest {
     @Test
     @LargeTest // ~ 8-10 minutes
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
-
-        // Arrange
-        // Insert data to be synced - 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
-        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
         final int point3dCount = 3_000_000;
         final int locationCount = 3_000;
+
+        // Arrange
+        // Insert data to be synced
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+                contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
                 MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
@@ -180,7 +182,7 @@ public final class SyncAdapterTest {
 
             final Bundle testBundle = new Bundle();
             testBundle.putString(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE, "");
-            oocut.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
+            oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
                 client.close();
