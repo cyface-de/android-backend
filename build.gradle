@@ -4,7 +4,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.6
+ * @version 2.2.8
  * @since 1.0.0
  */
 
@@ -23,7 +23,7 @@ buildscript {
         // - Warning: Variant selection conflicts (https://stackoverflow.com/q/47529737/5815054)
         // - Instant Run Error (https://stackoverflow.com/q/46957873/5815054)
         // Workaround: disable instant run & ignore Gradle Sync Warnings
-        classpath 'com.android.tools.build:gradle:3.3.1'
+        classpath 'com.android.tools.build:gradle:3.3.2'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -32,13 +32,12 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "4.0.0-alpha1"
+    version = "4.0.0-alpha2"
 
     minSdkVersion = 16
     targetSdkVersion = 28
     compileSdkVersion = 28
     buildToolsVersion = '28.0.3'
-    playServicesVersion = "16.0.0"
 
     androidxAnnotationVersion = "1.0.0"
     androidxAppCompatVersion = "1.0.2"

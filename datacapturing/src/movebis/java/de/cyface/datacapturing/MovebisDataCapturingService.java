@@ -53,7 +53,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.0.1
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -224,6 +224,9 @@ public class MovebisDataCapturingService extends DataCapturingService {
     public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
             throws SynchronisationException {
         final AccountManager accountManager = AccountManager.get(getContext());
+
+        // The workflow here is slightly different from the one in CyfaceDataCapturingService.
+        // If problems are reported, ensure they are exactly the same (i.e. reuse existing account).
 
         // Create a "dummy" account used for auto synchronization. Null password as the token is static
         final Account synchronizationAccount = getWiFiSurveyor().createAccount(username, null);

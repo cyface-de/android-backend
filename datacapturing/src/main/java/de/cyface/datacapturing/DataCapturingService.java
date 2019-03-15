@@ -64,6 +64,7 @@ import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -91,7 +92,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.1
+ * @version 14.0.4
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -168,6 +169,7 @@ public abstract class DataCapturingService {
     /**
      * The number of ms to wait for the callback, see {@link #isRunning(long, TimeUnit, IsRunningCallback)}.
      */
+    @SuppressWarnings("WeakerAccess") // Used by SDK integrators (CY)
     public final static long IS_RUNNING_CALLBACK_TIMEOUT = 500L;
 
     /**
@@ -280,7 +282,8 @@ public abstract class DataCapturingService {
             }
 
             // Start new measurement
-            Measurement measurement = prepareStart(vehicle);
+            final Measurement measurement = prepareStart(vehicle);
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_START, measurement);
             runService(measurement, finishedHandler);
         } finally {
             Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
@@ -322,6 +325,7 @@ public abstract class DataCapturingService {
         try {
             setIsStoppingOrHasStopped(true);
             final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
 
             if (!stopService(finishedHandler)) {
                 // The background service was not active. This can happen when the measurement was paused.
@@ -376,6 +380,8 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous pause.");
         try {
             setIsStoppingOrHasStopped(true);
+            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement);
 
             if (!stopService(finishedHandler)) {
                 throw new DataCapturingException("No active service found to be paused.");
@@ -452,8 +458,9 @@ public abstract class DataCapturingService {
             }
 
             // Resume paused measurement
-            final Measurement currentMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            runService(currentMeasurement, finishedHandler);
+            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
+            runService(measurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
             persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(OPEN);
@@ -478,7 +485,7 @@ public abstract class DataCapturingService {
      */
     @SuppressWarnings({"WeakerAccess", "unused"}) // Used by implementing app (CY)
     public void scheduleSyncNow() {
-        getWiFiSurveyor().scheduleSyncNow();
+        surveyor.scheduleSyncNow();
     }
 
     /**
@@ -507,7 +514,9 @@ public abstract class DataCapturingService {
      * {@code Activity#onStop()}. You may call {@link #reconnect(long)} if you would like to receive updates again, as
      * in {@code Activity#onRestart()}.
      *
-     * @throws DataCapturingException If service was not connected.
+     * @throws DataCapturingException If there was no ongoing capturing in the background so unbinding from the
+     *             background service failed. As there is currently no cleaner method you can capture this exception
+     *             softly for now (MOV-588).
      */
     @SuppressWarnings({"unused", "WeakerAccess"}) // Used by DataCapturingListeners (CY)
     public void disconnect() throws DataCapturingException {
@@ -858,11 +867,11 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * see {@link WiFiSurveyor#isConnected()}
+     * see {@link WiFiSurveyor#isConnectedToSyncableNetwork()}
      */
     @SuppressWarnings("unused") // Allows implementing apps (CY) to only trigger sync manually when connected
     public boolean isConnected() {
-        return getWiFiSurveyor().isConnected();
+        return surveyor.isConnectedToSyncableNetwork();
     }
 
     /**

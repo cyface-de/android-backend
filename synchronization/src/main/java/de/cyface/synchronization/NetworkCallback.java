@@ -1,10 +1,9 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.WiFiSurveyor.TAG;
 
 import android.accounts.Account;
 import android.annotation.TargetApi;
-import android.content.ContentResolver;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -12,6 +11,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.utils.Validate;
 
 /**
  * This callback handles status changes of the {@link Network} connectivity, e.g. to determine if synchronization should
@@ -19,7 +19,7 @@ import androidx.annotation.NonNull;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -50,30 +50,29 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
     @Override
     public void onCapabilitiesChanged(@NonNull final Network network, @NonNull final NetworkCapabilities capabilities) {
+        // Ensure this event is only triggered for not metered connections when syncOnUnMeteredNetworkOnly
+        if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
+            final boolean notMetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
+            Validate.isTrue(notMetered);
+        }
+
         if (currentSynchronizationAccount == null) {
             Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
             return;
         }
 
-        final boolean connectionLost = surveyor.synchronizationIsActive() && !surveyor.isConnected();
-        final boolean connectionEstablished = !surveyor.synchronizationIsActive() && surveyor.isConnected();
+        // Syncable ("not metered") filter is already included
+        final boolean syncableConnectionLost = surveyor.isPeriodicSyncEnabled()
+                && !surveyor.isConnectedToSyncableNetwork();
+        final boolean syncableConnectionEstablished = !surveyor.isPeriodicSyncEnabled()
+                && surveyor.isConnectedToSyncableNetwork();
 
-        if (connectionEstablished) {
-            if (!ContentResolver.getMasterSyncAutomatically()) {
-                Log.d(TAG, "onCapabilitiesChanged: master sync is disabled. Aborting.");
-                return;
-            }
-
-            // Enable auto-synchronization - periodic flag is always pre set for all account by us
-            Log.v(TAG, "onCapabilitiesChanged: setSyncAutomatically.");
-            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, true);
-            surveyor.setSynchronizationIsActive(true);
-
-        } else if (connectionLost) {
-
-            Log.v(TAG, "onCapabilitiesChanged: setSyncAutomatically to false.");
-            ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
-            surveyor.setSynchronizationIsActive(false);
+        if (syncableConnectionEstablished) {
+            Log.v(TAG, "connectionEstablished: setPeriodicSyncEnabled to true");
+            surveyor.setPeriodicSyncEnabled(true);
+        } else if (syncableConnectionLost) {
+            Log.v(TAG, "connectionLost: setPeriodicSyncEnabled to false.");
+            surveyor.setPeriodicSyncEnabled(false);
         }
     }
 }

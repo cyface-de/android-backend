@@ -28,11 +28,13 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -45,7 +47,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.1
+ * @version 12.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -450,8 +452,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         deletePoint3dData(measurementIdentifier);
 
-        // Delete {@link GeoLocation}s and {@link Measurement} entry from database
+        // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
         resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getEventUri(), EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
     }
@@ -490,53 +494,124 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads the track of {@link GeoLocation} objects for the provided {@link Measurement}.
-     * TODO [STAD-6]: Slice the tracks into sub tracks when the measurement was paused and resumed.
-     * Right now the full unsliced track is always the only sub track that is returned.
+     * Loads the {@link Track}s for the provided {@link Measurement}.
      * <p>
-     * This method loads the complete track into memory. For large tracks this could slow down the device or even reach
-     * the applications memory limit.
+     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
+     * device or even reach the applications memory limit.
+     *
+     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * TODO [CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
      *
-     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
-     *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
-     * @return The sub tracks associated with the {@code Measurement}. Right now we return the full track as
-     *         the first sub track which contains list of ordered (by timestamp) {@code GeoLocation}s.
-     *         If no {@code GeoLocation}s exists, an empty list is returned.
+     * @return The {@link Track}s associated with the {@code Measurement}. If no {@code GeoLocation}s exists, an empty
+     *         list is returned.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
     @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
-    public List<List<GeoLocation>> loadTrack(final long measurementIdentifier) {
+    public List<Track> loadTracks(final long measurementIdentifier) throws CursorIsNullException {
 
-        final List<List<GeoLocation>> subTracks = new ArrayList<>();
-        Cursor cursor = null;
+        Cursor geoLocationCursor = null;
+        Cursor eventCursor = null;
         try {
-            cursor = resolver.query(getGeoLocationsUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+            // Load GeoLocations
+            geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
+                    GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()},
                     GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
-            if (cursor == null) {
+            Validate.softCatchNullCursor(geoLocationCursor);
+            if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
 
-            final List<GeoLocation> fullTrack = new ArrayList<>(cursor.getCount());
-            while (cursor.moveToNext()) {
-                final double lat = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
-                final double lon = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
-                final long timestamp = cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
-                final double speed = cursor.getDouble(cursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
-                final float accuracy = cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
-                fullTrack.add(new GeoLocation(lat, lon, timestamp, speed, accuracy));
-            }
+            // Load Events to slice measurements on pause events
+            eventCursor = resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.valueOf(measurementIdentifier).toString()},
+                    EventTable.COLUMN_TIMESTAMP + " ASC");
+            Validate.softCatchNullCursor(eventCursor);
 
-            subTracks.add(fullTrack);
-            return subTracks;
+            return loadTracks(geoLocationCursor, eventCursor);
         } finally {
-            if (cursor != null) {
-                cursor.close();
+            if (geoLocationCursor != null) {
+                geoLocationCursor.close();
+            }
+            if (eventCursor != null) {
+                eventCursor.close();
             }
         }
+    }
+
+    /**
+     * Loads the {@link Track}s for the provided {@link GeoLocation} cursor sliced using the provided {@link Event}
+     * cursor.
+     *
+     * @param geoLocationCursor The {@code GeoLocation} cursor which points to the locations to be loaded.
+     * @param eventCursor The {@code Event} cursor which points to the events annotation the corresponding
+     *            {@link Measurement}.
+     * @return The {@link Track}s for the corresponding {@code Measurement} loaded.
+     */
+    @NonNull
+    private List<Track> loadTracks(@NonNull final Cursor geoLocationCursor, @NonNull final Cursor eventCursor) {
+        final List<Track> tracks = new ArrayList<>();
+
+        // Slice Tracks before resume events
+        // This helps to allocate GeoLocations which are captured just after pause was hit to the track which just
+        // ended.
+        while (eventCursor.moveToNext()) {
+            final Event.EventType eventType = Event.EventType
+                    .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+            if (eventType != Event.EventType.LIFECYCLE_RESUME) {
+                continue;
+            }
+
+            // get all geolocations captured before this RESUME event
+            final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+            final Track track = new Track();
+            while (geoLocationCursor.moveToNext()) {
+                final GeoLocation location = loadGeoLocation(geoLocationCursor);
+                if (location.getTimestamp() >= eventTime) {
+                    geoLocationCursor.moveToPrevious();
+                    break; // Next track reached
+                }
+                track.add(location);
+            }
+            if (track.getGeoLocations().size() > 0) {
+                tracks.add(track);
+            }
+        }
+
+        // Create track for tail (remaining locations after the last pause event)
+        // This is ether the track between start[, pause] and stop or resume[, pause] and stop.
+        final Track track = new Track();
+        while (geoLocationCursor.moveToNext()) {
+            final GeoLocation location = loadGeoLocation(geoLocationCursor);
+            track.add(location);
+        }
+        if (track.getGeoLocations().size() > 0) {
+            tracks.add(track);
+        }
+
+        return tracks;
+    }
+
+    /**
+     * Loads the {@link GeoLocation} at the {@code Cursor}'s current position.
+     *
+     * @param geoLocationCursor the {@code Cursor} pointing to a {@code GeoLocation} in the database.
+     * @return the {@code GeoLocation} loaded.
+     */
+    private GeoLocation loadGeoLocation(@NonNull final Cursor geoLocationCursor) {
+
+        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
+        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
+        final long timestamp = geoLocationCursor
+                .getLong(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
+        final double speed = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
+        final float accuracy = geoLocationCursor
+                .getFloat(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
+        return new GeoLocation(lat, lon, timestamp, speed, accuracy);
     }
 
     /**
@@ -565,6 +640,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public Uri getGeoLocationsUri() {
         return Utils.getGeoLocationsUri(authority);
+    }
+
+    /**
+     * @return The content provider {@link Uri} for the {@link EventTable}.
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
+     */
+    public Uri getEventUri() {
+        return Utils.getEventUri(authority);
     }
 
     /**
@@ -748,5 +832,24 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public B getPersistenceBehaviour() {
         return persistenceBehaviour;
+    }
+
+    /**
+     * Stores a new {@link Event} in the {@link PersistenceLayer} which is linked to a {@link Measurement}.
+     *
+     * @param eventType The {@link Event.EventType} to be logged.
+     * @param measurement The {@code Measurement} which is linked to the {@code Event}.
+     */
+    public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement) {
+        final long timestamp = System.currentTimeMillis();
+        Log.v(TAG,
+                "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
+
+        final ContentValues contentValues = new ContentValues();
+        contentValues.put(EventTable.COLUMN_TYPE, eventType.getDatabaseIdentifier());
+        contentValues.put(EventTable.COLUMN_TIMESTAMP, timestamp);
+        contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
+
+        resolver.insert(getEventUri(), contentValues);
     }
 }
