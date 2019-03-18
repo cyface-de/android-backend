@@ -118,7 +118,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
                 // Distance column was added. Calculate the distance for existing entries.
                 database.execSQL("ALTER TABLE _measurements_old ADD COLUMN distance REAL NOT NULL DEFAULT 0.0;");
-                // FIXME: calculate distance for old entries!
+                // FIXME: calculate distance for old entries! - update test, too
 
                 // Columns "finished" and "synced" are now in the "status" column
                 // To migrate old measurements we need to set a default which is then adjusted

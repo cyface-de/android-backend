@@ -1,10 +1,8 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.TestUtils.AUTHORITY;
-import static de.cyface.persistence.Utils.getEventUri;
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getIdentifierUri;
-import static de.cyface.persistence.Utils.getMeasurementUri;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 import org.junit.After;
 import org.junit.Before;
@@ -13,7 +11,6 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
 import android.database.sqlite.SQLiteCursor;
@@ -46,20 +43,13 @@ public class DatabaseHelperTest {
      * The object of the class under test
      */
     private DatabaseHelper oocut;
-    private ContentResolver resolver;
 
     @Before
     public void setUp() {
         Context context = ApplicationProvider.getApplicationContext();
-        resolver = context.getContentResolver();
         oocut = new DatabaseHelper(context);
 
-        // Clearing database just in case
-        resolver.delete(getIdentifierUri(AUTHORITY), null, null);
-        resolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
-        resolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        resolver.delete(getEventUri(AUTHORITY), null, null);
-
+        // Create a memory-backed database which is destroyed on close
         SQLiteDatabase.CursorFactory cursorFactory = new SQLiteDatabase.CursorFactory() {
             @Override
             public Cursor newCursor(final SQLiteDatabase db, final SQLiteCursorDriver masterQuery,
@@ -75,10 +65,6 @@ public class DatabaseHelperTest {
      */
     @After
     public void tearDown() {
-        resolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
-        resolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        resolver.delete(getEventUri(AUTHORITY), null, null);
-        resolver.delete(getIdentifierUri(AUTHORITY), null, null);
         db.close();
     }
 
@@ -119,6 +105,32 @@ public class DatabaseHelperTest {
         // Assert
         // Loading from the newly added table must work (STAD-85)
         db.execSQL("SELECT * FROM events;");
+
+        // Make sure the relevant data from before the upgrade still exists
+        Cursor cursor = null;
+        try {
+            // Measurements must still exist after the upgrade
+            cursor = db.query("measurements", null, null, null, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(3)));
+            cursor = db.query("measurements", null, "status = ? AND distance = ? AND file_format_version = ?",
+                    new String[] {"SYNCED", "0.0", "1"}, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor = db.query("measurements", null, "status = ? AND distance = ? AND file_format_version = ?",
+                    new String[] {"FINISHED", "0.0", "1"}, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor = db.query("measurements", null, "status = ? AND distance = ? AND file_format_version = ?",
+                    new String[] {"OPEN", "0.0", "1"}, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+
+            // GeoLocations must still exist after the upgrade
+            cursor = db.query("locations", null, null, null, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(4)));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+
     }
 
     /**
@@ -219,9 +231,11 @@ public class DatabaseHelperTest {
         // Create MeasurementTable
         // In the V8 MeasurementTable.onUpgrade code there is a bug but it is never executed
         // as a fresh V8 is installed for early 2019 STAD users and the old upgrade code is never executed.
+        db.execSQL("DROP TABLE IF EXISTS measurement");
         db.execSQL(
                 "CREATE TABLE measurement(_id INTEGER PRIMARY KEY AUTOINCREMENT, finished INTEGER NOT NULL DEFAULT 1, "
                         + "vehicle TEXT, synced INTEGER NOT NULL DEFAULT 0);");
+
         // Create GpsPointTable
         db.execSQL("CREATE TABLE gps_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
                 + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
@@ -249,7 +263,13 @@ public class DatabaseHelperTest {
         db.execSQL("INSERT INTO measurement (_id,finished,vehicle,synced) VALUES (44,0,'BICYCLE',0);");
         // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
         db.execSQL("INSERT INTO gps_points (_id,gps_time,lat,lon,speed,accuracy,measurement_fk,is_synced) VALUES "
-                + " (3,1551431485000,51.05210394,13.72873203,0.0,1179,43,0);");
+                + " (2,1551431484000,51.05,13.72,0.0,1000,42,1);");
+        db.execSQL("INSERT INTO gps_points (_id,gps_time,lat,lon,speed,accuracy,measurement_fk,is_synced) VALUES "
+                + " (3,1551431485000,51.05210394,13.72873203,0.0,1179,43,1);");
+        db.execSQL("INSERT INTO gps_points (_id,gps_time,lat,lon,speed,accuracy,measurement_fk,is_synced) VALUES "
+                + " (4,1551431486000,51.052,13.7287,0.0,1200,43,0);");
+        db.execSQL("INSERT INTO gps_points (_id,gps_time,lat,lon,speed,accuracy,measurement_fk,is_synced) VALUES "
+                + " (5,1551431487000,51.05,13.728,0.0,1200,44,0);");
         // Insert sample SamplePointTable entries - execSQL only supports one insert per commend
         db.execSQL("INSERT INTO sample_points (_id,ax,ay,az,time,measurement_fk,is_synced) VALUES "
                 + " (101,0.123,0.234,-0.321,1552917550000,43,0);");
@@ -259,5 +279,17 @@ public class DatabaseHelperTest {
         // Insert sample MagneticValuePointTable entries - execSQL only supports one insert per commend
         db.execSQL("INSERT INTO magnetic_value_points (_id,mx,my,mz,time,measurement_fk,is_synced) VALUES "
                 + " (101,0.123,0.234,-0.321,1552917550000,43,0);");
+
+        // Make sure the relevant data exists
+        Cursor cursor = null;
+        try {
+            // Measurements must still exist after the upgrade
+            cursor = db.query("measurement", null, null, null, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(3)));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 }
