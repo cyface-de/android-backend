@@ -41,8 +41,6 @@ public class DatabaseHelperTest {
      * We require Mockito to avoid calling Android system functions. This rule is responsible for the initialization of
      * the Spies and Mocks.
      */
-    // @Rule
-    // public MockitoRule mockitoRule = MockitoJUnit.rule();
     private SQLiteDatabase db;
     /**
      * The object of the class under test
@@ -108,15 +106,12 @@ public class DatabaseHelperTest {
      * after upgrading from the V2 SDK version which was included in the first official STAD release (#776b323540).
      * <p>
      * The database upgrade V12 was part of (STAD-6)!
-     * <p>
-     * FIXME: THIS TEST MUST MAKE SURE MEASUREMENTS AND GPS POINTS FROM V8 are not deleted on Upgrade!
      */
     @Test
     public void testMigrationV8ToV12() {
 
         // Arrange
         createV8DatabaseWithData(db);
-        // FIXME: try with and without measurement.sync column
 
         // Act - This is how the method is called by the system (not incrementally!)
         oocut.onUpgrade(db, 8, 12);
@@ -177,7 +172,7 @@ public class DatabaseHelperTest {
         // # Create V11 Tables:
 
         // Create android_metadata table (exists in SQLite export)
-        db.execSQL("DROP TABLE IF EXISTS `android_metadata`");
+        db.execSQL("DROP TABLE IF EXISTS android_metadata");
         db.execSQL("CREATE TABLE android_metadata (locale TEXT);");
         // Create IdentifierTable
         db.execSQL("CREATE TABLE identifiers (_id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL);");
@@ -198,7 +193,7 @@ public class DatabaseHelperTest {
         db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
         // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
         db.execSQL(
-                "INSERT INTO `measurements` (_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) VALUES "
+                "INSERT INTO measurements (_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) VALUES "
                         + " (43,'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979);");
         // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
         db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
@@ -219,9 +214,11 @@ public class DatabaseHelperTest {
         // # Create V8 Tables:
 
         // Create android_metadata table (exists in SQLite export)
-        db.execSQL("DROP TABLE IF EXISTS `android_metadata`");
+        db.execSQL("DROP TABLE IF EXISTS android_metadata");
         db.execSQL("CREATE TABLE android_metadata (locale TEXT);");
         // Create MeasurementTable
+        // In the V8 MeasurementTable.onUpgrade code there is a bug but it is never executed
+        // as a fresh V8 is installed for early 2019 STAD users and the old upgrade code is never executed.
         db.execSQL(
                 "CREATE TABLE measurement(_id INTEGER PRIMARY KEY AUTOINCREMENT, finished INTEGER NOT NULL DEFAULT 1, "
                         + "vehicle TEXT, synced INTEGER NOT NULL DEFAULT 0);");
