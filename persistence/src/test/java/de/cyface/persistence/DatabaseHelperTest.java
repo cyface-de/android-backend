@@ -5,19 +5,11 @@ import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-
-import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
@@ -30,9 +22,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQuery;
 
 import androidx.test.core.app.ApplicationProvider;
-import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.Track;
-import de.cyface.utils.CursorIsNullException;
 
 /**
  * This class tests the migration functionality of {@link DatabaseHelper}.
@@ -46,33 +35,27 @@ import de.cyface.utils.CursorIsNullException;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(manifest = Config.NONE) // Or do we need one?
-//@Config(constants = BuildConfig.class, sdk = DefaultConfig.EMULATE_SDK)
+// @Config(constants = BuildConfig.class, sdk = DefaultConfig.EMULATE_SDK)
 public class DatabaseHelperTest {
 
     /**
      * We require Mockito to avoid calling Android system functions. This rule is responsible for the initialization of
      * the Spies and Mocks.
      */
-    //@Rule
-    //public MockitoRule mockitoRule = MockitoJUnit.rule();
+    // @Rule
+    // public MockitoRule mockitoRule = MockitoJUnit.rule();
     private SQLiteDatabase db;
     /**
      * The object of the class under test
      */
     private DatabaseHelper oocut;
-    /**
-     * The Android test <code>Context</code> to use for testing.
-     */
-    private Context context;
     private ContentResolver resolver;
-    PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
 
     @Before
     public void setUp() {
-        context = ApplicationProvider.getApplicationContext();
+        Context context = ApplicationProvider.getApplicationContext();
         resolver = context.getContentResolver();
         oocut = new DatabaseHelper(context);
-        persistenceLayer = new PersistenceLayer<>(context, resolver, AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Clearing database just in case
         resolver.delete(getIdentifierUri(AUTHORITY), null, null);
@@ -80,13 +63,11 @@ public class DatabaseHelperTest {
         resolver.delete(getMeasurementUri(AUTHORITY), null, null);
         resolver.delete(getEventUri(AUTHORITY), null, null);
 
-        // Sample:
-        // mContext = new RenamingDelegatingContext(context, "db_helper_test_");
         SQLiteDatabase.CursorFactory cursorFactory = new SQLiteDatabase.CursorFactory() {
             @Override
             public Cursor newCursor(final SQLiteDatabase db, final SQLiteCursorDriver masterQuery,
                     final String editTable, final SQLiteQuery query) {
-                return new SQLiteCursor(db, masterQuery, editTable, query);
+                return new SQLiteCursor(masterQuery, editTable, query);
             }
         };
         db = SQLiteDatabase.create(cursorFactory);
@@ -108,7 +89,7 @@ public class DatabaseHelperTest {
      * Test that changing a single column value for a geo location works as expected.
      */
     @Test
-    public void testMigrationV11ToV12() throws CursorIsNullException, NoDeviceIdException {
+    public void testMigrationV11ToV12() {
 
         // Arrange
         createV11DatabaseWithData(db);
