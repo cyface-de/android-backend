@@ -86,7 +86,40 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Test that changing a single column value for a geo location works as expected.
+     * Test that loading the EventTable which was introduced in the Database V12 Upgrade works
+     * after upgrading from the V2 SDK version which was included in the first official STAD release (#776b323540).
+     * <p>
+     * The database upgrade V12 was part of (STAD-6)!
+     */
+    @Test
+    public void testMigrationV8ToV12() {
+
+        // Arrange
+        createV8DatabaseWithData(db);
+
+        // Act
+        // The old code had the following special onUpgrade line:
+        /*
+         * --MeasurementTable--
+         * case 8:
+         * database.beginTransaction();
+         * database.execSQL(
+         * "ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_SYNCED + " INTEGER NOT NULL DEFAULT 0;");
+         */
+        oocut.onUpgrade(db, 8, 9);
+        oocut.onUpgrade(db, 9, 10);
+        oocut.onUpgrade(db, 10, 11);
+        oocut.onUpgrade(db, 11, 12);
+
+        // Assert
+        // Loading from the newly added table must work (STAD-85)
+        db.execSQL("SELECT * FROM events;");
+    }
+
+    /**
+     * Test that loading the EventTable which was introduced in the Database V12 Upgrade works.
+     * <p>
+     * This database upgrade V12 was part of (STAD-6)!
      */
     @Test
     public void testMigrationV11ToV12() {
@@ -97,7 +130,61 @@ public class DatabaseHelperTest {
         // Act
         oocut.onUpgrade(db, 11, 12);
 
-        // Assert - currently only checking that there is not exception
+        // Assert
+        // Loading from the newly added table must work (STAD-85)
+        db.execSQL("SELECT * FROM events;");
+    }
+
+    /**
+     * Creates a database as it would have been created with {@link DatabaseHelper#DATABASE_VERSION} 8.
+     * <p>
+     * <b>Attention:</b>
+     * It's important that the create statements only contains hardcoded Strings as the table and column names
+     * should be the same as they were in that version to really test the migration as it would happen in real.
+     *
+     * @param db A clean {@link SQLiteDatabase} to use for testing.
+     */
+    private void createV8DatabaseWithData(SQLiteDatabase db) {
+
+        // Create V8 Tables:
+
+        // Create android_metadata table (exists in SQLite export)
+        db.execSQL("DROP TABLE IF EXISTS `android_metadata`");
+        db.execSQL("CREATE TABLE android_metadata (locale TEXT);");
+        // Create MeasurementTable
+        db.execSQL(
+                "CREATE TABLE measurement(_id INTEGER PRIMARY KEY AUTOINCREMENT, finished INTEGER NOT NULL DEFAULT 1, "
+                        + "vehicle TEXT, synced INTEGER NOT NULL DEFAULT 0);");
+        // Create GpsPointTable
+        db.execSQL("CREATE TABLE gps_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
+                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
+                + "measurement_fk INTEGER NOT NULL, is_synced INTEGER NOT NULL DEFAULT 0);");
+        // Create SamplePointTable
+        db.execSQL("CREATE TABLE sample_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, ax REAL NOT NULL, "
+                + "ay REAL NOT NULL, az REAL NOT NULL, time INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, "
+                + "is_synced INTEGER NOT NULL DEFAULT 0);");
+        // Create RotationPointTable
+        db.execSQL("CREATE TABLE rotation_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, rx REAL NOT NULL, "
+                + "ry REAL NOT NULL, rz REAL NOT NULL, time INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, "
+                + "is_synced INTEGER NOT NULL DEFAULT 0);");
+        // Create MagneticValuePointTable
+        db.execSQL("CREATE TABLE magnetic_value_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, mx REAL NOT NULL, "
+                + "my REAL NOT NULL, mz REAL NOT NULL, time INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, "
+                + "is_synced INTEGER NOT NULL DEFAULT 0);");
+
+        // Insert V8 sample data:
+
+        // Insert sample android_metadata table entry (exists in SQLite export)
+        db.execSQL("INSERT INTO android_metadata (locale) VALUES ('de_DE');");
+        // Insert sample IdentifierTable entry
+        db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
+        // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
+        db.execSQL(
+                "INSERT INTO `measurements` (_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) VALUES "
+                        + " (43,'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979);");
+        // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
+        db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
+                + " (3,1551431485000,51.05210394,13.72873203,0.0,1179,43);");
     }
 
     /**
