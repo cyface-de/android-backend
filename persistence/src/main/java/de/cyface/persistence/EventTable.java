@@ -55,17 +55,22 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
 
     /**
      * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
-     *
-     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     * <p>
+     * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
+     * <p>
+     * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
+     * <p>
+     * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
      */
     @Override
-    public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
+    public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
-        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
-        switch (oldVersion) {
+        switch (fromVersion) {
+
             case 11:
+                // This table was added in version 12
                 onCreate(database);
-                // continues with the next incremental upgrade until return ! -->
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
     }

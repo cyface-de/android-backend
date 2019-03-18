@@ -1,7 +1,9 @@
 package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
+import android.database.sqlite.SQLiteException;
 import android.provider.BaseColumns;
+import android.util.Log;
 
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -9,6 +11,8 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+
+import static de.cyface.persistence.Constants.TAG;
 
 /**
  * This class represents the table containing all the {@link Measurement}s currently stored on this device.
@@ -73,35 +77,68 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, " + COLUMN_ACCELERATIONS
                 + " INTEGER NOT NULL, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
-                + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " SHORT INTEGER NOT NULL, "
+                + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, "
                 + COLUMN_DISTANCE + " REAL NOT NULL);";
     }
 
     /**
      * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
-     *
-     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     * <p>
+     * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
+     * <p>
+     * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
+     * <p>
+     * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
      */
     @Override
-    public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
+    public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
-        switch (oldVersion) {
+        switch (fromVersion) {
+
             case 8:
-                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
-                // We don't support an soft-upgrade there but reset the database
+                // To drop columns we need to copy the table. We anyway renamed the table to measurement*s*.
+                database.execSQL("ALTER TABLE measurement RENAME TO _measurements_old;");
 
-                // We don't use a transaction as this lead to an unresolvable error where the IdentifierTable
-                // was not created in time for the first database query.
+                // Due to a bug in the code of V8 MeasurementTable we may need to create the sync column
+                try {
+                    database.execSQL("ALTER TABLE _measurements_old ADD COLUMN synced INTEGER NOT NULL DEFAULT 0");
+                } catch (final SQLiteException ex) {
+                    Log.w(TAG, "Altering measurements: " + ex.getMessage());
+                }
 
-                database.execSQL("DELETE FROM measurement;");
-                database.execSQL("DROP TABLE measurement;");
-                onCreate(database);
-                break; // As always the newest onCreate() is used, there is no need for further upgrades!
-            case 10:
-                // When there are already measurement entries during update we need a default value
+                // Columns "accelerations", "rotations", and "directions" were added
+                // We don't support a data preserving upgrade for sensor data stored in the database
+                // Thus, the data is deleted in DatabaseHelper#onUpgrade and the counters are set to 0.
+                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN accelerations INTEGER NOT NULL DEFAULT 0");
+                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN rotations INTEGER NOT NULL DEFAULT 0");
+                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN directions INTEGER NOT NULL DEFAULT 0");
+                // For the same reason we can just set the file_format_version to 1 (first supported version)
                 database.execSQL(
-                        "ALTER TABLE " + getName() + " ADD COLUMN " + COLUMN_DISTANCE + " REAL NOT NULL DEFAULT 0.0;");
-                // continues with the next incremental upgrade until return ! -->
+                        "ALTER TABLE _measurements_old ADD COLUMN file_format_version INTEGER NOT NULL DEFAULT 1");
+
+                // Distance column was added. Calculate the distance for existing entries.
+                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN distance REAL NOT NULL DEFAULT 0.0;");
+                // FIXME: calculate distance for old entries!
+
+                // Columns "finished" and "synced" are now in the "status" column
+                // To migrate old measurements we need to set a default which is then adjusted
+                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN status TEXT NOT NULL DEFAULT 'MIGRATION'");
+                database.execSQL("UPDATE _measurements_old SET status = 'OPEN' WHERE finished = 0 AND synced = 0");
+                database.execSQL("UPDATE _measurements_old SET status = 'FINISHED' WHERE finished = 1 AND synced = 0");
+                database.execSQL("UPDATE _measurements_old SET status = 'SYNCED' WHERE finished = 1 AND synced = 1");
+
+                // To drop columns "finished" and "synced" we need to create a new table
+                database.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "+
+                        "status TEXT NOT NULL, vehicle TEXT NOT NULL, accelerations INTEGER NOT NULL, " +
+                        "rotations INTEGER NOT NULL, directions INTEGER NOT NULL, file_format_version INTEGER NOT NULL, "
+                        + "distance REAL NOT NULL);");
+                // and insert the old data accordingly. This is anyway cleaner (no defaults)
+                database.execSQL("INSERT INTO measurements "+
+                        "(_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) "+
+                        "SELECT _id,status,vehicle,accelerations,rotations,directions,file_format_version,distance "+
+                        "FROM _measurements_old");
+
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
     }

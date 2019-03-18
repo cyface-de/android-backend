@@ -69,25 +69,33 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
 
     /**
      * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
-     *
-     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     * <p>
+     * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
+     * <p>
+     * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
+     * <p>
+     * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
      */
     @Override
-    public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
+    public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
-        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
-        switch (oldVersion) {
+        switch (fromVersion) {
+
             case 8:
-                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
-                // We don't support an soft-upgrade there but reset the database
+                // To drop columns we need to copy the table. We anyway renamed the table to locations.
+                database.execSQL("ALTER TABLE gps_points RENAME TO _locations_old;");
 
-                // We don't use a transaction as this lead to an unresolvable error where the IdentifierTable
-                // was not created in time for the first database query.
+                // To drop columns "is_synced" we need to create a new table
+                database.execSQL(
+                        "CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
+                                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
+                                + "measurement_fk INTEGER NOT NULL);");
+                // and insert the old data accordingly. This is anyway cleaner (no defaults)
+                // We ignore the value as we upload to a new API.
+                database.execSQL("INSERT INTO locations " + "(_id,gps_time,lat,lon,speed,accuracy,measurement_fk) "
+                        + "SELECT _id,gps_time,lat,lon,speed,accuracy,measurement_fk " + "FROM _locations_old");
 
-                database.execSQL("DELETE FROM gps_points;");
-                database.execSQL("DROP TABLE gps_points;");
-                onCreate(database);
-                // continues with the next incremental upgrade until return ! -->
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
     }

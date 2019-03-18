@@ -27,9 +27,12 @@ public interface CyfaceMeasurementTable {
     /**
      * Called during an update of the database. This usually happens if {@code newVersion} is different from
      * {@code oldVersion} and should execute some SQL statements to upgrade the old table format to the new one. If no
-     * changes happened from one version to the other it can stay the same. If you don't care about the data in the
-     * table after an update, you can just delete the old table and create an empty new one. This is the easiest
-     * implementation but you WILL LOSE ALL DATA.
+     * changes happened from one version to the other it can stay the same.
+     * <p>
+     * If you don't care about the data in the table after an update, you can just delete the old table and create an
+     * empty new one. This is the easiest implementation but you WILL LOSE ALL DATA.
+     * <p>
+     * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
      *
      * @param database The database to upgrade the table for.
      * @param oldVersion The prior version number.

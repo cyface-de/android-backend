@@ -77,7 +77,7 @@ public abstract class AbstractCyfaceMeasurementTable implements CyfaceMeasuremen
     protected abstract String getCreateStatement();
 
     @Override
-    public abstract void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion);
+    public abstract void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion);
 
     @Override
     public Cursor query(final SQLiteDatabase database, final String[] projection, final String selection,
