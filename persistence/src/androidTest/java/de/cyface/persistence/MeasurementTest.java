@@ -1,6 +1,7 @@
 package de.cyface.persistence;
 
 import static de.cyface.persistence.TestUtils.AUTHORITY;
+import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -58,6 +59,16 @@ public class MeasurementTest {
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
+    }
+
+    /**
+     * Shuts down the test and makes sure the database is empty for the next test.
+     */
+    @After
+    public void tearDown() {
+        resolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
+        resolver.delete(getMeasurementUri(AUTHORITY), null, null);
+        resolver.delete(getEventUri(AUTHORITY), null, null);
     }
 
     /**
@@ -124,14 +135,5 @@ public class MeasurementTest {
         ret.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
         ret.put(GeoLocationsTable.COLUMN_ACCURACY, 300);
         return ret;
-    }
-
-    /**
-     * Shuts down the test and makes sure the database is empty for the next test.
-     */
-    @After
-    public void tearDown() {
-        resolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
-        resolver.delete(getMeasurementUri(AUTHORITY), null, null);
     }
 }

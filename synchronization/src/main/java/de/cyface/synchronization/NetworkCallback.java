@@ -11,7 +11,6 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import de.cyface.utils.Validate;
 
 /**
  * This callback handles status changes of the {@link Network} connectivity, e.g. to determine if synchronization should
@@ -53,7 +52,11 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
         // Ensure this event is only triggered for not metered connections when syncOnUnMeteredNetworkOnly
         if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
             final boolean notMetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
-            Validate.isTrue(notMetered);
+            // This should always be the case but for some reasons it's not (Nexus 5)
+            if (!notMetered) {
+                Log.e(TAG, "onCapabilitiesChanged called on metered network with isSyncOnUnMeteredNetworkOnly on");
+                return;
+            }
         }
 
         if (currentSynchronizationAccount == null) {
