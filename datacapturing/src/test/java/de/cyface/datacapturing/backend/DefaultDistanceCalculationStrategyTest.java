@@ -33,7 +33,7 @@ import de.cyface.persistence.model.GeoLocation;
  * This has to be an integration test as we use Android's {@link Location} class for distance calculation.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 3.2.0
  */
 @RunWith(RobolectricTestRunner.class)

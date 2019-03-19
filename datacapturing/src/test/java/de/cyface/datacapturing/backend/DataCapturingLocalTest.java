@@ -61,7 +61,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.2
+ * @version 2.2.3
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)

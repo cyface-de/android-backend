@@ -45,7 +45,7 @@ import de.cyface.testutils.SharedTestUtils;
  * open it with *DB Browser for SQLite* and use File > Export > Database to SQL file.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 4.0.0
  */
 @RunWith(RobolectricTestRunner.class)
