@@ -1,18 +1,20 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
+import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;
-import android.database.sqlite.SQLiteException;
 import android.provider.BaseColumns;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-
-import static de.cyface.persistence.Constants.TAG;
+import de.cyface.utils.Validate;
 
 /**
  * This class represents the table containing all the {@link Measurement}s currently stored on this device.
@@ -96,55 +98,152 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
         switch (fromVersion) {
 
             case 8:
-                // To drop columns we need to copy the table. We anyway renamed the table to measurement*s*.
-                database.execSQL("ALTER TABLE measurement RENAME TO _measurements_old;");
+                Log.d(TAG, "Upgrading measurement table from V8");
+                migrateDatabaseFromV8(database);
 
-                // Due to a bug in the code of V8 MeasurementTable we may need to create the sync column
-                /* This should never be the case for STAD-2019
-                try {
-                    database.execSQL("ALTER TABLE _measurements_old ADD COLUMN synced INTEGER NOT NULL DEFAULT 0");
-                } catch (final SQLiteException ex) {
-                    Log.w(TAG, "Altering measurements: " + ex.getMessage());
-                }*/
+                break; // onUpgrade is called incrementally by DatabaseHelper
 
-                // Columns "accelerations", "rotations", and "directions" were added
-                // We don't support a data preserving upgrade for sensor data stored in the database
-                // Thus, the data is deleted in DatabaseHelper#onUpgrade and the counters are set to 0.
-                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN accelerations INTEGER NOT NULL DEFAULT 0");
-                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN rotations INTEGER NOT NULL DEFAULT 0");
-                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN directions INTEGER NOT NULL DEFAULT 0");
-                // For the same reason we can just set the file_format_version to 1 (first supported version)
-                database.execSQL(
-                        "ALTER TABLE _measurements_old ADD COLUMN file_format_version INTEGER NOT NULL DEFAULT 1");
+            case 9:
+                // Version 9 was never released so we use this to make sure the MeasurementTable and GeoLocationsTable
+                // already migrated from V8. Now we calculate the correct distance for the migrated data:
+                Log.d(TAG, "Calculating distances for migrated V8 measurements");
 
-                // Distance column was added. Calculate the distance for existing entries.
-                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN distance REAL NOT NULL DEFAULT 0.0;");
-                // FIXME: calculate distance for old entries! - update test, too
-
-                // Columns "finished" and "synced" are now in the "status" column
-                // To migrate old measurements we need to set a default which is then adjusted
-                database.execSQL("ALTER TABLE _measurements_old ADD COLUMN status TEXT NOT NULL DEFAULT 'MIGRATION'");
-                database.execSQL("UPDATE _measurements_old SET status = 'OPEN' WHERE finished = 0 AND synced = 0");
-                database.execSQL("UPDATE _measurements_old SET status = 'FINISHED' WHERE finished = 1 AND synced = 0");
-                database.execSQL("UPDATE _measurements_old SET status = 'SYNCED' WHERE finished = 1 AND synced = 1");
-
-                // To drop columns "finished" and "synced" we need to create a new table
-                database.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "+
-                        "status TEXT NOT NULL, vehicle TEXT NOT NULL, accelerations INTEGER NOT NULL, " +
-                        "rotations INTEGER NOT NULL, directions INTEGER NOT NULL, file_format_version INTEGER NOT NULL, "
-                        + "distance REAL NOT NULL);");
-                // and insert the old data accordingly. This is anyway cleaner (no defaults)
-                database.execSQL("INSERT INTO measurements "+
-                        "(_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) "+
-                        "SELECT _id,status,vehicle,accelerations,rotations,directions,file_format_version,distance "+
-                        "FROM _measurements_old");
-
-                // Remove temp table
-                database.execSQL("DROP TABLE _measurements_old;");
+                updateDistanceForV8Measurements(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
+    }
+
+    /**
+     * Calculates and updates the distance for {@link Measurement}s migrated from V8 which have 0.0 as distance.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void updateDistanceForV8Measurements(@NonNull final SQLiteDatabase database) {
+        Cursor measurementCursor = null;
+        Cursor geoLocationCursor = null;
+        try {
+            measurementCursor = database.query("measurements", new String[] {"_id"}, null, null, null, null, null,
+                    null);
+            if (measurementCursor.getCount() == 0) {
+                Log.v(TAG, "No measurements for migration found");
+                return;
+            }
+
+            // Check all measurements
+            while (measurementCursor.moveToNext()) {
+                final int identifierColumnIndex = measurementCursor.getColumnIndex("_id");
+                final long measurementId = measurementCursor.getLong(identifierColumnIndex);
+
+                geoLocationCursor = database.query("locations",
+                        new String[] {"lat", "lon", "gps_time", "speed", "accuracy"}, "measurement_fk = ?",
+                        new String[] {String.valueOf(measurementId)}, null, null, "gps_time ASC", null);
+                if (geoLocationCursor.getCount() < 2) {
+                    Log.v(TAG, "Not enough geoLocations to update distance in measurement entry:" + measurementId);
+                    continue;
+                }
+
+                // Calculate distance for selected measurement
+                final DistanceCalculationStrategy distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
+                double distance = 0.0;
+                GeoLocation previousLocation = null;
+                while (geoLocationCursor.moveToNext()) {
+                    final int latColumnIndex = geoLocationCursor.getColumnIndex("lat");
+                    final int lonColumnIndex = geoLocationCursor.getColumnIndex("lon");
+                    final int timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time");
+                    final int speedColumnIndex = geoLocationCursor.getColumnIndex("speed");
+                    final int accuracyColumnIndex = geoLocationCursor.getColumnIndex("accuracy");
+                    final double lat = geoLocationCursor.getFloat(latColumnIndex);
+                    final double lon = geoLocationCursor.getFloat(lonColumnIndex);
+                    final long time = geoLocationCursor.getLong(timeColumnIndex);
+                    final float speed = geoLocationCursor.getFloat(speedColumnIndex);
+                    final int accuracy = geoLocationCursor.getInt(accuracyColumnIndex);
+                    final GeoLocation geoLocation = new GeoLocation(lat, lon, time, speed, accuracy);
+
+                    // We cannot calculate a distance from just one geoLocation:
+                    if (previousLocation == null) {
+                        previousLocation = geoLocation;
+                        continue;
+                    }
+
+                    // Calculate distance between last two locations
+                    final double newDistance = distanceCalculationStrategy.calculateDistance(previousLocation,
+                            geoLocation);
+                    Validate.isTrue(newDistance >= 0);
+
+                    distance += newDistance;
+                    previousLocation = geoLocation;
+                }
+
+                Log.v(TAG, "Updating distance for measurement " + measurementId + " to " + distance);
+                database.execSQL("UPDATE measurements SET distance = " + distance + " WHERE _id = " + measurementId);
+            }
+
+        } finally {
+            if (measurementCursor != null) {
+                measurementCursor.close();
+            }
+            if (geoLocationCursor != null) {
+                geoLocationCursor.close();
+            }
+        }
+    }
+
+    /**
+     * Renames table, updates the table structure and copies the data.
+     * <p>
+     * The distance column is set to 0.0 as it's calculated in the next migration to ensure both
+     * {@link GeoLocationsTable} and {@link MeasurementTable} is already upgraded.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void migrateDatabaseFromV8(@NonNull final SQLiteDatabase database) {
+        // To drop columns we need to copy the table. We anyway renamed the table to measurement*s*.
+        database.execSQL("ALTER TABLE measurement RENAME TO _measurements_old;");
+
+        // Due to a bug in the code of V8 MeasurementTable we may need to create the sync column
+        /*
+         * This should never be the case for STAD-2019
+         * try {
+         * database.execSQL("ALTER TABLE _measurements_old ADD COLUMN synced INTEGER NOT NULL DEFAULT 0");
+         * } catch (final SQLiteException ex) {
+         * Log.w(TAG, "Altering measurements: " + ex.getMessage());
+         * }
+         */
+
+        // Columns "accelerations", "rotations", and "directions" were added
+        // We don't support a data preserving upgrade for sensor data stored in the database
+        // Thus, the data is deleted in DatabaseHelper#onUpgrade and the counters are set to 0.
+        database.execSQL("ALTER TABLE _measurements_old ADD COLUMN accelerations INTEGER NOT NULL DEFAULT 0");
+        database.execSQL("ALTER TABLE _measurements_old ADD COLUMN rotations INTEGER NOT NULL DEFAULT 0");
+        database.execSQL("ALTER TABLE _measurements_old ADD COLUMN directions INTEGER NOT NULL DEFAULT 0");
+        // For the same reason we can just set the file_format_version to 1 (first supported version)
+        database.execSQL("ALTER TABLE _measurements_old ADD COLUMN file_format_version INTEGER NOT NULL DEFAULT 1");
+
+        // Distance column was added. We calculate the distance for the migrated data in onUpgrade(9, 10)
+        database.execSQL("ALTER TABLE _measurements_old ADD COLUMN distance REAL NOT NULL DEFAULT 0.0;");
+
+        // Columns "finished" and "synced" are now in the "status" column
+        // To migrate old measurements we need to set a default which is then adjusted
+        database.execSQL("ALTER TABLE _measurements_old ADD COLUMN status TEXT NOT NULL DEFAULT 'MIGRATION'");
+        database.execSQL("UPDATE _measurements_old SET status = 'OPEN' WHERE finished = 0 AND synced = 0");
+        database.execSQL("UPDATE _measurements_old SET status = 'FINISHED' WHERE finished = 1 AND synced = 0");
+        database.execSQL("UPDATE _measurements_old SET status = 'SYNCED' WHERE finished = 1 AND synced = 1");
+
+        // To drop columns "finished" and "synced" we need to create a new table
+        database.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "status TEXT NOT NULL, vehicle TEXT NOT NULL, accelerations INTEGER NOT NULL, "
+                + "rotations INTEGER NOT NULL, directions INTEGER NOT NULL, file_format_version INTEGER NOT NULL, "
+                + "distance REAL NOT NULL);");
+        // and insert the old data accordingly. This is anyway cleaner (no defaults)
+        database.execSQL("INSERT INTO measurements "
+                + "(_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) "
+                + "SELECT _id,status,vehicle,accelerations,rotations,directions,file_format_version,distance "
+                + "FROM _measurements_old");
+
+        // Remove temp table
+        database.execSQL("DROP TABLE _measurements_old;");
     }
 
     @Override

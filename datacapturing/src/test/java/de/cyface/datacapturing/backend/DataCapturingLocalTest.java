@@ -1,7 +1,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
-import static de.cyface.datacapturing.backend.TestUtils.generateGeoLocation;
+import static de.cyface.persistence.TestUtils.generateGeoLocation;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -29,10 +29,11 @@ import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
 
 import android.os.Parcelable;
-import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
+
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;

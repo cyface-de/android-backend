@@ -51,7 +51,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.DataCapturingService;
-import de.cyface.datacapturing.DistanceCalculationStrategy;
+import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;

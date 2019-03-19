@@ -14,7 +14,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;

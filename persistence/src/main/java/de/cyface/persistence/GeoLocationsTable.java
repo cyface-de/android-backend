@@ -1,8 +1,12 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Constants.TAG;
+
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
+import android.util.Log;
 
+import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 
@@ -82,25 +86,34 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
         switch (fromVersion) {
 
             case 8:
-                // To drop columns we need to copy the table. We anyway renamed the table to locations.
-                database.execSQL("ALTER TABLE gps_points RENAME TO _locations_old;");
-
-                // To drop columns "is_synced" we need to create a new table
-                database.execSQL(
-                        "CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
-                                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
-                                + "measurement_fk INTEGER NOT NULL);");
-                // and insert the old data accordingly. This is anyway cleaner (no defaults)
-                // We ignore the value as we upload to a new API.
-                database.execSQL("INSERT INTO locations " + "(_id,gps_time,lat,lon,speed,accuracy,measurement_fk) "
-                        + "SELECT _id,gps_time,lat,lon,speed,accuracy,measurement_fk " + "FROM _locations_old");
-
-                // Remove temp table
-                database.execSQL("DROP TABLE _locations_old;");
+                Log.d(TAG, "Upgrading geoLocation table from V8");
+                migrateDatabaseFromV8(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
+    }
+
+    /**
+     * Renames table, updates the table structure and copies the data.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void migrateDatabaseFromV8(@NonNull final SQLiteDatabase database) {
+        // To drop columns we need to copy the table. We anyway renamed the table to locations.
+        database.execSQL("ALTER TABLE gps_points RENAME TO _locations_old;");
+
+        // To drop columns "is_synced" we need to create a new table
+        database.execSQL("CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
+                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
+                + "measurement_fk INTEGER NOT NULL);");
+        // and insert the old data accordingly. This is anyway cleaner (no defaults)
+        // We ignore the value as we upload to a new API.
+        database.execSQL("INSERT INTO locations " + "(_id,gps_time,lat,lon,speed,accuracy,measurement_fk) "
+                + "SELECT _id,gps_time,lat,lon,speed,accuracy,measurement_fk " + "FROM _locations_old");
+
+        // Remove temp table
+        database.execSQL("DROP TABLE _locations_old;");
     }
 
     @Override

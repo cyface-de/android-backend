@@ -1,6 +1,6 @@
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.backend.TestUtils.generateGeoLocation;
+import static de.cyface.persistence.TestUtils.generateGeoLocation;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
@@ -9,7 +9,8 @@ import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
 
 import android.location.Location;
-import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
+
+import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.model.GeoLocation;
 
 /**

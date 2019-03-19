@@ -12,23 +12,22 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.datacapturing;
+package de.cyface.persistence;
 
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
-import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 
 /**
- * Interface for strategies to respond to {@link DataCapturingBackgroundService#onLocationCaptured(GeoLocation)} events
+ * Interface for strategies to respond to {@code DataCapturingBackgroundService#onLocationCaptured()} events
  * to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs.
  * <p>
- * Must be {@code Parcelable} to be passed from the {@link DataCapturingService} via {@code Intent}.
+ * Must be {@code Parcelable} to be passed from the {@code DataCapturingService} via {@code Intent}.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.2.0
  */
 public interface DistanceCalculationStrategy extends Parcelable {
