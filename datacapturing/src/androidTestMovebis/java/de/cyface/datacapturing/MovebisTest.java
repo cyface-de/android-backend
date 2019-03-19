@@ -18,12 +18,14 @@ import org.junit.runner.RunWith;
 
 import android.Manifest;
 import android.content.Context;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.synchronization.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -100,6 +102,27 @@ public final class MovebisTest {
             }
         });
 
+    }
+
+    /**
+     * Tests that registering a JWT auth token (and with that, creating an account) works.
+     * <p>
+     * This tests the code used by movebis and reproduced bug MOV-631
+     *
+     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
+     *             <code>Context</code> is available.
+     */
+    @Test
+    public void testRegisterJWTAuthToken() throws SynchronisationException {
+
+        // Arrange
+        final String testUsername = "testUser";
+        final String testToken = "testToken";
+
+        // Act
+        oocut.registerJWTAuthToken(testUsername, testToken);
+
+        // Assert - nothing to do - just making sure no exception is thrown
     }
 
     /**
