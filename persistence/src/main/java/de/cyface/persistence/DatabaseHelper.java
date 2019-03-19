@@ -40,7 +40,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      */
-    private final static int DATABASE_VERSION = 23;
+    private final static int DATABASE_VERSION = 12;
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
@@ -125,6 +125,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                     database.execSQL("DROP TABLE rotation_points;");
                     database.execSQL("DELETE FROM magnetic_value_points;");
                     database.execSQL("DROP TABLE magnetic_value_points;");
+
                     break; // upgrades are called incrementally
             }
 

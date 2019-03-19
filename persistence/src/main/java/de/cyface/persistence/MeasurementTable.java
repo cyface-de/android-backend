@@ -100,11 +100,12 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 database.execSQL("ALTER TABLE measurement RENAME TO _measurements_old;");
 
                 // Due to a bug in the code of V8 MeasurementTable we may need to create the sync column
+                /* This should never be the case for STAD-2019
                 try {
                     database.execSQL("ALTER TABLE _measurements_old ADD COLUMN synced INTEGER NOT NULL DEFAULT 0");
                 } catch (final SQLiteException ex) {
                     Log.w(TAG, "Altering measurements: " + ex.getMessage());
-                }
+                }*/
 
                 // Columns "accelerations", "rotations", and "directions" were added
                 // We don't support a data preserving upgrade for sensor data stored in the database
@@ -137,6 +138,9 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                         "(_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) "+
                         "SELECT _id,status,vehicle,accelerations,rotations,directions,file_format_version,distance "+
                         "FROM _measurements_old");
+
+                // Remove temp table
+                database.execSQL("DROP TABLE _measurements_old;");
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
         }

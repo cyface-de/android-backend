@@ -95,6 +95,9 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
                 database.execSQL("INSERT INTO locations " + "(_id,gps_time,lat,lon,speed,accuracy,measurement_fk) "
                         + "SELECT _id,gps_time,lat,lon,speed,accuracy,measurement_fk " + "FROM _locations_old");
 
+                // Remove temp table
+                database.execSQL("DROP TABLE _locations_old;");
+
                 break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
