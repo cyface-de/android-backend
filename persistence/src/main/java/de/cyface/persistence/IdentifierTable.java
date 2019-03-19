@@ -1,9 +1,14 @@
 package de.cyface.persistence;
 
-import android.database.sqlite.SQLiteDatabase;
-import android.provider.BaseColumns;
+import static de.cyface.persistence.Constants.TAG;
 
-import androidx.annotation.NonNull;
+import android.content.Context;
+import android.content.SharedPreferences;
+import android.database.sqlite.SQLiteDatabase;
+import android.preference.PreferenceManager;
+import android.provider.BaseColumns;
+import android.support.annotation.NonNull;
+import android.util.Log;
 
 /**
  * This class represents the table containing the measurement-independent identifiers stored on this device.
@@ -22,17 +27,25 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
      * A String value which contains an identifier for this device.
      */
     final static String COLUMN_DEVICE_ID = "device_id";
-
     /**
      * An array containing all columns from this table in default order.
      */
     private final static String[] COLUMNS = {BaseColumns._ID, COLUMN_DEVICE_ID};
+    /**
+     * The {@code Context} required to load the old device id from the {@code SharedPreferences} when
+     * upgrading from {@link DatabaseHelper#DATABASE_VERSION} 8.
+     */
+    private final Context context;
 
     /**
      * Creates a new completely initialized {@code IdentifierTable} using the name {@code URI_PATH}.
+     * 
+     * @param context The {@code Context} required to load the old device id from the {@code SharedPreferences} when
+     *            upgrading from {@link DatabaseHelper#DATABASE_VERSION} 8.
      */
-    IdentifierTable() {
+    IdentifierTable(@NonNull final Context context) {
         super(URI_PATH);
+        this.context = context;
     }
 
     @Override
@@ -59,6 +72,15 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
             case 9:
                 // This table was added in version 10
                 onCreate(database);
+
+                // Try to migrate old device id (which was stored in the preferences)
+                final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+                final String installId = preferences.getString("de.cyface.identifier.device", null);
+                if (installId != null) {
+                    Log.d(TAG, "Migrating old device id: " + installId);
+                    database.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'" + installId + "');");
+                }
+
                 break; // onUpgrade is called incrementally by DatabaseHelper
         }
     }

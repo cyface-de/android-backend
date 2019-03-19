@@ -70,7 +70,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
         // Current database structure
         measurementTable = new MeasurementTable();
         geoLocationsTable = new GeoLocationsTable();
-        identifierTable = new IdentifierTable();
+        identifierTable = new IdentifierTable(context);
         eventTable = new EventTable();
     }
 
