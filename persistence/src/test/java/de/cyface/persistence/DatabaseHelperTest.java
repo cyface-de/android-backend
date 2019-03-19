@@ -14,7 +14,7 @@
  */
 package de.cyface.persistence;
 
-import static de.cyface.persistence.TestUtils.generateGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 import static org.hamcrest.Matchers.equalTo;
@@ -36,6 +36,7 @@ import android.database.sqlite.SQLiteQuery;
 
 import androidx.test.core.app.ApplicationProvider;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.testutils.SharedTestUtils;
 
 /**
  * This class tests the migration functionality of {@link DatabaseHelper}.
@@ -62,7 +63,7 @@ public class DatabaseHelperTest {
     private DatabaseHelper oocut;
     /**
      * The "base" from where the distance of generated nodes should be calculated, see
-     * {@link TestUtils#generateGeoLocation(int)}. This is usually 0.
+     * {@link SharedTestUtils#generateGeoLocation(int)}. This is usually 0.
      */
     private final int base = 0;
     /**

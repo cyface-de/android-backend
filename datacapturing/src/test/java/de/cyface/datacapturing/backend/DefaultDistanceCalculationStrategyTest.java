@@ -14,7 +14,7 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.persistence.TestUtils.generateGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.junit.Assert.assertEquals;
 
 import org.junit.Before;
