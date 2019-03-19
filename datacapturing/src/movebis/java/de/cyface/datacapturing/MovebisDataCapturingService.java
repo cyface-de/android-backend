@@ -231,6 +231,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
         // Create a "dummy" account used for auto synchronization. Null password as the token is static
         final Account synchronizationAccount = getWiFiSurveyor().createAccount(username, null);
 
+        // IntelliJ sometimes cannot resolve AUTH_TOKEN_TYPE: Invalidate cache & restart works.
         accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
     }
