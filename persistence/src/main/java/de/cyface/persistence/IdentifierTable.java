@@ -7,8 +7,9 @@ import android.content.SharedPreferences;
 import android.database.sqlite.SQLiteDatabase;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
-import android.support.annotation.NonNull;
+import androidx.annotation.NonNull;
 import android.util.Log;
+
 
 /**
  * This class represents the table containing the measurement-independent identifiers stored on this device.
