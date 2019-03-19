@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
  * This class represents the table containing the measurement-independent identifiers stored on this device.
  *
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.2.1
  * @since 3.0.0
  */
 public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
@@ -43,19 +43,23 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
 
     /**
      * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
-     *
-     * Remaining documentation: {@link AbstractCyfaceMeasurementTable#onUpgrade}
+     * <p>
+     * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
+     * <p>
+     * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
+     * <p>
+     * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
      */
     @Override
-    public void onUpgrade(@NonNull final SQLiteDatabase database, final int oldVersion, final int newVersion) {
+    public void onUpgrade(@NonNull final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
         // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
-        switch (oldVersion) {
-            case 8:
-                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
-                // We don't support an soft-upgrade there but reset the database
+        switch (fromVersion) {
+
+            case 9:
+                // This table was added in version 10
                 onCreate(database);
-                // continues with the next incremental upgrade until return ! -->
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
     }
 

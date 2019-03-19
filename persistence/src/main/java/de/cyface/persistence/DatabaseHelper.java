@@ -19,6 +19,7 @@ import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.utils.Validate;
 
 /**
  * The <code>DatabaseHelper</code> class is the part of the content provider where the hard part takes place. It
@@ -26,7 +27,7 @@ import de.cyface.persistence.serialization.Point3dFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.4.0
+ * @version 4.4.1
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -89,7 +90,10 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * The onUpgrade method is called when the app is upgraded and the DATABASE_VERSION changed.
-     * The incremental database upgrades are executed to reach the current version.
+     * <p>
+     * This method is not called incrementally by the system which is why this method implements this.
+     * <p>
+     * This method is automatically executed in a transaction, do not wrap the code in another transaction!
      *
      * @param database the database which shall be upgraded
      * @param oldVersion the database version the app was in before the upgrade
@@ -97,36 +101,40 @@ class DatabaseHelper extends SQLiteOpenHelper {
      */
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int oldVersion, final int newVersion) {
-        Log.w(TAG, "Upgrading database from version " + oldVersion + " to " + newVersion);
+        Validate.isTrue(oldVersion == 8 || oldVersion >= 11, "Unsupported versions");
 
-        // Incremental upgrades for the tables which don't exist anymore and, thus, don't have an own class file anymore
-        // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
-        switch (oldVersion) {
-            case 8:
-                // This upgrade from 8 to 10 is executed for all SDK versions below 3 (which is v 10).
-                // We don't support an soft-upgrade there but reset the database
-                Log.w(TAG, "Upgrading from version " + oldVersion + " to " + newVersion + ": Resetting database");
+        // Upgrade incrementally to reduce the amount of migration code required
+        for (int fromVersion = oldVersion; fromVersion < newVersion; fromVersion++) {
+            final int toVersion = fromVersion + 1;
+            Log.w(TAG, "Upgrading database from version " + fromVersion + " to " + toVersion);
 
-                // We use a transaction as this lead to an unresolvable error where the IdentifierTable
-                // was not created in time for the first database query.
+            // Upgrade code for tables which don't exist anymore as class
+            // noinspection SwitchStatementWithTooFewBranches - because others will follow and it's an easier read
+            switch (fromVersion) {
 
-                // The following tables and table names are deprecated, thus, hard-coded
-                database.execSQL("DELETE FROM sqlite_sequence;");
-                database.execSQL("DELETE FROM sample_points;");
-                database.execSQL("DROP TABLE sample_points;");
-                database.execSQL("DELETE FROM rotation_points;");
-                database.execSQL("DROP TABLE rotation_points;");
-                database.execSQL("DELETE FROM magnetic_value_points;");
-                database.execSQL("DROP TABLE magnetic_value_points;");
-                // continues with the next incremental upgrade until return ! -->
+                case 8:
+                    // Upgrade from V8 which was the last version in SDK V2.
+                    // We don't support a data preserving upgrade for sensor data stored in the database
+                    Log.w(TAG, "Dropping sensor data from database");
+
+                    // The following tables and table names are deprecated, thus, hard-coded
+                    // database.execSQL("DELETE FROM sqlite_sequence;");
+                    database.execSQL("DELETE FROM sample_points;");
+                    database.execSQL("DROP TABLE sample_points;");
+                    database.execSQL("DELETE FROM rotation_points;");
+                    database.execSQL("DROP TABLE rotation_points;");
+                    database.execSQL("DELETE FROM magnetic_value_points;");
+                    database.execSQL("DROP TABLE magnetic_value_points;");
+
+                    break; // upgrades are called incrementally
+            }
+
+            // Incremental upgrades for existing tables
+            measurementTable.onUpgrade(database, fromVersion, toVersion);
+            geoLocationsTable.onUpgrade(database, fromVersion, toVersion);
+            identifierTable.onUpgrade(database, fromVersion, toVersion);
+            eventTable.onUpgrade(database, fromVersion, toVersion);
         }
-
-        // Incremental upgrades for existing tables
-        // tables contains each table 2 times. We do need to call onUpgrade only once per table
-        measurementTable.onUpgrade(database, oldVersion, newVersion);
-        geoLocationsTable.onUpgrade(database, oldVersion, newVersion);
-        identifierTable.onUpgrade(database, oldVersion, newVersion);
-        eventTable.onUpgrade(database, oldVersion, newVersion);
     }
 
     /**

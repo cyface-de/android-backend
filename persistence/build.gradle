@@ -3,7 +3,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.4
+ * @version 2.1.0
  * @since 1.0.0
  */
 
@@ -17,9 +17,8 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 
-        versionCode 1 // this must be incremented if new apk should be pushed to play store
-        // this is shown to the users, see Confluence/Android Client for naming guideline
-        versionName rootProject.ext.version
+        versionCode 1 // this is not used
+        versionName rootProject.ext.version // this is not used
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
@@ -44,9 +43,10 @@ dependencies {
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
+    testImplementation "org.robolectric:robolectric:$rootProject.ext.robolectricVersion"
+    testImplementation "androidx.test:core:$rootProject.ext.androidxTestCoreVersion"
 
     // Dependencies for instrumentation tests
-    //androidTestImplementation project(":testutils") - circular dependency
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 }
