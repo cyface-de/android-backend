@@ -30,7 +30,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 6.1.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -299,8 +299,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * - do not use setSyncAutomatically as it behaves not as expected, see MOV-609
      * <p>
      * Synchronization is generally enabled by default. To disabled it *completely*, use
-     * {@link #setSyncEnabled(boolean)}}. The periodic ("auto") sync is set automatically when the network changes
-     * depending on your {@link #setSyncOnUnMeteredNetworkOnly(boolean)} setting which is true by default.
+     * {@link #setSyncEnabled(Account, boolean)}}. The periodic ("auto") sync is set automatically when the network
+     * changes depending on your {@link #setSyncOnUnMeteredNetworkOnly(boolean)} setting which is true by default.
      *
      * @param account The {@code Account} to be used for synchronization
      * @param enabled True if the synchronization should be enabled
@@ -308,7 +308,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     @SuppressWarnings("unused") // Used by CyfaceDataCapturingService
     public void makeAccountSyncable(@NonNull final Account account, boolean enabled) {
 
-        setSyncEnabled(enabled);
+        setSyncEnabled(account, enabled);
     }
 
     /**
@@ -375,6 +375,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <b>ATTENTION:</b> Starting at version {@code Build.VERSION_CODES.O} and higher instead of
      * treating only "WiFi" connections as "not metered" we use the
      * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as suggested by Android.
+     * <p>
+     * This method must be called after {@link #startSurveillance(Account)} is called.
      *
      * @param newState If {@code true} the {@link WiFiSurveyor} synchronizes data only if connected to a
      *            {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} network; if
@@ -402,6 +404,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * also triggers {@link #scheduleSyncNow()}.
      * <p>
      * We do not use {@code ContentResolver#setSyncAutomatically()} as it does not behave as expected MOV-609.
+     * <p>
+     * This method must be called after {@link #startSurveillance(Account)} is called.
      *
      * @param newState True if {@code ContentResolver#addPeriodicSync()} should be activated or false if it
      *            should be removed from the sync account.
@@ -416,6 +420,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
     }
 
     /**
+     * This method must be called after {@link #startSurveillance(Account)} is called.
+     *
      * @return A flag that might be queried to see whether synchronization is active or not. This is <code>true</code>
      *         if synchronization is active and <code>false</code> otherwise.
      */
@@ -429,20 +435,41 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <b>Attention:</b>
      * If you want to check if periodic ("auto") sync is enabled which is automatically set when the network state
      * changes, see {@link #isPeriodicSyncEnabled()}.
+     * <p>
+     * This method must be called after {@link #startSurveillance(Account)} is called.
      *
      * @return True if synchronization is enabled
      */
+    @SuppressWarnings("unused") // SDK implementing apps may check weather sync is disabled completely
     public boolean isSyncEnabled() {
         return ContentResolver.getIsSyncable(currentSynchronizationAccount, authority) == 1;
     }
 
     /**
      * Allows to enable or disable synchronization completely.
+     * <p>
+     * This method must be called after {@link #startSurveillance(Account)} is called. You can also use the
+     * {@link #setSyncEnabled(Account, boolean)} which does not have this requirement.
      *
      * @param enabled True if synchronization should be enabled
      */
+    @SuppressWarnings("unused") // SDK implementing apps may want to disable synchronization completely
     public void setSyncEnabled(final boolean enabled) {
-        ContentResolver.setIsSyncable(currentSynchronizationAccount, authority, enabled ? 1 : 0);
+        setSyncEnabled(currentSynchronizationAccount, enabled);
+    }
+
+    /**
+     * Allows to enable or disable synchronization completely.
+     * <p>
+     * This second interface for setSyncEnabled() with the account parameter is required as
+     * {@code MovebisDataCapturingService#registerJwtAuthToken()} just activate the account before
+     * the account is linked as currentSynchronizationAccount by {@link #startSurveillance(Account)}.
+     *
+     * @param account The {@code Account} to update.
+     * @param enabled True if synchronization should be enabled
+     */
+    public void setSyncEnabled(@NonNull final Account account, final boolean enabled) {
+        ContentResolver.setIsSyncable(account, authority, enabled ? 1 : 0);
     }
 
     public boolean isSyncOnUnMeteredNetworkOnly() {

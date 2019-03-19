@@ -53,7 +53,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.1
+ * @version 8.0.2
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -231,6 +231,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
         // Create a "dummy" account used for auto synchronization. Null password as the token is static
         final Account synchronizationAccount = getWiFiSurveyor().createAccount(username, null);
 
+        // IntelliJ sometimes cannot resolve AUTH_TOKEN_TYPE: Invalidate cache & restart works.
         accountManager.setAuthToken(synchronizationAccount, AUTH_TOKEN_TYPE, token);
         getWiFiSurveyor().startSurveillance(synchronizationAccount);
     }
