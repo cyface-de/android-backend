@@ -27,7 +27,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.4.0
+ * @version 4.4.1
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {

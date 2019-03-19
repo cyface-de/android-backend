@@ -12,7 +12,7 @@ import android.database.sqlite.SQLiteDatabase;
  * call to any data.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 1.0.0
  */
 public interface CyfaceMeasurementTable {

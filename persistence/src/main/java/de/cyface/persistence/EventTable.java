@@ -10,7 +10,7 @@ import de.cyface.persistence.model.Measurement;
  * Table for storing {@link Event}s.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 4.0.0
  */
 public class EventTable extends AbstractCyfaceMeasurementTable {

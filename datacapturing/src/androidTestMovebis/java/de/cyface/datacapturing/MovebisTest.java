@@ -33,7 +33,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.2
+ * @version 2.3.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -52,7 +52,6 @@ public final class MovebisTest {
     @Rule
     public GrantPermissionRule grantCoarseLocationPermissionRule = GrantPermissionRule
             .grant(Manifest.permission.ACCESS_COARSE_LOCATION);
-
     /**
      * A <code>MovebisDataCapturingService</code> as object of class under test, used for testing.
      */

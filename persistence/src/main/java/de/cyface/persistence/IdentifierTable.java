@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
  * This class represents the table containing the measurement-independent identifiers stored on this device.
  *
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.2.1
  * @since 3.0.0
  */
 public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
