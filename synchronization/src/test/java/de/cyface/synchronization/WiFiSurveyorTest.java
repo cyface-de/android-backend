@@ -27,10 +27,13 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
+import de.cyface.utils.Validate;
 
 /**
- * Tests the correct functionality of the <code>WiFiSurveyor</code> class. This test requires an active WiFi connection
- * and thus is a <code>FlakyTest</code>.
+ * Tests the correct functionality of the <code>WiFiSurveyor</code> class.
+ * <p>
+ * Robolectric is used to emulate the Android context. The tests are currently executed explicitly with KITKAT SDK
+ * as we did not yet port the tests to the newer Robolectric version (or we failed to).
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -38,7 +41,7 @@ import androidx.test.core.app.ApplicationProvider;
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = KITKAT) // Because the Roboelectric test don't work on newer devices
+@Config(sdk = KITKAT) // Because these Roboelectric tests don't run on newer SDKs
 public class WiFiSurveyorTest {
 
     /**
