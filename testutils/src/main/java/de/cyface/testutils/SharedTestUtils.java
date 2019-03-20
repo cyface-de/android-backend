@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.testutils;
 
 import static de.cyface.persistence.Constants.TAG;
@@ -49,10 +63,45 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.0.3
+ * @version 4.1.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
+
+    /**
+     * The following constants were selected so that adding each base+constant results in coordinates with approximately
+     * 1 meter distance between base coordinates and base+1*constant coordinates
+     */
+    private final static double BASE_LAT = 51.100;
+    /**
+     * see {@link #BASE_LAT}
+     */
+    private final static double BASE_LON = 13.100;
+    /**
+     * see {@link #BASE_LAT}
+     */
+    private final static double LAT_CONSTANT = 0.000008993199995;
+    /**
+     * see {@link #BASE_LAT}
+     */
+    private final static double LON_CONSTANT = 0.0000000270697;
+
+    /**
+     * Generates {@link GeoLocation}s with coordinates for testing.
+     * <p>
+     * See {@param relativeDistance} if you need locations with a specific distance from each other.
+     *
+     * @param distanceFromBase an integer which defines how much the generated {@code GeoLocation}s are away from each
+     *            other. E.g.: If you generate {@code GeoLocation}s using {@param relativeDistance} 1, 3, 5 the
+     *            generated locations will be approximately 1 meter per {@param relativeDistance}-difference away from
+     *            each other. In this case (1, 5) = 4m distance and (1, 3) or (3, 5) = 2m distance.
+     * @return the generated {@code GeoLocation}
+     */
+    public static GeoLocation generateGeoLocation(final int distanceFromBase) {
+        final double salt = Math.random();
+        return new GeoLocation(BASE_LAT + distanceFromBase * LAT_CONSTANT, BASE_LON + distanceFromBase * LON_CONSTANT,
+                1000000000L + distanceFromBase * 1000L, salt * 15.0, (float)salt * 30f);
+    }
 
     /**
      * Inserts a test {@link Point3d} into the database content provider accessed by the test.

@@ -51,12 +51,12 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.DataCapturingService;
-import de.cyface.datacapturing.DistanceCalculationStrategy;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
+import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
@@ -80,7 +80,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.3
+ * @version 5.0.4
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
