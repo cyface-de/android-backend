@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
@@ -22,18 +36,23 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
+import android.content.pm.PackageManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -43,7 +62,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.5.0
+ * @version 2.6.0
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -155,17 +174,19 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
             for (final Measurement measurement : syncableMeasurements) {
 
-                // Load compressed transfer file for measurement
+                // Load measurement with metadata
                 Log.d(Constants.TAG,
                         String.format("Measurement with identifier %d is about to be loaded for transmission.",
                                 measurement.getIdentifier()));
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                         measurement.getIdentifier(), provider, authority);
+                final MetaData metaData = loadMetaData(measurement, persistence, deviceId, context);
 
                 // The network setting may have changed since the initial sync call, avoid unnecessary serialization
                 if (isPeriodicSyncDisabled(account, authority)) {
                     return;
                 }
+                // Load compressed transfer file for measurement
                 final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
                         measurement.getIdentifier(), persistence);
 
@@ -198,8 +219,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                             DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
                     Validate.notNull(endPointUrl);
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                            measurement.getIdentifier(), deviceId, compressedTransferTempFile,
-                            new UploadProgressListener() {
+                            metaData, compressedTransferTempFile, new UploadProgressListener() {
                                 @Override
                                 public void updatedProgress(float percent) {
                                     for (final ConnectionStatusListener listener : progressListener) {
@@ -246,6 +266,49 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
+     * Loads meta data required in the Multipart header to transfer files to the API.
+     *
+     * @param measurement The {@link Measurement} to load the meta data for
+     * @param persistence The {@link PersistenceLayer} to load track data required
+     * @param deviceId The device identifier generated for this device
+     * @param context The {@code Context} to load the version name of this SDK
+     * @return The {@link MetaData} loaded
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    private MetaData loadMetaData(@NonNull final Measurement measurement,
+            PersistenceLayer<DefaultPersistenceBehaviour> persistence, @NonNull final String deviceId,
+            @NonNull final Context context) throws CursorIsNullException {
+
+        // If there is only one location captured, start and end locations are identical
+        final List<Track> tracks = persistence.loadTracks(measurement.getIdentifier());
+        int locationCount = 0;
+        for (final Track track : tracks) {
+            locationCount += track.getGeoLocations().size();
+        }
+        Validate.isTrue(tracks.size() == 0 || (tracks.get(0).getGeoLocations().size() > 0
+                && tracks.get(tracks.size() - 1).getGeoLocations().size() > 0));
+        final List<GeoLocation> lastTrack = tracks.size() > 0 ? tracks.get(tracks.size() - 1).getGeoLocations() : null;
+        @Nullable
+        final GeoLocation startLocation = tracks.size() > 0 ? tracks.get(0).getGeoLocations().get(0) : null;
+        @Nullable
+        final GeoLocation endLocation = lastTrack != null ? lastTrack.get(lastTrack.size() - 1) : null;
+
+        // Non location meta data
+        final String deviceType = android.os.Build.MODEL;
+        final String osVersion = "Android " + Build.VERSION.RELEASE;
+        final String appVersion;
+        final PackageManager packageManager = context.getPackageManager();
+        try {
+            appVersion = packageManager.getPackageInfo(context.getPackageName(), 0).versionName;
+        } catch (final PackageManager.NameNotFoundException e) {
+            throw new IllegalStateException(e);
+        }
+
+        return new MetaData(startLocation, endLocation, deviceId, measurement.getIdentifier(), deviceType, osVersion,
+                appVersion, measurement.getDistance(), locationCount);
+    }
+
+    /**
      * We need to check if the network is still syncable:
      * - this is only possible indirect, we check if the surveyor disabled auto sync for the account
      * - the network settings could have changed between sync initial call and "now"
@@ -269,5 +332,39 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {
         progressListener.add(listener);
+    }
+
+    /**
+     * Meta data which is required in the Multipart header to transfer files to the API.
+     *
+     * @author Armin Schnabel
+     * @version 1.0.0
+     * @since 4.0.0
+     */
+    static class MetaData {
+        final GeoLocation startLocation;
+        final GeoLocation endLocation;
+        final String deviceId;
+        final long measurementId;
+        final String deviceType;
+        final String osVersion;
+        final String appVersion;
+        final double length;
+        final int locationCount;
+
+        MetaData(@Nullable final GeoLocation startLocation, @Nullable final GeoLocation endLocation,
+                @NonNull final String deviceId, final long measurementId, @NonNull final String deviceType,
+                @NonNull final String osVersion, @NonNull final String appVersion, final double length,
+                final int locationCount) {
+            this.startLocation = startLocation;
+            this.endLocation = endLocation;
+            this.deviceId = deviceId;
+            this.measurementId = measurementId;
+            this.deviceType = deviceType;
+            this.osVersion = osVersion;
+            this.appVersion = appVersion;
+            this.length = length;
+            this.locationCount = locationCount;
+        }
     }
 }

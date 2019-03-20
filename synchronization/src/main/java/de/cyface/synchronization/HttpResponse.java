@@ -1,9 +1,25 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
+
+import java.net.HttpURLConnection;
 
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.HttpURLConnection;
+import androidx.annotation.NonNull;
 
 /**
  * Internal value object class for the attributes of an HTTP response. It wrappers the HTTP
@@ -11,10 +27,11 @@ import java.net.HttpURLConnection;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.1.0
+ * @version 2.0.0
  * @since 1.0.0
  */
 class HttpResponse {
+
     private int responseCode;
     private JSONObject body;
 
@@ -25,8 +42,10 @@ class HttpResponse {
      * @param responseBody the HTTP response body returned by the server. Can be null when the login
      *            was successful and there was nothing to return (defined by the Spring API).
      * @throws ResponseParsingException when the server returned something not parsable.
+     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
      */
-    HttpResponse(final int responseCode, final String responseBody)
+    HttpResponse(final int responseCode, @NonNull final String responseBody)
             throws ResponseParsingException, BadRequestException, UnauthorizedException {
         this.responseCode = responseCode;
         try {
@@ -52,6 +71,7 @@ class HttpResponse {
         }
     }
 
+    @NonNull
     JSONObject getBody() {
         return body;
     }

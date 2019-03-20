@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import java.io.File;
@@ -18,22 +32,25 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.0
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
 
+    @NonNull
     @Override
-    public String returnUrlWithTrailingSlash(String url) {
+    public String returnUrlWithTrailingSlash(@NonNull String url) {
         return url;
     }
 
+    @NonNull
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
             boolean hasBinaryContent, @NonNull String jwtBearer) throws ServerUnavailableException {
         return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
+    @NonNull
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
             boolean hasBinaryContent) throws ServerUnavailableException {
@@ -44,16 +61,19 @@ final class MockedHttpConnection implements Http {
         }
     }
 
+    @NonNull
     @Override
-    public HttpResponse post(HttpURLConnection connection, JSONObject payload, boolean compress)
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull JSONObject payload, boolean compress)
             throws ResponseParsingException, UnauthorizedException, BadRequestException {
         return new HttpResponse(201, "");
     }
 
+    @NonNull
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile, @NonNull String deviceId,
-                             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
-            throws ResponseParsingException, UnauthorizedException, BadRequestException {
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
+            @NonNull SyncAdapter.MetaData metaData, @NonNull String fileName,
+            @NonNull UploadProgressListener progressListener)
+            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }
