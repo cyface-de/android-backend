@@ -10,6 +10,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
+import java.util.List;
 
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -29,9 +30,11 @@ import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.PointMetaData;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -145,9 +148,19 @@ public class DataTransmissionTest {
             SyncPerformer performer = new SyncPerformer(
                     InstrumentationRegistry.getInstrumentation().getTargetContext());
             SyncResult syncResult = new SyncResult();
+
+            List<Track> tracks = persistence.loadTracks(measurementIdentifier);
+            Validate.isTrue(tracks.size() > 0);
+            GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
+            List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
+            GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
+            SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test_did",
+                    measurementIdentifier, "test_deviceType", "test_osVersion", "test_appVersion",
+                    measurement.getDistance(), 2);
+
             try {
                 boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
-                        measurementIdentifier, "garbage", compressedTransferTempFile, new UploadProgressListener() {
+                        metaData, compressedTransferTempFile, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 Log.d(TAG, String.format("Upload Progress %f", percent));

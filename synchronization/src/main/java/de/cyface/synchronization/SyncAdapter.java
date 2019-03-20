@@ -327,7 +327,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @version 1.0.0
      * @since 4.0.0
      */
-    class MetaData {
+    static class MetaData {
         final GeoLocation startLocation;
         final GeoLocation endLocation;
         final String deviceId;
