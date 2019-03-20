@@ -1,9 +1,11 @@
 package de.cyface.synchronization;
 
+import java.net.HttpURLConnection;
+
 import org.json.JSONException;
 import org.json.JSONObject;
 
-import java.net.HttpURLConnection;
+import androidx.annotation.NonNull;
 
 /**
  * Internal value object class for the attributes of an HTTP response. It wrappers the HTTP
@@ -15,6 +17,7 @@ import java.net.HttpURLConnection;
  * @since 1.0.0
  */
 class HttpResponse {
+
     private int responseCode;
     private JSONObject body;
 
@@ -25,8 +28,10 @@ class HttpResponse {
      * @param responseBody the HTTP response body returned by the server. Can be null when the login
      *            was successful and there was nothing to return (defined by the Spring API).
      * @throws ResponseParsingException when the server returned something not parsable.
+     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
      */
-    HttpResponse(final int responseCode, final String responseBody)
+    HttpResponse(final int responseCode, @NonNull final String responseBody)
             throws ResponseParsingException, BadRequestException, UnauthorizedException {
         this.responseCode = responseCode;
         try {
@@ -52,6 +57,7 @@ class HttpResponse {
         }
     }
 
+    @NonNull
     JSONObject getBody() {
         return body;
     }

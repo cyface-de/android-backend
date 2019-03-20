@@ -23,17 +23,20 @@ import androidx.annotation.NonNull;
  */
 final class MockedHttpConnection implements Http {
 
+    @NonNull
     @Override
-    public String returnUrlWithTrailingSlash(String url) {
+    public String returnUrlWithTrailingSlash(@NonNull String url) {
         return url;
     }
 
+    @NonNull
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
             boolean hasBinaryContent, @NonNull String jwtBearer) throws ServerUnavailableException {
         return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
+    @NonNull
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
             boolean hasBinaryContent) throws ServerUnavailableException {
@@ -44,15 +47,17 @@ final class MockedHttpConnection implements Http {
         }
     }
 
+    @NonNull
     @Override
-    public HttpResponse post(HttpURLConnection connection, JSONObject payload, boolean compress)
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull JSONObject payload, boolean compress)
             throws ResponseParsingException, UnauthorizedException, BadRequestException {
         return new HttpResponse(201, "");
     }
 
+    @NonNull
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile, @NonNull String deviceId,
-                             long measurementId, @NonNull String fileName, UploadProgressListener progressListener)
+                             long measurementId, @NonNull String fileName, @NonNull UploadProgressListener progressListener)
             throws ResponseParsingException, UnauthorizedException, BadRequestException {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
