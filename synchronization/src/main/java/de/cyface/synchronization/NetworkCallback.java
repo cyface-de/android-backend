@@ -11,6 +11,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.utils.Validate;
 
 /**
  * This callback handles status changes of the {@link Network} connectivity, e.g. to determine if synchronization should
@@ -49,6 +50,7 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
     @Override
     public void onCapabilitiesChanged(@NonNull final Network network, @NonNull final NetworkCapabilities capabilities) {
+
         // Ensure this event is only triggered for not metered connections when syncOnUnMeteredNetworkOnly
         if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
             final boolean notMetered = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
@@ -73,6 +75,7 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
         if (syncableConnectionEstablished) {
             Log.v(TAG, "connectionEstablished: setPeriodicSyncEnabled to true");
             surveyor.setPeriodicSyncEnabled(true);
+
         } else if (syncableConnectionLost) {
             Log.v(TAG, "connectionLost: setPeriodicSyncEnabled to false.");
             surveyor.setPeriodicSyncEnabled(false);

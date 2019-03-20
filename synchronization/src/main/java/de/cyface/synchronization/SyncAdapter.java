@@ -120,6 +120,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         // The network setting may have changed since the initial sync call, avoid unnecessary serialization
         if (isPeriodicSyncDisabled(account, authority)) {
+            Log.w(TAG, "Sync aborted: periodicSyncIsDisabled");
             return;
         }
 
@@ -184,6 +185,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // The network setting may have changed since the initial sync call, avoid unnecessary serialization
                 if (isPeriodicSyncDisabled(account, authority)) {
+                    Log.w(TAG, "Sync aborted: periodicSyncIsDisabled");
                     return;
                 }
                 // Load compressed transfer file for measurement
@@ -211,6 +213,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     // The network setting may have changed since the initial sync call, avoid using metered network
                     // without permission
                     if (isPeriodicSyncDisabled(account, authority)) {
+                        Log.w(TAG, "Sync aborted: periodicSyncIsDisabled");
                         return;
                     }
 
@@ -322,12 +325,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             return false;
         }
 
-        final boolean isAllowed = !ContentResolver.getPeriodicSyncs(account, authority).isEmpty();
-        if (!isAllowed) {
-            Log.w(TAG,
-                    "Sync aborted: auto sync is not enabled for this account (the network is probably metered and syncOnUnMeteredNetworkOnly activated).");
-        }
-        return !isAllowed;
+        return ContentResolver.getPeriodicSyncs(account, authority).isEmpty();
     }
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {

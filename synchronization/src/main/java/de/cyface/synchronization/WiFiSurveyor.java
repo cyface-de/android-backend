@@ -143,7 +143,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
             final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnUnMeteredNetworkOnly) {
-                Log.v(TAG, "startSurveillance, but only for TRANSPORT_WIFI networks");
+                Log.v(TAG, "startSurveillance for wifi networks only");
                 // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
                 requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
@@ -224,6 +224,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         if (syncableConnectionEstablished) {
             Log.v(TAG, "connectionEstablished: setPeriodicSyncEnabled to true");
             setPeriodicSyncEnabled(true);
+
         } else if (syncableConnectionLost) {
             Log.v(TAG, "connectionLost: setPeriodicSyncEnabled to false.");
             setPeriodicSyncEnabled(false);
@@ -407,16 +408,23 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <p>
      * This method must be called after {@link #startSurveillance(Account)} is called.
      *
-     * @param newState True if {@code ContentResolver#addPeriodicSync()} should be activated or false if it
+     * @param enable True if {@code ContentResolver#addPeriodicSync()} should be activated or false if it
      *            should be removed from the sync account.
      */
-    void setPeriodicSyncEnabled(final boolean newState) {
-        if (newState) {
+    void setPeriodicSyncEnabled(final boolean enable) {
+
+        if (enable) {
+            Validate.notNull(currentSynchronizationAccount);
             ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
             scheduleSyncNow(); // With just periodicSync it does else not start directly
+
         } else {
+            Validate.notNull(currentSynchronizationAccount);
             ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
         }
+
+        // In MOV-635 the account state was not updated so we enforce that the state was changed:
+        Validate.isTrue(enable == isPeriodicSyncEnabled(), "PeriodicSync did not change successfully");
     }
 
     /**
