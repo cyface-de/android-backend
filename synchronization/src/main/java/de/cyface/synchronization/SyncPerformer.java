@@ -22,6 +22,7 @@ import javax.net.ssl.SSLContext;
 import android.content.Context;
 import android.content.SyncResult;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -76,29 +77,28 @@ class SyncPerformer {
      * @param http The {@link Http} connection to use for transmission
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param dataServerUrl The server URL to send the data to.
-     * @param measurementIdentifier The measurement identifier of the transmitted measurement.
-     * @param deviceIdentifier The device identifier of the device transmitting the measurement.
+     * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param compressedTransferTempFile The data to transmit
+     * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      *
      * @throws BadRequestException When the api responses with {@link HttpURLConnection#HTTP_BAD_REQUEST}
      */
-    boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl,
-                     final long measurementIdentifier, final @NonNull String deviceIdentifier,
-                     final @NonNull File compressedTransferTempFile, final @NonNull UploadProgressListener progressListener,
-                     final @NonNull String jwtAuthToken) throws BadRequestException {
+    boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
+            @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
+            @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
+            @NonNull final String jwtAuthToken) throws BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
-        final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
+        final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
             Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, compressedTransferTempFile, deviceIdentifier, measurementIdentifier, fileName,
-                        progressListener);
+                http.post(connection, compressedTransferTempFile, metaData, fileName, progressListener);
             } finally {
                 if (connection != null) {
                     connection.disconnect();

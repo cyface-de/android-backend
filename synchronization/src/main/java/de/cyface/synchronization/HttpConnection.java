@@ -26,7 +26,6 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.accounts.NetworkErrorException;
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -43,12 +42,22 @@ import de.cyface.utils.Validate;
  */
 public class HttpConnection implements Http {
 
+    /**
+     * A String to filter log output from {@link HttpConnection} logs.
+     */
     static final String TAG = "de.cyface.http";
+    /**
+     * The boundary to be used in the Multipart request to separate data.
+     */
     private final static String BOUNDARY = "---------------------------boundary";
+    /**
+     * The tail to be used in the Multipart request to indicate that the request end.
+     */
     private final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
 
+    @NonNull
     @Override
-    public String returnUrlWithTrailingSlash(final String url) {
+    public String returnUrlWithTrailingSlash(@NonNull final String url) {
         if (url.endsWith("/")) {
             return url;
         } else {
@@ -56,6 +65,7 @@ public class HttpConnection implements Http {
         }
     }
 
+    @NonNull
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
             final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
@@ -64,6 +74,7 @@ public class HttpConnection implements Http {
         return connection;
     }
 
+    @NonNull
     @Override
     public HttpsURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
             final boolean hasBinaryContent) throws ServerUnavailableException {
@@ -101,9 +112,10 @@ public class HttpConnection implements Http {
         return connection;
     }
 
+    @NonNull
     @Override
-    public HttpResponse post(final HttpURLConnection connection, final JSONObject payload, final boolean compress)
-            throws RequestParsingException, DataTransmissionException, SynchronisationException,
+    public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
+            final boolean compress) throws RequestParsingException, DataTransmissionException, SynchronisationException,
             ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
@@ -127,11 +139,22 @@ public class HttpConnection implements Http {
         return readResponse(connection);
     }
 
+    @NonNull
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull File transferTempFile,
-            @NonNull final String deviceId, final long measurementId, @NonNull final String fileName,
-            UploadProgressListener progressListener)
+            @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
+            @NonNull UploadProgressListener progressListener)
             throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
+
+        // Generate header
+        final long filePartSize = transferTempFile.length() + TAIL.length();
+        Validate.isTrue(filePartSize > 0);
+        final String header = generateHeader(filePartSize, metaData, fileName);
+
+        // Set content length
+        final long requestLength = header.length() + filePartSize;
+        connection.setRequestProperty("Content-length", "" + requestLength);
+        connection.setFixedLengthStreamingMode((int)requestLength);
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
         final FileInputStream fileInputStream;
@@ -141,22 +164,16 @@ public class HttpConnection implements Http {
             throw new IllegalStateException(e);
         }
         final BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
-
-        final long dataSize = transferTempFile.length() + TAIL.length();
-        Validate.isTrue(dataSize > 0);
-
-        final String header = setContentLength(connection, dataSize, deviceId, measurementId, fileName);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
             connection.connect();
             try {
+                // Send header
                 outputStream.write(header.getBytes());
                 outputStream.flush();
 
-                int progress = 0;
-                int bytesRead;
-
+                // Create file upload buffer
                 // noinspection PointlessArithmeticExpression - makes semantically more sense
                 final int maxBufferSize = 1 * 1024 * 1024;
                 int bytesAvailable, bufferSize;
@@ -165,12 +182,15 @@ public class HttpConnection implements Http {
                 bufferSize = Math.min(bytesAvailable, maxBufferSize);
                 buffer = new byte[bufferSize];
 
+                // Send file
+                int progress = 0;
+                int bytesRead;
                 bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
                 while (bytesRead > 0) {
                     outputStream.write(buffer, 0, bufferSize);
                     outputStream.flush();
                     progress += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((progress * 100.0f) / dataSize);
+                    progressListener.updatedProgress((progress * 100.0f) / filePartSize);
 
                     bytesAvailable = bufferedFileInputStream.available();
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
@@ -238,49 +258,82 @@ public class HttpConnection implements Http {
         }
     }
 
-    private String setContentLength(final HttpURLConnection connection, final long dataSize,
-            final String deviceIdentifier, final long measurementIdentifier, final String fileName) {
-        final String deviceIdPart = addPart("deviceId", deviceIdentifier, BOUNDARY);
-        final String measurementIdPart = addPart("measurementId", Long.valueOf(measurementIdentifier).toString(),
-                BOUNDARY);
-        final String deviceTypePart = addPart("deviceType", android.os.Build.MODEL, BOUNDARY);
-        final String androidVersion = addPart("osVersion", "Android " + Build.VERSION.RELEASE, BOUNDARY);
+    /**
+     * Assembles the header of the Multipart request.
+     *
+     * @param filePartSize The Bytes of the file to be transferred including the {@link #TAIL} length.
+     * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
+     * @param fileName The name of the file to be uploaded
+     * @return The Multipart header
+     */
+    @NonNull
+    private String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
+            @NonNull final String fileName) {
 
-        final String fileHeader1 = "--" + BOUNDARY + "\r\n"
+        // File meta data
+        final String filePart = "--" + BOUNDARY + "\r\n"
                 + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
                 + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n";
+        final String contentLengthPart = "Content-length: " + filePartSize + "\r\n";
+        final String fileHeaderPart = filePart + contentLengthPart + "\r\n";
 
-        final String fileHeader2 = "Content-length: " + dataSize + "\r\n";
-        final String fileHeader = fileHeader1 + fileHeader2 + "\r\n";
-        final String stringData = deviceIdPart + measurementIdPart + deviceTypePart + androidVersion + fileHeader;
+        // Location meta data
+        String startLocationPart = ""; // We only transfer this part if there are > 0 locations
+        if (metaData.startLocation != null) {
+            startLocationPart = generatePart("startLocation", metaData.startLocation.getLat() + ", "
+                    + metaData.startLocation.getLon() + ", " + metaData.startLocation.getTimestamp());
+        }
+        String endLocationPart = ""; // We only transfer this part if there are > 0 locations
+        if (metaData.endLocation != null) {
+            endLocationPart = generatePart("endLocation", metaData.endLocation.getLat() + ", "
+                    + metaData.endLocation.getLon() + ", " + metaData.endLocation.getTimestamp());
+        }
+        final String locationCountPart = generatePart("locationCount", String.valueOf(metaData.locationCount));
 
-        final long requestLength = stringData.length() + dataSize;
-        connection.setRequestProperty("Content-length", "" + requestLength);
-        connection.setFixedLengthStreamingMode((int)requestLength);
-        return stringData;
+        // Remaining meta data
+        final String deviceIdPart = generatePart("deviceId", metaData.deviceId);
+        final String measurementIdPart = generatePart("measurementId", Long.valueOf(metaData.measurementId).toString());
+        final String deviceTypePart = generatePart("deviceType", metaData.deviceType);
+        final String osVersionPart = generatePart("osVersion", metaData.osVersion);
+        final String appVersionPart = generatePart("appVersion", metaData.appVersion);
+        final String lengthPart = generatePart("length", String.valueOf(metaData.length));
+
+        // This was reordered to be in the same order as in the iOS code
+        return fileHeaderPart + startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart
+                + osVersionPart + appVersionPart + lengthPart + locationCountPart;
     }
 
-    private String addPart(final @NonNull String key, final @NonNull String value, final @NonNull String boundary) {
-        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n", boundary, key, value);
+    /**
+     * Generates a valid Multipart entry.
+     *
+     * @param key The name of the part.
+     * @param value The value of the part entry.
+     * @return The generated part entry.
+     */
+    @NonNull
+    private String generatePart(final @NonNull String key, final @NonNull String value) {
+        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n",
+                HttpConnection.BOUNDARY, key, value);
     }
 
     /**
      * Parses the JSON response from a connection and includes error handling for non 2XX status
      * codes.
      *
-     * @param con The connection that received the response.
+     * @param connection The connection that received the response.
      * @return A parsed {@link HttpResponse} object.
-     * @throws DataTransmissionException If the response was a non-successful HTTP response.
      * @throws ResponseParsingException If the system fails in handling the HTTP response.
-     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
+     * @throws DataTransmissionException If the response was a non-successful HTTP response.
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
      * @throws SynchronisationException If a connection error occurred while reading the response code.
+     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws NetworkErrorException when the connection's input or error stream was null
      */
-    private HttpResponse readResponse(final @NonNull HttpURLConnection con)
+    private HttpResponse readResponse(@NonNull final HttpURLConnection connection)
             throws ResponseParsingException, DataTransmissionException, UnauthorizedException, SynchronisationException,
             BadRequestException, NetworkErrorException {
 
-        final HttpResponse response = readResponseFromConnection(con);
+        final HttpResponse response = readResponseFromConnection(connection);
         if (response.is2xxSuccessful()) {
             return response;
         } else {
@@ -311,23 +364,25 @@ public class HttpConnection implements Http {
     /**
      * Extracts the {@link HttpResponse} from the {@link HttpURLConnection}.
      *
-     * @param con the {@link HttpURLConnection} to read the response from
+     * @param connection the {@link HttpURLConnection} to read the response from
      * @return the {@link HttpResponse}
-     * @throws ResponseParsingException when the server response was unreadable
      * @throws SynchronisationException when a connection error occurred while reading the response code
-     * @throws UnauthorizedException when the login was not successful and returned a 401 code.
+     * @throws ResponseParsingException when the server response was unreadable
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws NetworkErrorException when the connection's input or error stream was null
      */
-    private HttpResponse readResponseFromConnection(final HttpURLConnection con) throws SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException {
+    private HttpResponse readResponseFromConnection(@NonNull final HttpURLConnection connection)
+            throws SynchronisationException, ResponseParsingException, UnauthorizedException, BadRequestException,
+            NetworkErrorException {
         String responseString;
         try {
-            responseString = readInputStream(con.getInputStream());
+            responseString = readInputStream(connection.getInputStream());
         } catch (final IOException e) {
             // This means that an error occurred, read the error from the ErrorStream
             // see https://developer.android.com/reference/java/net/HttpURLConnection
             try {
-                responseString = readInputStream(con.getErrorStream());
+                responseString = readInputStream(connection.getErrorStream());
             } catch (final IOException e1) {
                 throw new IllegalStateException("Unable to read error body.", e1);
             } catch (final NullPointerException e1) {
@@ -338,7 +393,7 @@ public class HttpConnection implements Http {
 
         try {
             final HttpResponse response;
-            response = new HttpResponse(con.getResponseCode(), responseString);
+            response = new HttpResponse(connection.getResponseCode(), responseString);
             return response;
         } catch (final IOException e) {
             throw new SynchronisationException("A connection error occurred while reading the response code.", e);
