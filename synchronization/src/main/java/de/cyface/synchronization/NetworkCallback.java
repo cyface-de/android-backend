@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.WiFiSurveyor.TAG;
@@ -11,7 +25,6 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import de.cyface.utils.Validate;
 
 /**
  * This callback handles status changes of the {@link Network} connectivity, e.g. to determine if synchronization should
@@ -34,17 +47,9 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
      * <code>Account</code> has been set.
      */
     private Account currentSynchronizationAccount;
-    /**
-     * The <code>ContentProvider</code> authority used by this service to store and read data. See the
-     * <a href="https://developer.android.com/guide/topics/providers/content-providers.html">Android documentation</a>
-     * for further information.
-     */
-    private final String authority;
 
-    NetworkCallback(@NonNull final WiFiSurveyor wiFiSurveyor, @NonNull final Account currentSynchronizationAccount,
-            @NonNull final String authority) {
+    NetworkCallback(@NonNull final WiFiSurveyor wiFiSurveyor, @NonNull final Account currentSynchronizationAccount) {
         this.surveyor = wiFiSurveyor;
-        this.authority = authority;
         this.currentSynchronizationAccount = currentSynchronizationAccount;
     }
 
@@ -67,18 +72,17 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
         }
 
         // Syncable ("not metered") filter is already included
-        final boolean syncableConnectionLost = surveyor.isPeriodicSyncEnabled()
-                && !surveyor.isConnectedToSyncableNetwork();
-        final boolean syncableConnectionEstablished = !surveyor.isPeriodicSyncEnabled()
+        final boolean syncableConnectionLost = surveyor.isConnected() && !surveyor.isConnectedToSyncableNetwork();
+        final boolean syncableConnectionEstablished = !surveyor.isConnected()
                 && surveyor.isConnectedToSyncableNetwork();
 
         if (syncableConnectionEstablished) {
-            Log.v(TAG, "connectionEstablished: setPeriodicSyncEnabled to true");
-            surveyor.setPeriodicSyncEnabled(true);
+            Log.v(TAG, "connectionEstablished: setConnected to true");
+            surveyor.setConnected(true);
 
         } else if (syncableConnectionLost) {
-            Log.v(TAG, "connectionLost: setPeriodicSyncEnabled to false.");
-            surveyor.setPeriodicSyncEnabled(false);
+            Log.v(TAG, "connectionLost: setConnected to false.");
+            surveyor.setConnected(false);
         }
     }
 }

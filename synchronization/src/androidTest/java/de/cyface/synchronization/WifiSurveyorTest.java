@@ -1,4 +1,17 @@
-// FIXME
+/*
+ * Copyright 2019 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
@@ -7,13 +20,22 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.net.ConnectivityManager;
+import android.os.Bundle;
+
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -34,7 +56,11 @@ public class WifiSurveyorTest {
     /**
      * An object of the class under test.
      */
-    private WiFiSurveyor testedObject;
+    private WiFiSurveyor objectUnderTest;
+    /**
+     * The {@link AccountManager} to check which accounts are registered.
+     */
+    private AccountManager accountManager;
 
     /**
      * Initializes the properties for each test case individually.
@@ -45,32 +71,72 @@ public class WifiSurveyorTest {
         ConnectivityManager connectivityManager = (ConnectivityManager)context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         Validate.notNull(connectivityManager);
-        testedObject = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
+
+        objectUnderTest = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
+
+        // To ensure reproducibility make sure there is no old account registered
+        accountManager = AccountManager.get(context);
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        assertThat(oldAccounts.length, is(equalTo(0)));
+    }
+
+    @After
+    public void tearDown() {
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (oldAccounts.length > 0) {
+            for (Account oldAccount : oldAccounts) {
+                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+            }
+        }
+        objectUnderTest = null;
     }
 
     /**
-     * Tests that marking the connection as syncable using the periodicSync flag on the account works.
+     * Tests that marking the connection as syncable using the account flags works.
      * <p>
-     * This test reproduced MOV-635 where the periodic sync flag did not change.
+     * This test reproduced MOV-635 where the periodic sync flag did not change because syncAutomatically was not set.
      * This bug was only reproducible in integration environment (device and emulator) but not as roboelectric test.
-     *
-     * @throws SynchronisationException This should not happen in the test environment. Occurs if no Android
-     *             <code>Context</code> is available.
+     * <p>
+     * This test may be flaky on a read device when the network changes during the test.
      */
     @Test
-    public void testSetPeriodicSyncEnabled() throws SynchronisationException {
+    public void testSetConnected() throws InterruptedException {
 
         // Arrange
-        Account account = testedObject.createAccount("test", null);
-        testedObject.startSurveillance(account);
-        Validate.isTrue(!testedObject.isPeriodicSyncEnabled()); // Default state
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+        Account account = objectUnderTest.createAccount("test", null);
+
+        // Make sure the new account is in the expected default state
+        WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
+
+        // Instead of calling startSurveillance as in production we directly call it's implementation
+        // Without the networkCallback or networkConnectivity BroadcastReceiver as this would make this test
+        // flaky when the network changes during the test
+        objectUnderTest.currentSynchronizationAccount = account;
+        objectUnderTest.scheduleSyncNow();
+        Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
 
         // Act & Assert 1
-        testedObject.setPeriodicSyncEnabled(true);
-        assertThat(testedObject.isPeriodicSyncEnabled(), is(equalTo(true)));
+        objectUnderTest.setConnected(true);
+        lock.lock();
+        try {
+            condition.await(100, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+        } finally {
+            lock.unlock();
+        }
+        WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
+        assertThat(objectUnderTest.isConnected(), is(equalTo(true)));
 
         // Act & Assert 2
-        testedObject.setPeriodicSyncEnabled(false);
-        assertThat(testedObject.isPeriodicSyncEnabled(), is(equalTo(false)));
+        objectUnderTest.setConnected(false);
+        lock.lock();
+        try {
+            condition.await(100, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+        } finally {
+            lock.unlock();
+        }
+        assertThat(objectUnderTest.isConnected(), is(equalTo(false)));
     }
 }

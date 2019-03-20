@@ -2,6 +2,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
+import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.DEFAULT_PASSWORD;
@@ -65,6 +66,7 @@ public class UploadProgressTest {
     private Context context;
     private ContentResolver contentResolver;
     private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+    private AccountManager accountManager;
 
     /**
      * @throws CursorIsNullException When the {@link ContentProvider} is not accessible
@@ -77,11 +79,21 @@ public class UploadProgressTest {
         persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
+        accountManager = AccountManager.get(context);
     }
 
     @After
     public void tearDown() {
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
+
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (oldAccounts.length > 0) {
+            for (Account oldAccount : oldAccounts) {
+                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+            }
+        }
+
         contentResolver = null;
         context = null;
     }
@@ -90,9 +102,8 @@ public class UploadProgressTest {
     @FlakyTest // because this is currently still dependent on a real test api (see logcat)
     public void testUploadProgressHappyPath() throws CursorIsNullException {
         SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
-        AccountManager manager = AccountManager.get(context);
         Account account = new Account(DEFAULT_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, DEFAULT_PASSWORD, null);
+        accountManager.addAccountExplicitly(account, DEFAULT_PASSWORD, null);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
@@ -135,7 +146,9 @@ public class UploadProgressTest {
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             SyncResult result = new SyncResult();
             Validate.notNull(client);
-            syncAdapter.onPerformSync(account, new Bundle(), AUTHORITY, client, result);
+            final Bundle testBundle = new Bundle();
+            testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
+            syncAdapter.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
                 client.close();

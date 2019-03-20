@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
@@ -24,10 +38,12 @@ import android.content.SyncInfo;
 import android.content.SyncStatusObserver;
 import android.os.Bundle;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.utils.Validate;
 
 /**
  * Tests that the sync adapter implemented by this component gets called. This test is not so much about transmitting
@@ -54,15 +70,20 @@ public final class SyncAdapterTest {
      */
     @Test
     public void testRequestSync() throws InterruptedException {
-        AccountManager am = AccountManager.get(InstrumentationRegistry.getInstrumentation().getTargetContext());
+
+        AccountManager accountManager = AccountManager
+                .get(InstrumentationRegistry.getInstrumentation().getTargetContext());
         Account newAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_PASSWORD, Bundle.EMPTY)) {
-            ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
-            ContentResolver.addPeriodicSync(newAccount, AUTHORITY, Bundle.EMPTY, 1);
-        }
+        // This should always be the case to make this test reproducible
+        Validate.isTrue(accountManager.addAccountExplicitly(newAccount, TestUtils.DEFAULT_PASSWORD, Bundle.EMPTY));
+
+        // Enable auto sync
+        ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
+        ContentResolver.addPeriodicSync(newAccount, AUTHORITY, Bundle.EMPTY, 1);
+        ContentResolver.setSyncAutomatically(newAccount, AUTHORITY, true);
 
         try {
-            final Account account = am.getAccountsByType(ACCOUNT_TYPE)[0];
+            final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
 
             final Lock lock = new ReentrantLock();
             final Condition condition = lock.newCondition();
@@ -88,8 +109,8 @@ public final class SyncAdapterTest {
             assertThat(observer.didSync(), is(equalTo(true)));
 
         } finally {
-            for (Account account : am.getAccountsByType(ACCOUNT_TYPE)) {
-                am.removeAccountExplicitly(account);
+            for (Account account : accountManager.getAccountsByType(ACCOUNT_TYPE)) {
+                accountManager.removeAccountExplicitly(account);
             }
         }
     }

@@ -68,17 +68,19 @@ import de.cyface.utils.Validate;
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     /**
-     * This bundle flag allows our unit tests to mock isPeriodicSyncDisabled(). We cannot use addPeriodicSync() as we do
-     * in the production code as this is an Unit test. When this {@code Bundle} extra is set (no matter to which String)
-     * the {@link #isPeriodicSyncDisabled(Account, String)} method returns false;
+     * This bundle flag allows our unit tests to mock {@link #isConnected(Account, String)}.
+     * <p>
+     * We cannot use {@code ContentResolver} as we do in the production code as this is an Unit test.
+     * When this {@code Bundle} extra is set (no matter to which String) the {@link #isConnected(Account, String)}
+     * method returns true;
      */
-    static final String MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE = "mocked_periodic_sync_check_false";
+    static final String MOCK_IS_CONNECTED_TO_RETURN_TRUE = "mocked_periodic_sync_check_false";
     private final Collection<ConnectionStatusListener> progressListener;
     private final Http http;
     /**
-     * When this is set to true the {@link #isPeriodicSyncDisabled(Account, String)} method always returns false.
+     * When this is set to true the {@link #isConnected(Account, String)} method always returns true.
      */
-    private boolean mockIsPeriodicSyncDisabledToReturnFalse;
+    private boolean mockIsConnectedToReturnTrue;
 
     /**
      * Creates a new completely initialized {@code SyncAdapter}. See the documentation of
@@ -115,12 +117,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
             final @NonNull String authority, final @NonNull ContentProviderClient provider,
             final @NonNull SyncResult syncResult) {
-        // This allows us to mock the isPeriodicSyncDisabled check for unit tests
-        mockIsPeriodicSyncDisabledToReturnFalse = extras.containsKey(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE);
+        // This allows us to mock the #isConnected() check for unit tests
+        mockIsConnectedToReturnTrue = extras.containsKey(MOCK_IS_CONNECTED_TO_RETURN_TRUE);
 
         // The network setting may have changed since the initial sync call, avoid unnecessary serialization
-        if (isPeriodicSyncDisabled(account, authority)) {
-            Log.w(TAG, "Sync aborted: periodicSyncIsDisabled");
+        if (!isConnected(account, authority)) {
+            Log.w(TAG, "Sync aborted: syncable connection not available anymore");
             return;
         }
 
@@ -184,8 +186,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 final MetaData metaData = loadMetaData(measurement, persistence, deviceId, context);
 
                 // The network setting may have changed since the initial sync call, avoid unnecessary serialization
-                if (isPeriodicSyncDisabled(account, authority)) {
-                    Log.w(TAG, "Sync aborted: periodicSyncIsDisabled");
+                if (!isConnected(account, authority)) {
+                    Log.w(TAG, "Sync aborted: syncable connection not available anymore");
                     return;
                 }
                 // Load compressed transfer file for measurement
@@ -212,8 +214,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // The network setting may have changed since the initial sync call, avoid using metered network
                     // without permission
-                    if (isPeriodicSyncDisabled(account, authority)) {
-                        Log.w(TAG, "Sync aborted: periodicSyncIsDisabled");
+                    if (!isConnected(account, authority)) {
+                        Log.w(TAG, "Sync aborted: syncable connection not available anymore");
                         return;
                     }
 
@@ -312,20 +314,25 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
-     * We need to check if the network is still syncable:
-     * - this is only possible indirect, we check if the surveyor disabled auto sync for the account
+     * We need to check if the syncable network is still syncable:
+     * - this is only possible indirectly: we check if the surveyor disabled auto sync for the account
      * - the network settings could have changed between sync initial call and "now"
+     * <p>
+     * The implementation of this method must be identical to {@link WiFiSurveyor#isConnected()}.
      *
      * @param account The {@code Account} to check the status for
      * @param authority The authority string for the synchronization to check
      */
-    private boolean isPeriodicSyncDisabled(@NonNull final Account account, @NonNull final String authority) {
-        if (mockIsPeriodicSyncDisabledToReturnFalse) {
-            Log.w(TAG, "mockIsPeriodicSyncDisabledToReturnFalse triggered");
-            return false;
+    private boolean isConnected(@NonNull final Account account, @NonNull final String authority) {
+        if (mockIsConnectedToReturnTrue) {
+            Log.w(TAG, "mockIsConnectedToReturnTrue triggered");
+            return true;
         }
 
-        return ContentResolver.getPeriodicSyncs(account, authority).isEmpty();
+        // We cannot instantly check addPeriodicSync as this seems to be async. For this reason we have a test to ensure
+        // it's set to the same state as syncAutomatically: WifiSurveyorTest.testSetConnected()
+
+        return ContentResolver.getSyncAutomatically(account, authority);
     }
 
     private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {

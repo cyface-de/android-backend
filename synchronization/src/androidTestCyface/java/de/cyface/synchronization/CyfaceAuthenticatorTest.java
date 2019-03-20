@@ -1,18 +1,22 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.os.Bundle;
@@ -22,6 +26,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.utils.Validate;
 
 /**
  * Tests the internal workings of the {@link CyfaceAuthenticator} using an actual api.
@@ -37,6 +42,26 @@ import androidx.test.platform.app.InstrumentationRegistry;
            // required an actual api)
 public class CyfaceAuthenticatorTest {
 
+    private AccountManager accountManager;
+    private Context context;
+
+    @Before
+    public void setUp() {
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        accountManager = AccountManager.get(context);
+    }
+
+    @After
+    public void tearDown() {
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (oldAccounts.length > 0) {
+            for (Account oldAccount : oldAccounts) {
+                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+            }
+        }
+    }
+
     /**
      * This test calls an actual api to test if the client can log in and request an authentication token correctly.
      */
@@ -44,10 +69,8 @@ public class CyfaceAuthenticatorTest {
     public void testGetAuthToken() throws NetworkErrorException {
 
         // Arrange
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        AccountManager manager = AccountManager.get(context);
         Account requestAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
+        accountManager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();

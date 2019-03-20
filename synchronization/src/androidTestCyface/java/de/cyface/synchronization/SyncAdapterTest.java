@@ -1,8 +1,22 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
-import static de.cyface.synchronization.SyncAdapter.MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE;
+import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
@@ -65,6 +79,7 @@ public final class SyncAdapterTest {
     private ContentResolver contentResolver;
     private Account account;
     private SyncAdapter oocut;
+    private AccountManager accountManager;
 
     @Before
     public void setUp() {
@@ -79,14 +94,14 @@ public final class SyncAdapterTest {
         editor.apply();
 
         // To make these tests reproducible make sure we don't reuse old sync accounts
-        AccountManager manager = AccountManager.get(context);
-        for (final Account account : manager.getAccountsByType(ACCOUNT_TYPE)) {
-            manager.removeAccountExplicitly(account);
+        accountManager = AccountManager.get(context);
+        for (final Account account : accountManager.getAccountsByType(ACCOUNT_TYPE)) {
+            accountManager.removeAccountExplicitly(account);
         }
 
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
         account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        manager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+        accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
 
         oocut = new SyncAdapter(context, false, new MockedHttpConnection());
     }
@@ -94,6 +109,15 @@ public final class SyncAdapterTest {
     @After
     public void tearDown() {
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
+
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (oldAccounts.length > 0) {
+            for (Account oldAccount : oldAccounts) {
+                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+            }
+        }
+
         contentResolver = null;
         context = null;
     }
@@ -125,7 +149,7 @@ public final class SyncAdapterTest {
             Validate.notNull(client);
 
             final Bundle testBundle = new Bundle();
-            testBundle.putString(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE, "");
+            testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
             oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
@@ -181,7 +205,7 @@ public final class SyncAdapterTest {
             Validate.notNull(client);
 
             final Bundle testBundle = new Bundle();
-            testBundle.putString(MOCKED_IS_PERIODIC_SYNC_DISABLED_FALSE, "");
+            testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
             oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
