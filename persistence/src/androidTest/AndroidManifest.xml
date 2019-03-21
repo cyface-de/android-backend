@@ -1,13 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
     xmlns:tools="http://schemas.android.com/tools"
-    package="de.cyface.persistence">
+    package="de.cyface.persistence.test">
 
     <!-- The integration test uses a different authority to be executed next to the default app (same device) -->
     <application>
         <provider
             android:name="de.cyface.persistence.MeasuringPointsContentProvider"
-            android:authorities="de.cyface.provider.test"
+            android:authorities="de.cyface.persistence.test.provider"
             android:exported="false"
             android:process=":persistence_process"
             android:syncable="true"
