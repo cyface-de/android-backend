@@ -118,7 +118,7 @@ public class WifiSurveyorTest {
         objectUnderTest.scheduleSyncNow();
         lock.lock();
         try {
-            condition.await(500, TimeUnit.MILLISECONDS);
+            condition.await(1, TimeUnit.SECONDS);
         } finally {
             lock.unlock();
         }
@@ -129,7 +129,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(true);
         lock.lock();
         try {
-            condition.await(500, TimeUnit.MILLISECONDS);
+            condition.await(1, TimeUnit.SECONDS); // CI emulator seems to be to slow for less
         } finally {
             lock.unlock();
         }
@@ -140,7 +140,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(false);
         lock.lock();
         try {
-            condition.await(500, TimeUnit.MILLISECONDS);
+            condition.await(1, TimeUnit.SECONDS);
         } finally {
             lock.unlock();
         }
