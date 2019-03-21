@@ -168,7 +168,7 @@ public class BackgroundServiceTest {
         // This must not run on the main thread or it will produce an ANR.
         lock.lock();
         try {
-            if (!testCallback.isRunning) {
+            if (!testCallback.wasRunning()) {
                 if (!condition.await(2, TimeUnit.MINUTES)) {
                     throw new IllegalStateException("Waiting for pong or timeout timed out!");
                 }
@@ -182,9 +182,9 @@ public class BackgroundServiceTest {
         // Unbind background service
         serviceTestRule.unbindService();
 
-        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
-        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
-                is(equalTo(false)));
+        assertThat("It seems that service did not respond to a ping.", testCallback.wasRunning(), is(equalTo(true)));
+        assertThat("It seems that the request to the service whether it was active timed out.",
+                testCallback.didTimeOut(), is(equalTo(false)));
     }
 
     /**
@@ -223,7 +223,7 @@ public class BackgroundServiceTest {
         // This must not run on the main thread or it will produce an ANR.
         lock.lock();
         try {
-            if (!testCallback.isRunning) {
+            if (!testCallback.wasRunning()) {
                 if (!condition.await(2, TimeUnit.MINUTES)) {
                     throw new IllegalStateException("Waiting for pong or timeout timed out!");
                 }
@@ -234,8 +234,8 @@ public class BackgroundServiceTest {
             lock.unlock();
         }
 
-        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
-        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
-                is(equalTo(false)));
+        assertThat("It seems that service did not respond to a ping.", testCallback.wasRunning(), is(equalTo(true)));
+        assertThat("It seems that the request to the service whether it was active timed out.",
+                testCallback.didTimeOut(), is(equalTo(false)));
     }
 }
