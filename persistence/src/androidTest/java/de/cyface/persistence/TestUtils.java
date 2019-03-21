@@ -27,7 +27,7 @@ import de.cyface.utils.Validate;
  */
 class TestUtils {
 
-    static final String AUTHORITY = "de.cyface.provider.test";
+    static final String AUTHORITY = "de.cyface.persistence.test.provider";
 
     private static void compareCursorWithValues(final Cursor cursor, final List<ContentValues> contentValues) {
         assertThat(contentValues.size() <= cursor.getCount(), is(equalTo(true)));
