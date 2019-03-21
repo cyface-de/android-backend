@@ -205,7 +205,7 @@ public class DataCapturingServiceTest {
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
 
-        return runningStatusCallback.wasRunning() && !runningStatusCallback.timedOut;
+        return runningStatusCallback.wasRunning() && !runningStatusCallback.didTimeOut();
     }
 
     /**

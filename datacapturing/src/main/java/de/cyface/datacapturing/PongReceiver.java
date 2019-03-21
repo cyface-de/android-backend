@@ -1,7 +1,5 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.Constants.TAG;
-
 import java.lang.ref.WeakReference;
 import java.util.UUID;
 import java.util.concurrent.TimeUnit;
@@ -21,6 +19,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.backend.PingReceiver;
 import de.cyface.synchronization.BundlesExtrasCodes;
 
 /**
@@ -35,6 +34,11 @@ import de.cyface.synchronization.BundlesExtrasCodes;
  */
 public class PongReceiver extends BroadcastReceiver {
 
+    /**
+     * Logging TAG to identify logs associated with the {@link PingReceiver} or {@link PongReceiver}.
+     */
+    @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused"}) // SDK implementing app (CY) uses this
+    public static final String TAG = Constants.TAG + ".png";
     /**
      * The human readable name for the background thread handling response and timeout of the ping pong process between
      * background service and foreground facade.
@@ -104,10 +108,10 @@ public class PongReceiver extends BroadcastReceiver {
         this.callback = callback;
 
         // Run receiver on a different thread so it runs even if calling thread waits for it to return:
-
         pongReceiverThread.start();
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(deviceId)), null, receiverHandler);
+        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(deviceId)), null,
+                receiverHandler);
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);
