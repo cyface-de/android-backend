@@ -333,6 +333,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     @SuppressWarnings("unused") // Used by CyfaceDataCapturingService
     public void makeAccountSyncable(@NonNull final Account account, boolean enabled) {
 
+        ContentResolver.setSyncAutomatically(account, authority, false);
         setSyncEnabled(account, enabled);
 
         validateAccountFlags(account, authority);
@@ -345,7 +346,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @param account The {@code Account} to be checked.
      */
-    static void validateAccountFlags(@NonNull final Account account, @NonNull final String authority) {
+    public static void validateAccountFlags(@NonNull final Account account, @NonNull final String authority) {
         final boolean periodicSyncRegistered = ContentResolver.getPeriodicSyncs(account, authority).size() > 0;
         final boolean autoSyncEnabled = ContentResolver.getSyncAutomatically(account, authority);
         Validate.isTrue(periodicSyncRegistered == autoSyncEnabled,

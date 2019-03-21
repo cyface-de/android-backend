@@ -106,7 +106,7 @@ public class WifiSurveyorTest {
         // Arrange
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        Account account = objectUnderTest.createAccount("test", null);
+        Account account = objectUnderTest.createAccount(TestUtils.DEFAULT_USERNAME, null);
 
         // Make sure the new account is in the expected default state
         WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
@@ -118,7 +118,7 @@ public class WifiSurveyorTest {
         objectUnderTest.scheduleSyncNow();
         lock.lock();
         try {
-            condition.await(1, TimeUnit.SECONDS); // 200ms was not enough for CI emulators
+            condition.await(500, TimeUnit.MILLISECONDS);
         } finally {
             lock.unlock();
         }
@@ -129,7 +129,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(true);
         lock.lock();
         try {
-            condition.await(1, TimeUnit.SECONDS); // 200ms was not enough for CI emulators
+            condition.await(500, TimeUnit.MILLISECONDS);
         } finally {
             lock.unlock();
         }
@@ -140,7 +140,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(false);
         lock.lock();
         try {
-            condition.await(1, TimeUnit.SECONDS); // 200ms was not enough for CI emulators
+            condition.await(500, TimeUnit.MILLISECONDS);
         } finally {
             lock.unlock();
         }
