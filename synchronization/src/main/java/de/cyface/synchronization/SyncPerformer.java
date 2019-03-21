@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
@@ -22,6 +36,7 @@ import javax.net.ssl.SSLContext;
 import android.content.Context;
 import android.content.SyncResult;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -30,7 +45,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 3.0.0
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -76,29 +91,28 @@ class SyncPerformer {
      * @param http The {@link Http} connection to use for transmission
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param dataServerUrl The server URL to send the data to.
-     * @param measurementIdentifier The measurement identifier of the transmitted measurement.
-     * @param deviceIdentifier The device identifier of the device transmitting the measurement.
+     * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param compressedTransferTempFile The data to transmit
+     * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      *
      * @throws BadRequestException When the api responses with {@link HttpURLConnection#HTTP_BAD_REQUEST}
      */
-    boolean sendData(final Http http, final SyncResult syncResult, final @NonNull String dataServerUrl,
-                     final long measurementIdentifier, final @NonNull String deviceIdentifier,
-                     final @NonNull File compressedTransferTempFile, final @NonNull UploadProgressListener progressListener,
-                     final @NonNull String jwtAuthToken) throws BadRequestException {
+    boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
+            @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
+            @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
+            @NonNull final String jwtAuthToken) throws BadRequestException {
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
-        final String fileName = String.format(Locale.US, "%s_%d.cyf", deviceIdentifier, measurementIdentifier);
+        final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
             Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, compressedTransferTempFile, deviceIdentifier, measurementIdentifier, fileName,
-                        progressListener);
+                http.post(connection, compressedTransferTempFile, metaData, fileName, progressListener);
             } finally {
                 if (connection != null) {
                     connection.disconnect();

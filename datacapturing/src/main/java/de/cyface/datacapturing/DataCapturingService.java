@@ -62,6 +62,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
@@ -92,7 +93,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.4
+ * @version 15.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -864,14 +865,6 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"unused"}) // Used by implementing apps (CY)
     void shutdownConnectionStatusReceiver() {
         this.connectionStatusReceiver.shutdown(getContext());
-    }
-
-    /**
-     * see {@link WiFiSurveyor#isConnectedToSyncableNetwork()}
-     */
-    @SuppressWarnings("unused") // Allows implementing apps (CY) to only trigger sync manually when connected
-    public boolean isConnected() {
-        return surveyor.isConnectedToSyncableNetwork();
     }
 
     /**

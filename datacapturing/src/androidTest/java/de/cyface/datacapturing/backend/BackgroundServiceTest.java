@@ -1,8 +1,22 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
-import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -14,7 +28,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import de.cyface.datacapturing.DefaultDistanceCalculationStrategy;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
@@ -30,14 +43,15 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
-import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -46,35 +60,32 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.4
+ * @version 2.2.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class BackgroundServiceTest {
+
     /**
      * Junit rule handling the service connection.
      */
     @Rule
     public ServiceTestRule serviceTestRule = new ServiceTestRule();
-
     /**
      * Grants the <code>ACCESS_FINE_LOCATION</code> permission while running this test.
      */
     @Rule
     public GrantPermissionRule mRuntimePermissionRule = GrantPermissionRule
             .grant(android.Manifest.permission.ACCESS_FINE_LOCATION);
-
     /**
      * The messenger used to receive messages from the data capturing service.
      */
     private Messenger fromServiceMessenger;
-
     /**
      * The identifier for the test measurement created in the <code>setUp</code> method.
      */
     private Measurement testMeasurement;
-
     /**
      * Lock used to synchronize the test case with the background service.
      */

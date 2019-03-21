@@ -1,9 +1,22 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.KITKAT;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.WiFiSurveyor.SYNC_INTERVAL;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -27,18 +40,21 @@ import android.net.wifi.WifiManager;
 import android.os.Bundle;
 
 import androidx.test.core.app.ApplicationProvider;
+import de.cyface.utils.Validate;
 
 /**
- * Tests the correct functionality of the <code>WiFiSurveyor</code> class. This test requires an active WiFi connection
- * and thus is a <code>FlakyTest</code>.
+ * Tests the correct functionality of the <code>WiFiSurveyor</code> class.
+ * <p>
+ * Robolectric is used to emulate the Android context. The tests are currently executed explicitly with KITKAT SDK
+ * as we did not yet port the tests to the newer Robolectric version (or we failed to).
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.5
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = KITKAT) // Because the Roboelectric test don't work on newer devices
+@Config(sdk = KITKAT) // Because these Roboelectric tests don't run on newer SDKs
 public class WiFiSurveyorTest {
 
     /**
@@ -74,16 +90,25 @@ public class WiFiSurveyorTest {
     @Test
     public void testWifiConnectivity() throws SynchronisationException {
 
+        // Arrange
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
-        ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
+        // PeriodicSync and syncAutomatically should be disabled by default
+        // Checking getPeriodicSyncs only works without waiting in robolectric as addPeriodicSync seems to be async
+        Validate.isTrue(ContentResolver.getPeriodicSyncs(account, AUTHORITY).size() == 0);
+        Validate.isTrue(!ContentResolver.getSyncAutomatically(account, AUTHORITY));
 
+        // Act & Assert 1 - don't change the order within this block
         switchWiFiConnection(false);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
+        assertThat(oocut.isConnected(), is(equalTo(false)));
 
+        // Act & Assert 2 - don't change the order within this block
         switchWiFiConnection(true);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
-        assertThat(oocut.isPeriodicSyncEnabled(), is(equalTo(true)));
+        assertThat(oocut.isConnected(), is(equalTo(true)));
+
+        // Cleanup
         ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
     }
 
@@ -94,18 +119,26 @@ public class WiFiSurveyorTest {
     @Test
     public void testMobileConnectivity() throws SynchronisationException {
 
+        // Arrange
         Account account = oocut.createAccount("test", null);
         oocut.startSurveillance(account);
-        ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, SYNC_INTERVAL);
+        // PeriodicSync and syncAutomatically should be disabled by default
+        Validate.isTrue(ContentResolver.getPeriodicSyncs(account, AUTHORITY).size() == 0);
+        Validate.isTrue(!ContentResolver.getSyncAutomatically(account, AUTHORITY));
 
+        // Act & Assert 1 - don't change the order within this block
         switchMobileConnection(false);
         switchWiFiConnection(false);
         oocut.setSyncOnUnMeteredNetworkOnly(false);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
+        assertThat(oocut.isConnected(), is(equalTo(false)));
 
+        // Act & Assert 2 - don't change the order within this block
         switchMobileConnection(true);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
-        assertThat(oocut.isPeriodicSyncEnabled(), is(equalTo(true)));
+        assertThat(oocut.isConnected(), is(equalTo(true)));
+
+        // Cleanup
         ContentResolver.removePeriodicSync(account, AUTHORITY, Bundle.EMPTY);
     }
 
@@ -158,5 +191,4 @@ public class WiFiSurveyorTest {
         Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
         context.sendBroadcast(broadcastIntent);
     }
-
 }

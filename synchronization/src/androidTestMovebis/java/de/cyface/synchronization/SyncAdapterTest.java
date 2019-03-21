@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
@@ -14,20 +28,26 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.ContentResolver;
+import android.content.Context;
 import android.content.SyncInfo;
 import android.content.SyncStatusObserver;
 import android.os.Bundle;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.testutils.SharedTestUtils;
+import de.cyface.utils.Validate;
 
 /**
  * Tests that the sync adapter implemented by this component gets called. This test is not so much about transmitting
@@ -47,6 +67,39 @@ import androidx.test.platform.app.InstrumentationRegistry;
 @LargeTest
 public final class SyncAdapterTest {
 
+    private Context context;
+    private ContentResolver contentResolver;
+    private AccountManager accountManager;
+    private Account account;
+
+    @Before
+    public void setUp() {
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        contentResolver = context.getContentResolver();
+
+        // Ensure reproducibility
+        accountManager = AccountManager.get(context);
+        SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
+
+        // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
+        account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+    }
+
+    @After
+    public void tearDown() {
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (oldAccounts.length > 0) {
+            for (Account oldAccount : oldAccounts) {
+                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+            }
+        }
+
+        contentResolver = null;
+        context = null;
+    }
+
     /**
      * This test case tests whether the sync adapter is called after a request for a direct synchronization.
      *
@@ -54,44 +107,34 @@ public final class SyncAdapterTest {
      */
     @Test
     public void testRequestSync() throws InterruptedException {
-        AccountManager am = AccountManager.get(InstrumentationRegistry.getInstrumentation().getTargetContext());
-        Account newAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
-        if (am.addAccountExplicitly(newAccount, TestUtils.DEFAULT_PASSWORD, Bundle.EMPTY)) {
-            ContentResolver.setIsSyncable(newAccount, AUTHORITY, 1);
-            ContentResolver.addPeriodicSync(newAccount, AUTHORITY, Bundle.EMPTY, 1);
-        }
 
+        // Enable auto sync
+        ContentResolver.setIsSyncable(account, AUTHORITY, 1);
+        ContentResolver.addPeriodicSync(account, AUTHORITY, Bundle.EMPTY, 1);
+        ContentResolver.setSyncAutomatically(account, AUTHORITY, true);
+
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
+
+        TestSyncStatusObserver observer = new TestSyncStatusObserver(account, lock, condition);
+
+        Object statusChangeListenerHandle = ContentResolver.addStatusChangeListener(
+                ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE | ContentResolver.SYNC_OBSERVER_TYPE_PENDING, observer);
+        final Bundle params = new Bundle();
+        params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        ContentResolver.requestSync(account, AUTHORITY, params);
+
+        lock.lock();
         try {
-            final Account account = am.getAccountsByType(ACCOUNT_TYPE)[0];
-
-            final Lock lock = new ReentrantLock();
-            final Condition condition = lock.newCondition();
-
-            TestSyncStatusObserver observer = new TestSyncStatusObserver(account, lock, condition);
-
-            Object statusChangeListenerHandle = ContentResolver.addStatusChangeListener(
-                    ContentResolver.SYNC_OBSERVER_TYPE_ACTIVE | ContentResolver.SYNC_OBSERVER_TYPE_PENDING, observer);
-            final Bundle params = new Bundle();
-            params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-            params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-            ContentResolver.requestSync(account, AUTHORITY, params);
-
-            lock.lock();
-            try {
-                if (!condition.await(10, TimeUnit.SECONDS)) {
-                    fail("Sync did not happen within the timeout time of 10 seconds.");
-                }
-            } finally {
-                lock.unlock();
-                ContentResolver.removeStatusChangeListener(statusChangeListenerHandle);
+            if (!condition.await(10, TimeUnit.SECONDS)) {
+                fail("Sync did not happen within the timeout time of 10 seconds.");
             }
-            assertThat(observer.didSync(), is(equalTo(true)));
-
         } finally {
-            for (Account account : am.getAccountsByType(ACCOUNT_TYPE)) {
-                am.removeAccountExplicitly(account);
-            }
+            lock.unlock();
+            ContentResolver.removeStatusChangeListener(statusChangeListenerHandle);
         }
+        assertThat(observer.didSync(), is(equalTo(true)));
     }
 
     /**

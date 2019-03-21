@@ -12,7 +12,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.datacapturing;
+package de.cyface.persistence;
 
 import android.location.Location;
 import android.os.Parcel;
@@ -26,7 +26,7 @@ import de.cyface.persistence.model.Measurement;
  * {@link Measurement#distance} using simply {@link Location#distanceTo(Location)}.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 3.2.0
  */
 public class DefaultDistanceCalculationStrategy implements DistanceCalculationStrategy {
