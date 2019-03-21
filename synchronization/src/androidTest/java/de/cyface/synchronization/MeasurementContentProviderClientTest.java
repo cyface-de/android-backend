@@ -43,6 +43,7 @@ import de.cyface.utils.Validate;
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class MeasurementContentProviderClientTest {
+
     /**
      * Constant you can play around with to find out how many simultaneous operations are possible in one transaction to
      * insert into the <code>ContentProvider</code>.

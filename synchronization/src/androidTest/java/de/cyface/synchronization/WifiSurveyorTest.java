@@ -39,6 +39,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
 
 /**
@@ -74,10 +75,9 @@ public class WifiSurveyorTest {
 
         objectUnderTest = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
 
-        // To ensure reproducibility make sure there is no old account registered
+        // Ensure reproducibility
         accountManager = AccountManager.get(context);
-        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
-        assertThat(oldAccounts.length, is(equalTo(0)));
+        SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
     }
 
     @After
@@ -116,13 +116,20 @@ public class WifiSurveyorTest {
         // flaky when the network changes during the test
         objectUnderTest.currentSynchronizationAccount = account;
         objectUnderTest.scheduleSyncNow();
+        lock.lock();
+        try {
+            condition.await(200, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+        } finally {
+            lock.unlock();
+        }
+        WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
         Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
 
         // Act & Assert 1
         objectUnderTest.setConnected(true);
         lock.lock();
         try {
-            condition.await(100, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+            condition.await(200, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
         } finally {
             lock.unlock();
         }
@@ -133,7 +140,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(false);
         lock.lock();
         try {
-            condition.await(100, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+            condition.await(200, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
         } finally {
             lock.unlock();
         }

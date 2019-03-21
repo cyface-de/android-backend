@@ -868,14 +868,6 @@ public abstract class DataCapturingService {
     }
 
     /**
-     * see {@link WiFiSurveyor#isConnectedToSyncableNetwork()}
-     */
-    @SuppressWarnings("unused") // Allows implementing apps (CY) to only trigger sync manually when connected
-    public boolean isConnected() {
-        return surveyor.isConnectedToSyncableNetwork();
-    }
-
-    /**
      * Handles the connection to a {@link DataCapturingBackgroundService}. For further information please refer to the
      * <a href="https://developer.android.com/guide/components/bound-services.html">Android documentation</a>.
      *

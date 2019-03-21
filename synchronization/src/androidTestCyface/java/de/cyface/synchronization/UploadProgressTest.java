@@ -5,8 +5,6 @@ import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
 import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.DEFAULT_PASSWORD;
-import static de.cyface.synchronization.TestUtils.DEFAULT_USERNAME;
 import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -49,6 +47,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -63,10 +62,13 @@ import de.cyface.utils.Validate;
 @RunWith(AndroidJUnit4.class)
 @LargeTest
 public class UploadProgressTest {
+
     private Context context;
     private ContentResolver contentResolver;
     private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
     private AccountManager accountManager;
+    private SyncAdapter objectUnderTest;
+    private Account account;
 
     /**
      * @throws CursorIsNullException When the {@link ContentProvider} is not accessible
@@ -75,11 +77,21 @@ public class UploadProgressTest {
     public void setUp() throws CursorIsNullException {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
+
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
         persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
+
+        // Ensure reproducibility
         accountManager = AccountManager.get(context);
+        SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
+
+        // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
+        account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
+        accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
+
+        objectUnderTest = new SyncAdapter(context, false, new MockedHttpConnection());
     }
 
     @After
@@ -101,14 +113,12 @@ public class UploadProgressTest {
     @Test
     @FlakyTest // because this is currently still dependent on a real test api (see logcat)
     public void testUploadProgressHappyPath() throws CursorIsNullException {
-        SyncAdapter syncAdapter = new SyncAdapter(context, false, new MockedHttpConnection());
-        Account account = new Account(DEFAULT_USERNAME, ACCOUNT_TYPE);
-        accountManager.addAccountExplicitly(account, DEFAULT_PASSWORD, null);
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.apply();
+
         TestReceiver receiver = new TestReceiver();
         IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
@@ -146,9 +156,11 @@ public class UploadProgressTest {
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             SyncResult result = new SyncResult();
             Validate.notNull(client);
+
             final Bundle testBundle = new Bundle();
             testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
-            syncAdapter.onPerformSync(account, testBundle, AUTHORITY, client, result);
+            objectUnderTest.onPerformSync(account, testBundle, AUTHORITY, client, result);
+
         } finally {
             if (client != null) {
                 client.close();

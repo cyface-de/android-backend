@@ -479,6 +479,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <p>
      * If you change the implementation of this method, make sure you adjust
      * {@link SyncAdapter#isConnected(Account, String)} accordingly.
+     * <p>
+     * This method allows implementing apps (CY) to only trigger sync manually when connected or else show an info.
      *
      * @return True if the device is connected to a syncable connection.
      */
