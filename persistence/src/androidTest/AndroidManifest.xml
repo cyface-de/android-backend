@@ -11,8 +11,7 @@
             android:exported="false"
             android:process=":persistence_process"
             android:syncable="true"
-            tools:replace="android:authorities">
-        </provider>
+            tools:replace="android:authorities" />
     </application>
 
 </manifest>

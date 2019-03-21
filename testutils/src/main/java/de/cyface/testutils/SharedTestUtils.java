@@ -33,9 +33,13 @@ import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
 
+import android.accounts.Account;
+import android.accounts.AccountManager;
 import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
+import android.os.Build;
+import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -63,7 +67,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.2.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -85,6 +89,31 @@ public class SharedTestUtils {
      * see {@link #BASE_LAT}
      */
     private final static double LON_CONSTANT = 0.0000000270697;
+
+    /**
+     * To make integration tests reproducible we need to ensure old account (after stopped tests) are cleaned up.
+     *
+     * @param accountManager The {@link AccountManager} to be used to access accounts.
+     * @param accountType The account type to search for.
+     * @param authority The authority to access the accounts.
+     */
+    public static void cleanupOldAccounts(@NonNull final AccountManager accountManager,
+            @NonNull final String accountType, @NonNull final String authority) {
+
+        // To make these tests reproducible make sure we don't reuse old sync accounts
+        for (final Account account : accountManager.getAccountsByType(accountType)) {
+            ContentResolver.removePeriodicSync(account, authority, Bundle.EMPTY);
+
+            if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
+                accountManager.removeAccount(account, null, null);
+            } else {
+                accountManager.removeAccountExplicitly(account);
+            }
+        }
+        // To ensure reproducibility make sure there is no old account registered
+        final Account[] oldAccounts = accountManager.getAccountsByType(accountType);
+        assertThat(oldAccounts.length, is(equalTo(0)));
+    }
 
     /**
      * Generates {@link GeoLocation}s with coordinates for testing.

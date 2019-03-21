@@ -23,6 +23,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 import android.util.Log;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
@@ -37,12 +38,13 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class MeasurementContentProviderClientTest {
+
     /**
      * Constant you can play around with to find out how many simultaneous operations are possible in one transaction to
      * insert into the <code>ContentProvider</code>.

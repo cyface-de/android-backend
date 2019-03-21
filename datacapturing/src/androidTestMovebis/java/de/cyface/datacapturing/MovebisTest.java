@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
@@ -11,13 +25,18 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.Manifest;
+import android.accounts.Account;
+import android.accounts.AccountManager;
+import android.content.ContentResolver;
 import android.content.Context;
+import android.os.Bundle;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
@@ -26,14 +45,16 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.synchronization.SynchronisationException;
+import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * Tests whether the specific features required for the Movebis project work as expected.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.3.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -77,18 +98,24 @@ public final class MovebisTest {
      * Listener for messages from the service. This is used to assert correct service startup and shutdown.
      */
     private TestListener testListener;
+    /**
+     * The {@link AccountManager} to check which accounts are registered.
+     */
+    private AccountManager accountManager;
 
     /**
      * Initializes the object of class under test.
      */
     @Before
     public void setUp() {
+
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
         // FIXME: not sure if we can reuse the lock and condition
         testListener = new TestListener(lock, condition);
         testUIListener = new TestUIListener(lock, condition);
+
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -101,6 +128,20 @@ public final class MovebisTest {
             }
         });
 
+        // Ensure reproducibility
+        accountManager = AccountManager.get(context);
+        SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
+    }
+
+    @After
+    public void tearDown() {
+        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        if (oldAccounts.length > 0) {
+            for (Account oldAccount : oldAccounts) {
+                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+            }
+        }
     }
 
     /**
@@ -131,6 +172,7 @@ public final class MovebisTest {
     @Test
     @SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators (only on the CI)
     public void testUiLocationUpdateLifecycle() {
+
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
