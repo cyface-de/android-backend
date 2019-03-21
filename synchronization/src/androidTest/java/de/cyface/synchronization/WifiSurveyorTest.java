@@ -20,11 +20,6 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
-
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -104,8 +99,6 @@ public class WifiSurveyorTest {
     public void testSetConnected() throws InterruptedException {
 
         // Arrange
-        final Lock lock = new ReentrantLock();
-        final Condition condition = lock.newCondition();
         Account account = objectUnderTest.createAccount(TestUtils.DEFAULT_USERNAME, null);
 
         // Make sure the new account is in the expected default state
@@ -116,34 +109,19 @@ public class WifiSurveyorTest {
         // flaky when the network changes during the test
         objectUnderTest.currentSynchronizationAccount = account;
         objectUnderTest.scheduleSyncNow();
-        lock.lock();
-        try {
-            condition.await(1, TimeUnit.SECONDS);
-        } finally {
-            lock.unlock();
-        }
+        Thread.sleep(1000); // CI emulator seems to be to slow for less
         WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
         Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
 
         // Act & Assert 1
         objectUnderTest.setConnected(true);
-        lock.lock();
-        try {
-            condition.await(1, TimeUnit.SECONDS); // CI emulator seems to be to slow for less
-        } finally {
-            lock.unlock();
-        }
+        Thread.sleep(1000); // CI emulator seems to be to slow for less
         WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
         assertThat(objectUnderTest.isConnected(), is(equalTo(true)));
 
         // Act & Assert 2
         objectUnderTest.setConnected(false);
-        lock.lock();
-        try {
-            condition.await(1, TimeUnit.SECONDS);
-        } finally {
-            lock.unlock();
-        }
+        Thread.sleep(1000); // CI emulator seems to be to slow for less
         assertThat(objectUnderTest.isConnected(), is(equalTo(false)));
     }
 }
