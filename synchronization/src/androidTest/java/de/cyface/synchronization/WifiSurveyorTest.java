@@ -109,7 +109,7 @@ public class WifiSurveyorTest {
         // flaky when the network changes during the test
         objectUnderTest.currentSynchronizationAccount = account;
         objectUnderTest.scheduleSyncNow();
-        Thread.sleep(1000); // CI emulator seems to be to slow for less
+        Thread.sleep(1000); // CI emulator seems to be too slow for less
         WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
         Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
 
