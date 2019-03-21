@@ -67,7 +67,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.2.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -97,8 +97,8 @@ public class SharedTestUtils {
      * @param accountType The account type to search for.
      * @param authority The authority to access the accounts.
      */
-    public static void cleanupOldAccounts(@NonNull final AccountManager accountManager, @NonNull final String accountType,
-                                          @NonNull final String authority) {
+    public static void cleanupOldAccounts(@NonNull final AccountManager accountManager,
+            @NonNull final String accountType, @NonNull final String authority) {
 
         // To make these tests reproducible make sure we don't reuse old sync accounts
         for (final Account account : accountManager.getAccountsByType(accountType)) {
