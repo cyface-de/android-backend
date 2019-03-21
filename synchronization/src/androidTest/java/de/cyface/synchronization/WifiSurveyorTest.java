@@ -48,7 +48,7 @@ import de.cyface.utils.Validate;
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -118,7 +118,7 @@ public class WifiSurveyorTest {
         objectUnderTest.scheduleSyncNow();
         lock.lock();
         try {
-            condition.await(200, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+            condition.await(1, TimeUnit.SECONDS); // 200ms was not enough for CI emulators
         } finally {
             lock.unlock();
         }
@@ -129,7 +129,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(true);
         lock.lock();
         try {
-            condition.await(200, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+            condition.await(1, TimeUnit.SECONDS); // 200ms was not enough for CI emulators
         } finally {
             lock.unlock();
         }
@@ -140,7 +140,7 @@ public class WifiSurveyorTest {
         objectUnderTest.setConnected(false);
         lock.lock();
         try {
-            condition.await(200, TimeUnit.MILLISECONDS); // not sure if 100 ms is enough
+            condition.await(1, TimeUnit.SECONDS); // 200ms was not enough for CI emulators
         } finally {
             lock.unlock();
         }
