@@ -336,22 +336,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         ContentResolver.setSyncAutomatically(account, authority, false);
         setSyncEnabled(account, enabled);
 
-        validateAccountFlags(account, authority);
-    }
-
-    /**
-     * Makes sure the account flags used by {@link #isConnected()} are valid.
-     * <p>
-     * See {@link #makeAccountSyncable(Account, boolean)} for details.
-     *
-     * @param account The {@code Account} to be checked.
-     */
-    public static void validateAccountFlags(@NonNull final Account account, @NonNull final String authority) {
-        final boolean periodicSyncRegistered = ContentResolver.getPeriodicSyncs(account, authority).size() > 0;
-        final boolean autoSyncEnabled = ContentResolver.getSyncAutomatically(account, authority);
-        Validate.isTrue(periodicSyncRegistered == autoSyncEnabled,
-                "Both, periodicSync and autoSync, must be in the same state but are: " + periodicSyncRegistered
-                        + " and " + autoSyncEnabled + ", in this order");
+            // Do not use validateAccountFlags in production code as periodicSync flags are set async
     }
 
     /**
