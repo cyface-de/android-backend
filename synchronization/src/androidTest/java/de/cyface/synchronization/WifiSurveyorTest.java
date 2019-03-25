@@ -32,6 +32,7 @@ import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.testutils.SharedTestUtils;
@@ -43,7 +44,7 @@ import de.cyface.utils.Validate;
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -102,7 +103,7 @@ public class WifiSurveyorTest {
         Account account = objectUnderTest.createAccount(TestUtils.DEFAULT_USERNAME, null);
 
         // Make sure the new account is in the expected default state
-        WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
+        validateAccountFlags(account);
 
         // Instead of calling startSurveillance as in production we directly call it's implementation
         // Without the networkCallback or networkConnectivity BroadcastReceiver as this would make this test
@@ -110,18 +111,38 @@ public class WifiSurveyorTest {
         objectUnderTest.currentSynchronizationAccount = account;
         objectUnderTest.scheduleSyncNow();
         Thread.sleep(1000); // CI emulator seems to be too slow for less
-        WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
+        validateAccountFlags(account);
         Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
 
         // Act & Assert 1
         objectUnderTest.setConnected(true);
         Thread.sleep(1000); // CI emulator seems to be to slow for less
-        WiFiSurveyor.validateAccountFlags(account, AUTHORITY);
+        validateAccountFlags(account);
         assertThat(objectUnderTest.isConnected(), is(equalTo(true)));
 
         // Act & Assert 2
         objectUnderTest.setConnected(false);
         Thread.sleep(1000); // CI emulator seems to be to slow for less
         assertThat(objectUnderTest.isConnected(), is(equalTo(false)));
+    }
+
+    /**
+     * Makes sure the account flags used by {@link WiFiSurveyor#isConnected()} are valid.
+     * <p>
+     * See {@link WiFiSurveyor#makeAccountSyncable(Account, boolean)} for details.
+     * <p>
+     * <b>Attention:</b> Never use this method in production as the periodicSync flags are set async
+     * by the system so we can never be sure if they are already set or not. For this reason we have the
+     * {@link #testSetConnected()} test.
+     *
+     * @param account The {@code Account} to be checked.
+     */
+    private static void validateAccountFlags(@NonNull final Account account) {
+        final boolean periodicSyncRegistered = ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY)
+                .size() > 0;
+        final boolean autoSyncEnabled = ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY);
+        Validate.isTrue(periodicSyncRegistered == autoSyncEnabled,
+                "Both, periodicSync and autoSync, must be in the same state but are: " + periodicSyncRegistered
+                        + " and " + autoSyncEnabled + ", in this order");
     }
 }
