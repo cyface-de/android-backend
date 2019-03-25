@@ -103,6 +103,7 @@ public class WifiSurveyorTest {
         Account account = objectUnderTest.createAccount(TestUtils.DEFAULT_USERNAME, null);
 
         // Make sure the new account is in the expected default state
+        Thread.sleep(1000); // CI emulator seems to be too slow for less
         validateAccountFlags(account);
 
         // Instead of calling startSurveillance as in production we directly call it's implementation
@@ -112,7 +113,7 @@ public class WifiSurveyorTest {
         objectUnderTest.scheduleSyncNow();
         Thread.sleep(1000); // CI emulator seems to be too slow for less
         validateAccountFlags(account);
-        Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
+        assertThat(objectUnderTest.isConnected(), is(equalTo(false))); // Ensure default state after startSurveillance
 
         // Act & Assert 1
         objectUnderTest.setConnected(true);
