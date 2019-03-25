@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
