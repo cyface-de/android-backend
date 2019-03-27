@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
@@ -42,8 +56,8 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.2
- * @since 2.3.
+ * @version 1.2.3
+ * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
@@ -52,7 +66,7 @@ public class PingPongTest {
     /**
      * The time to wait for the pong message to return and for the service to start or stop.
      */
-    public static final long TIMEOUT_TIME = 1L; // FIXME
+    public static final long TIMEOUT_TIME = 10L;
     /**
      * Grants the permission required by the {@link DataCapturingService}.
      */

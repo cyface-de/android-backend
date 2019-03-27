@@ -60,12 +60,9 @@ import de.cyface.utils.CursorIsNullException;
 /**
  * Tests whether the {@link DataCapturingBackgroundService} handling the data capturing works correctly.
  *
- * FIXME: We don't mark it as flaky anymore. But it's flaky. The question is if the sensors etc. is the cause
- * or a race condition. Since the test relies on external sensors and location signal availability it is a flaky test.
- *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.5
+ * @version 2.3.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -103,10 +100,6 @@ public class BackgroundServiceTest {
      * The {@link Context} required to send unique broadcasts, to start the capturing service and more.
      */
     private Context context;
-    /**
-     * The {@link PersistenceLayer} required to generate and load the device id.
-     */
-    private PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
 
     /**
      * Sets up all the instances required by all tests in this test class.
@@ -120,8 +113,8 @@ public class BackgroundServiceTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new CapturingPersistenceBehaviour());
+        final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
+                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
@@ -199,11 +192,11 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
-        // FIXME: see below - final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
+        final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
-        // FIXME: why don't we also call: serviceTestRule.bindService(bindIntent);
+        serviceTestRule.bindService(bindIntent);
         serviceTestRule.startService(startIntent);
-        // FIXME: why dont't we also call: serviceTestRule.bindService(bindIntent);
+        serviceTestRule.bindService(bindIntent);
 
         // Act
         checkDataCapturingBackgroundServiceRunning(testCallback);

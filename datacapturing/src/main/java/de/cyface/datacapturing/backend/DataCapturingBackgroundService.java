@@ -80,10 +80,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.4
+ * @version 5.1.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
+
     /**
      * The tag used to identify logging messages send to logcat.
      */
@@ -150,19 +151,28 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The last captured {@link GeoLocation} used to calculate the distance to the next {@code GeoLocation}.
      */
     private GeoLocation lastLocation = null;
+    /**
+     * The {@link Measurement#distance} in meters until the last location update.
+     */
     private double lastDistance;
+    /**
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     */
     private String appId;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
         Log.v(TAG, String.format("Binding to %s", this.getClass().getName()));
 
-        // onBind() documentation says extras are not seen here => cannot use authority/persistence/device-id
-
-        // FIXME: Is onBind() called more often than onStartCommand()? If so, we need to make sure Ping is only sent
-        // when expected
+        // FIXME [MOV-660]: Is onBind() called more often than onStartCommand()? If so, we need to make sure Ping is
+        // only sent when expected
 
         // Allows other parties to ping this service to see if it is running
+        // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
+        // which we cannot pass via bind() as documented by the {@link #onBind()} method.
         appId = getBaseContext().getPackageName();
         pingReceiver = new PingReceiver(appId);
         registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));

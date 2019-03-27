@@ -92,7 +92,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.0.0
+ * @version 15.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -138,12 +138,6 @@ public abstract class DataCapturingService {
      * A listener for events which the UI might be interested in.
      */
     private UIListener uiListener;
-    /**
-     * The <code>ContentProvider</code> authority required to request a sync operation in the {@link WiFiSurveyor}.
-     * You should use something world wide unique, like your domain, to avoid collisions between different apps using
-     * the Cyface SDK.
-     */
-    private String authority;
     /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
@@ -206,7 +200,6 @@ public abstract class DataCapturingService {
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
-        this.authority = authority;
         this.persistenceLayer = persistenceLayer;
         this.serviceConnection = new BackgroundServiceConnection();
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
