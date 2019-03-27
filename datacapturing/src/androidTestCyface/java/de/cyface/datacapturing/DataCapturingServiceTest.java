@@ -119,6 +119,13 @@ public class DataCapturingServiceTest {
      * {@link PersistenceLayer} required to access stored {@link Measurement}s.
      */
     private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+    /**
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     */
+    private String appId;
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
@@ -156,6 +163,7 @@ public class DataCapturingServiceTest {
                 new DefaultPersistenceBehaviour());
         // A listener catching messages send to the UI in real applications.
         runningStatusCallback = new TestCallback("Default Callback", lock, condition);
+        appId = context.getPackageName();
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning());
@@ -223,7 +231,7 @@ public class DataCapturingServiceTest {
             CursorIsNullException, CorruptedMeasurementException {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
@@ -268,7 +276,7 @@ public class DataCapturingServiceTest {
             DataCapturingException, CursorIsNullException, NoSuchMeasurementException {
 
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         oocut.resume(startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
@@ -390,11 +398,11 @@ public class DataCapturingServiceTest {
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock, condition);
         final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock, condition);
         final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock, condition);
@@ -472,7 +480,7 @@ public class DataCapturingServiceTest {
 
         // Second start - should not launch anything
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
@@ -632,7 +640,7 @@ public class DataCapturingServiceTest {
         PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                appId);
         oocut.resume(startUpFinishedHandler);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);

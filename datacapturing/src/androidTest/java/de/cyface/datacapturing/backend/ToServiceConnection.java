@@ -26,6 +26,7 @@ import de.cyface.datacapturing.PongReceiver;
  * @since 2.0.0
  */
 class ToServiceConnection implements ServiceConnection {
+
     /**
      * The context this <code>ServiceConnection</code> runs with.
      */
@@ -35,24 +36,29 @@ class ToServiceConnection implements ServiceConnection {
      */
     TestCallback callback;
     /**
-     * The <code>Messenger</code> handling messages comming from the <code>DataCapturingBackgroundService</code>.
+     * The <code>Messenger</code> handling messages coming from the <code>DataCapturingBackgroundService</code>.
      */
     private Messenger fromServiceMessenger;
     /**
-     * The device id used to generate an unique broadcast id
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    private final String deviceId;
+    private final String appId;
 
     /**
      * Creates a new completely initialized <code>ToServiceConnection</code>.
      *
-     * @param fromServiceMessenger The <code>Messenger</code> handling messages comming from the
+     * @param fromServiceMessenger The <code>Messenger</code> handling messages coming from the
      *            <code>DataCapturingBackgroundService</code>.
-     * @param deviceId The device id used to generate an unique broadcast id
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    ToServiceConnection(final @NonNull Messenger fromServiceMessenger, @NonNull final String deviceId) {
+    ToServiceConnection(@NonNull final Messenger fromServiceMessenger, @NonNull final String appId) {
         this.fromServiceMessenger = fromServiceMessenger;
-        this.deviceId = deviceId;
+        this.appId = appId;
     }
 
     @Override
@@ -71,7 +77,7 @@ class ToServiceConnection implements ServiceConnection {
             throw new IllegalStateException(e);
         }
 
-        PongReceiver isRunningChecker = new PongReceiver(context, deviceId);
+        PongReceiver isRunningChecker = new PongReceiver(context, appId);
         isRunningChecker.checkIsRunningAsync(1, TimeUnit.MINUTES, callback);
     }
 

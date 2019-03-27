@@ -15,6 +15,7 @@ import androidx.annotation.NonNull;
  * @since 2.2.0
  */
 final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
+
     /**
      * The last measurement identifier received by this handler. If you reuse this handler for multiple times this value
      * is overwritten by the last call. If the handler was never called its value is -1.
@@ -34,11 +35,13 @@ final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
      *
      * @param lock The lock used to synchronize this handler with the calling test.
      * @param condition The condition used to synchronize this handler with the calling test.
-     * @param deviceId The device id used to generate unique global broadcast ids.
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
     TestStartUpFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition,
-            @NonNull final String deviceId) {
-        super(deviceId);
+            @NonNull final String appId) {
+        super(appId);
         this.lock = lock;
         this.condition = condition;
     }

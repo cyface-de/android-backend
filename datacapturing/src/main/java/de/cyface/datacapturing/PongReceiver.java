@@ -73,23 +73,28 @@ public class PongReceiver extends BroadcastReceiver {
      */
     private final HandlerThread pongReceiverThread;
     /**
-     * The device id used to generate unique broadcast ids
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    private final String deviceId;
+    private final String appId;
 
     /**
      * Creates a new completely <code>PongReceiver</code> for a certain context.
      *
      * @param context The context to use to send and receive broadcast messages.
-     * @param deviceId The device id used to generate unique broadcast ids
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public PongReceiver(@NonNull final Context context, @NonNull final String deviceId) {
+    public PongReceiver(@NonNull final Context context, @NonNull final String appId) {
         pongReceiverThread = new HandlerThread(BACKGROUND_THREAD_NAME, Process.THREAD_PRIORITY_DEFAULT);
         lock = new ReentrantLock();
         this.context = new WeakReference<>(context);
         isRunning = false;
         isTimedOut = false;
-        this.deviceId = deviceId;
+        this.appId = appId;
     }
 
     // TODO [CY-3950]: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and
@@ -110,7 +115,7 @@ public class PongReceiver extends BroadcastReceiver {
         // Run receiver on a different thread so it runs even if calling thread waits for it to return:
         pongReceiverThread.start();
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(deviceId)), null,
+        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(appId)), null,
                 receiverHandler);
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
@@ -147,7 +152,7 @@ public class PongReceiver extends BroadcastReceiver {
             }
         }, currentUptimeInMillis + offset);
 
-        final Intent broadcastIntent = new Intent(MessageCodes.getPingActionId(deviceId));
+        final Intent broadcastIntent = new Intent(MessageCodes.getPingActionId(appId));
         if (BuildConfig.DEBUG) {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
@@ -161,7 +166,7 @@ public class PongReceiver extends BroadcastReceiver {
                 + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
-            if (!isTimedOut && MessageCodes.getPongActionId(deviceId).equals(intent.getAction())) {
+            if (!isTimedOut && MessageCodes.getPongActionId(appId).equals(intent.getAction())) {
                 Log.v(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();

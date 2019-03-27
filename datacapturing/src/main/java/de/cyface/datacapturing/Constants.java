@@ -18,7 +18,7 @@ public final class Constants {
     /**
      * Tas used for logging from {@link DataCapturingBackgroundService}
      */
-    public final static String BACKGROUND_TAG = "de.cyface.background";
+    public final static String BACKGROUND_TAG = "de.cyface.capturing.bgs";
     /**
      * The minimum space required for capturing. We don't want to use the space full up as this would
      * slow down the device and could get unusable.

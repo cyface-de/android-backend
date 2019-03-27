@@ -80,7 +80,7 @@ public final class SyncAdapterTest {
     private Context context;
     private ContentResolver contentResolver;
     private Account account;
-    private SyncAdapter objectUnderTest;
+    private SyncAdapter oocut;
     private AccountManager accountManager;
 
     @Before
@@ -103,7 +103,7 @@ public final class SyncAdapterTest {
         account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
 
-        objectUnderTest = new SyncAdapter(context, false, new MockedHttpConnection());
+        oocut = new SyncAdapter(context, false, new MockedHttpConnection());
     }
 
     @After
@@ -150,7 +150,7 @@ public final class SyncAdapterTest {
 
             final Bundle testBundle = new Bundle();
             testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
-            objectUnderTest.onPerformSync(account, testBundle, AUTHORITY, client, result);
+            oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
                 client.close();
@@ -207,7 +207,7 @@ public final class SyncAdapterTest {
 
             final Bundle testBundle = new Bundle();
             testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
-            objectUnderTest.onPerformSync(account, testBundle, AUTHORITY, client, result);
+            oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
                 client.close();

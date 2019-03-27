@@ -1,7 +1,7 @@
 package de.cyface.datacapturing;
 
-import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.datacapturing.Constants.TAG;
+import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -23,8 +23,8 @@ import de.cyface.utils.Validate;
  * @author Armin Schnabel
  * @version 3.0.1
  * @since 2.0.0
- * @see #resume(StartUpFinishedHandler)
- * @see DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)
+ * @see DataCapturingService#resume(StartUpFinishedHandler)
+ * @see DataCapturingService#start(Vehicle, StartUpFinishedHandler)
  */
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 
@@ -34,16 +34,20 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
      */
     private boolean receivedServiceStarted;
     /**
-     * The device id is used to ensure unique broadcast ids between different SDK implementing apps.
-     * For more details see {@link MessageCodes#getServiceStartedActionId(String)}
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    private final String deviceId;
+    private final String appId;
 
     /**
-     * @param deviceId The device id used to make global broadcast ids unique
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public StartUpFinishedHandler(String deviceId) {
-        this.deviceId = deviceId;
+    public StartUpFinishedHandler(@NonNull final String appId) {
+        this.appId = appId;
     }
 
     /**
@@ -56,7 +60,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
     @Override
     public void onReceive(@NonNull Context context, @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(deviceId))) {
+        if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(appId))) {
             receivedServiceStarted = true;
             long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
             Log.v(TAG, "Received Service started broadcast, mid: " + measurementIdentifier);

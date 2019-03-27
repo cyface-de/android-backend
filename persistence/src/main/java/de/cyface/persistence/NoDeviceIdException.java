@@ -10,14 +10,15 @@ import androidx.annotation.NonNull;
  * @since 3.0.0
  * @version 1.0.0
  */
-public final class NoDeviceIdException extends Exception {
+final class NoDeviceIdException extends Exception {
+
     /**
      * Creates a new completely initialized {@link NoDeviceIdException}, providing a detailed explanation
      * about the error to the caller.
      *
      * @param message The explanation of why this error occurred.
      */
-    public NoDeviceIdException(final @NonNull String message) {
+    NoDeviceIdException(final @NonNull String message) {
         super(message);
     }
 }

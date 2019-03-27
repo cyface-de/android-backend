@@ -53,11 +53,11 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
+import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DistanceCalculationStrategy;
-import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
@@ -151,10 +151,23 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private GeoLocation lastLocation = null;
     private double lastDistance;
+    private String appId;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
         Log.v(TAG, String.format("Binding to %s", this.getClass().getName()));
+
+        // onBind() documentation says extras are not seen here => cannot use authority/persistence/device-id
+
+        // FIXME: Is onBind() called more often than onStartCommand()? If so, we need to make sure Ping is only sent
+        // when expected
+
+        // Allows other parties to ping this service to see if it is running
+        appId = getBaseContext().getPackageName();
+        pingReceiver = new PingReceiver(appId);
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
+        Log.v(PongReceiver.TAG, "DataCapturingBackgroundService: Ping Receiver registered");
+
         return callerMessenger.getBinder();
     }
 
@@ -267,17 +280,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         capturingBehaviour = new CapturingPersistenceBehaviour();
         persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
 
-        // Allows other parties to ping this service to see if it is running
-        final String deviceId;
-        try {
-            deviceId = persistenceLayer.loadDeviceId();
-        } catch (CursorIsNullException | NoDeviceIdException e) {
-            throw new IllegalStateException(e);
-        }
-        pingReceiver = new PingReceiver(deviceId);
-        Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(deviceId)));
-
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
         Validate.notNull(eventHandlingStrategy);
@@ -320,7 +322,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Informs about the service start
         Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(deviceId));
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
 
