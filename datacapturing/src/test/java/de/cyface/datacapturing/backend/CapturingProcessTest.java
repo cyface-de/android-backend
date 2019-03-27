@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
 import static org.junit.Assert.assertThat;
@@ -25,6 +39,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.HandlerThread;
+
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
@@ -34,7 +49,7 @@ import de.cyface.utils.Validate;
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.2
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -61,7 +76,7 @@ public class CapturingProcessTest {
     @Mock
     private HandlerThread geoLocationEventHandlerThread;
     /**
-     * A mock for the thread handling the occurrnce of new sensor values.
+     * A mock for the thread handling the occurrence of new sensor values.
      */
     @Mock
     private HandlerThread sensorEventHandlerThread;
@@ -89,7 +104,7 @@ public class CapturingProcessTest {
                 }, geoLocationEventHandlerThread, sensorEventHandlerThread);
         testListener = new TestCapturingProcessListener();
         oocut.addCapturingProcessListener(testListener);
-        final Sensor accelerometer = initSensor(Sensor.TYPE_ACCELEROMETER, "accelerometer");
+        final Sensor accelerometer = initSensor("accelerometer");
         when(sensorManager.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)).thenReturn(accelerometer);
     }
 
@@ -157,16 +172,17 @@ public class CapturingProcessTest {
     /**
      * Initializes a sensor with the provided type and name.
      *
-     * @param sensorType The type of the sensor usually given as a static variable.
      * @param name The name of the sensor
      * @return The newly initialized <code>Sensor</code>.
      */
-    private Sensor initSensor(final int sensorType, final @NonNull String name) {
+    @SuppressWarnings("SameParameterValue") // we probably want to implement this for other sensors too
+    @NonNull
+    private Sensor initSensor(@NonNull final String name) {
         Validate.notEmpty(name);
 
         Sensor sensor = Mockito.mock(Sensor.class);
         when(sensor.getName()).thenReturn(name);
-        when(sensor.getVendor()).thenReturn("Cyfac");
+        when(sensor.getVendor()).thenReturn("Cyface");
         return sensor;
     }
 

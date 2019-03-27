@@ -51,7 +51,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -282,7 +282,7 @@ public class HttpConnection implements Http {
      */
     @NonNull
     String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
-                          @NonNull final String fileName) {
+            @NonNull final String fileName) {
 
         // File meta data
         final String filePart = "--" + BOUNDARY + "\r\n"
@@ -313,8 +313,8 @@ public class HttpConnection implements Http {
         final String lengthPart = generatePart("length", String.valueOf(metaData.length));
 
         // This was reordered to be in the same order as in the iOS code
-        return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart
-                + osVersionPart + appVersionPart + lengthPart + locationCountPart + fileHeaderPart;
+        return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
+                + appVersionPart + lengthPart + locationCountPart + fileHeaderPart;
     }
 
     /**
