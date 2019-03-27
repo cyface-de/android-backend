@@ -51,7 +51,7 @@ public class HttpConnectionTest {
                 "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5);
 
         // Act
-        final String header = oocut.generateHeader(filePartSize, metaData, "test-did_78");
+        final String header = oocut.generateHeader(filePartSize, metaData, "test-did_78.cyf");
 
         // Assert
         final String expectedHeader = "-----------------------------boundary\r\n"

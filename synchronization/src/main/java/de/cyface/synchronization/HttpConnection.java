@@ -313,8 +313,8 @@ public class HttpConnection implements Http {
         final String lengthPart = generatePart("length", String.valueOf(metaData.length));
 
         // This was reordered to be in the same order as in the iOS code
-        return fileHeaderPart + startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart
-                + osVersionPart + appVersionPart + lengthPart + locationCountPart;
+        return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart
+                + osVersionPart + appVersionPart + lengthPart + locationCountPart + fileHeaderPart;
     }
 
     /**
