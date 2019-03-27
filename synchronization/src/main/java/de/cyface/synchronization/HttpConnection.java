@@ -51,7 +51,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -67,7 +67,7 @@ public class HttpConnection implements Http {
     /**
      * The tail to be used in the Multipart request to indicate that the request end.
      */
-    private final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
+    final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
 
     @NonNull
     @Override
@@ -281,7 +281,7 @@ public class HttpConnection implements Http {
      * @return The Multipart header
      */
     @NonNull
-    private String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
+    String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
             @NonNull final String fileName) {
 
         // File meta data
@@ -313,8 +313,8 @@ public class HttpConnection implements Http {
         final String lengthPart = generatePart("length", String.valueOf(metaData.length));
 
         // This was reordered to be in the same order as in the iOS code
-        return fileHeaderPart + startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart
-                + osVersionPart + appVersionPart + lengthPart + locationCountPart;
+        return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
+                + appVersionPart + lengthPart + locationCountPart + fileHeaderPart;
     }
 
     /**
