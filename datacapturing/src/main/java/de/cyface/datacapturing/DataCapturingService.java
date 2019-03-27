@@ -70,7 +70,6 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
@@ -156,6 +155,13 @@ public abstract class DataCapturingService {
      */
     private final String deviceIdentifier;
     /**
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     */
+    private final String appId;
+    /**
      * A receiver for synchronization events.
      */
     private final ConnectionStatusReceiver connectionStatusReceiver;
@@ -211,6 +217,7 @@ public abstract class DataCapturingService {
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
         Validate.notNull(deviceIdentifier,
                 "Sync canceled: No installation identifier for this application set in its preferences.");
+        this.appId = context.getPackageName();
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
@@ -504,7 +511,7 @@ public abstract class DataCapturingService {
     @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this method to check for capturing after resume
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.v(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext(), deviceIdentifier);
+        final PongReceiver pongReceiver = new PongReceiver(getContext(), appId);
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -612,12 +619,11 @@ public abstract class DataCapturingService {
         final Context context = getContext();
         Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
         context.registerReceiver(startUpFinishedHandler,
-                new IntentFilter(MessageCodes.getServiceStartedActionId(deviceIdentifier)));
+                new IntentFilter(MessageCodes.getServiceStartedActionId(appId)));
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
 
@@ -775,8 +781,8 @@ public abstract class DataCapturingService {
                 Log.w(TAG, "Ignoring BackgroundServiceConnection bind as getIsStoppingOrHasStopped() is true!");
             }
 
-            Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-            boolean ret = context.get().bindService(startIntent, serviceConnection, 0);
+            final Intent bindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            final boolean ret = context.get().bindService(bindIntent, serviceConnection, 0);
             setIsRunning(ret);
         } finally {
             Log.v(TAG, "Unlocking bind.");
@@ -912,7 +918,7 @@ public abstract class DataCapturingService {
             } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);
             }
-            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            final Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().bindService(rebindIntent, this, 0);
         }
     }

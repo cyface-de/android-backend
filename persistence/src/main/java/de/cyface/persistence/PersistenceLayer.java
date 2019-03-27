@@ -412,7 +412,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @throws NoDeviceIdException when there are no entries in the {@link IdentifierTable}
      */
     @NonNull
-    public final String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
+    private String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
         Cursor deviceIdentifierQueryCursor = null;
         try {
             synchronized (this) {

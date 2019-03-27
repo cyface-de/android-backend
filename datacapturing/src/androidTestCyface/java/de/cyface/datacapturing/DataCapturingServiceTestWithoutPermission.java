@@ -58,13 +58,17 @@ public class DataCapturingServiceTestWithoutPermission {
      * Condition waiting for the background service to wake up this test case.
      */
     private Condition condition;
+    /**
+     * The {@link Context} needed to access the persistence layer
+     */
+    private Context context;
 
     /**
      * Initializes the object of class under test.
      */
     @Before
     public void setUp() {
-        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final ContentResolver contentResolver = context.getContentResolver();
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
@@ -99,7 +103,7 @@ public class DataCapturingServiceTestWithoutPermission {
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
             CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                context.getPackageName());
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
@@ -116,7 +120,7 @@ public class DataCapturingServiceTestWithoutPermission {
         boolean exceptionCaught = false;
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                    oocut.getDeviceIdentifier());
+                    context.getPackageName());
             oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));

@@ -28,11 +28,14 @@ public class StartSynchronizer extends StartUpFinishedHandler {
      *
      * @param lock The lock used for synchronization. Usually a <code>ReentrantLock</code>.
      * @param condition The condition waiting for a signal from this <code>StartSynchronizer</code>.
-     * @param deviceId used to make the global broadcast id in {@link StartUpFinishedHandler} unique
+     * @param appId used to make the global broadcast id in {@link StartUpFinishedHandler} unique.
+     *            This must be a device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
     public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition,
-            @NonNull final String deviceId) {
-        super(deviceId);
+            @NonNull final String appId) {
+        super(appId);
         synchronizer = new Synchronizer(lock, condition);
     }
 
