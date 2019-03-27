@@ -67,7 +67,7 @@ public class HttpConnection implements Http {
     /**
      * The tail to be used in the Multipart request to indicate that the request end.
      */
-    private final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
+    final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
 
     @NonNull
     @Override
@@ -281,8 +281,8 @@ public class HttpConnection implements Http {
      * @return The Multipart header
      */
     @NonNull
-    private String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final String fileName) {
+    String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
+                          @NonNull final String fileName) {
 
         // File meta data
         final String filePart = "--" + BOUNDARY + "\r\n"

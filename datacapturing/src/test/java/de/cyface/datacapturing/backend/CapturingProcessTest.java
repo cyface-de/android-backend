@@ -38,6 +38,7 @@ import de.cyface.utils.Validate;
  * @since 2.0.0
  */
 public class CapturingProcessTest {
+
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
     /**
