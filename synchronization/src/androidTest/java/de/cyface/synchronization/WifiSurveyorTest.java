@@ -20,6 +20,10 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
@@ -27,10 +31,12 @@ import org.junit.runner.RunWith;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
+import android.accounts.OnAccountsUpdateListener;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.net.ConnectivityManager;
 import android.os.Bundle;
+import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -51,6 +57,14 @@ import de.cyface.utils.Validate;
 public class WifiSurveyorTest {
 
     /**
+     * The time to wait for the account flag to be changed.
+     */
+    public static final long TIMEOUT_TIME = 10L;
+    /**
+     * Logging TAG to identify logs associated with this test.
+     */
+    private final static String TAG = TestUtils.TAG;
+    /**
      * An object of the class under test.
      */
     private WiFiSurveyor oocut;
@@ -58,12 +72,26 @@ public class WifiSurveyorTest {
      * The {@link AccountManager} to check which accounts are registered.
      */
     private AccountManager accountManager;
+    /**
+     * The {@code OnAccountsUpdateListener} used to wait for the account flags to be set.
+     */
+    private OnAccountsUpdateListener listener;
+    /**
+     * Lock used to synchronize the test case with the account manager.
+     */
+    private Lock lock;
+    /**
+     * Condition waiting for the account manager listener to inform this test that the account changed.
+     */
+    private Condition condition;
 
     /**
      * Initializes the properties for each test case individually.
      */
     @Before
     public void setUp() {
+        lock = new ReentrantLock();
+        condition = lock.newCondition();
         Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ConnectivityManager connectivityManager = (ConnectivityManager)context
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
@@ -78,6 +106,10 @@ public class WifiSurveyorTest {
 
     @After
     public void tearDown() {
+        if (listener != null) {
+            accountManager.removeOnAccountsUpdatedListener(listener);
+        }
+
         final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
         if (oldAccounts.length > 0) {
             for (Account oldAccount : oldAccounts) {
@@ -100,36 +132,62 @@ public class WifiSurveyorTest {
     public void testSetConnected() throws InterruptedException {
 
         // Arrange
+        final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
         Account account = oocut.createAccount(TestUtils.DEFAULT_USERNAME, null);
-
-        // Make sure the new account is in the expected default state
-        Thread.sleep(1000); // CI emulator seems to be too slow for less
-        validateAccountFlags(account);
 
         // Instead of calling startSurveillance as in production we directly call it's implementation
         // Without the networkCallback or networkConnectivity BroadcastReceiver as this would make this test
         // flaky when the network changes during the test
         oocut.currentSynchronizationAccount = account;
         oocut.scheduleSyncNow();
-        Thread.sleep(1000); // CI emulator seems to be too slow for less
-        validateAccountFlags(account);
-        assertThat(oocut.isConnected(), is(equalTo(false))); // Ensure default state after startSurveillance
+        // Make sure the new account is in the expected default state
+        boolean isFlagsAlreadySet = isAccountFlagsSet(account, false, false);
+        if (!isFlagsAlreadySet) {
+            Log.v(TAG, "Account flags are not yet set after createAccount(), waiting for account changes.");
+            waitForAccountFlagUpdates(account);
+            Thread.sleep(20); // CI emulator seems to be too slow for less FIXME
+            validateAccountFlagsAreSet(account, false, false);
+        }
+        // Ensure default state after startSurveillance
+        assertThat(oocut.isConnected(), is(equalTo(false)));
 
         // Act & Assert 1
         oocut.setConnected(true);
-        Thread.sleep(1000); // CI emulator seems to be to slow for less
-        validateAccountFlags(account);
+        isFlagsAlreadySet = isAccountFlagsSet(account, true, true);
+        if (!isFlagsAlreadySet) {
+            Log.v(TAG, "Account flags are not yet set after setConnected(true), waiting for account changes.");
+            Thread.sleep(20); // CI emulator seems to be too slow for less FIXME
+            validateAccountFlagsAreSet(account, true, true);
+        }
         assertThat(oocut.isConnected(), is(equalTo(true)));
 
         // Act & Assert 2
         oocut.setConnected(false);
-        Thread.sleep(1000); // CI emulator seems to be to slow for less
-        validateAccountFlags(account);
+        isFlagsAlreadySet = isAccountFlagsSet(account, false, false);
+        if (!isFlagsAlreadySet) {
+            Log.v(TAG, "Account flags are not yet set after setConnected(false), waiting for account changes.");
+            Thread.sleep(20); // CI emulator seems to be too slow for less FIXME
+            validateAccountFlagsAreSet(account, false, false);
+        }
         assertThat(oocut.isConnected(), is(equalTo(false)));
     }
 
     /**
-     * Makes sure the account flags used by {@link WiFiSurveyor#isConnected()} are valid.
+     * Locks the thread and waits for the {@code Account} flags to be set.
+     *
+     * @param account The {@code Account} to wait for updates.
+     */
+    private void waitForAccountFlagUpdates(@NonNull final Account account) {
+        this.listener = new OnAccountsUpdateListener() {
+            @Override
+            public void onAccountsUpdated(Account[] accounts) {
+            }
+        };
+        accountManager.addOnAccountsUpdatedListener(listener, null, false, new String[] {ACCOUNT_TYPE});
+    }
+
+    /**
+     * Checks synchronously weather the account flags used by {@link WiFiSurveyor#isConnected()} are set.
      * <p>
      * See {@link WiFiSurveyor#makeAccountSyncable(Account, boolean)} for details.
      * <p>
@@ -138,13 +196,55 @@ public class WifiSurveyorTest {
      * {@link #testSetConnected()} test.
      *
      * @param account The {@code Account} to be checked.
+     * @param syncAutomaticallyEnabled True if the expected state is that this flag is enabled.
+     * @param periodicSyncEnabled True if the expected state is that a periodicSync is registered.
      */
-    private static void validateAccountFlags(@NonNull final Account account) {
-        final boolean periodicSyncRegistered = ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY)
+    private void validateAccountFlagsAreSet(@NonNull final Account account, final boolean syncAutomaticallyEnabled,
+            boolean periodicSyncEnabled) {
+        final boolean periodicSyncRegisteredState = ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY)
                 .size() > 0;
-        final boolean autoSyncEnabled = ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY);
-        Validate.isTrue(periodicSyncRegistered == autoSyncEnabled,
-                "Both, periodicSync and autoSync, must be in the same state but are: " + periodicSyncRegistered
-                        + " and " + autoSyncEnabled + ", in this order");
+        final boolean autoSyncEnabledState = ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY);
+
+        assertThat(autoSyncEnabledState, is(equalTo(syncAutomaticallyEnabled)));
+        assertThat(periodicSyncRegisteredState, is(equalTo(periodicSyncEnabled)));
+    }
+
+    /**
+     * Checks synchronously weather the account flags used by {@link WiFiSurveyor#isConnected()} are in the expected
+     * state.
+     * <p>
+     * See {@link WiFiSurveyor#makeAccountSyncable(Account, boolean)} for details.
+     * <p>
+     * <b>Attention:</b> Never use this method in production as the periodicSync flags are set async
+     * by the system so we can never be sure if they are already set or not. For this reason we have the
+     * {@link #testSetConnected()} test.
+     *
+     * @param account The {@code Account} to be checked.
+     * @param syncAutomaticallyEnabled True if the expected state is that this flag is enabled.
+     * @param periodicSyncEnabled True if the expected state is that a periodicSync is registered.
+     * @return True if the flags are in the expected state.
+     */
+    private static boolean isAccountFlagsSet(@NonNull final Account account, final boolean syncAutomaticallyEnabled,
+            final boolean periodicSyncEnabled) {
+        final boolean periodicSyncRegisteredState = ContentResolver.getPeriodicSyncs(account, TestUtils.AUTHORITY)
+                .size() > 0;
+        final boolean autoSyncEnabledState = ContentResolver.getSyncAutomatically(account, TestUtils.AUTHORITY);
+
+        return autoSyncEnabledState == syncAutomaticallyEnabled && periodicSyncRegisteredState == periodicSyncEnabled;
+    }
+
+    /**
+     * A listener for events from the account manager, only used by tests.
+     *
+     * @author Armin Schnabel
+     * @version 1.0.0
+     * @since 4.0.0
+     */
+    class TestListener implements OnAccountsUpdateListener {
+
+        @Override
+        public void onAccountsUpdated(Account[] accounts) {
+            Log.e(TAG, "BLAAAA");
+        }
     }
 }
