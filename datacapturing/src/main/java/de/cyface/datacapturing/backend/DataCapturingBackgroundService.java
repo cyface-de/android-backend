@@ -53,7 +53,6 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
-import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
@@ -161,18 +160,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     public IBinder onBind(final @NonNull Intent intent) {
         Log.v(TAG, "onBind");
 
-        if (pingReceiver != null) {
-            Log.v(TAG, "onBind: Ping Receiver was already registered");
-            return callerMessenger.getBinder();
-        }
-
-        // Allows other parties to ping this service to see if it is running
-        // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
-        // which we cannot pass via bind() as documented by the {@link #onBind()} method.
-        final String appId = getBaseContext().getPackageName();
-        pingReceiver = new PingReceiver(appId);
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
-        Log.d(TAG, "onBind: Ping Receiver registered");
         return callerMessenger.getBinder();
     }
 
@@ -206,6 +193,21 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
+
+        // We must register the receiver as soon as possible - onBind and onStartCommand are too late (race condition)
+        if (pingReceiver != null) {
+            Log.v(TAG, "onBind: Ping Receiver was already registered");
+            return;
+        }
+
+        // Allows other parties to ping this service to see if it is running
+        // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
+        // which we cannot pass via bind() as documented by the {@link #onBind()} method.
+        final String appId = getBaseContext().getPackageName();
+        pingReceiver = new PingReceiver(appId);
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
+        Log.d(TAG, "onCreate: Ping Receiver registered");
+
         Log.v(TAG, "finishedOnCreate");
     }
 
@@ -327,7 +329,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         dataCapturing.addCapturingProcessListener(this);
 
         // Informs about the service start
-        Log.d(StartUpFinishedHandler.TAG, "DataCapturingBackgroundService.onStartCommand: Sending broadcast service started.");
+        Log.d(StartUpFinishedHandler.TAG,
+                "DataCapturingBackgroundService.onStartCommand: Sending broadcast service started.");
         final String appId = getBaseContext().getPackageName();
         final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);

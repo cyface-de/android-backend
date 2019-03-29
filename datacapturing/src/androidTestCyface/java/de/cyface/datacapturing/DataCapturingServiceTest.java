@@ -802,6 +802,7 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
+    @Ignore // Should not be needed to be executed during normal testing as this was triggered in the others flaky
     public void testStartPauseStop_MultipleTimes() throws MissingPermissionException, DataCapturingException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
@@ -829,52 +830,76 @@ public class DataCapturingServiceTest {
     public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
-        for (int i = 0; i < 100; i++) { // FIXME
+        startPauseResumeStop();
+    }
+
+    /**
+     * Tests if the service lifecycle is running successfully and that the life-cycle {@link Event}s are logged.
+     * <p>
+     * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
+     * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
+     *
+     * @throws DataCapturingException Happens on unexpected states during data capturing.
+     * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Ignore // Should not be needed to be executed during normal testing
+    @Test
+    public void testStartPauseResumeStop_MultipleTimes() throws DataCapturingException, MissingPermissionException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        for (int i = 0; i < 50; i++) {
             Log.d(TAG, "ITERATION: " + i);
 
-            final long measurementIdentifier = startAndCheckThatLaunched();
-            final List<Measurement> measurements = persistenceLayer.loadMeasurements();
-            assertThat(measurements.size(), is(equalTo(1)));
-
-            pauseAndCheckThatStopped(measurementIdentifier);
-
-            resumeAndCheckThatLaunched(measurementIdentifier);
-            final List<Measurement> newMeasurements = persistenceLayer.loadMeasurements();
-            assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
-
-            stopAndCheckThatStopped(measurementIdentifier);
-
-            // Check Events
-            ContentResolver contentResolver = context.getContentResolver();
-            Cursor eventCursor = null;
-            try {
-                eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
-                        EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                        new String[] {Long.valueOf(measurementIdentifier).toString()},
-                        EventTable.COLUMN_TIMESTAMP + " ASC");
-                Validate.softCatchNullCursor(eventCursor);
-
-                final List<Event> events = new ArrayList<>();
-                while (eventCursor.moveToNext()) {
-                    final Event.EventType eventType = Event.EventType
-                            .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
-                    final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
-                    events.add(new Event(eventType, eventTime));
-                }
-
-                assertThat(events.size(), is(equalTo(4)));
-                assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-                assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-                assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-                assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
-            } finally {
-                if (eventCursor != null) {
-                    eventCursor.close();
-                }
-            }
+            startPauseResumeStop();
 
             // For for-i-loops within this test
-            SharedTestUtils.clearPersistenceLayer(context, contentResolver, AUTHORITY);
+            SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+        }
+    }
+
+    private void startPauseResumeStop() throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException, MissingPermissionException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        final List<Measurement> measurements = persistenceLayer.loadMeasurements();
+        assertThat(measurements.size(), is(equalTo(1)));
+
+        pauseAndCheckThatStopped(measurementIdentifier);
+
+        resumeAndCheckThatLaunched(measurementIdentifier);
+        final List<Measurement> newMeasurements = persistenceLayer.loadMeasurements();
+        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
+
+        stopAndCheckThatStopped(measurementIdentifier);
+
+        // Check Events
+        ContentResolver contentResolver = context.getContentResolver();
+        Cursor eventCursor = null;
+        try {
+            eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
+                    EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                    new String[] {Long.valueOf(measurementIdentifier).toString()},
+                    EventTable.COLUMN_TIMESTAMP + " ASC");
+            Validate.softCatchNullCursor(eventCursor);
+
+            final List<Event> events = new ArrayList<>();
+            while (eventCursor.moveToNext()) {
+                final Event.EventType eventType = Event.EventType
+                        .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+                final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                events.add(new Event(eventType, eventTime));
+            }
+
+            assertThat(events.size(), is(equalTo(4)));
+            assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
+            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+        } finally {
+            if (eventCursor != null) {
+                eventCursor.close();
+            }
         }
     }
 
