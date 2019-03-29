@@ -794,7 +794,7 @@ public class DataCapturingServiceTest {
     /**
      * Tests that stopping a paused service does work successfully.
      * <p>
-     * As this test was flaky, we have this test here which executes it multiple times.
+     * As this test was flaky MOV-527, we have this test here which executes it multiple times.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
@@ -802,7 +802,7 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    @Ignore // Should not be needed to be executed during normal testing as this was triggered in the others flaky
+    @Ignore // Not needed to be executed automatically as MOV-527 made the normal tests flaky
     public void testStartPauseStop_MultipleTimes() throws MissingPermissionException, DataCapturingException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
@@ -838,13 +838,15 @@ public class DataCapturingServiceTest {
      * <p>
      * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
      * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
+     * <p>
+     * As this test was flaky MOV-527, we have this test here which executes it multiple times.
      *
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @Ignore // Should not be needed to be executed during normal testing
+    @Ignore // Not needed to be executed automatically as MOV-527 made the normal tests flaky
     @Test
     public void testStartPauseResumeStop_MultipleTimes() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
