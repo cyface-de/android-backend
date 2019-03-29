@@ -30,6 +30,10 @@ public class TestUtils {
     static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
     static final String DEFAULT_USERNAME = "admin";
     static final String DEFAULT_PASSWORD = "secret";
+    /**
+     * The time to wait for the pong message to return and for the service to start or stop.
+     */
+    public static final long TIMEOUT_TIME = 10L;
 
     /**
      * Private constructor so no one tries to instantiate the utility class.

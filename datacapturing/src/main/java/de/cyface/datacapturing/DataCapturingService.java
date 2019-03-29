@@ -271,6 +271,7 @@ public abstract class DataCapturingService {
             CorruptedMeasurementException {
         Log.d(TAG, "Starting asynchronously.");
         if (getContext() == null) {
+            Log.w(TAG, "Context is null, ignoring start command.");
             return;
         }
 
@@ -278,7 +279,7 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous start.");
         try {
             if (getIsRunning()) {
-                Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
+                Log.w(TAG, "DataCapturingService assumes that the service is running and thus returns.");
                 return;
             }
             // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
@@ -618,9 +619,9 @@ public abstract class DataCapturingService {
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
         final Context context = getContext();
-        Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
         context.registerReceiver(startUpFinishedHandler,
                 new IntentFilter(MessageCodes.getServiceStartedActionId(appId)));
+        Log.d(StartUpFinishedHandler.TAG, "DataCapturingService: StartUpFinishedHandler registered for broadcasts.");
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -842,7 +843,7 @@ public abstract class DataCapturingService {
      *         no service is running.
      */
     private boolean getIsStoppingOrHasStopped() {
-        Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
+        Log.v(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
         return isStoppingOrHasStopped;
     }
 

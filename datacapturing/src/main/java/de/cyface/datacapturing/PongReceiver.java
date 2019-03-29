@@ -51,7 +51,6 @@ public class PongReceiver extends BroadcastReceiver {
     /**
      * Logging TAG to identify logs associated with the {@link PingReceiver} or {@link PongReceiver}.
      */
-    @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused"}) // SDK implementing app (CY) uses this
     public static final String TAG = Constants.TAG + ".png";
     /**
      * The human readable name for the background thread handling response and timeout of the ping pong process between
@@ -150,7 +149,7 @@ public class PongReceiver extends BroadcastReceiver {
                 lock.lock();
                 try {
                     if (!isRunning) {
-                        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
+                        Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
 
@@ -171,7 +170,7 @@ public class PongReceiver extends BroadcastReceiver {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
         context.get().sendBroadcast(broadcastIntent);
-        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
+        Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 
     @Override
@@ -181,7 +180,7 @@ public class PongReceiver extends BroadcastReceiver {
         lock.lock();
         try {
             if (!isTimedOut && MessageCodes.getPongActionId(appId).equals(intent.getAction())) {
-                Log.v(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
+                Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
                 this.context.get().unregisterReceiver(this);

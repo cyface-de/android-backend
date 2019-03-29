@@ -15,6 +15,7 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -63,10 +64,6 @@ import de.cyface.utils.CursorIsNullException;
 @MediumTest
 public class PingPongTest {
 
-    /**
-     * The time to wait for the pong message to return and for the service to start or stop.
-     */
-    public static final long TIMEOUT_TIME = 10L;
     /**
      * Grants the permission required by the {@link DataCapturingService}.
      */
@@ -127,7 +124,7 @@ public class PingPongTest {
 
         // Arrange
         // Instantiate DataCapturingService
-        final DataCapturingListener testListener = new TestListener(lock, condition);
+        final DataCapturingListener testListener = new TestListener();
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {

@@ -477,7 +477,7 @@ public class CapturedDataWriterTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack_startPauseResumeStop() throws CursorIsNullException {
+    public void testLoadTrack_startPauseResumeStop() throws CursorIsNullException, InterruptedException {
 
         // Arrange
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -490,6 +490,8 @@ public class CapturedDataWriterTest {
         final long timestamp3 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
 
+        // As this is flaky, we want to make sure that the event is at least 1 ms after the last location
+        Thread.sleep(1);
         oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
         final long timestamp4 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp4), measurement.getIdentifier());
@@ -518,7 +520,7 @@ public class CapturedDataWriterTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack_startPauseResumePauseStop() throws CursorIsNullException {
+    public void testLoadTrack_startPauseResumePauseStop() throws CursorIsNullException, InterruptedException {
 
         // Arrange
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -531,6 +533,8 @@ public class CapturedDataWriterTest {
         final long timestamp3 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
 
+        // As this is flaky, we want to make sure that the event is at least 1 ms after the last location
+        Thread.sleep(1);
         oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
         final long timestamp4 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp4), measurement.getIdentifier());

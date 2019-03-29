@@ -14,8 +14,8 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.PingPongTest.TIMEOUT_TIME;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -47,8 +47,8 @@ import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.IsRunningCallback;
-import de.cyface.datacapturing.PingPongTest;
 import de.cyface.datacapturing.PongReceiver;
+import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.PersistenceLayer;
@@ -211,7 +211,7 @@ public class BackgroundServiceTest {
      * Sends a ping to the {@link DataCapturingBackgroundService} to check if it's running.
      * <p>
      * As {@link PongReceiver#checkIsRunningAsync(long, TimeUnit, IsRunningCallback)} is async this method waits
-     * up to {@link PingPongTest#TIMEOUT_TIME} to receive the pong response from the background service.
+     * up to {@link TestUtils#TIMEOUT_TIME} to receive the pong response from the background service.
      *
      * @param testCallback The {@link TestCallback} used to check the async result.
      */

@@ -54,6 +54,7 @@ import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
+import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
@@ -126,7 +127,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
-    private PingReceiver pingReceiver;
+    private PingReceiver pingReceiver = null;
     /**
      * The identifier of the measurement to save all the captured data to.
      */
@@ -155,29 +156,23 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The {@link Measurement#distance} in meters until the last location update.
      */
     private double lastDistance;
-    /**
-     * A device-wide unique identifier for the application containing this SDK such as
-     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     * <p>
-     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
-     */
-    private String appId;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
-        Log.v(TAG, String.format("Binding to %s", this.getClass().getName()));
+        Log.v(TAG, "onBind");
 
-        // FIXME [MOV-660]: Is onBind() called more often than onStartCommand()? If so, we need to make sure Ping is
-        // only sent when expected
+        if (pingReceiver != null) {
+            Log.v(TAG, "onBind: Ping Receiver was already registered");
+            return callerMessenger.getBinder();
+        }
 
         // Allows other parties to ping this service to see if it is running
         // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
         // which we cannot pass via bind() as documented by the {@link #onBind()} method.
-        appId = getBaseContext().getPackageName();
+        final String appId = getBaseContext().getPackageName();
         pingReceiver = new PingReceiver(appId);
         registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
-        Log.v(PongReceiver.TAG, "DataCapturingBackgroundService: Ping Receiver registered");
-
+        Log.d(TAG, "onBind: Ping Receiver registered");
         return callerMessenger.getBinder();
     }
 
@@ -217,8 +212,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public void onDestroy() {
         Log.v(TAG, "onDestroy");
-        Log.v(TAG, "Unregistering Ping receiver.");
+        Log.v(TAG, "onDestroy: Unregistering Ping receiver.");
         unregisterReceiver(pingReceiver);
+        pingReceiver = null;
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -278,7 +274,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
-        Log.v(TAG, "Starting DataCapturingBackgroundService");
+        Log.v(TAG, "onStartCommand: Starting DataCapturingBackgroundService");
 
         // Loads authority / persistence layer
         if (!intent.hasExtra(AUTHORITY_ID)) {
@@ -331,7 +327,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         dataCapturing.addCapturingProcessListener(this);
 
         // Informs about the service start
-        Log.v(TAG, "Sending broadcast service started.");
+        Log.d(StartUpFinishedHandler.TAG, "DataCapturingBackgroundService.onStartCommand: Sending broadcast service started.");
+        final String appId = getBaseContext().getPackageName();
         final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);

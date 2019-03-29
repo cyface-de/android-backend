@@ -16,6 +16,7 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
@@ -46,6 +47,7 @@ import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
@@ -111,22 +113,6 @@ public class DataCapturingServiceTest {
      */
     private DataCapturingService oocut;
     /**
-     * Listener for messages from the service. This is used to assert correct service startup and shutdown.
-     */
-    private TestListener testListener;
-    /**
-     * Callback triggered if the test successfully establishes a connection with the background service or times out.
-     */
-    private TestCallback runningStatusCallback;
-    /**
-     * Lock used to synchronize with the background service.
-     */
-    private Lock lock;
-    /**
-     * Condition waiting for the background service to wake up this test case.
-     */
-    private Condition condition;
-    /**
      * The {@link Context} needed to access the persistence layer
      */
     private Context context;
@@ -141,6 +127,7 @@ public class DataCapturingServiceTest {
      * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
     private String appId;
+    private TestListener testListener;
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
@@ -158,9 +145,7 @@ public class DataCapturingServiceTest {
         AccountManager.get(context).addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
         // Start DataCapturingService
-        lock = new ReentrantLock();
-        condition = lock.newCondition();
-        testListener = new TestListener(lock, condition);
+        testListener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -174,10 +159,15 @@ public class DataCapturingServiceTest {
         });
 
         // Prepare
+        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
         // A listener catching messages send to the UI in real applications.
-        runningStatusCallback = new TestCallback("Default Callback", lock, condition);
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         appId = context.getPackageName();
 
         // Making sure there is no service instance of a previous test running
@@ -199,24 +189,27 @@ public class DataCapturingServiceTest {
         if (isDataCapturingServiceRunning()) {
 
             // Stop zombie
+            // Do not reuse the lock/condition!
+            final Lock lock = new ReentrantLock();
+            final Condition condition = lock.newCondition();
             final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock,
                     condition);
             oocut.stop(shutDownFinishedHandler);
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
-            TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+            TestUtils.lockAndWait(2, TimeUnit.SECONDS, shutDownFinishedHandler.getLock(),
+                    shutDownFinishedHandler.getCondition());
             assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
-            // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
-            TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-            TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
-
             // Ensure that the zombie was not running during the callCheckForRunning
-            assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
-            assertThat(runningStatusCallback.didTimeOut(), is(equalTo(true)));
+            final boolean isRunning = isDataCapturingServiceRunning();
+            assertThat(isRunning, is(equalTo(false)));
         }
 
         SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+
+        oocut = null;
+        appId = null;
     }
 
     /**
@@ -225,8 +218,14 @@ public class DataCapturingServiceTest {
     private boolean isDataCapturingServiceRunning() {
 
         // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
 
         return runningStatusCallback.wasRunning() && !runningStatusCallback.didTimeOut();
     }
@@ -245,6 +244,9 @@ public class DataCapturingServiceTest {
     private long startAndCheckThatLaunched() throws MissingPermissionException, DataCapturingException,
             CursorIsNullException, CorruptedMeasurementException {
 
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 appId);
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
@@ -266,6 +268,9 @@ public class DataCapturingServiceTest {
     private void pauseAndCheckThatStopped(long measurementIdentifier)
             throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
 
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.pause(shutDownFinishedHandler);
 
@@ -290,6 +295,9 @@ public class DataCapturingServiceTest {
     private void resumeAndCheckThatLaunched(long measurementIdentifier) throws MissingPermissionException,
             DataCapturingException, CursorIsNullException, NoSuchMeasurementException {
 
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 appId);
         oocut.resume(startUpFinishedHandler);
@@ -313,6 +321,9 @@ public class DataCapturingServiceTest {
     private void stopAndCheckThatStopped(final long measurementIdentifier)
             throws NoSuchMeasurementException, CursorIsNullException {
 
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
         oocut.stop(shutDownFinishedHandler);
 
@@ -324,20 +335,25 @@ public class DataCapturingServiceTest {
      * {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} or
      * {@link DataCapturingService#resume(StartUpFinishedHandler)}
      *
-     * This also updates the {@link #runningStatusCallback}.
-     *
      * @param startUpFinishedHandler The {@link TestStartUpFinishedHandler} which was used to start the service
      * @return The id of the measurement which was started
      */
     private long checkThatLaunched(final TestStartUpFinishedHandler startUpFinishedHandler) {
 
         // Ensure the DataCapturingBackgroundService sent a started message back to the DataCapturingService
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, startUpFinishedHandler.getLock(),
+                startUpFinishedHandler.getCondition());
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(true)));
 
         // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
 
         // Ensure that the DataCapturingBackgroundService was running during the callCheckForRunning
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
@@ -353,8 +369,6 @@ public class DataCapturingServiceTest {
      * {@link DataCapturingService#stop(ShutDownFinishedHandler)} or
      * {@link DataCapturingService#pause(ShutDownFinishedHandler)}.
      *
-     * This also updates the {@link #runningStatusCallback}.
-     *
      * Also checks that the measurement which was stopped is the expected measurement.
      *
      * @param shutDownFinishedHandler The {@link TestShutdownFinishedHandler} which was used to stop the service
@@ -365,12 +379,19 @@ public class DataCapturingServiceTest {
             final long measurementIdentifier) {
 
         // Ensure the DataCapturingBackgroundService sent a stopped message back to the DataCapturingService
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, shutDownFinishedHandler.getLock(),
+                shutDownFinishedHandler.getCondition());
         assertThat(shutDownFinishedHandler.receivedServiceStopped(), is(equalTo(true)));
 
         // Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
 
         // Ensure that the DataCapturingBackgroundService was not running during the callCheckForRunning
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(false)));
@@ -397,6 +418,34 @@ public class DataCapturingServiceTest {
     }
 
     /**
+     * Tests that a double start-stop combination with waiting for the callback does not break the service.
+     * <p>
+     * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
+     * {@link DataCapturingService#resume(StartUpFinishedHandler)} work correctly.
+     *
+     * @throws DataCapturingException Happens on unexpected states during data capturing.
+     * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testMultipleStartStopWithDelay() throws DataCapturingException, MissingPermissionException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        List<Measurement> measurements = persistenceLayer.loadMeasurements();
+        assertThat(measurements.size(), is(equalTo(1)));
+
+        stopAndCheckThatStopped(measurementIdentifier);
+
+        final long measurementIdentifier2 = startAndCheckThatLaunched();
+        measurements = persistenceLayer.loadMeasurements();
+        assertThat(measurements.size(), is(equalTo(2)));
+
+        stopAndCheckThatStopped(measurementIdentifier2);
+    }
+
+    /**
      * Tests that a double start-stop combination without waiting for the callback does not break the service.
      *
      * IGNORED: This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.
@@ -412,15 +461,34 @@ public class DataCapturingServiceTest {
     @Ignore
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
-        final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock, condition,
+
+        // Do not reuse the lock/condition!
+        final Lock lock1 = new ReentrantLock();
+        final Condition condition1 = lock1.newCondition();
+        final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock1, condition1,
                 appId);
-        final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock, condition,
+        // Do not reuse the lock/condition!
+        final Lock lock2 = new ReentrantLock();
+        final Condition condition2 = lock2.newCondition();
+        final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock2, condition2,
                 appId);
-        final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock, condition,
+        // Do not reuse the lock/condition!
+        final Lock lock3 = new ReentrantLock();
+        final Condition condition3 = lock3.newCondition();
+        final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock3, condition3,
                 appId);
-        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock, condition);
-        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock, condition);
-        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock, condition);
+        // Do not reuse the lock/condition!
+        final Lock lock4 = new ReentrantLock();
+        final Condition condition4 = lock4.newCondition();
+        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock4, condition4);
+        // Do not reuse the lock/condition!
+        final Lock lock5 = new ReentrantLock();
+        final Condition condition5 = lock5.newCondition();
+        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock5, condition5);
+        // Do not reuse the lock/condition!
+        final Lock lock6 = new ReentrantLock();
+        final Condition condition6 = lock6.newCondition();
+        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock6, condition6);
 
         // First Start/stop without waiting
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler1);
@@ -433,7 +501,18 @@ public class DataCapturingServiceTest {
         oocut.stop(shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, startUpFinishedHandler1.getLock(),
+                startUpFinishedHandler1.getCondition());
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, shutDownFinishedHandler1.getLock(),
+                shutDownFinishedHandler1.getCondition());
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, startUpFinishedHandler2.getLock(),
+                startUpFinishedHandler2.getCondition());
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, shutDownFinishedHandler2.getLock(),
+                shutDownFinishedHandler2.getCondition());
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, startUpFinishedHandler3.getLock(),
+                startUpFinishedHandler3.getCondition());
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, shutDownFinishedHandler3.getLock(),
+                shutDownFinishedHandler3.getCondition());
 
         List<Measurement> measurements = persistenceLayer.loadMeasurements();
         assertThat(measurements.size(), is(equalTo(3)));
@@ -445,14 +524,12 @@ public class DataCapturingServiceTest {
         final long measurementId3 = startUpFinishedHandler3.receivedMeasurementIdentifier;
         assertThat(measurements.get(2).getIdentifier(), is(equalTo(measurementId3)));
 
-        /*
-         * assertThat(measurementId1, is(not(equalTo(-1L))));
-         * assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
-         * assertThat(measurementId2, is(not(equalTo(-1L))));
-         * assertThat(shutDownFinishedHandler2.receivedMeasurementIdentifier, is(equalTo(measurementId2)));
-         * assertThat(measurementId3, is(not(equalTo(-1L))));
-         * assertThat(shutDownFinishedHandler3.receivedMeasurementIdentifier, is(equalTo(measurementId3)));
-         */
+        assertThat(measurementId1, is(not(equalTo(-1L))));
+        assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
+        assertThat(measurementId2, is(not(equalTo(-1L))));
+        assertThat(shutDownFinishedHandler2.receivedMeasurementIdentifier, is(equalTo(measurementId2)));
+        assertThat(measurementId3, is(not(equalTo(-1L))));
+        assertThat(shutDownFinishedHandler3.receivedMeasurementIdentifier, is(equalTo(measurementId3)));
     }
 
     /**
@@ -471,9 +548,14 @@ public class DataCapturingServiceTest {
 
         oocut.disconnect();
         assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(true));
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
 
         stopAndCheckThatStopped(measurementIdentifier);
     }
@@ -494,6 +576,9 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         // Second start - should not launch anything
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 appId);
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
@@ -518,6 +603,9 @@ public class DataCapturingServiceTest {
         final long measurementId = startAndCheckThatLaunched();
 
         stopAndCheckThatStopped(measurementId);
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         // must throw NoSuchMeasurementException
         oocut.stop(new TestShutdownFinishedHandler(lock, condition));
     }
@@ -577,9 +665,14 @@ public class DataCapturingServiceTest {
 
         assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(true));
         oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
 
         stopAndCheckThatStopped(measurementIdentifier);
     }
@@ -603,8 +696,14 @@ public class DataCapturingServiceTest {
         oocut.disconnect();
         assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(true));
 
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
         assertThat("Service seems not to be running anymore after two disconnect/reconnect cycles!",
                 runningStatusCallback.wasRunning(), is(equalTo(true)));
 
@@ -654,11 +753,20 @@ public class DataCapturingServiceTest {
         // Resume 2: must be ignored by resumeAsync
         PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
+        // Do not reuse the lock/condition!
+        final Lock lock = new ReentrantLock();
+        final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 appId);
         oocut.resume(startUpFinishedHandler);
+        // Do not reuse the lock/condition/runningStatusCallback!
+        final Lock runningStatusCallbackLock = new ReentrantLock();
+        final Condition runningStatusCallbackCondition = runningStatusCallbackLock.newCondition();
+        final TestCallback runningStatusCallback = new TestCallback("Default Callback", runningStatusCallbackLock,
+                runningStatusCallbackCondition);
         TestUtils.callCheckForRunning(oocut, runningStatusCallback);
-        TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
+        TestUtils.lockAndWait(2, TimeUnit.SECONDS, runningStatusCallback.getLock(),
+                runningStatusCallback.getCondition());
         assertThat(runningStatusCallback.wasRunning(), is(equalTo(true)));
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(OPEN)));
 
@@ -684,6 +792,29 @@ public class DataCapturingServiceTest {
     }
 
     /**
+     * Tests that stopping a paused service does work successfully.
+     * <p>
+     * As this test was flaky, we have this test here which executes it multiple times.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testStartPauseStop_MultipleTimes() throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        for (int i = 0; i < 20; i++) {
+            Log.d(TAG, "ITERATION: " + i);
+
+            final long measurementIdentifier = startAndCheckThatLaunched();
+            pauseAndCheckThatStopped(measurementIdentifier);
+            stopAndCheckThatStopped(-1); // -1 because it's already stopped
+        }
+    }
+
+    /**
      * Tests if the service lifecycle is running successfully and that the life-cycle {@link Event}s are logged.
      * <p>
      * Makes sure the {@link DataCapturingService#pause(ShutDownFinishedHandler)} and
@@ -698,44 +829,52 @@ public class DataCapturingServiceTest {
     public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
-        final long measurementIdentifier = startAndCheckThatLaunched();
-        final List<Measurement> measurements = persistenceLayer.loadMeasurements();
-        assertThat(measurements.size(), is(equalTo(1)));
+        for (int i = 0; i < 100; i++) { // FIXME
+            Log.d(TAG, "ITERATION: " + i);
 
-        pauseAndCheckThatStopped(measurementIdentifier);
+            final long measurementIdentifier = startAndCheckThatLaunched();
+            final List<Measurement> measurements = persistenceLayer.loadMeasurements();
+            assertThat(measurements.size(), is(equalTo(1)));
 
-        resumeAndCheckThatLaunched(measurementIdentifier);
-        final List<Measurement> newMeasurements = persistenceLayer.loadMeasurements();
-        assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
+            pauseAndCheckThatStopped(measurementIdentifier);
 
-        stopAndCheckThatStopped(measurementIdentifier);
+            resumeAndCheckThatLaunched(measurementIdentifier);
+            final List<Measurement> newMeasurements = persistenceLayer.loadMeasurements();
+            assertThat(measurements.size() == newMeasurements.size(), is(equalTo(true)));
 
-        // Check Events
-        ContentResolver contentResolver = context.getContentResolver();
-        Cursor eventCursor = null;
-        try {
-            eventCursor = contentResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()},
-                    EventTable.COLUMN_TIMESTAMP + " ASC");
-            Validate.softCatchNullCursor(eventCursor);
+            stopAndCheckThatStopped(measurementIdentifier);
 
-            final List<Event> events = new ArrayList<>();
-            while (eventCursor.moveToNext()) {
-                final Event.EventType eventType = Event.EventType
-                        .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
-                final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
-                events.add(new Event(eventType, eventTime));
+            // Check Events
+            ContentResolver contentResolver = context.getContentResolver();
+            Cursor eventCursor = null;
+            try {
+                eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
+                        EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                        new String[] {Long.valueOf(measurementIdentifier).toString()},
+                        EventTable.COLUMN_TIMESTAMP + " ASC");
+                Validate.softCatchNullCursor(eventCursor);
+
+                final List<Event> events = new ArrayList<>();
+                while (eventCursor.moveToNext()) {
+                    final Event.EventType eventType = Event.EventType
+                            .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+                    final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                    events.add(new Event(eventType, eventTime));
+                }
+
+                assertThat(events.size(), is(equalTo(4)));
+                assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
+                assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+                assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+                assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+            } finally {
+                if (eventCursor != null) {
+                    eventCursor.close();
+                }
             }
 
-            assertThat(events.size(), is(equalTo(4)));
-            assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
-        } finally {
-            if (eventCursor != null) {
-                eventCursor.close();
-            }
+            // For for-i-loops within this test
+            SharedTestUtils.clearPersistenceLayer(context, contentResolver, AUTHORITY);
         }
     }
 
@@ -758,14 +897,14 @@ public class DataCapturingServiceTest {
     @LargeTest
     @FlakyTest
     public void testSensorDataCapturing() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException, InterruptedException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         // Check sensor data
         final List<Measurement> measurements = persistenceLayer.loadMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
-        TestUtils.lockAndWait(3, TimeUnit.SECONDS, lock, condition);
+        Thread.sleep(1000L);
         assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true)));
 
         stopAndCheckThatStopped(measurementIdentifier);
@@ -780,4 +919,5 @@ public class DataCapturingServiceTest {
         assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(false));
         assertThat(oocut.getIsRunning(), is(equalTo(false)));
     }
+
 }

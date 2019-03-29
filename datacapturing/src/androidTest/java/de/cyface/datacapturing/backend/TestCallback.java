@@ -123,4 +123,12 @@ public class TestCallback implements IsRunningCallback {
     public boolean didTimeOut() {
         return timedOut;
     }
+
+    public Lock getLock() {
+        return lock;
+    }
+
+    public Condition getCondition() {
+        return condition;
+    }
 }

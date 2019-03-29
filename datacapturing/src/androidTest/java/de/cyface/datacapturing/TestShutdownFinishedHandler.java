@@ -49,4 +49,12 @@ final class TestShutdownFinishedHandler extends ShutDownFinishedHandler {
             lock.unlock();
         }
     }
+
+    public Condition getCondition() {
+        return condition;
+    }
+
+    public Lock getLock() {
+        return lock;
+    }
 }

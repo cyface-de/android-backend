@@ -112,8 +112,7 @@ public final class MovebisTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
-        // FIXME: not sure if we can reuse the lock and condition
-        testListener = new TestListener(lock, condition);
+        testListener = new TestListener();
         testUIListener = new TestUIListener(lock, condition);
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {

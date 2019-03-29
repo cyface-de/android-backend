@@ -89,7 +89,7 @@ public class DataCapturingServiceTestWithoutPermission {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         final String dataUploadServerAddress = "https://localhost:8080";
-        final DataCapturingListener listener = new TestListener(lock, condition);
+        final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {

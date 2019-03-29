@@ -16,6 +16,7 @@ package de.cyface.datacapturing;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.utils.Validate;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
@@ -98,6 +99,7 @@ public class MessageCodes {
      */
     @NonNull
     public static String getServiceStartedActionId(@NonNull final String appId) {
+        Validate.notNull(appId);
         return appId + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
     }
 
@@ -111,6 +113,7 @@ public class MessageCodes {
      */
     @NonNull
     public static String getPingActionId(@NonNull final String appId) {
+        Validate.notNull(appId);
         return appId + "_" + GLOBAL_BROADCAST_PING;
     }
 
@@ -124,6 +127,7 @@ public class MessageCodes {
      */
     @NonNull
     public static String getPongActionId(@NonNull final String appId) {
+        Validate.notNull(appId);
         return appId + "_" + GLOBAL_BROADCAST_PONG;
     }
 
