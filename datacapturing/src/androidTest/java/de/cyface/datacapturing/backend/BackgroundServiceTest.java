@@ -154,8 +154,8 @@ public class BackgroundServiceTest {
 
         // Start and bind DataCapturingBackgroundService [ usually in DCS.runService() ]
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
+        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
@@ -188,8 +188,8 @@ public class BackgroundServiceTest {
 
         // Start background service twice
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
+        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);

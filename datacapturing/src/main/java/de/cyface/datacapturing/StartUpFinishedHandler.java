@@ -74,6 +74,7 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
     @Override
     public void onReceive(@NonNull Context context, @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
+        Log.v(TAG, "onReceive: "+intent.getAction());
         if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(appId))) {
             receivedServiceStarted = true;
             long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);

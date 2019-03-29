@@ -18,6 +18,7 @@ import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
+import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
@@ -139,6 +140,12 @@ public abstract class DataCapturingService {
      */
     private UIListener uiListener;
     /**
+     * The <code>ContentProvider</code> authority required to request a sync operation in the {@link WiFiSurveyor}.
+     * You should use something world wide unique, like your domain, to avoid collisions between different apps using
+     * the Cyface SDK.
+     */
+    private String authority;
+    /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
      */
@@ -200,6 +207,7 @@ public abstract class DataCapturingService {
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
+        this.authority = authority;
         this.persistenceLayer = persistenceLayer;
         this.serviceConnection = new BackgroundServiceConnection();
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
@@ -617,6 +625,7 @@ public abstract class DataCapturingService {
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
+        startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
 
