@@ -165,9 +165,10 @@ public class HttpConnection implements Http {
         Validate.isTrue(filePartSize > 0);
         final String header = generateHeader(filePartSize, metaData, fileName);
 
-        // Set content length
-        final long requestLength = header.length() + filePartSize;
-        connection.setRequestProperty("Content-length", "" + requestLength);
+        // Set content length (count the bytes not the string length!)
+        final long requestLength = header.getBytes().length + filePartSize;
+        // This should be obsolete with setFixedLengthStreamingMode:
+        // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
         connection.setFixedLengthStreamingMode((int)requestLength);
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
