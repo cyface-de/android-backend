@@ -51,7 +51,7 @@ import androidx.annotation.Nullable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.1.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
