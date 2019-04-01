@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
@@ -70,7 +84,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.1
+ * @version 5.4.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -490,7 +504,7 @@ public class CapturedDataWriterTest {
         final long timestamp3 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
 
-        // As this is flaky, we want to make sure that the event is at least 1 ms after the last location
+        // This test is flaky when the RESUME event happens in the same millisecond as the location event
         Thread.sleep(1);
         oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
         final long timestamp4 = System.currentTimeMillis();
@@ -533,7 +547,7 @@ public class CapturedDataWriterTest {
         final long timestamp3 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
 
-        // As this is flaky, we want to make sure that the event is at least 1 ms after the last location
+        // This test is flaky when the RESUME event happens in the same millisecond as the location event
         Thread.sleep(1);
         oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
         final long timestamp4 = System.currentTimeMillis();

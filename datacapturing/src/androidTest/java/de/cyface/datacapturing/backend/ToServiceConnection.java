@@ -36,7 +36,7 @@ import de.cyface.datacapturing.PongReceiver;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 3.0.0
  * @since 2.0.0
  */
 class ToServiceConnection implements ServiceConnection {

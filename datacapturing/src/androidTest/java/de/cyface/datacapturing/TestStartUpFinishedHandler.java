@@ -18,7 +18,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
 import androidx.annotation.NonNull;
-import de.cyface.utils.Validate;
 
 /**
  * A handler that can be used to receive the event sent on shutdown started and get the measurement identifier
@@ -26,7 +25,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.2.0
  */
 final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
