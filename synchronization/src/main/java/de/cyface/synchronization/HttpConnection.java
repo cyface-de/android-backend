@@ -172,6 +172,7 @@ public class HttpConnection implements Http {
         } else {
             connection.setFixedLengthStreamingMode((int)bytesWrittenToOutputStream);
         }
+        // connection.setRequestProperty("Content-length" should be obsolete with setFixedLengthStreamingMode
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
         final FileInputStream fileInputStream;
