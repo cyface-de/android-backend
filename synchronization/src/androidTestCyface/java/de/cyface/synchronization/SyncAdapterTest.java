@@ -68,7 +68,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.1
+ * @version 2.4.2
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -179,7 +179,7 @@ public final class SyncAdapterTest {
      */
     @Test
     @LargeTest // ~ 8-10 minutes
-    @Ignore // FIXME!
+    @Ignore
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
         final int point3dCount = 3_000_000;

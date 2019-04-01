@@ -51,7 +51,7 @@ import androidx.annotation.Nullable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.1.1
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -63,7 +63,7 @@ public class HttpConnection implements Http {
     /**
      * The boundary to be used in the Multipart request to separate data.
      */
-    private final static String BOUNDARY = "---------------------------boundary";
+    final static String BOUNDARY = "---------------------------boundary";
     /**
      * The tail to be used in the Multipart request to indicate that the request end.
      */
