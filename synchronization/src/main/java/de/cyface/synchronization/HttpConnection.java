@@ -40,11 +40,11 @@ import org.json.JSONException;
 import org.json.JSONObject;
 
 import android.accounts.NetworkErrorException;
+import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import de.cyface.utils.Validate;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
@@ -161,15 +161,17 @@ public class HttpConnection implements Http {
             throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
 
         // Generate header
-        final long filePartSize = transferTempFile.length() + TAIL.length();
-        Validate.isTrue(filePartSize > 0);
-        final String header = generateHeader(filePartSize, metaData, fileName);
+        // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
+        final String remainingHeader = generateHeader(metaData, fileName);
 
-        // Set content length (count the bytes not the string length!)
-        final long requestLength = header.getBytes().length + filePartSize;
-        // This should be obsolete with setFixedLengthStreamingMode:
-        // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
-        connection.setFixedLengthStreamingMode((int)requestLength);
+        // Set the fixed number of bytes which will be written to the OutputStream
+        final long binarySize = transferTempFile.length();
+        final long bytesWrittenToOutputStream = calculateBytesWrittenToOutputStream(remainingHeader, binarySize);
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
+            connection.setFixedLengthStreamingMode(bytesWrittenToOutputStream);
+        } else {
+            connection.setFixedLengthStreamingMode((int)bytesWrittenToOutputStream);
+        }
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
         final FileInputStream fileInputStream;
@@ -184,8 +186,8 @@ public class HttpConnection implements Http {
         try {
             connection.connect();
             try {
-                // Send header
-                outputStream.write(header.getBytes());
+                // Write MultiPart header (including the filePartHeader
+                outputStream.write(remainingHeader.getBytes());
                 outputStream.flush();
 
                 // Create file upload buffer
@@ -197,7 +199,7 @@ public class HttpConnection implements Http {
                 bufferSize = Math.min(bytesAvailable, maxBufferSize);
                 buffer = new byte[bufferSize];
 
-                // Send file
+                // Write the binaries to the OutputStream
                 int progress = 0;
                 int bytesRead;
                 bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
@@ -205,18 +207,17 @@ public class HttpConnection implements Http {
                     outputStream.write(buffer, 0, bufferSize);
                     outputStream.flush();
                     progress += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((progress * 100.0f) / filePartSize);
+                    progressListener.updatedProgress((progress * 100.0f) / binarySize);
 
                     bytesAvailable = bufferedFileInputStream.available();
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
                     bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
                 }
 
-                // Write closing boundary and close stream
+                // Write MultiPart Tail boundary
                 outputStream.write(TAIL.getBytes());
-                outputStream.flush();
             } finally {
-                outputStream.close();
+                outputStream.close(); // automatically flushes, too
             }
         } catch (final IOException e) {
             throw new IllegalStateException(e);
@@ -229,6 +230,23 @@ public class HttpConnection implements Http {
             Log.w(TAG, "Server closed stream. Request was not successful!");
             throw new ResponseParsingException("Server closed stream?", e);
         }
+    }
+
+    /**
+     * Setting the number of bytes which will be written to the {@code OutputStream} up front (via
+     * {@code HttpConnection#setFixedLengthStreamingMode()}) allows to flush the {@code OutputStream} frequently to
+     * reduce the amount of bytes kept in memory.
+     *
+     * @param header The MultiPart header as string which will be written to the {@code OutputStream}
+     * @param binarySize The number of bytes of the binary which will be written to the {@code OutputStream}
+     */
+    long calculateBytesWrittenToOutputStream(@NonNull final String header, final long binarySize) {
+
+        // This should be obsolete with setFixedLengthStreamingMode:
+        // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
+
+        // Set count of Bytes not chars in the header!
+        return header.getBytes().length + binarySize + TAIL.length();
     }
 
     private byte[] gzip(byte[] input) {
@@ -276,21 +294,12 @@ public class HttpConnection implements Http {
     /**
      * Assembles the header of the Multipart request.
      *
-     * @param filePartSize The Bytes of the file to be transferred including the {@link #TAIL} length.
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param fileName The name of the file to be uploaded
      * @return The Multipart header
      */
     @NonNull
-    String generateHeader(final long filePartSize, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final String fileName) {
-
-        // File meta data
-        final String filePart = "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
-                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n";
-        final String contentLengthPart = "Content-length: " + filePartSize + "\r\n";
-        final String fileHeaderPart = filePart + contentLengthPart + "\r\n";
+    String generateHeader(@NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName) {
 
         // Location meta data
         String startLocationPart = ""; // We only transfer this part if there are > 0 locations
@@ -312,6 +321,12 @@ public class HttpConnection implements Http {
         final String osVersionPart = generatePart("osVersion", metaData.osVersion);
         final String appVersionPart = generatePart("appVersion", metaData.appVersion);
         final String lengthPart = generatePart("length", String.valueOf(metaData.length));
+
+        // File meta data
+        final String fileHeaderPart = "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
+                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
+        // There should be no need to set a content length of the fileHeaderPart here
 
         // This was reordered to be in the same order as in the iOS code
         return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
