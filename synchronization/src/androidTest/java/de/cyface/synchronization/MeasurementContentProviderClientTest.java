@@ -80,9 +80,6 @@ public class MeasurementContentProviderClientTest {
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
-            measurementValues.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_ROTATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
@@ -162,9 +159,6 @@ public class MeasurementContentProviderClientTest {
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
-            measurementValues.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_ROTATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
