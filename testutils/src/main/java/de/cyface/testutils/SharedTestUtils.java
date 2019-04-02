@@ -54,7 +54,6 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -345,10 +344,8 @@ public class SharedTestUtils {
         insertPoint3ds(directionsFile, dPoints);
 
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
-            // Store PointMetaData
-            final PointMetaData pointMetaData = new PointMetaData(point3dCount, point3dCount, point3dCount,
-                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
-            persistence.storePointMetaData(pointMetaData, measurementIdentifier);
+            persistence.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                    measurementIdentifier);
             persistence.setStatus(measurementIdentifier, FINISHED);
         }
 
@@ -366,15 +363,23 @@ public class SharedTestUtils {
         final List<Track> loadedTracks = persistence.loadTracks(measurementIdentifier);
         assertThat(loadedTracks.get(0).getGeoLocations().size(), is(locationCount));
 
-        // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
+        // We can only check the meta data for measurements which are not open anymore (else it's still in cache)
         if (status != OPEN) {
             // we explicitly reload the measurement to make sure we have it's current attributes
             measurement = persistence.loadMeasurement(measurementIdentifier);
-            assertThat(measurement.getAccelerations(), is(equalTo(1)));
-            assertThat(measurement.getRotations(), is(equalTo(1)));
-            assertThat(measurement.getDirections(), is(equalTo(1)));
             assertThat(measurement.getFileFormatVersion(),
                     is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
+
+            // noinspection ConstantConditions - we may add tests with a 0 count later
+            if (point3dCount > 0) {
+                assertThat(
+                        (int)(accelerationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+                        is(equalTo(point3dCount)));
+                assertThat((int)(rotationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+                        is(equalTo(point3dCount)));
+                assertThat((int)(directionsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+                        is(equalTo(point3dCount)));
+            }
         }
         return measurement;
     }

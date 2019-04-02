@@ -268,10 +268,15 @@ public final class MeasurementSerializer {
      * @param geoLocationCount Number of {@link GeoLocation} in the serialized {@code Measurement}.
      * @param measurement the {@link Measurement} containing the number of {@link Point3d} points in the serialized
      *            {@code Measurement}.
+     * @param accelerationsCount The number of accelerations stored for this {@code Measurement}.
+     * @param rotationsCount The number of rotations stored for this {@code Measurement}.
+     * @param directionsCount The number of directions stored for this {@code Measurement}.
      * @return The header byte array.
      */
-    private byte[] serializeTransferFileHeader(final int geoLocationCount, final Measurement measurement) {
+    private byte[] serializeTransferFileHeader(final int geoLocationCount, final Measurement measurement,
+            final int accelerationsCount, final int rotationsCount, final int directionsCount) {
         Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
+
         byte[] ret = new byte[18];
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
@@ -279,18 +284,18 @@ public final class MeasurementSerializer {
         ret[3] = (byte)(geoLocationCount >> 16);
         ret[4] = (byte)(geoLocationCount >> 8);
         ret[5] = (byte)geoLocationCount;
-        ret[6] = (byte)(measurement.getAccelerations() >> 24);
-        ret[7] = (byte)(measurement.getAccelerations() >> 16);
-        ret[8] = (byte)(measurement.getAccelerations() >> 8);
-        ret[9] = (byte)measurement.getAccelerations();
-        ret[10] = (byte)(measurement.getRotations() >> 24);
-        ret[11] = (byte)(measurement.getRotations() >> 16);
-        ret[12] = (byte)(measurement.getRotations() >> 8);
-        ret[13] = (byte)measurement.getRotations();
-        ret[14] = (byte)(measurement.getDirections() >> 24);
-        ret[15] = (byte)(measurement.getDirections() >> 16);
-        ret[16] = (byte)(measurement.getDirections() >> 8);
-        ret[17] = (byte)measurement.getDirections();
+        ret[6] = (byte)(accelerationsCount >> 24);
+        ret[7] = (byte)(accelerationsCount >> 16);
+        ret[8] = (byte)(accelerationsCount >> 8);
+        ret[9] = (byte)accelerationsCount;
+        ret[10] = (byte)(rotationsCount >> 24);
+        ret[11] = (byte)(rotationsCount >> 16);
+        ret[12] = (byte)(rotationsCount >> 8);
+        ret[13] = (byte)rotationsCount;
+        ret[14] = (byte)(directionsCount >> 24);
+        ret[15] = (byte)(directionsCount >> 16);
+        ret[16] = (byte)(directionsCount >> 8);
+        ret[17] = (byte)directionsCount;
         return ret;
     }
 
@@ -305,8 +310,6 @@ public final class MeasurementSerializer {
      * <p>
      * <b>ATTENTION:</b> The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
      * or the app crashes.
-     *
-     * TODO [MOV-554]: test performance on weak devices for large measurements
      *
      * @param bufferedOutputStream The {@link OutputStream} to which the serialized data should be written. Injecting
      *            this allows us to compress the serialized data without the need to write it into a temporary file.
@@ -344,10 +347,6 @@ public final class MeasurementSerializer {
             }
         }
 
-        // Generate transfer file header
-        final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
-        final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, measurement);
-
         // Get already serialized Point3dFiles
         final File accelerationFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
@@ -355,6 +354,28 @@ public final class MeasurementSerializer {
                 Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
         final File directionFile = fileAccessLayer.getFilePath(persistence.getContext(), measurementIdentifier,
                 Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+
+        // Calculate how many points the files contain (for the binary header)
+        int accelerationsCount = 0;
+        int rotationsCount = 0;
+        int directionsCount = 0;
+        // noinspection ConstantConditions // can happen in tests
+        if (accelerationFile != null && accelerationFile.exists()) {
+            accelerationsCount = (int)(accelerationFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
+        }
+        // noinspection ConstantConditions // can happen in tests
+        if (rotationFile != null && rotationFile.exists()) {
+            rotationsCount = (int)(rotationFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
+        }
+        // noinspection ConstantConditions // can happen in tests
+        if (directionFile != null && directionFile.exists()) {
+            directionsCount = (int)(directionFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
+        }
+
+        // Generate transfer file header
+        final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
+        final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, measurement, accelerationsCount,
+                rotationsCount, directionsCount);
 
         // Assemble bytes to transfer via buffered stream to avoid OOM
         try {
@@ -365,28 +386,19 @@ public final class MeasurementSerializer {
             throw new IllegalStateException(e);
         }
 
-        if (measurement.getAccelerations() > 0) {
-            // noinspection ConstantConditions // can happen in tests
-            if (accelerationFile != null) {
-                Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
-                        DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
-            }
+        if (accelerationsCount > 0) {
+            Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
+                    DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
             fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
-        if (measurement.getRotations() > 0) {
-            // noinspection ConstantConditions // can happen in tests
-            if (rotationFile != null) {
-                Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
-                        DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
-            }
+        if (rotationsCount > 0) {
+            Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
+                    DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
             fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
         }
-        if (measurement.getDirections() > 0) {
-            // noinspection ConstantConditions // can happen in tests
-            if (directionFile != null) {
-                Log.v(TAG, String.format("Serializing %s directions for synchronization.",
-                        DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
-            }
+        if (directionsCount > 0) {
+            Log.v(TAG, String.format("Serializing %s directions for synchronization.",
+                    DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
         }
 

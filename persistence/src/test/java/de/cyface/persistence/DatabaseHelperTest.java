@@ -45,7 +45,7 @@ import de.cyface.testutils.SharedTestUtils;
  * open it with *DB Browser for SQLite* and use File > Export > Database to SQL file.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.2.0
  * @since 4.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -112,7 +112,41 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Test that loading the EventTable which was introduced in the Database V12 Upgrade works.
+     * Test that upgrading the {@link MeasurementTable} to Database V13 does not loose entries.
+     */
+    @Test
+    public void testMigrationV12ToV13() {
+
+        // Arrange
+        // This is simpler than copying and adjusting the code from previous versions
+        createV11DatabaseWithData(db);
+        oocut.onUpgrade(db, 11, 12);
+
+        // Act - This is how the method is called by the system (not incrementally!)
+        oocut.onUpgrade(db, 12, 13);
+
+        // Assert 43,'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979
+        // Make sure the relevant data from before the upgrade still exists
+        Cursor cursor = null;
+        try {
+            // Measurements must still exist after the upgrade
+            cursor = db.query("measurements", null, null, null, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor.moveToNext();
+            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
+            assertThat(cursor.getString(cursor.getColumnIndex("status")), is(equalTo("FINISHED")));
+            assertThat(cursor.getString(cursor.getColumnIndex("vehicle")), is(equalTo("BICYCLE")));
+            assertThat(cursor.getDouble(cursor.getColumnIndex("distance")), is(equalTo(5396.62473698979)));
+            assertThat(cursor.getInt(cursor.getColumnIndex("file_format_version")), is(equalTo(1)));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Test that loading the {@link EventTable} which was introduced in the Database V12 Upgrade works.
      * <p>
      * This database upgrade V12 was part of (STAD-6)!
      */
@@ -198,26 +232,6 @@ public class DatabaseHelperTest {
         oocut.onCreate(db);
 
         // Assert - currently only checking that there is not exception
-    }
-
-    private void createV12Database(SQLiteDatabase db) {
-        throw new IllegalStateException("no yet implemented");
-        // This is simpler than duplicating the code from last version
-        // createV11DatabaseWithData(db);
-        // oocut.onUpgrade(db, 11, 12);
-
-        // Here the sample code from an V12 export for the next migration test
-        /*
-         * CREATE TABLE events (
-         * _id INTEGER PRIMARY KEY AUTOINCREMENT,
-         * timestamp INTEGER NOT NULL,
-         * type TEXT NOT NULL,
-         * measurement_fk INTEGER
-         * );
-         * INSERT INTO events (_id,timestamp,type,measurement_fk) VALUES (7,1552322118501,'LIFECYCLE_START',25),
-         * (8,1552323369059,'LIFECYCLE_STOP',25),
-         * (17,1552412961053,'LIFECYCLE_START',30),
-         */
     }
 
     /**

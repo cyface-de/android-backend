@@ -4,12 +4,12 @@ import java.io.File;
 import java.util.List;
 
 import android.content.Context;
+
 import androidx.annotation.NonNull;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.utils.Validate;
 
 /**
  * The file format to persist {@link Point3d}s such as accelerations, rotations and directions.
@@ -105,8 +105,7 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
     }
 
     /**
-     * Loads an existing {@link Point3dFile} for a specified measurement. The {@link File} must already exist.
-     * If you want to create a new {@code Point3dFile} use the Constructor.
+     * Loads an existing {@link Point3dFile} for a specified {@link Measurement} if it exists.
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param fileAccessLayer The {@link FileAccessLayer} used to access the file;
@@ -114,12 +113,17 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * @param folderName The folder name defining the {@link Point3d} type of the file
      * @param fileExtension the extension of the file type
      * @return the {@link Point3dFile} link to the file
-     * @throws IllegalStateException if there is no such file
+     * @throws NoSuchFileException if there is no such file
      */
     public static Point3dFile loadFile(@NonNull final Context context, @NonNull FileAccessLayer fileAccessLayer,
-            final long measurementId, @NonNull final String folderName, @NonNull final String fileExtension) {
+            final long measurementId, @NonNull final String folderName, @NonNull final String fileExtension)
+            throws NoSuchFileException {
+
         final File file = fileAccessLayer.getFilePath(context, measurementId, folderName, fileExtension);
-        Validate.isTrue(file.exists());
+        if (!file.exists()) {
+            throw new NoSuchFileException("The follow file could not be loaded: " + file.getPath());
+        }
+
         return new Point3dFile(measurementId, file);
     }
 }

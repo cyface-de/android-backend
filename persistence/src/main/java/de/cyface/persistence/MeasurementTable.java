@@ -25,7 +25,6 @@ import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
@@ -35,7 +34,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.6.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -55,18 +54,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_VEHICLE = "vehicle";
     /**
-     * Column name for the number of acceleration {@link Point3d}s persisted for this {@link Measurement}.
-     */
-    public static final String COLUMN_ACCELERATIONS = "accelerations";
-    /**
-     * Column name for the number of rotation {@link Point3d}s persisted for this {@link Measurement}.
-     */
-    public static final String COLUMN_ROTATIONS = "rotations";
-    /**
-     * Column name for the number of direction {@link Point3d}s persisted for this {@link Measurement}.
-     */
-    public static final String COLUMN_DIRECTIONS = "directions";
-    /**
      * Column name for the {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
      * persistence layer of for this {@link Measurement}.
      */
@@ -78,8 +65,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * An array containing all columns from this table in default order.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_VEHICLE, COLUMN_ACCELERATIONS,
-            COLUMN_ROTATIONS, COLUMN_DIRECTIONS, COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE};
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_VEHICLE,
+            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE};
 
     /**
      * Creates a new completely initialized {@code MeasurementTable} using the name {@link #URI_PATH}.
@@ -91,10 +78,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     @Override
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, " + COLUMN_ACCELERATIONS
-                + " INTEGER NOT NULL, " + COLUMN_ROTATIONS + " INTEGER NOT NULL, " + COLUMN_DIRECTIONS
-                + " INTEGER NOT NULL, " + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, "
-                + COLUMN_DISTANCE + " REAL NOT NULL);";
+                + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, "
+                + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, " + COLUMN_DISTANCE + " REAL NOT NULL);";
     }
 
     /**
@@ -102,7 +87,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      * <p>
      * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
      * <p>
-     * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
+     * This upgrade is called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
      * <p>
      * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
      */
@@ -125,8 +110,37 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 updateDistanceForV8Measurements(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
+
+            case 12:
+                Log.d(TAG, "Removing sensor point counter columns from measurement table");
+
+                migrateDatabaseFromV12(database);
+
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
+    }
+
+    /**
+     * Removes sensor point counter columns from table.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void migrateDatabaseFromV12(@NonNull final SQLiteDatabase database) {
+
+        // To drop columns we need to copy the table.
+        database.execSQL("ALTER TABLE measurements RENAME TO _measurements_old;");
+
+        // To drop columns "accelerations", "rotations" and "directions" we need to create a new table
+        database.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "status TEXT NOT NULL, vehicle TEXT NOT NULL, file_format_version INTEGER NOT NULL, "
+                + "distance REAL NOT NULL);");
+        // and insert the old data accordingly. This is anyway cleaner (no defaults when new columns are added)
+        database.execSQL("INSERT INTO measurements " + "(_id,status,vehicle,file_format_version,distance) "
+                + "SELECT _id,status,vehicle,file_format_version,distance " + "FROM _measurements_old");
+
+        // Remove temp table
+        database.execSQL("DROP TABLE _measurements_old;");
     }
 
     /**

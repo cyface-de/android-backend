@@ -52,7 +52,6 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -88,11 +87,6 @@ public class DataCapturingLocalTest {
      */
     @Mock
     CapturingPersistenceBehaviour mockBehaviour;
-    /**
-     * Mocking the point meta data to avoid calling Android system functions.
-     */
-    @Mock
-    PointMetaData mockPointMetaData;
     @Mock
     DefaultDistanceCalculationStrategy distanceCalculationStrategy;
     @Mock
@@ -104,7 +98,6 @@ public class DataCapturingLocalTest {
         // Replace attributes of DataCapturingBackgroundService with mocked objects
         oocut.persistenceLayer = mockPersistence;
         oocut.capturingBehaviour = mockBehaviour;
-        oocut.pointMetaData = mockPointMetaData;
         oocut.eventHandlingStrategy = mockEventHandlingStrategy;
         oocut.distanceCalculationStrategy = distanceCalculationStrategy;
     }
