@@ -94,6 +94,7 @@ public class PersistenceLayerTest {
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
             throws NoSuchMeasurementException, CursorIsNullException {
+
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
         capturingBehaviour.updateRecentMeasurement(FINISHED);
@@ -111,6 +112,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testLoadFinishedMeasurements_noMeasurements() throws CursorIsNullException {
+
         assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), is(equalTo(true)));
     }
 
@@ -126,6 +128,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
+
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
@@ -144,6 +147,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
+
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
         oocut.markAsSynchronized(measurement);
@@ -173,22 +177,19 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer, 1, 1);
+        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, oocut, 1, 1);
 
         // Create a finished measurement
-        Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
-                persistenceLayer, 1, 1);
+        final Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
+                oocut, 1, 1);
 
         // Create an open measurement - must be created at last (life-cycle checks in PersistenceLayer.setStatus)
-        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer, 1, 1);
+        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, oocut, 1, 1);
 
         // Check that syncable measurements = finishedMeasurement
-        final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(loadedMeasurements.size(), is(1));
         assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
     }
