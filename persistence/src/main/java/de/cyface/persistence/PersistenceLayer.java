@@ -58,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 13.0.0
+ * @version 14.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {

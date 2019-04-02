@@ -135,7 +135,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
         database.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + "status TEXT NOT NULL, vehicle TEXT NOT NULL, file_format_version INTEGER NOT NULL, "
                 + "distance REAL NOT NULL);");
-        // and insert the old data accordingly. This is anyway cleaner (no defaults when new columns are added)
+        // and insert the old data accordingly
         database.execSQL("INSERT INTO measurements " + "(_id,status,vehicle,file_format_version,distance) "
                 + "SELECT _id,status,vehicle,file_format_version,distance " + "FROM _measurements_old");
 

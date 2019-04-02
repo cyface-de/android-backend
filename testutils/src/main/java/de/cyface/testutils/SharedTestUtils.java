@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.0
+ * @version 4.2.1
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -139,6 +139,7 @@ public class SharedTestUtils {
      * @param y A fake test y coordinate of the {@code Point3d}.
      * @param z A fake test z coordinate of the {@code Point3d}.
      */
+    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by the cyface flavour tests
     public static void insertPoint3d(@NonNull final Point3dFile point3dFile, final long timestamp, final double x,
             final double y, final double z) {
         final List<Point3d> points = new ArrayList<>();
@@ -391,9 +392,10 @@ public class SharedTestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
+    @SuppressWarnings("WeakerAccess") // Used by the cyface flavour tests
     @NonNull
-    public static Measurement insertMeasurementEntry(final @NonNull PersistenceLayer persistence,
-            final @NonNull Vehicle vehicle) throws CursorIsNullException {
+    public static Measurement insertMeasurementEntry(@NonNull final PersistenceLayer persistence,
+            @NonNull final Vehicle vehicle) throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
@@ -413,6 +415,7 @@ public class SharedTestUtils {
      * @param speed The fake test speed of the {@code GeoLocation}.
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Used by the cyface flavour tests
     public static void insertGeoLocation(final ContentResolver resolver, final String authority,
             final long measurementIdentifier, final long timestamp, final double lat, final double lon,
             final double speed, final int accuracy) {
