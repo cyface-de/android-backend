@@ -871,7 +871,7 @@ public class DataCapturingServiceTest {
         // Check sensor data
         final List<Measurement> measurements = persistenceLayer.loadMeasurements();
         assertThat(measurements.size() > 0, is(equalTo(true)));
-        Thread.sleep(1000L);
+        Thread.sleep(3000L);
         assertThat(testListener.getCapturedData().size() > 0, is(equalTo(true)));
 
         stopAndCheckThatStopped(measurementIdentifier);
