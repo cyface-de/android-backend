@@ -362,14 +362,17 @@ public final class MeasurementSerializer {
         // noinspection ConstantConditions // can happen in tests
         if (accelerationFile != null && accelerationFile.exists()) {
             accelerationsCount = (int)(accelerationFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
+            Validate.isTrue(accelerationsCount * BYTES_IN_ONE_POINT_3D_ENTRY == accelerationFile.length());
         }
         // noinspection ConstantConditions // can happen in tests
         if (rotationFile != null && rotationFile.exists()) {
             rotationsCount = (int)(rotationFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
+            Validate.isTrue(rotationsCount * BYTES_IN_ONE_POINT_3D_ENTRY == rotationFile.length());
         }
         // noinspection ConstantConditions // can happen in tests
         if (directionFile != null && directionFile.exists()) {
             directionsCount = (int)(directionFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
+            Validate.isTrue(directionsCount * BYTES_IN_ONE_POINT_3D_ENTRY == directionFile.length());
         }
 
         // Generate transfer file header
