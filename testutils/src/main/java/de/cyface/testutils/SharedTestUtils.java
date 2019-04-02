@@ -346,7 +346,7 @@ public class SharedTestUtils {
 
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
             // Store PointMetaData
-            final PointMetaData pointMetaData = new PointMetaData(1, 1, 1,
+            final PointMetaData pointMetaData = new PointMetaData(point3dCount, point3dCount, point3dCount,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             persistence.storePointMetaData(pointMetaData, measurementIdentifier);
             persistence.setStatus(measurementIdentifier, FINISHED);

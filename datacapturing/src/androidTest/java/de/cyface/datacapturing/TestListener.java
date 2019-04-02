@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.TAG;
@@ -5,34 +19,24 @@ import static de.cyface.datacapturing.TestUtils.TAG;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
 
-import androidx.annotation.NonNull;
 import android.util.Log;
 
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocation;
 import de.cyface.datacapturing.ui.Reason;
+import de.cyface.persistence.model.GeoLocation;
 
 /**
  * A listener for events from the capturing service, only used by tests.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.3
+ * @version 1.2.1
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {
 
-    /**
-     * Lock used to secure the <code>Condition</code>, prior to sending a signal.
-     */
-    private final Lock lock;
-    /**
-     * <code>Condition</code> used to send a signal to the creating thread.
-     */
-    private final Condition condition;
     /**
      * Geo locations captured during the test run.
      */
@@ -45,15 +49,10 @@ class TestListener implements DataCapturingListener {
     /**
      * Creates a new completely initialized <code>TestListener</code> signaling the creating thread via the provided
      * lock and condition of message reception from the <code>DataCapturingService</code>.
-     *
-     * @param lock Lock used to secure the <code>Condition</code>, prior to sending a signal.
-     * @param condition <code>Condition</code> used to send a signal to the creating thread.
      */
-    TestListener(final @NonNull Lock lock, final @NonNull Condition condition) {
+    TestListener() {
         capturedPositions = new ArrayList<>();
         capturedData = new ArrayList<>();
-        this.lock = lock;
-        this.condition = condition;
     }
 
     @Override

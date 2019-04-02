@@ -376,7 +376,7 @@ To capture a measurement you need to start the capturing and stop it after some 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
     public void onClick(View view) {
-        dataCapturingService.start(vehicle, new StartUpFinishedHandler(deviceId) {
+        dataCapturingService.start(vehicle, new StartUpFinishedHandler(context.getPackageName()) {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -538,6 +538,7 @@ This documentation still lacks of samples for the following features:
 
 Migration from Earlier Versions
 --------------------------------
+ - [Migrate to 4.0.0-alpha7](documentation/migration-guide_4.0.0-alpha7.md)
  - [Migrate to 4.0.0-alpha2](documentation/migration-guide_4.0.0-alpha2.md)
  - [Migrate to 4.0.0-alpha1](documentation/migration-guide_4.0.0-alpha1.md)
 

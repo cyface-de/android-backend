@@ -99,6 +99,7 @@ public class DataCapturingButton implements DataCapturingListener {
         dataCapturingService.isRunning(timeout, callbackWithSuccessLogic);
         
         // Version 4.0.0-alpha1
+        //noinspection StatementWithEmptyBody
         if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
             // your logic, e.g. update button
         } else {
@@ -180,7 +181,7 @@ class measurementControlOrAccessClass {
 #### Load Tracks
 
 The `loadTracks()` method now returns a list of lists containing `GeoLocation`s.
-The reason behind this is that we soon slice the track into subtracks when pause and resume is used.
+The reason behind this is that we soon slice the track into sub tracks when pause and resume is used.
 Until then we return the full track as the first sub list.
 
 Use the `PersistenceLayer` to access data, see [Access Measurements](#access-measurements).

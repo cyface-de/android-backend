@@ -54,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.1
+ * @version 2.3.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -112,8 +112,7 @@ public final class MovebisTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         lock = new ReentrantLock();
         condition = lock.newCondition();
-        // FIXME: not sure if we can reuse the lock and condition
-        testListener = new TestListener(lock, condition);
+        testListener = new TestListener();
         testUIListener = new TestUIListener(lock, condition);
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {

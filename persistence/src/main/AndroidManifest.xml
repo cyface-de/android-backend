@@ -8,7 +8,6 @@
             android:authorities="de.cyface.provider"
             android:exported="false"
             android:process=":persistence_process"
-            android:syncable="true">
-        </provider>
+            android:syncable="true" />
     </application>
 </manifest>

@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence;
 
 import static junit.framework.TestCase.fail;
@@ -16,18 +30,19 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
+
 import de.cyface.utils.Validate;
 
 /**
  * A utility class with static methods for supporting tests on the persistence code.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
 class TestUtils {
 
-    static final String AUTHORITY = "de.cyface.provider.test";
+    static final String AUTHORITY = "de.cyface.persistence.test.provider";
 
     private static void compareCursorWithValues(final Cursor cursor, final List<ContentValues> contentValues) {
         assertThat(contentValues.size() <= cursor.getCount(), is(equalTo(true)));

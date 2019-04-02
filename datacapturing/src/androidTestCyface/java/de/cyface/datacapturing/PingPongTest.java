@@ -1,6 +1,22 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -10,6 +26,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.junit.After;
 import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
@@ -23,26 +40,24 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
-import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.CursorIsNullException;
 
 /**
- * This test checks that the ping pong mechanism, which is used to check if a service is running or not, works as
- * expected.
+ * This test checks that the ping pong mechanism works as expected. This mechanism ist used to check if a service, in
+ * this case the {@link DataCapturingBackgroundService}, is running or not.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.2
+ * @version 1.2.3
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -50,17 +65,11 @@ import de.cyface.utils.CursorIsNullException;
 public class PingPongTest {
 
     /**
-     * The time to wait for the pong message to return and for the service to start or stop.
-     */
-    private static final long TIMEOUT_TIME = 10L;
-
-    /**
      * Grants the permission required by the {@link DataCapturingService}.
      */
     @Rule
     public GrantPermissionRule mRuntimePermissionRule = GrantPermissionRule
             .grant(android.Manifest.permission.ACCESS_FINE_LOCATION);
-
     /**
      * An instance of the class under test (object of class under test).
      */
@@ -77,25 +86,27 @@ public class PingPongTest {
      * The {@link DataCapturingService} instance used by the test to check whether a pong can be received.
      */
     private DataCapturingService dcs;
+    /**
+     * The {@link Context} required to send unique broadcasts and to start the capturing service.
+     */
+    private Context context;
 
     /**
      * Sets up all the instances required by all tests in this test class.
      *
-     * @throws CursorIsNullException Then the content provider is not accessible
-     * @throws NoDeviceIdException When the device id is not set
      */
     @Before
-    public void setUp() throws CursorIsNullException, NoDeviceIdException {
+    public void setUp() {
         lock = new ReentrantLock();
         condition = lock.newCondition();
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        // This is normally called in the <code>DataCapturingService#Constructor</code>
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
-        persistence.restoreOrCreateDeviceId();
+        oocut = new PongReceiver(context, context.getPackageName());
+    }
 
-        oocut = new PongReceiver(context, persistence.loadDeviceId());
+    @After
+    public void tearDown() {
+        clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
     }
 
     /**
@@ -111,28 +122,29 @@ public class PingPongTest {
     public void testWithRunningService() throws MissingPermissionException, DataCapturingException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
+        // Arrange
+        // Instantiate DataCapturingService
+        final DataCapturingListener testListener = new TestListener();
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
-
-        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-
-        final DataCapturingListener listener = new TestListener(lock, condition);
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
                 try {
                     dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
-                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), listener);
+                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
             }
         });
-        StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                dcs.getDeviceIdentifier());
 
+        // Start Capturing
+        StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
+                context.getPackageName());
         dcs.start(Vehicle.UNKNOWN, finishedHandler);
 
+        // Give the async start some time to start the DataCapturingBackgroundService
         lock.lock();
         try {
             condition.await(TIMEOUT_TIME, TimeUnit.SECONDS);
@@ -142,9 +154,12 @@ public class PingPongTest {
             lock.unlock();
         }
 
+        // Act
+        // Check if DataCapturingBackgroundService is running
         TestCallback testCallback = new TestCallback("testWithRunningService", lock, condition);
         oocut.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
 
+        // Give the async call some time
         lock.lock();
         try {
             condition.await(2 * TIMEOUT_TIME, TimeUnit.SECONDS);
@@ -154,12 +169,17 @@ public class PingPongTest {
             lock.unlock();
         }
 
+        // Assert
+        // Ensure DataCapturingBackgroundService was running during the async check
         assertThat(testCallback.wasRunning(), is(equalTo(true)));
         assertThat(testCallback.didTimeOut(), is(equalTo(false)));
 
+        // Cleanup
+        // Stop Capturing
         TestShutdownFinishedHandler shutdownHandler = new TestShutdownFinishedHandler(lock, condition);
         dcs.stop(shutdownHandler);
 
+        // Give the async stop some time to stop gracefully
         lock.lock();
         try {
             condition.await(TIMEOUT_TIME, TimeUnit.SECONDS);
@@ -175,10 +195,13 @@ public class PingPongTest {
      */
     @Test
     public void testWithNonRunningService() {
-        TestCallback testCallback = new TestCallback("testWithNonRunningService", lock, condition);
 
+        // Act
+        // Check if DataCapturingBackgroundService is running
+        TestCallback testCallback = new TestCallback("testWithNonRunningService", lock, condition);
         oocut.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
 
+        // Give the async call some time
         lock.lock();
         try {
             condition.await(2 * TIMEOUT_TIME, TimeUnit.SECONDS);
@@ -188,6 +211,8 @@ public class PingPongTest {
             lock.unlock();
         }
 
+        // Assert
+        // Ensure DataCapturingBackgroundService was running during the async check
         assertThat(testCallback.didTimeOut(), is(equalTo(true)));
         assertThat(testCallback.wasRunning(), is(equalTo(false)));
     }

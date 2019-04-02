@@ -15,6 +15,7 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -38,16 +39,18 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.Messenger;
 
+import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 import de.cyface.datacapturing.IgnoreEventsStrategy;
+import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.PongReceiver;
+import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -55,12 +58,11 @@ import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 
 /**
- * Tests whether the service handling the data capturing works correctly. Since the test relies on external sensors and
- * location signal availability it is a flaky test.
+ * Tests whether the {@link DataCapturingBackgroundService} handling the data capturing works correctly.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.5
+ * @version 2.3.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -94,21 +96,28 @@ public class BackgroundServiceTest {
      * Condition waiting for the background service to message this service, that it is running.
      */
     private Condition condition;
+    /**
+     * The {@link Context} required to send unique broadcasts, to start the capturing service and more.
+     */
     private Context context;
-    private PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer;
 
+    /**
+     * Sets up all the instances required by all tests in this test class.
+     *
+     * @throws CursorIsNullException Then the content provider is not accessible
+     */
     @Before
     public void setUp() throws CursorIsNullException {
+        lock = new ReentrantLock();
+        condition = lock.newCondition();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        CapturingPersistenceBehaviour capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY, capturingBehaviour);
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
+        final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
+                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
-        lock = new ReentrantLock();
-        condition = lock.newCondition();
     }
 
     @After
@@ -118,19 +127,16 @@ public class BackgroundServiceTest {
     }
 
     /**
-     * This test case checks that starting the service works and that the service actually returns some data.
+     * This test case checks that starting the {@link DataCapturingBackgroundService} works and that the service
+     * actually returns some data.
      *
      * @throws TimeoutException if timed out waiting for a successful connection with the service.
-     * @throws CursorIsNullException when the content provider is not accessible
-     * @throws NoDeviceIdException when the device id was not set
      */
     @Test
-    public void testStartDataCapturing() throws TimeoutException, CursorIsNullException, NoDeviceIdException {
-        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+    public void testStartDataCapturing() throws TimeoutException {
 
-        final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
-
-        // Generate from/to service connection
+        // Arrange (which are normally done by the DataCapturingService which is not part of this test)
+        // Instantiate the Messenger for the service connection [ usually in DataCapturingService() ]
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -138,53 +144,35 @@ public class BackgroundServiceTest {
                 fromServiceMessenger = new Messenger(fromServiceMessageHandler);
             }
         });
+
+        // Instantiate ToServiceConnection [ usually in DataCapturingService: BackgroundServiceConnection ]
+        final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
         final ToServiceConnection toServiceConnection = new ToServiceConnection(fromServiceMessenger,
-                persistenceLayer.loadDeviceId());
+                context.getPackageName());
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
 
-        // Start and bind background service
-        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        // Start and bind DataCapturingBackgroundService [ usually in DCS.runService() ]
+        final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
+        final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
-        serviceTestRule.bindService(startIntent, toServiceConnection, 0);
+        // bindService() waits for ServiceConnection.onServiceConnected() to be called before returning
+        serviceTestRule.bindService(bindIntent, toServiceConnection, 0);
 
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                PongReceiver isRunningChecker;
-                try {
-                    isRunningChecker = new PongReceiver(context, persistenceLayer.loadDeviceId());
-                } catch (CursorIsNullException | NoDeviceIdException e) {
-                    throw new IllegalStateException(e);
-                }
-                isRunningChecker.checkIsRunningAsync(2, TimeUnit.SECONDS, testCallback);
-            }
-        });
+        // Act: Check is DataCapturingBackgroundService is running by sending a Ping
+        checkDataCapturingBackgroundServiceRunning(testCallback);
 
-        // This must not run on the main thread or it will produce an ANR.
-        lock.lock();
-        try {
-            if (!testCallback.isRunning) {
-                if (!condition.await(2, TimeUnit.MINUTES)) {
-                    throw new IllegalStateException("Waiting for pong or timeout timed out!");
-                }
-            }
-        } catch (InterruptedException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            lock.unlock();
-        }
+        // Assert
+        assertThat("It seems that service did not respond to a ping.", testCallback.wasRunning(), is(equalTo(true)));
+        assertThat("It seems that the request to the service whether it was active timed out.",
+                testCallback.didTimeOut(), is(equalTo(false)));
 
-        // Unbind background service
+        // Cleanup: Unbind background service
         serviceTestRule.unbindService();
-
-        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
-        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
-                is(equalTo(false)));
     }
 
     /**
@@ -194,37 +182,53 @@ public class BackgroundServiceTest {
      */
     @Test
     public void testStartDataCapturingTwice() throws TimeoutException {
-        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
+        // Arrange
         final TestCallback testCallback = new TestCallback("testStartDataCapturingTwice", lock, condition);
 
         // Start background service twice
-        Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
+        final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
+        serviceTestRule.bindService(bindIntent);
         serviceTestRule.startService(startIntent);
+        serviceTestRule.bindService(bindIntent);
+
+        // Act
+        checkDataCapturingBackgroundServiceRunning(testCallback);
+
+        // Assert
+        assertThat("It seems that service did not respond to a ping.", testCallback.wasRunning(), is(equalTo(true)));
+        assertThat("It seems that the request to the service whether it was active timed out.",
+                testCallback.didTimeOut(), is(equalTo(false)));
+    }
+
+    /**
+     * Sends a ping to the {@link DataCapturingBackgroundService} to check if it's running.
+     * <p>
+     * As {@link PongReceiver#checkIsRunningAsync(long, TimeUnit, IsRunningCallback)} is async this method waits
+     * up to {@link TestUtils#TIMEOUT_TIME} to receive the pong response from the background service.
+     *
+     * @param testCallback The {@link TestCallback} used to check the async result.
+     */
+    private void checkDataCapturingBackgroundServiceRunning(@NonNull final TestCallback testCallback) {
 
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                PongReceiver isRunningChecker;
-                try {
-                    isRunningChecker = new PongReceiver(context, persistenceLayer.loadDeviceId());
-                } catch (CursorIsNullException | NoDeviceIdException e) {
-                    throw new IllegalStateException(e);
-                }
-                isRunningChecker.checkIsRunningAsync(2, TimeUnit.SECONDS, testCallback);
+                final PongReceiver isRunningChecker = new PongReceiver(context, context.getPackageName());
+                isRunningChecker.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
             }
         });
-
         // This must not run on the main thread or it will produce an ANR.
         lock.lock();
         try {
-            if (!testCallback.isRunning) {
-                if (!condition.await(2, TimeUnit.MINUTES)) {
+            if (!testCallback.wasRunning()) {
+                if (!condition.await(2 * TIMEOUT_TIME, TimeUnit.SECONDS)) {
                     throw new IllegalStateException("Waiting for pong or timeout timed out!");
                 }
             }
@@ -233,9 +237,5 @@ public class BackgroundServiceTest {
         } finally {
             lock.unlock();
         }
-
-        assertThat("It seems that service did not respond to a ping.", testCallback.isRunning, is(equalTo(true)));
-        assertThat("It seems that the request to the service whether it was active timed out.", testCallback.timedOut,
-                is(equalTo(false)));
     }
 }

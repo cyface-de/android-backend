@@ -1,7 +1,20 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
-import static de.cyface.datacapturing.Constants.TAG;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -21,29 +34,38 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 4.0.0
  * @since 2.0.0
- * @see #resume(StartUpFinishedHandler)
- * @see DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)
+ * @see DataCapturingService#resume(StartUpFinishedHandler)
+ * @see DataCapturingService#start(Vehicle, StartUpFinishedHandler)
  */
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 
     /**
+     * Logging TAG to identify logs associated with the {@link StartUpFinishedHandler}.
+     */
+    public static final String TAG = Constants.TAG + ".sfh";
+    /**
      * This is set to <code>true</code> if a <code>MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED</code> broadcast has
      * been received and is <code>false</code> otherwise.
      */
-    private boolean receivedServiceStarted;
+    private boolean receivedServiceStarted = false;
     /**
-     * The device id is used to ensure unique broadcast ids between different SDK implementing apps.
-     * For more details see {@link MessageCodes#getServiceStartedActionId(String)}
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    private final String deviceId;
+    private final String appId;
 
     /**
-     * @param deviceId The device id used to make global broadcast ids unique
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public StartUpFinishedHandler(String deviceId) {
-        this.deviceId = deviceId;
+    public StartUpFinishedHandler(@NonNull final String appId) {
+        Validate.notNull(appId);
+        this.appId = appId;
     }
 
     /**
@@ -56,19 +78,19 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
     @Override
     public void onReceive(@NonNull Context context, @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(MessageCodes.getServiceStartedActionId(deviceId))) {
-            receivedServiceStarted = true;
-            long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
-            Log.v(TAG, "Received Service started broadcast, mid: " + measurementIdentifier);
-            if (measurementIdentifier == -1) {
-                throw new IllegalStateException("No measurement identifier provided on service started message.");
-            }
-            startUpFinished(measurementIdentifier);
+        Validate.isTrue(intent.getAction().equals(MessageCodes.getServiceStartedActionId(appId)));
+
+        receivedServiceStarted = true;
+        final long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);
+        Log.d(TAG, "Received Service started broadcast, mid: " + measurementIdentifier);
+        if (measurementIdentifier == -1) {
+            throw new IllegalStateException("No measurement identifier provided on service started message.");
         }
+        startUpFinished(measurementIdentifier);
 
         try {
             context.unregisterReceiver(this);
-        } catch (IllegalArgumentException e) {
+        } catch (final IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister start up finished broadcast receiver twice.", e);
         }
     }

@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -53,7 +53,7 @@ public class WifiSurveyorTest {
     /**
      * An object of the class under test.
      */
-    private WiFiSurveyor objectUnderTest;
+    private WiFiSurveyor oocut;
     /**
      * The {@link AccountManager} to check which accounts are registered.
      */
@@ -69,7 +69,7 @@ public class WifiSurveyorTest {
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         Validate.notNull(connectivityManager);
 
-        objectUnderTest = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
+        oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
 
         // Ensure reproducibility
         accountManager = AccountManager.get(context);
@@ -85,7 +85,7 @@ public class WifiSurveyorTest {
                 Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
             }
         }
-        objectUnderTest = null;
+        oocut = null;
     }
 
     /**
@@ -100,30 +100,32 @@ public class WifiSurveyorTest {
     public void testSetConnected() throws InterruptedException {
 
         // Arrange
-        Account account = objectUnderTest.createAccount(TestUtils.DEFAULT_USERNAME, null);
+        Account account = oocut.createAccount(TestUtils.DEFAULT_USERNAME, null);
 
         // Make sure the new account is in the expected default state
+        Thread.sleep(1000); // CI emulator seems to be too slow for less
         validateAccountFlags(account);
 
         // Instead of calling startSurveillance as in production we directly call it's implementation
         // Without the networkCallback or networkConnectivity BroadcastReceiver as this would make this test
         // flaky when the network changes during the test
-        objectUnderTest.currentSynchronizationAccount = account;
-        objectUnderTest.scheduleSyncNow();
+        oocut.currentSynchronizationAccount = account;
+        oocut.scheduleSyncNow();
         Thread.sleep(1000); // CI emulator seems to be too slow for less
         validateAccountFlags(account);
-        Validate.isTrue(!objectUnderTest.isConnected()); // Ensure default state after startSurveillance
+        assertThat(oocut.isConnected(), is(equalTo(false))); // Ensure default state after startSurveillance
 
         // Act & Assert 1
-        objectUnderTest.setConnected(true);
+        oocut.setConnected(true);
         Thread.sleep(1000); // CI emulator seems to be to slow for less
         validateAccountFlags(account);
-        assertThat(objectUnderTest.isConnected(), is(equalTo(true)));
+        assertThat(oocut.isConnected(), is(equalTo(true)));
 
         // Act & Assert 2
-        objectUnderTest.setConnected(false);
+        oocut.setConnected(false);
         Thread.sleep(1000); // CI emulator seems to be to slow for less
-        assertThat(objectUnderTest.isConnected(), is(equalTo(false)));
+        validateAccountFlags(account);
+        assertThat(oocut.isConnected(), is(equalTo(false)));
     }
 
     /**
