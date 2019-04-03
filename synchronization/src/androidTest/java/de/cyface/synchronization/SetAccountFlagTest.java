@@ -198,9 +198,9 @@ public class SetAccountFlagTest {
                     }
 
                     // Check if the account flags are in the expected state
-                    final boolean isFlagsAlreadySetFIXME = isAccountFlagsSet(account, syncAutomaticallyEnabled,
+                    final boolean isFlagsAlreadySet = isAccountFlagsSet(account, syncAutomaticallyEnabled,
                             periodicSyncEnabled);
-                    if (!isFlagsAlreadySetFIXME) {
+                    if (!isFlagsAlreadySet) {
                         Log.d(TAG, tagPrefix
                                 + "Account flags changed but are still not in the expected state, continue waiting.");
                         continue;
@@ -216,7 +216,7 @@ public class SetAccountFlagTest {
                     }
                     return;
                 }
-                fail(actionName + ": Account flag did not change to the expected state within " + iterations
+                fail(actionName + ": Account flag did not change to the expected state within " + TIMEOUT_TIME
                         + " seconds");
             }
         };
@@ -284,10 +284,8 @@ public class SetAccountFlagTest {
      * <p>
      * Asserts that this actually happens.
      *
-     * @param checkerParameters The {@link CheckerParameters} used by the
-     *            {@code OnAccountsUpdateListener} to
-     *            signal back when the {@code Account} flags in the expected state. <b>Attention:</b> You need to call
-     *            {@link CheckerParameters#handlerThread#quit()} when you are done.
+     * @param checkerParameters The {@link CheckerParameters} used to wait for and signal when the {@code Account} flags
+     *            are in the expected state.
      */
     private void lockAndWaitForConditionSignal(@NonNull final CheckerParameters checkerParameters)
             throws InterruptedException {
