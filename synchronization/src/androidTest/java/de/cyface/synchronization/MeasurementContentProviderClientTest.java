@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
@@ -38,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -80,9 +94,6 @@ public class MeasurementContentProviderClientTest {
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
-            measurementValues.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_ROTATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
@@ -162,9 +173,6 @@ public class MeasurementContentProviderClientTest {
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
-            measurementValues.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_ROTATIONS, 0);
-            measurementValues.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);

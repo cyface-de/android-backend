@@ -68,10 +68,10 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -84,7 +84,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.2
+ * @version 5.4.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -173,9 +173,6 @@ public class CapturedDataWriterTest {
                     is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_ACCELERATIONS)), is(equalTo(0)));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_ROTATIONS)), is(equalTo(0)));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_DIRECTIONS)), is(equalTo(0)));
             assertThat(result.getShort(result.getColumnIndex(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
                     is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
             assertThat(result.getDouble(result.getColumnIndex(MeasurementTable.COLUMN_DISTANCE)), is(equalTo(0.0)));
@@ -186,8 +183,8 @@ public class CapturedDataWriterTest {
             }
         }
 
-        // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(0, 0, 0, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),
+        // Store persistenceFileFormatVersion
+        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
                 measurement.getIdentifier());
 
         // Finish the measurement
@@ -221,7 +218,7 @@ public class CapturedDataWriterTest {
      * Tests whether data is stored correctly via the <code>PersistenceLayer</code>.
      */
     @Test
-    public void testStoreData() {
+    public void testStoreData() throws NoSuchFileException {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
@@ -241,9 +238,9 @@ public class CapturedDataWriterTest {
 
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
-        // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
+        // Store persistenceFileFormatVersion
+        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                measurement.getIdentifier());
 
         lock.lock();
         try {
@@ -319,9 +316,8 @@ public class CapturedDataWriterTest {
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
-        // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                measurement.getIdentifier());
 
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);

@@ -64,9 +64,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -80,7 +78,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.0
+ * @version 5.1.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -139,10 +137,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
      */
     DistanceCalculationStrategy distanceCalculationStrategy;
-    /**
-     * Meta information required for deserialization of {@link Point3dFile}s.
-     */
-    PointMetaData pointMetaData;
     /**
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
@@ -230,7 +224,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
         sendStoppedMessage();
-        persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
     }
 
     /**
@@ -309,20 +302,19 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         this.currentMeasurementIdentifier = measurementIdentifier;
 
-        // Restore PointMetaData and distance (if the counters are larger than 0 we're resuming a measurement)
+        // Load Distance (or else we would reset the distance when resuming a measurement)
         try {
             final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
-            pointMetaData = new PointMetaData(measurement.getAccelerations(), measurement.getRotations(),
-                    measurement.getDirections(), measurement.getFileFormatVersion());
             lastDistance = measurement.getDistance();
+
+            // Ensure we resume measurements with a known file format version
+            final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
+            Validate.isTrue(persistenceFileFormatVersion == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                    "Resume a measurement of a previous persistence file format version is not yet supported!");
         } catch (final CursorIsNullException e) {
             // because onStartCommand is called by Android so we can't throw soft exception.
             throw new IllegalStateException(e);
         }
-        Validate.isTrue(
-                pointMetaData
-                        .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                "Cannot resume a measurement of a previous persistence file format version!");
 
         // Init capturing process
         dataCapturing = initializeCapturingProcess();
@@ -416,8 +408,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     // Nothing to do here!
                 }
             });
-            pointMetaData.incrementPointCounters(data.getAccelerations().size(), data.getRotations().size(),
-                    data.getDirections().size());
         }
     }
 

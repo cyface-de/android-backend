@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence;
 
 import static de.cyface.persistence.TestUtils.AUTHORITY;
@@ -34,6 +48,7 @@ import de.cyface.utils.Validate;
  */
 @RunWith(AndroidJUnit4.class)
 public class MeasurementTest {
+
     /**
      * A <code>ContentValues</code> object as prototype to create measurements in the database.
      */
@@ -53,9 +68,6 @@ public class MeasurementTest {
         fixtureMeasurement = new ContentValues();
         fixtureMeasurement.put(MeasurementTable.COLUMN_STATUS, MeasurementStatus.SYNCED.getDatabaseIdentifier());
         fixtureMeasurement.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
-        fixtureMeasurement.put(MeasurementTable.COLUMN_ACCELERATIONS, 0);
-        fixtureMeasurement.put(MeasurementTable.COLUMN_ROTATIONS, 0);
-        fixtureMeasurement.put(MeasurementTable.COLUMN_DIRECTIONS, 0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);

@@ -22,6 +22,7 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -44,7 +45,7 @@ import de.cyface.utils.Validate;
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -97,6 +98,7 @@ public class WifiSurveyorTest {
      * This test may be flaky on a read device when the network changes during the test.
      */
     @Test
+    @Ignore // TODO [MOV-644]: flaky
     public void testSetConnected() throws InterruptedException {
 
         // Arrange
@@ -111,19 +113,19 @@ public class WifiSurveyorTest {
         // flaky when the network changes during the test
         oocut.currentSynchronizationAccount = account;
         oocut.scheduleSyncNow();
-        Thread.sleep(1000); // CI emulator seems to be too slow for less
+        Thread.sleep(1000);
         validateAccountFlags(account);
         assertThat(oocut.isConnected(), is(equalTo(false))); // Ensure default state after startSurveillance
 
         // Act & Assert 1
         oocut.setConnected(true);
-        Thread.sleep(1000); // CI emulator seems to be to slow for less
+        Thread.sleep(1000);
         validateAccountFlags(account);
         assertThat(oocut.isConnected(), is(equalTo(true)));
 
         // Act & Assert 2
         oocut.setConnected(false);
-        Thread.sleep(1000); // CI emulator seems to be to slow for less
+        Thread.sleep(1000);
         validateAccountFlags(account);
         assertThat(oocut.isConnected(), is(equalTo(false)));
     }

@@ -19,7 +19,6 @@ import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
-import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -54,7 +53,6 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -67,7 +65,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.0
+ * @version 4.2.1
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -141,6 +139,7 @@ public class SharedTestUtils {
      * @param y A fake test y coordinate of the {@code Point3d}.
      * @param z A fake test z coordinate of the {@code Point3d}.
      */
+    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by the cyface flavour tests
     public static void insertPoint3d(@NonNull final Point3dFile point3dFile, final long timestamp, final double x,
             final double y, final double z) {
         final List<Point3d> points = new ArrayList<>();
@@ -288,9 +287,10 @@ public class SharedTestUtils {
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
      * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
+    @NonNull
     public static Measurement insertSampleMeasurementWithData(@NonNull final Context context, final String authority,
-            final MeasurementStatus status, final PersistenceLayer<DefaultPersistenceBehaviour> persistence,
-            final int point3dCount, final int locationCount) throws NoSuchMeasurementException, CursorIsNullException {
+            final MeasurementStatus status, final PersistenceLayer persistence, final int point3dCount,
+            final int locationCount) throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(point3dCount > 0);
         Validate.isTrue(locationCount > 0);
 
@@ -345,37 +345,39 @@ public class SharedTestUtils {
         insertPoint3ds(directionsFile, dPoints);
 
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
-            // Store PointMetaData
-            final PointMetaData pointMetaData = new PointMetaData(point3dCount, point3dCount, point3dCount,
-                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
-            persistence.storePointMetaData(pointMetaData, measurementIdentifier);
+            persistence.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                    measurementIdentifier);
             persistence.setStatus(measurementIdentifier, FINISHED);
+        }
+
+        // Check the sensor data (must be before measurements are marked as sync which deletes the data)
+        // noinspection ConstantConditions - we may add tests with a 0 count later
+        if (point3dCount > 0) {
+            assertThat((int)(accelerationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+                    is(equalTo(point3dCount)));
+            assertThat((int)(rotationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+                    is(equalTo(point3dCount)));
+            assertThat((int)(directionsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+                    is(equalTo(point3dCount)));
         }
 
         if (status == SYNCED) {
             persistence.markAsSynchronized(measurement);
         }
 
-        // Assert that data is in the database
+        // Check the measurement entry
         final Measurement loadedMeasurement;
         loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
+        assertThat(loadedMeasurement.getFileFormatVersion(),
+                is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
 
         // Check the Tracks
+        // noinspection unchecked
         final List<Track> loadedTracks = persistence.loadTracks(measurementIdentifier);
         assertThat(loadedTracks.get(0).getGeoLocations().size(), is(locationCount));
 
-        // We can only check the PointMetaData for measurements which are not open anymore (else it's still in cache)
-        if (status != OPEN) {
-            // we explicitly reload the measurement to make sure we have it's current attributes
-            measurement = persistence.loadMeasurement(measurementIdentifier);
-            assertThat(measurement.getAccelerations(), is(equalTo(1)));
-            assertThat(measurement.getRotations(), is(equalTo(1)));
-            assertThat(measurement.getDirections(), is(equalTo(1)));
-            assertThat(measurement.getFileFormatVersion(),
-                    is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
-        }
         return measurement;
     }
 
@@ -390,9 +392,10 @@ public class SharedTestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    public static Measurement insertMeasurementEntry(
-            final @NonNull PersistenceLayer<DefaultPersistenceBehaviour> persistence, final @NonNull Vehicle vehicle)
-            throws CursorIsNullException {
+    @SuppressWarnings("WeakerAccess") // Used by the cyface flavour tests
+    @NonNull
+    public static Measurement insertMeasurementEntry(@NonNull final PersistenceLayer persistence,
+            @NonNull final Vehicle vehicle) throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
@@ -412,6 +415,7 @@ public class SharedTestUtils {
      * @param speed The fake test speed of the {@code GeoLocation}.
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
+    @SuppressWarnings({"WeakerAccess", "unused"}) // Used by the cyface flavour tests
     public static void insertGeoLocation(final ContentResolver resolver, final String authority,
             final long measurementIdentifier, final long timestamp, final double lat, final double lon,
             final double speed, final int accuracy) {
