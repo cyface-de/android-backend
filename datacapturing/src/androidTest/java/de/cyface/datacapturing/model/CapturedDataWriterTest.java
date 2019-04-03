@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
@@ -54,10 +68,10 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -70,7 +84,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.1
+ * @version 5.4.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -159,9 +173,6 @@ public class CapturedDataWriterTest {
                     is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_ACCELERATIONS)), is(equalTo(0)));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_ROTATIONS)), is(equalTo(0)));
-            assertThat(result.getInt(result.getColumnIndex(MeasurementTable.COLUMN_DIRECTIONS)), is(equalTo(0)));
             assertThat(result.getShort(result.getColumnIndex(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
                     is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
             assertThat(result.getDouble(result.getColumnIndex(MeasurementTable.COLUMN_DISTANCE)), is(equalTo(0.0)));
@@ -172,8 +183,8 @@ public class CapturedDataWriterTest {
             }
         }
 
-        // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(0, 0, 0, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),
+        // Store persistenceFileFormatVersion
+        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
                 measurement.getIdentifier());
 
         // Finish the measurement
@@ -207,7 +218,7 @@ public class CapturedDataWriterTest {
      * Tests whether data is stored correctly via the <code>PersistenceLayer</code>.
      */
     @Test
-    public void testStoreData() {
+    public void testStoreData() throws NoSuchFileException {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
 
@@ -227,9 +238,9 @@ public class CapturedDataWriterTest {
 
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
-        // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
+        // Store persistenceFileFormatVersion
+        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                measurement.getIdentifier());
 
         lock.lock();
         try {
@@ -305,9 +316,8 @@ public class CapturedDataWriterTest {
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement);
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
-        // Store PointMetaData
-        oocut.storePointMetaData(new PointMetaData(TEST_DATA_COUNT, TEST_DATA_COUNT, TEST_DATA_COUNT,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION), measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                measurement.getIdentifier());
 
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
@@ -477,7 +487,7 @@ public class CapturedDataWriterTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack_startPauseResumeStop() throws CursorIsNullException {
+    public void testLoadTrack_startPauseResumeStop() throws CursorIsNullException, InterruptedException {
 
         // Arrange
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -490,6 +500,8 @@ public class CapturedDataWriterTest {
         final long timestamp3 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
 
+        // This test is flaky when the RESUME event happens in the same millisecond as the location event
+        Thread.sleep(1);
         oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
         final long timestamp4 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp4), measurement.getIdentifier());
@@ -518,7 +530,7 @@ public class CapturedDataWriterTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testLoadTrack_startPauseResumePauseStop() throws CursorIsNullException {
+    public void testLoadTrack_startPauseResumePauseStop() throws CursorIsNullException, InterruptedException {
 
         // Arrange
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
@@ -531,6 +543,8 @@ public class CapturedDataWriterTest {
         final long timestamp3 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp3), measurement.getIdentifier());
 
+        // This test is flaky when the RESUME event happens in the same millisecond as the location event
+        Thread.sleep(1);
         oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
         final long timestamp4 = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp4), measurement.getIdentifier());

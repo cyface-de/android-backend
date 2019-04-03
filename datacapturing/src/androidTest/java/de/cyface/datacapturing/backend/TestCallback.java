@@ -1,14 +1,28 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
-import androidx.annotation.NonNull;
-import android.util.Log;
+import static de.cyface.datacapturing.TestUtils.TAG;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 
-import de.cyface.datacapturing.IsRunningCallback;
+import android.util.Log;
 
-import static de.cyface.datacapturing.TestUtils.TAG;
+import androidx.annotation.NonNull;
+import de.cyface.datacapturing.IsRunningCallback;
 
 /**
  * A callback used to check whether the service has successfully started or not.
@@ -18,18 +32,20 @@ import static de.cyface.datacapturing.TestUtils.TAG;
  * service under test after having been executed.
  *
  * @author Klemens Muthmann
+ * @author Armin Schnabel
+ * @version 4.0.0
  * @since 2.0.0
- * @version 3.1.0
  */
 public class TestCallback implements IsRunningCallback {
+
     /**
      * Flag indicating a successful startup if <code>true</code>.
      */
-    public boolean isRunning = false;
+    private boolean isRunning = false;
     /**
      * Flag indicating an unsuccessful startup if <code>true</code>.
      */
-    public boolean timedOut = false;
+    private boolean timedOut = false;
     /**
      * <code>Lock</code> used to synchronize the callback with the test case using it.
      */
@@ -38,19 +54,19 @@ public class TestCallback implements IsRunningCallback {
      * <code>Condition</code> used to signal the test case to continue processing.
      */
     private final Condition condition;
-
     /**
      * A tag used to mark messages from different instances of this class.
      */
     private final String logTag;
 
     /**
-     * Creates a new completely intialized <code>TestCallback</code>
+     * Creates a new completely initialized <code>TestCallback</code>
      *
      * @param logTag A tag used to mark messages from different instances of this class.
      * @param lock <code>Lock</code> used to synchronize the callback with the test case using it.
      * @param condition <code>Condition</code> used to signal the test case to continue processing.
      */
+    @SuppressWarnings("WeakerAccess") // DataCapturingServiceTest in the Cyface flavour requires this
     public TestCallback(final @NonNull String logTag, final @NonNull Lock lock, final @NonNull Condition condition) {
         this.logTag = logTag;
         this.lock = lock;
@@ -93,6 +109,7 @@ public class TestCallback implements IsRunningCallback {
      * @return A value of <code>true</code> if the service reported that it is running; <code>false</code> if it times
      *         out.
      */
+    @SuppressWarnings("WeakerAccess") // DataCapturingServiceTest in the Cyface flavour requires this
     public boolean wasRunning() {
         return isRunning;
     }
@@ -102,7 +119,16 @@ public class TestCallback implements IsRunningCallback {
      *         This usually means the service is not running at the moment. Return <code>false</code> if a message has
      *         been received.
      */
+    @SuppressWarnings("WeakerAccess") // DataCapturingServiceTest in the Cyface flavour requires this
     public boolean didTimeOut() {
         return timedOut;
+    }
+
+    public Lock getLock() {
+        return lock;
+    }
+
+    public Condition getCondition() {
+        return condition;
     }
 }

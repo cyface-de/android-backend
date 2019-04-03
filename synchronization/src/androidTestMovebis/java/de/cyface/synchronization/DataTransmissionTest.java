@@ -16,9 +16,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
-import static de.cyface.testutils.SharedTestUtils.insertGeoLocation;
-import static de.cyface.testutils.SharedTestUtils.insertMeasurementEntry;
-import static de.cyface.testutils.SharedTestUtils.insertPoint3d;
+import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -47,11 +45,8 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -61,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.3
+ * @version 1.3.0
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -71,6 +66,10 @@ import de.cyface.utils.Validate;
 @FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
            // required an actual api)
 public class DataTransmissionTest {
+
+    // ATTENTION: Depending on the API you test against, you might also need to replace the res/raw/truststore.jks
+    private final static String TEST_API_URL = "https://REPLACE.WITH.URL:port";
+    private final static String TEST_TOKEN = "ey-REPLACE-WITH-TOKEN";
 
     /**
      * Tests the basic transmission code to a Movebis backend. This is based on some code from stackoverflow. An example
@@ -111,38 +110,24 @@ public class DataTransmissionTest {
     @Test
     public void testUploadSomeBytesViaMultiPart()
             throws BadRequestException, CursorIsNullException, NoSuchMeasurementException {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        ContentResolver resolver = context.getContentResolver();
-        PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, resolver, AUTHORITY,
-                new DefaultPersistenceBehaviour());
-        Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
-        long measurementIdentifier = measurement.getIdentifier();
-        insertGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055141000L, 49.9304133333333,
-                8.82831833333333, 0.0, 940);
-        insertGeoLocation(resolver, AUTHORITY, measurement.getIdentifier(), 1503055142000L, 49.9305066666667, 8.82814,
-                8.78270530700684, 840);
 
-        // Insert file base data
-        final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
-        final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
-        final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-        insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
-        insertPoint3d(accelerationsFile, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
-        insertPoint3d(accelerationsFile, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
-        insertPoint3d(rotationsFile, 1501662635981L, 0.001524045, 0.0025423833, -0.0010279021);
-        insertPoint3d(rotationsFile, 1501662635990L, 0.001524045, 0.0025423833, -0.016474236);
-        insertPoint3d(rotationsFile, 1501662635993L, -0.0064654383, -0.0219587, -0.014343708);
-        insertPoint3d(directionsFile, 1501662636010L, 7.65, -32.4, -71.4);
-        insertPoint3d(directionsFile, 1501662636030L, 7.65, -32.550003, -71.700005);
-        insertPoint3d(directionsFile, 1501662636050L, 7.65, -33.15, -71.700005);
+        // Arrange
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        final ContentResolver resolver = context.getContentResolver();
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context, resolver,
+                AUTHORITY, new DefaultPersistenceBehaviour());
 
-        persistence.storePointMetaData(
-                new PointMetaData(3, 3, 3, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION),
-                measurementIdentifier);
-        persistence.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+        // Generate measurement
+        // Adjust depending on your test case: (600k, 3k) ~ 27 MB compressed data ~ 5 min test execution
+        final int point3dCount = 600_000;
+        final int locationCount = 3_000;
+
+        // Insert data to be synced
+        final Measurement measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
+                persistence, point3dCount, locationCount);
+        final long measurementIdentifier = measurement.getIdentifier();
+        final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
         ContentProviderClient client = null;
         try {
@@ -152,34 +137,40 @@ public class DataTransmissionTest {
                 throw new IllegalStateException(
                         String.format("Unable to acquire client for content provider %s", AUTHORITY));
 
-            MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+            // Load measurement serialized compressed
+            final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
-            MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
-            File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurement.getIdentifier(),
-                    persistence);
+            final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
+            final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
+                    measurement.getIdentifier(), persistence);
+            Log.d(TAG, "CompressedTransferTempFile size: "
+                    + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
 
-            String jwtAuthToken = "replace me";
-            SyncPerformer performer = new SyncPerformer(
+            // Prepare transmission
+            final SyncPerformer performer = new SyncPerformer(
                     InstrumentationRegistry.getInstrumentation().getTargetContext());
-            SyncResult syncResult = new SyncResult();
+            final SyncResult syncResult = new SyncResult();
 
-            List<Track> tracks = persistence.loadTracks(measurementIdentifier);
-            Validate.isTrue(tracks.size() > 0);
-            GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
-            List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
-            GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
-            SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test_did",
-                    measurementIdentifier, "test_deviceType", "test_osVersion", "test_appVersion",
-                    measurement.getDistance(), 2);
+            // Load meta data
+            final List<Track> tracks = persistence.loadTracks(measurementIdentifier);
+            final GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
+            final List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
+            final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
+            final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "testDeviceId",
+                    measurementIdentifier, "testDeviceType", "testOsVersion", "testAppVersion",
+                    measurement.getDistance(), locationCount);
 
+            // Act
             try {
-                boolean result = performer.sendData(new HttpConnection(), syncResult, "https://localhost:8080",
-                        metaData, compressedTransferTempFile, new UploadProgressListener() {
+                final boolean result = performer.sendData(new HttpConnection(), syncResult, TEST_API_URL, metaData,
+                        compressedTransferTempFile, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 Log.d(TAG, String.format("Upload Progress %f", percent));
                             }
-                        }, jwtAuthToken);
+                        }, TEST_TOKEN);
+
+                // Assert
                 assertThat(result, is(equalTo(true)));
             } finally {
                 if (compressedTransferTempFile.exists()) {

@@ -18,6 +18,7 @@ import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
+import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
@@ -70,7 +71,6 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
-import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
@@ -93,7 +93,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.0.0
+ * @version 15.0.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -156,6 +156,13 @@ public abstract class DataCapturingService {
      */
     private final String deviceIdentifier;
     /**
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     */
+    private final String appId;
+    /**
      * A receiver for synchronization events.
      */
     private final ConnectionStatusReceiver connectionStatusReceiver;
@@ -211,6 +218,7 @@ public abstract class DataCapturingService {
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
         Validate.notNull(deviceIdentifier,
                 "Sync canceled: No installation identifier for this application set in its preferences.");
+        this.appId = context.getPackageName();
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
@@ -263,6 +271,7 @@ public abstract class DataCapturingService {
             CorruptedMeasurementException {
         Log.d(TAG, "Starting asynchronously.");
         if (getContext() == null) {
+            Log.w(TAG, "Context is null, ignoring start command.");
             return;
         }
 
@@ -270,7 +279,7 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous start.");
         try {
             if (getIsRunning()) {
-                Log.d(TAG, "DataCapturingService assumes that the service is running and thus returns.");
+                Log.w(TAG, "DataCapturingService assumes that the service is running and thus returns.");
                 return;
             }
             // This is necessary to allow the App using the SDK to reconnect and prevent it from reconnecting while
@@ -504,7 +513,7 @@ public abstract class DataCapturingService {
     @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this method to check for capturing after resume
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.v(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext(), deviceIdentifier);
+        final PongReceiver pongReceiver = new PongReceiver(getContext(), appId);
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -610,14 +619,14 @@ public abstract class DataCapturingService {
     private synchronized void runService(final Measurement measurement,
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
         final Context context = getContext();
-        Log.v(TAG, "Registering startUpFinishedHandler as broadcast receiver.");
         context.registerReceiver(startUpFinishedHandler,
-                new IntentFilter(MessageCodes.getServiceStartedActionId(deviceIdentifier)));
+                new IntentFilter(MessageCodes.getServiceStartedActionId(appId)));
+        Log.d(StartUpFinishedHandler.TAG, "DataCapturingService: StartUpFinishedHandler registered for broadcasts.");
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority);
+        startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
 
@@ -775,8 +784,8 @@ public abstract class DataCapturingService {
                 Log.w(TAG, "Ignoring BackgroundServiceConnection bind as getIsStoppingOrHasStopped() is true!");
             }
 
-            Intent startIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
-            boolean ret = context.get().bindService(startIntent, serviceConnection, 0);
+            final Intent bindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            final boolean ret = context.get().bindService(bindIntent, serviceConnection, 0);
             setIsRunning(ret);
         } finally {
             Log.v(TAG, "Unlocking bind.");
@@ -834,7 +843,7 @@ public abstract class DataCapturingService {
      *         no service is running.
      */
     private boolean getIsStoppingOrHasStopped() {
-        Log.d(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
+        Log.v(TAG, "Getting isStoppingOrHasStopped with value " + isStoppingOrHasStopped);
         return isStoppingOrHasStopped;
     }
 
@@ -912,7 +921,7 @@ public abstract class DataCapturingService {
             } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);
             }
-            Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
+            final Intent rebindIntent = new Intent(context.get(), DataCapturingBackgroundService.class);
             context.get().bindService(rebindIntent, this, 0);
         }
     }

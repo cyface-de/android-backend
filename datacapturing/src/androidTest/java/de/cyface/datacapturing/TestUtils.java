@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import java.util.concurrent.TimeUnit;
@@ -11,7 +25,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
  * A class containing static utility functions, encapsulating often used calls.
  *
  * @author Armin Schnabel
- * @version 1.1.8
+ * @version 1.1.9
  * @since 2.0.0
  */
 public class TestUtils {
@@ -30,6 +44,10 @@ public class TestUtils {
     static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";
     static final String DEFAULT_USERNAME = "admin";
     static final String DEFAULT_PASSWORD = "secret";
+    /**
+     * The amount of seconds to wait for the pong message to return and for the service to start or stop.
+     */
+    public static final long TIMEOUT_TIME = 10L;
 
     /**
      * Private constructor so no one tries to instantiate the utility class.
@@ -48,7 +66,8 @@ public class TestUtils {
      * @param lock Used to lock the calling process.
      * @param condition Used to wait for a signal to continue execution.
      */
-    static void lockAndWait(final long time, final @NonNull TimeUnit unit, final @NonNull Lock lock,
+    static void lockAndWait(@SuppressWarnings("SameParameterValue") final long time,
+            @SuppressWarnings("SameParameterValue") final @NonNull TimeUnit unit, final @NonNull Lock lock,
             final @NonNull Condition condition) {
         lock.lock();
         try {

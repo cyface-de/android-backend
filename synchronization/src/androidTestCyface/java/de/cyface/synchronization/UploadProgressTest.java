@@ -70,7 +70,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.0
+ * @version 1.4.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -81,7 +81,7 @@ public class UploadProgressTest {
     private ContentResolver contentResolver;
     private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
     private AccountManager accountManager;
-    private SyncAdapter objectUnderTest;
+    private SyncAdapter oocut;
     private Account account;
 
     /**
@@ -105,7 +105,7 @@ public class UploadProgressTest {
         account = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         accountManager.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null);
 
-        objectUnderTest = new SyncAdapter(context, false, new MockedHttpConnection());
+        oocut = new SyncAdapter(context, false, new MockedHttpConnection());
     }
 
     @After
@@ -173,7 +173,7 @@ public class UploadProgressTest {
 
             final Bundle testBundle = new Bundle();
             testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
-            objectUnderTest.onPerformSync(account, testBundle, AUTHORITY, client, result);
+            oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
 
         } finally {
             if (client != null) {

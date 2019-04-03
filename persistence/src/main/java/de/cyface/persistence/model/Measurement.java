@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence.model;
 
 import androidx.annotation.NonNull;
@@ -11,7 +25,7 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 public final class Measurement {
@@ -31,18 +45,6 @@ public final class Measurement {
      */
     private Vehicle vehicle;
     /**
-     * The number of acceleration {@link Point3d}s persisted for this {@link Measurement}.
-     */
-    private int accelerations;
-    /**
-     * The number of rotation {@link Point3d}s persisted for this {@link Measurement}.
-     */
-    private int rotations;
-    /**
-     * The number of direction {@link Point3d}s persisted for this {@link Measurement}.
-     */
-    private int directions;
-    /**
      * The {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the data in the file
      * persistence layer of for this {@link Measurement}.
      */
@@ -61,22 +63,15 @@ public final class Measurement {
      *            the {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} state, else there has been some
      *            error.
      * @param vehicle The {@link Vehicle} used in this {@link Measurement}.
-     * @param accelerations The number of acceleration {@link Point3d}s persisted for this {@link Measurement}.
-     * @param rotations The number of rotation {@link Point3d}s persisted for this {@link Measurement}.
-     * @param directions The number of direction {@link Point3d}s persisted for this {@link Measurement}.
      * @param fileFormatVersion The {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the
      *            data in the file persistence layer of for this {@link Measurement}.
      * @param distance The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
      */
     public Measurement(final long id, @NonNull final MeasurementStatus status, @NonNull final Vehicle vehicle,
-            final int accelerations, final int rotations, final int directions, final short fileFormatVersion,
-            final double distance) {
+            final short fileFormatVersion, final double distance) {
         this.id = id;
         this.status = status;
         this.vehicle = vehicle;
-        this.accelerations = accelerations;
-        this.rotations = rotations;
-        this.directions = directions;
         this.fileFormatVersion = fileFormatVersion;
         this.distance = distance;
     }
@@ -88,8 +83,7 @@ public final class Measurement {
         if (o == null || getClass() != o.getClass())
             return false;
         Measurement that = (Measurement)o;
-        return accelerations == that.accelerations && rotations == that.rotations && directions == that.directions
-                && fileFormatVersion == that.fileFormatVersion && Double.compare(that.distance, distance) == 0
+        return fileFormatVersion == that.fileFormatVersion && Double.compare(that.distance, distance) == 0
                 && id.equals(that.id) && status == that.status && vehicle == that.vehicle;
     }
 
@@ -110,18 +104,6 @@ public final class Measurement {
         return vehicle;
     }
 
-    public int getAccelerations() {
-        return accelerations;
-    }
-
-    public int getRotations() {
-        return rotations;
-    }
-
-    public int getDirections() {
-        return directions;
-    }
-
     public short getFileFormatVersion() {
         return fileFormatVersion;
     }
@@ -132,8 +114,7 @@ public final class Measurement {
 
     @Override
     public String toString() {
-        return "Measurement{" + "id=" + id + ", status=" + status + ", vehicle=" + vehicle + ", accelerations="
-                + accelerations + ", rotations=" + rotations + ", directions=" + directions + ", fileFormatVersion="
+        return "Measurement{" + "id=" + id + ", status=" + status + ", vehicle=" + vehicle + ", fileFormatVersion="
                 + fileFormatVersion + ", distance=" + distance + '}';
     }
 }

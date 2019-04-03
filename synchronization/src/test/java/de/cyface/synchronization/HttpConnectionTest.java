@@ -1,5 +1,6 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.HttpConnection.BOUNDARY;
 import static de.cyface.synchronization.HttpConnection.TAIL;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -10,13 +11,12 @@ import org.junit.Before;
 import org.junit.Test;
 
 import de.cyface.persistence.model.GeoLocation;
-import de.cyface.utils.Validate;
 
 /**
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.1
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -41,38 +41,54 @@ public class HttpConnectionTest {
     @Test
     public void testGenerateHeader() {
 
-        // Arrange
-        final byte[] testFile = "TEST_FILE_CONTENT".getBytes();
-        final long filePartSize = testFile.length + TAIL.length();
-        Validate.isTrue(filePartSize > TAIL.length());
         final GeoLocation startLocation = generateGeoLocation(0);
         final GeoLocation endLocation = generateGeoLocation(10);
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test-did", 78,
                 "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5);
 
         // Act
-        final String header = oocut.generateHeader(filePartSize, metaData, "test-did_78.cyf");
+        final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
 
         // Assert
-        final String expectedHeader = "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"startLocation\"\r\n" + "\r\n"
-                + "51.1, 13.1, 1000000000\r\n" + "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"endLocation\"\r\n" + "\r\n"
-                + "51.10008993199995, 13.100000270697, 1000010000\r\n" + "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"deviceId\"\r\n" + "\r\n" + "test-did\r\n"
-                + "-----------------------------boundary\r\n" + "Content-Disposition: form-data; name=\"measurementId\"\r\n"
-                + "\r\n" + "78\r\n" + "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"deviceType\"\r\n" + "\r\n" + "test_deviceType\r\n"
-                + "-----------------------------boundary\r\n" + "Content-Disposition: form-data; name=\"osVersion\"\r\n"
-                + "\r\n" + "test_osVersion\r\n" + "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"appVersion\"\r\n" + "\r\n" + "test_appVersion\r\n"
-                + "-----------------------------boundary\r\n" + "Content-Disposition: form-data; name=\"length\"\r\n" + "\r\n"
-                + "10.0\r\n" + "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"locationCount\"\r\n" + "\r\n" + "5\r\n"
-                + "-----------------------------boundary\r\n"
-                + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"test-did_78.cyf\"\r\n"
-                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n"
-                + "Content-length: 60\r\n" + "\r\n";
+        final String expectedHeader = "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"startLocation\"\r\n" + "\r\n" + "51.1, 13.1, 1000000000\r\n"
+                + "--" + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"endLocation\"\r\n" + "\r\n"
+                + "51.10008993199995, 13.100000270697, 1000010000\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"deviceId\"\r\n" + "\r\n" + "test-did\r\n" + "--" + BOUNDARY
+                + "\r\n" + "Content-Disposition: form-data; name=\"measurementId\"\r\n" + "\r\n" + "78\r\n" + "--"
+                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"deviceType\"\r\n" + "\r\n"
+                + "test_deviceType\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"osVersion\"\r\n" + "\r\n" + "test_osVersion\r\n" + "--"
+                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"appVersion\"\r\n" + "\r\n"
+                + "test_appVersion\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"length\"\r\n" + "\r\n" + "10.0\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"locationCount\"\r\n" + "\r\n" + "5\r\n" + "--" + BOUNDARY
+                + "\r\n" + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"test-did_78.cyf\"\r\n"
+                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
         assertThat(header, is(equalTo(expectedHeader)));
+    }
+
+    /**
+     * Tests that the number of bytes written to {@code OutputStream} is calculated correctly.
+     * <p>
+     * This test is indented to avoid MOV-669 where we accidentally used the number of characters in the header
+     * instead of the number of bytes to set the fixed content length for steaming mode.
+     */
+    @Test
+    public void testCalculateBytesWrittenToOutputStream() {
+
+        // Arrange
+        final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
+                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5);
+        final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
+
+        final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes();
+        final long filePartSize = testFile.length;
+
+        // Act
+        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header, filePartSize);
+
+        // Assert
+        assertThat((int)requestLength, is(equalTo(header.getBytes().length + testFile.length + TAIL.length())));
     }
 }

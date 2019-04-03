@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
@@ -24,7 +38,6 @@ import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
@@ -40,7 +53,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.2
+ * @version 1.5.3
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -94,6 +107,7 @@ public class PersistenceLayerTest {
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
             throws NoSuchMeasurementException, CursorIsNullException {
+
         oocut.newMeasurement(Vehicle.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
         capturingBehaviour.updateRecentMeasurement(FINISHED);
@@ -111,6 +125,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testLoadFinishedMeasurements_noMeasurements() throws CursorIsNullException {
+
         assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), is(equalTo(true)));
     }
 
@@ -126,6 +141,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
+
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
@@ -144,6 +160,7 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
+
         final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
         oocut.markAsSynchronized(measurement);
@@ -173,22 +190,19 @@ public class PersistenceLayerTest {
      */
     @Test
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, persistenceLayer, 1, 1);
+        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, oocut, 1, 1);
 
         // Create a finished measurement
-        Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED,
-                persistenceLayer, 1, 1);
+        final Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED, oocut, 1,
+                1);
 
         // Create an open measurement - must be created at last (life-cycle checks in PersistenceLayer.setStatus)
-        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, persistenceLayer, 1, 1);
+        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, oocut, 1, 1);
 
         // Check that syncable measurements = finishedMeasurement
-        final List<Measurement> loadedMeasurements = persistenceLayer.loadMeasurements(FINISHED);
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(loadedMeasurements.size(), is(1));
         assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
     }

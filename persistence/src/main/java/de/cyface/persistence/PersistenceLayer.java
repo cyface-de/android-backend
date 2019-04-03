@@ -1,12 +1,23 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence;
 
 import static android.provider.BaseColumns._ID;
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.MeasurementTable.COLUMN_ACCELERATIONS;
-import static de.cyface.persistence.MeasurementTable.COLUMN_DIRECTIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
-import static de.cyface.persistence.MeasurementTable.COLUMN_ROTATIONS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
@@ -33,10 +44,10 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -47,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.0
+ * @version 14.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -135,9 +146,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final ContentValues measurementValues = new ContentValues();
         measurementValues.put(COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
         measurementValues.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
-        measurementValues.put(COLUMN_ACCELERATIONS, 0);
-        measurementValues.put(COLUMN_ROTATIONS, 0);
-        measurementValues.put(COLUMN_DIRECTIONS, 0);
         measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
         measurementValues.put(COLUMN_DISTANCE, 0.0);
@@ -150,8 +158,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
             final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
-            return new Measurement(measurementId, OPEN, vehicle, 0, 0, 0,
-                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0);
+            return new Measurement(measurementId, OPEN, vehicle, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                    0.0);
         }
     }
 
@@ -226,13 +234,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final MeasurementStatus status = MeasurementStatus
                 .valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
         final Vehicle vehicle = Vehicle.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_VEHICLE)));
-        final int accelerations = cursor.getInt(cursor.getColumnIndex(COLUMN_ACCELERATIONS));
-        final int rotations = cursor.getInt(cursor.getColumnIndex(COLUMN_ROTATIONS));
-        final int directions = cursor.getInt(cursor.getColumnIndex(COLUMN_DIRECTIONS));
         final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
-        return new Measurement(measurementIdentifier, status, vehicle, accelerations, rotations, directions,
-                fileFormatVersion, distance);
+        return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance);
     }
 
     /**
@@ -341,7 +345,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as {@link MeasurementStatus#SYNCED} and deletes
-     * the sensor data but does not update the {@link PointMetaData} in the {@link Measurement}!
+     * the sensor data.
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
@@ -357,22 +361,29 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         setStatus(measurementId, SYNCED);
 
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
-        if (measurement.getAccelerations() > 0) {
+
+        try {
             final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
             Validate.isTrue(accelerationFile.delete());
+        } catch (final NoSuchFileException e) {
+            Log.v(TAG, "markAsSynchronized: No acceleration file found to delete, nothing to do");
         }
 
-        if (measurement.getRotations() > 0) {
+        try {
             final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
             Validate.isTrue(rotationFile.delete());
+        } catch (final NoSuchFileException e) {
+            Log.v(TAG, "markAsSynchronized: No rotation file found to delete, nothing to do");
         }
 
-        if (measurement.getDirections() > 0) {
+        try {
             final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
                     Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
             Validate.isTrue(directionFile.delete());
+        } catch (final NoSuchFileException e) {
+            Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do");
         }
     }
 
@@ -412,7 +423,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @throws NoDeviceIdException when there are no entries in the {@link IdentifierTable}
      */
     @NonNull
-    public final String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
+    private String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
         Cursor deviceIdentifierQueryCursor = null;
         try {
             synchronized (this) {
@@ -661,28 +672,23 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * When pausing or stopping a {@link Measurement} we store the {@link Point3d} counters and the
+     * When pausing or stopping a {@link Measurement} we store the
      * {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} in the {@link Measurement} to make sure we can
-     * deserialize the {@link Point3dFile}s with deprecated {@code PERSISTENCE_FILE_FORMAT_VERSION}s. This also could
-     * avoid corrupting {@code Point3dFile}s when the last bytes could not be written successfully.
+     * deserialize the {@link Point3dFile}s with previous {@code PERSISTENCE_FILE_FORMAT_VERSION}s.
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
-     * @param pointMetaData The {@code Point3dFile} meta information required for deserialization
-     * @param measurementId The id of the measurement associated with the {@link PointMetaData}
+     * @param persistenceFileFormatVersion The {@code MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} required
+     *            for deserialization
+     * @param measurementId The id of the measurement to update
      */
-    public void storePointMetaData(@NonNull final PointMetaData pointMetaData, final long measurementId) {
-        Log.d(TAG, "Storing point meta data.");
+    public void storePersistenceFileFormatVersion(final short persistenceFileFormatVersion, final long measurementId) {
+        Log.d(TAG, "Storing persistenceFileFormatVersion.");
 
-        final ContentValues pointMetaDataValues = new ContentValues();
-        pointMetaDataValues.put(COLUMN_ACCELERATIONS, pointMetaData.getAccelerationPointCounter());
-        pointMetaDataValues.put(COLUMN_ROTATIONS, pointMetaData.getRotationPointCounter());
-        pointMetaDataValues.put(COLUMN_DIRECTIONS, pointMetaData.getDirectionPointCounter());
-        pointMetaDataValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
-                pointMetaData.getPersistenceFileFormatVersion());
+        final ContentValues contentValues = new ContentValues();
+        contentValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, persistenceFileFormatVersion);
 
-        final int updatedRows = resolver.update(getMeasurementUri(), pointMetaDataValues, _ID + "=" + measurementId,
-                null);
+        final int updatedRows = resolver.update(getMeasurementUri(), contentValues, _ID + "=" + measurementId, null);
         Validate.isTrue(updatedRows == 1);
     }
 

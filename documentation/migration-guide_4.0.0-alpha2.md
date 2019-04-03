@@ -1,7 +1,7 @@
 Cyface Android SDK 4.0.0-alpha2 Migration Guide
 =================================================
 
-This migration guide is written for apps using the `MovebisDataCapturinService`.
+This migration guide is written for apps using the `MovebisDataCapturingService`.
 
 If you use the `CyfaceDataCapturingService` instead, please contact us. 
 

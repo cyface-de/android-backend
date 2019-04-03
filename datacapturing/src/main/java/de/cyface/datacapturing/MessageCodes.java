@@ -1,6 +1,22 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
+import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.utils.Validate;
 
 /**
  * This class is a wrapper for all message codes used by the Cyface backend to send inner- and inter process
@@ -8,10 +24,11 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class MessageCodes {
+
     /**
      * The code for messages sent from the {@link DataCapturingService} to the
      * {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to register the former as client of the
@@ -55,7 +72,6 @@ public class MessageCodes {
      * when it notices that only little space is left.
      */
     public static final int SERVICE_STOPPED_ITSELF = 11;
-
     /**
      * Global Broadcast (inter-process) action identifier for service started messages sent by the
      * {@link DataCapturingBackgroundService} to the {@link DataCapturingService}.
@@ -77,30 +93,42 @@ public class MessageCodes {
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
      * 
-     * @param deviceId The device id used to make global broadcast ids unique
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public static String getServiceStartedActionId(final String deviceId) {
-        return deviceId + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
+    @NonNull
+    public static String getServiceStartedActionId(@NonNull final String appId) {
+        Validate.notNull(appId);
+        return appId + "_" + GLOBAL_BROADCAST_SERVICE_STARTED;
     }
 
     /**
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
      *
-     * @param deviceId The device id used to make global broadcast ids unique
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public static String getPingActionId(final String deviceId) {
-        return deviceId + "_" + GLOBAL_BROADCAST_PING;
+    @NonNull
+    public static String getPingActionId(@NonNull final String appId) {
+        Validate.notNull(appId);
+        return appId + "_" + GLOBAL_BROADCAST_PING;
     }
 
     /**
      * To avoid collision between sdk integrating apps use the app unique device id as prefix when using
      * this a action identifier for global broadcasts (for inter process communication)
      *
-     * @param deviceId The device id used to make global broadcast ids unique
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public static String getPongActionId(final String deviceId) {
-        return deviceId + "_" + GLOBAL_BROADCAST_PONG;
+    @NonNull
+    public static String getPongActionId(@NonNull final String appId) {
+        Validate.notNull(appId);
+        return appId + "_" + GLOBAL_BROADCAST_PONG;
     }
 
     /**

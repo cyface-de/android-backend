@@ -1,6 +1,18 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
-
-import static de.cyface.datacapturing.Constants.TAG;
 
 import java.lang.ref.WeakReference;
 import java.util.UUID;
@@ -21,6 +33,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
+import de.cyface.datacapturing.backend.PingReceiver;
 import de.cyface.synchronization.BundlesExtrasCodes;
 
 /**
@@ -30,11 +43,15 @@ import de.cyface.synchronization.BundlesExtrasCodes;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.4
+ * @version 2.0.5
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
 
+    /**
+     * Logging TAG to identify logs associated with the {@link PingReceiver} or {@link PongReceiver}.
+     */
+    public static final String TAG = Constants.TAG + ".png";
     /**
      * The human readable name for the background thread handling response and timeout of the ping pong process between
      * background service and foreground facade.
@@ -69,23 +86,28 @@ public class PongReceiver extends BroadcastReceiver {
      */
     private final HandlerThread pongReceiverThread;
     /**
-     * The device id used to generate unique broadcast ids
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    private final String deviceId;
+    private final String appId;
 
     /**
      * Creates a new completely <code>PongReceiver</code> for a certain context.
      *
      * @param context The context to use to send and receive broadcast messages.
-     * @param deviceId The device id used to generate unique broadcast ids
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public PongReceiver(@NonNull final Context context, @NonNull final String deviceId) {
+    public PongReceiver(@NonNull final Context context, @NonNull final String appId) {
         pongReceiverThread = new HandlerThread(BACKGROUND_THREAD_NAME, Process.THREAD_PRIORITY_DEFAULT);
         lock = new ReentrantLock();
         this.context = new WeakReference<>(context);
         isRunning = false;
         isTimedOut = false;
-        this.deviceId = deviceId;
+        this.appId = appId;
     }
 
     // TODO [CY-3950]: This should be called ping and receive, but maybe more meaningful names like: areYouRunning and
@@ -104,10 +126,10 @@ public class PongReceiver extends BroadcastReceiver {
         this.callback = callback;
 
         // Run receiver on a different thread so it runs even if calling thread waits for it to return:
-
         pongReceiverThread.start();
         Handler receiverHandler = new Handler(pongReceiverThread.getLooper());
-        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(deviceId)), null, receiverHandler);
+        context.get().registerReceiver(this, new IntentFilter(MessageCodes.getPongActionId(appId)), null,
+                receiverHandler);
 
         long currentUptimeInMillis = SystemClock.uptimeMillis();
         long offset = unit.toMillis(timeout);
@@ -127,7 +149,7 @@ public class PongReceiver extends BroadcastReceiver {
                 lock.lock();
                 try {
                     if (!isRunning) {
-                        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
+                        Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Service seems not to be running. Timing out!");
                         PongReceiver.this.callback.timedOut();
                         isTimedOut = true;
 
@@ -143,12 +165,12 @@ public class PongReceiver extends BroadcastReceiver {
             }
         }, currentUptimeInMillis + offset);
 
-        final Intent broadcastIntent = new Intent(MessageCodes.getPingActionId(deviceId));
+        final Intent broadcastIntent = new Intent(MessageCodes.getPingActionId(appId));
         if (BuildConfig.DEBUG) {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
         context.get().sendBroadcast(broadcastIntent);
-        Log.v(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
+        Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 
     @Override
@@ -157,8 +179,8 @@ public class PongReceiver extends BroadcastReceiver {
                 + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
         lock.lock();
         try {
-            if (!isTimedOut && MessageCodes.getPongActionId(deviceId).equals(intent.getAction())) {
-                Log.v(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
+            if (!isTimedOut && MessageCodes.getPongActionId(appId).equals(intent.getAction())) {
+                Log.d(TAG, "PongReceiver.onReceive(): Timeout was not reached. Service seems to be active.");
                 isRunning = true;
                 callback.isRunning();
                 this.context.get().unregisterReceiver(this);

@@ -53,20 +53,18 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
+import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DistanceCalculationStrategy;
-import de.cyface.persistence.NoDeviceIdException;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.PointMetaData;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -80,10 +78,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.4
+ * @version 5.1.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
+
     /**
      * The tag used to identify logging messages send to logcat.
      */
@@ -125,7 +124,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Receiver for pings to the service. The receiver answers with a pong as long as this service is running.
      */
-    private PingReceiver pingReceiver;
+    private PingReceiver pingReceiver = null;
     /**
      * The identifier of the measurement to save all the captured data to.
      */
@@ -139,10 +138,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     DistanceCalculationStrategy distanceCalculationStrategy;
     /**
-     * Meta information required for deserialization of {@link Point3dFile}s.
-     */
-    PointMetaData pointMetaData;
-    /**
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
     CapturingPersistenceBehaviour capturingBehaviour;
@@ -150,11 +145,15 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The last captured {@link GeoLocation} used to calculate the distance to the next {@code GeoLocation}.
      */
     private GeoLocation lastLocation = null;
+    /**
+     * The {@link Measurement#distance} in meters until the last location update.
+     */
     private double lastDistance;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
-        Log.v(TAG, String.format("Binding to %s", this.getClass().getName()));
+        Log.v(TAG, "onBind");
+
         return callerMessenger.getBinder();
     }
 
@@ -188,14 +187,30 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         } else {
             Log.w(TAG, "Unable to acquire PowerManager. No wake lock set!");
         }
+
+        // We must register the receiver as soon as possible - onBind and onStartCommand are too late (race condition)
+        if (pingReceiver != null) {
+            Log.v(TAG, "onBind: Ping Receiver was already registered");
+            return;
+        }
+
+        // Allows other parties to ping this service to see if it is running
+        // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
+        // which we cannot pass via bind() as documented by the {@link #onBind()} method.
+        final String appId = getBaseContext().getPackageName();
+        pingReceiver = new PingReceiver(appId);
+        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
+        Log.d(TAG, "onCreate: Ping Receiver registered");
+
         Log.v(TAG, "finishedOnCreate");
     }
 
     @Override
     public void onDestroy() {
         Log.v(TAG, "onDestroy");
-        Log.v(TAG, "Unregistering Ping receiver.");
+        Log.v(TAG, "onDestroy: Unregistering Ping receiver.");
         unregisterReceiver(pingReceiver);
+        pingReceiver = null;
         if (wakeLock != null && wakeLock.isHeld()) {
             wakeLock.release();
         }
@@ -209,7 +224,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // OnDestroy is called before the messages below to make sure it's semantic is right (stopped)
         super.onDestroy();
         sendStoppedMessage();
-        persistenceLayer.storePointMetaData(pointMetaData, currentMeasurementIdentifier);
     }
 
     /**
@@ -255,7 +269,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
         Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
-        Log.v(TAG, "Starting DataCapturingBackgroundService");
+        Log.v(TAG, "onStartCommand: Starting DataCapturingBackgroundService");
 
         // Loads authority / persistence layer
         if (!intent.hasExtra(AUTHORITY_ID)) {
@@ -266,17 +280,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
         persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
-
-        // Allows other parties to ping this service to see if it is running
-        final String deviceId;
-        try {
-            deviceId = persistenceLayer.loadDeviceId();
-        } catch (CursorIsNullException | NoDeviceIdException e) {
-            throw new IllegalStateException(e);
-        }
-        pingReceiver = new PingReceiver(deviceId);
-        Log.v(TAG, "Registering Ping Receiver");
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(deviceId)));
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
@@ -299,28 +302,29 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         this.currentMeasurementIdentifier = measurementIdentifier;
 
-        // Restore PointMetaData and distance (if the counters are larger than 0 we're resuming a measurement)
+        // Load Distance (or else we would reset the distance when resuming a measurement)
         try {
             final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
-            pointMetaData = new PointMetaData(measurement.getAccelerations(), measurement.getRotations(),
-                    measurement.getDirections(), measurement.getFileFormatVersion());
             lastDistance = measurement.getDistance();
+
+            // Ensure we resume measurements with a known file format version
+            final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
+            Validate.isTrue(persistenceFileFormatVersion == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+                    "Resume a measurement of a previous persistence file format version is not yet supported!");
         } catch (final CursorIsNullException e) {
             // because onStartCommand is called by Android so we can't throw soft exception.
             throw new IllegalStateException(e);
         }
-        Validate.isTrue(
-                pointMetaData
-                        .getPersistenceFileFormatVersion() == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                "Cannot resume a measurement of a previous persistence file format version!");
 
         // Init capturing process
         dataCapturing = initializeCapturingProcess();
         dataCapturing.addCapturingProcessListener(this);
 
         // Informs about the service start
-        Log.v(TAG, "Sending broadcast service started.");
-        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(deviceId));
+        Log.d(StartUpFinishedHandler.TAG,
+                "DataCapturingBackgroundService.onStartCommand: Sending broadcast service started.");
+        final String appId = getBaseContext().getPackageName();
+        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
         serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
         sendBroadcast(serviceStartedIntent);
 
@@ -404,8 +408,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     // Nothing to do here!
                 }
             });
-            pointMetaData.incrementPointCounters(data.getAccelerations().size(), data.getRotations().size(),
-                    data.getDirections().size());
         }
     }
 

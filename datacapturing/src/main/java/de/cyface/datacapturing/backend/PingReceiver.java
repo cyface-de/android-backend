@@ -1,6 +1,18 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
-
-import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
@@ -9,8 +21,9 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.BuildConfig;
-import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.datacapturing.MessageCodes;
+import de.cyface.datacapturing.PongReceiver;
+import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.Validate;
 
 /**
@@ -19,34 +32,41 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 3.0.0
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
 
     /**
-     * The tag used to identify Logcat messages.
+     * Logging TAG to identify logs associated with the {@link PingReceiver} or {@link PongReceiver}.
      */
-    private static final String TAG = BACKGROUND_TAG;
+    private static final String TAG = PongReceiver.TAG;
     /**
-     * The device id used to generate unique broadcast ids
+     * A device-wide unique identifier for the application containing this SDK such as
+     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     * <p>
+     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    private final String deviceId;
+    private final String appId;
 
     /**
-     * @param deviceId The device id used to generate unique broadcast ids
+     * @param appId A device-wide unique identifier for the application containing this SDK such as
+     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
+     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public PingReceiver(String deviceId) {
-        this.deviceId = deviceId;
+    public PingReceiver(@NonNull final String appId) {
+        this.appId = appId;
     }
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
         Validate.notNull(intent.getAction());
-        if (intent.getAction().equals(MessageCodes.getPingActionId(deviceId))) {
-            Intent pongIntent = new Intent(MessageCodes.getPongActionId(deviceId));
+        Log.v(TAG, "PingReceiver.onReceive()");
+
+        if (intent.getAction().equals(MessageCodes.getPingActionId(appId))) {
+            final Intent pongIntent = new Intent(MessageCodes.getPongActionId(appId));
             if (BuildConfig.DEBUG) {
-                String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
+                final String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.v(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
                         + ". Sending Pong.");
                 pongIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);

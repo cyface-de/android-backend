@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
@@ -37,7 +51,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 2.1.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -58,20 +72,24 @@ public class DataCapturingServiceTestWithoutPermission {
      * Condition waiting for the background service to wake up this test case.
      */
     private Condition condition;
+    /**
+     * The {@link Context} needed to access the persistence layer
+     */
+    private Context context;
 
     /**
      * Initializes the object of class under test.
      */
     @Before
     public void setUp() {
-        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         final ContentResolver contentResolver = context.getContentResolver();
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         final String dataUploadServerAddress = "https://localhost:8080";
-        final DataCapturingListener listener = new TestListener(lock, condition);
+        final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
@@ -99,7 +117,7 @@ public class DataCapturingServiceTestWithoutPermission {
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
             CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                oocut.getDeviceIdentifier());
+                context.getPackageName());
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
@@ -116,7 +134,7 @@ public class DataCapturingServiceTestWithoutPermission {
         boolean exceptionCaught = false;
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                    oocut.getDeviceIdentifier());
+                    context.getPackageName());
             oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
