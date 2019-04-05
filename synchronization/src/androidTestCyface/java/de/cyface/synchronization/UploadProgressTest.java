@@ -72,7 +72,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.1
+ * @version 1.4.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -127,7 +127,7 @@ public class UploadProgressTest {
     }
 
     @Test
-    @FlakyTest // because this is currently still dependent on a real test api (see logcat)
+    @FlakyTest // TODO [MOV-683]: this is currently still dependent on a real test api (see logcat)
     public void testUploadProgressHappyPath() throws CursorIsNullException, NoSuchMeasurementException {
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

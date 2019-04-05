@@ -22,7 +22,7 @@ import androidx.annotation.NonNull;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 3.0.0
  * @since 1.0.0
  */
 class HttpResponse {
@@ -54,14 +54,5 @@ class HttpResponse {
 
     int getResponseCode() {
         return responseCode;
-    }
-
-    /**
-     * Checks if the HTTP response code says "successful".
-     *
-     * @return true if the code is a 200er code
-     */
-    boolean is2xxSuccessful() {
-        return (responseCode >= 200 && responseCode < 300);
     }
 }

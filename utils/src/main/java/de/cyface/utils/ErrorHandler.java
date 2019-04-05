@@ -21,7 +21,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.2.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {

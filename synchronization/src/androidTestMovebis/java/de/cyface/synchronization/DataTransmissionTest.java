@@ -108,8 +108,7 @@ public class DataTransmissionTest {
      * </pre>
      */
     @Test
-    public void testUploadSomeBytesViaMultiPart()
-            throws BadRequestException, CursorIsNullException, NoSuchMeasurementException {
+    public void testUploadSomeBytesViaMultiPart() throws CursorIsNullException, NoSuchMeasurementException {
 
         // Arrange
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
