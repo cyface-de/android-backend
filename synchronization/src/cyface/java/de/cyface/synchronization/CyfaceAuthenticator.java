@@ -1,16 +1,14 @@
 package de.cyface.synchronization;
 
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATA_TRANSMISSION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.IOException;
 import java.io.InputStream;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.nio.ByteBuffer;
@@ -140,23 +138,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         } catch (final MalformedURLException e) {
             sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
-        } catch (final JSONException e) {
-            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
         } catch (final SynchronisationException | RequestParsingException e) {
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
-        } catch (final DataTransmissionException e) {
-            sendErrorIntent(context, DATA_TRANSMISSION_ERROR.getCode(), e.getHttpStatusCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final ResponseParsingException e) {
-            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
         } catch (final UnauthorizedException e) {
             sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final BadRequestException e) {
-            sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
         }
 
@@ -269,20 +255,15 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      *            logging in to the Cyface server.
      * @param sslContext To open a SSL connection
      * @return The currently valid auth token to be used by further requests from this application.
-     * @throws JSONException Thrown if the returned JSON message is not parsable.
+     * @throws SynchronisationException – If an IOException occurred while reading the response code.
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws RequestParsingException When the request could not be posted.
+     * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
-     * @throws MalformedURLException When the URL is in a wrong format.
-     * @throws RequestParsingException When the request could not be generated.
-     * @throws DataTransmissionException When the server returned a non-successful status code.
-     * @throws ResponseParsingException When the http response could not be parsed.
-     * @throws SynchronisationException When the new data output for the http connection failed to be created.
-     * @throws UnauthorizedException If the credentials for the cyface server are wrong.
-     * @throws NetworkErrorException when the connection's input or error stream was null (e.g. connection disabled)
      */
     private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
-            throws JSONException, ServerUnavailableException, MalformedURLException, RequestParsingException,
-            DataTransmissionException, ResponseParsingException, SynchronisationException, UnauthorizedException,
-            BadRequestException, NetworkErrorException {
+            throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
+            RequestParsingException {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl
@@ -294,16 +275,34 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         }
         final URL authUrl = new URL(http.returnUrlWithTrailingSlash(url) + "login");
 
-        // Login to get JWT token
+        // Generate login payload
         final JSONObject loginPayload = new JSONObject();
-        loginPayload.put("username", username);
-        loginPayload.put("password", password);
+        try {
+            loginPayload.put("username", username);
+            loginPayload.put("password", password);
+        } catch (final JSONException e) {
+            throw new IllegalArgumentException(e);
+        }
+
+        // Login to get JWT token
         Log.d(TAG, "Authenticating at " + authUrl + " with " + loginPayload);
         HttpsURLConnection connection = null;
+        final String authToken;
         try {
             connection = http.openHttpConnection(authUrl, sslContext, false);
-            final HttpResponse loginResponse = http.post(connection, loginPayload, false);
-            if (loginResponse.is2xxSuccessful() && connection.getHeaderField("Authorization") == null) {
+
+            // Try to send the request and handle expected errors
+            final HttpResponse loginResponse;
+            try {
+                loginResponse = http.post(connection, loginPayload, false);
+            } catch (final BadRequestException | InternalServerErrorException | ForbiddenException
+                    | EntityNotParsableException | ConflictException e) {
+                throw new IllegalStateException(e); // API definition does not define those errors
+            }
+
+            // Make sure the successful response contains an Authorization token
+            authToken = connection.getHeaderField("Authorization");
+            if (loginResponse.getResponseCode() == HttpURLConnection.HTTP_OK && authToken == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
             }
         } finally {
@@ -312,7 +311,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             }
         }
 
-        Validate.notNull(connection);
-        return connection.getHeaderField("Authorization");
+        return authToken;
     }
 }

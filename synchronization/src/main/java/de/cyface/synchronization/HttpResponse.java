@@ -14,16 +14,11 @@
  */
 package de.cyface.synchronization;
 
-import java.net.HttpURLConnection;
-
-import org.json.JSONException;
-import org.json.JSONObject;
-
 import androidx.annotation.NonNull;
 
 /**
  * Internal value object class for the attributes of an HTTP response. It wrappers the HTTP
- * status code as well as a JSON body object.
+ * status code as well as the String body.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
@@ -32,47 +27,28 @@ import androidx.annotation.NonNull;
  */
 class HttpResponse {
 
-    private int responseCode;
-    private JSONObject body;
+    /**
+     * The {@code HttpURLConnection} status code returned by the server's {@link HttpResponse}.
+     */
+    private final int responseCode;
+    /**
+     * The server's {@link HttpResponse} body.
+     */
+    @NonNull
+    private final String body;
 
     /**
-     * Checks the responseCode and responseBody before constructing the {@link HttpResponse}.
-     *
      * @param responseCode the HTTP status code returned by the server
-     * @param responseBody the HTTP response body returned by the server. Can be null when the login
-     *            was successful and there was nothing to return (defined by the Spring API).
-     * @throws ResponseParsingException when the server returned something not parsable.
-     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
-     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @param responseBody the HTTP response body returned by the server. Can be empty when the server has nothing to
+     *            say.
      */
-    HttpResponse(final int responseCode, @NonNull final String responseBody)
-            throws ResponseParsingException, BadRequestException, UnauthorizedException {
+    HttpResponse(final int responseCode, @NonNull final String responseBody) {
         this.responseCode = responseCode;
-        try {
-            this.body = new JSONObject(responseBody);
-        } catch (final JSONException e) {
-            if (is2xxSuccessful()) {
-                this.body = null; // Nothing to complain, the login was successful
-                return;
-            }
-            if (responseCode == HttpURLConnection.HTTP_BAD_REQUEST) {
-                throw new BadRequestException(String.format("HttpResponse constructor failed: '%s'.", e.getMessage()),
-                        e);
-            }
-            if (responseCode == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                // Occurred in the RadVerS project
-                throw new UnauthorizedException(String
-                        .format("401 Unauthorized Error: '%s'. Unable to read the http response.", e.getMessage()), e);
-            }
-            throw new ResponseParsingException(
-                    String.format("HttpResponse constructor failed: '%s'. Response (code %s) body: %s", e.getMessage(),
-                            responseCode, responseBody),
-                    e);
-        }
+        this.body = responseBody;
     }
 
     @NonNull
-    JSONObject getBody() {
+    String getBody() {
         return body;
     }
 

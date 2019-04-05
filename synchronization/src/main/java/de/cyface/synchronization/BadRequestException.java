@@ -8,12 +8,12 @@ package de.cyface.synchronization;
  * @version 1.0.0
  * @since 1.0.0
  */
-public final class BadRequestException extends Exception {
+final class BadRequestException extends Exception {
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
-    public BadRequestException(final String detailedMessage) {
+    BadRequestException(final String detailedMessage) {
         this(detailedMessage, null);
 
     }
@@ -22,7 +22,8 @@ public final class BadRequestException extends Exception {
      * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      * @param cause The <code>Exception</code> that caused this one.
      */
-    public BadRequestException(final String detailedMessage, final Exception cause) {
+    @SuppressWarnings("WeakerAccess") // May be used in future
+    BadRequestException(final String detailedMessage, final Exception cause) {
         super(detailedMessage, cause);
 
     }

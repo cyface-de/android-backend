@@ -19,6 +19,9 @@
     <string name="error_message_unknown_network_error">Netzwerkfehler</string>
     <string name="error_message_data_transmission_error_with_code">Übertragungsfehler (%1$d)</string>
     <string name="error_message_bad_request">Anfrage fehlerhaft</string>
+    <string name="error_message_forbidden">Fehlende Berechtigung</string>
+    <string name="error_message_internal_server_error">Interner Server Fehler</string>
+    <string name="error_message_entity_not_parsable">Anfrage nicht lesbar</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

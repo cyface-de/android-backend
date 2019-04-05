@@ -23,8 +23,6 @@ import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
 
-import android.accounts.NetworkErrorException;
-
 import androidx.annotation.NonNull;
 
 /**
@@ -80,18 +78,20 @@ interface Http {
      * @param connection The {@code HttpURLConnection} to be used for the request.
      * @param payload The measurement batch in json format
      * @param compress True if the {@param payload} should get compressed
-     * @throws RequestParsingException When the request could not be generated.
-     * @throws DataTransmissionException When the server returned a non-successful status code.
-     * @throws SynchronisationException When the new data output for the http connection failed to be created.
-     * @throws ResponseParsingException When the http response could not be parsed.
-     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws SynchronisationException If an IOException occurred while reading the response code.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
-     * @throws NetworkErrorException when the connection's input or error stream was null
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws ForbiddenException When the server returns {@code HttpURLConnection#HTTP_FORBIDDEN}
+     * @throws ConflictException When the server returns {@code HttpURLConnection#HTTP_CONFLICT}
+     * @throws EntityNotParsableException When the server returns {@link HttpConnection#HTTP_ENTITY_NOT_PROCESSABLE}
+     * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
+     * @throws RequestParsingException When the request could not be posted.
      */
     @NonNull
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
-            final boolean compress) throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException;
+            final boolean compress)
+            throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
+            ForbiddenException, EntityNotParsableException, ConflictException, RequestParsingException;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
@@ -101,15 +101,19 @@ interface Http {
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param fileName The name of the file to be uploaded
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
-     * @throws SynchronisationException When the new data output for the http connection failed to be created.
-     * @throws ResponseParsingException When the http response could not be parsed.
+     * @throws SynchronisationException If an IOException occurred while reading the response code.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws ForbiddenException When the server returns {@code HttpURLConnection#HTTP_FORBIDDEN}
+     * @throws ConflictException When the server returns {@code HttpURLConnection#HTTP_CONFLICT}
+     * @throws EntityNotParsableException When the server returns {@link HttpConnection#HTTP_ENTITY_NOT_PROCESSABLE}
+     * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
      */
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
             @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
             @NonNull final UploadProgressListener progressListener)
-            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException;
+            throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
+            ForbiddenException, EntityNotParsableException, ConflictException;
 }
