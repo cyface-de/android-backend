@@ -63,8 +63,7 @@ final class MockedHttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull JSONObject payload, boolean compress)
-            throws ResponseParsingException, UnauthorizedException, BadRequestException {
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull JSONObject payload, boolean compress) {
         return new HttpResponse(201, "");
     }
 
@@ -72,8 +71,7 @@ final class MockedHttpConnection implements Http {
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
             @NonNull SyncAdapter.MetaData metaData, @NonNull String fileName,
-            @NonNull UploadProgressListener progressListener)
-            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
+            @NonNull UploadProgressListener progressListener) {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }
