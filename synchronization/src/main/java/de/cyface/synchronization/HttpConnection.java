@@ -49,7 +49,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.1.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -306,13 +306,13 @@ public class HttpConnection implements Http {
         // Location meta data
         String startLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.startLocation != null) {
-            startLocationPart = generatePart("startLocation", metaData.startLocation.getLat() + ", "
-                    + metaData.startLocation.getLon() + ", " + metaData.startLocation.getTimestamp());
+            startLocationPart = generatePart("startLocation", "lat: " + metaData.startLocation.getLat() + ", lon: "
+                    + metaData.startLocation.getLon() + ", time: " + metaData.startLocation.getTimestamp());
         }
         String endLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.endLocation != null) {
-            endLocationPart = generatePart("endLocation", metaData.endLocation.getLat() + ", "
-                    + metaData.endLocation.getLon() + ", " + metaData.endLocation.getTimestamp());
+            endLocationPart = generatePart("endLocation", "lat: " + metaData.endLocation.getLat() + ", lon: "
+                    + metaData.endLocation.getLon() + ", time: " + metaData.endLocation.getTimestamp());
         }
         final String locationCountPart = generatePart("locationCount", String.valueOf(metaData.locationCount));
 
