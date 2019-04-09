@@ -34,7 +34,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.8
+ * @version 1.3.9
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -47,6 +47,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */
     private static final int SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000;
+    /**
+     * A delay used to reduce capturing of sensor events, to reduce data size. 10 k = 100 Hz
+     */
+    private static final int DELAY_BETWEEN_SENSOR_EVENTS_IN_MICROSECONDS = 10_000;
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
@@ -317,10 +321,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
         if (sensor != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST,
+                sensorService.registerListener(this, sensor, DELAY_BETWEEN_SENSOR_EVENTS_IN_MICROSECONDS,
                         SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
             } else {
-                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST, sensorEventHandler);
+                sensorService.registerListener(this, sensor, DELAY_BETWEEN_SENSOR_EVENTS_IN_MICROSECONDS,
+                        sensorEventHandler);
             }
         }
     }
