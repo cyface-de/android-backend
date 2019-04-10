@@ -73,7 +73,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.0
+ * @version 4.2.0
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -200,7 +200,7 @@ public final class MeasurementSerializer {
         // Wrapping the streams with Buffered streams for performance reasons
         final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
-        final int DEFLATER_LEVEL = 9; // 'cause Steve Jobs said so
+        final int DEFLATER_LEVEL = 5; // 'cause Steve Jobs said so
         final Deflater compressor = new Deflater(DEFLATER_LEVEL, COMPRESSION_NOWRAP);
         // As we wrap the injected outputStream with Deflater the serialized data is automatically compressed
         final DeflaterOutputStream deflaterStream = new DeflaterOutputStream(bufferedFileOutputStream, compressor);
