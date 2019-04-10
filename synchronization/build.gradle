@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.4
+ * @version 2.1.5
  * @since 1.0.0
  */
 
@@ -87,6 +87,7 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
+    androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")

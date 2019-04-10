@@ -91,6 +91,7 @@ import de.cyface.utils.Validate;
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 public class CapturedDataWriterTest {
+
     /**
      * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
      */

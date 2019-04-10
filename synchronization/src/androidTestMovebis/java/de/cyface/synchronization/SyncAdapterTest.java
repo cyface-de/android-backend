@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  * 
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.5
+ * @version 1.0.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -68,14 +68,12 @@ import de.cyface.utils.Validate;
 public final class SyncAdapterTest {
 
     private Context context;
-    private ContentResolver contentResolver;
     private AccountManager accountManager;
     private Account account;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        contentResolver = context.getContentResolver();
 
         // Ensure reproducibility
         accountManager = AccountManager.get(context);
@@ -96,7 +94,6 @@ public final class SyncAdapterTest {
             }
         }
 
-        contentResolver = null;
         context = null;
     }
 
