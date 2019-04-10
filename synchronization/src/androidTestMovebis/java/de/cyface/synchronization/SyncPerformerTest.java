@@ -37,12 +37,10 @@ import javax.net.ssl.SSLContext;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
-import org.mockito.junit.MockitoJUnit;
-import org.mockito.junit.MockitoRule;
+import org.mockito.MockitoAnnotations;
 
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
@@ -82,12 +80,6 @@ import de.cyface.utils.Validate;
 @LargeTest
 public class SyncPerformerTest {
 
-    /**
-     * Used to mock Android API objects.
-     */
-    @Rule
-    public MockitoRule mockitoRule = MockitoJUnit.rule();
-
     // ATTENTION: Depending on the API you test against, you might also need to replace the res/raw/truststore.jks
     private final static String TEST_API_URL = "https://REPLACE.WITH.URL:1234"; // never use a non-numeric port here!
     private final static String TEST_TOKEN = "ey-REPLACE-WITH-TOKEN";
@@ -103,6 +95,7 @@ public class SyncPerformerTest {
 
     @Before
     public void setUp() {
+        MockitoAnnotations.initMocks(this);
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
 

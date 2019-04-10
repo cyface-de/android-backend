@@ -88,6 +88,10 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
     androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"
+    // For some reasons the CI does does pull the transitive dependencies of mockito-android which will fails
+    // https://search.maven.org/remotecontent?filepath=org/mockito/mockito-android/2.26.0/mockito-android-2.26.0.pom
+    androidTestImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
+    //androidTestImplementation "net.bytebuddy:byte-buddy-android:$rootProject.ext.byteBuddyVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
