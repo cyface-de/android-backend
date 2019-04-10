@@ -73,6 +73,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -84,7 +85,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.3
+ * @version 5.4.4
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -127,6 +128,7 @@ public class CapturedDataWriterTest {
         mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
+        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
         oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>

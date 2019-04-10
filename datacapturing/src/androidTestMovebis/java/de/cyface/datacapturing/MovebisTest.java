@@ -54,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.2
+ * @version 2.3.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -120,7 +120,7 @@ public final class MovebisTest {
             public void run() {
                 try {
                     oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080",
-                            testUIListener, 0L, new IgnoreEventsStrategy(), testListener);
+                            testUIListener, 0L, new IgnoreEventsStrategy(), testListener, 100);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }

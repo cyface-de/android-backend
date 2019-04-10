@@ -49,7 +49,8 @@ import de.cyface.utils.Validate;
  * Test cases to test the correct working of the data capturing process.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 1.0.3
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -101,7 +102,7 @@ public class CapturingProcessTest {
                     boolean hasLocationFix() {
                         return true;
                     }
-                }, geoLocationEventHandlerThread, sensorEventHandlerThread);
+                }, geoLocationEventHandlerThread, sensorEventHandlerThread, 100);
         testListener = new TestCapturingProcessListener();
         oocut.addCapturingProcessListener(testListener);
         final Sensor accelerometer = initSensor("accelerometer");

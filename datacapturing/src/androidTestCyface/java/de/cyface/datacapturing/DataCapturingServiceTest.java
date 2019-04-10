@@ -84,7 +84,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.0
+ * @version 5.4.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -154,7 +154,7 @@ public class DataCapturingServiceTest {
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
-                            ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy(), testListener);
+                            ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }

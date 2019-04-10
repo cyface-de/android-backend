@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
 import static org.mockito.Matchers.any;
@@ -14,6 +28,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.HandlerThread;
+
 import de.cyface.persistence.model.GeoLocation;
 
 /**
@@ -21,7 +36,7 @@ import de.cyface.persistence.model.GeoLocation;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.0.4
  * @since 1.0.0
  */
 public class DataCapturingTest {
@@ -85,8 +100,8 @@ public class DataCapturingTest {
         when(location.getLongitude()).thenReturn(13.78828128);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
-        try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager, mockedSensorService,
-                locationStatusHandler, locationEventHandler, sensorEventHandler);) {
+        try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager,
+                mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100);) {
             dataCapturing.addCapturingProcessListener(listener);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
@@ -106,8 +121,8 @@ public class DataCapturingTest {
         when(location.getLongitude()).thenReturn(1.0);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
-        try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager, mockedSensorService,
-                locationStatusHandler, locationEventHandler, sensorEventHandler);) {
+        try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager,
+                mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100);) {
             dataCapturing.addCapturingProcessListener(listener);
             dataCapturing.onLocationChanged(location);
             dataCapturing.onLocationChanged(location);
