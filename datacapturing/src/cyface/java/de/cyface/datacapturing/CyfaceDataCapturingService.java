@@ -49,7 +49,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.2
+ * @version 10.0.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -71,6 +71,9 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            {@link Measurement#distance}
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -78,10 +81,11 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
-            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+            throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
-                distanceCalculationStrategy, capturingListener);
+                distanceCalculationStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
@@ -102,6 +106,9 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -109,9 +116,10 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+            throws SetupException, CursorIsNullException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultDistanceCalculationStrategy(), capturingListener);
+                new DefaultDistanceCalculationStrategy(), capturingListener, sensorFrequency);
     }
 
     /**

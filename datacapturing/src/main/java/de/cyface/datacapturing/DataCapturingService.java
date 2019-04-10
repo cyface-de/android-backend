@@ -22,6 +22,7 @@ import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
 import java.lang.ref.WeakReference;
@@ -93,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.0.1
+ * @version 16.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -179,6 +180,12 @@ public abstract class DataCapturingService {
      */
     @SuppressWarnings("WeakerAccess") // Used by SDK integrators (CY)
     public final static long IS_RUNNING_CALLBACK_TIMEOUT = 500L;
+    /**
+     * The frequency in which sensor data should be captured. If this is higher than the maximum
+     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+     */
+    private final int sensorFrequency;
 
     /**
      * Creates a new completely initialized {@link DataCapturingService}.
@@ -197,6 +204,9 @@ public abstract class DataCapturingService {
      *            {@link Measurement#distance}
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If writing the components preferences fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -205,7 +215,8 @@ public abstract class DataCapturingService {
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
-            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+            throws SetupException, CursorIsNullException {
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.persistenceLayer = persistenceLayer;
@@ -213,6 +224,7 @@ public abstract class DataCapturingService {
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
         this.distanceCalculationStrategy = distanceCalculationStrategy;
+        this.sensorFrequency = sensorFrequency;
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
@@ -629,6 +641,7 @@ public abstract class DataCapturingService {
         startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
+        startIntent.putExtra(SENSOR_FREQUENCY, sensorFrequency);
 
         final ComponentName serviceComponentName;
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
