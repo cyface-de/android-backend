@@ -57,8 +57,10 @@ import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
+import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.testutils.SharedTestUtils;
@@ -70,7 +72,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.1
+ * @version 1.4.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -125,16 +127,16 @@ public class UploadProgressTest {
     }
 
     @Test
-    @FlakyTest // because this is currently still dependent on a real test api (see logcat)
-    public void testUploadProgressHappyPath() throws CursorIsNullException {
+    @FlakyTest // TODO [MOV-683]: this is currently still dependent on a real test api (see logcat)
+    public void testUploadProgressHappyPath() throws CursorIsNullException, NoSuchMeasurementException {
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = preferences.edit();
+        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        final SharedPreferences.Editor editor = preferences.edit();
         editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
         editor.apply();
 
-        TestReceiver receiver = new TestReceiver();
-        IntentFilter filter = new IntentFilter();
+        final TestReceiver receiver = new TestReceiver();
+        final IntentFilter filter = new IntentFilter();
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
         filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
@@ -142,9 +144,8 @@ public class UploadProgressTest {
 
         ContentProviderClient client = null;
         try {
-            ContentResolver contentResolver = context.getContentResolver();
-            Measurement measurement = insertMeasurementEntry(persistenceLayer, Vehicle.UNKNOWN);
-            long measurementIdentifier = measurement.getIdentifier();
+            final Measurement measurement = insertMeasurementEntry(persistenceLayer, Vehicle.UNKNOWN);
+            final long measurementIdentifier = measurement.getIdentifier();
             insertGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055141000L, 49.9304133333333,
                     8.82831833333333, 0.0, 940);
             insertGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055142000L, 49.9305066666667,
@@ -166,6 +167,9 @@ public class UploadProgressTest {
             insertPoint3d(directionsFile, 1501662636010L, 7.65, -32.4, -71.4);
             insertPoint3d(directionsFile, 1501662636030L, 7.65, -32.550003, -71.700005);
             insertPoint3d(directionsFile, 1501662636050L, 7.65, -33.15, -71.700005);
+
+            // Mark measurement as finished
+            persistenceLayer.setStatus(measurementIdentifier, MeasurementStatus.FINISHED);
 
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             SyncResult result = new SyncResult();
@@ -193,9 +197,8 @@ class TestReceiver extends BroadcastReceiver {
 
     @Override
     public void onReceive(Context context, Intent intent) {
-        if (intent == null || intent.getAction() == null) {
-            return;
-        }
+        Validate.notNull(intent);
+        Validate.notNull(intent.getAction());
 
         switch (intent.getAction()) {
             case CyfaceConnectionStatusListener.SYNC_FINISHED:

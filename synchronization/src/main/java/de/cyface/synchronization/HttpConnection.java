@@ -26,6 +26,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
 import java.net.URL;
@@ -36,22 +37,19 @@ import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLSession;
 
-import org.json.JSONException;
 import org.json.JSONObject;
 
-import android.accounts.NetworkErrorException;
 import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import androidx.annotation.Nullable;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.1.1
+ * @version 5.1.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -59,7 +57,7 @@ public class HttpConnection implements Http {
     /**
      * A String to filter log output from {@link HttpConnection} logs.
      */
-    static final String TAG = "de.cyface.http";
+    final static String TAG = "de.cyface.http";
     /**
      * The boundary to be used in the Multipart request to separate data.
      */
@@ -68,6 +66,12 @@ public class HttpConnection implements Http {
      * The tail to be used in the Multipart request to indicate that the request end.
      */
     final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
+
+    /**
+     * The status code returned when the MultiPart request is erroneous, e.g. when there is not exactly onf file or a
+     * syntax error.
+     */
+    final static int HTTP_ENTITY_NOT_PROCESSABLE = 422;
 
     @NonNull
     @Override
@@ -129,27 +133,29 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
-            final boolean compress) throws RequestParsingException, DataTransmissionException, SynchronisationException,
-            ResponseParsingException, UnauthorizedException, BadRequestException, NetworkErrorException {
+            final boolean compress)
+            throws RequestParsingException, SynchronisationException, UnauthorizedException, BadRequestException,
+            InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
-        connection.setChunkedStreamingMode(0); // we could also calculate the length here
-        final BufferedOutputStream os = initOutputStream(connection);
+        // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
+        connection.setChunkedStreamingMode(0);
+        final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
             Log.d(TAG, "Transmitting with compression " + compress + ".");
             if (compress) {
                 connection.setRequestProperty("Content-Encoding", "gzip");
-                os.write(gzip(payload.toString().getBytes(DEFAULT_CHARSET)));
+                outputStream.write(gzip(payload.toString().getBytes(DEFAULT_CHARSET)));
             } else {
-                os.write(payload.toString().getBytes(DEFAULT_CHARSET));
+                outputStream.write(payload.toString().getBytes(DEFAULT_CHARSET));
             }
-            os.flush();
-            os.close();
+            outputStream.flush();
+            outputStream.close();
         } catch (final IOException e) {
-            throw new RequestParsingException(String.format("Error %s. Unable to parse http request.", e.getMessage()),
-                    e);
+            throw new RequestParsingException("Posting login request failed", e);
         }
+
         return readResponse(connection);
     }
 
@@ -158,7 +164,8 @@ public class HttpConnection implements Http {
     public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull File transferTempFile,
             @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
             @NonNull UploadProgressListener progressListener)
-            throws SynchronisationException, ResponseParsingException, BadRequestException, UnauthorizedException {
+            throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
+            ForbiddenException, EntityNotParsableException, ConflictException {
 
         // Generate header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
@@ -224,13 +231,7 @@ public class HttpConnection implements Http {
             throw new IllegalStateException(e);
         }
 
-        // Get server response
-        try {
-            return new HttpResponse(connection.getResponseCode(), connection.getResponseMessage());
-        } catch (final IOException e) {
-            Log.w(TAG, "Server closed stream. Request was not successful!");
-            throw new ResponseParsingException("Server closed stream?", e);
-        }
+        return readResponse(connection);
     }
 
     /**
@@ -305,13 +306,13 @@ public class HttpConnection implements Http {
         // Location meta data
         String startLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.startLocation != null) {
-            startLocationPart = generatePart("startLocation", metaData.startLocation.getLat() + ", "
-                    + metaData.startLocation.getLon() + ", " + metaData.startLocation.getTimestamp());
+            startLocationPart = generatePart("startLocation", "lat: " + metaData.startLocation.getLat() + ", lon: "
+                    + metaData.startLocation.getLon() + ", time: " + metaData.startLocation.getTimestamp());
         }
         String endLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.endLocation != null) {
-            endLocationPart = generatePart("endLocation", metaData.endLocation.getLat() + ", "
-                    + metaData.endLocation.getLon() + ", " + metaData.endLocation.getTimestamp());
+            endLocationPart = generatePart("endLocation", "lat: " + metaData.endLocation.getLat() + ", lon: "
+                    + metaData.endLocation.getLon() + ", time: " + metaData.endLocation.getTimestamp());
         }
         final String locationCountPart = generatePart("locationCount", String.valueOf(metaData.locationCount));
 
@@ -348,116 +349,127 @@ public class HttpConnection implements Http {
     }
 
     /**
-     * Parses the JSON response from a connection and includes error handling for non 2XX status
-     * codes.
+     * Reads the {@link HttpResponse} from the {@link HttpURLConnection} and identifies known errors.
      *
      * @param connection The connection that received the response.
-     * @return A parsed {@link HttpResponse} object.
-     * @throws ResponseParsingException If the system fails in handling the HTTP response.
-     * @throws DataTransmissionException If the response was a non-successful HTTP response.
-     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
-     * @throws SynchronisationException If a connection error occurred while reading the response code.
+     * @return The {@link HttpResponse}.
+     * @throws SynchronisationException If an IOException occurred while reading the response code.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
-     * @throws NetworkErrorException when the connection's input or error stream was null
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws ForbiddenException When the server returns {@code HttpURLConnection#HTTP_FORBIDDEN}
+     * @throws ConflictException When the server returns {@code HttpURLConnection#HTTP_CONFLICT}
+     * @throws EntityNotParsableException When the server returns {@link #HTTP_ENTITY_NOT_PROCESSABLE}
+     * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
      */
+    @NonNull
     private HttpResponse readResponse(@NonNull final HttpURLConnection connection)
-            throws ResponseParsingException, DataTransmissionException, UnauthorizedException, SynchronisationException,
-            BadRequestException, NetworkErrorException {
+            throws SynchronisationException, BadRequestException, UnauthorizedException, ForbiddenException,
+            ConflictException, EntityNotParsableException, InternalServerErrorException {
 
-        final HttpResponse response = readResponseFromConnection(connection);
-        if (response.is2xxSuccessful()) {
-            return response;
-        } else {
-            if (response.getResponseCode() == HttpURLConnection.HTTP_UNAUTHORIZED) {
-                throw new UnauthorizedException("Server returned 401: UNAUTHORIZED.");
-            }
-            try {
-                if (response.getBody().has("errorName")) {
-                    throw new DataTransmissionException(response.getResponseCode(),
-                            response.getBody().getString("errorName"), response.getBody().getString("errorMessage"));
-                } else if (response.getBody().has("exception") && response.getBody().has("error")
-                        && response.getBody().has("message")) {
-                    throw new DataTransmissionException(response.getResponseCode(),
-                            response.getBody().getString("exception"),
-                            response.getBody().getString("error") + ": " + response.getBody().getString("message"));
-                } else {
-                    throw new DataTransmissionException(response.getResponseCode(), "unknown response attributes",
-                            response.getBody().toString());
-                }
-            } catch (final JSONException e) {
-                throw new ResponseParsingException(
-                        String.format("readResponse() failed: '%s'. Unable to read the http response.", e.getMessage()),
-                        e);
-            }
+        // Read response from connection
+        final int responseCode;
+        try {
+            responseCode = connection.getResponseCode();
+        } catch (final IOException e) {
+            throw new SynchronisationException(e);
         }
+        final String responseBody = readResponseBody(connection);
+        final HttpResponse response = new HttpResponse(responseCode, responseBody);
+
+        // Handle known success responses
+        switch (responseCode) {
+            // Login Requests
+            case HttpURLConnection.HTTP_OK:
+                Log.d(TAG, "200: Login successful");
+                return response;
+            case HttpURLConnection.HTTP_CREATED:
+                Log.d(TAG, "201: Upload successful");
+                return response;
+        }
+
+        // Handle known error responses
+        switch (responseCode) {
+            case HttpURLConnection.HTTP_BAD_REQUEST:
+                Log.w(TAG, "400: Unknown error");
+                throw new BadRequestException(response.getBody());
+            case HttpURLConnection.HTTP_UNAUTHORIZED:
+                Log.w(TAG, "401: Bad credentials or missing authorization information");
+                throw new UnauthorizedException(response.getBody());
+            case HttpURLConnection.HTTP_FORBIDDEN:
+                Log.w(TAG, "403: The authorized user has no permissions to post measurements");
+                throw new ForbiddenException(response.getBody());
+            case HttpURLConnection.HTTP_CONFLICT:
+                Log.w(TAG, "409: The measurement already exists on the server.");
+                throw new ConflictException(response.getBody());
+            case HTTP_ENTITY_NOT_PROCESSABLE:
+                Log.w(TAG, "422: Multipart request is erroneous.");
+                throw new EntityNotParsableException(response.getBody());
+            case HttpURLConnection.HTTP_INTERNAL_ERROR:
+                Log.w(TAG, "500: Server reported internal error.");
+                throw new InternalServerErrorException(response.getBody());
+        }
+
+        // Known response
+        throw new IllegalStateException("Unknown error code: " + responseCode);
     }
 
     /**
-     * Extracts the {@link HttpResponse} from the {@link HttpURLConnection}.
+     * Reads the body from the {@link HttpURLConnection}. This contains ether the error or the success message.
      *
      * @param connection the {@link HttpURLConnection} to read the response from
-     * @return the {@link HttpResponse}
-     * @throws SynchronisationException when a connection error occurred while reading the response code
-     * @throws ResponseParsingException when the server response was unreadable
-     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
-     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
-     * @throws NetworkErrorException when the connection's input or error stream was null
+     * @return the {@link HttpResponse} body
      */
-    private HttpResponse readResponseFromConnection(@NonNull final HttpURLConnection connection)
-            throws SynchronisationException, ResponseParsingException, UnauthorizedException, BadRequestException,
-            NetworkErrorException {
-        String responseString;
-        try {
-            responseString = readInputStream(connection.getInputStream());
-        } catch (final IOException e) {
-            // This means that an error occurred, read the error from the ErrorStream
-            // see https://developer.android.com/reference/java/net/HttpURLConnection
-            try {
-                responseString = readInputStream(connection.getErrorStream());
-            } catch (final IOException e1) {
-                throw new IllegalStateException("Unable to read error body.", e1);
-            } catch (final NullPointerException e1) {
-                // Occurred on Xaomi Mi A1 after disabling WiFi instantly after sync start
-                throw new SynchronisationException("Failed to read error. Connection interrupted?", e1);
-            }
-        }
+    @NonNull
+    private String readResponseBody(@NonNull final HttpURLConnection connection) {
 
+        // First try to read and return a success response body
         try {
-            final HttpResponse response;
-            response = new HttpResponse(connection.getResponseCode(), responseString);
-            return response;
+            return readInputStream(connection.getInputStream());
         } catch (final IOException e) {
-            throw new SynchronisationException("A connection error occurred while reading the response code.", e);
+
+            // When reading the InputStream fails, we check if there is an ErrorStream to read from
+            // (For details see https://developer.android.com/reference/java/net/HttpURLConnection)
+            final InputStream errorStream = connection.getErrorStream();
+
+            // Return empty string if there were no errors, connection is not connected or server sent no useful data.
+            // This occurred e.g. on Xaomi Mi A1 after disabling WiFi instantly after sync start
+            if (errorStream == null) {
+                return "";
+            }
+
+            return readInputStream(errorStream);
         }
     }
 
     /**
-     * Reads a String from an InputStream.
+     * Extracts the String from the provided {@code InputStream}.
      *
-     * @param inputStream the {@link InputStream} to read from
-     * @throws IOException if an IO error occurred
-     * @throws NetworkErrorException if the provided {@code InputStream} was null
-     * @return the {@link String} read from the InputStream
+     * @param inputStream the {@code InputStream} to read from
+     * @return the {@link String} read from the InputStream. If an I/O error occurs while reading fro the stream, the
+     *         already read string is returned which might my empty or cut short.
      */
-    private String readInputStream(@Nullable final InputStream inputStream) throws IOException, NetworkErrorException {
-        // This happened on Pixel 2 XL when wifi was manually disabled just after sync started
-        if (inputStream == null) {
-            throw new NetworkErrorException("readInputStream with null inputStream, returning empty String");
-        }
+    @NonNull
+    private String readInputStream(@NonNull final InputStream inputStream) {
 
-        BufferedReader bufferedReader = null;
         try {
-            bufferedReader = new BufferedReader(new InputStreamReader(inputStream, DEFAULT_CHARSET));
-            StringBuilder responseString = new StringBuilder();
-            String line;
-            while ((line = bufferedReader.readLine()) != null) {
-                responseString.append(line);
+            BufferedReader bufferedReader = null;
+            try {
+                bufferedReader = new BufferedReader(new InputStreamReader(inputStream, DEFAULT_CHARSET));
+                final StringBuilder responseString = new StringBuilder();
+                String line;
+                while ((line = bufferedReader.readLine()) != null) {
+                    responseString.append(line);
+                }
+                return responseString.toString();
+            } catch (final UnsupportedEncodingException e) {
+                throw new IllegalStateException(e);
+            } finally {
+                if (bufferedReader != null) {
+                    bufferedReader.close();
+                }
             }
-            return responseString.toString();
-        } finally {
-            if (bufferedReader != null) {
-                bufferedReader.close();
-            }
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
         }
     }
 }

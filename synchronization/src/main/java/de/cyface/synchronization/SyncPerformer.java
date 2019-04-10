@@ -17,15 +17,17 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
+import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
+import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.FORBIDDEN;
+import static de.cyface.utils.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNREADABLE_HTTP_RESPONSE;
 
 import java.io.File;
 import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
@@ -45,7 +47,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -96,13 +98,12 @@ class SyncPerformer {
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
-     *
-     * @throws BadRequestException When the api responses with {@link HttpURLConnection#HTTP_BAD_REQUEST}
      */
     boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
             @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
             @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
-            @NonNull final String jwtAuthToken) throws BadRequestException {
+            @NonNull final String jwtAuthToken) {
+
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
@@ -120,26 +121,43 @@ class SyncPerformer {
             }
         } catch (final ServerUnavailableException e) {
             // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
-            syncResult.stats.numAuthExceptions++;
+            syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
             return false;
+        } catch (final ForbiddenException e) {
+            syncResult.stats.numAuthExceptions++;
+            sendErrorIntent(context, FORBIDDEN.getCode(), e.getMessage());
+            return false;
         } catch (final MalformedURLException e) {
-            syncResult.stats.numParseExceptions++;
+            syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
             return false;
-        } catch (final ResponseParsingException e) {
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, UNREADABLE_HTTP_RESPONSE.getCode(), e.getMessage());
-            return false;
         } catch (final SynchronisationException e) {
-            syncResult.stats.numParseExceptions++;
+            syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
             return false;
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
             return false;
+        } catch (final InternalServerErrorException e) {
+            syncResult.stats.numConflictDetectedExceptions++;
+            sendErrorIntent(context, INTERNAL_SERVER_ERROR.getCode(), e.getMessage());
+            return false;
+        } catch (final EntityNotParsableException e) {
+            syncResult.stats.numParseExceptions++;
+            sendErrorIntent(context, ENTITY_NOT_PARSABLE.getCode(), e.getMessage());
+            return false;
+        } catch (final BadRequestException e) {
+            syncResult.stats.numParseExceptions++;
+            sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
+            return false;
+        } catch (final ConflictException e) {
+            syncResult.stats.numSkippedEntries++;
+            return true; // We consider the upload successful and mark the measurement as synced
         }
+
+        syncResult.stats.numUpdates++; // Upload was successful, measurement can be marked as synced
         return true;
     }
 }
