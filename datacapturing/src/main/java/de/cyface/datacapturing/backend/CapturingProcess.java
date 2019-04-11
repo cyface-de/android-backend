@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
@@ -34,7 +48,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.8
+ * @version 2.0.0
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -47,6 +61,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */
     private static final int SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000;
+    /**
+     * A delay used to reduce capturing of sensor events, to reduce data size. E.g.: 10 k = 100 Hz
+     */
+    private final int delayBetweenSensorEventsInMicroseconds;
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
@@ -111,12 +129,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      *            without blocking the calling thread. This is based on information from
      *            <a href=
      *            "https://stackoverflow.com/questions/6069485/sensormanager-registerlistener-handler-handler-example-please">StackOverflow</a>.
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SecurityException If user did not provide permission to access geo location.
      */
-    CapturingProcess(final @NonNull LocationManager locationManager, final @NonNull SensorManager sensorService,
-            final @NonNull GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
-            final @NonNull HandlerThread locationEventHandlerThread,
-            final @NonNull HandlerThread sensorEventHandlerThread) throws SecurityException {
+    CapturingProcess(@NonNull final LocationManager locationManager, @NonNull final SensorManager sensorService,
+            @NonNull final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
+            @NonNull final HandlerThread locationEventHandlerThread,
+            @NonNull final HandlerThread sensorEventHandlerThread, final int sensorFrequency) throws SecurityException {
         Validate.notNull("Illegal argument: locationManager was null!", locationManager);
         Validate.notNull("Illegal argument: sensorService was null!", sensorService);
         Validate.notNull("Illegal argument: geoLocationDeviceStatusHandler was null!", geoLocationDeviceStatusHandler);
@@ -132,6 +153,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.locationStatusHandler = geoLocationDeviceStatusHandler;
         this.locationEventHandlerThread = locationEventHandlerThread;
         this.sensorEventHandlerThread = sensorEventHandlerThread;
+        this.delayBetweenSensorEventsInMicroseconds = 1_000_000 / sensorFrequency;
 
         locationEventHandlerThread.start();
         this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,
@@ -317,10 +339,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
         if (sensor != null) {
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST,
+                sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
                         SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
             } else {
-                sensorService.registerListener(this, sensor, SensorManager.SENSOR_DELAY_FASTEST, sensorEventHandler);
+                sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
+                        sensorEventHandler);
             }
         }
     }

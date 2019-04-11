@@ -8,10 +8,10 @@ import java.util.Collection;
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
-import androidx.annotation.Nullable;
-
-import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 import android.util.Log;
+
+import androidx.annotation.Nullable;
+import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
 /**
  * Maintains and informs {@link ErrorListener}. This class is responsible for Cyface Errors.
@@ -21,7 +21,7 @@ import android.util.Log;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.2.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
@@ -62,6 +62,7 @@ public class ErrorHandler extends BroadcastReceiver {
      */
     public static void sendErrorIntent(final Context context, final int errorCode, final int httpCode,
             final String message) {
+
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(HTTP_CODE_EXTRA, httpCode);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
@@ -76,21 +77,24 @@ public class ErrorHandler extends BroadcastReceiver {
      * @param errorCode the Cyface error code
      */
     public static void sendErrorIntent(final Context context, final int errorCode, @Nullable final String message) {
+
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         Log.d(TAG, message);
-        //Log.d(TAG, (message != null && message.length() > 0 ? message : "no error message provide"));
+        // Log.d(TAG, (message != null && message.length() > 0 ? message : "no error message provide"));
     }
 
     @Override
     public void onReceive(final Context context, final Intent intent) {
+
         Validate.notNull(intent.getExtras());
         final int errorCodeInt = intent.getExtras().getInt(ERROR_CODE_EXTRA);
         final ErrorCode errorCode = ErrorCode.getValueForCode(errorCodeInt);
         Validate.notNull(errorCode);
         String errorMessage;
         switch (errorCode) {
+
             case UNAUTHORIZED:
                 errorMessage = context.getString(R.string.error_message_credentials_incorrect);
                 break;
@@ -141,6 +145,18 @@ public class ErrorHandler extends BroadcastReceiver {
                 errorMessage = context.getString(R.string.error_message_bad_request);
                 break;
 
+            case FORBIDDEN:
+                errorMessage = context.getString(R.string.error_message_forbidden);
+                break;
+
+            case INTERNAL_SERVER_ERROR:
+                errorMessage = context.getString(R.string.error_message_internal_server_error);
+                break;
+
+            case ENTITY_NOT_PARSABLE:
+                errorMessage = context.getString(R.string.error_message_entity_not_parsable);
+                break;
+
             default:
                 errorMessage = context.getString(R.string.error_message_unknown_error);
         }
@@ -158,10 +174,11 @@ public class ErrorHandler extends BroadcastReceiver {
      * @since 1.0.0
      */
     public enum ErrorCode {
+
         UNKNOWN(0), UNAUTHORIZED(1), MALFORMED_URL(2), UNREADABLE_HTTP_RESPONSE(3), SERVER_UNAVAILABLE(
                 4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(7), AUTHENTICATION_CANCELED(
-                        8), SYNCHRONIZATION_ERROR(
-                                9), DATA_TRANSMISSION_ERROR(10), SSL_CERTIFICATE_UNKNOWN(11), BAD_REQUEST(12);
+                        8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10), SSL_CERTIFICATE_UNKNOWN(
+                                11), BAD_REQUEST(12), FORBIDDEN(13), INTERNAL_SERVER_ERROR(14), ENTITY_NOT_PARSABLE(15);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;
@@ -175,6 +192,7 @@ public class ErrorHandler extends BroadcastReceiver {
         }
 
         public static ErrorCode getValueForCode(final int code) {
+
             for (ErrorCode value : ErrorCode.values()) {
                 if (value.getCode() == code) {
                     return value;

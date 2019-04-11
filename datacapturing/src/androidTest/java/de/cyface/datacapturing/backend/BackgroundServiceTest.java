@@ -18,6 +18,7 @@ import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -62,7 +63,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.3.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -158,6 +159,7 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
+        startIntent.putExtra(SENSOR_FREQUENCY, 100);
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
         // bindService() waits for ServiceConnection.onServiceConnected() to be called before returning
@@ -192,6 +194,7 @@ public class BackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
+        startIntent.putExtra(SENSOR_FREQUENCY, 100);
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
         serviceTestRule.bindService(bindIntent);

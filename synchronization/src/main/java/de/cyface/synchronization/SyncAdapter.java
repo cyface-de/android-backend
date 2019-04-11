@@ -18,7 +18,6 @@ import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 
 import java.io.File;
@@ -62,7 +61,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.1
+ * @version 2.6.2
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -254,10 +253,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, "DatabaseException: " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
-        } catch (final BadRequestException e) {
-            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
-            syncResult.stats.numConflictDetectedExceptions++;
-            sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
         } catch (final AuthenticatorException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numAuthExceptions++;

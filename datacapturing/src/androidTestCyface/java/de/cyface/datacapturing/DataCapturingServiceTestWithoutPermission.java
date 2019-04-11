@@ -51,7 +51,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.3
+ * @version 2.1.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -95,7 +95,7 @@ public class DataCapturingServiceTestWithoutPermission {
             public void run() {
                 try {
                     oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
-                            dataUploadServerAddress, new IgnoreEventsStrategy(), listener);
+                            dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }

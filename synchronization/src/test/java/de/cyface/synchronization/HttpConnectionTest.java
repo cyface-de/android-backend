@@ -16,7 +16,7 @@ import de.cyface.persistence.model.GeoLocation;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -51,9 +51,10 @@ public class HttpConnectionTest {
 
         // Assert
         final String expectedHeader = "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"startLocation\"\r\n" + "\r\n" + "51.1, 13.1, 1000000000\r\n"
-                + "--" + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"endLocation\"\r\n" + "\r\n"
-                + "51.10008993199995, 13.100000270697, 1000010000\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"startLocation\"\r\n" + "\r\n"
+                + "lat: 51.1, lon: 13.1, time: 1000000000\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"endLocation\"\r\n" + "\r\n"
+                + "lat: 51.10008993199995, lon: 13.100000270697, time: 1000010000\r\n" + "--" + BOUNDARY + "\r\n"
                 + "Content-Disposition: form-data; name=\"deviceId\"\r\n" + "\r\n" + "test-did\r\n" + "--" + BOUNDARY
                 + "\r\n" + "Content-Disposition: form-data; name=\"measurementId\"\r\n" + "\r\n" + "78\r\n" + "--"
                 + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"deviceType\"\r\n" + "\r\n"
@@ -82,7 +83,7 @@ public class HttpConnectionTest {
                 "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5);
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
 
-        final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes();
+        final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte
         final long filePartSize = testFile.length;
 
         // Act

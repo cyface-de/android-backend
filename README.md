@@ -225,8 +225,9 @@ class MainFragment extends Fragment {
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
             final Bundle savedInstanceState) {
         
+        final static int SENSOR_FREQUENCY = 100;
         dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
-            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener);
+            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener, SENSOR_FREQUENCY);
         
         // dataCapturingButton is our sample DataCapturingListenerImpl
         // Depending on your implementation you need to register the DataCapturingService:
@@ -538,6 +539,7 @@ This documentation still lacks of samples for the following features:
 
 Migration from Earlier Versions
 --------------------------------
+ - [Migrate to 4.0.0-alpha8](documentation/migration-guide_4.0.0-alpha8.md)
  - [Migrate to 4.0.0-alpha7](documentation/migration-guide_4.0.0-alpha7.md)
  - [Migrate to 4.0.0-alpha2](documentation/migration-guide_4.0.0-alpha2.md)
  - [Migrate to 4.0.0-alpha1](documentation/migration-guide_4.0.0-alpha1.md)

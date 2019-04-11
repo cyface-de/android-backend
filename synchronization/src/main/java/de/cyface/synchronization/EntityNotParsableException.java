@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2019 Cyface GmbH
  * This file is part of the Cyface SDK for Android.
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
@@ -17,30 +17,28 @@ package de.cyface.synchronization;
 import androidx.annotation.NonNull;
 
 /**
- * An {@code Exception} thrown when the server returns an 400 error. The {@code Exception} contains
- * all the details available and relevant to diagnose the error case.
+ * An {@code Exception} thrown by the server when the Multipart request is erroneous, e.g. when there is not exactly one
+ * file or a syntax error.
  *
  * @author Armin Schnabel
- * @version 2.0.0
- * @since 1.0.0
+ * @version 1.0.0
+ * @since 4.0.0
  */
-final class BadRequestException extends Exception {
+public class EntityNotParsableException extends Exception {
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      */
-    BadRequestException(@NonNull final String detailedMessage) {
-        this(detailedMessage, null);
-
+    EntityNotParsableException(final String detailedMessage) {
+        super(detailedMessage);
     }
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      * @param cause The {@code Exception} that caused this one.
      */
-    @SuppressWarnings("WeakerAccess") // May be used in future
-    BadRequestException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
+    @SuppressWarnings("unused") // May be used in the future
+    public EntityNotParsableException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
         super(detailedMessage, cause);
-
     }
 }
