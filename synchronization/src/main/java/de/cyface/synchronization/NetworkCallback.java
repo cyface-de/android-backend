@@ -14,6 +14,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.WiFiSurveyor.MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
 import static de.cyface.synchronization.WiFiSurveyor.TAG;
 
 import android.accounts.Account;
@@ -33,7 +34,7 @@ import de.cyface.utils.Validate;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.1.0
  * @since 3.0.0
  */
 @TargetApi(Build.VERSION_CODES.LOLLIPOP)
@@ -55,12 +56,27 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
     }
 
     @Override
+    public void onLost(@NonNull final Network network) {
+
+        // This is required for < MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG or else we are not informed about a lost wifi
+        // connection e.g. on Android 6.0.1 (MOV-650, possibly also MOV-645)
+
+        Log.v(TAG, "NetworkCallback.onLost: setConnected to false.");
+        surveyor.setConnected(false);
+    }
+
+    @Override
     public void onCapabilitiesChanged(@NonNull final Network network, @NonNull final NetworkCapabilities capabilities) {
 
         // Ensure this event is only triggered for not metered connections when syncOnUnMeteredNetworkOnly
         if (surveyor.isSyncOnUnMeteredNetworkOnly()) {
-            final boolean unMeteredNetwork = capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED);
-            Validate.isTrue(unMeteredNetwork);
+
+            final boolean isUsingUnMeteredCheckInsteadOfWifi = Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
+            if (isUsingUnMeteredCheckInsteadOfWifi) {
+                Validate.isTrue(capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_NOT_METERED));
+            } else {
+                Validate.isTrue(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
+            }
         }
 
         if (currentSynchronizationAccount == null) {
@@ -74,11 +90,12 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
                 && surveyor.isConnectedToSyncableNetwork();
 
         if (syncableConnectionEstablished) {
-            Log.v(TAG, "connectionEstablished: setConnected to true");
+            Log.v(TAG, "onCapabilitiesChanged.connectionEstablished: setConnected to true");
             surveyor.setConnected(true);
 
         } else if (syncableConnectionLost) {
-            Log.v(TAG, "connectionLost: setConnected to false.");
+            // This should not be necessary as we have onLost() but we keep it as a safety net for now
+            Log.v(TAG, "onCapabilitiesChanged.connectionLost: setConnected to false.");
             surveyor.setConnected(false);
         }
     }
