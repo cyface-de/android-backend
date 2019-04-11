@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 7.0.2
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -159,9 +159,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
 
             final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnUnMeteredNetworkOnly) {
-                Log.v(TAG, "startSurveillance for wifi networks only");
-                // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
-                requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+                Log.v(TAG, "startSurveillance for not metered networks only");
+                requestBuilder.addCapability(NET_CAPABILITY_NOT_METERED);
             }
             networkCallback = new NetworkCallback(this, currentSynchronizationAccount);
             connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
@@ -336,7 +335,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
         ContentResolver.setSyncAutomatically(account, authority, false);
         setSyncEnabled(account, enabled);
 
-            // Do not use validateAccountFlags in production code as periodicSync flags are set async
+        // Do not use validateAccountFlags in production code as periodicSync flags are set async
     }
 
     /**
