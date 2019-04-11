@@ -78,7 +78,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.1
+ * @version 6.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -298,7 +298,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
         if (measurementIdentifier == -1) {
-            throw new IllegalStateException("No valid measurement identifier for started service provided.");
+            throw new IllegalStateException("No valid measurement identifier provided for started service .");
         }
         this.currentMeasurementIdentifier = measurementIdentifier;
 
@@ -316,8 +316,14 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             throw new IllegalStateException(e);
         }
 
+        // Load sensor frequency
+        final int sensorFrequency = intent.getIntExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, -1);
+        if (sensorFrequency == -1) {
+            throw new IllegalStateException("No sensor frequency provided for started service .");
+        }
+
         // Init capturing process
-        dataCapturing = initializeCapturingProcess();
+        dataCapturing = initializeCapturingProcess(sensorFrequency);
         dataCapturing.addCapturingProcessListener(this);
 
         // Informs about the service start
@@ -339,9 +345,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Initializes this service
      *
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @return the {@link GeoLocationCapturingProcess}
      */
-    private GeoLocationCapturingProcess initializeCapturingProcess() {
+    private GeoLocationCapturingProcess initializeCapturingProcess(final int sensorFrequency) {
         Log.v(TAG, "Initializing capturing process");
         final LocationManager locationManager = (LocationManager)this.getSystemService(Context.LOCATION_SERVICE);
         Validate.notNull(locationManager);
@@ -353,7 +362,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
         return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler,
-                geoLocationEventHandlerThread, sensorEventHandlerThread);
+                geoLocationEventHandlerThread, sensorEventHandlerThread, sensorFrequency);
     }
 
     /**

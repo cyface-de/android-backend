@@ -57,7 +57,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.3
+ * @version 1.2.4
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -132,7 +132,8 @@ public class PingPongTest {
             public void run() {
                 try {
                     dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
-                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener);
+                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener,
+                            100);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }

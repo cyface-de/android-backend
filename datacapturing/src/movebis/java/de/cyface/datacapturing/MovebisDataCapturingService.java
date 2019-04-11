@@ -1,3 +1,17 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
@@ -54,7 +68,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.3
+ * @version 9.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -116,6 +130,9 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
@@ -124,9 +141,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
     public MovebisDataCapturingService(@NonNull final Context context, @NonNull final String dataUploadServerAddress,
             @NonNull final UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+            throws SetupException, CursorIsNullException {
         this(context, "de.cyface.provider", "de.cyface", dataUploadServerAddress, uiListener, locationUpdateRate,
-                eventHandlingStrategy, capturingListener);
+                eventHandlingStrategy, capturingListener, sensorFrequency);
     }
 
     /**
@@ -134,7 +152,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * This variant is required to test the ContentProvider.
      * <p>
      * <b>ATTENTION:</b> This constructor is only for testing to be able to inject authority and account type. Use
-     * {@link MovebisDataCapturingService#MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy, DataCapturingListener)}
+     * {@link MovebisDataCapturingService(Context, String, UIListener, long, EventHandlingStrategy,
+     * DataCapturingListener)}
      * instead.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
@@ -151,6 +170,9 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
+     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+     *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+     *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
@@ -159,11 +181,12 @@ public class MovebisDataCapturingService extends DataCapturingService {
             @NonNull final String accountType, @NonNull final String dataUploadServerAddress,
             @NonNull final UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
-            @NonNull final DataCapturingListener capturingListener) throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
+            throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, context.getContentResolver(), authority,
                         new CapturingPersistenceBehaviour()),
-                new DefaultDistanceCalculationStrategy(), capturingListener);
+                new DefaultDistanceCalculationStrategy(), capturingListener, sensorFrequency);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

@@ -1,3 +1,17 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ * This file is part of the Cyface SDK for Android.
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
@@ -7,7 +21,7 @@ import static de.cyface.synchronization.Constants.TAG;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.5.0
+ * @version 2.6.0
  * @since 2.1.0
  */
 public class BundlesExtrasCodes {
@@ -44,6 +58,10 @@ public class BundlesExtrasCodes {
      * Code that identifies the percentage of the {@link CyfaceConnectionStatusListener#SYNC_PROGRESS}.
      */
     public final static String SYNC_PERCENTAGE_ID = TAG + ".percentage";
+    /**
+     * Code that identifies the extra transmitted to the background service to tell it which sensor frequency to use.
+     */
+    public final static String SENSOR_FREQUENCY = "de.cyface.extra.sensor_frequency";
 
     /**
      * Constructor is private to prevent creation of utility class.

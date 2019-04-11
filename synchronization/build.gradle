@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.4
+ * @version 2.1.5
  * @since 1.0.0
  */
 
@@ -77,7 +77,6 @@ android {
 }
 
 dependencies {
-    //implementation fileTree(dir: 'libs', include: ['*.jar'])
     implementation project(":utils")
     implementation project(":persistence")
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
@@ -87,6 +86,10 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
+    androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"
+    // For some reasons the CI does does pull the transitive dependencies of mockito-android which will fails
+    // https://search.maven.org/remotecontent?filepath=org/mockito/mockito-android/2.26.0/mockito-android-2.26.0.pom
+    androidTestImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
