@@ -16,7 +16,7 @@ import de.cyface.persistence.model.GeoLocation;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 1.1.3
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -51,10 +51,18 @@ public class HttpConnectionTest {
 
         // Assert
         final String expectedHeader = "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"startLocation\"\r\n" + "\r\n"
-                + "lat: 51.1, lon: 13.1, time: 1000000000\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"endLocation\"\r\n" + "\r\n"
-                + "lat: 51.10008993199995, lon: 13.100000270697, time: 1000010000\r\n" + "--" + BOUNDARY + "\r\n"
+
+                + "Content-Disposition: form-data; name=\"startLocLat\"\r\n" + "\r\n" + "51.1\r\n" + "--" + BOUNDARY
+                + "\r\n" + "Content-Disposition: form-data; name=\"startLocLon\"\r\n" + "\r\n" + "13.1\r\n" + "--"
+                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"startLocTS\"\r\n" + "\r\n"
+                + "1000000000\r\n" + "--" + BOUNDARY + "\r\n"
+
+                + "Content-Disposition: form-data; name=\"endLocLat\"\r\n" + "\r\n" + "51.10008993199995\r\n" + "--"
+                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"endLocLon\"\r\n" + "\r\n"
+                + "13.100000270697\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"endLocTS\"\r\n" + "\r\n" + "1000010000\r\n" + "--" + BOUNDARY
+                + "\r\n"
+
                 + "Content-Disposition: form-data; name=\"deviceId\"\r\n" + "\r\n" + "test-did\r\n" + "--" + BOUNDARY
                 + "\r\n" + "Content-Disposition: form-data; name=\"measurementId\"\r\n" + "\r\n" + "78\r\n" + "--"
                 + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"deviceType\"\r\n" + "\r\n"

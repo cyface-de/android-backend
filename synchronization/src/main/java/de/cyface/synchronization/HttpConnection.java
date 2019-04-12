@@ -49,7 +49,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.0
+ * @version 6.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -306,13 +306,17 @@ public class HttpConnection implements Http {
         // Location meta data
         String startLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.startLocation != null) {
-            startLocationPart = generatePart("startLocation", "lat: " + metaData.startLocation.getLat() + ", lon: "
-                    + metaData.startLocation.getLon() + ", time: " + metaData.startLocation.getTimestamp());
+            final String startLocLat = generatePart("startLocLat", String.valueOf(metaData.startLocation.getLat()));
+            final String startLocLon = generatePart("startLocLon", String.valueOf(metaData.startLocation.getLon()));
+            final String startLocTS = generatePart("startLocTS", String.valueOf(metaData.startLocation.getTimestamp()));
+            startLocationPart = startLocLat + startLocLon + startLocTS;
         }
         String endLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.endLocation != null) {
-            endLocationPart = generatePart("endLocation", "lat: " + metaData.endLocation.getLat() + ", lon: "
-                    + metaData.endLocation.getLon() + ", time: " + metaData.endLocation.getTimestamp());
+            final String endLocLat = generatePart("endLocLat", String.valueOf(metaData.endLocation.getLat()));
+            final String endLocLon = generatePart("endLocLon", String.valueOf(metaData.endLocation.getLon()));
+            final String endLocTS = generatePart("endLocTS", String.valueOf(metaData.endLocation.getTimestamp()));
+            endLocationPart = endLocLat + endLocLon + endLocTS;
         }
         final String locationCountPart = generatePart("locationCount", String.valueOf(metaData.locationCount));
 
