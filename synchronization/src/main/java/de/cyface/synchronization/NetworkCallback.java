@@ -30,7 +30,7 @@ import de.cyface.utils.Validate;
 
 /**
  * This callback handles status changes of the {@link Network} connectivity, e.g. to determine if synchronization should
- * be enabled depending on the {@link android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED} capabilities of the
+ * be enabled depending on the {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} capabilities of the
  * newly connected network.
  *
  * @author Armin Schnabel

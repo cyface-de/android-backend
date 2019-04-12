@@ -15,19 +15,23 @@
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.KITKAT;
+import static android.os.Build.VERSION_CODES.LOLLIPOP;
+import static android.os.Build.VERSION_CODES.M;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
+import static org.robolectric.Shadows.shadowOf;
 
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
-import org.robolectric.Shadows;
 import org.robolectric.annotation.Config;
 import org.robolectric.shadows.ShadowConnectivityManager;
+import org.robolectric.shadows.ShadowNetwork;
+import org.robolectric.shadows.ShadowNetworkCapabilities;
 import org.robolectric.shadows.ShadowNetworkInfo;
 
 import android.accounts.Account;
@@ -35,10 +39,14 @@ import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
 import android.net.ConnectivityManager;
+import android.net.Network;
+import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
 import android.net.wifi.WifiManager;
+import android.os.Build;
 import android.os.Bundle;
 
+import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 import de.cyface.utils.Validate;
 
@@ -47,14 +55,22 @@ import de.cyface.utils.Validate;
  * <p>
  * Robolectric is used to emulate the Android context. The tests are currently executed explicitly with KITKAT SDK
  * as we did not yet port the tests to the newer Robolectric version (or we failed to).
+ * <p>
+ * We execute these test on multiple SDKs as we have different production code depending on the SDK:
+ * - KITKAT (i.e. SDK < LOLLIPOP) to test {@link WiFiSurveyor#onReceive}. We choose KITKAT as this is the mostly used
+ * version below LOLLIPOP.
+ * - MARSHMALLOW (i.e. LOLLIPOP >= SDK < OREO) to test {@link NetworkCallback} with
+ * {@code NetworkCapabilities#NET_WIFI_TRANSPORT}. Adding this should prevent bug MOV-650 from reoccurring.
+ * - PIE (i.e. SDK >= OREO) to test {@link NetworkCallback} with {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED}.
+ * TODO [MOV-699]: add this as soon as ShadowNetworkCapabilities support adding NET_CAPABILITY_NOT_METERED
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 2.0.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = KITKAT) // Because these Roboelectric tests don't run on newer SDKs
+@Config(sdk = {KITKAT, M/* , P */})
 public class WiFiSurveyorTest {
 
     /**
@@ -69,6 +85,10 @@ public class WiFiSurveyorTest {
      * The Android test <code>Context</code> to use for testing.
      */
     private Context context;
+    /**
+     * The {@code ConnectivityManager} required for the {@link WiFiSurveyor}.
+     */
+    private ConnectivityManager connectivityManager;
 
     /**
      * Initializes the properties for each test case individually.
@@ -76,8 +96,10 @@ public class WiFiSurveyorTest {
     @Before
     public void setUp() {
         context = ApplicationProvider.getApplicationContext();
-        ConnectivityManager connectivityManager = getConnectivityManager();
-        shadowConnectivityManager = Shadows.shadowOf(connectivityManager);
+
+        connectivityManager = getConnectivityManager();
+        shadowConnectivityManager = shadowOf(connectivityManager);
+
         oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
     }
 
@@ -98,13 +120,29 @@ public class WiFiSurveyorTest {
         Validate.isTrue(ContentResolver.getPeriodicSyncs(account, AUTHORITY).size() == 0);
         Validate.isTrue(!ContentResolver.getSyncAutomatically(account, AUTHORITY));
 
-        // Act & Assert 1 - don't change the order within this block
-        switchWiFiConnection(false);
+        // Scenario 1: with active mobile connection
+        setMobileConnectivity(true, oocut);
+
+        // Act & Assert 1a - don't change the order within this block
+        setWiFiConnectivity(false, oocut);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
         assertThat(oocut.isConnected(), is(equalTo(false)));
 
-        // Act & Assert 2 - don't change the order within this block
-        switchWiFiConnection(true);
+        // Act & Assert 1b - don't change the order within this block
+        setWiFiConnectivity(true, oocut);
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
+        assertThat(oocut.isConnected(), is(equalTo(true)));
+
+        // Scenario 2: with inactive mobile connection
+        setMobileConnectivity(true, oocut);
+
+        // Act & Assert 2a - don't change the order within this block
+        setWiFiConnectivity(false, oocut);
+        assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
+        assertThat(oocut.isConnected(), is(equalTo(false)));
+
+        // Act & Assert 2b - don't change the order within this block
+        setWiFiConnectivity(true, oocut);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
         assertThat(oocut.isConnected(), is(equalTo(true)));
 
@@ -127,14 +165,14 @@ public class WiFiSurveyorTest {
         Validate.isTrue(!ContentResolver.getSyncAutomatically(account, AUTHORITY));
 
         // Act & Assert 1 - don't change the order within this block
-        switchMobileConnection(false);
-        switchWiFiConnection(false);
+        setMobileConnectivity(false, oocut);
+        setWiFiConnectivity(false, oocut);
         oocut.setSyncOnUnMeteredNetworkOnly(false);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(false)));
         assertThat(oocut.isConnected(), is(equalTo(false)));
 
         // Act & Assert 2 - don't change the order within this block
-        switchMobileConnection(true);
+        setMobileConnectivity(true, oocut);
         assertThat(oocut.isConnectedToSyncableNetwork(), is(equalTo(true)));
         assertThat(oocut.isConnected(), is(equalTo(true)));
 
@@ -152,43 +190,90 @@ public class WiFiSurveyorTest {
     /**
      * Switches the simulated state of the active network connection to either WiFi on or off.
      *
-     * @param enabled If <code>true</code>, the connection is switched to on; if <code>false</code> it is switched to
-     *            off.
+     * @param connected True if the connection is set to connected
+     * @param surveyor To check the {@link WiFiSurveyor#isSyncOnUnMeteredNetworkOnly()} state to decide weather the test
+     *            should trigger a {@code NetworkCallback} for {@code ConnectivityManager#TYPE_MOBILE} connections
      */
-    private void switchWiFiConnection(final boolean enabled) {
-        NetworkInfo networkInfoShadow = ShadowNetworkInfo.newInstance(
-                enabled ? NetworkInfo.DetailedState.CONNECTED : NetworkInfo.DetailedState.DISCONNECTED,
-                ConnectivityManager.TYPE_WIFI, 0, true,
-                enabled ? NetworkInfo.State.CONNECTED : NetworkInfo.State.DISCONNECTED);
-        shadowConnectivityManager.setNetworkInfo(ConnectivityManager.TYPE_WIFI, networkInfoShadow);
-        if (enabled) {
-            shadowConnectivityManager.setActiveNetworkInfo(networkInfoShadow);
-        } else {
-            shadowConnectivityManager.setActiveNetworkInfo(null);
-        }
-        Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
-        broadcastIntent.putExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, enabled);
-        context.sendBroadcast(broadcastIntent);
+    private void setWiFiConnectivity(final boolean connected, @NonNull final WiFiSurveyor surveyor) {
+
+        setConnectivity(connected, true, oocut);
     }
 
     /**
      * Switches the simulated state of the active network connection to either mobile on or off.
      *
-     * @param enabled If <code>true</code>, the connection is switched to on; if <code>false</code> it is switched to
-     *            off.
+     * @param connected True if the connection is set to connected
+     * @param surveyor To check the {@link WiFiSurveyor#isSyncOnUnMeteredNetworkOnly()} state to decide weather the test
+     *            should trigger a {@code NetworkCallback} for {@code ConnectivityManager#TYPE_MOBILE} connections
      */
-    private void switchMobileConnection(final boolean enabled) {
-        NetworkInfo networkInfoShadow = ShadowNetworkInfo.newInstance(
-                enabled ? NetworkInfo.DetailedState.CONNECTED : NetworkInfo.DetailedState.DISCONNECTED,
-                ConnectivityManager.TYPE_MOBILE, 0, true,
-                enabled ? NetworkInfo.State.CONNECTED : NetworkInfo.State.DISCONNECTED);
-        shadowConnectivityManager.setNetworkInfo(ConnectivityManager.TYPE_MOBILE, networkInfoShadow);
-        if (enabled) {
-            shadowConnectivityManager.setActiveNetworkInfo(networkInfoShadow);
-        } else {
-            shadowConnectivityManager.setActiveNetworkInfo(null);
+    private void setMobileConnectivity(final boolean connected, @NonNull final WiFiSurveyor surveyor) {
+
+        setConnectivity(connected, false, oocut);
+    }
+
+    /**
+     * Switches the simulated state of the active network connection to on or off.
+     *
+     * @param connected True if the connection is set to connected
+     * @param wifiNotMobile True if the simulated connected to be switched is of type
+     *            {@code ConnectivityManager.TYPE_WIFI}, false if it's of type {@code ConnectivityManager.TYPE_MOBILE}
+     * @param surveyor To check the {@link WiFiSurveyor#isSyncOnUnMeteredNetworkOnly()} state to decide weather the test
+     *            should trigger a {@code NetworkCallback} for {@code ConnectivityManager#TYPE_MOBILE} connections
+     */
+    private void setConnectivity(final boolean connected, final boolean wifiNotMobile,
+            @NonNull final WiFiSurveyor surveyor) {
+
+        // Determine Parameters
+        final int connectionType = wifiNotMobile ? ConnectivityManager.TYPE_WIFI : ConnectivityManager.TYPE_MOBILE;
+        final int transportType = wifiNotMobile ? NetworkCapabilities.TRANSPORT_WIFI
+                : NetworkCapabilities.TRANSPORT_CELLULAR;
+        final NetworkInfo.State networkState = connected ? NetworkInfo.State.CONNECTED : NetworkInfo.State.DISCONNECTED;
+        final NetworkInfo.DetailedState detailedState = connected ? NetworkInfo.DetailedState.CONNECTED
+                : NetworkInfo.DetailedState.DISCONNECTED;
+
+        // Set NetworkInfo and ActiveNetworkInfo with the correct connectionType and networkState
+        final NetworkInfo testNetworkInfo = ShadowNetworkInfo.newInstance(detailedState, connectionType, 0, true,
+                networkState);
+        shadowConnectivityManager.setNetworkInfo(connectionType, testNetworkInfo);
+        shadowConnectivityManager.setActiveNetworkInfo(connected ? testNetworkInfo : null);
+        if (connected) {
+            final NetworkInfo activeInfo = connectivityManager.getActiveNetworkInfo();
+            Validate.notNull(activeInfo);
+            // noinspection ConstantConditions - for semantics / readability
+            assertThat(activeInfo.isConnected(), is(equalTo(connected)));
+            assertThat(activeInfo.getType(), is(equalTo(connectionType)));
         }
-        Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
-        context.sendBroadcast(broadcastIntent);
+
+        // Send broadcasts for WifiSurveyor.onReceive (code used for SDK < LOLLIPOP)
+        if (Build.VERSION.SDK_INT < LOLLIPOP) {
+
+            final Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
+            broadcastIntent.putExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, connected);
+            context.sendBroadcast(broadcastIntent);
+            return;
+        }
+
+        // Send NetworkCallbacks starting at LOLLIPOP
+        // We need to set the transportType (for SDK M) and networkCapability (not_metered) for SDK P
+        final NetworkCapabilities networkCapabilities = ShadowNetworkCapabilities.newInstance();
+        final ShadowNetworkCapabilities shadowNetworkCapabilities = shadowOf(networkCapabilities);
+        shadowNetworkCapabilities.addTransportType(transportType);
+        final int testNetId = 123;
+        final Network testNetwork = ShadowNetwork.newInstance(testNetId);
+        shadowConnectivityManager.setNetworkCapabilities(testNetwork, networkCapabilities);
+        final NetworkCapabilities loadedNetworkCapabilities = connectivityManager.getNetworkCapabilities(testNetwork);
+        assertThat(loadedNetworkCapabilities, is(equalTo(networkCapabilities)));
+
+        // Now we can call the NetworkCallbacks with the correct networkCapabilities (registration is ok)
+        // Only call the networkCallback for wifi connections as we only register those in production code
+        if (wifiNotMobile || !surveyor.isSyncOnUnMeteredNetworkOnly()) {
+            Validate.isTrue(shadowConnectivityManager.getNetworkCallbacks().size() == 1);
+            final ConnectivityManager.NetworkCallback networkCallback = shadowConnectivityManager.getNetworkCallbacks()
+                    .iterator().next();
+            networkCallback.onCapabilitiesChanged(testNetwork, loadedNetworkCapabilities);
+            if (!connected) {
+                networkCallback.onLost(testNetwork);
+            }
+        }
     }
 }
