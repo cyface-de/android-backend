@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.0
+ * @version 7.1.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -363,7 +363,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
         ContentResolver.setSyncAutomatically(account, authority, false);
         setSyncEnabled(account, enabled);
 
-        // Do not use validateAccountFlags in production code as periodicSync flags are set async
+        // We cannot validate here synchronously that the periodicSync flag was set as the setter is async.
+        // For this reason we have the SetConnectedTest cases.
     }
 
     /**
