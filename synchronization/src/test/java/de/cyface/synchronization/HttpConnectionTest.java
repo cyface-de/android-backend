@@ -16,7 +16,7 @@ import de.cyface.persistence.model.GeoLocation;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.3
+ * @version 1.1.4
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -95,7 +95,7 @@ public class HttpConnectionTest {
         final long filePartSize = testFile.length;
 
         // Act
-        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header, filePartSize);
+        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes(), filePartSize);
 
         // Assert
         assertThat((int)requestLength, is(equalTo(header.getBytes().length + testFile.length + TAIL.length())));
