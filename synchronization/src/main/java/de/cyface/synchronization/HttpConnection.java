@@ -39,6 +39,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
 import org.json.JSONObject;
@@ -54,7 +55,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.2
+ * @version 6.0.3
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -62,7 +63,7 @@ public class HttpConnection implements Http {
     /**
      * A String to filter log output from {@link HttpConnection} logs.
      */
-    final static String TAG = "de.cyface.http";
+    final static String TAG = "de.cyface.sync.http";
     /**
      * The boundary to be used in the Multipart request to separate data.
      */
@@ -241,6 +242,13 @@ public class HttpConnection implements Http {
                         + bytesWrittenToOutputStream + " != " + fixedStreamLength + " fixedStreamLength");
             } finally {
                 outputStream.close();
+            }
+        } catch (final SSLException e) {
+            // This exception is thrown when Wifi is manually disabled during upload MOV-698
+            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+                Log.w(TAG, "Caught SSLException: " + e.getMessage());
+            } else {
+                throw new IllegalStateException(e); // SSLException with unknown cause
             }
         } catch (final IOException e) {
             throw new IllegalStateException(e);
