@@ -43,13 +43,14 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import de.cyface.utils.Validate;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.0
+ * @version 6.0.1
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -161,23 +162,25 @@ public class HttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpResponse post(@NonNull final HttpURLConnection connection, final @NonNull File transferTempFile,
+    public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
             @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
-            @NonNull UploadProgressListener progressListener)
+            @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException {
 
         // Generate header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
         final String remainingHeader = generateHeader(metaData, fileName);
+        final byte[] remainingHeaderBytes = remainingHeader.getBytes();
 
         // Set the fixed number of bytes which will be written to the OutputStream
         final long binarySize = transferTempFile.length();
-        final long bytesWrittenToOutputStream = calculateBytesWrittenToOutputStream(remainingHeader, binarySize);
+        Validate.isTrue(binarySize != 0L); // We don't post empty files, ensure files still exists
+        final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderBytes, binarySize);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            connection.setFixedLengthStreamingMode(bytesWrittenToOutputStream);
+            connection.setFixedLengthStreamingMode(fixedStreamLength);
         } else {
-            connection.setFixedLengthStreamingMode((int)bytesWrittenToOutputStream);
+            connection.setFixedLengthStreamingMode((int)fixedStreamLength);
         }
         // connection.setRequestProperty("Content-length" should be obsolete with setFixedLengthStreamingMode
 
@@ -194,9 +197,11 @@ public class HttpConnection implements Http {
         try {
             connection.connect();
             try {
+                long bytesWrittenToOutputStream = 0;
+
                 // Write MultiPart header (including the filePartHeader
-                outputStream.write(remainingHeader.getBytes());
-                outputStream.flush();
+                bytesWrittenToOutputStream += remainingHeaderBytes.length;
+                outputStream.write(remainingHeaderBytes);
 
                 // Create file upload buffer
                 // noinspection PointlessArithmeticExpression - makes semantically more sense
@@ -208,24 +213,30 @@ public class HttpConnection implements Http {
                 buffer = new byte[bufferSize];
 
                 // Write the binaries to the OutputStream
-                int progress = 0;
+                int bytesWritten = 0;
                 int bytesRead;
                 bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
                 while (bytesRead > 0) {
                     outputStream.write(buffer, 0, bufferSize);
-                    outputStream.flush();
-                    progress += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((progress * 100.0f) / binarySize);
+                    bytesWritten += bytesRead; // Here progress is total uploaded bytes
+                    progressListener.updatedProgress((bytesWritten * 100.0f) / binarySize);
 
                     bytesAvailable = bufferedFileInputStream.available();
                     bufferSize = Math.min(bytesAvailable, maxBufferSize);
                     bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
                 }
+                bytesWrittenToOutputStream += bytesWritten;
 
                 // Write MultiPart Tail boundary
                 outputStream.write(TAIL.getBytes());
+                bytesWrittenToOutputStream += TAIL.getBytes().length;
+
+                // Ensure we only write the "registered" number of bytes to the stream MOV-693
+                outputStream.flush(); // This way we can identify exceptions thrown by flush easier
+                Validate.isTrue(bytesWrittenToOutputStream == fixedStreamLength, "bytesWrittenToOutputStream "
+                        + bytesWrittenToOutputStream + " != " + fixedStreamLength + " fixedStreamLength");
             } finally {
-                outputStream.close(); // automatically flushes, too
+                outputStream.close();
             }
         } catch (final IOException e) {
             throw new IllegalStateException(e);
@@ -239,16 +250,16 @@ public class HttpConnection implements Http {
      * {@code HttpConnection#setFixedLengthStreamingMode()}) allows to flush the {@code OutputStream} frequently to
      * reduce the amount of bytes kept in memory.
      *
-     * @param header The MultiPart header as string which will be written to the {@code OutputStream}
+     * @param headerBytes The MultiPart header as string which will be written to the {@code OutputStream}
      * @param binarySize The number of bytes of the binary which will be written to the {@code OutputStream}
      */
-    long calculateBytesWrittenToOutputStream(@NonNull final String header, final long binarySize) {
+    long calculateBytesWrittenToOutputStream(final byte[] headerBytes, final long binarySize) {
 
         // This should be obsolete with setFixedLengthStreamingMode:
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
 
         // Set count of Bytes not chars in the header!
-        return header.getBytes().length + binarySize + TAIL.length();
+        return headerBytes.length + binarySize + TAIL.getBytes().length;
     }
 
     private byte[] gzip(byte[] input) {
@@ -306,13 +317,17 @@ public class HttpConnection implements Http {
         // Location meta data
         String startLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.startLocation != null) {
-            startLocationPart = generatePart("startLocation", "lat: " + metaData.startLocation.getLat() + ", lon: "
-                    + metaData.startLocation.getLon() + ", time: " + metaData.startLocation.getTimestamp());
+            final String startLocLat = generatePart("startLocLat", String.valueOf(metaData.startLocation.getLat()));
+            final String startLocLon = generatePart("startLocLon", String.valueOf(metaData.startLocation.getLon()));
+            final String startLocTS = generatePart("startLocTS", String.valueOf(metaData.startLocation.getTimestamp()));
+            startLocationPart = startLocLat + startLocLon + startLocTS;
         }
         String endLocationPart = ""; // We only transfer this part if there are > 0 locations
         if (metaData.endLocation != null) {
-            endLocationPart = generatePart("endLocation", "lat: " + metaData.endLocation.getLat() + ", lon: "
-                    + metaData.endLocation.getLon() + ", time: " + metaData.endLocation.getTimestamp());
+            final String endLocLat = generatePart("endLocLat", String.valueOf(metaData.endLocation.getLat()));
+            final String endLocLon = generatePart("endLocLon", String.valueOf(metaData.endLocation.getLon()));
+            final String endLocTS = generatePart("endLocTS", String.valueOf(metaData.endLocation.getTimestamp()));
+            endLocationPart = endLocLat + endLocLon + endLocTS;
         }
         final String locationCountPart = generatePart("locationCount", String.valueOf(metaData.locationCount));
 
