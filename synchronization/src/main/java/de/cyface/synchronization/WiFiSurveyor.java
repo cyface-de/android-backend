@@ -44,7 +44,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 7.1.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -104,6 +104,14 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * A callback which handles changes on the connectivity starting at API {@link Build.VERSION_CODES#LOLLIPOP}
      */
     private NetworkCallback networkCallback;
+    /**
+     * A flag which shows if the code is using the {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} flag instead
+     * of {@code NetworkCapabilities#TRANSPORT_WIFI} to determine if we are connected to a syncable network.
+     * <p>
+     * This should work starting with {@code Build.VERSION_CODES#M} but in our tests wifi networks where identifies as
+     * "metered" on lower APIs (e.g. Android 6.0.1).
+     */
+    public final static int MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG = Build.VERSION_CODES.O;
 
     /**
      * Creates a new completely initialized <code>WiFiSurveyor</code> within the current Android context.
@@ -139,29 +147,44 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * <b>ATTENTION:</b> If you use this method do not forget to call {@link #stopSurveillance()}, at some time in the
      * future or you will waste system resources.
      * <p>
-     * <b>ATTENTION:</b> Starting at version {@code Build.VERSION_CODES.O} and higher instead of
-     * treating only "WiFi" connections as "not metered" we use the
-     * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as suggested by Android.
+     * <b>ATTENTION:</b> Starting at {@link #MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG} we use
+     * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} instead of {@code NetworkCapabilities#TRANSPORT_WIFI}
+     * to determine if a connection is syncable.
      *
      * @param account Starts surveillance of the WiFi connection status for this account.
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    public void startSurveillance(final @NonNull Account account) throws SynchronisationException {
+    public void startSurveillance(@NonNull final Account account) throws SynchronisationException {
+
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
         }
-
         currentSynchronizationAccount = account;
-        scheduleSyncNow(); // Needs to be called after currentSynchronizationAccount is set
+
+        // To make sure the state is correct before we start listening to network changes
+        if (!isConnectedToSyncableNetwork()) {
+            Log.v(TAG, "startSurveillance: not connected to syncable network");
+            setConnected(false);
+        } else {
+            Log.v(TAG, "startSurveillance: connected to syncable network");
+            setConnected(true);
+            scheduleSyncNow(); // Needs to be called after currentSynchronizationAccount is set
+        }
 
         // Roboelectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
 
             final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
             if (syncOnUnMeteredNetworkOnly) {
-                Log.v(TAG, "startSurveillance for wifi networks only");
-                // Cleaner is "NET_CAPABILITY_NOT_METERED" but this is not yet available on the client (unclear why)
-                requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+                final boolean isUsingUnMeteredCheckInsteadOfWifi = Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
+
+                if (isUsingUnMeteredCheckInsteadOfWifi) {
+                    requestBuilder.addCapability(NET_CAPABILITY_NOT_METERED);
+                } else {
+                    requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
+                }
+                Log.v(TAG, "startSurveillance for " + (isUsingUnMeteredCheckInsteadOfWifi ? "unMetered" : "wifi")
+                        + " networks only");
             }
             networkCallback = new NetworkCallback(this, currentSynchronizationAccount);
             connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
@@ -215,12 +238,16 @@ public class WiFiSurveyor extends BroadcastReceiver {
             return;
         }
 
-        if (isConnectedToSyncableNetwork()) {
-            final Bundle params = new Bundle();
-            params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
-            params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
-            ContentResolver.requestSync(currentSynchronizationAccount, authority, params);
+        if (!isConnectedToSyncableNetwork()) {
+            Log.d(TAG, "scheduleSyncNow aborted, not connected to syncable network");
+            return;
         }
+
+        Log.v(TAG, "scheduleSyncNow");
+        final Bundle params = new Bundle();
+        params.putBoolean(ContentResolver.SYNC_EXTRAS_EXPEDITED, true);
+        params.putBoolean(ContentResolver.SYNC_EXTRAS_MANUAL, true);
+        ContentResolver.requestSync(currentSynchronizationAccount, authority, params);
     }
 
     @Override
@@ -336,7 +363,8 @@ public class WiFiSurveyor extends BroadcastReceiver {
         ContentResolver.setSyncAutomatically(account, authority, false);
         setSyncEnabled(account, enabled);
 
-            // Do not use validateAccountFlags in production code as periodicSync flags are set async
+        // We cannot validate here synchronously that the periodicSync flag was set as the setter is async.
+        // For this reason we have the SetConnectedTest cases.
     }
 
     /**
@@ -372,33 +400,43 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *         {@link #setSyncOnUnMeteredNetworkOnly(boolean)} settings.
      */
     boolean isConnectedToSyncableNetwork() {
+
         Validate.notNull(connectivityManager);
-        final boolean isNotMeteredNetwork;
         final NetworkInfo activeNetworkInfo = connectivityManager.getActiveNetworkInfo();
 
         // We use the new code only on Android 8 and above as Wifi networks are seen as metered in 6.0.1 (MOV-568)
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+        final boolean isUnMeteredNetwork;
+        if (Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG) {
 
             final Network activeNetwork = connectivityManager.getActiveNetwork();
             final NetworkCapabilities networkCapabilities = connectivityManager.getNetworkCapabilities(activeNetwork);
             if (networkCapabilities == null) {
+                Log.w(TAG, "isConnectedToSyncableNetwork: returning false as networkCapabilities is null");
                 // This happened on Xiaomi Mi A2 Android 9.0 in the morning after capturing during the night
                 return false;
             }
-            isNotMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
+            isUnMeteredNetwork = networkCapabilities.hasCapability(NET_CAPABILITY_NOT_METERED);
 
         } else {
-            isNotMeteredNetwork = activeNetworkInfo != null
+
+            isUnMeteredNetwork = activeNetworkInfo != null
                     && activeNetworkInfo.getType() == ConnectivityManager.TYPE_WIFI;
         }
 
         final boolean isConnected = activeNetworkInfo != null && activeNetworkInfo.isConnected();
-        final boolean isSyncableConnection = isConnected && (isNotMeteredNetwork || !syncOnUnMeteredNetworkOnly);
+        final boolean isSyncableConnection = isConnected && (isUnMeteredNetwork || !syncOnUnMeteredNetworkOnly);
 
-        Log.v(TAG,
-                "isConnectedToSyncableNetwork: " + isSyncableConnection + " ("
-                        + (isNotMeteredNetwork ? "notMetered" : "metered") + ", "
-                        + (syncOnUnMeteredNetworkOnly ? "with" : "without") + " syncOnUnMeteredNetworkOnly)");
+        String networkType = "unconnected";
+        if (isConnected) {
+            final boolean isUsingUnMeteredCheckInsteadWifi = Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
+            if (isUnMeteredNetwork) {
+                networkType = isUsingUnMeteredCheckInsteadWifi ? "unMetered" : "wifi";
+            } else {
+                networkType = isUsingUnMeteredCheckInsteadWifi ? "metered" : "mobileData";
+            }
+        }
+        Log.v(TAG, "isConnectedToSyncableNetwork: " + isSyncableConnection + " (" + networkType + ", "
+                + (syncOnUnMeteredNetworkOnly ? "with" : "without") + " syncOnUnMeteredNetworkOnly)");
         return isSyncableConnection;
     }
 
@@ -407,9 +445,9 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * {@code android.net.NetworkCapabilities#NET_CAPABILITY_NOT_METERED}
      * networks or on all networks.
      * <p>
-     * <b>ATTENTION:</b> Starting at version {@code Build.VERSION_CODES.O} and higher instead of
-     * treating only "WiFi" connections as "not metered" we use the
-     * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} as synonym as suggested by Android.
+     * <b>ATTENTION:</b> Starting at version {@link #MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG} we use the
+     * {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED} flag instead of
+     * {@code NetworkCapabilities#TRANSPORT_WIFI} as suggested by Android.
      * <p>
      * This method must be called after {@link #startSurveillance(Account)} is called.
      *
@@ -455,6 +493,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             ContentResolver.removePeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY);
             ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
         }
+        Log.v(TAG, "setConnected to " + enable);
 
         // We cannot instantly check weather addPeriodicSync did it's job as this seems to be async.
         // For this reason we have a test to ensure this works: WifiSurveyorTest.testSetConnected()
