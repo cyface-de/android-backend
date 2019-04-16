@@ -98,7 +98,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.1
+ * @version 16.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -200,7 +200,7 @@ public abstract class DataCapturingService {
      *            collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *            this service. This must be in the format "https://some.url/optional/resource".
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
@@ -221,6 +221,10 @@ public abstract class DataCapturingService {
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
+
+        if (!dataUploadServerAddress.startsWith("https://")) {
+            throw new SetupException("Invalid URL protocol");
+        }
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.persistenceLayer = persistenceLayer;

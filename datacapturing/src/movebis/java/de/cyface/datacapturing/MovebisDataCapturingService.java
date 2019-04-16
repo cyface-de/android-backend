@@ -72,7 +72,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.1
+ * @version 9.0.2
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -126,7 +126,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *            this service. This must be in the format "https://some.url/optional/resource".
      * @param uiListener A listener for events which the UI might be interested in.
      * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
      *            if you would like to be notified as often as possible.
@@ -166,7 +166,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *            this service. This must be in the format "https://some.url/optional/resource".
      * @param uiListener A listener for events which the UI might be interested in.
      * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
      *            if you would like to be notified as often as possible.

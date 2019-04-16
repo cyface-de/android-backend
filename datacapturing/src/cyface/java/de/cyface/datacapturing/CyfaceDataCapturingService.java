@@ -53,7 +53,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.1
+ * @version 10.0.2
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -68,7 +68,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *            this service. This must be in the format "https://some.url/optional/resource".
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
@@ -105,7 +105,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *            this service. This must be in the format "https://some.url/optional/resource".
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
