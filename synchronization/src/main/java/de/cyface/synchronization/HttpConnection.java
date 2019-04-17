@@ -1,14 +1,18 @@
 /*
  * Copyright 2017 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -35,6 +39,7 @@ import java.util.zip.GZIPOutputStream;
 import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
+import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
 import org.json.JSONObject;
@@ -50,7 +55,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.1
+ * @version 6.0.3
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -58,7 +63,7 @@ public class HttpConnection implements Http {
     /**
      * A String to filter log output from {@link HttpConnection} logs.
      */
-    final static String TAG = "de.cyface.http";
+    final static String TAG = "de.cyface.sync.http";
     /**
      * The boundary to be used in the Multipart request to separate data.
      */
@@ -237,6 +242,13 @@ public class HttpConnection implements Http {
                         + bytesWrittenToOutputStream + " != " + fixedStreamLength + " fixedStreamLength");
             } finally {
                 outputStream.close();
+            }
+        } catch (final SSLException e) {
+            // This exception is thrown when Wifi is manually disabled during upload MOV-698
+            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+                Log.w(TAG, "Caught SSLException: " + e.getMessage());
+            } else {
+                throw new IllegalStateException(e); // SSLException with unknown cause
             }
         } catch (final IOException e) {
             throw new IllegalStateException(e);

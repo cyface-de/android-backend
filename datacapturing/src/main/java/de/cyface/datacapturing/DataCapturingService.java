@@ -1,14 +1,18 @@
 /*
  * Copyright 2017 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -94,7 +98,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.0
+ * @version 16.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -196,7 +200,7 @@ public abstract class DataCapturingService {
      *            collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data with.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service.
+     *            this service. This must be in the format "https://some.url/optional/resource".
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
@@ -217,6 +221,10 @@ public abstract class DataCapturingService {
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
+
+        if (!dataUploadServerAddress.startsWith("https://")) {
+            throw new SetupException("Invalid URL protocol");
+        }
         this.context = new WeakReference<>(context);
         this.authority = authority;
         this.persistenceLayer = persistenceLayer;
