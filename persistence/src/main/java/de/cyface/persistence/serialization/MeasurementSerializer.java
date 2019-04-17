@@ -199,6 +199,8 @@ public final class MeasurementSerializer {
             @NonNull final MeasurementContentProviderClient loader, final long measurementId,
             @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
 
+        Log.d(TAG, "loadSerializedCompressed: start");
+        final long startTimestamp = System.currentTimeMillis();
         // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
 
         // Wrapping the streams with Buffered streams for performance reasons
@@ -222,6 +224,8 @@ public final class MeasurementSerializer {
                 bufferedDeflaterOutputStream.close();
             }
         }
+        Log.d(TAG, "loadSerializedCompressed: finished after " + ((System.currentTimeMillis() - startTimestamp) / 1000)
+                + " s with Deflater Level: " + DEFLATER_LEVEL);
     }
 
     /**
@@ -341,6 +345,9 @@ public final class MeasurementSerializer {
             @NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier,
             @NonNull final PersistenceLayer persistence) throws CursorIsNullException {
 
+        // Logging to collect data on serialization and compression sizes
+        long bytesSerialized = 0;
+
         // GeoLocations
         Cursor geoLocationsCursor = null;
         final byte[] serializedGeoLocations;
@@ -356,6 +363,9 @@ public final class MeasurementSerializer {
                 outputStream.write(serializeGeoLocations(geoLocationsCursor));
             }
             serializedGeoLocations = outputStream.toByteArray();
+            Log.v(TAG, String.format("Serialized %s geoLocations for synchronization.",
+                    DefaultFileAccess.humanReadableByteCount(serializedGeoLocations.length, true)));
+            bytesSerialized += serializedGeoLocations.length;
 
         } catch (final RemoteException | IOException e) {
             throw new IllegalStateException(e);
@@ -397,6 +407,9 @@ public final class MeasurementSerializer {
         final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
         final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, measurement, accelerationsCount,
                 rotationsCount, directionsCount);
+        Log.v(TAG, String.format("Serialized %s binaryHeader for synchronization.",
+                DefaultFileAccess.humanReadableByteCount(transferFileHeader.length, true)));
+        bytesSerialized += transferFileHeader.length;
 
         // Assemble bytes to transfer via buffered stream to avoid OOM
         try {
@@ -410,16 +423,19 @@ public final class MeasurementSerializer {
         if (accelerationsCount > 0) {
             Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
                     DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
+            bytesSerialized += accelerationFile.length();
             fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
         if (rotationsCount > 0) {
             Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
                     DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
+            bytesSerialized += rotationFile.length();
             fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
         }
         if (directionsCount > 0) {
             Log.v(TAG, String.format("Serializing %s directions for synchronization.",
                     DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
+            bytesSerialized += directionFile.length();
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
         }
 
@@ -428,5 +444,8 @@ public final class MeasurementSerializer {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+
+        Log.d(TAG, String.format("Serialized %s",
+                DefaultFileAccess.humanReadableByteCount(bytesSerialized, true)));
     }
 }

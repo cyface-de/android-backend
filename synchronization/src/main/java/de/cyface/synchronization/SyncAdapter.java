@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.3
+ * @version 2.6.4
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -94,7 +94,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
      *            boolean)}.
      */
-    SyncAdapter(final @NonNull Context context, final boolean autoInitialize, final @NonNull Http http) {
+    SyncAdapter(@NonNull final Context context, final boolean autoInitialize, @NonNull final Http http) {
         this(context, autoInitialize, false, http);
     }
 
@@ -107,8 +107,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @param allowParallelSyncs For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @see AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context, boolean)
      */
-    private SyncAdapter(final @NonNull Context context, final boolean autoInitialize, final boolean allowParallelSyncs,
-            final @NonNull Http http) {
+    private SyncAdapter(@NonNull final Context context, final boolean autoInitialize, final boolean allowParallelSyncs,
+            @NonNull final Http http) {
         super(context, autoInitialize, allowParallelSyncs);
 
         this.http = http;
@@ -117,9 +117,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     @Override
-    public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
-            final @NonNull String authority, final @NonNull ContentProviderClient provider,
-            final @NonNull SyncResult syncResult) {
+    public void onPerformSync(@NonNull final Account account, @NonNull final Bundle extras,
+            @NonNull final String authority, @NonNull final ContentProviderClient provider,
+            @NonNull final SyncResult syncResult) {
         // This allows us to mock the #isConnected() check for unit tests
         mockIsConnectedToReturnTrue = extras.containsKey(MOCK_IS_CONNECTED_TO_RETURN_TRUE);
 
@@ -334,7 +334,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         return ContentResolver.getSyncAutomatically(account, authority);
     }
 
-    private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {
+    private void addConnectionListener(@NonNull final ConnectionStatusListener listener) {
         progressListener.add(listener);
     }
 
