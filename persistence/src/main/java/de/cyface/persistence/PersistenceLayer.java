@@ -862,4 +862,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         resolver.insert(getEventUri(), contentValues);
     }
+
+    /**
+     * Returns the directory used to store temporary files such as the files prepared for synchronization.
+     *
+     * @return The directory to be used for temporary files
+     */
+    public File getCacheDir() {
+        return getContext().getCacheDir();
+    }
 }

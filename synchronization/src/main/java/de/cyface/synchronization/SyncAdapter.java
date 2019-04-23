@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSED_TRANSFER_FILE_PREFIX;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
@@ -25,6 +26,7 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 
 import java.io.File;
+import java.io.FilenameFilter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -47,6 +49,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
@@ -65,7 +68,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.4
+ * @version 2.6.5
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -194,11 +197,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     return;
                 }
                 // Load compressed transfer file for measurement
-                final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                        measurement.getIdentifier(), persistence);
+                File compressedTransferTempFile = null;
 
                 // Try to sync the transfer file - remove it afterwards
                 try {
+                    compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
+                            measurement.getIdentifier(), persistence);
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     try {
@@ -217,6 +221,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // The network setting may have changed since the initial sync call, avoid using metered network
                     // without permission
+
                     if (!isConnected(account, authority)) {
                         Log.w(TAG, "Sync aborted: syncable connection not available anymore");
                         return;
@@ -248,7 +253,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     Log.d(Constants.TAG, "Measurement marked as synced.");
 
                 } finally {
-                    if (compressedTransferTempFile.exists()) {
+                    if (compressedTransferTempFile != null && compressedTransferTempFile.exists()) {
                         Validate.isTrue(compressedTransferTempFile.delete());
                     }
                 }
@@ -262,6 +267,18 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
         } finally {
+            // In MOV-719 space used grows when capturing is stopped. This should ensure this cannot happen
+            File[] tmpFiles = persistence.getCacheDir().listFiles(new FilenameFilter() {
+                @Override
+                public boolean accept(File dir, String name) {
+                    return name.contains(COMPRESSED_TRANSFER_FILE_PREFIX);
+                }
+            });
+            for (File file : tmpFiles) {
+                Log.w(TAG, "Cleaning forgotten compressedTransferFile: " + file.getName());
+                Validate.isTrue(file.delete());
+            }
+
             Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();

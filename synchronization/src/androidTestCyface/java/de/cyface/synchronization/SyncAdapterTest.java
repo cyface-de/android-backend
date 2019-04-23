@@ -36,6 +36,7 @@ import java.util.List;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.FixMethodOrder;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.junit.runners.MethodSorters;
@@ -56,6 +57,7 @@ import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -187,7 +189,7 @@ public final class SyncAdapterTest {
      */
     @Test
     @LargeTest // ~ 8-10 minutes
-    // FIXME: @Ignore
+    @Ignore
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
         final int point3dCount = 2_880_000; // 100 Hz * 8 h

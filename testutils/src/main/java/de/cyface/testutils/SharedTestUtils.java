@@ -46,6 +46,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileAccessLayer;
@@ -69,7 +70,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.2
+ * @version 4.2.3
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -357,12 +358,12 @@ public class SharedTestUtils {
         // Check the sensor data (must be before measurements are marked as sync which deletes the data)
         // noinspection ConstantConditions - we may add tests with a 0 count later
         if (point3dCount > 0) {
-            /*assertThat((int)(accelerationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
+            assertThat((int)(accelerationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
                     is(equalTo(point3dCount)));
             assertThat((int)(rotationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
                     is(equalTo(point3dCount)));
             assertThat((int)(directionsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));*/
+                    is(equalTo(point3dCount)));
         }
 
         if (status == SYNCED) {

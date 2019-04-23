@@ -42,6 +42,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
@@ -77,7 +78,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.1
+ * @version 4.2.3
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -115,6 +116,10 @@ public final class MeasurementSerializer {
      */
     public static final boolean COMPRESSION_NOWRAP = true;
     /**
+     * The prefix of the filename used to store compressed files for serialization.
+     */
+    public static final String COMPRESSED_TRANSFER_FILE_PREFIX = "compressedTransferFile";
+    /**
      * The {@link FileAccessLayer} used to interact with files.
      */
     private final FileAccessLayer fileAccessLayer;
@@ -143,11 +148,12 @@ public final class MeasurementSerializer {
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
             final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
+        FileOutputStream fileOutputStream;
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
         File compressedTempFile = null;
-        final FileOutputStream fileOutputStream;
         try {
-            compressedTempFile = File.createTempFile("compressedTransferFile", ".tmp");
+            final File cacheDir = persistenceLayer.getContext().getCacheDir();
+            compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
 
             // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
             fileOutputStream = new FileOutputStream(compressedTempFile);
@@ -170,6 +176,7 @@ public final class MeasurementSerializer {
                     Validate.isTrue(compressedTempFile.delete());
                 }
             }
+            fileOutputStream.close();
         } catch (final IOException e) {
             if (compressedTempFile.exists()) {
                 Validate.isTrue(compressedTempFile.delete());
