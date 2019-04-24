@@ -48,6 +48,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -55,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.3
+ * @version 7.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -140,8 +141,9 @@ public class HttpConnection implements Http {
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
             final boolean compress)
-            throws RequestParsingException, SynchronisationException, UnauthorizedException, BadRequestException,
-            InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException {
+            throws SynchronisationException, UnauthorizedException, BadRequestException,
+            InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
+            NetworkUnavailableException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
@@ -158,8 +160,16 @@ public class HttpConnection implements Http {
             }
             outputStream.flush();
             outputStream.close();
+        } catch (final SSLException e) {
+            // This exception is thrown by OkHttp when the network is no longer available
+            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+                Log.w(TAG, "Caught SSLException: " + e.getMessage());
+                throw new NetworkUnavailableException("Network became unavailable during transmission.");
+            } else {
+                throw new IllegalStateException(e); // SSLException with unknown cause
+            }
         } catch (final IOException e) {
-            throw new RequestParsingException("Posting login request failed", e);
+            throw new IllegalStateException(e);
         }
 
         return readResponse(connection);
@@ -171,7 +181,7 @@ public class HttpConnection implements Http {
             @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
-            ForbiddenException, EntityNotParsableException, ConflictException {
+            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException {
 
         // Generate header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
@@ -244,9 +254,10 @@ public class HttpConnection implements Http {
                 outputStream.close();
             }
         } catch (final SSLException e) {
-            // This exception is thrown when Wifi is manually disabled during upload MOV-698
+            // This exception is thrown by OkHttp when the network is no longer available
             if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
                 Log.w(TAG, "Caught SSLException: " + e.getMessage());
+		        throw new NetworkUnavailableException("Network became unavailable during transmission.");
             } else {
                 throw new IllegalStateException(e); // SSLException with unknown cause
             }

@@ -23,6 +23,7 @@
     <string name="error_message_forbidden">Permission denied</string>
     <string name="error_message_internal_server_error">Internal server error</string>
     <string name="error_message_entity_not_parsable">Request not readable</string>
+    <string name="error_message_network_unavailable">Connection interrupted</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unexpected error</string>
