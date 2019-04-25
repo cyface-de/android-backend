@@ -18,7 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSED_TRANSFER_FILE_PREFIX;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
@@ -26,7 +25,6 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
 
 import java.io.File;
-import java.io.FilenameFilter;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -68,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.5
+ * @version 2.6.6
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -267,18 +265,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
         } finally {
-            // In MOV-719 space used grows when capturing is stopped. This should ensure this cannot happen
-            File[] tmpFiles = persistence.getCacheDir().listFiles(new FilenameFilter() {
-                @Override
-                public boolean accept(File dir, String name) {
-                    return name.contains(COMPRESSED_TRANSFER_FILE_PREFIX);
-                }
-            });
-            for (File file : tmpFiles) {
-                Log.w(TAG, "Cleaning forgotten compressedTransferFile: " + file.getName());
-                Validate.isTrue(file.delete());
-            }
-
             Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
                 listener.onSyncFinished();

@@ -78,7 +78,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.3
+ * @version 4.2.4
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -148,41 +148,29 @@ public final class MeasurementSerializer {
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
             final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
-        FileOutputStream fileOutputStream;
+        FileOutputStream fileOutputStream = null;
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
         File compressedTempFile = null;
-        try {
-            final File cacheDir = persistenceLayer.getContext().getCacheDir();
-            compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
+        final File cacheDir = persistenceLayer.getContext().getCacheDir();
 
-            // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
-            fileOutputStream = new FileOutputStream(compressedTempFile);
+        try {
+            try {
+                compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
+
+                // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
+                fileOutputStream = new FileOutputStream(compressedTempFile);
+
+                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
+            } finally {
+                if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                }
+            }
         } catch (final IOException e) {
             if (compressedTempFile != null && compressedTempFile.exists()) {
                 Validate.isTrue(compressedTempFile.delete());
             }
 
-            // No need to close fileOutputStream as it failed to open and is null
-            throw new IllegalStateException(e);
-        }
-
-        try {
-            try {
-                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
-            } catch (final IOException e) {
-                fileOutputStream.close();
-
-                if (compressedTempFile.exists()) {
-                    Validate.isTrue(compressedTempFile.delete());
-                }
-            }
-            fileOutputStream.close();
-        } catch (final IOException e) {
-            if (compressedTempFile.exists()) {
-                Validate.isTrue(compressedTempFile.delete());
-            }
-
-            // This catches, among others, the IOException thrown in the close
             throw new IllegalStateException(e);
         }
 
