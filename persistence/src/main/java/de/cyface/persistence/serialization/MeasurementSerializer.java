@@ -78,7 +78,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.4
+ * @version 4.2.5
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -151,7 +151,7 @@ public final class MeasurementSerializer {
         FileOutputStream fileOutputStream = null;
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
         File compressedTempFile = null;
-        final File cacheDir = persistenceLayer.getContext().getCacheDir();
+        final File cacheDir = persistenceLayer.getCacheDir();
 
         try {
             try {
