@@ -70,7 +70,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.3
+ * @version 4.2.4
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -334,7 +334,7 @@ public class SharedTestUtils {
             dPoints.add(new Point3d(7.65f + salt, -32.4f + salt, -71.4f + salt, 1501662636010L + i));
 
             // Avoid OOM when creating too much test data at once
-            if (i >= createLimit) {
+            if (i >= createLimit -1) {
                 insertPoint3ds(accelerationsFile, aPoints);
                 insertPoint3ds(rotationsFile, rPoints);
                 insertPoint3ds(directionsFile, dPoints);
@@ -342,7 +342,7 @@ public class SharedTestUtils {
                 aPoints.clear();
                 rPoints.clear();
                 dPoints.clear();
-                i = 0;
+                i = -1; // because "i" is incremented just after this statement (end of loop iteration)
             }
         }
         insertPoint3ds(accelerationsFile, aPoints);
