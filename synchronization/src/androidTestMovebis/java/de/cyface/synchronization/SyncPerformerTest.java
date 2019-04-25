@@ -56,6 +56,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
@@ -75,7 +76,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -122,7 +123,8 @@ public class SyncPerformerTest {
     @Test
     public void testSendData_returnsTrueWhenServerReturns409() throws CursorIsNullException, NoSuchMeasurementException,
             ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
-            UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException {
+            UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
+            NetworkUnavailableException {
 
         // Arrange
         // Insert data to be synced
