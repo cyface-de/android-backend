@@ -30,14 +30,15 @@ import android.location.Location;
 
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 
 /**
- * Tests that the {@code Measurement#distance} is calculated as expected.
+ * Tests that the {@link Measurement#getDistance()} is calculated as expected.
  * <p>
  * This has to be an integration test as we use Android's {@link Location} class for distance calculation.
  *
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 3.2.0
  */
 @RunWith(RobolectricTestRunner.class)

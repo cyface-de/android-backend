@@ -27,10 +27,10 @@ import de.cyface.persistence.model.Measurement;
 
 /**
  * The default implementation of the {@link DistanceCalculationStrategy} which calculates the
- * {@link Measurement#distance} using simply {@link Location#distanceTo(Location)}.
+ * {@link Measurement#getDistance()} using simply {@link Location#distanceTo(Location)}.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 3.2.0
  */
 public class DefaultDistanceCalculationStrategy implements DistanceCalculationStrategy {

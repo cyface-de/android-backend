@@ -26,18 +26,18 @@ import de.cyface.persistence.model.Measurement;
 
 /**
  * Interface for strategies to respond to {@code DataCapturingBackgroundService#onLocationCaptured()} events
- * to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs.
+ * to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs.
  * <p>
  * Must be {@code Parcelable} to be passed from the {@code DataCapturingService} via {@code Intent}.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 3.2.0
  */
 public interface DistanceCalculationStrategy extends Parcelable {
 
     /**
-     * Implements a strategy to calculate the {@link Measurement#distance} based on two subsequent {@link GeoLocation}s.
+     * Implements a strategy to calculate the {@link Measurement#getDistance()} based on two subsequent {@link GeoLocation}s.
      *
      * @param lastLocation The {@code GeoLocation} captured before {@param newLocation}
      * @param newLocation The {@code GeoLocation} captured after {@param lastLocation}
