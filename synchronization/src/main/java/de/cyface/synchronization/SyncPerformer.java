@@ -20,6 +20,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
+import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -155,6 +156,10 @@ class SyncPerformer {
         } catch (final BadRequestException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
+            return false;
+        } catch (final NetworkUnavailableException e) {
+            syncResult.stats.numIoExceptions++;
+            sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
             return false;
         } catch (final ConflictException e) {
             syncResult.stats.numSkippedEntries++;

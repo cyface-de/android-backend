@@ -43,6 +43,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -62,7 +63,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.1
+ * @version 14.0.2
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -778,7 +779,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@link Measurement#getDistance()} entry of the currently captured {@link Measurement}.
      * <p>
      * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
      *
@@ -795,7 +796,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@link Measurement#getDistance()} entry of the currently captured {@link Measurement}.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param values The new {@link ContentValues} to be stored.
@@ -861,5 +862,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
 
         resolver.insert(getEventUri(), contentValues);
+    }
+
+    /**
+     * Returns the directory used to store temporary files such as the files prepared for synchronization.
+     *
+     * @return The directory to be used for temporary files
+     */
+    public File getCacheDir() {
+        return getContext().getCacheDir();
     }
 }

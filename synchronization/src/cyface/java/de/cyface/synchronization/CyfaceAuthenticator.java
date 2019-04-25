@@ -20,6 +20,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
@@ -59,6 +60,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -72,7 +74,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.6.1
+ * @version 2.0.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -156,11 +158,14 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         } catch (final MalformedURLException e) {
             sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
-        } catch (final SynchronisationException | RequestParsingException e) {
+        } catch (final SynchronisationException e) {
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
         } catch (final UnauthorizedException e) {
             sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final NetworkUnavailableException e) {
+            sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
         }
 
@@ -275,13 +280,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @return The currently valid auth token to be used by further requests from this application.
      * @throws SynchronisationException – If an IOException occurred while reading the response code.
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
-     * @throws RequestParsingException When the request could not be posted.
      * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
+     * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
      */
     private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            RequestParsingException {
+            NetworkUnavailableException {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl

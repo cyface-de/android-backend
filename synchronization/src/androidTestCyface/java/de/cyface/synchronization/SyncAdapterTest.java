@@ -49,6 +49,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
@@ -56,6 +57,7 @@ import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -118,7 +120,11 @@ public final class SyncAdapterTest {
         if (oldAccounts.length > 0) {
             for (Account oldAccount : oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
-                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    accountManager.removeAccount(oldAccount, null, null);
+                } else {
+                    Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+                }
             }
         }
 
@@ -186,8 +192,8 @@ public final class SyncAdapterTest {
     @Ignore
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
-        final int point3dCount = 3_000_000;
-        final int locationCount = 3_000;
+        final int point3dCount = 2_880_000; // 100 Hz * 8 h
+        final int locationCount = 28_800; // 1 Hz * 8 h
 
         // Arrange
         // Insert data to be synced
@@ -214,7 +220,11 @@ public final class SyncAdapterTest {
             oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
-                client.close();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    client.close();
+                } else {
+                    client.release();
+                }
             }
         }
 

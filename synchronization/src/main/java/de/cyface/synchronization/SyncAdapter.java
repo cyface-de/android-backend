@@ -47,6 +47,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
@@ -65,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.3
+ * @version 2.6.6
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -94,7 +95,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      *            {@link AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context,
      *            boolean)}.
      */
-    SyncAdapter(final @NonNull Context context, final boolean autoInitialize, final @NonNull Http http) {
+    SyncAdapter(@NonNull final Context context, final boolean autoInitialize, @NonNull final Http http) {
         this(context, autoInitialize, false, http);
     }
 
@@ -107,8 +108,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @param allowParallelSyncs For details have a look at <code>AbstractThreadedSyncAdapter</code>.
      * @see AbstractThreadedSyncAdapter#AbstractThreadedSyncAdapter(Context, boolean)
      */
-    private SyncAdapter(final @NonNull Context context, final boolean autoInitialize, final boolean allowParallelSyncs,
-            final @NonNull Http http) {
+    private SyncAdapter(@NonNull final Context context, final boolean autoInitialize, final boolean allowParallelSyncs,
+            @NonNull final Http http) {
         super(context, autoInitialize, allowParallelSyncs);
 
         this.http = http;
@@ -117,9 +118,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     @Override
-    public void onPerformSync(final @NonNull Account account, final @NonNull Bundle extras,
-            final @NonNull String authority, final @NonNull ContentProviderClient provider,
-            final @NonNull SyncResult syncResult) {
+    public void onPerformSync(@NonNull final Account account, @NonNull final Bundle extras,
+            @NonNull final String authority, @NonNull final ContentProviderClient provider,
+            @NonNull final SyncResult syncResult) {
         // This allows us to mock the #isConnected() check for unit tests
         mockIsConnectedToReturnTrue = extras.containsKey(MOCK_IS_CONNECTED_TO_RETURN_TRUE);
 
@@ -194,11 +195,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     return;
                 }
                 // Load compressed transfer file for measurement
-                final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                        measurement.getIdentifier(), persistence);
+                File compressedTransferTempFile = null;
 
                 // Try to sync the transfer file - remove it afterwards
                 try {
+                    compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
+                            measurement.getIdentifier(), persistence);
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     try {
@@ -217,6 +219,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // The network setting may have changed since the initial sync call, avoid using metered network
                     // without permission
+
                     if (!isConnected(account, authority)) {
                         Log.w(TAG, "Sync aborted: syncable connection not available anymore");
                         return;
@@ -248,7 +251,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     Log.d(Constants.TAG, "Measurement marked as synced.");
 
                 } finally {
-                    if (compressedTransferTempFile.exists()) {
+                    if (compressedTransferTempFile != null && compressedTransferTempFile.exists()) {
                         Validate.isTrue(compressedTransferTempFile.delete());
                     }
                 }
@@ -334,7 +337,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         return ContentResolver.getSyncAutomatically(account, authority);
     }
 
-    private void addConnectionListener(final @NonNull ConnectionStatusListener listener) {
+    private void addConnectionListener(@NonNull final ConnectionStatusListener listener) {
         progressListener.add(listener);
     }
 

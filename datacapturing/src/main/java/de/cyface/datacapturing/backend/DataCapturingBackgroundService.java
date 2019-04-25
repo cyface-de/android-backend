@@ -54,6 +54,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.DataCapturingService;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.MessageCodes;
@@ -82,7 +83,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.1
+ * @version 6.0.2
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -138,7 +139,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     EventHandlingStrategy eventHandlingStrategy;
     /**
-     * The strategy used to calculate the {@link Measurement#distance} from {@link GeoLocation} pairs
+     * The strategy used to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs
      */
     DistanceCalculationStrategy distanceCalculationStrategy;
     /**
@@ -150,7 +151,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     private GeoLocation lastLocation = null;
     /**
-     * The {@link Measurement#distance} in meters until the last location update.
+     * The {@link Measurement#getDistance()} in meters until the last location update.
      */
     private double lastDistance;
 

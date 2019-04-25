@@ -98,7 +98,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.2
+ * @version 16.0.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -176,7 +176,7 @@ public abstract class DataCapturingService {
      */
     private final EventHandlingStrategy eventHandlingStrategy;
     /**
-     * The strategy used to calculate the {@code Measurement#distance} from {@link GeoLocation} pairs
+     * The strategy used to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs
      */
     private final DistanceCalculationStrategy distanceCalculationStrategy;
     /**
@@ -205,7 +205,7 @@ public abstract class DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
-     *            {@link Measurement#distance}
+     *            {@link Measurement#getDistance()}
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
