@@ -59,6 +59,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -98,7 +99,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.3
+ * @version 16.1.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -130,6 +131,10 @@ public abstract class DataCapturingService {
      * Messenger that handles messages arriving from the <code>DataCapturingBackgroundService</code>.
      */
     private final Messenger fromServiceMessenger;
+    /**
+     * A handler for messages coming from the {@link DataCapturingBackgroundService}.
+     */
+    private final FromServiceMessageHandler fromServiceMessageHandler;
     /**
      * Messenger used to send messages from this class to the <code>DataCapturingBackgroundService</code>.
      */
@@ -252,7 +257,7 @@ public abstract class DataCapturingService {
             throw new SetupException("Android connectivity manager is not available!");
         }
         surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
-        final FromServiceMessageHandler fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
+        fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
         // The listeners are automatically removed when the service is destroyed (e.g. app kill)
         fromServiceMessageHandler.addListener(capturingListener);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
@@ -948,10 +953,37 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * Adds a new {@link DataCapturingListener} interested in events from the {@link DataCapturingBackgroundService}.
+     * <p>
+     * All listeners are automatically removed when the {@link DataCapturingService} is killed.
+     *
+     * @param listener A listener that is notified of important events during data capturing.
+     * @return true if this collection changed as a result of the call
+     */
+    @SuppressWarnings("unused") // Used by SDK implementing apps (S, C)
+    public boolean addDataCapturingListener(@NonNull final DataCapturingListener listener) {
+        return fromServiceMessageHandler.addListener(listener);
+    }
+
+    /**
+     * Removes a registered {@link DataCapturingListener} from {@link DataCapturingBackgroundService} events.
+     * <p>
+     * Listeners may be removed when on Android's onPause Lifecycle method or e.g. when the UI is disabled.
+     *
+     * @param listener A listener that was registered to be notified of important events during data capturing.
+     * @return true if an element was removed as a result of this call
+     */
+    @SuppressWarnings("unused") // Used by SDK implementing apps (S, C)
+    public boolean removeDataCapturingListener(@NonNull final DataCapturingListener listener) {
+        return fromServiceMessageHandler.removeListener(listener);
+    }
+
+    /**
      * A handler for messages coming from the {@link DataCapturingBackgroundService}.
      *
      * @author Klemens Muthmann
-     * @version 1.0.1
+     * @author Armin Schnabel
+     * @version 2.0.0
      * @since 2.0.0
      */
     private static class FromServiceMessageHandler extends Handler {
@@ -982,13 +1014,54 @@ public abstract class DataCapturingService {
         @Override
         public void handleMessage(final @NonNull Message msg) {
             Log.v(TAG, String.format("Service facade received message: %d", msg.what));
+            final Bundle parcel;
+            parcel = msg.getData();
+            parcel.setClassLoader(getClass().getClassLoader());
 
+            // The Broadcasts for the ShutdownFinishedHandler need to be independent from the number of registered
+            // CapturingListeners
+            switch (msg.what) {
+                case MessageCodes.SERVICE_STOPPED:
+                    // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
+                    // the bundle is bundled twice for re-usability
+                    final Bundle dataBundle = parcel.getParcelable("data");
+                    Validate.notNull(dataBundle);
+                    final long measurementIdentifier = dataBundle.getLong(MEASUREMENT_ID);
+                    final boolean stoppedSuccessfully = dataBundle.getBoolean(STOPPED_SUCCESSFULLY);
+                    // Success means the background service was still alive. As this is the private
+                    // IPC to the background service this must always be true.
+                    Validate.isTrue(stoppedSuccessfully);
+
+                    // Inform interested parties
+                    dataCapturingService.sendServiceStoppedBroadcast(context, measurementIdentifier, true);
+                    break;
+                case MessageCodes.SERVICE_STOPPED_ITSELF:
+                    // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
+                    // the bundle is bundled twice for re-usability
+                    final Bundle dataBundle2 = parcel.getParcelable("data");
+                    // Attention: This method is very rarely executed and so be careful when you change it's logic.
+                    // The task for the missing test is CY-4111. Currently only tested manually.
+                    Validate.notNull(dataBundle2);
+                    final long measurementId = dataBundle2.getLong(MEASUREMENT_ID);
+
+                    final Lock lock = new ReentrantLock();
+                    final Condition condition = lock.newCondition();
+                    final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
+                    // The background service already received a stopSelf command but as it's still
+                    // bound to this service it should be still alive. We unbind it from this service via the
+                    // stopService method (to reduce code duplicity).
+                    Validate.isTrue(dataCapturingService.stopService(synchronizationReceiver));
+
+                    // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
+                    dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
+                    break;
+            }
+
+            // Inform all CapturingListeners (if any are registered) about events
             for (final DataCapturingListener listener : this.listener) {
-                final Bundle parcel;
+
                 switch (msg.what) {
                     case MessageCodes.LOCATION_CAPTURED:
-                        parcel = msg.getData();
-                        parcel.setClassLoader(getClass().getClassLoader());
                         final GeoLocation location = parcel.getParcelable("data");
                         if (location == null) {
                             listener.onErrorState(
@@ -998,9 +1071,7 @@ public abstract class DataCapturingService {
                         }
                         break;
                     case MessageCodes.DATA_CAPTURED:
-                        parcel = msg.getData();
-                        parcel.setClassLoader(getClass().getClassLoader());
-                        CapturedData capturedData = parcel.getParcelable("data");
+                        final CapturedData capturedData = parcel.getParcelable("data");
                         if (capturedData == null) {
                             listener.onErrorState(
                                     new DataCapturingException(context.getString(R.string.missing_data_error)));
@@ -1020,43 +1091,7 @@ public abstract class DataCapturingService {
                                 "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
                         break;
                     case MessageCodes.SERVICE_STOPPED:
-                        parcel = msg.getData();
-                        parcel.setClassLoader(getClass().getClassLoader());
-                        // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
-                        // the bundle is bundled twice for re-usability
-                        final Bundle stoppedInfoBundle = parcel.getParcelable("data");
-                        Validate.notNull(stoppedInfoBundle);
-                        final long measurementIdentifier = stoppedInfoBundle.getLong(MEASUREMENT_ID);
-                        final boolean stoppedSuccessfully = stoppedInfoBundle.getBoolean(STOPPED_SUCCESSFULLY);
-                        // Success means the background service was still alive. As this is the private
-                        // IPC to the background service this must always be true.
-                        Validate.isTrue(stoppedSuccessfully);
-
-                        // Inform interested parties
-                        dataCapturingService.sendServiceStoppedBroadcast(context, measurementIdentifier, true);
                         listener.onCapturingStopped();
-                        break;
-                    case MessageCodes.SERVICE_STOPPED_ITSELF:
-                        // Attention: This method is very rarely executed and so be careful when you change it's logic.
-                        // The task for the missing test is CY-4111. Currently only tested manually.
-                        parcel = msg.getData();
-                        parcel.setClassLoader(getClass().getClassLoader());
-                        // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
-                        // the bundle is bundled twice for re-usability
-                        final Bundle stoppedItselfInfoBundle = parcel.getParcelable("data");
-                        Validate.notNull(stoppedItselfInfoBundle);
-                        final long measurementId = stoppedItselfInfoBundle.getLong(MEASUREMENT_ID);
-
-                        final Lock lock = new ReentrantLock();
-                        final Condition condition = lock.newCondition();
-                        final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
-                        // The background service already received a stopSelf command but as it's still
-                        // bound to this service it should be still alive. We unbind it from this service via the
-                        // stopService method (to reduce code duplicity).
-                        Validate.isTrue(dataCapturingService.stopService(synchronizationReceiver));
-
-                        // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
-                        dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
                         break;
                     default:
                         listener.onErrorState(new DataCapturingException(
@@ -1067,16 +1102,28 @@ public abstract class DataCapturingService {
         }
 
         /**
-         * Adds a new listener interested in events from the background service.
+         * Adds a new {@link DataCapturingListener} interested in events from the
+         * {@link DataCapturingBackgroundService}.
          * <p>
          * All listeners are automatically removed when the {@link DataCapturingService} is killed.
          *
          * @param listener A listener that is notified of important events during data capturing.
-         * @throws IllegalStateException when the listener could not be added or was already added because it's
-         *             essential that the registration is successful or else the UI does not receive capturing events
+         * @return true if this collection changed as a result of the call
          */
-        void addListener(final @NonNull DataCapturingListener listener) {
-            Validate.isTrue(this.listener.add(listener));
+        boolean addListener(@NonNull final DataCapturingListener listener) {
+            return this.listener.add(listener);
+        }
+
+        /**
+         * Removes a registered {@link DataCapturingListener} from {@link DataCapturingBackgroundService} events.
+         * <p>
+         * Listeners may be removed when on Android's onPause Lifecycle method or e.g. when the UI is disabled.
+         *
+         * @param listener A listener that was registered to be notified of important events during data capturing.
+         * @return true if an element was removed as a result of this call
+         */
+        boolean removeListener(@NonNull final DataCapturingListener listener) {
+            return this.listener.remove(listener);
         }
     }
 }
