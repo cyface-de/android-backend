@@ -1,14 +1,18 @@
 /*
  * Copyright 2017 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -39,6 +43,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -58,7 +63,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.0
+ * @version 14.0.2
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -774,7 +779,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@link Measurement#getDistance()} entry of the currently captured {@link Measurement}.
      * <p>
      * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
      *
@@ -791,7 +796,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Updates the {@code Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@link Measurement#getDistance()} entry of the currently captured {@link Measurement}.
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param values The new {@link ContentValues} to be stored.
@@ -857,5 +862,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
 
         resolver.insert(getEventUri(), contentValues);
+    }
+
+    /**
+     * Returns the directory used to store temporary files such as the files prepared for synchronization.
+     *
+     * @return The directory to be used for temporary files
+     */
+    public File getCacheDir() {
+        return getContext().getCacheDir();
     }
 }

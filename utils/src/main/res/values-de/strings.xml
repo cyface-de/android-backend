@@ -22,6 +22,7 @@
     <string name="error_message_forbidden">Fehlende Berechtigung</string>
     <string name="error_message_internal_server_error">Interner Server Fehler</string>
     <string name="error_message_entity_not_parsable">Anfrage nicht lesbar</string>
+    <string name="error_message_network_unavailable">Verbindungsabbruch</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

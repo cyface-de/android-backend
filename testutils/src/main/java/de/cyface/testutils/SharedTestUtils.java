@@ -1,14 +1,18 @@
 /*
  * Copyright 2018 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -42,6 +46,7 @@ import android.os.Bundle;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileAccessLayer;
@@ -65,7 +70,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.1
+ * @version 4.2.4
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -105,7 +110,7 @@ public class SharedTestUtils {
             if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
                 accountManager.removeAccount(account, null, null);
             } else {
-                accountManager.removeAccountExplicitly(account);
+                Validate.isTrue(accountManager.removeAccountExplicitly(account));
             }
         }
         // To ensure reproducibility make sure there is no old account registered
@@ -165,7 +170,7 @@ public class SharedTestUtils {
                     Math.min(nextInsertedIndex + insertLimit, point3ds.size()));
             point3dFile.append(sublist);
             nextInsertedIndex += sublist.size();
-            Log.d(TAG, "Inserted " + nextInsertedIndex);
+            Log.v(TAG, "Inserted " + nextInsertedIndex);
         }
     }
 
@@ -329,7 +334,7 @@ public class SharedTestUtils {
             dPoints.add(new Point3d(7.65f + salt, -32.4f + salt, -71.4f + salt, 1501662636010L + i));
 
             // Avoid OOM when creating too much test data at once
-            if (i >= createLimit) {
+            if (i >= createLimit -1) {
                 insertPoint3ds(accelerationsFile, aPoints);
                 insertPoint3ds(rotationsFile, rPoints);
                 insertPoint3ds(directionsFile, dPoints);
@@ -337,7 +342,7 @@ public class SharedTestUtils {
                 aPoints.clear();
                 rPoints.clear();
                 dPoints.clear();
-                i = 0;
+                i = -1; // because "i" is incremented just after this statement (end of loop iteration)
             }
         }
         insertPoint3ds(accelerationsFile, aPoints);
@@ -464,7 +469,7 @@ public class SharedTestUtils {
             subArray = sublist.toArray(subArray);
             resolver.bulkInsert(getGeoLocationsUri(authority), subArray);
             nextInsertIndex += subArray.length;
-            Log.d(TAG, "Inserted " + nextInsertIndex);
+            Log.v(TAG, "Inserted " + nextInsertIndex);
         }
     }
 }

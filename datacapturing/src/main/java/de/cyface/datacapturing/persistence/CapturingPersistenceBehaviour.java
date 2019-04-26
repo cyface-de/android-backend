@@ -12,6 +12,7 @@ import android.content.ContentValues;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.GeoLocationsTable;
@@ -29,7 +30,7 @@ import de.cyface.utils.Validate;
  * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is used to capture a {@link Measurement}s.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 3.0.0
  */
 public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
@@ -227,7 +228,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     }
 
     /**
-     * Updates the {@link Measurement#distance} entry of the currently captured {@link Measurement}.
+     * Updates the {@link Measurement#getDistance()} entry of the currently captured {@link Measurement}.
      *
      * @param newDistance The new distance value to be stored.
      * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.

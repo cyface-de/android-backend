@@ -21,7 +21,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.3.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
@@ -157,6 +157,10 @@ public class ErrorHandler extends BroadcastReceiver {
                 errorMessage = context.getString(R.string.error_message_entity_not_parsable);
                 break;
 
+            case NETWORK_UNAVAILABLE:
+                errorMessage = context.getString(R.string.error_message_network_unavailable);
+                break;
+
             default:
                 errorMessage = context.getString(R.string.error_message_unknown_error);
         }
@@ -178,7 +182,8 @@ public class ErrorHandler extends BroadcastReceiver {
         UNKNOWN(0), UNAUTHORIZED(1), MALFORMED_URL(2), UNREADABLE_HTTP_RESPONSE(3), SERVER_UNAVAILABLE(
                 4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(7), AUTHENTICATION_CANCELED(
                         8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10), SSL_CERTIFICATE_UNKNOWN(
-                                11), BAD_REQUEST(12), FORBIDDEN(13), INTERNAL_SERVER_ERROR(14), ENTITY_NOT_PARSABLE(15);
+                                11), BAD_REQUEST(12), FORBIDDEN(13), INTERNAL_SERVER_ERROR(
+                                        14), ENTITY_NOT_PARSABLE(15), NETWORK_UNAVAILABLE(16);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;

@@ -1,14 +1,18 @@
 /*
  * Copyright 2018 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -38,6 +42,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
@@ -73,7 +78,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.2.0
+ * @version 4.2.5
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -111,6 +116,10 @@ public final class MeasurementSerializer {
      */
     public static final boolean COMPRESSION_NOWRAP = true;
     /**
+     * The prefix of the filename used to store compressed files for serialization.
+     */
+    public static final String COMPRESSED_TRANSFER_FILE_PREFIX = "compressedTransferFile";
+    /**
      * The {@link FileAccessLayer} used to interact with files.
      */
     private final FileAccessLayer fileAccessLayer;
@@ -139,39 +148,29 @@ public final class MeasurementSerializer {
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
             final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
+        FileOutputStream fileOutputStream = null;
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
         File compressedTempFile = null;
-        final FileOutputStream fileOutputStream;
-        try {
-            compressedTempFile = File.createTempFile("compressedTransferFile", ".tmp");
+        final File cacheDir = persistenceLayer.getCacheDir();
 
-            // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
-            fileOutputStream = new FileOutputStream(compressedTempFile);
+        try {
+            try {
+                compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
+
+                // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
+                fileOutputStream = new FileOutputStream(compressedTempFile);
+
+                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
+            } finally {
+                if (fileOutputStream != null) {
+                    fileOutputStream.close();
+                }
+            }
         } catch (final IOException e) {
             if (compressedTempFile != null && compressedTempFile.exists()) {
                 Validate.isTrue(compressedTempFile.delete());
             }
 
-            // No need to close fileOutputStream as it failed to open and is null
-            throw new IllegalStateException(e);
-        }
-
-        try {
-            try {
-                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
-            } catch (final IOException e) {
-                fileOutputStream.close();
-
-                if (compressedTempFile.exists()) {
-                    Validate.isTrue(compressedTempFile.delete());
-                }
-            }
-        } catch (final IOException e) {
-            if (compressedTempFile.exists()) {
-                Validate.isTrue(compressedTempFile.delete());
-            }
-
-            // This catches, among others, the IOException thrown in the close
             throw new IllegalStateException(e);
         }
 
@@ -195,6 +194,8 @@ public final class MeasurementSerializer {
             @NonNull final MeasurementContentProviderClient loader, final long measurementId,
             @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
 
+        Log.d(TAG, "loadSerializedCompressed: start");
+        final long startTimestamp = System.currentTimeMillis();
         // These streams don't throw anything and, thus, it should be enough to close the outermost stream at the end
 
         // Wrapping the streams with Buffered streams for performance reasons
@@ -218,6 +219,8 @@ public final class MeasurementSerializer {
                 bufferedDeflaterOutputStream.close();
             }
         }
+        Log.d(TAG, "loadSerializedCompressed: finished after " + ((System.currentTimeMillis() - startTimestamp) / 1000)
+                + " s with Deflater Level: " + DEFLATER_LEVEL);
     }
 
     /**
@@ -337,6 +340,9 @@ public final class MeasurementSerializer {
             @NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier,
             @NonNull final PersistenceLayer persistence) throws CursorIsNullException {
 
+        // Logging to collect data on serialization and compression sizes
+        long bytesSerialized = 0;
+
         // GeoLocations
         Cursor geoLocationsCursor = null;
         final byte[] serializedGeoLocations;
@@ -352,6 +358,9 @@ public final class MeasurementSerializer {
                 outputStream.write(serializeGeoLocations(geoLocationsCursor));
             }
             serializedGeoLocations = outputStream.toByteArray();
+            Log.v(TAG, String.format("Serialized %s geoLocations for synchronization.",
+                    DefaultFileAccess.humanReadableByteCount(serializedGeoLocations.length, true)));
+            bytesSerialized += serializedGeoLocations.length;
 
         } catch (final RemoteException | IOException e) {
             throw new IllegalStateException(e);
@@ -393,6 +402,9 @@ public final class MeasurementSerializer {
         final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
         final byte[] transferFileHeader = serializeTransferFileHeader(geoLocationCount, measurement, accelerationsCount,
                 rotationsCount, directionsCount);
+        Log.v(TAG, String.format("Serialized %s binaryHeader for synchronization.",
+                DefaultFileAccess.humanReadableByteCount(transferFileHeader.length, true)));
+        bytesSerialized += transferFileHeader.length;
 
         // Assemble bytes to transfer via buffered stream to avoid OOM
         try {
@@ -406,16 +418,19 @@ public final class MeasurementSerializer {
         if (accelerationsCount > 0) {
             Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
                     DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
+            bytesSerialized += accelerationFile.length();
             fileAccessLayer.writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
         if (rotationsCount > 0) {
             Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
                     DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
+            bytesSerialized += rotationFile.length();
             fileAccessLayer.writeToOutputStream(rotationFile, bufferedOutputStream);
         }
         if (directionsCount > 0) {
             Log.v(TAG, String.format("Serializing %s directions for synchronization.",
                     DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
+            bytesSerialized += directionFile.length();
             fileAccessLayer.writeToOutputStream(directionFile, bufferedOutputStream);
         }
 
@@ -424,5 +439,8 @@ public final class MeasurementSerializer {
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
+
+        Log.d(TAG, String.format("Serialized %s",
+                DefaultFileAccess.humanReadableByteCount(bytesSerialized, true)));
     }
 }

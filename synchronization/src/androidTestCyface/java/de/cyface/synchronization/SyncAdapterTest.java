@@ -1,14 +1,18 @@
 /*
  * Copyright 2017 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -45,6 +49,7 @@ import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SyncResult;
 import android.database.Cursor;
+import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
 import android.provider.BaseColumns;
@@ -52,6 +57,7 @@ import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -68,7 +74,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.2
+ * @version 2.4.3
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -114,7 +120,11 @@ public final class SyncAdapterTest {
         if (oldAccounts.length > 0) {
             for (Account oldAccount : oldAccounts) {
                 ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
-                Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+                if (Build.VERSION.SDK_INT < Build.VERSION_CODES.LOLLIPOP_MR1) {
+                    accountManager.removeAccount(oldAccount, null, null);
+                } else {
+                    Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
+                }
             }
         }
 
@@ -182,8 +192,8 @@ public final class SyncAdapterTest {
     @Ignore
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
-        final int point3dCount = 3_000_000;
-        final int locationCount = 3_000;
+        final int point3dCount = 2_880_000; // 100 Hz * 8 h
+        final int locationCount = 28_800; // 1 Hz * 8 h
 
         // Arrange
         // Insert data to be synced
@@ -210,7 +220,11 @@ public final class SyncAdapterTest {
             oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
         } finally {
             if (client != null) {
-                client.close();
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    client.close();
+                } else {
+                    client.release();
+                }
             }
         }
 

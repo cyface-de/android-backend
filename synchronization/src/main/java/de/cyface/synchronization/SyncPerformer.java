@@ -1,14 +1,18 @@
 /*
  * Copyright 2017 Cyface GmbH
+ *
  * This file is part of the Cyface SDK for Android.
+ *
  * The Cyface SDK for Android is free software: you can redistribute it and/or modify
  * it under the terms of the GNU General Public License as published by
  * the Free Software Foundation, either version 3 of the License, or
  * (at your option) any later version.
+ *
  * The Cyface SDK for Android is distributed in the hope that it will be useful,
  * but WITHOUT ANY WARRANTY; without even the implied warranty of
  * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
  * GNU General Public License for more details.
+ *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
@@ -16,6 +20,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
+import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -47,7 +52,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.1.1
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -151,6 +156,10 @@ class SyncPerformer {
         } catch (final BadRequestException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
+            return false;
+        } catch (final NetworkUnavailableException e) {
+            syncResult.stats.numIoExceptions++;
+            sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
             return false;
         } catch (final ConflictException e) {
             syncResult.stats.numSkippedEntries++;
