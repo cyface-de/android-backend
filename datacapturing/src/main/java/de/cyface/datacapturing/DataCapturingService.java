@@ -99,7 +99,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.1.0
+ * @version 16.1.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -187,7 +187,7 @@ public abstract class DataCapturingService {
     /**
      * The number of ms to wait for the callback, see {@link #isRunning(long, TimeUnit, IsRunningCallback)}.
      */
-    @SuppressWarnings("WeakerAccess") // Used by SDK integrators (CY)
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK integrators (CY)
     public final static long IS_RUNNING_CALLBACK_TIMEOUT = 500L;
     /**
      * The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -347,7 +347,7 @@ public abstract class DataCapturingService {
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // used by sdk implementing apps (e.g. SR)
     public void stop(final @NonNull ShutDownFinishedHandler finishedHandler)
             throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Stopping asynchronously!");
@@ -403,7 +403,7 @@ public abstract class DataCapturingService {
      *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // This life-cycle method is called by sdk implementing apps (e.g. SR)
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"}) // used by sdk implementing apps (e.g. SR)
     public void pause(@NonNull final ShutDownFinishedHandler finishedHandler)
             throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
@@ -462,7 +462,7 @@ public abstract class DataCapturingService {
      *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // This life-cycle method is called by sdk implementing apps (e.g. SR)
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // used by sdk implementing apps (e.g. SR)
     public void resume(@NonNull final StartUpFinishedHandler finishedHandler) throws DataCapturingException,
             MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Resuming asynchronously.");
@@ -509,7 +509,7 @@ public abstract class DataCapturingService {
      * @return The identifier used to qualify {@link Measurement}s from this capturing service with the server receiving
      *         the {@code Measurement}s. This needs to be world wide unique.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // sdk implementing apps (SR) uses this to access the device id
+    @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // used by sdk implementing apps (SR)
     public @NonNull String getDeviceIdentifier() {
         return deviceIdentifier;
     }
@@ -518,7 +518,7 @@ public abstract class DataCapturingService {
      * Schedules data synchronization for right now. This does not mean synchronization is going to start immediately.
      * The Android system still decides when it is convenient.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // Used by implementing app (CY)
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"}) // Used by implementing app (CY)
     public void scheduleSyncNow() {
         surveyor.scheduleSyncNow();
     }
@@ -535,7 +535,7 @@ public abstract class DataCapturingService {
      * @param unit The unit of time specified by timeout.
      * @param callback Called as soon as the current state of the service has become clear.
      */
-    @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this method to check for capturing after resume
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.v(TAG, "Checking isRunning?");
         final PongReceiver pongReceiver = new PongReceiver(getContext(), appId);
@@ -553,7 +553,7 @@ public abstract class DataCapturingService {
      *             background service failed. As there is currently no cleaner method you can capture this exception
      *             softly for now (MOV-588).
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by DataCapturingListeners (CY)
+    @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by DataCapturingListeners (CY)
     public void disconnect() throws DataCapturingException {
         unbind();
     }
@@ -571,7 +571,7 @@ public abstract class DataCapturingService {
      *         binding determines the {@code #getIsRunning()} value, see {@code #bind()}.
      * @throws IllegalStateException If communication with background service is not successful.
      */
-    @SuppressWarnings("WeakerAccess") // Used by DataCapturingListeners (CY)
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by DataCapturingListeners (CY)
     public boolean reconnect(final long isRunningTimeout) {
 
         final Lock lock = new ReentrantLock();
@@ -730,7 +730,7 @@ public abstract class DataCapturingService {
      *
      * @return The currently active <code>WiFiSurveyor</code>.
      */
-    @SuppressWarnings("WeakerAccess") // SDK implementing apps (CY) use this to access control the surveyor
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
     public WiFiSurveyor getWiFiSurveyor() {
         return surveyor;
     }
