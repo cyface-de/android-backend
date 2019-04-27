@@ -578,8 +578,9 @@ public class CapturedDataWriterTest {
         assertThat(tracks.size(), is(equalTo(2)));
         assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(3)));
         assertThat(tracks.get(1).getGeoLocations().size(), is(equalTo(3)));
-        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(5L)));
-        assertThat(tracks.get(1).getGeoLocations().get(2).getTimestamp(), is(equalTo(7L)));
+        assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(5L)));
+        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(7L)));
+        assertThat(tracks.get(1).getGeoLocations().get(2).getTimestamp(), is(equalTo(9L)));
     }
 
     /**
