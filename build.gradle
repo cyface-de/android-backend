@@ -82,33 +82,61 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
 
         group = rootProject.group
 
-        task sourceJar(type: Jar) {
-            from android.sourceSets.main.java.srcDirs
-            classifier "source"
-        }
+        publish.dependsOn 'assemble'
 
-        publish.dependsOn 'assembleRelease'
+        publishing.publications {
+            pr.android.libraryVariants.all { variant ->
+                def flavored = !variant.flavorName.isEmpty()
+                def variantArtifactId = flavored ? variant.flavorName.replace('_', '-') : project.name
 
-        publishing {
-            publications {
-                "${project.name}-full"(MavenPublication) {
+                def javaDocDestDir = file("${buildDir}/docs/javadoc ${flavored ? variantArtifactId : ""}")
+
+                def sourceDirs = variant.sourceSets.collect {
+                    it.javaDirectories // Also includes kotlin sources if any.
+                }
+                def javadoc = task("${variant.name}Javadoc", type: Javadoc) {
+                    description "Generates Javadoc for ${variant.name}."
+                    source = variant.javaCompileProvider.get().source // Yes, javaCompile is deprecated,
+                    // but I didn't find any working alternative. Please, tweet @Louis_CAD if you find one.
+                    destinationDir = javaDocDestDir
+                    classpath += files(android.getBootClasspath().join(File.pathSeparator))
+                    classpath += files(configurations.compile)
+                    options.links("http://docs.oracle.com/javase/7/docs/api/")
+                    options.links("http://d.android.com/reference/")
+                    exclude '**/BuildConfig.java'
+                    exclude '**/R.java'
+                    failOnError false
+                }
+                def javadocJar = task("${variant.name}JavadocJar", type: Jar, dependsOn: javadoc) {
+                    description "Puts Javadoc for ${variant.name} in a jar."
+                    classifier = 'javadoc'
+                    from javadoc.destinationDir
+                }
+                def sourcesJar = task("${variant.name}SourcesJar", type: Jar) {
+                    description "Puts sources for ${variant.name} in a jar."
+                    from sourceDirs
+                    classifier = 'sources'
+                }
+
+                "${project.name}${variant.name.capitalize()}"(MavenPublication) {
                     groupId project.group
-                    artifactId "${project.name}"
+                    artifactId "${project.name}${variantArtifactId.capitalize()}"
                     version android.defaultConfig.versionName
-                    artifact(sourceJar)
-                    artifact("$buildDir/outputs/aar/${project.name}.aar")
+                    artifact(variant.packageLibraryProvider.get().archivePath)
+                    artifact(javadocJar)
+                    artifact(sourcesJar)
                 }
             }
-            repositories {
-                mavenLocal()
-            }
+        }
+        repositories {
+            mavenLocal()
         }
 }
 
 task publishAll() {
     subprojects.each { pr ->
         dependsOn {
-            pr.tasks.findAll { task -> task.name.endsWith('publish') }
+            pr.tasks.findAll { task -> task.name.startsWith('publish') }
         }
     }
     outputs.upToDateWhen { false }
