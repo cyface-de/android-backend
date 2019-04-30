@@ -38,6 +38,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.ActivityCompat;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -54,6 +55,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -72,7 +74,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.2
+ * @version 10.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -242,11 +244,13 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
     /**
      * Adds a <a href="https://jwt.io/">JWT</a> authentication token for a specific user to Android's account system.
-     * After the token has been added it starts periodic data synchronization if not yet active.
+     * <p>
+     * After the token has been added it starts periodic data synchronization if not yet active by calling
+     * {@link WiFiSurveyor#startSurveillance(Account)}.
      *
      * @param username The username of the user to add an auth token for.
      * @param token The auth token to add.
-     * @throws SynchronisationException If unable to create an appropriate account with the Android account system.
+     * @throws SynchronisationException If no current Android Context is available
      */
     @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
     public void registerJWTAuthToken(final @NonNull String username, final @NonNull String token)
@@ -265,13 +269,21 @@ public class MovebisDataCapturingService extends DataCapturingService {
     }
 
     /**
-     * Removes the <a href="https://jwt.io/">JWT</a> auth token for a specific username from the system. If that
-     * username was not registered with {@link #registerJWTAuthToken(String, String)} this method simply does nothing.
+     * Removes the <a href="https://jwt.io/">JWT</a> auth token for a specific username from the system.
+     * <p>
+     * This method calls {@link WiFiSurveyor#stopSurveillance()} before removing the account as the surveillance expects
+     * an account to be registered.
+     * <p>
+     * If that username was not registered with {@link #registerJWTAuthToken(String, String)} no account is removed.
      *
      * @param username The username of the user to remove the auth token for.
+     * @throws SynchronisationException If no current Android Context is available
      */
     @SuppressWarnings({"WeakerAccess", "unused"}) // Because sdk implementing apps (SR) use this to inject a token
-    public void deregisterJWTAuthToken(final @NonNull String username) {
+    public void deregisterJWTAuthToken(@NonNull final String username) throws SynchronisationException {
+
+        getWiFiSurveyor().stopSurveillance();
+
         getWiFiSurveyor().deleteAccount(username);
     }
 
