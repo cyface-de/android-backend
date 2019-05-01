@@ -90,7 +90,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.6
+ * @version 5.4.7
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -493,7 +493,7 @@ public class CapturedDataWriterTest {
      * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
      * <p>
      * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
-     * storing a event when the test assumes otherwise.
+     * storing an event when the test assumes otherwise.
      *
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -538,7 +538,7 @@ public class CapturedDataWriterTest {
      * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
      * <p>
      * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
-     * storing a event when the test assumes otherwise.
+     * storing an event when the test assumes otherwise.
      *
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
