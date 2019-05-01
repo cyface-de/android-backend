@@ -99,7 +99,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.1.2
+ * @version 16.1.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1018,32 +1018,91 @@ public abstract class DataCapturingService {
             parcel = msg.getData();
             parcel.setClassLoader(getClass().getClassLoader());
 
-            // The Broadcasts for the ShutdownFinishedHandler need to be independent from the number of registered
-            // CapturingListeners
-            switch (msg.what) {
+            if (msg.what == MessageCodes.SERVICE_STOPPED || msg.what == MessageCodes.SERVICE_STOPPED_ITSELF) {
+                informShutdownFinishedHandler(msg.what, parcel);
+            }
+
+            // Inform all CapturingListeners (if any are registered) about events
+            for (final DataCapturingListener listener : this.listener) {
+                informDataCapturingListener(listener, msg.what, parcel);
+            }
+        }
+
+        /**
+         * Informs a {@link DataCapturingListener} about events from {@link DataCapturingBackgroundService}.
+         * 
+         * @param listener the {@link DataCapturingListener} to inform
+         * @param messageCode the {@link MessageCodes} code which identifies the {@code Message}
+         * @param parcel the {@link Bundle} containing the parcel delivered with the message
+         */
+        private void informDataCapturingListener(@NonNull final DataCapturingListener listener, final int messageCode,
+                @NonNull final Bundle parcel) {
+
+            switch (messageCode) {
+                case MessageCodes.LOCATION_CAPTURED:
+                    final GeoLocation location = parcel.getParcelable("data");
+                    if (location == null) {
+                        listener.onErrorState(
+                                new DataCapturingException(context.getString(R.string.missing_data_error)));
+                    } else {
+                        listener.onNewGeoLocationAcquired(location);
+                    }
+                    break;
+                case MessageCodes.DATA_CAPTURED:
+                    final CapturedData capturedData = parcel.getParcelable("data");
+                    if (capturedData == null) {
+                        listener.onErrorState(
+                                new DataCapturingException(context.getString(R.string.missing_data_error)));
+                    } else {
+                        Log.v(TAG, "Captured some sensor data.");
+                        listener.onNewSensorDataAcquired(capturedData);
+                    }
+                    break;
+                case MessageCodes.GEOLOCATION_FIX:
+                    listener.onFixAcquired();
+                    break;
+                case MessageCodes.NO_GEOLOCATION_FIX:
+                    listener.onFixLost();
+                    break;
+                case MessageCodes.ERROR_PERMISSION:
+                    listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
+                            "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
+                    break;
                 case MessageCodes.SERVICE_STOPPED:
-                    // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
-                    // the bundle is bundled twice for re-usability
-                    final Bundle dataBundle = parcel.getParcelable("data");
-                    Validate.notNull(dataBundle);
-                    final long measurementIdentifier = dataBundle.getLong(MEASUREMENT_ID);
+                    listener.onCapturingStopped();
+                    break;
+                default:
+                    listener.onErrorState(new DataCapturingException(
+                            context.getString(R.string.unknown_message_error, messageCode)));
+
+            }
+        }
+
+        /**
+         * Informs the {@link ShutDownFinishedHandler} that the {@link DataCapturingBackgroundService} stopped.
+         * 
+         * @param messageCode the {@link MessageCodes} code identifying the {@code Message} type
+         * @param parcel the {@link Bundle} containing the parcel delivered with the message
+         */
+        private void informShutdownFinishedHandler(final int messageCode, @NonNull final Bundle parcel) {
+
+            final Bundle dataBundle = parcel.getParcelable("data");
+            Validate.notNull(dataBundle);
+            final long measurementId = dataBundle.getLong(MEASUREMENT_ID);
+
+            switch (messageCode) {
+                case MessageCodes.SERVICE_STOPPED:
                     final boolean stoppedSuccessfully = dataBundle.getBoolean(STOPPED_SUCCESSFULLY);
                     // Success means the background service was still alive. As this is the private
                     // IPC to the background service this must always be true.
                     Validate.isTrue(stoppedSuccessfully);
 
                     // Inform interested parties
-                    dataCapturingService.sendServiceStoppedBroadcast(context, measurementIdentifier, true);
+                    dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, true);
                     break;
                 case MessageCodes.SERVICE_STOPPED_ITSELF:
-                    // Due to the <code>DataCapturingBackgroundService#informCaller()</code> interface
-                    // the bundle is bundled twice for re-usability
-                    final Bundle dataBundle2 = parcel.getParcelable("data");
                     // Attention: This method is very rarely executed and so be careful when you change it's logic.
                     // The task for the missing test is CY-4111. Currently only tested manually.
-                    Validate.notNull(dataBundle2);
-                    final long measurementId = dataBundle2.getLong(MEASUREMENT_ID);
-
                     final Lock lock = new ReentrantLock();
                     final Condition condition = lock.newCondition();
                     final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
@@ -1055,49 +1114,8 @@ public abstract class DataCapturingService {
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false);
                     break;
-            }
-
-            // Inform all CapturingListeners (if any are registered) about events
-            for (final DataCapturingListener listener : this.listener) {
-
-                switch (msg.what) {
-                    case MessageCodes.LOCATION_CAPTURED:
-                        final GeoLocation location = parcel.getParcelable("data");
-                        if (location == null) {
-                            listener.onErrorState(
-                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
-                        } else {
-                            listener.onNewGeoLocationAcquired(location);
-                        }
-                        break;
-                    case MessageCodes.DATA_CAPTURED:
-                        final CapturedData capturedData = parcel.getParcelable("data");
-                        if (capturedData == null) {
-                            listener.onErrorState(
-                                    new DataCapturingException(context.getString(R.string.missing_data_error)));
-                        } else {
-                            Log.v(TAG, "Captured some sensor data.");
-                            listener.onNewSensorDataAcquired(capturedData);
-                        }
-                        break;
-                    case MessageCodes.GEOLOCATION_FIX:
-                        listener.onFixAcquired();
-                        break;
-                    case MessageCodes.NO_GEOLOCATION_FIX:
-                        listener.onFixLost();
-                        break;
-                    case MessageCodes.ERROR_PERMISSION:
-                        listener.onRequiresPermission(Manifest.permission.ACCESS_FINE_LOCATION, new Reason(
-                                "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
-                        break;
-                    case MessageCodes.SERVICE_STOPPED:
-                        listener.onCapturingStopped();
-                        break;
-                    default:
-                        listener.onErrorState(new DataCapturingException(
-                                context.getString(R.string.unknown_message_error, msg.what)));
-
-                }
+                default:
+                    throw new IllegalArgumentException("Unknown messageCode: " + messageCode);
             }
         }
 
