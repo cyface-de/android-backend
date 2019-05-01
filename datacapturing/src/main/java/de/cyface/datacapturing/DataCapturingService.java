@@ -99,7 +99,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.1.1
+ * @version 16.1.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1004,7 +1004,7 @@ public abstract class DataCapturingService {
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
          */
-        FromServiceMessageHandler(final @NonNull Context context,
+        FromServiceMessageHandler(@NonNull final Context context,
                 @NonNull final DataCapturingService dataCapturingService) {
             this.context = context;
             this.listener = new HashSet<>();
@@ -1012,7 +1012,7 @@ public abstract class DataCapturingService {
         }
 
         @Override
-        public void handleMessage(final @NonNull Message msg) {
+        public void handleMessage(@NonNull final Message msg) {
             Log.v(TAG, String.format("Service facade received message: %d", msg.what));
             final Bundle parcel;
             parcel = msg.getData();
@@ -1105,7 +1105,7 @@ public abstract class DataCapturingService {
          * Adds a new {@link DataCapturingListener} interested in events from the
          * {@link DataCapturingBackgroundService}.
          * <p>
-         * All listeners are automatically removed when the {@link DataCapturingService} is killed.
+         * All listeners are automatically removed when the {@link DataCapturingService} is stopped.
          *
          * @param listener A listener that is notified of important events during data capturing.
          * @return true if this collection changed as a result of the call

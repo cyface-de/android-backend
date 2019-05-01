@@ -169,7 +169,7 @@ public class DataCapturingBackgroundServiceTest {
         // bindService() waits for ServiceConnection.onServiceConnected() to be called before returning
         serviceTestRule.bindService(bindIntent, toServiceConnection, 0);
 
-        // Act: Check is DataCapturingBackgroundService is running by sending a Ping
+        // Act: Check if DataCapturingBackgroundService is running by sending a Ping
         checkDataCapturingBackgroundServiceRunning(testCallback);
 
         // Assert
