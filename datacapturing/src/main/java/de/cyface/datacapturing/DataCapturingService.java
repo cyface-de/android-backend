@@ -1126,7 +1126,7 @@ public abstract class DataCapturingService {
          * All listeners are automatically removed when the {@link DataCapturingService} is stopped.
          *
          * @param listener A listener that is notified of important events during data capturing.
-         * @return true if this collection changed as a result of the call
+         * @return {@code True} if this collection changed as a result of the call
          */
         boolean addListener(@NonNull final DataCapturingListener listener) {
             return this.listener.add(listener);
@@ -1138,7 +1138,7 @@ public abstract class DataCapturingService {
          * Listeners may be removed when on Android's onPause Lifecycle method or e.g. when the UI is disabled.
          *
          * @param listener A listener that was registered to be notified of important events during data capturing.
-         * @return true if an element was removed as a result of this call
+         * @return {@code True} if an element was removed as a result of this call
          */
         boolean removeListener(@NonNull final DataCapturingListener listener) {
             return this.listener.remove(listener);
