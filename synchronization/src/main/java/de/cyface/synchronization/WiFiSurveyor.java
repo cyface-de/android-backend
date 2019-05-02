@@ -40,6 +40,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -48,15 +49,17 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.2
+ * @version 7.1.3
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
 
     /**
      * Logging TAG to identify logs associated with the {@link WiFiSurveyor}.
+     * <p>
+     * SuppressWarnings because SDK implementing app (CY) uses this.
      */
-    @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused"}) // SDK implementing app (CY) uses this
+    @SuppressWarnings({"FieldCanBeLocal", "WeakerAccess", "unused", "RedundantSuppression"})
     public static final String TAG = Constants.TAG + ".surveyor";
     /**
      * The number of seconds in one minute. This value is used to calculate the data synchronisation interval.
@@ -211,7 +214,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * 
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by CyfaceDataCapturingService
+    @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by CyfaceDataCapturingService
     public void stopSurveillance() throws SynchronisationException {
         if (context.get() == null) {
             throw new SynchronisationException("No valid context available!");
@@ -283,13 +286,16 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * Deletes a Cyface account from the Android {@code Account} system. Does silently nothing if no such
      * <code>Account</code> exists.
      * <p>
+     * <b>Attention:</b> You need to call {@link #stopSurveillance()} before calling this method as the
+     * {@link WiFiSurveyor} surveillance expects a registered account to work.
+     * <p>
      * <b>ATTENTION:</b> SDK implementing apps which cannot use this method to remove an account need to call
      * {@code ContentResolver#removePeriodicSync()} themselves.
      *
      * @param username The username of the account to delete.
      */
     @SuppressWarnings("unused") // {@link MovebisDataCapturingService} uses this to deregister a token
-    public void deleteAccount(final @NonNull String username) {
+    public void deleteAccount(@NonNull final String username) {
         final AccountManager accountManager = AccountManager.get(context.get());
         final Account account = new Account(username, accountType);
 
@@ -507,7 +513,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * This method must not be called before {@link #startSurveillance(Account)} linked a currentSynchronizationAccount.
      * <p>
      * If you change the implementation of this method, make sure you adjust
-     * {@link SyncAdapter#isConnected(Account, String)} accordingly.
+     * {@code SyncAdapter#isConnected(Account, String)} accordingly.
      * <p>
      * This method allows implementing apps (CY) to only trigger sync manually when connected or else show an info.
      *

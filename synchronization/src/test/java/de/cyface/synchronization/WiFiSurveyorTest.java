@@ -52,6 +52,7 @@ import android.os.Bundle;
 
 import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -70,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -156,7 +157,6 @@ public class WiFiSurveyorTest {
 
     /**
      * Tests if mobile and WiFi connectivity is detected correctly if both are allowed.
-     *
      */
     @Test
     public void testMobileConnectivity() throws SynchronisationException {
@@ -200,7 +200,7 @@ public class WiFiSurveyorTest {
      */
     private void setWiFiConnectivity(final boolean connected, @NonNull final WiFiSurveyor surveyor) {
 
-        setConnectivity(connected, true, oocut);
+        setConnectivity(connected, true, surveyor);
     }
 
     /**
@@ -212,7 +212,7 @@ public class WiFiSurveyorTest {
      */
     private void setMobileConnectivity(final boolean connected, @NonNull final WiFiSurveyor surveyor) {
 
-        setConnectivity(connected, false, oocut);
+        setConnectivity(connected, false, surveyor);
     }
 
     /**
