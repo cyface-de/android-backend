@@ -63,7 +63,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.2
+ * @version 14.1.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -852,7 +852,20 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param measurement The {@code Measurement} which is linked to the {@code Event}.
      */
     public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement) {
-        final long timestamp = System.currentTimeMillis();
+        logEvent(eventType, measurement, System.currentTimeMillis());
+    }
+
+    /**
+     * Stores a new {@link Event} in the {@link PersistenceLayer} which is linked to a {@link Measurement}.
+     * <p>
+     * This interface allows tests to define the timestamp to be used for this event log entry.
+     *
+     * @param eventType The {@link Event.EventType} to be logged.
+     * @param measurement The {@code Measurement} which is linked to the {@code Event}.
+     * @param timestamp The timestamp in ms at which the event was triggered
+     */
+    public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
+            final long timestamp) {
         Log.v(TAG,
                 "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
 
