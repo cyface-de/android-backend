@@ -60,6 +60,8 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
 import androidx.test.rule.provider.ProviderTestRule;
+
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -757,6 +759,34 @@ public class DataCapturingServiceTest {
             pauseAndCheckThatStopped(measurementIdentifier);
             stopAndCheckThatStopped(-1); // -1 because it's already stopped
         }
+    }
+
+    /**
+     * Tests that removing the {@link DataCapturingListener} during capturing does not stop the
+     * {@link DataCapturingBackgroundService}.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testRemoveDataCapturingListener() throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        // This happens in SDK implementing apps (SR) when the app is paused and resumed
+        oocut.removeDataCapturingListener(testListener);
+        oocut.addDataCapturingListener(testListener);
+        // Should not happen, we test it anyways
+        oocut.addDataCapturingListener(testListener);
+        pauseAndCheckThatStopped(measurementIdentifier);
+        // Should not happen, we test it anyways
+        oocut.removeDataCapturingListener(testListener);
+        // Should not happen, we test it anyways
+        oocut.removeDataCapturingListener(testListener);
+        resumeAndCheckThatLaunched(measurementIdentifier);
+        stopAndCheckThatStopped(measurementIdentifier);
     }
 
     /**

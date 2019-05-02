@@ -67,12 +67,12 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.2
+ * @version 2.3.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
-public class BackgroundServiceTest {
+public class DataCapturingBackgroundServiceTest {
 
     /**
      * Junit rule handling the service connection.
@@ -169,7 +169,7 @@ public class BackgroundServiceTest {
         // bindService() waits for ServiceConnection.onServiceConnected() to be called before returning
         serviceTestRule.bindService(bindIntent, toServiceConnection, 0);
 
-        // Act: Check is DataCapturingBackgroundService is running by sending a Ping
+        // Act: Check if DataCapturingBackgroundService is running by sending a Ping
         checkDataCapturingBackgroundServiceRunning(testCallback);
 
         // Assert
