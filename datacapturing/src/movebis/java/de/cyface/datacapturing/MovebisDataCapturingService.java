@@ -74,7 +74,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.0
+ * @version 10.0.1
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -113,8 +113,12 @@ public class MovebisDataCapturingService extends DataCapturingService {
         }
     };
     /**
-     * The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
-     * if you would like to be notified as often as possible.
+     * The maximum rate of location updates to receive in milliseconds which are sent to the {@link UIListener}.
+     * <p>
+     * This only determines the updates sent to the {@code UIListener}, not the amount of locations captured for
+     * {@link Measurement}s.
+     * <p>
+     * Set this to {@code 0L} if you would like to be notified as often as possible.
      */
     private final long locationUpdateRate;
     /**
@@ -130,8 +134,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service. This must be in the format "https://some.url/optional/resource".
      * @param uiListener A listener for events which the UI might be interested in.
-     * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
-     *            if you would like to be notified as often as possible.
+     * @param locationUpdateRate The maximum rate of location updates to receive in milliseconds which are sent to the
+     *            {@link UIListener}. This only determines the updates sent to the {@code #getUiListener}, not
+     *            the amount of locations captured for {@link Measurement}s. Set this to {@code 0L} if you would like to
+     *            be notified as often as possible.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
@@ -170,8 +176,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service. This must be in the format "https://some.url/optional/resource".
      * @param uiListener A listener for events which the UI might be interested in.
-     * @param locationUpdateRate The maximum rate of location updates to receive in seconds. Set this to <code>0L</code>
-     *            if you would like to be notified as often as possible.
+     * @param locationUpdateRate The maximum rate of location updates to receive in milliseconds which are sent to the
+     *            {@link UIListener}. This only determines the updates sent to the {@code UIListener}, not the amount
+     *            of locations captured for {@link Measurement}s. Set this to {@code 0L} if you would like to be
+     *            notified as often as possible.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
