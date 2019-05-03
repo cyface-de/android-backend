@@ -19,6 +19,7 @@
 package de.cyface.persistence.model;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.serialization.MeasurementSerializer;
 
 /**
@@ -29,7 +30,7 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 4.0.0
  * @since 1.0.0
  */
 public final class Measurement {
@@ -57,6 +58,10 @@ public final class Measurement {
      * The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
      */
     private double distance;
+    /**
+     * The Unix timestamp in milliseconds indicating the start time of the measurement.
+     */
+    private long timestamp;
 
     /**
      * Creates a new completely initialized {@link Measurement}.
@@ -70,14 +75,16 @@ public final class Measurement {
      * @param fileFormatVersion The {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the
      *            data in the file persistence layer of for this {@link Measurement}.
      * @param distance The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
+     * @param timestamp The Unix timestamp in milliseconds indicating the start time of the measurement.
      */
     public Measurement(final long id, @NonNull final MeasurementStatus status, @NonNull final Vehicle vehicle,
-            final short fileFormatVersion, final double distance) {
+            final short fileFormatVersion, final double distance, final long timestamp) {
         this.id = id;
         this.status = status;
         this.vehicle = vehicle;
         this.fileFormatVersion = fileFormatVersion;
         this.distance = distance;
+        this.timestamp = timestamp;
     }
 
     @Override
@@ -88,7 +95,8 @@ public final class Measurement {
             return false;
         Measurement that = (Measurement)o;
         return fileFormatVersion == that.fileFormatVersion && Double.compare(that.distance, distance) == 0
-                && id.equals(that.id) && status == that.status && vehicle == that.vehicle;
+                && timestamp == that.timestamp && id.equals(that.id) && status == that.status
+                && vehicle == that.vehicle;
     }
 
     @Override
@@ -116,9 +124,19 @@ public final class Measurement {
         return distance;
     }
 
+    public long getTimestamp() {
+        return timestamp;
+    }
+
     @Override
     public String toString() {
-        return "Measurement{" + "id=" + id + ", status=" + status + ", vehicle=" + vehicle + ", fileFormatVersion="
-                + fileFormatVersion + ", distance=" + distance + '}';
+        return "Measurement{" +
+                "id=" + id +
+                ", status=" + status +
+                ", vehicle=" + vehicle +
+                ", fileFormatVersion=" + fileFormatVersion +
+                ", distance=" + distance +
+                ", timestamp=" + timestamp +
+                '}';
     }
 }
