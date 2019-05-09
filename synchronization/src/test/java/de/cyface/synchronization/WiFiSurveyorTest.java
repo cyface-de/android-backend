@@ -271,7 +271,14 @@ public class WiFiSurveyorTest {
         // Now we can call the NetworkCallbacks with the correct networkCapabilities (registration is ok)
         // Only call the networkCallback for wifi connections as we only register those in production code
         if (wifiNotMobile || !surveyor.isSyncOnUnMeteredNetworkOnly()) {
-            Validate.isTrue(shadowConnectivityManager.getNetworkCallbacks().size() == 1);
+            final boolean isAccountRegistered = oocut.currentSynchronizationAccount != null;
+            assertThat(shadowConnectivityManager.getNetworkCallbacks().size(),
+                    is(equalTo(isAccountRegistered ? 1 : 0)));
+
+            if (!isAccountRegistered) {
+                return; // Without accounts, not network callbacks must be updates
+            }
+
             final ConnectivityManager.NetworkCallback networkCallback = shadowConnectivityManager.getNetworkCallbacks()
                     .iterator().next();
             networkCallback.onCapabilitiesChanged(testNetwork, loadedNetworkCapabilities);
