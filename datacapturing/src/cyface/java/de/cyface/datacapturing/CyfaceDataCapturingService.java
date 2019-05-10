@@ -46,6 +46,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -53,7 +54,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.3
+ * @version 10.1.0
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -152,6 +153,25 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
         } catch (SynchronisationException e) {
             throw new SetupException(e);
         }
+    }
+
+    /**
+     * Removes the account for a specific username from the system.
+     * <p>
+     * This method calls {@link WiFiSurveyor#stopSurveillance()} before removing the account as the surveillance expects
+     * an account to be registered.
+     * <p>
+     * If no account exists with that username, no account is removed.
+     *
+     * @param username The username of the user to remove the auth token for.
+     * @throws SynchronisationException If no current Android Context is available
+     */
+    @SuppressWarnings({"unused"}) // Used by sdk implementing apps (CY)
+    public void removeAccount(@NonNull final String username) throws SynchronisationException {
+
+        getWiFiSurveyor().stopSurveillance();
+
+        getWiFiSurveyor().deleteAccount(username);
     }
 
     /**
