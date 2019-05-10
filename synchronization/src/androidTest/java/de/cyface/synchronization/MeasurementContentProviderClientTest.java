@@ -24,17 +24,20 @@ import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 
 import java.util.Arrays;
 
-import org.junit.Ignore;
+import org.junit.After;
+import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.ContentProviderClient;
+import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
@@ -45,6 +48,7 @@ import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
@@ -56,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.1.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -68,6 +72,20 @@ public class MeasurementContentProviderClientTest {
      * insert into the <code>ContentProvider</code>.
      */
     private final static int MAX_SIMULTANEOUS_OPERATIONS = 550;
+    private Context context;
+    private ContentResolver contentResolver;
+
+    @Before
+    public void setUp() {
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        contentResolver = context.getContentResolver();
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
+    }
+
+    @After
+    public void tearDown() {
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
+    }
 
     /**
      * This test makes sure that larger GeoLocation tracks can be loaded completely form the
@@ -79,17 +97,15 @@ public class MeasurementContentProviderClientTest {
         testLoadGeoLocations(3600 * 10);
     }
 
-    @Ignore
     public void testLoadGeoLocations(int numberOftestEntries) throws RemoteException {
         // Arrange
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentProviderClient client = null;
         Cursor locationsCursor = null;
         int numberOfLoadedGeoLocations = 0;
 
         // Act: Store and load the test entries
         try {
-            client = context.getContentResolver().acquireContentProviderClient(AUTHORITY);
+            client = contentResolver.acquireContentProviderClient(AUTHORITY);
             if (client == null) {
                 throw new IllegalStateException(String.format(
                         "Unable to initialize content provider client for content provider \"(%s)\"", AUTHORITY));
@@ -165,11 +181,10 @@ public class MeasurementContentProviderClientTest {
      */
     @Test
     public void test() throws RemoteException {
-        Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         ContentProviderClient client = null;
 
         try {
-            client = context.getContentResolver().acquireContentProviderClient(AUTHORITY);
+            client = contentResolver.acquireContentProviderClient(AUTHORITY);
             Validate.notNull(String.format("Unable to initialize content provider client for content provider \"(%s)\"",
                     AUTHORITY), client);
 

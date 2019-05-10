@@ -23,6 +23,7 @@ import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
+import static java.lang.Thread.interrupted;
 
 import java.io.File;
 import java.util.Collection;
@@ -124,6 +125,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         // This allows us to mock the #isConnected() check for unit tests
         mockIsConnectedToReturnTrue = extras.containsKey(MOCK_IS_CONNECTED_TO_RETURN_TRUE);
 
+        // If WifiSurveyor.shutdownSurveillance was called in the meantime, cancel sync:
+        if (interrupted()) {
+            Log.w(TAG, "Sync interrupted, aborting sync.");
+            return;
+        }
+
         // The network setting may have changed since the initial sync call, avoid unnecessary serialization
         if (!isConnected(account, authority)) {
             Log.w(TAG, "Sync aborted: syncable connection not available anymore");
@@ -164,6 +171,11 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             } catch (final NetworkErrorException e) {
                 // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel 2 XL).
                 Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.");
+                return;
+            }
+            // When WifiSurveyor.deleteAccount() was called in the meantime the jwt token is empty, thus:
+            if (interrupted()) {
+                Log.w(TAG, "Sync interrupted, aborting sync.");
                 return;
             }
             Validate.notNull(jwtAuthToken);
@@ -212,6 +224,11 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                         // This happened e.g. when Wifi was manually disabled just after synchronization started (Pixel
                         // 2 XL).
                         Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.");
+                        return;
+                    }
+                    // When WifiSurveyor.deleteAccount() was called in the meantime the jwt token is empty, thus:
+                    if (interrupted()) {
+                        Log.w(TAG, "Sync interrupted, aborting sync.");
                         return;
                     }
                     Validate.notNull(jwtAuthToken);

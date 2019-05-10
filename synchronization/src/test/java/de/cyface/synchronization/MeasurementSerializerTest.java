@@ -88,7 +88,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -153,7 +153,7 @@ public class MeasurementSerializerTest {
 
         // Mock point counters
         final Measurement measurement = new Measurement(1L, OPEN, Vehicle.UNKNOWN,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0);
+                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0, 123L);
         when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
         when(geoLocationsCursor.getCount()).thenReturn(SAMPLE_GEO_LOCATIONS);

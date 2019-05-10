@@ -37,8 +37,11 @@ import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteCursorDriver;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQuery;
+import android.provider.BaseColumns;
 
+import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
+
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.testutils.SharedTestUtils;
 
@@ -49,7 +52,7 @@ import de.cyface.testutils.SharedTestUtils;
  * open it with *DB Browser for SQLite* and use File > Export > Database to SQL file.
  *
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.3.0
  * @since 4.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -90,6 +93,11 @@ public class DatabaseHelperTest {
      * The 3rd test location of a test measurement.
      */
     private final GeoLocation location3 = generateGeoLocation(expectedDistance1 + expectedDistance2);
+    /**
+     * The unix timestamp in milliseconds which is used to generate the first {@link GeoLocation},
+     * for the next GeoLocations' timestamps 1L is added to this number.
+     */
+    private final static long DEFAULT_GEOLOCATION_TIMESTAMP = 1551431485000L;
 
     @Before
     public void setUp() {
@@ -116,6 +124,49 @@ public class DatabaseHelperTest {
     }
 
     /**
+     * Test upgrading the {@link MeasurementTable} to Database V14.
+     * <p>
+     * We test that the newly added timestamp column is calculated correctly for measurements with and without
+     * {@link GeoLocation}s
+     */
+    @Test
+    public void testMigrationV13ToV14() {
+
+        // Arrange
+        // This is simpler than copying and adjusting the code from previous versions
+        createV11Database(db);
+        addDatabaseV11Measurement(db, 43L, 2);
+        addDatabaseV11Measurement(db, 44L, 0);
+        oocut.onUpgrade(db, 11, 13);
+
+        // Act - This is how the method is called by the system (not incrementally!)
+        oocut.onUpgrade(db, 13, 14);
+
+        // Assert timestamp calculated correctly
+        // Make sure the relevant data from before the upgrade still exists
+        Cursor cursor = null;
+        try {
+            // Measurements with GeoLocations should have the timestamp of the first GeoLocation as timestamp
+            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor.moveToNext();
+            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
+            assertThat(cursor.getLong(cursor.getColumnIndex("timestamp")), is(equalTo(DEFAULT_GEOLOCATION_TIMESTAMP)));
+
+            // Measurement without GeoLocations should have 0L als timestamp
+            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"44"}, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor.moveToNext();
+            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(44L)));
+            assertThat(cursor.getLong(cursor.getColumnIndex("timestamp")), is(equalTo(0L)));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
      * Test that upgrading the {@link MeasurementTable} to Database V13 does not loose entries.
      */
     @Test
@@ -123,7 +174,8 @@ public class DatabaseHelperTest {
 
         // Arrange
         // This is simpler than copying and adjusting the code from previous versions
-        createV11DatabaseWithData(db);
+        createV11Database(db);
+        addDatabaseV11Measurement(db, 43L, 1);
         oocut.onUpgrade(db, 11, 12);
 
         // Act - This is how the method is called by the system (not incrementally!)
@@ -158,7 +210,8 @@ public class DatabaseHelperTest {
     public void testMigrationV11ToV12() {
 
         // Arrange
-        createV11DatabaseWithData(db);
+        createV11Database(db);
+        addDatabaseV11Measurement(db, 43L, 1);
 
         // Act - This is how the method is called by the system (not incrementally!)
         oocut.onUpgrade(db, 11, 12);
@@ -239,7 +292,7 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Creates a database as it would have been created with {@link DatabaseHelper#DATABASE_VERSION} 11.
+     * Creates a database as it would have been created with {@code DatabaseHelper#DATABASE_VERSION} 11.
      * <p>
      * <b>Attention:</b>
      * It's important that the create statements only contains hardcoded Strings as the table and column names
@@ -247,7 +300,7 @@ public class DatabaseHelperTest {
      *
      * @param db A clean {@link SQLiteDatabase} to use for testing.
      */
-    private void createV11DatabaseWithData(SQLiteDatabase db) {
+    private void createV11Database(@NonNull final SQLiteDatabase db) {
 
         // # Create V11 Tables:
 
@@ -271,17 +324,39 @@ public class DatabaseHelperTest {
         db.execSQL("INSERT INTO android_metadata (locale) VALUES ('de_DE');");
         // Insert sample IdentifierTable entry
         db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
-        // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
-        db.execSQL(
-                "INSERT INTO measurements (_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) VALUES "
-                        + " (43,'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979);");
-        // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
-        db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
-                + " (3,1551431485000,51.05210394,13.72873203,0.0,1179,43);");
     }
 
     /**
-     * Creates a database as it would have been created with {@link DatabaseHelper#DATABASE_VERSION} 8.
+     * Adds a measurement with {@param locations} {@link GeoLocation}s to a test database of
+     * {@code DatabaseHelper#DATABASE_VERSION} 11 as created by {@link #createV11Database(SQLiteDatabase)}.
+     * <p>
+     * <b>Attention:</b>
+     * It's important that the create statements only contains hardcoded Strings as the table and column names
+     * should be the same as they were in that version to really test the migration as it would happen in real.
+     *
+     * @param db A clean {@link SQLiteDatabase} to use for testing.
+     * @param measurementId the id of the measurement to generate
+     * @param locations number of locations to generate for the measurement to be generated
+     */
+    private void addDatabaseV11Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
+            final long locations) {
+
+        // # Insert V11 sample data: (exported from our V12 app and manually adjusted to V11)
+
+        // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
+        db.execSQL(
+                "INSERT INTO measurements (_id,status,vehicle,accelerations,rotations,directions,file_format_version,distance) VALUES "
+                        + " (" + measurementId + ",'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979);");
+        // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
+        for (int i = 0; i < locations; i++) {
+            db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
+                    + " (" + (1 + i) + "," + (1551431485000L + i) + ",51.05210394,13.72873203,0.0,1179," + measurementId
+                    + ");");
+        }
+    }
+
+    /**
+     * Creates a database as it would have been created with {@code DatabaseHelper#DATABASE_VERSION} 8.
      * <p>
      * <b>Attention:</b>
      * It's important that the create statements only contains hardcoded Strings as the table and column names
@@ -289,7 +364,7 @@ public class DatabaseHelperTest {
      *
      * @param db A clean {@link SQLiteDatabase} to use for testing.
      */
-    private void createV8DatabaseWithData(SQLiteDatabase db) {
+    private void createV8DatabaseWithData(@NonNull final SQLiteDatabase db) {
 
         // # Create V8 Tables:
 

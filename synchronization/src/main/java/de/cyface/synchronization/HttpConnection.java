@@ -30,6 +30,7 @@ import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.InterruptedIOException;
 import java.io.UnsupportedEncodingException;
 import java.net.HttpURLConnection;
 import java.net.ProtocolException;
@@ -56,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 7.0.1
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -164,10 +165,13 @@ public class HttpConnection implements Http {
             // This exception is thrown by OkHttp when the network is no longer available
             if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
                 Log.w(TAG, "Caught SSLException: " + e.getMessage());
-                throw new NetworkUnavailableException("Network became unavailable during transmission.");
+                throw new NetworkUnavailableException("Network became unavailable during transmission.", e);
             } else {
                 throw new IllegalStateException(e); // SSLException with unknown cause
             }
+        } catch (final InterruptedIOException e) {
+            // This exception is thrown when the login request is interrupted, e.g. see MOV-761
+            throw new NetworkUnavailableException("Network interrupted during login", e);
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
@@ -261,6 +265,9 @@ public class HttpConnection implements Http {
             } else {
                 throw new IllegalStateException(e); // SSLException with unknown cause
             }
+        } catch (final InterruptedIOException e) {
+            // This exception is thrown when the login request is interrupted
+            throw new NetworkUnavailableException("Network interrupted during post", e);
         } catch (final IOException e) {
             throw new IllegalStateException(e);
         }

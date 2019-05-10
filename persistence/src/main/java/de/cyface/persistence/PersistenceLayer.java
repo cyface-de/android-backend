@@ -23,6 +23,7 @@ import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
+import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
 import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
@@ -63,7 +64,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.1.0
+ * @version 14.1.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -147,13 +148,17 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param vehicle The {@code Vehicle} to create a new {@code Measurement} for.
      * @return The newly created {@code Measurement}.
      */
-    public Measurement newMeasurement(final @NonNull Vehicle vehicle) {
+    public Measurement newMeasurement(@NonNull final Vehicle vehicle) {
+
+        final long timestamp = System.currentTimeMillis();
+
         final ContentValues measurementValues = new ContentValues();
         measurementValues.put(COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
         measurementValues.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
         measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
         measurementValues.put(COLUMN_DISTANCE, 0.0);
+        measurementValues.put(COLUMN_TIMESTAMP, timestamp);
 
         // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
@@ -164,7 +169,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
             return new Measurement(measurementId, OPEN, vehicle, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                    0.0);
+                    0.0, timestamp);
         }
     }
 
@@ -241,7 +246,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final Vehicle vehicle = Vehicle.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_VEHICLE)));
         final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
-        return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance);
+        final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
+        return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance, timestamp);
     }
 
     /**
@@ -644,7 +650,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         <p>
      *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
-    @SuppressWarnings("WeakerAccess") // Because this is used to view measurements in an SDK implementing app
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps
     public Uri getMeasurementUri() {
         return Utils.getMeasurementUri(authority);
     }
@@ -660,17 +666,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * @return The content provider {@link Uri} for the {@link EventTable}.
-     *         <p>
-     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
-    public Uri getEventUri() {
+    private Uri getEventUri() {
         return Utils.getEventUri(authority);
     }
 
     /**
      * @return The content provider URI for the {@link IdentifierTable}
-     *         <p>
-     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
      */
     private Uri getIdentifierUri() {
         return Utils.getIdentifierUri(authority);
