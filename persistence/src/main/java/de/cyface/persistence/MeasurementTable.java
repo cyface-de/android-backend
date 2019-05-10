@@ -26,6 +26,7 @@ import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -38,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.1.0
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -67,10 +68,14 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_DISTANCE = "distance";
     /**
+     * Column name for the Unix timestamp in milliseconds of this {@link Measurement}.
+     */
+    public static final String COLUMN_TIMESTAMP = "timestamp";
+    /**
      * An array containing all columns from this table in default order.
      */
     private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_VEHICLE,
-            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE};
+            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, COLUMN_TIMESTAMP};
 
     /**
      * Creates a new completely initialized {@code MeasurementTable} using the name {@link #URI_PATH}.
@@ -83,7 +88,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, "
-                + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, " + COLUMN_DISTANCE + " REAL NOT NULL);";
+                + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, " + COLUMN_DISTANCE + " REAL NOT NULL, "
+                + COLUMN_TIMESTAMP + " INTEGER NOT NULL);";
     }
 
     /**
@@ -121,8 +127,74 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 migrateDatabaseFromV12(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
+
+            case 13:
+                Log.d(TAG, "Upgrading measurement table from V13");
+                migrateDatabaseFromV13(database);
+
+                // < V14 measurements without GeoLocations will receive an 0L timestamp
+                Log.d(TAG, "Calculating timestamp for migrated V13 measurements");
+                updateMeasurementTimestampForV13Measurements(database);
+
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
+    }
+
+    /**
+     * Adds timestamp columns to table.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void migrateDatabaseFromV13(@NonNull final SQLiteDatabase database) {
+
+        database.execSQL("ALTER TABLE measurements ADD COLUMN timestamp INTEGER NOT NULL DEFAULT 0");
+    }
+
+    /**
+     * Calculates and updates the timestamp for {@link Measurement}s migrated from V13.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void updateMeasurementTimestampForV13Measurements(@NonNull final SQLiteDatabase database) {
+        Cursor measurementCursor = null;
+        Cursor geoLocationCursor = null;
+        try {
+            measurementCursor = database.query("measurements", new String[] {"_id"}, null, null, null, null, null,
+                    null);
+            if (measurementCursor.getCount() == 0) {
+                Log.v(TAG, "No measurements for migration found");
+                return;
+            }
+
+            // Check all measurements
+            while (measurementCursor.moveToNext()) {
+                final int identifierColumnIndex = measurementCursor.getColumnIndex("_id");
+                final long measurementId = measurementCursor.getLong(identifierColumnIndex);
+
+                geoLocationCursor = database.query("locations",
+                        new String[] {"gps_time"}, "measurement_fk = ?",
+                        new String[] {String.valueOf(measurementId)}, null, null, "gps_time ASC", "1");
+
+                long timestamp = 0L; // Default value for measurements without GeoLocations
+                if (geoLocationCursor.moveToNext()) {
+                    final int timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time");
+                    timestamp = geoLocationCursor.getLong(timeColumnIndex);
+                }
+                Validate.isTrue(timestamp >= 0L);
+
+                Log.v(TAG, "Updating timestamp for measurement " + measurementId + " to " + timestamp);
+                database.execSQL("UPDATE measurements SET timestamp = " + timestamp + " WHERE _id = " + measurementId);
+            }
+
+        } finally {
+            if (measurementCursor != null) {
+                measurementCursor.close();
+            }
+            if (geoLocationCursor != null) {
+                geoLocationCursor.close();
+            }
+        }
     }
 
     /**
