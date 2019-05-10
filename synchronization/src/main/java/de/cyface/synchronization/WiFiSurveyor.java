@@ -226,6 +226,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
                 return;
             }
             connectivityManager.unregisterNetworkCallback(networkCallback);
+            networkCallback = null;
         } else {
             try {
                 context.get().unregisterReceiver(this);
