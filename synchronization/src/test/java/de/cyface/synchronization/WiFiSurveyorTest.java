@@ -71,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -276,7 +276,7 @@ public class WiFiSurveyorTest {
                     is(equalTo(isAccountRegistered ? 1 : 0)));
 
             if (!isAccountRegistered) {
-                return; // Without accounts, not network callbacks must be updates
+                return; // Without accounts, no network callbacks must be updated
             }
 
             final ConnectivityManager.NetworkCallback networkCallback = shadowConnectivityManager.getNetworkCallbacks()
