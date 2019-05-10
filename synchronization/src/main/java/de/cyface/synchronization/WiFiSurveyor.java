@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.3
+ * @version 7.1.4
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -226,6 +226,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
                 return;
             }
             connectivityManager.unregisterNetworkCallback(networkCallback);
+            networkCallback = null;
         } else {
             try {
                 context.get().unregisterReceiver(this);
@@ -233,6 +234,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
                 throw new SynchronisationException(e);
             }
         }
+
+        // This interrupts ongoing synchronization or else it may crash because required data is missing (token,
+        // account)
+        ContentResolver.cancelSync(currentSynchronizationAccount, authority);
     }
 
     /**
