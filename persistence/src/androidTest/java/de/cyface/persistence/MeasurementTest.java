@@ -47,7 +47,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.5
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -75,6 +75,7 @@ public class MeasurementTest {
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
+        fixtureMeasurement.put(MeasurementTable.COLUMN_TIMESTAMP, 123L);
     }
 
     /**
