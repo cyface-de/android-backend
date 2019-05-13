@@ -286,7 +286,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     }
 
     /**
-     * Checks weather the network was disconnected or the synchronization was interrupted.
+     * Checks whether the network was disconnected or the synchronization was interrupted.
      *
      * @return {@code True} if the synchronization shall be canceled.
      * @param account The {@code Account} which is used for synchronization
