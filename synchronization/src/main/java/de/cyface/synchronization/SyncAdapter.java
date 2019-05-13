@@ -27,7 +27,6 @@ import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED
 import static java.lang.Thread.interrupted;
 
 import java.io.File;
-import java.io.InterruptedIOException;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -69,7 +68,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.7
+ * @version 2.6.8
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -217,7 +216,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, AUTHENTICATION_ERROR.getCode(), e.getMessage());
-        } catch (final InterruptedIOException e) {
+        } catch (final SynchronizationInterruptedException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
@@ -241,10 +240,10 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @return The token as string
      * @throws AuthenticatorException If no token was supplied which must be supported for implementing apps (SR)
      * @throws NetworkErrorException If the network authentication request failed for any reasons
-     * @throws InterruptedIOException If the synchronization was {@link Thread#interrupted()}.
+     * @throws SynchronizationInterruptedException If the synchronization was {@link Thread#interrupted()}.
      */
     private String getAuthToken(@NonNull final CyfaceAuthenticator authenticator, @NonNull final Account account)
-            throws AuthenticatorException, NetworkErrorException, InterruptedIOException {
+            throws AuthenticatorException, NetworkErrorException, SynchronizationInterruptedException {
 
         String jwtAuthToken;
         // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
@@ -263,7 +262,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
         // When WifiSurveyor.deleteAccount() was called in the meantime the jwt token is empty, thus:
         if (interrupted()) {
-            throw new InterruptedIOException("Sync interrupted, aborting sync.");
+            throw new SynchronizationInterruptedException("Sync interrupted, aborting sync.");
         }
         Validate.notNull(jwtAuthToken);
         Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));

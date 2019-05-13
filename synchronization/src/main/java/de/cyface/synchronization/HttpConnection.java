@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 8.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -185,7 +185,8 @@ public class HttpConnection implements Http {
             @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
-            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException {
+            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
+            SynchronizationInterruptedException {
 
         // Generate header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
@@ -261,7 +262,7 @@ public class HttpConnection implements Http {
             // This exception is thrown by OkHttp when the network is no longer available
             if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
                 Log.w(TAG, "Caught SSLException: " + e.getMessage());
-		        throw new NetworkUnavailableException("Network became unavailable during transmission.");
+                throw new NetworkUnavailableException("Network became unavailable during transmission.");
             } else {
                 throw new IllegalStateException(e); // SSLException with unknown cause
             }
@@ -269,6 +270,11 @@ public class HttpConnection implements Http {
             // This exception is thrown when the login request is interrupted
             throw new NetworkUnavailableException("Network interrupted during post", e);
         } catch (final IOException e) {
+            // Logging out interrupts the sync thread. This must not throw a RuntimeException, thus:
+            if (e.getMessage().contains("unexpected end of stream")) {
+                throw new SynchronizationInterruptedException("Sync was probably interrupted via cancelSynchronization",
+                        e);
+            }
             throw new IllegalStateException(e);
         }
 
