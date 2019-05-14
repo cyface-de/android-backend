@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.5
+ * @version 2.1.6
  * @since 1.0.0
  */
 
@@ -62,7 +62,8 @@ android {
     // Enable Proguard for the release build type.
     buildTypes {
         release {
-            minifyEnabled true
+            // Enable in app module to generate a single mapping.xml which can be uploaded to PlayStore
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
