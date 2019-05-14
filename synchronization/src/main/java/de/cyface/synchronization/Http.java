@@ -34,7 +34,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 7.0.0
  * @since 3.0.0
  */
 interface Http {
@@ -113,6 +113,8 @@ interface Http {
      * @throws EntityNotParsableException When the server returns {@link HttpConnection#HTTP_ENTITY_NOT_PROCESSABLE}
      * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
+     * @throws SynchronizationInterruptedException When the transmission stream ended too early, likely because the sync
+     *             thread was interrupted (sync canceled)
      */
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
@@ -120,5 +122,6 @@ interface Http {
             @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
-            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException;
+            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
+            SynchronizationInterruptedException;
 }

@@ -64,7 +64,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.1.1
+ * @version 14.1.2
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -407,6 +407,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @return The device is as string
      */
+    @NonNull
     public final String restoreOrCreateDeviceId() throws CursorIsNullException {
         try {
             return loadDeviceId();

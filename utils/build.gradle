@@ -2,7 +2,7 @@
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 2.2.0
  */
 
@@ -24,7 +24,8 @@ android {
     // Enable Proguard for the release build type.
     buildTypes {
         release {
-            minifyEnabled true
+            // Enable in app module to generate a single mapping.xml which can be uploaded to PlayStore
+            minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
