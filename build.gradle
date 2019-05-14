@@ -4,12 +4,11 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.22
+ * @version 2.2.23
  * @since 1.0.0
  */
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
-
 buildscript {
 
     repositories {
@@ -34,7 +33,7 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "4.0.0"
+    version = "4.0.1"
 
     minSdkVersion = 16
     targetSdkVersion = 28
