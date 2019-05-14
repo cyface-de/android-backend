@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.4
+ * @version 7.1.5
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -171,10 +171,10 @@ public class WiFiSurveyor extends BroadcastReceiver {
         // To make sure the state is correct before we start listening to network changes
         if (!isConnectedToSyncableNetwork()) {
             Log.v(TAG, "startSurveillance: not connected to syncable network");
-            setConnected(false);
+            Validate.isTrue(setConnected(false));
         } else {
             Log.v(TAG, "startSurveillance: connected to syncable network");
-            setConnected(true);
+            Validate.isTrue(setConnected(true));
             scheduleSyncNow(); // Needs to be called after currentSynchronizationAccount is set
         }
 
@@ -496,9 +496,17 @@ public class WiFiSurveyor extends BroadcastReceiver {
      *
      * @param enable True if {@code ContentResolver#addPeriodicSync()} should be activated or false if it
      *            should be removed from the sync account.
+     * @return {@code True} if the sync setting were changed successfully, {@code False} if there is currently no
+     *         {@code #currentSynchronizationAccount} registered.
      */
-    void setConnected(final boolean enable) {
-        Validate.notNull(currentSynchronizationAccount);
+    boolean setConnected(final boolean enable) {
+        // For some reasons callers such as NetworkCallback.onLost can still called even though we unregister
+        // NetworkCallbacks before we call WifiSurveyor.deleteAccount(). So theoretically currentSynchronizationAccount
+        // should not be null, but it happened anyway (MOV-764). Thus, we catch this softly.
+        if (currentSynchronizationAccount == null) {
+            Log.w(TAG, "setConnected ignored as currentSynchronizationAccount is null");
+            return false;
+        }
 
         if (enable) {
             ContentResolver.addPeriodicSync(currentSynchronizationAccount, authority, Bundle.EMPTY, SYNC_INTERVAL);
@@ -509,6 +517,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             ContentResolver.setSyncAutomatically(currentSynchronizationAccount, authority, false);
         }
         Log.v(TAG, "setConnected to " + enable);
+        return true;
 
         // We cannot instantly check weather addPeriodicSync did it's job as this seems to be async.
         // For this reason we have a test to ensure this works: WifiSurveyorTest.testSetConnected()

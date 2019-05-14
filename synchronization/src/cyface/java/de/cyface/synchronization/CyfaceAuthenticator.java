@@ -74,7 +74,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -137,7 +137,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         final String freshAuthToken;
         final String password = accountManager.getPassword(account);
         if (password == null) {
-            Validate.notNull(response);
             return getLoginActivityIntent(response, account, authTokenType);
         }
 
@@ -189,7 +188,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @return the {@link Bundle} containing the requesting {@code Intent}
      */
     @Nullable
-    private Bundle getLoginActivityIntent(@NonNull final AccountAuthenticatorResponse response,
+    private Bundle getLoginActivityIntent(@Nullable final AccountAuthenticatorResponse response,
             @NonNull final Account account, @NonNull final String authTokenType) {
         if (LOGIN_ACTIVITY == null) {
             Log.w(TAG, "Please set LOGIN_ACTIVITY.");

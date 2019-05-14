@@ -20,13 +20,14 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
-import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
+import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.FORBIDDEN;
 import static de.cyface.utils.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
@@ -46,13 +47,15 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.persistence.DefaultFileAccess;
+
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
  * measurements.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.1
+ * @version 3.1.3
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -109,6 +112,8 @@ class SyncPerformer {
             @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
+        Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
+                DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
         HttpsURLConnection.setFollowRedirects(false);
         HttpsURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
@@ -160,6 +165,10 @@ class SyncPerformer {
         } catch (final NetworkUnavailableException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
+            return false;
+        } catch (final SynchronizationInterruptedException e) {
+            syncResult.stats.numIoExceptions++;
+            sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
             return false;
         } catch (final ConflictException e) {
             syncResult.stats.numSkippedEntries++;
