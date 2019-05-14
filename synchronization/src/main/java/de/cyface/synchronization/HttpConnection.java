@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.0.1
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -259,23 +259,23 @@ public class HttpConnection implements Http {
                 outputStream.close();
             }
         } catch (final SSLException e) {
+            Log.w(TAG, "Caught SSLException: " + e.getMessage());
             // This exception is thrown by OkHttp when the network is no longer available
             if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
-                Log.w(TAG, "Caught SSLException: " + e.getMessage());
                 throw new NetworkUnavailableException("Network became unavailable during transmission.");
-            } else {
-                throw new IllegalStateException(e); // SSLException with unknown cause
             }
+            throw new SynchronisationException(e); // SSLException with unknown cause MOV-774
         } catch (final InterruptedIOException e) {
             // This exception is thrown when the login request is interrupted
             throw new NetworkUnavailableException("Network interrupted during post", e);
         } catch (final IOException e) {
+            Log.w(TAG, "Caught IOException: " + e.getMessage());
             // Logging out interrupts the sync thread. This must not throw a RuntimeException, thus:
             if (e.getMessage().contains("unexpected end of stream")) {
                 throw new SynchronizationInterruptedException("Sync was probably interrupted via cancelSynchronization",
                         e);
             }
-            throw new IllegalStateException(e);
+            throw new SynchronisationException(e); // IOException with unknown cause MOV-778
         }
 
         return readResponse(connection);
