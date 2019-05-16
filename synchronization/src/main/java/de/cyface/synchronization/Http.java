@@ -34,7 +34,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 7.0.1
  * @since 3.0.0
  */
 interface Http {
@@ -105,7 +105,7 @@ interface Http {
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param fileName The name of the file to be uploaded
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
-     * @throws SynchronisationException If an IOException occurred while reading the response code.
+     * @throws SynchronisationException If an IOException occurred during synchronization.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
      * @throws ForbiddenException When the server returns {@code HttpURLConnection#HTTP_FORBIDDEN}
