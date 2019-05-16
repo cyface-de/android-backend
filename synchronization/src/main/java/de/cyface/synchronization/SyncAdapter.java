@@ -68,7 +68,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.8
+ * @version 2.6.9
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -261,10 +261,10 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
         jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
         // When WifiSurveyor.deleteAccount() was called in the meantime the jwt token is empty, thus:
-        if (interrupted()) {
+        if (jwtAuthToken == null) {
+            Validate.isTrue(interrupted());
             throw new SynchronizationInterruptedException("Sync interrupted, aborting sync.");
         }
-        Validate.notNull(jwtAuthToken);
         Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length() - 7));
         return jwtAuthToken;
     }
