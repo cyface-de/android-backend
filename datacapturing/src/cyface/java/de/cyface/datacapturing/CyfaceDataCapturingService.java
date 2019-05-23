@@ -39,9 +39,12 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.DistanceCalculationStrategy;
+import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Point3d;
@@ -55,9 +58,10 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.1.1
+ * @version 11.0.0
  * @since 2.0.0
  */
+@SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
 public final class CyfaceDataCapturingService extends DataCapturingService {
 
     /**
@@ -75,6 +79,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#getDistance()}
+     * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
+     *            {@link GeoLocation}s
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -87,11 +93,12 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+            @NonNull final LocationCleaningStrategy locationCleaningStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
-                distanceCalculationStrategy, capturingListener, sensorFrequency);
+                distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
         }
@@ -118,15 +125,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"})
-    // This is the constructor used by SDK implementing apps
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
     public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultDistanceCalculationStrategy(), capturingListener, sensorFrequency);
+                new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
+                sensorFrequency);
     }
 
     /**
