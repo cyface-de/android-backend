@@ -532,7 +532,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         list is returned.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
-    @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
+    @SuppressWarnings("unused") // May be used by SDK implementing app
     public List<Track> loadTracks(final long measurementIdentifier) throws CursorIsNullException {
 
         Cursor geoLocationCursor = null;
@@ -588,7 +588,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 continue;
             }
 
-            // get all geolocations captured before this RESUME event
+            // get all GeoLocations captured before this RESUME event
             final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
             final Track track = new Track();
             while (geoLocationCursor.moveToNext()) {
