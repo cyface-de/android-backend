@@ -366,10 +366,9 @@ public abstract class DataCapturingService {
 
             if (stopService(finishedHandler)) {
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
-                return;
+            } else {
+                handleStopFailed(currentlyCapturedMeasurement);
             }
-
-            handleStopFailed(currentlyCapturedMeasurement);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous stop.");
             lifecycleLock.unlock();
