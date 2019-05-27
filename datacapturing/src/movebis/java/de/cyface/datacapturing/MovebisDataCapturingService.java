@@ -74,7 +74,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.1
+ * @version 10.0.2
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -230,6 +230,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
         boolean coarseLocationAccessIsGranted = checkCoarseLocationAccess(getContext());
         if (coarseLocationAccessIsGranted) {
+            if (!preMeasurementLocationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
+                Log.w(TAG, "Network provider does not exist, not requesting UI location updates from that provider");
+                return;
+            }
             preMeasurementLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, locationUpdateRate,
                     0L, locationListener);
             uiUpdatesActive = true;
