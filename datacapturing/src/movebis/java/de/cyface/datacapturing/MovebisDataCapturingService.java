@@ -21,6 +21,7 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import android.Manifest;
@@ -74,7 +75,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.2
+ * @version 10.0.3
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -355,23 +356,17 @@ public class MovebisDataCapturingService extends DataCapturingService {
         try {
             super.start(vehicle, finishedHandler);
         } catch (final CorruptedMeasurementException e) {
+            final List<Measurement> corruptedMeasurements = new ArrayList<>();
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
-            for (final Measurement measurement : openMeasurements) {
-                Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
-                this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
+            final List<Measurement> pausedMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.PAUSED);
+            corruptedMeasurements.addAll(openMeasurements);
+            corruptedMeasurements.addAll(pausedMeasurements);
+
+            for (final Measurement measurement : corruptedMeasurements) {
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
                 try {
                     this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
-                } catch (NoSuchMeasurementException e1) {
-                    throw new IllegalStateException(e);
-                }
-            }
-            final List<Measurement> pausedMeasurements = this.persistenceLayer
-                    .loadMeasurements(MeasurementStatus.PAUSED);
-            for (final Measurement measurement : pausedMeasurements) {
-                Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
-                try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
-                } catch (NoSuchMeasurementException e1) {
+                } catch (final NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }
             }
