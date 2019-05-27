@@ -411,7 +411,7 @@ public abstract class DataCapturingService {
                 return;
             }
 
-            handlePauseFailed();
+            handlePauseFailed(currentlyCapturedMeasurement);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous pause.");
             lifecycleLock.unlock();
@@ -488,7 +488,7 @@ public abstract class DataCapturingService {
     /**
      * Handles cases where a {@link Measurement} failed to be {@link #stop(ShutDownFinishedHandler)}ped.
      * <p>
-     * We added this handling in because of MOV-788, see {@link #handlePauseFailed()}.
+     * We added this handling in because of MOV-788, see {@link #handlePauseFailed(Measurement)}.
      * <p>
      * The goal here is the resolve states which are sort of reasonable to reduce the number of crashes or get more
      * information how this state actually popped up.
@@ -497,7 +497,6 @@ public abstract class DataCapturingService {
      */
     private void handleStopFailed(@NonNull final Measurement currentlyCapturedMeasurement) {
 
-        // If the measurement is still running, the pause had no effect. Report back to the caller.
         isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, new IsRunningCallback() {
             @Override
             public void isRunning() {
@@ -541,14 +540,15 @@ public abstract class DataCapturingService {
      * <p>
      * The goal here is the resolve states which are sort of reasonable to reduce the number of crashes or get more
      * information how this state actually popped up.
+     * 
+     * @param currentlyCapturedMeasurement the currently captured {@code Measurement}
      */
-    private void handlePauseFailed() {
+    private void handlePauseFailed(@NonNull final Measurement currentlyCapturedMeasurement) {
 
-        // If the measurement is still running, the pause had no effect. Report back to the caller.
         isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, new IsRunningCallback() {
             @Override
             public void isRunning() {
-                throw new IllegalStateException("Pause() failed, measurement is still running.");
+                throw new IllegalStateException("Capturing is still running.");
             }
 
             @Override
@@ -557,27 +557,25 @@ public abstract class DataCapturingService {
                     final boolean hasOpenMeasurement = persistenceLayer.hasMeasurement(OPEN);
                     final boolean hasPausedMeasurement = persistenceLayer.hasMeasurement(PAUSED);
                     Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement));
+                    // There is no good reason why pause is called when there is not even an unfinished measurement
+                    Validate.isTrue(hasOpenMeasurement || hasPausedMeasurement);
 
                     if (hasOpenMeasurement) {
                         // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
                         // We just update the {@link MeasurementStatus} and hope all will be okay.
                         Log.w(TAG, "handlePauseFailed: open no-running measurement found, update state to pause.");
                         persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
-                        return;
-                    }
-
-                    if (hasPausedMeasurement) {
+                    } else {
                         Log.w(TAG, "handlePauseFailed: paused measurement found, nothing to do.");
-                        return;
                     }
 
-                    // There is no good reason why pause is called when there is not even an unfinished measurement
-                    throw new IllegalStateException("handlePauseFailed: no currentlyCapturedMeasurement.");
+                    // The background service was not active and, thus, could not be stopped.
+                    // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
+                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getIdentifier(), false);
 
                 } catch (final NoSuchMeasurementException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
                 }
-
             }
         });
     }
