@@ -409,10 +409,9 @@ public abstract class DataCapturingService {
 
             if (stopService(finishedHandler)) {
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
-                return;
+            } else {
+                handlePauseFailed(currentlyCapturedMeasurement);
             }
-
-            handlePauseFailed(currentlyCapturedMeasurement);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous pause.");
             lifecycleLock.unlock();
