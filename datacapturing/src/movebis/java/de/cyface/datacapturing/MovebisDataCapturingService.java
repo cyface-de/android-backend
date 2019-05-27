@@ -58,6 +58,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
@@ -75,7 +76,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.3
+ * @version 10.0.4
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -358,18 +359,22 @@ public class MovebisDataCapturingService extends DataCapturingService {
         } catch (final CorruptedMeasurementException e) {
             final List<Measurement> corruptedMeasurements = new ArrayList<>();
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
-            final List<Measurement> pausedMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.PAUSED);
+            final List<Measurement> pausedMeasurements = this.persistenceLayer
+                    .loadMeasurements(MeasurementStatus.PAUSED);
             corruptedMeasurements.addAll(openMeasurements);
             corruptedMeasurements.addAll(pausedMeasurements);
 
             for (final Measurement measurement : corruptedMeasurements) {
                 Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
                 try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                    // Because of MOV-790 we disable the validation in setStatus and do this manually below
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
                 } catch (final NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }
             }
+            Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.OPEN));
+            Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED));
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {

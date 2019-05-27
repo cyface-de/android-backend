@@ -30,6 +30,7 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
@@ -54,7 +55,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.1.0
+ * @version 10.1.1
  * @since 2.0.0
  */
 public final class CyfaceDataCapturingService extends DataCapturingService {
@@ -117,7 +118,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // This is the constructor used by SDK implementing apps
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"})
+    // This is the constructor used by SDK implementing apps
     public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
@@ -215,7 +217,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
                 Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
                 this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
                 try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, false);
                 } catch (NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }
@@ -225,7 +227,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             for (final Measurement measurement : pausedMeasurements) {
                 Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
                 try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, false);
                 } catch (NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }
