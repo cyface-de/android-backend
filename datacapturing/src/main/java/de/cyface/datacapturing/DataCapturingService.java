@@ -69,8 +69,10 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
@@ -99,7 +101,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.2.0
+ * @version 16.3.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -864,6 +866,26 @@ public abstract class DataCapturingService {
         Validate.isTrue(!hasPausedMeasurements, "There is a dead PAUSED measurement or wrong life-cycle call.");
 
         return persistenceLayer.newMeasurement(vehicle);
+    }
+
+    /**
+     * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
+     * {@link PersistenceLayer}.
+     * <p>
+     * We offer this API through the {@link DataCapturingService} to allow the SDK implementor to load the
+     * currentlyCapturedMeasurement from the cache as the {@link DefaultPersistenceBehaviour} does not have a cache
+     * which is the only {@link PersistenceBehaviour} the implementor may use directly.
+     *
+     * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
+     *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
+     *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @return the currently captured {@link Measurement}
+     */
+    @SuppressWarnings("unused") // Used by SDK implementing apps (SR) onNewGeoLocationAcquired
+    @NonNull
+    public Measurement loadCurrentlyCapturedMeasurement() throws CursorIsNullException, NoSuchMeasurementException {
+        return persistenceLayer.loadCurrentlyCapturedMeasurement();
     }
 
     /**
