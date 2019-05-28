@@ -36,15 +36,15 @@ import de.cyface.persistence.model.GeoLocation;
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 4.1.0
  */
 public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy {
 
     /**
-     * The lowest accuracy of {@link GeoLocation}s in meters which is too "bad" to be used.
+     * The lowest accuracy of {@link GeoLocation}s in centimeters which is too "bad" to be used.
      */
-    private static final float UPPER_ACCURACY_THRESHOLD = 20.0f;
+    private static final float UPPER_ACCURACY_THRESHOLD = 2000.0f;
     /**
      * The lowest speed of {@link GeoLocation}s in m/s which is just enough to be seen as "moving".
      */
