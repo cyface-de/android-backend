@@ -132,7 +132,7 @@ public class SharedTestUtils {
     public static GeoLocation generateGeoLocation(final int distanceFromBase) {
         final double salt = Math.random();
         return new GeoLocation(BASE_LAT + distanceFromBase * LAT_CONSTANT, BASE_LON + distanceFromBase * LON_CONSTANT,
-                1000000000L + distanceFromBase * 1000L, salt * 15.0, (float)salt * 30f);
+                1000000000L + distanceFromBase * 1000L, salt * 15.0, (float)salt * 3000f);
     }
 
     /**

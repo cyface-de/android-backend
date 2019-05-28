@@ -34,7 +34,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.2
+ * @version 2.4.4
  * @since 1.0.0
  */
 public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
@@ -60,7 +60,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_SPEED = "speed";
     /**
-     * Column name for the column storing the {@link GeoLocation} accuracy.
+     * Column name for the column storing the {@link GeoLocation} accuracy in centimeters.
      */
     public static final String COLUMN_ACCURACY = "accuracy";
     /**
@@ -101,6 +101,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
+        //noinspection SwitchStatementWithTooFewBranches - for readability
         switch (fromVersion) {
 
             case 8:
