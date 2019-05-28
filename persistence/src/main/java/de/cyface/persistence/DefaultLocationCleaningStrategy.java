@@ -18,10 +18,7 @@
  */
 package de.cyface.persistence;
 
-import static de.cyface.persistence.Constants.TAG;
-
 import android.os.Parcel;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -36,7 +33,7 @@ import de.cyface.persistence.model.GeoLocation;
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 4.1.0
  */
 public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy {
@@ -91,19 +88,17 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
 
         // Ignore very inaccurate locations (e.g. indoors)
         if (location.getAccuracy() >= UPPER_ACCURACY_THRESHOLD) {
-            Log.d(TAG, "GeoLocation with bad accuracy filtered: " + location.getAccuracy());
             return false;
         }
 
         // Ignore locations while standing still
         if (location.getSpeed() < LOWER_SPEED_THRESHOLD) {
-            Log.d(TAG, "GeoLocation with low speed filtered: " + location.getSpeed());
             return false;
         }
 
         // Ignore locations which are too far away from their previous location (upper speed limit)
+        // noinspection RedundantIfStatement - for readability
         if (location.getSpeed() > UPPER_SPEED_THRESHOLD) {
-            Log.d(TAG, "GeoLocation with high speed filtered: " + location.getSpeed());
             return false;
         }
 
