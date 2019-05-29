@@ -32,7 +32,7 @@ import de.cyface.persistence.model.GeoLocation;
  * Tests that the {@link GeoLocation}s are filtered as expected.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 4.0.0
  */
 public class DefaultLocationCleaningStrategyTest {
@@ -54,7 +54,6 @@ public class DefaultLocationCleaningStrategyTest {
     public void testIsClean_accuracyFilter() {
 
         // Arrange
-        final int base = 0;
         final GeoLocation locationWithGoodEnoughAccuracy = new GeoLocation(51.1, 13.1,
                 1000000000L, 5.0, 1999f);
         final GeoLocation locationWithJustTooBadAccuracy = new GeoLocation(51.1, 13.1,
@@ -77,7 +76,6 @@ public class DefaultLocationCleaningStrategyTest {
     public void testIsClean_speedFilter() {
 
         // Arrange
-        final int base = 0;
         final GeoLocation locationWithHighEnoughSpeed = new GeoLocation(51.1, 13.1,
                 1000000000L, 1.0, 1999f);
         final GeoLocation locationWithJustTooLowSpeed = new GeoLocation(51.1, 13.1,

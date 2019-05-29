@@ -60,6 +60,7 @@ import androidx.test.rule.provider.ProviderTestRule;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.EventTable;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
@@ -90,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.4.7
+ * @version 5.5.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -642,6 +643,52 @@ public class CapturedDataWriterTest {
         assertThat(tracks.size(), is(equalTo(1)));
         assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(2)));
         assertThat(tracks.get(0).getGeoLocations().get(1).getTimestamp(), is(equalTo(timestamp)));
+    }
+
+    /**
+     * Tests whether loading a cleaned track of {@link GeoLocation}s returns the expected filtered locations.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testLoadCleanedTrack() throws CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final long startTime = 1000000000L;
+        final GeoLocation locationWithJustTooBadAccuracy = new GeoLocation(51.1, 13.1,
+                startTime + 1, 5.0, 2000f);
+        final GeoLocation locationWithJustTooLowSpeed = new GeoLocation(51.1, 13.1,
+                startTime + 2, 0.99, 1999f);
+        final GeoLocation locationWithHighEnoughSpeed = new GeoLocation(51.1, 13.1,
+                startTime + 3, 1.0, 1999f);
+        final GeoLocation locationWithGoodEnoughAccuracy = new GeoLocation(51.1, 13.1,
+                startTime + 10, 5.0, 1999f);
+        final GeoLocation locationWithJustTooHighSpeed = new GeoLocation(51.1, 13.1,
+                startTime + 11, 100.01, 1999f);
+
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, startTime);
+        capturingBehaviour.storeLocation(locationWithJustTooBadAccuracy, measurement.getIdentifier());
+        capturingBehaviour.storeLocation(locationWithJustTooLowSpeed, measurement.getIdentifier());
+        capturingBehaviour.storeLocation(locationWithHighEnoughSpeed, measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, startTime + 4);
+        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, startTime + 9);
+        capturingBehaviour.storeLocation(locationWithGoodEnoughAccuracy, measurement.getIdentifier());
+        capturingBehaviour.storeLocation(locationWithJustTooHighSpeed, measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, startTime + 12);
+
+        // Act
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
+        assertThat(loadedMeasurements.size(), is(equalTo(1)));
+        List<Track> cleanedTracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier(),
+                new DefaultLocationCleaningStrategy());
+
+        // Assert
+        assertThat(cleanedTracks.size(), is(equalTo(2)));
+        assertThat(cleanedTracks.get(0).getGeoLocations().size(), is(equalTo(1)));
+        assertThat(cleanedTracks.get(0).getGeoLocations().get(0), is(equalTo(locationWithHighEnoughSpeed)));
+        assertThat(cleanedTracks.get(1).getGeoLocations().size(), is(equalTo(1)));
+        assertThat(cleanedTracks.get(1).getGeoLocations().get(0), is(equalTo(locationWithGoodEnoughAccuracy)));
     }
 
     @Test
