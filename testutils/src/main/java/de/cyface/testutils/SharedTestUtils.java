@@ -48,6 +48,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
@@ -70,7 +71,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.5
+ * @version 4.2.6
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -132,7 +133,10 @@ public class SharedTestUtils {
     public static GeoLocation generateGeoLocation(final int distanceFromBase) {
         final double salt = Math.random();
         return new GeoLocation(BASE_LAT + distanceFromBase * LAT_CONSTANT, BASE_LON + distanceFromBase * LON_CONSTANT,
-                1000000000L + distanceFromBase * 1000L, salt * 15.0, (float)salt * 3000f);
+                1000000000L + distanceFromBase * 1000L,
+                Math.max(DefaultLocationCleaningStrategy.LOWER_SPEED_THRESHOLD,
+                        salt * DefaultLocationCleaningStrategy.UPPER_SPEED_THRESHOLD),
+                (float)salt * (DefaultLocationCleaningStrategy.UPPER_ACCURACY_THRESHOLD - 1));
     }
 
     /**

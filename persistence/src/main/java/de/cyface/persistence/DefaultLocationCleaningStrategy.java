@@ -33,7 +33,7 @@ import de.cyface.persistence.model.GeoLocation;
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 4.1.0
  */
 public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy {
@@ -41,15 +41,15 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
     /**
      * The lowest accuracy of {@link GeoLocation}s in centimeters which is too "bad" to be used.
      */
-    private static final float UPPER_ACCURACY_THRESHOLD = 2000.0f;
+    public static final float UPPER_ACCURACY_THRESHOLD = 2000.0f;
     /**
      * The lowest speed of {@link GeoLocation}s in m/s which is just enough to be seen as "moving".
      */
-    private static final double LOWER_SPEED_THRESHOLD = 1.0;
+    public static final double LOWER_SPEED_THRESHOLD = 1.0;
     /**
      * The highest speed of {@link GeoLocation}s in m/s which is just enough to be seen as "valid".
      */
-    private static final double UPPER_SPEED_THRESHOLD = 100.0;
+    public static final double UPPER_SPEED_THRESHOLD = 100.0;
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
