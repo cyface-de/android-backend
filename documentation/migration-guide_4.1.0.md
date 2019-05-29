@@ -1,14 +1,12 @@
-Cyface Android SDK 4.0.0-alpha8 Migration Guide
+Cyface Android SDK 4.1.0 Migration Guide
 =================================================
 
 This migration guide is written for apps using the `MovebisDataCapturingService`.
 
 If you use the `CyfaceDataCapturingService` instead, please contact us. 
 
-Upgrading from 4.0.0-alpha7
+Upgrading from 4.0.0
 -------------------------------
-
-If you want to migrate from an earlier version please start with the [previous migration guide](./migration-guide_4.0.0-alpha7.md).
 
 - [Resource Files](#resource-files)
     - [Truststore](#truststore)
@@ -47,7 +45,30 @@ If you want to migrate from an earlier version please start with the [previous m
 
 #### Implement Data Capturing Listener
 
-*No API changes.*
+Please use `dataCapturingService.loadCurrentlyCapturedMeasurement()` instead of `persistenceLayer.loadCurrentlyCapturedMeasurement()`
+when you need to load (update) the measurement data for the currently captured measurement very frequently
+(like here: on each location update) as this uses a cache to reduce database access.
+
+```java
+class DataCapturingListenerImpl implements DataCapturingListener {
+    
+    @Override
+    public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
+        
+        // Load updated measurement distance
+        final Measurement measurement;
+        try {
+            measurement = dataCapturingService.loadCurrentlyCapturedMeasurement();
+        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+        
+        final double distanceMeter = measurement.getDistance();
+    }
+    
+    // The other interface methods
+}
+```
 
 #### Implement UI Listener
 
@@ -63,28 +84,7 @@ If you want to migrate from an earlier version please start with the [previous m
 
 #### Start Service
 
-We added a parameter to the `DataCapturingService` to define a maximum sensor frequency:
-
-```java
-class MainFragment extends Fragment {
-    
-    private MovebisDataCapturingService dataCapturingService;
-    
-    @Override
-    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
-            final Bundle savedInstanceState) {
-        
-        // Version 4.0.0-alpha7
-        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
-            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener);
-        
-        // Version 4.0.0-alpha8
-        final static int SENSOR_FREQUENCY = 100;
-        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
-            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener, SENSOR_FREQUENCY);
-    }
-}
-```
+*No API changes.*
 
 #### Reconnect to Service
 
@@ -114,7 +114,7 @@ class MainFragment extends Fragment {
 
 #### Pause/Resume Capturing
 
-*No API changes.*
+The method `dataCapturingService.pause(finishedHandler)` now does not throw a `DataCapturingException` anymore. 
 
 ### Access Measurements
 
@@ -126,7 +126,27 @@ class MainFragment extends Fragment {
 
 #### Load Tracks
 
-*No API changes.*
+We did not change the existing API but added a method to load the "cleaned" track.
+
+See the `DefaultLocationCleaningStrategy` class for details.
+
+```java
+class measurementControlOrAccessClass {
+    void loadTrack() {
+        
+        // Version 4.0.0 only offered the raw track: 
+        List<Track> tracks = persistence.loadTracks(measurementId);
+        
+        // Version 4.1.0 now also offers the "cleaned" track:
+        List<Track> tracks = persistence.loadTracks(measurementId, new DefaultLocationCleaningStrategy());
+        
+        //noinspection StatementWithEmptyBody
+        if (tracks.size() > 0 ) {
+            // your logic
+        }
+    }
+}
+```
 
 #### Load Measurement Distance
 
