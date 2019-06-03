@@ -76,7 +76,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.4
+ * @version 10.0.5
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
@@ -370,7 +370,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
                     this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
                 } catch (final NoSuchMeasurementException e1) {
-                    throw new IllegalStateException(e);
+                    throw new IllegalStateException(e1);
                 }
             }
             Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.OPEN));
