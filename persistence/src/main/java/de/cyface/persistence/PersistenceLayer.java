@@ -44,6 +44,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
@@ -538,6 +539,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor geoLocationCursor = null;
         Cursor eventCursor = null;
         try {
+            eventCursor = loadEvents(measurementIdentifier);
+            Validate.softCatchNullCursor(eventCursor);
+
             // Load GeoLocations
             geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
@@ -547,13 +551,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
-
-            // Load Events to slice measurements on pause events
-            eventCursor = resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()},
-                    EventTable.COLUMN_TIMESTAMP + " ASC");
-            Validate.softCatchNullCursor(eventCursor);
-
             return loadTracks(geoLocationCursor, eventCursor);
         } finally {
             if (geoLocationCursor != null) {
@@ -563,6 +560,67 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 eventCursor.close();
             }
         }
+    }
+
+    /**
+     * Loads the "cleaned" {@link Track}s for the provided {@link Measurement}.
+     * <p>
+     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
+     * device or even reach the applications memory limit.
+     *
+     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
+     *            {@link GeoLocation}s
+     * @return The {@link Track}s associated with the {@code Measurement}. If no {@code GeoLocation}s exists, an empty
+     *         list is returned.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    @SuppressWarnings("unused") // Used by SDK implementing apps (SR, CY)
+    public List<Track> loadTracks(final long measurementIdentifier,
+            @NonNull final LocationCleaningStrategy locationCleaningStrategy) throws CursorIsNullException {
+
+        Cursor geoLocationCursor = null;
+        Cursor eventCursor = null;
+        try {
+            eventCursor = loadEvents(measurementIdentifier);
+            Validate.softCatchNullCursor(eventCursor);
+
+            geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
+                    getGeoLocationsUri());
+            Validate.softCatchNullCursor(geoLocationCursor);
+            if (geoLocationCursor.getCount() == 0) {
+                return Collections.emptyList();
+            }
+            return loadTracks(geoLocationCursor, eventCursor);
+
+        } finally {
+            if (eventCursor != null) {
+                eventCursor.close();
+            }
+            if (geoLocationCursor != null) {
+                geoLocationCursor.close();
+            }
+        }
+    }
+
+    /**
+     * Loads the {@link Event}s for the provided {@link Measurement}.
+     * <p>
+     * <b>Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
+     * {@code Cursor} is always closed after use.</b>
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the {@code Event}s for.
+     * @return The {@code Cursor} pointing to the {@code Event}s of of the {@code Measurement} with the provided
+     *         {@param measurementId}.
+     */
+    @Nullable
+    private Cursor loadEvents(final long measurementIdentifier) {
+
+        return resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()},
+                EventTable.COLUMN_TIMESTAMP + " ASC");
     }
 
     /**

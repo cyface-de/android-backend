@@ -18,9 +18,13 @@
  */
 package de.cyface.persistence;
 
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -32,7 +36,7 @@ import de.cyface.persistence.model.Measurement;
  * Must be {@code Parcelable} to be passed from the {@code DataCapturingService} via {@code Intent}.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 4.1.0
  */
 public interface LocationCleaningStrategy extends Parcelable {
@@ -44,4 +48,21 @@ public interface LocationCleaningStrategy extends Parcelable {
      * @return {@code True} if the {@code GeoLocation} is considered "clean" by this strategy.
      */
     boolean isClean(@NonNull final GeoLocation location);
+
+    /**
+     * Implements the SQL-equivalent to load only the "cleaned" {@link GeoLocation}s with the same filters as in the
+     * {@link #isClean(GeoLocation)} implementation.
+     * <p>
+     * <b>Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
+     * {@code Cursor} is always closed after use. The cursor cannot be closed within this implementation as it's
+     * accessed by the caller.</b>
+     *
+     * @param resolver {@code ContentResolver} that provides access to the {@link MeasuringPointsContentProvider}.
+     * @param measurementId The identifier for the {@link Measurement} to load the track for.
+     * @param geoLocationsUri The content provider {@link Uri} for the {@link GeoLocationsTable}.
+     * @return The {@code Cursor} which points to the "clean" {@link GeoLocation}s in the database.
+     */
+    @Nullable
+    Cursor loadCleanedLocations(@NonNull final ContentResolver resolver, final long measurementId,
+            @NonNull final Uri geoLocationsUri);
 }

@@ -18,9 +18,16 @@
  */
 package de.cyface.persistence;
 
+import static de.cyface.persistence.GeoLocationsTable.COLUMN_ACCURACY;
+import static de.cyface.persistence.GeoLocationsTable.COLUMN_SPEED;
+
+import android.content.ContentResolver;
+import android.database.Cursor;
+import android.net.Uri;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import de.cyface.persistence.model.GeoLocation;
 
@@ -33,7 +40,7 @@ import de.cyface.persistence.model.GeoLocation;
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.1.0
  * @since 4.1.0
  */
 public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy {
@@ -85,9 +92,23 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
 
     @Override
     public boolean isClean(@NonNull final GeoLocation location) {
-
         return location.getSpeed() > LOWER_SPEED_THRESHOLD && location.getAccuracy() < UPPER_ACCURACY_THRESHOLD
                 && location.getSpeed() < UPPER_SPEED_THRESHOLD;
+    }
+
+    @Nullable
+    public Cursor loadCleanedLocations(@NonNull ContentResolver resolver, final long measurementId,
+            @NonNull final Uri geoLocationsUri) {
+
+        @Nullable
+        final Cursor geoLocationCursor = resolver.query(geoLocationsUri, null,
+                GeoLocationsTable.COLUMN_MEASUREMENT_FK + " = ? AND " + COLUMN_SPEED + " > ? AND " + COLUMN_ACCURACY
+                        + " < ? AND " + COLUMN_SPEED + " < ?",
+                new String[] {Long.valueOf(measurementId).toString(), String.valueOf(LOWER_SPEED_THRESHOLD),
+                        String.valueOf(UPPER_ACCURACY_THRESHOLD), String.valueOf(UPPER_SPEED_THRESHOLD)},
+                GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
+
+        return geoLocationCursor;
     }
 
     @Override
