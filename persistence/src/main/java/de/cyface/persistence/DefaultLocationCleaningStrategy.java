@@ -33,7 +33,7 @@ import de.cyface.persistence.model.GeoLocation;
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 4.1.0
  */
 public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy {
@@ -43,11 +43,11 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
      */
     public static final float UPPER_ACCURACY_THRESHOLD = 2000.0f;
     /**
-     * The lowest speed of {@link GeoLocation}s in m/s which is just enough to be seen as "moving".
+     * The lower speed boundary in m/s which needs to be exceeded for the location to be "valid".
      */
     public static final double LOWER_SPEED_THRESHOLD = 1.0;
     /**
-     * The highest speed of {@link GeoLocation}s in m/s which is just enough to be seen as "valid".
+     * The upper speed boundary in m/s which needs to be undershot for the location to be "valid".
      */
     public static final double UPPER_SPEED_THRESHOLD = 100.0;
 
@@ -86,23 +86,8 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
     @Override
     public boolean isClean(@NonNull final GeoLocation location) {
 
-        // Ignore very inaccurate locations (e.g. indoors)
-        if (location.getAccuracy() >= UPPER_ACCURACY_THRESHOLD) {
-            return false;
-        }
-
-        // Ignore locations while standing still
-        if (location.getSpeed() < LOWER_SPEED_THRESHOLD) {
-            return false;
-        }
-
-        // Ignore locations which are too far away from their previous location (upper speed limit)
-        // noinspection RedundantIfStatement - for readability
-        if (location.getSpeed() > UPPER_SPEED_THRESHOLD) {
-            return false;
-        }
-
-        return true;
+        return location.getSpeed() > LOWER_SPEED_THRESHOLD && location.getAccuracy() < UPPER_ACCURACY_THRESHOLD
+                && location.getSpeed() < UPPER_SPEED_THRESHOLD;
     }
 
     @Override

@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.0
+ * @version 5.5.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -659,13 +659,13 @@ public class CapturedDataWriterTest {
         final GeoLocation locationWithJustTooBadAccuracy = new GeoLocation(51.1, 13.1,
                 startTime + 1, 5.0, 2000f);
         final GeoLocation locationWithJustTooLowSpeed = new GeoLocation(51.1, 13.1,
-                startTime + 2, 0.99, 1999f);
+                startTime + 2, 1.0, 500f);
         final GeoLocation locationWithHighEnoughSpeed = new GeoLocation(51.1, 13.1,
-                startTime + 3, 1.0, 1999f);
+                startTime + 3, 1.01, 500f);
         final GeoLocation locationWithGoodEnoughAccuracy = new GeoLocation(51.1, 13.1,
                 startTime + 10, 5.0, 1999f);
         final GeoLocation locationWithJustTooHighSpeed = new GeoLocation(51.1, 13.1,
-                startTime + 11, 100.01, 1999f);
+                startTime + 11, 100.0, 500f);
 
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, startTime);
         capturingBehaviour.storeLocation(locationWithJustTooBadAccuracy, measurement.getIdentifier());
