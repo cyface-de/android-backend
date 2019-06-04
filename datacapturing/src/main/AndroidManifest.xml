@@ -11,7 +11,7 @@
     <uses-permission android:name="android.permission.READ_SYNC_SETTINGS" />
     <!-- Required to authenticate Cyface accounts with a Cyface server -->
     <uses-permission android:name="android.permission.AUTHENTICATE_ACCOUNTS" />
-    <!-- Required to start a foreground service sind SDK 28 (Android 9 / Pie) -->
+    <!-- Required to start a foreground service since SDK 28 (Android 9 / Pie) -->
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application>
