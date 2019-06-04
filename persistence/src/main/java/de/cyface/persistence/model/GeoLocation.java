@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence.model;
 
 import static android.content.ContentValues.TAG;
@@ -7,14 +25,17 @@ import java.util.Locale;
 import android.os.Parcel;
 import android.os.Parcelable;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
+
+import de.cyface.persistence.LocationCleaningStrategy;
 
 /**
  * A position captured by the {@code DataCapturingService}.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.6
+ * @version 1.3.0
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
@@ -40,6 +61,10 @@ public class GeoLocation implements Parcelable {
      * The current accuracy of the measuring device in centimeters.
      */
     private final float accuracy;
+    /**
+     * {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     */
+    private boolean isValid;
 
     /**
      * Creates a new completely initialized <code>GeoLocation</code>.
@@ -82,6 +107,7 @@ public class GeoLocation implements Parcelable {
         this.timestamp = timestamp;
         this.speed = speed;
         this.accuracy = accuracy;
+        this.isValid = true;
     }
 
     /**
@@ -121,6 +147,20 @@ public class GeoLocation implements Parcelable {
         return accuracy;
     }
 
+    /**
+     * @param valid {@code True} if this location is considered "clean" by the provided
+     *            {@link LocationCleaningStrategy}.
+     */
+    public void setValid(boolean valid) {
+        isValid = valid;
+    }
+
+    /**
+     * @return {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     */
+    public boolean isValid() {
+        return isValid;
+    }
     /*
      * MARK: Parcelable Interface
      */
@@ -136,6 +176,7 @@ public class GeoLocation implements Parcelable {
         timestamp = in.readLong();
         speed = in.readDouble();
         accuracy = in.readFloat();
+        isValid = in.readByte() != 0;
     }
 
     /**
@@ -165,6 +206,7 @@ public class GeoLocation implements Parcelable {
         dest.writeLong(timestamp);
         dest.writeDouble(speed);
         dest.writeFloat(accuracy);
+        dest.writeByte((byte)(isValid ? 1 : 0));
     }
 
     @Override
@@ -173,18 +215,13 @@ public class GeoLocation implements Parcelable {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-
-        GeoLocation that = (GeoLocation)o;
-
-        if (Double.compare(that.lat, lat) != 0)
-            return false;
-        if (Double.compare(that.lon, lon) != 0)
-            return false;
-        if (timestamp != that.timestamp)
-            return false;
-        if (Double.compare(that.speed, speed) != 0)
-            return false;
-        return Float.compare(that.accuracy, accuracy) == 0;
+        GeoLocation location = (GeoLocation)o;
+        return Double.compare(location.lat, lat) == 0 &&
+                Double.compare(location.lon, lon) == 0 &&
+                timestamp == location.timestamp &&
+                Double.compare(location.speed, speed) == 0 &&
+                Float.compare(location.accuracy, accuracy) == 0 &&
+                isValid == location.isValid;
     }
 
     @Override
@@ -199,6 +236,7 @@ public class GeoLocation implements Parcelable {
         temp = Double.doubleToLongBits(speed);
         result = 31 * result + (int)(temp ^ (temp >>> 32));
         result = 31 * result + (accuracy != +0.0f ? Float.floatToIntBits(accuracy) : 0);
+        result = 31 * result + (isValid ? 1231 : 1237);
         return result;
     }
 }
