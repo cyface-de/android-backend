@@ -60,6 +60,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
@@ -76,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.3
+ * @version 1.4.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -173,7 +174,7 @@ public class UploadProgressTest {
             insertPoint3d(directionsFile, 1501662636050L, 7.65, -33.15, -71.700005);
 
             // Mark measurement as finished
-            persistenceLayer.setStatus(measurementIdentifier, MeasurementStatus.FINISHED);
+            persistenceLayer.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false);
 
             client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
             SyncResult result = new SyncResult();

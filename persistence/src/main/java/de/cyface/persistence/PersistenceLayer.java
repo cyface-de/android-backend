@@ -64,7 +64,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.1.2
+ * @version 15.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -369,7 +369,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // The status in the database could be different from the one in the object so load it again
         final long measurementId = measurement.getIdentifier();
         Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
-        setStatus(measurementId, SYNCED);
+        setStatus(measurementId, SYNCED, false);
 
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
 
@@ -749,11 +749,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newStatus The new {@code MeasurementStatus}
+     * @param allowCorruptedState {@code True} if this method is called to clean up corrupted measurements
+     *            and, thus, it's possible that there are still unfinished measurements
+     *            after updating one unfinished measurement to finished. Default is {@code False}.
      * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
      *             {@param measurementIdentifier}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
+    public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus,
+            final boolean allowCorruptedState)
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final ContentValues values = new ContentValues();
@@ -769,8 +773,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
                 break;
             case FINISHED:
-                Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
-                Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
+                // Because of MOV-790 we don't check this when cleaning up corrupted measurement*s*
+                if (!allowCorruptedState) {
+                    Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
+                    Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
+                }
                 break;
             case SYNCED:
                 break;
