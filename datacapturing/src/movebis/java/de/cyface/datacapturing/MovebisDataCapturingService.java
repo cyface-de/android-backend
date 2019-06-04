@@ -21,6 +21,7 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import android.Manifest;
@@ -48,6 +49,7 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
@@ -57,6 +59,7 @@ import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * In implementation of the {@link DataCapturingService} as required inside the Movebis project.
@@ -74,10 +77,10 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.1
+ * @version 10.0.5
  * @since 2.0.0
  */
-@SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
+@SuppressWarnings({"unused", "WeakerAccess"}) // Used by SDK implementing apps (SR)
 public class MovebisDataCapturingService extends DataCapturingService {
 
     /**
@@ -149,7 +152,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this to create the DataCapturingService
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public MovebisDataCapturingService(@NonNull final Context context, @NonNull final String dataUploadServerAddress,
             @NonNull final UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
@@ -200,7 +203,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, context.getContentResolver(), authority,
                         new CapturingPersistenceBehaviour()),
-                new DefaultDistanceCalculationStrategy(), capturingListener, sensorFrequency);
+                new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
+                sensorFrequency);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);
@@ -230,6 +234,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
 
         boolean coarseLocationAccessIsGranted = checkCoarseLocationAccess(getContext());
         if (coarseLocationAccessIsGranted) {
+            if (!preMeasurementLocationManager.getAllProviders().contains(LocationManager.NETWORK_PROVIDER)) {
+                Log.w(TAG, "Network provider does not exist, not requesting UI location updates from that provider");
+                return;
+            }
             preMeasurementLocationManager.requestLocationUpdates(LocationManager.NETWORK_PROVIDER, locationUpdateRate,
                     0L, locationListener);
             uiUpdatesActive = true;
@@ -351,26 +359,24 @@ public class MovebisDataCapturingService extends DataCapturingService {
         try {
             super.start(vehicle, finishedHandler);
         } catch (final CorruptedMeasurementException e) {
+            final List<Measurement> corruptedMeasurements = new ArrayList<>();
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
-            for (final Measurement measurement : openMeasurements) {
-                Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
-                this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
-                try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
-                } catch (NoSuchMeasurementException e1) {
-                    throw new IllegalStateException(e);
-                }
-            }
             final List<Measurement> pausedMeasurements = this.persistenceLayer
                     .loadMeasurements(MeasurementStatus.PAUSED);
-            for (final Measurement measurement : pausedMeasurements) {
-                Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
+            corruptedMeasurements.addAll(openMeasurements);
+            corruptedMeasurements.addAll(pausedMeasurements);
+
+            for (final Measurement measurement : corruptedMeasurements) {
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
                 try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED);
-                } catch (NoSuchMeasurementException e1) {
-                    throw new IllegalStateException(e);
+                    // Because of MOV-790 we disable the validation in setStatus and do this manually below
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
+                } catch (final NoSuchMeasurementException e1) {
+                    throw new IllegalStateException(e1);
                 }
             }
+            Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.OPEN));
+            Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED));
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {

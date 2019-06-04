@@ -25,6 +25,7 @@ import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -69,8 +70,11 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DistanceCalculationStrategy;
+import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
@@ -99,7 +103,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.1.3
+ * @version 17.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -185,6 +189,10 @@ public abstract class DataCapturingService {
      */
     private final DistanceCalculationStrategy distanceCalculationStrategy;
     /**
+     * The strategy used to filter the {@link GeoLocation}s
+     */
+    private final LocationCleaningStrategy locationCleaningStrategy;
+    /**
      * The number of ms to wait for the callback, see {@link #isRunning(long, TimeUnit, IsRunningCallback)}.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK integrators (CY)
@@ -211,6 +219,8 @@ public abstract class DataCapturingService {
      * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#getDistance()}
+     * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
+     *            {@link GeoLocation}s
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -224,6 +234,7 @@ public abstract class DataCapturingService {
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+            @NonNull final LocationCleaningStrategy locationCleaningStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
 
@@ -237,6 +248,7 @@ public abstract class DataCapturingService {
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
         this.distanceCalculationStrategy = distanceCalculationStrategy;
+        this.locationCleaningStrategy = locationCleaningStrategy;
         this.sensorFrequency = sensorFrequency;
 
         // Setup required device identifier, if not already existent
@@ -359,28 +371,17 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous stop.");
         try {
             setIsStoppingOrHasStopped(true);
-            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_STOP, measurement);
+            final Measurement currentlyCapturedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_STOP, currentlyCapturedMeasurement);
 
-            if (!stopService(finishedHandler)) {
-                // The background service was not active. This can happen when the measurement was paused.
-                // Thus, no broadcast was sent to the ShutDownFinishedHandler, thus we do this here:
-                sendServiceStoppedBroadcast(getContext(), measurement.getIdentifier(), false);
+            if (stopService(finishedHandler)) {
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
+            } else {
+                handleStopFailed(currentlyCapturedMeasurement);
             }
         } finally {
-            // This try makes sure the unlock is also called when the finishRecentMeasurement() command fails
-            try {
-                // {@link #finishRecentMeasurement()} is even executed when {@link #stopService()} fails which should
-                // not even happen. However, it's safer to finish the measurement anyway so that the {@link
-                // DataCapturingBackgroundService} crashes and is reset afterwards.
-
-                // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also finished
-                // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
-            } finally {
-                Log.v(TAG, "Unlocking in asynchronous stop.");
-                lifecycleLock.unlock();
-            }
+            Log.v(TAG, "Unlocking in asynchronous stop.");
+            lifecycleLock.unlock();
         }
     }
 
@@ -397,15 +398,13 @@ public abstract class DataCapturingService {
      *
      * @param finishedHandler A handler that is called as soon as the background service has send a message that it has
      *            paused.
-     * @throws DataCapturingException In case the service was not stopped successfully.
-     * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
-     *             service. This usually occurs if there was no call to
-     *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
+     * @throws NoSuchMeasurementException If no {@link Measurement} was {@link MeasurementStatus#OPEN} or
+     *             {@link MeasurementStatus#PAUSED}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"}) // used by sdk implementing apps (e.g. SR)
     public void pause(@NonNull final ShutDownFinishedHandler finishedHandler)
-            throws DataCapturingException, NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException, CursorIsNullException {
         Log.d(TAG, "Pausing asynchronously.");
         if (getContext() == null) {
             return;
@@ -415,26 +414,17 @@ public abstract class DataCapturingService {
         Log.v(TAG, "Locking in asynchronous pause.");
         try {
             setIsStoppingOrHasStopped(true);
-            final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement);
+            final Measurement currentlyCapturedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_PAUSE, currentlyCapturedMeasurement);
 
-            if (!stopService(finishedHandler)) {
-                throw new DataCapturingException("No active service found to be paused.");
+            if (stopService(finishedHandler)) {
+                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
+            } else {
+                handlePauseFailed(currentlyCapturedMeasurement);
             }
         } finally {
-            // This try makes sure the unlock is also called when the pauseRecentMeasurement() command fails
-            try {
-                // {@link #pauseRecentMeasurement()} is even executed when {@link #stopService()} fails which should
-                // not even happen. However, it's safer to pause the measurement anyway so that the {@link
-                // DataCapturingBackgroundService} crashes and is reset afterwards.
-
-                // We update the {@link MeasurementStatus} here to make sure the {@link Measurement} is also paused
-                // is case the {@link DataCapturingBackgroundService} is already dead.
-                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
-            } finally {
-                Log.v(TAG, "Unlocking in asynchronous pause.");
-                lifecycleLock.unlock();
-            }
+            Log.v(TAG, "Unlocking in asynchronous pause.");
+            lifecycleLock.unlock();
         }
     }
 
@@ -503,6 +493,101 @@ public abstract class DataCapturingService {
             Log.v(TAG, "Unlocking in asynchronous resume.");
             lifecycleLock.unlock();
         }
+    }
+
+    /**
+     * Handles cases where a {@link Measurement} failed to be {@link #stop(ShutDownFinishedHandler)}ped.
+     * <p>
+     * We added this handling in because of MOV-788, see {@link #handlePauseFailed(Measurement)}.
+     * <p>
+     * The goal here is the resolve states which are sort of reasonable to reduce the number of crashes or get more
+     * information how this state actually popped up.
+     * 
+     * @param currentlyCapturedMeasurement The currently captured {@link Measurement}
+     */
+    private void handleStopFailed(@NonNull final Measurement currentlyCapturedMeasurement) {
+
+        isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, new IsRunningCallback() {
+            @Override
+            public void isRunning() {
+                throw new IllegalStateException("Capturing is still running.");
+            }
+
+            @Override
+            public void timedOut() {
+                try {
+                    final boolean hasOpenMeasurement = persistenceLayer.hasMeasurement(OPEN);
+                    final boolean hasPausedMeasurement = persistenceLayer.hasMeasurement(PAUSED);
+                    Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement));
+
+                    if (hasOpenMeasurement || hasPausedMeasurement) {
+                        if (hasOpenMeasurement) {
+                            // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                            Log.w(TAG, "handleStopFailed: open no-running measurement found, update finished.");
+                        }
+                        // When a paused measurement is found, all is normal so no warning needed
+                        persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
+                    } else {
+                        Log.w(TAG, "handleStopFailed: no unfinished measurement found, nothing to do.");
+                    }
+
+                    // The background service was not active. This is normal when we stop a paused measurement.
+                    // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
+                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getIdentifier(), false);
+
+                } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+                    throw new IllegalStateException(e);
+                }
+
+            }
+        });
+    }
+
+    /**
+     * Handles cases where a {@link Measurement} failed to be {@link #pause(ShutDownFinishedHandler)}d.
+     * <p>
+     * This affected about 0.1% of the users in version 4.0.2 (MOV-788).
+     * <p>
+     * The goal here is the resolve states which are sort of reasonable to reduce the number of crashes or get more
+     * information how this state actually popped up.
+     * 
+     * @param currentlyCapturedMeasurement the currently captured {@code Measurement}
+     */
+    private void handlePauseFailed(@NonNull final Measurement currentlyCapturedMeasurement) {
+
+        isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, new IsRunningCallback() {
+            @Override
+            public void isRunning() {
+                throw new IllegalStateException("Capturing is still running.");
+            }
+
+            @Override
+            public void timedOut() {
+                try {
+                    final boolean hasOpenMeasurement = persistenceLayer.hasMeasurement(OPEN);
+                    final boolean hasPausedMeasurement = persistenceLayer.hasMeasurement(PAUSED);
+                    Validate.isTrue(!(hasOpenMeasurement && hasPausedMeasurement));
+                    // There is no good reason why pause is called when there is not even an unfinished measurement
+                    Validate.isTrue(hasOpenMeasurement || hasPausedMeasurement);
+
+                    if (hasOpenMeasurement) {
+                        // This _could_ mean that the {@link DataCapturingBackgroundService} died at some point.
+                        // We just update the {@link MeasurementStatus} and hope all will be okay.
+                        Log.w(TAG, "handlePauseFailed: open no-running measurement found, update state to pause.");
+                        persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
+                    } else {
+                        Log.w(TAG, "handlePauseFailed: paused measurement found, nothing to do.");
+                    }
+
+                    // The background service was not active and, thus, could not be stopped.
+                    // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
+                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getIdentifier(), false);
+
+                } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
     }
 
     /**
@@ -654,6 +739,7 @@ public abstract class DataCapturingService {
         startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
+        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, locationCleaningStrategy);
         startIntent.putExtra(SENSOR_FREQUENCY, sensorFrequency);
 
         final ComponentName serviceComponentName;
@@ -789,6 +875,26 @@ public abstract class DataCapturingService {
         Validate.isTrue(!hasPausedMeasurements, "There is a dead PAUSED measurement or wrong life-cycle call.");
 
         return persistenceLayer.newMeasurement(vehicle);
+    }
+
+    /**
+     * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
+     * {@link PersistenceLayer}.
+     * <p>
+     * We offer this API through the {@link DataCapturingService} to allow the SDK implementor to load the
+     * currentlyCapturedMeasurement from the cache as the {@link DefaultPersistenceBehaviour} does not have a cache
+     * which is the only {@link PersistenceBehaviour} the implementor may use directly.
+     *
+     * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
+     *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
+     *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @return the currently captured {@link Measurement}
+     */
+    @SuppressWarnings("unused") // Used by SDK implementing apps (SR) onNewGeoLocationAcquired
+    @NonNull
+    public Measurement loadCurrentlyCapturedMeasurement() throws CursorIsNullException, NoSuchMeasurementException {
+        return persistenceLayer.loadCurrentlyCapturedMeasurement();
     }
 
     /**
@@ -960,7 +1066,7 @@ public abstract class DataCapturingService {
      * @param listener A listener that is notified of important events during data capturing.
      * @return true if this collection changed as a result of the call
      */
-    @SuppressWarnings("unused") // Used by SDK implementing apps (S, C)
+    @SuppressWarnings({"unused", "UnusedReturnValue"}) // Used by SDK implementing apps (S, C)
     public boolean addDataCapturingListener(@NonNull final DataCapturingListener listener) {
         return fromServiceMessageHandler.addListener(listener);
     }
@@ -973,7 +1079,7 @@ public abstract class DataCapturingService {
      * @param listener A listener that was registered to be notified of important events during data capturing.
      * @return true if an element was removed as a result of this call
      */
-    @SuppressWarnings("unused") // Used by SDK implementing apps (S, C)
+    @SuppressWarnings({"unused", "UnusedReturnValue"}) // Used by SDK implementing apps (S, C)
     public boolean removeDataCapturingListener(@NonNull final DataCapturingListener listener) {
         return fromServiceMessageHandler.removeListener(listener);
     }

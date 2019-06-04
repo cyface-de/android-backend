@@ -48,6 +48,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
@@ -70,7 +71,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.4
+ * @version 4.2.6
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -132,7 +133,10 @@ public class SharedTestUtils {
     public static GeoLocation generateGeoLocation(final int distanceFromBase) {
         final double salt = Math.random();
         return new GeoLocation(BASE_LAT + distanceFromBase * LAT_CONSTANT, BASE_LON + distanceFromBase * LON_CONSTANT,
-                1000000000L + distanceFromBase * 1000L, salt * 15.0, (float)salt * 30f);
+                1000000000L + distanceFromBase * 1000L,
+                Math.max(DefaultLocationCleaningStrategy.LOWER_SPEED_THRESHOLD,
+                        salt * DefaultLocationCleaningStrategy.UPPER_SPEED_THRESHOLD),
+                (float)salt * (DefaultLocationCleaningStrategy.UPPER_ACCURACY_THRESHOLD - 1));
     }
 
     /**
@@ -144,7 +148,8 @@ public class SharedTestUtils {
      * @param y A fake test y coordinate of the {@code Point3d}.
      * @param z A fake test z coordinate of the {@code Point3d}.
      */
-    @SuppressWarnings({"unused", "WeakerAccess"}) // Used by the cyface flavour tests
+    @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"})
+    // Used by the cyface flavour tests
     public static void insertPoint3d(@NonNull final Point3dFile point3dFile, final long timestamp, final double x,
             final double y, final double z) {
         final List<Point3d> points = new ArrayList<>();
@@ -334,7 +339,7 @@ public class SharedTestUtils {
             dPoints.add(new Point3d(7.65f + salt, -32.4f + salt, -71.4f + salt, 1501662636010L + i));
 
             // Avoid OOM when creating too much test data at once
-            if (i >= createLimit -1) {
+            if (i >= createLimit - 1) {
                 insertPoint3ds(accelerationsFile, aPoints);
                 insertPoint3ds(rotationsFile, rPoints);
                 insertPoint3ds(directionsFile, dPoints);
@@ -352,7 +357,7 @@ public class SharedTestUtils {
         if (status == FINISHED || status == MeasurementStatus.SYNCED) {
             persistence.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
                     measurementIdentifier);
-            persistence.setStatus(measurementIdentifier, FINISHED);
+            persistence.setStatus(measurementIdentifier, FINISHED, false);
         }
 
         // Check the sensor data (must be before measurements are marked as sync which deletes the data)
@@ -397,7 +402,7 @@ public class SharedTestUtils {
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
-    @SuppressWarnings("WeakerAccess") // Used by the cyface flavour tests
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by the cyface flavour tests
     @NonNull
     public static Measurement insertMeasurementEntry(@NonNull final PersistenceLayer persistence,
             @NonNull final Vehicle vehicle) throws CursorIsNullException {
@@ -420,7 +425,8 @@ public class SharedTestUtils {
      * @param speed The fake test speed of the {@code GeoLocation}.
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
-    @SuppressWarnings({"WeakerAccess", "unused"}) // Used by the cyface flavour tests
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
+    // Used by the cyface flavour tests
     public static void insertGeoLocation(final ContentResolver resolver, final String authority,
             final long measurementIdentifier, final long timestamp, final double lat, final double lon,
             final double speed, final int accuracy) {

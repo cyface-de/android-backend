@@ -44,6 +44,7 @@ import android.net.Uri;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
@@ -64,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.1.2
+ * @version 15.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -369,7 +370,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // The status in the database could be different from the one in the object so load it again
         final long measurementId = measurement.getIdentifier();
         Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
-        setStatus(measurementId, SYNCED);
+        setStatus(measurementId, SYNCED, false);
 
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
 
@@ -532,12 +533,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         list is returned.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
-    @SuppressWarnings("unused") // Sdk implementing apps (RS) use this api to display the tracks
+    @SuppressWarnings("unused") // May be used by SDK implementing app
     public List<Track> loadTracks(final long measurementIdentifier) throws CursorIsNullException {
 
         Cursor geoLocationCursor = null;
         Cursor eventCursor = null;
         try {
+            eventCursor = loadEvents(measurementIdentifier);
+            Validate.softCatchNullCursor(eventCursor);
+
             // Load GeoLocations
             geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
@@ -547,13 +551,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
-
-            // Load Events to slice measurements on pause events
-            eventCursor = resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()},
-                    EventTable.COLUMN_TIMESTAMP + " ASC");
-            Validate.softCatchNullCursor(eventCursor);
-
             return loadTracks(geoLocationCursor, eventCursor);
         } finally {
             if (geoLocationCursor != null) {
@@ -563,6 +560,67 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 eventCursor.close();
             }
         }
+    }
+
+    /**
+     * Loads the "cleaned" {@link Track}s for the provided {@link Measurement}.
+     * <p>
+     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
+     * device or even reach the applications memory limit.
+     *
+     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
+     *            {@link GeoLocation}s
+     * @return The {@link Track}s associated with the {@code Measurement}. If no {@code GeoLocation}s exists, an empty
+     *         list is returned.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    @SuppressWarnings("unused") // Used by SDK implementing apps (SR, CY)
+    public List<Track> loadTracks(final long measurementIdentifier,
+            @NonNull final LocationCleaningStrategy locationCleaningStrategy) throws CursorIsNullException {
+
+        Cursor geoLocationCursor = null;
+        Cursor eventCursor = null;
+        try {
+            eventCursor = loadEvents(measurementIdentifier);
+            Validate.softCatchNullCursor(eventCursor);
+
+            geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
+                    getGeoLocationsUri());
+            Validate.softCatchNullCursor(geoLocationCursor);
+            if (geoLocationCursor.getCount() == 0) {
+                return Collections.emptyList();
+            }
+            return loadTracks(geoLocationCursor, eventCursor);
+
+        } finally {
+            if (eventCursor != null) {
+                eventCursor.close();
+            }
+            if (geoLocationCursor != null) {
+                geoLocationCursor.close();
+            }
+        }
+    }
+
+    /**
+     * Loads the {@link Event}s for the provided {@link Measurement}.
+     * <p>
+     * <b>Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
+     * {@code Cursor} is always closed after use.</b>
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the {@code Event}s for.
+     * @return The {@code Cursor} pointing to the {@code Event}s of of the {@code Measurement} with the provided
+     *         {@param measurementId}.
+     */
+    @Nullable
+    private Cursor loadEvents(final long measurementIdentifier) {
+
+        return resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()},
+                EventTable.COLUMN_TIMESTAMP + " ASC");
     }
 
     /**
@@ -588,7 +646,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 continue;
             }
 
-            // get all geolocations captured before this RESUME event
+            // get all GeoLocations captured before this RESUME event
             final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
             final Track track = new Track();
             while (geoLocationCursor.moveToNext()) {
@@ -749,11 +807,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The id of the {@link Measurement} to be updated
      * @param newStatus The new {@code MeasurementStatus}
+     * @param allowCorruptedState {@code True} if this method is called to clean up corrupted measurements
+     *            and, thus, it's possible that there are still unfinished measurements
+     *            after updating one unfinished measurement to finished. Default is {@code False}.
      * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
      *             {@param measurementIdentifier}.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus)
+    public void setStatus(final long measurementIdentifier, final MeasurementStatus newStatus,
+            final boolean allowCorruptedState)
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final ContentValues values = new ContentValues();
@@ -769,8 +831,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
                 break;
             case FINISHED:
-                Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
-                Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
+                // Because of MOV-790 we don't check this when cleaning up corrupted measurement*s*
+                if (!allowCorruptedState) {
+                    Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN));
+                    Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED));
+                }
                 break;
             case SYNCED:
                 break;

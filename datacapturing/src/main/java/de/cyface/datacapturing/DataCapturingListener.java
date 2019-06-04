@@ -1,22 +1,41 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
+import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
- * {@link DataCapturingService} via
- * {@link DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)}.
+ * {@link DataCapturingService} via {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}.
+ * <p>
+ * This interface needs to be public as this interface is implemented by sdk implementing apps (SR).
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.3
+ * @version 1.3.4
  * @since 1.0.0
  */
-// Needs to be public as this interface is implemented by sdk implementing apps (SR)
 public interface DataCapturingListener {
     /**
      * Called everytime the capturing service received a location Fix and thus is able to track its position.
@@ -29,9 +48,10 @@ public interface DataCapturingListener {
     void onFixLost();
 
     /**
-     * This method is called each time the data capturing service receives a new geo location.
+     * This method is called each time the data capturing service receives a new {@link GeoLocation} which passes the
+     * {@link LocationCleaningStrategy}.
      *
-     * @param position The new geo location position.
+     * @param position The new {@code GeoLocation}.
      */
     void onNewGeoLocationAcquired(GeoLocation position);
 

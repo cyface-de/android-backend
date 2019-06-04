@@ -13,7 +13,8 @@ import androidx.annotation.NonNull;
  * A position captured by the {@code DataCapturingService}.
  *
  * @author Klemens Muthmann
- * @version 1.2.5
+ * @author Armin Schnabel
+ * @version 1.2.6
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
@@ -36,7 +37,7 @@ public class GeoLocation implements Parcelable {
      */
     private final double speed;
     /**
-     * The current accuracy of the measuring device in meters.
+     * The current accuracy of the measuring device in centimeters.
      */
     private final float accuracy;
 
@@ -50,7 +51,7 @@ public class GeoLocation implements Parcelable {
      * @param timestamp The timestamp at which this <code>GeoLocation</code> was captured in milliseconds since
      *            1.1.1970.
      * @param speed The current speed of the measuring device according to its location sensor in meters per second.
-     * @param accuracy The current accuracy of the measuring device in meters.
+     * @param accuracy The current accuracy of the measuring device in centimeters.
      */
     public GeoLocation(final double lat, final double lon, final long timestamp, final double speed,
             final float accuracy) {
@@ -114,7 +115,7 @@ public class GeoLocation implements Parcelable {
     }
 
     /**
-     * @return The current accuracy of the measuring device in meters.
+     * @return The current accuracy of the measuring device in centimeters.
      */
     public float getAccuracy() {
         return accuracy;

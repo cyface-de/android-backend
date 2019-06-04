@@ -52,6 +52,7 @@ import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
@@ -64,7 +65,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.5
+ * @version 2.2.6
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -94,6 +95,8 @@ public class DataCapturingLocalTest {
     @Mock
     DefaultDistanceCalculationStrategy distanceCalculationStrategy;
     @Mock
+    DefaultLocationCleaningStrategy locationCleaningStrategy;
+    @Mock
     EventHandlingStrategy mockEventHandlingStrategy;
 
     @Before
@@ -104,6 +107,7 @@ public class DataCapturingLocalTest {
         oocut.capturingBehaviour = mockBehaviour;
         oocut.eventHandlingStrategy = mockEventHandlingStrategy;
         oocut.distanceCalculationStrategy = distanceCalculationStrategy;
+        oocut.locationCleaningStrategy = locationCleaningStrategy;
     }
 
     /**
@@ -126,6 +130,7 @@ public class DataCapturingLocalTest {
                 .thenReturn(Double.valueOf(expectedDistance));
         when(distanceCalculationStrategy.calculateDistance(location2, location3))
                 .thenReturn(Double.valueOf(expectedDistance));
+        when(locationCleaningStrategy.isClean(any(GeoLocation.class))).thenReturn(true);
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act

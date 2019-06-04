@@ -25,7 +25,7 @@ import static de.cyface.synchronization.Constants.TAG;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.6.1
+ * @version 2.7.0
  * @since 2.1.0
  */
 public class BundlesExtrasCodes {
@@ -58,6 +58,10 @@ public class BundlesExtrasCodes {
      * Code that identifies the {@code DistanceCalculationStrategy} if transmitted via an Android bundle.
      */
     public final static String DISTANCE_CALCULATION_STRATEGY_ID = "de.cyface.distance_calculation_strategy.id";
+    /**
+     * Code that identifies the {@code LocationCleaningStrategy} if transmitted via an Android bundle.
+     */
+    public final static String LOCATION_CLEANING_STRATEGY_ID = "de.cyface.location_cleaning_strategy.id";
     /**
      * Code that identifies the percentage of the {@link CyfaceConnectionStatusListener#SYNC_PROGRESS}.
      */

@@ -123,21 +123,22 @@ The following steps are required to communicate with this service.
 
 This interface informs your app about data capturing events. Implement the interface to update your UI on those events.
 
-Here is a basic example implementation:
+Please use `dataCapturingService.loadCurrentlyCapturedMeasurement()` instead of `persistenceLayer.loadCurrentlyCapturedMeasurement()`
+when you need to load (update) the measurement data for the currently captured measurement very frequently
+(like here: on each location update) as this uses a cache to reduce database access.
+
+Here is a basic example implementation.
 
 ```java
 class DataCapturingListenerImpl implements DataCapturingListener {
-
-    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
-        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
     
     @Override
     public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
         
-        // E.g.: load current measurement distance
+        // Load updated measurement distance
         final Measurement measurement;
         try {
-            measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            measurement = dataCapturingService.loadCurrentlyCapturedMeasurement();
         } catch (final NoSuchMeasurementException | CursorIsNullException e) {
             throw new IllegalStateException(e);
         }
@@ -453,11 +454,18 @@ Each time a measurement is paused and resumed, a new `Track` is started for the 
 
 A `Track` contains the chronologically ordered `GeoLocation`s captured.
 
+You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaningStrategy` class for details.
+
 ```java
 class measurementControlOrAccessClass {
     void loadTrack() {
         
+        // Raw track:
         List<Track> tracks = persistence.loadTracks(measurementId);
+        
+        // or, "cleaned" track:
+        List<Track> tracks = persistence.loadTracks(measurementId, new DefaultLocationCleaningStrategy());
+        
         //noinspection StatementWithEmptyBody
         if (tracks.size() > 0 ) {
             // your logic
@@ -468,10 +476,10 @@ class measurementControlOrAccessClass {
 
 #### Load Measurement Distance
 
-To display the distance for an ongoing measurement (which is updated about once per second)
-make sure to call `persistenceLayer.loadCurrentlyCapturedMeasurement()` *on each location
-update* to always have the most recent information. For this you need to implement the `DataCapturingListener`
-interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
+To display the distance for an ongoing measurement (which is updated about once per second) you need to call
+`dataCapturingService.loadCurrentlyCapturedMeasurement()` regularly, e.g. on each location update to always have the most recent information.
+
+For this you need to implement the `DataCapturingListener` interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
 
 See [Implement Data Capturing Listener](#implement-data-capturing-listener) for sample code.
 
@@ -539,10 +547,7 @@ This documentation still lacks of samples for the following features:
 
 Migration from Earlier Versions
 --------------------------------
- - [Migrate to 4.0.0-alpha8](documentation/migration-guide_4.0.0-alpha8.md)
- - [Migrate to 4.0.0-alpha7](documentation/migration-guide_4.0.0-alpha7.md)
- - [Migrate to 4.0.0-alpha2](documentation/migration-guide_4.0.0-alpha2.md)
- - [Migrate to 4.0.0-alpha1](documentation/migration-guide_4.0.0-alpha1.md)
+ - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
 
 
 License
