@@ -22,6 +22,7 @@ import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -56,6 +57,7 @@ import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Vehicle;
@@ -67,7 +69,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.3
+ * @version 2.3.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -163,6 +165,7 @@ public class DataCapturingBackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
+        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaningStrategy());
         startIntent.putExtra(SENSOR_FREQUENCY, 100);
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
@@ -198,6 +201,7 @@ public class DataCapturingBackgroundServiceTest {
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
+        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaningStrategy());
         startIntent.putExtra(SENSOR_FREQUENCY, 100);
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);

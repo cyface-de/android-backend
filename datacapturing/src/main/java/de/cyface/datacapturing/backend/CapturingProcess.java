@@ -40,6 +40,7 @@ import android.os.HandlerThread;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
@@ -52,7 +53,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -193,12 +194,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             double longitude = location.getLongitude();
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
-            float locationAccuracy = location.getAccuracy();
+            float locationAccuracyMeters = location.getAccuracy();
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
                     listener.onLocationCaptured(
-                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracy));
+                            // The Android Location contains the accuracy in meters. GeoLocation uses cm.
+                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {

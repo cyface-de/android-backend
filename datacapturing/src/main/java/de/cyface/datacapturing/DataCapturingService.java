@@ -25,6 +25,7 @@ import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
@@ -71,6 +72,7 @@ import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DistanceCalculationStrategy;
+import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
@@ -101,7 +103,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.3.0
+ * @version 17.0.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -187,6 +189,10 @@ public abstract class DataCapturingService {
      */
     private final DistanceCalculationStrategy distanceCalculationStrategy;
     /**
+     * The strategy used to filter the {@link GeoLocation}s
+     */
+    private final LocationCleaningStrategy locationCleaningStrategy;
+    /**
      * The number of ms to wait for the callback, see {@link #isRunning(long, TimeUnit, IsRunningCallback)}.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK integrators (CY)
@@ -213,6 +219,8 @@ public abstract class DataCapturingService {
      * @param persistenceLayer The {@link PersistenceLayer} required to access the device id
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#getDistance()}
+     * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
+     *            {@link GeoLocation}s
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -226,6 +234,7 @@ public abstract class DataCapturingService {
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
+            @NonNull final LocationCleaningStrategy locationCleaningStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
 
@@ -239,6 +248,7 @@ public abstract class DataCapturingService {
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
         this.eventHandlingStrategy = eventHandlingStrategy;
         this.distanceCalculationStrategy = distanceCalculationStrategy;
+        this.locationCleaningStrategy = locationCleaningStrategy;
         this.sensorFrequency = sensorFrequency;
 
         // Setup required device identifier, if not already existent
@@ -729,6 +739,7 @@ public abstract class DataCapturingService {
         startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
+        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, locationCleaningStrategy);
         startIntent.putExtra(SENSOR_FREQUENCY, sensorFrequency);
 
         final ComponentName serviceComponentName;

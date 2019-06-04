@@ -49,6 +49,7 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
@@ -79,7 +80,7 @@ import de.cyface.utils.Validate;
  * @version 10.0.5
  * @since 2.0.0
  */
-@SuppressWarnings({"unused", "WeakerAccess"}) // Sdk implementing apps (SR) use to create a DataCapturingService
+@SuppressWarnings({"unused", "WeakerAccess"}) // Used by SDK implementing apps (SR)
 public class MovebisDataCapturingService extends DataCapturingService {
 
     /**
@@ -151,7 +152,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
      *             fails.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("WeakerAccess") // Sdk implementing apps (SR) use this to create the DataCapturingService
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public MovebisDataCapturingService(@NonNull final Context context, @NonNull final String dataUploadServerAddress,
             @NonNull final UIListener uiListener, final long locationUpdateRate,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
@@ -202,7 +203,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new PersistenceLayer<>(context, context.getContentResolver(), authority,
                         new CapturingPersistenceBehaviour()),
-                new DefaultDistanceCalculationStrategy(), capturingListener, sensorFrequency);
+                new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
+                sensorFrequency);
         this.locationUpdateRate = locationUpdateRate;
         uiUpdatesActive = false;
         preMeasurementLocationManager = (LocationManager)context.getSystemService(Context.LOCATION_SERVICE);

@@ -23,6 +23,7 @@ import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
+import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 
@@ -63,6 +64,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DistanceCalculationStrategy;
+import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
@@ -83,7 +85,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.2
+ * @version 7.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -142,6 +144,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The strategy used to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs
      */
     DistanceCalculationStrategy distanceCalculationStrategy;
+    /**
+     * The strategy used to filter the received {@link GeoLocation}s
+     */
+    LocationCleaningStrategy locationCleaningStrategy;
     /**
      * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
      */
@@ -300,6 +306,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         this.distanceCalculationStrategy = intent.getParcelableExtra(DISTANCE_CALCULATION_STRATEGY_ID);
         Validate.notNull(distanceCalculationStrategy);
 
+        // Loads LocationCleaningStrategy
+        this.locationCleaningStrategy = intent.getParcelableExtra(LOCATION_CLEANING_STRATEGY_ID);
+        Validate.notNull(locationCleaningStrategy);
+
         // Loads measurement id
         final long measurementIdentifier = intent.getLongExtra(BundlesExtrasCodes.MEASUREMENT_ID, -1);
         if (measurementIdentifier == -1) {
@@ -440,11 +450,18 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onLocationCaptured(final @NonNull GeoLocation newLocation) {
+
+        // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
-        informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
 
-        // Update {@code Measurement#distance), {@code lastDistance} and {@code #lastLocation}, in this order!
+        // Ignore "unclean" locations from further processing
+        if (!locationCleaningStrategy.isClean(newLocation)) {
+            return;
+        }
+        informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
+
+        // Update {@code Measurement#distance), {@code #lastDistance} and {@code #lastLocation}, in this order!
         if (lastLocation != null) {
             final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
             final double newDistance = lastDistance + distanceToAdd;
@@ -458,6 +475,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         this.lastLocation = newLocation;
 
+        // Check available space
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");
             eventHandlingStrategy.handleSpaceWarning(this);
