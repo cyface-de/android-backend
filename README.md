@@ -135,6 +135,8 @@ class DataCapturingListenerImpl implements DataCapturingListener {
     @Override
     public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
         
+        // To identify invalid ("unclean") location, check geoLocation.isValid()
+        
         // Load updated measurement distance
         final Measurement measurement;
         try {

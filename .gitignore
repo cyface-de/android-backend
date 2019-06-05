@@ -13,3 +13,6 @@
 synchronization/src/main/res/raw/**/*.jks
 synchronization/src/main/res/raw/**/*.cer
 synchronization/src/main/res/raw/**/*.pem
+
+# git backup files
+*.orig
