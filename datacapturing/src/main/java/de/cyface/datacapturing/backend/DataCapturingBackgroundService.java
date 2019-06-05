@@ -455,8 +455,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
 
-        // Ignore "unclean" locations from further processing
+        // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation)) {
+            newLocation.setValid(false);
+            informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }
         informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
