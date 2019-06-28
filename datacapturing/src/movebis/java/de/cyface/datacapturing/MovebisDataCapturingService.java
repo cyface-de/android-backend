@@ -54,7 +54,6 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
@@ -337,9 +336,8 @@ public class MovebisDataCapturingService extends DataCapturingService {
      * need to apply some timeout mechanism to not wait indefinitely.
      * <p>
      * This wrapper avoids an unrecoverable state after the app crashed with an un{@link MeasurementStatus#FINISHED}
-     * {@link Measurement}. It deletes the {@link Point3d}s of "dead" {@link MeasurementStatus#OPEN} measurements
-     * because the {@link Point3d} counts gets lost during app crash. "Dead" {@code MeasurementStatus#OPEN} and
-     * {@link MeasurementStatus#PAUSED} measurements are then marked as {@code FINISHED}.
+     * {@link Measurement}. "Dead" {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are
+     * then marked as {@code FINISHED}.
      *
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
