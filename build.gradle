@@ -89,6 +89,7 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
             pr.android.libraryVariants.all { variant ->
                 def flavored = !variant.flavorName.isEmpty()
                 def variantArtifactId = flavored ? variant.flavorName.replace('_', '-') : project.name
+                variantArtifactId += variant.getBuildType().name=='release'?'':variant.getBuildType().name.capitalize()
 
                 def javaDocDestDir = file("${buildDir}/docs/javadoc ${flavored ? variantArtifactId : ""}")
 
@@ -118,7 +119,7 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
                     classifier = 'sources'
                 }
 
-                "${project.name}${variant.name.capitalize()}"(MavenPublication) {
+                "${project.name}${variant.name.capitalize()}${variant.getBuildType().name=='release'?'':variant.getBuildType().name.capitalize()}"
                     groupId project.group
                     artifactId "${project.name}${variantArtifactId.capitalize()}"
                     version android.defaultConfig.versionName
