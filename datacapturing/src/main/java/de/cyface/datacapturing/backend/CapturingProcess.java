@@ -53,7 +53,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -195,6 +195,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
             float locationAccuracyMeters = location.getAccuracy();
+            if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
+                locationAccuracyMeters = Math.random()*30.0f;
+                Log.d(TAG, "Emulator detected, Accuracy overwritten to: " + locationAccuracyMeters);
+            }
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
@@ -361,4 +365,20 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @return The speed in m/s.
      */
     protected abstract double getCurrentSpeed(final Location location);
+
+    /**
+     * From https://stackoverflow.com/questions/2799097/how-can-i-detect-when-an-android-application-is-running-in-the-emulator
+     *
+     * @return {@code True} is an emulator was detected
+     */
+    private static boolean isEmulator() {
+        return Build.FINGERPRINT.startsWith("generic")
+                || Build.FINGERPRINT.startsWith("unknown")
+                || Build.MODEL.contains("google_sdk")
+                || Build.MODEL.contains("Emulator")
+                || Build.MODEL.contains("Android SDK built for x86")
+                || Build.MANUFACTURER.contains("Genymotion")
+                || (Build.BRAND.startsWith("generic") && Build.DEVICE.startsWith("generic"))
+                || "google_sdk".equals(Build.PRODUCT);
+    }
 }
