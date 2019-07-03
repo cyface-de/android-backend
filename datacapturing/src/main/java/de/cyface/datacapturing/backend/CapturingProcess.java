@@ -196,7 +196,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             double speed = getCurrentSpeed(location);
             float locationAccuracyMeters = location.getAccuracy();
             if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
-                locationAccuracyMeters = Math.random()*30.0f;
+                locationAccuracyMeters = (float) Math.random() * 30.0f;
                 Log.d(TAG, "Emulator detected, Accuracy overwritten to: " + locationAccuracyMeters);
             }
 
