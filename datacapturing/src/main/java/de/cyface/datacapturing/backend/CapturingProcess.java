@@ -367,11 +367,16 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     protected abstract double getCurrentSpeed(final Location location);
 
     /**
+     * Checks the environment this code runs and identifies Emulators.
      * From https://stackoverflow.com/questions/2799097/how-can-i-detect-when-an-android-application-is-running-in-the-emulator
      *
-     * @return {@code True} is an emulator was detected
+     *  @return {@code True} is an emulator was detected
      */
     private static boolean isEmulator() {
+        // Avoid crashes in unit tests
+        if (Build.FINGERPRINT == null) {
+            return false;
+        }
         return Build.FINGERPRINT.startsWith("generic")
                 || Build.FINGERPRINT.startsWith("unknown")
                 || Build.MODEL.contains("google_sdk")
