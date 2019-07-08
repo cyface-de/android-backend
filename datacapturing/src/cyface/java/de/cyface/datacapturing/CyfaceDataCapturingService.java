@@ -21,6 +21,7 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.LOGIN_ACTIVITY;
 
+import java.util.ArrayList;
 import java.util.List;
 
 import android.accounts.Account;
@@ -47,18 +48,18 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.Validate;
 
 /**
  * An implementation of a <code>DataCapturingService</code> using a dummy Cyface account for data synchronization.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.0
+ * @version 11.1.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
@@ -197,9 +198,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * need to apply some timeout mechanism to not wait indefinitely.
      * <p>
      * This wrapper avoids an unrecoverable state after the app crashed with an un{@link MeasurementStatus#FINISHED}
-     * {@link Measurement}. It deletes the {@link Point3d}s of "dead" {@link MeasurementStatus#OPEN} measurements
-     * because the {@link Point3d} counts gets lost during app crash. "Dead" {@code MeasurementStatus#OPEN} and
-     * {@link MeasurementStatus#PAUSED} measurements are then marked as {@code FINISHED}.
+     * {@link Measurement}. "Dead" {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are
+     * then marked as {@code FINISHED}.
      *
      * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
      *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
@@ -219,26 +219,24 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
         try {
             super.start(vehicle, finishedHandler);
         } catch (final CorruptedMeasurementException e) {
+            final List<Measurement> corruptedMeasurements = new ArrayList<>();
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
-            for (final Measurement measurement : openMeasurements) {
-                Log.w(TAG, "Cleaning and finishing dead open measurement (mid " + measurement.getIdentifier() + ").");
-                this.persistenceLayer.deletePoint3dData(measurement.getIdentifier());
-                try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, false);
-                } catch (NoSuchMeasurementException e1) {
-                    throw new IllegalStateException(e);
-                }
-            }
             final List<Measurement> pausedMeasurements = this.persistenceLayer
                     .loadMeasurements(MeasurementStatus.PAUSED);
-            for (final Measurement measurement : pausedMeasurements) {
-                Log.w(TAG, "Finishing dead paused measurement (mid " + measurement.getIdentifier() + ").");
+            corruptedMeasurements.addAll(openMeasurements);
+            corruptedMeasurements.addAll(pausedMeasurements);
+
+            for (final Measurement measurement : corruptedMeasurements) {
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
                 try {
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, false);
+                    // Because of MOV-790 we disable the validation in setStatus and do this manually below
+                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
                 } catch (NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }
             }
+            Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.OPEN));
+            Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED));
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {
