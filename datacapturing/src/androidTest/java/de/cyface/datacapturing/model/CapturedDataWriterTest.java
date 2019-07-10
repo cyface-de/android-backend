@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.1
+ * @version 5.5.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -513,13 +513,14 @@ public class CapturedDataWriterTest {
         oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
         capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
 
-        // Resume event and 1 location with the same timestamp
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 5L);
+        // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
         capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 6L);
+        capturingBehaviour.storeLocation(testLocation(6L), measurement.getIdentifier());
 
         // Stop event and a lightly late 2nd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 6L);
-        capturingBehaviour.storeLocation(testLocation(7L), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 7L);
+        capturingBehaviour.storeLocation(testLocation(8L), measurement.getIdentifier());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -528,11 +529,11 @@ public class CapturedDataWriterTest {
 
         // Assert
         assertThat(tracks.size(), is(equalTo(2)));
-        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(3)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(2)));
         assertThat(tracks.get(1).getGeoLocations().size(), is(equalTo(2)));
-        assertThat(tracks.get(0).getGeoLocations().get(2).getTimestamp(), is(equalTo(4L)));
-        assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(5L)));
-        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(7L)));
+        assertThat(tracks.get(0).getGeoLocations().get(1).getTimestamp(), is(equalTo(2L)));
+        assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(6L)));
+        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(8L)));
     }
 
     /**
@@ -558,17 +559,19 @@ public class CapturedDataWriterTest {
         oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
         capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
 
-        // Resume event and 1 location with the same timestamp
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 5L);
-        // The first location may be capturing at the same millisecond (tried to reproduce MOV-676)
+        // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
         capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 6L);
+        // The first location may be capturing at the same millisecond (tried to reproduce MOV-676)
+        capturingBehaviour.storeLocation(testLocation(6L), measurement.getIdentifier());
 
         // Pause event and a slightly late 2nd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 6L);
-        capturingBehaviour.storeLocation(testLocation(7L), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 7L);
+        capturingBehaviour.storeLocation(testLocation(8L), measurement.getIdentifier());
 
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 8L);
-        capturingBehaviour.storeLocation(testLocation(9L), measurement.getIdentifier());
+        // Stop event and a lightly late location
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 9L);
+        capturingBehaviour.storeLocation(testLocation(10L), measurement.getIdentifier());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -577,11 +580,11 @@ public class CapturedDataWriterTest {
 
         // Assert
         assertThat(tracks.size(), is(equalTo(2)));
-        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(3)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(2)));
         assertThat(tracks.get(1).getGeoLocations().size(), is(equalTo(3)));
-        assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(5L)));
-        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(7L)));
-        assertThat(tracks.get(1).getGeoLocations().get(2).getTimestamp(), is(equalTo(9L)));
+        assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(6L)));
+        assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(8L)));
+        assertThat(tracks.get(1).getGeoLocations().get(2).getTimestamp(), is(equalTo(10L)));
     }
 
     /**

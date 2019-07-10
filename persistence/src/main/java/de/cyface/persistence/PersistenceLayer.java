@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.0.0
+ * @version 15.1.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -639,22 +639,34 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // Slice Tracks before resume events
         // This helps to allocate GeoLocations which are captured just after pause was hit to the track which just
         // ended.
+        Long pauseEventTime = null;
         while (eventCursor.moveToNext()) {
             final Event.EventType eventType = Event.EventType
                     .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
             if (eventType != Event.EventType.LIFECYCLE_RESUME) {
+                if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
+                    pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                }
                 continue;
             }
+            Validate.notNull(pauseEventTime); // Before each RESUME event must be a PAUSE event
 
-            // get all GeoLocations captured before this RESUME event
-            final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+            // get all GeoLocations captured before this PAUSE event
+            final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
             final Track track = new Track();
             while (geoLocationCursor.moveToNext()) {
-                final GeoLocation location = loadGeoLocation(geoLocationCursor);
-                if (location.getTimestamp() >= eventTime) {
+                GeoLocation location = loadGeoLocation(geoLocationCursor);
+                // PAUSE reached
+                if (location.getTimestamp() > pauseEventTime) {
+                    // Ignore locations until between pause and resume event (STAD-140)
+                    while (location.getTimestamp() < resumeEventTime) {
+                        geoLocationCursor.moveToNext();
+                        location = loadGeoLocation(geoLocationCursor);
+                    }
                     geoLocationCursor.moveToPrevious();
                     break; // Next track reached
                 }
+                // PAUSE not yet reached
                 track.add(location);
             }
             if (track.getGeoLocations().size() > 0) {
