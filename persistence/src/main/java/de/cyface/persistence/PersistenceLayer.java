@@ -656,18 +656,20 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final Track track = new Track();
             while (geoLocationCursor.moveToNext()) {
                 GeoLocation location = loadGeoLocation(geoLocationCursor);
-                // PAUSE reached
-                if (location.getTimestamp() > pauseEventTime) {
-                    // Ignore locations until between pause and resume event (STAD-140)
-                    while (location.getTimestamp() < resumeEventTime) {
-                        geoLocationCursor.moveToNext();
-                        location = loadGeoLocation(geoLocationCursor);
-                    }
-                    geoLocationCursor.moveToPrevious();
-                    break; // Next track reached
+                // Collect locations before PAUSE
+                if (location.getTimestamp() <= pauseEventTime) {
+                    track.add(location);
+                    continue;
                 }
-                // PAUSE not yet reached
-                track.add(location);
+
+                // PAUSE reached
+                // Ignore locations between pause and resume event (STAD-140)
+                while (location.getTimestamp() < resumeEventTime) {
+                    geoLocationCursor.moveToNext();
+                    location = loadGeoLocation(geoLocationCursor);
+                }
+                geoLocationCursor.moveToPrevious();
+                break; // Continue with next sub track
             }
             if (track.getGeoLocations().size() > 0) {
                 tracks.add(track);
