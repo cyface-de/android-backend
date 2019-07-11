@@ -85,7 +85,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 7.1.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -164,7 +164,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The unix timestamp in milliseconds capturing the start of this service (i.e. of the tracking)
      * to filter out cached locations from distance calculation (STAD-140).
      */
-    private long startupTime;
+    long startupTime;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
