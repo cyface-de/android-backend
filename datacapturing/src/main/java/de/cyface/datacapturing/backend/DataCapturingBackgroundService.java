@@ -85,7 +85,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 7.0.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -160,6 +160,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The {@link Measurement#getDistance()} in meters until the last location update.
      */
     private double lastDistance;
+    /**
+     * The unix timestamp in milliseconds capturing the start of this service (i.e. of the tracking)
+     * to filter out cached locations from distance calculation (STAD-140).
+     */
+    private long startupTime;
 
     @Override
     public IBinder onBind(final @NonNull Intent intent) {
@@ -213,6 +218,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
         Log.d(TAG, "onCreate: Ping Receiver registered");
 
+        startupTime = System.currentTimeMillis();
         Log.v(TAG, "finishedOnCreate");
     }
 
@@ -449,39 +455,45 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     @Override
-    public void onLocationCaptured(final @NonNull GeoLocation newLocation) {
+    public void onLocationCaptured(@NonNull final GeoLocation newLocation) {
 
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
-
-        // Mark "unclean" locations as invalid and ignore it for distance calculation below
-        if (!locationCleaningStrategy.isClean(newLocation)) {
-            newLocation.setValid(false);
-            informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
-            return;
-        }
-        informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
-
-        // Update {@code Measurement#distance), {@code #lastDistance} and {@code #lastLocation}, in this order!
-        if (lastLocation != null) {
-            final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
-            final double newDistance = lastDistance + distanceToAdd;
-            try {
-                capturingBehaviour.updateDistance(newDistance);
-            } catch (final NoSuchMeasurementException | CursorIsNullException e) {
-                throw new IllegalStateException(e);
-            }
-            lastDistance = newDistance;
-            Log.d(TAG, "Distance updated: " + distanceToAdd);
-        }
-        this.lastLocation = newLocation;
 
         // Check available space
         if (!spaceAvailable()) {
             Log.d(TAG, "Space warning event triggered.");
             eventHandlingStrategy.handleSpaceWarning(this);
         }
+
+        // Mark "unclean" locations as invalid and ignore it for distance calculation below
+        if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
+            newLocation.setValid(false);
+            informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
+            return;
+        }
+
+        // Inform listeners
+        informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
+
+        // Skip distance calculation when there is only one location
+        if (lastLocation == null) {
+            this.lastLocation = newLocation;
+            return;
+        }
+
+        // Update {@code Measurement#distance), {@code #lastDistance} and {@code #lastLocation}, in this order
+        final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
+        final double newDistance = lastDistance + distanceToAdd;
+        try {
+            capturingBehaviour.updateDistance(newDistance);
+        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+        lastDistance = newDistance;
+        Log.d(TAG, "Distance updated: " + distanceToAdd);
+        this.lastLocation = newLocation;
     }
 
     @Override
