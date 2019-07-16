@@ -627,40 +627,47 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final List<Track> tracks = new ArrayList<>();
 
         // Slice Tracks before resume events
-        // This helps to allocate GeoLocations which are captured just after pause was hit to the track which just
-        // ended.
         Long pauseEventTime = null;
         while (eventCursor.moveToNext()) {
             final Event.EventType eventType = Event.EventType
                     .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+
+            // Search for next resume event and capture it's previous pause event
             if (eventType != Event.EventType.LIFECYCLE_RESUME) {
                 if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
                     pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
                 }
                 continue;
             }
-            Validate.notNull(pauseEventTime); // Before each RESUME event must be a PAUSE event
+            Validate.notNull(pauseEventTime);
 
-            // get all GeoLocations captured before this PAUSE event
+            // Add all GeoLocations until the pause event as a sub-track
             final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
             final Track track = new Track();
             while (geoLocationCursor.moveToNext()) {
+
+                // Collect locations before pause event
                 GeoLocation location = loadGeoLocation(geoLocationCursor);
-                // Collect locations before PAUSE
                 if (location.getTimestamp() <= pauseEventTime) {
                     track.add(location);
                     continue;
                 }
 
-                // PAUSE reached
-                // Ignore locations between pause and resume event (STAD-140)
+                // Pause reached: Move geoLocationCursor to the first location of the next sub-track
+                // We do this to ignore locations between pause and resume event (STAD-140)
                 while (location.getTimestamp() < resumeEventTime) {
                     geoLocationCursor.moveToNext();
+                    // Load next location to see if it's the first location of the next sub-track
                     location = loadGeoLocation(geoLocationCursor);
                 }
+
+                // We reached the first location of the next sub-track, thus, move pointer back one step
+                // As the next outer while iteration will move the pointer one step forward
                 geoLocationCursor.moveToPrevious();
-                break; // Continue with next sub track
+                break; // Continue with next sub track (i.e. search for next resume event)
             }
+
+            // Add sub-track to track
             if (track.getGeoLocations().size() > 0) {
                 tracks.add(track);
             }
