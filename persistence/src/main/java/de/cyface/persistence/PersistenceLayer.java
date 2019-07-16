@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.1.0
+ * @version 15.1.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -519,11 +519,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Loads the {@link Track}s for the provided {@link Measurement}.
-     * <p>
-     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
-     * device or even reach the applications memory limit.
-     *
-     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * TODO [CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
@@ -564,11 +559,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Loads the "cleaned" {@link Track}s for the provided {@link Measurement}.
-     * <p>
-     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
-     * device or even reach the applications memory limit.
-     *
-     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
      * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
