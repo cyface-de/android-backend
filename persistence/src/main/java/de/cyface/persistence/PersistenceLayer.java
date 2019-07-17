@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.1.1
+ * @version 15.2.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -235,7 +235,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads a {@link Measurement} objects from a {@link Cursor} which points to a {@code Measurement}.
+     * Loads a {@link Measurement} object from a {@link Cursor} which points to a {@code Measurement}.
      *
      * @param cursor a {@code Cursor} which points to a {@code Measurement}
      * @return the {@code Measurement} of the {@code Cursor}
@@ -249,6 +249,19 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
         final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
         return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance, timestamp);
+    }
+
+    /**
+     * Loads an {@link Event} object from a {@link Cursor} which points to a {@code Event}.
+     *
+     * @param cursor a {@code Cursor} which points to a {@code Event}
+     * @return the {@code Event} of the {@code Cursor}
+     */
+    private Event loadEvent(@NonNull final Cursor cursor) {
+        final long timestamp = cursor.getLong(cursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+        final Event.EventType eventType = Event.EventType
+                .valueOf(cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+        return new Event(eventType, timestamp);
     }
 
     /**
@@ -489,7 +502,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The {@code Measurement} id of the data to remove.
      */
-    public void deletePoint3dData(final long measurementIdentifier) {
+    private void deletePoint3dData(final long measurementIdentifier) {
         final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
         final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
         final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
@@ -534,7 +547,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor geoLocationCursor = null;
         Cursor eventCursor = null;
         try {
-            eventCursor = loadEvents(measurementIdentifier);
+            eventCursor = loadEventsCursor(measurementIdentifier);
             Validate.softCatchNullCursor(eventCursor);
 
             // Load GeoLocations
@@ -574,7 +587,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor geoLocationCursor = null;
         Cursor eventCursor = null;
         try {
-            eventCursor = loadEvents(measurementIdentifier);
+            eventCursor = loadEventsCursor(measurementIdentifier);
             Validate.softCatchNullCursor(eventCursor);
 
             geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
@@ -606,11 +619,44 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         {@param measurementId}.
      */
     @Nullable
-    private Cursor loadEvents(final long measurementIdentifier) {
+    private Cursor loadEventsCursor(final long measurementIdentifier) {
 
         return resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()},
                 EventTable.COLUMN_TIMESTAMP + " ASC");
+    }
+
+    /**
+     * Loads the {@link Event}s for the provided {@link Measurement}.
+     * <p>
+     * <b>Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
+     * {@code Cursor} is always closed after use.</b>
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the {@code Event}s for.
+     * @return The {@code Cursor} pointing to the {@code Event}s of of the {@code Measurement} with the provided
+     *         {@param measurementId}.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    @SuppressWarnings("unused") // Used by implementing apps (SR) to calculate the time
+    @NonNull
+    public List<Event> loadEvents(final long measurementIdentifier) throws CursorIsNullException {
+
+        Cursor cursor = null;
+        try {
+            cursor = loadEventsCursor(measurementIdentifier);
+            Validate.softCatchNullCursor(cursor);
+
+            final List<Event> events = new ArrayList<>();
+            while (cursor.moveToNext()) {
+                final Event event = loadEvent(cursor);
+                events.add(event);
+            }
+            return events;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     /**
