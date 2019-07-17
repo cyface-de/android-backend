@@ -4,7 +4,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.28
+ * @version 2.2.29
  * @since 1.0.0
  */
 
@@ -24,7 +24,7 @@ buildscript {
         // - Warning: Variant selection conflicts (https://stackoverflow.com/q/47529737/5815054)
         // - Instant Run Error (https://stackoverflow.com/q/46957873/5815054)
         // Workaround: disable instant run & ignore Gradle Sync Warnings
-        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath 'com.android.tools.build:gradle:3.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files

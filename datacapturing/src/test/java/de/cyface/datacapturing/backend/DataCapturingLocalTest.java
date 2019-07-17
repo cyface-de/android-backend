@@ -65,7 +65,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.6
+ * @version 2.3.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -98,6 +98,8 @@ public class DataCapturingLocalTest {
     DefaultLocationCleaningStrategy locationCleaningStrategy;
     @Mock
     EventHandlingStrategy mockEventHandlingStrategy;
+    private final int base = 0;
+    private final GeoLocation location1 = generateGeoLocation(base);
 
     @Before
     public void setUp() {
@@ -108,6 +110,7 @@ public class DataCapturingLocalTest {
         oocut.eventHandlingStrategy = mockEventHandlingStrategy;
         oocut.distanceCalculationStrategy = distanceCalculationStrategy;
         oocut.locationCleaningStrategy = locationCleaningStrategy;
+        oocut.startupTime = location1.getTimestamp(); // locations with a smaller timestamp are filtered
     }
 
     /**
@@ -119,9 +122,7 @@ public class DataCapturingLocalTest {
     public void testOnLocationCapturedDistanceCalculation() throws CursorIsNullException, NoSuchMeasurementException {
 
         // Arrange
-        final int base = 0;
         final int expectedDistance = 2;
-        GeoLocation location1 = generateGeoLocation(base);
         GeoLocation location2 = generateGeoLocation(base + expectedDistance);
         GeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
 
@@ -141,6 +142,47 @@ public class DataCapturingLocalTest {
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
         verify(mockBehaviour, times(1)).updateDistance(2 * expectedDistance);
+    }
+
+    /**
+     * This test case checks the internal workings of the onLocationCaptured method in the special case
+     * where a cached location with a timestamp smaller than the start time of the background service is returned.
+     * <p>
+     * Those "cached" locations are filtered by the background service (STAD-140).
+     *
+     * @throws CursorIsNullException when the content provider is not accessible
+     */
+    @Test
+    public void testOnLocationCapturedDistanceCalculation_withCachedLocation() throws CursorIsNullException, NoSuchMeasurementException {
+
+        // Arrange
+        final int expectedDistance = 2;
+        GeoLocation cachedLocation = generateGeoLocation(base - expectedDistance);
+        GeoLocation location2 = generateGeoLocation(base + expectedDistance);
+        GeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+
+        // Mock
+        // When the onLocationCaptured implementation is correct, this method is never called.
+        // But we need to keep this mock or else this test won't fail when the startupTime filter is missing
+        when(distanceCalculationStrategy.calculateDistance(cachedLocation, location1))
+                .thenReturn(Double.valueOf(expectedDistance));
+        when(distanceCalculationStrategy.calculateDistance(location1, location2))
+                .thenReturn(Double.valueOf(expectedDistance));
+        when(distanceCalculationStrategy.calculateDistance(location2, location3))
+                .thenReturn(Double.valueOf(expectedDistance));
+        when(locationCleaningStrategy.isClean(any(GeoLocation.class))).thenReturn(true);
+        doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
+
+        // Act
+        oocut.onLocationCaptured(cachedLocation);
+        oocut.onLocationCaptured(location1);
+        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3); // Now the two distances should be added
+
+        // Assert
+        verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
+        verify(mockBehaviour, times(1)).updateDistance(2 * expectedDistance);
+        verify(mockBehaviour, times(0)).updateDistance(3 * expectedDistance);
     }
 
     /**
