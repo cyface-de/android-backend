@@ -252,7 +252,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads an {@link Event} object from a {@link Cursor} which points to a {@code Event}.
+     * Loads an {@link Event} object from a {@link Cursor}.
      *
      * @param cursor a {@code Cursor} which points to a {@code Event}
      * @return the {@code Event} of the {@code Cursor}
