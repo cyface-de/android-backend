@@ -4,7 +4,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.27
+ * @version 2.2.30
  * @since 1.0.0
  */
 
@@ -24,7 +24,7 @@ buildscript {
         // - Warning: Variant selection conflicts (https://stackoverflow.com/q/47529737/5815054)
         // - Instant Run Error (https://stackoverflow.com/q/46957873/5815054)
         // Workaround: disable instant run & ignore Gradle Sync Warnings
-        classpath 'com.android.tools.build:gradle:3.4.1'
+        classpath 'com.android.tools.build:gradle:3.4.2'
 
         // NOTE: Do not place your application dependencies here; they belong
         // in the individual module build.gradle files
@@ -33,7 +33,7 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "4.1.1"
+    version = "4.2.0"
 
     minSdkVersion = 16
     targetSdkVersion = 28
@@ -89,6 +89,7 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
             pr.android.libraryVariants.all { variant ->
                 def flavored = !variant.flavorName.isEmpty()
                 def variantArtifactId = flavored ? variant.flavorName.replace('_', '-') : project.name
+                variantArtifactId += variant.getBuildType().name=='release'?'':variant.getBuildType().name.capitalize()
 
                 def javaDocDestDir = file("${buildDir}/docs/javadoc ${flavored ? variantArtifactId : ""}")
 
@@ -118,7 +119,7 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
                     classifier = 'sources'
                 }
 
-                "${project.name}${variant.name.capitalize()}"(MavenPublication) {
+                "${project.name}${variant.name.capitalize()}${variant.getBuildType().name=='release'?'':variant.getBuildType().name.capitalize()}"(MavenPublication) {
                     groupId project.group
                     artifactId "${project.name}${variantArtifactId.capitalize()}"
                     version android.defaultConfig.versionName

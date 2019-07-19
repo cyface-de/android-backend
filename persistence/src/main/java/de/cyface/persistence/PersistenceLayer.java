@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.0.0
+ * @version 15.2.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -235,7 +235,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads a {@link Measurement} objects from a {@link Cursor} which points to a {@code Measurement}.
+     * Loads a {@link Measurement} object from a {@link Cursor} which points to a {@code Measurement}.
      *
      * @param cursor a {@code Cursor} which points to a {@code Measurement}
      * @return the {@code Measurement} of the {@code Cursor}
@@ -249,6 +249,19 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
         final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
         return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance, timestamp);
+    }
+
+    /**
+     * Loads an {@link Event} object from a {@link Cursor}.
+     *
+     * @param cursor a {@code Cursor} which points to a {@code Event}
+     * @return the {@code Event} of the {@code Cursor}
+     */
+    private Event loadEvent(@NonNull final Cursor cursor) {
+        final long timestamp = cursor.getLong(cursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+        final Event.EventType eventType = Event.EventType
+                .valueOf(cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+        return new Event(eventType, timestamp);
     }
 
     /**
@@ -489,7 +502,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The {@code Measurement} id of the data to remove.
      */
-    public void deletePoint3dData(final long measurementIdentifier) {
+    private void deletePoint3dData(final long measurementIdentifier) {
         final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
         final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
         final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
@@ -519,11 +532,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Loads the {@link Track}s for the provided {@link Measurement}.
-     * <p>
-     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
-     * device or even reach the applications memory limit.
-     *
-     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * TODO [CY-4438]: From the current implementations (MeasurementContentProviderClient loader and resolver.query) is
      * the loader the faster solution. However, we should upgrade the database access as Android changed it's API.
@@ -539,7 +547,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor geoLocationCursor = null;
         Cursor eventCursor = null;
         try {
-            eventCursor = loadEvents(measurementIdentifier);
+            eventCursor = loadEventsCursor(measurementIdentifier);
             Validate.softCatchNullCursor(eventCursor);
 
             // Load GeoLocations
@@ -564,11 +572,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * Loads the "cleaned" {@link Track}s for the provided {@link Measurement}.
-     * <p>
-     * This method loads the complete {@code Track}s into memory. For large {@code Track}s this could slow down the
-     * device or even reach the applications memory limit.
-     *
-     * TODO [MOV-554]: provide a custom list implementation that loads only small portions into memory.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
      * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
@@ -584,7 +587,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor geoLocationCursor = null;
         Cursor eventCursor = null;
         try {
-            eventCursor = loadEvents(measurementIdentifier);
+            eventCursor = loadEventsCursor(measurementIdentifier);
             Validate.softCatchNullCursor(eventCursor);
 
             geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
@@ -616,11 +619,44 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         {@param measurementId}.
      */
     @Nullable
-    private Cursor loadEvents(final long measurementIdentifier) {
+    private Cursor loadEventsCursor(final long measurementIdentifier) {
 
         return resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()},
                 EventTable.COLUMN_TIMESTAMP + " ASC");
+    }
+
+    /**
+     * Loads the {@link Event}s for the provided {@link Measurement}.
+     * <p>
+     * <b>Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
+     * {@code Cursor} is always closed after use.</b>
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the {@code Event}s for.
+     * @return The {@code Cursor} pointing to the {@code Event}s of of the {@code Measurement} with the provided
+     *         {@param measurementId}.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    @SuppressWarnings("unused") // Used by implementing apps (SR) to calculate the time
+    @NonNull
+    public List<Event> loadEvents(final long measurementIdentifier) throws CursorIsNullException {
+
+        Cursor cursor = null;
+        try {
+            cursor = loadEventsCursor(measurementIdentifier);
+            Validate.softCatchNullCursor(cursor);
+
+            final List<Event> events = new ArrayList<>();
+            while (cursor.moveToNext()) {
+                final Event event = loadEvent(cursor);
+                events.add(event);
+            }
+            return events;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     /**
@@ -637,26 +673,47 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final List<Track> tracks = new ArrayList<>();
 
         // Slice Tracks before resume events
-        // This helps to allocate GeoLocations which are captured just after pause was hit to the track which just
-        // ended.
+        Long pauseEventTime = null;
         while (eventCursor.moveToNext()) {
             final Event.EventType eventType = Event.EventType
                     .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+
+            // Search for next resume event and capture it's previous pause event
             if (eventType != Event.EventType.LIFECYCLE_RESUME) {
+                if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
+                    pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                }
                 continue;
             }
+            Validate.notNull(pauseEventTime);
 
-            // get all GeoLocations captured before this RESUME event
-            final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+            // Add all GeoLocations until the pause event as a sub-track
+            final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
             final Track track = new Track();
             while (geoLocationCursor.moveToNext()) {
-                final GeoLocation location = loadGeoLocation(geoLocationCursor);
-                if (location.getTimestamp() >= eventTime) {
-                    geoLocationCursor.moveToPrevious();
-                    break; // Next track reached
+
+                // Collect locations before pause event
+                GeoLocation location = loadGeoLocation(geoLocationCursor);
+                if (location.getTimestamp() <= pauseEventTime) {
+                    track.add(location);
+                    continue;
                 }
-                track.add(location);
+
+                // Pause reached: Move geoLocationCursor to the first location of the next sub-track
+                // We do this to ignore locations between pause and resume event (STAD-140)
+                while (location.getTimestamp() < resumeEventTime) {
+                    geoLocationCursor.moveToNext();
+                    // Load next location to see if it's the first location of the next sub-track
+                    location = loadGeoLocation(geoLocationCursor);
+                }
+
+                // We reached the first location of the next sub-track, thus, move pointer back one step
+                // As the next outer while iteration will move the pointer one step forward
+                geoLocationCursor.moveToPrevious();
+                break; // Continue with next sub track (i.e. search for next resume event)
             }
+
+            // Add sub-track to track
             if (track.getGeoLocations().size() > 0) {
                 tracks.add(track);
             }
