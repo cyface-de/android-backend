@@ -59,6 +59,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Track;
+import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -68,7 +69,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.9
+ * @version 2.6.10
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -346,7 +347,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         return new MetaData(startLocation, endLocation, deviceId, measurement.getIdentifier(), deviceType, osVersion,
-                appVersion, measurement.getDistance(), locationCount);
+                appVersion, measurement.getDistance(), locationCount, measurement.getVehicle());
     }
 
     /**
@@ -379,7 +380,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * Meta data which is required in the Multipart header to transfer files to the API.
      *
      * @author Armin Schnabel
-     * @version 1.0.0
+     * @version 2.0.0
      * @since 4.0.0
      */
     static class MetaData {
@@ -392,11 +393,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final String appVersion;
         final double length;
         final int locationCount;
+        final Vehicle vehicle;
 
         MetaData(@Nullable final GeoLocation startLocation, @Nullable final GeoLocation endLocation,
                 @NonNull final String deviceId, final long measurementId, @NonNull final String deviceType,
                 @NonNull final String osVersion, @NonNull final String appVersion, final double length,
-                final int locationCount) {
+                final int locationCount, @NonNull Vehicle vehicle) {
             this.startLocation = startLocation;
             this.endLocation = endLocation;
             this.deviceId = deviceId;
@@ -406,6 +408,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             this.appVersion = appVersion;
             this.length = length;
             this.locationCount = locationCount;
+            this.vehicle = vehicle;
         }
     }
 }

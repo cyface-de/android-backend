@@ -11,12 +11,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Vehicle;
 
 /**
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.4
+ * @version 1.1.6
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -44,7 +45,7 @@ public class HttpConnectionTest {
         final GeoLocation startLocation = generateGeoLocation(0);
         final GeoLocation endLocation = generateGeoLocation(10);
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test-did", 78,
-                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5);
+                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Vehicle.BICYCLE);
 
         // Act
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
@@ -71,7 +72,8 @@ public class HttpConnectionTest {
                 + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"appVersion\"\r\n" + "\r\n"
                 + "test_appVersion\r\n" + "--" + BOUNDARY + "\r\n"
                 + "Content-Disposition: form-data; name=\"length\"\r\n" + "\r\n" + "10.0\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"locationCount\"\r\n" + "\r\n" + "5\r\n" + "--" + BOUNDARY
+                + "Content-Disposition: form-data; name=\"locationCount\"\r\n" + "\r\n" + "5\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"vehicleId\"\r\n" + "\r\n" + "BICYCLE\r\n" + "--" + BOUNDARY
                 + "\r\n" + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"test-did_78.cyf\"\r\n"
                 + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
         assertThat(header, is(equalTo(expectedHeader)));
@@ -88,7 +90,7 @@ public class HttpConnectionTest {
 
         // Arrange
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
-                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5);
+                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Vehicle.BICYCLE);
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
 
         final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte
