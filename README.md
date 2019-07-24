@@ -11,6 +11,7 @@ This project contains the Cyface Android SDK which is used by Cyface application
 How to integrate the SDK
 ---------------------------
 
+- [Submodules](#submodules)
 - [Resource Files](#resource-files)
     - [Truststore](#truststore)
     - [Content Provider Authority](#content-provider-authority)
@@ -34,6 +35,36 @@ How to integrate the SDK
 	- [Load Measurement Distance (new feature)](#load-measurement-distance)
 	- [Delete Measurements](#delete-measurements)
 - [Documentation Incomplete](#documentation-incomplete)
+
+### Submodules
+
+This SDK uses the Cyface Android Utils which contains validation methods and
+shared code of the Cyface Android libraries.
+
+#### Importing the Cyface Android Utils
+This library is required to build this application. It is included as Git submodule.
+
+To get the current submodule's code run the following command:
+
+    $ git submodule update --init
+
+If the referenced SDK version changed you can get the new code by executing:
+
+    $ git pull
+    $ git submodule update
+    
+If you want to select a specific submodule version you can do this by using the normal Git commands:
+
+    $ cd submodule/
+    $ git fetch -p
+    $ git checkout <branch_name>
+
+If you want to publish the newly linked submodule version run:
+
+    $ git add submodule/
+    $ git commit
+    $ git push
+
 
 ### Resource Files
 
