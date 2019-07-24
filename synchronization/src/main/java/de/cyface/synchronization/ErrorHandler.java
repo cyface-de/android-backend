@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.utils;
+package de.cyface.synchronization;
 
-import static de.cyface.utils.Constants.TAG;
+import static de.cyface.synchronization.Constants.TAG;
 
 import java.util.ArrayList;
 import java.util.Collection;
@@ -31,6 +31,8 @@ import android.util.Log;
 import androidx.annotation.Nullable;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
 
+import de.cyface.utils.Validate;
+
 /**
  * Maintains and informs {@link ErrorListener}. This class is responsible for Cyface Errors.
  * <p>
@@ -39,7 +41,7 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 1.5.0
+ * @version 2.0.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
@@ -114,73 +116,82 @@ public class ErrorHandler extends BroadcastReceiver {
         switch (errorCode) {
 
             case UNAUTHORIZED:
-                errorMessage = context.getString(R.string.error_message_credentials_incorrect);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_credentials_incorrect);
                 break;
 
             case MALFORMED_URL:
-                errorMessage = context.getString(R.string.error_message_server_unavailable);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_server_unavailable);
                 break;
 
             case UNREADABLE_HTTP_RESPONSE:
-                errorMessage = context.getString(R.string.error_message_http_response_unreadable);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_http_response_unreadable);
                 break;
 
             case SERVER_UNAVAILABLE:
-                errorMessage = context.getString(R.string.error_message_server_unavailable);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_server_unavailable);
                 break;
 
             case NETWORK_ERROR:
-                errorMessage = context.getString(R.string.error_message_unknown_network_error);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_unknown_network_error);
                 break;
 
             case DATABASE_ERROR:
-                errorMessage = context.getString(R.string.error_message_data_access_error);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_data_access_error);
                 break;
 
             case AUTHENTICATION_ERROR:
-                errorMessage = context.getString(R.string.error_message_unknown_authentication_error);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_unknown_authentication_error);
                 break;
 
             case AUTHENTICATION_CANCELED:
-                errorMessage = context.getString(R.string.error_message_authentication_canceled);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_authentication_canceled);
                 break;
 
             case SYNCHRONIZATION_ERROR:
-                errorMessage = context.getString(R.string.error_message_unknown_sync_error);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_unknown_sync_error);
                 break;
 
             case DATA_TRANSMISSION_ERROR:
                 final int httpCode = intent.getExtras().getInt(HTTP_CODE_EXTRA);
                 errorMessage = String
-                        .format(context.getString(R.string.error_message_data_transmission_error_with_code), httpCode);
+                        .format(context.getString(
+                                de.cyface.synchronization.R.string.error_message_data_transmission_error_with_code),
+                                httpCode);
                 break;
 
             case SSL_CERTIFICATE_UNKNOWN:
-                errorMessage = context.getString(R.string.error_message_ssl_certificate);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_ssl_certificate);
                 break;
 
             case BAD_REQUEST:
-                errorMessage = context.getString(R.string.error_message_bad_request);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_bad_request);
                 break;
 
             case FORBIDDEN:
-                errorMessage = context.getString(R.string.error_message_forbidden);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_forbidden);
                 break;
 
             case INTERNAL_SERVER_ERROR:
-                errorMessage = context.getString(R.string.error_message_internal_server_error);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_internal_server_error);
                 break;
 
             case ENTITY_NOT_PARSABLE:
-                errorMessage = context.getString(R.string.error_message_entity_not_parsable);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_entity_not_parsable);
                 break;
 
             case NETWORK_UNAVAILABLE:
-                errorMessage = context.getString(R.string.error_message_network_unavailable);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_network_unavailable);
                 break;
 
             case SYNCHRONIZATION_INTERRUPTED:
-                errorMessage = context.getString(R.string.error_message_synchronization_interrupted);
+                errorMessage = context
+                        .getString(de.cyface.synchronization.R.string.error_message_synchronization_interrupted);
                 break;
 
             case TOO_MANY_REQUESTS:
@@ -188,7 +199,7 @@ public class ErrorHandler extends BroadcastReceiver {
                 break;
 
             default:
-                errorMessage = context.getString(R.string.error_message_unknown_error);
+                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_unknown_error);
         }
 
         for (final ErrorListener errorListener : errorListeners) {

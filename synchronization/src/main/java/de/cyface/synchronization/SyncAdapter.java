@@ -20,10 +20,10 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
+import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.DATABASE_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
 import static java.lang.Thread.interrupted;
 
 import java.io.File;

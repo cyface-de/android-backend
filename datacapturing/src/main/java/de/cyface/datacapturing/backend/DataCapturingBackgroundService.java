@@ -18,8 +18,8 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.utils.DiskConsumption.spaceAvailable;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.datacapturing.DiskConsumption.spaceAvailable;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -85,7 +85,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.0
+ * @version 7.1.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {

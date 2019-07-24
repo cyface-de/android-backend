@@ -20,18 +20,18 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
-import static de.cyface.utils.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
-import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
-import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.FORBIDDEN;
-import static de.cyface.utils.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
-import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
+import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.FORBIDDEN;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.File;
 import java.io.IOException;
@@ -94,7 +94,7 @@ class SyncPerformer {
      * <code>deviceIdentifier</code> need to be globally unique. If they are not the server will probably reject the
      * request.
      * <p>
-     * Sync errors are broadcasted to the {@link de.cyface.utils.ErrorHandler}.
+     * Sync errors are broadcasted to the {@link ErrorHandler}.
      * <p>
      * Since this is a synchronous call it can take from seconds to minutes depending on the size of <code>data</code>.
      * Never call this on the UI thread. Your users are going to hate you.

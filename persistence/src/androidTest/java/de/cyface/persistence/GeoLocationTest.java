@@ -2,6 +2,7 @@ package de.cyface.persistence;
 
 import static de.cyface.persistence.TestUtils.AUTHORITY;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -28,7 +29,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -182,7 +183,7 @@ public final class GeoLocationTest {
         assertThat(mockResolver.update(dataPointUri, newValues, null, null), is(1));
 
         try (Cursor cursor = mockResolver.query(dataPointUri, null, null, null, null)) {
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
             assertThat(cursor.getCount(), is(1));
             cursor.moveToFirst();
             int columnIndex = cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT);

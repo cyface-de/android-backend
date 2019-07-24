@@ -24,6 +24,7 @@ import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -90,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.0
+ * @version 5.5.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -258,7 +259,6 @@ public class DataCapturingServiceTest {
      * Pauses a {@link DataCapturingService} and checks that it's not running afterwards.
      *
      * @param measurementIdentifier The if of the measurement expected to be closed.
-     * @throws DataCapturingException In case the service was not stopped successfully.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
      *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
@@ -266,7 +266,7 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void pauseAndCheckThatStopped(long measurementIdentifier)
-            throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
+            throws NoSuchMeasurementException, CursorIsNullException {
 
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
@@ -857,7 +857,7 @@ public class DataCapturingServiceTest {
             eventCursor = contentResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()},
                     EventTable.COLUMN_TIMESTAMP + " ASC");
-            Validate.softCatchNullCursor(eventCursor);
+            softCatchNullCursor(eventCursor);
 
             final List<Event> events = new ArrayList<>();
             while (eventCursor.moveToNext()) {
