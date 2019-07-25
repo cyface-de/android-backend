@@ -575,7 +575,6 @@ This documentation still lacks of samples for the following features:
 * ConnectionStatusListener
 * Disable synchronization
 * Enable synchronization on metered connections
-* Usage of Camera, Bluetooth (not yet implemented in the SDK)
 
 
 Migration from Earlier Versions
