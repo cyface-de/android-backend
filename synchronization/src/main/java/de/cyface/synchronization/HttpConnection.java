@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.1
+ * @version 9.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -374,6 +374,7 @@ public class HttpConnection implements Http {
         final String osVersionPart = generatePart("osVersion", metaData.osVersion);
         final String appVersionPart = generatePart("appVersion", metaData.appVersion);
         final String lengthPart = generatePart("length", String.valueOf(metaData.length));
+        final String vehiclePart = generatePart("vehicle", String.valueOf(metaData.vehicle.getDatabaseIdentifier()));
 
         // File meta data
         final String fileHeaderPart = "--" + BOUNDARY + "\r\n"
@@ -381,9 +382,8 @@ public class HttpConnection implements Http {
                 + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
         // There should be no need to set a content length of the fileHeaderPart here
 
-        // This was reordered to be in the same order as in the iOS code
         return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
-                + appVersionPart + lengthPart + locationCountPart + fileHeaderPart;
+                + appVersionPart + lengthPart + locationCountPart + vehiclePart + fileHeaderPart;
     }
 
     /**
