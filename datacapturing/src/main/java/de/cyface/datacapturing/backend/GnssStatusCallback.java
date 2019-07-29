@@ -38,7 +38,7 @@ public class GnssStatusCallback extends GeoLocationDeviceStatusHandler {
      * @param manager The <code>LocationManager</code> used by this class to get update about GNSS status changes.
      * @throws SecurityException If permission to access location via GNSS has not been granted.
      */
-    GnssStatusCallback(final LocationManager manager) throws SecurityException {
+    public GnssStatusCallback(final LocationManager manager) throws SecurityException {
         super(manager);
         locationManager.registerGnssStatusCallback(callback);
     }

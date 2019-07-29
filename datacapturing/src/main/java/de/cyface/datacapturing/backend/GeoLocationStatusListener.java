@@ -24,7 +24,7 @@ public class GeoLocationStatusListener extends GeoLocationDeviceStatusHandler {
      * @param manager The <code>LocationManager</code> used to get geo location status updates.
      * @throws SecurityException If fine location permission has not been granted.
      */
-    GeoLocationStatusListener(final LocationManager manager) throws SecurityException {
+    public GeoLocationStatusListener(final LocationManager manager) throws SecurityException {
         super(manager);
         this.listener = new GpsStatus.Listener() {
             @Override

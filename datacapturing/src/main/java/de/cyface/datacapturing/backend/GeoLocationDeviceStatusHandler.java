@@ -14,7 +14,7 @@ import android.location.LocationManager;
  * @version 2.0.1
  * @since 1.0.0
  */
-abstract class GeoLocationDeviceStatusHandler {
+public abstract class GeoLocationDeviceStatusHandler {
     /**
      * Interval in which location updates need to occur for the device to consider itself having a fix. Reasing behind
      * this number is the following: Usually the geo location device provides updates every second, give or take a few

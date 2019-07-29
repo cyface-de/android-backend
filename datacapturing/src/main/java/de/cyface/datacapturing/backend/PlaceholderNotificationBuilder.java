@@ -48,14 +48,14 @@ import de.cyface.utils.Validate;
  * @version 1.0.0
  * @since 3.0.0
  */
-final class PlaceholderNotificationBuilder {
+public final class PlaceholderNotificationBuilder {
     /**
      * Creates the placeholder notification for the provided {@code Context}.
      *
      * @param context The Android {@code Context} to create the notification for.
      * @return The notification to show, while the {@link DataCapturingBackgroundService} is loading.
      */
-    static Notification build(final @NonNull Context context) {
+    public static Notification build(final @NonNull Context context) {
         Validate.notNull("No context provided!", context);
         final String channelId = context.getString(R.string.cyface_notification_channel_id);
 

@@ -372,7 +372,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      *
      *  @return {@code True} is an emulator was detected
      */
-    private static boolean isEmulator() {
+    public static boolean isEmulator() {
         // Avoid crashes in unit tests
         if (Build.FINGERPRINT == null) {
             return false;
