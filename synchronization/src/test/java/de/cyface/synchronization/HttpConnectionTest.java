@@ -17,7 +17,7 @@ import de.cyface.persistence.model.Vehicle;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.6
+ * @version 1.1.7
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -73,7 +73,7 @@ public class HttpConnectionTest {
                 + "test_appVersion\r\n" + "--" + BOUNDARY + "\r\n"
                 + "Content-Disposition: form-data; name=\"length\"\r\n" + "\r\n" + "10.0\r\n" + "--" + BOUNDARY + "\r\n"
                 + "Content-Disposition: form-data; name=\"locationCount\"\r\n" + "\r\n" + "5\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"vehicleId\"\r\n" + "\r\n" + "BICYCLE\r\n" + "--" + BOUNDARY
+                + "Content-Disposition: form-data; name=\"vehicle\"\r\n" + "\r\n" + "BICYCLE\r\n" + "--" + BOUNDARY
                 + "\r\n" + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"test-did_78.cyf\"\r\n"
                 + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
         assertThat(header, is(equalTo(expectedHeader)));

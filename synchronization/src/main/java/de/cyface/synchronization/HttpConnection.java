@@ -374,7 +374,7 @@ public class HttpConnection implements Http {
         final String osVersionPart = generatePart("osVersion", metaData.osVersion);
         final String appVersionPart = generatePart("appVersion", metaData.appVersion);
         final String lengthPart = generatePart("length", String.valueOf(metaData.length));
-        final String vehicleIdPart = generatePart("vehicleId", String.valueOf(metaData.vehicle.getDatabaseIdentifier()));
+        final String vehiclePart = generatePart("vehicle", String.valueOf(metaData.vehicle.getDatabaseIdentifier()));
 
         // File meta data
         final String fileHeaderPart = "--" + BOUNDARY + "\r\n"
@@ -383,7 +383,7 @@ public class HttpConnection implements Http {
         // There should be no need to set a content length of the fileHeaderPart here
 
         return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
-                + appVersionPart + lengthPart + locationCountPart + vehicleIdPart + fileHeaderPart;
+                + appVersionPart + lengthPart + locationCountPart + vehiclePart + fileHeaderPart;
     }
 
     /**
