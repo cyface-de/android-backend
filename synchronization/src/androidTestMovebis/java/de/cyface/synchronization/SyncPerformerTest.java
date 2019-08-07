@@ -77,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.4
+ * @version 2.0.5
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -125,7 +125,7 @@ public class SyncPerformerTest {
     public void testSendData_returnsTrueWhenServerReturns409() throws CursorIsNullException, NoSuchMeasurementException,
             ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
             UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
-            NetworkUnavailableException, SynchronizationInterruptedException {
+            NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException {
 
         // Arrange
         // Insert data to be synced
