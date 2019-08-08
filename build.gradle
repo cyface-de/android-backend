@@ -4,7 +4,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.31
+ * @version 2.2.32
  * @since 1.0.0
  */
 
@@ -33,7 +33,7 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "4.2.1"
+    version = "4.2.2"
 
     minSdkVersion = 16
     targetSdkVersion = 28
