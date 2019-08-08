@@ -21,6 +21,7 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
 import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
+import static de.cyface.utils.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -55,7 +56,7 @@ import de.cyface.persistence.DefaultFileAccess;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.3
+ * @version 3.1.4
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -169,6 +170,10 @@ class SyncPerformer {
         } catch (final SynchronizationInterruptedException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
+            return false;
+        } catch (final TooManyRequestsException e) {
+            syncResult.stats.numIoExceptions++;
+            sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
             return false;
         } catch (final ConflictException e) {
             syncResult.stats.numSkippedEntries++;
