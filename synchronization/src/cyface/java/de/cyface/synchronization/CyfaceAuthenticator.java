@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.utils.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.utils.ErrorHandler.sendErrorIntent;
 import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
@@ -74,7 +75,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -165,6 +166,9 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             throw new NetworkErrorException(e);
         } catch (final NetworkUnavailableException e) {
             sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final TooManyRequestsException e) {
+            sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
         }
 
@@ -282,10 +286,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
+     * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      */
     private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            NetworkUnavailableException {
+            NetworkUnavailableException, TooManyRequestsException {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl

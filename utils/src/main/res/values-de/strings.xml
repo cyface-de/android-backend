@@ -24,6 +24,7 @@
     <string name="error_message_entity_not_parsable">Anfrage nicht lesbar</string>
     <string name="error_message_network_unavailable">Verbindungsabbruch</string>
     <string name="error_message_synchronization_interrupted">Synchronisierung unterbrochen</string>
+    <string name="error_message_too_many_requests">Zu viele Anfragen</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

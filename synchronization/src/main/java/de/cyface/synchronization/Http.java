@@ -34,7 +34,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 8.0.0
  * @since 3.0.0
  */
 interface Http {
@@ -90,12 +90,13 @@ interface Http {
      * @throws EntityNotParsableException When the server returns {@link HttpConnection#HTTP_ENTITY_NOT_PROCESSABLE}
      * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
+     * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      */
     @NonNull
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
-            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException;
+            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException, TooManyRequestsException;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
@@ -115,6 +116,7 @@ interface Http {
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
      * @throws SynchronizationInterruptedException When the transmission stream ended too early, likely because the sync
      *             thread was interrupted (sync canceled)
+     * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      */
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
@@ -123,5 +125,5 @@ interface Http {
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            SynchronizationInterruptedException;
+            SynchronizationInterruptedException, TooManyRequestsException;
 }

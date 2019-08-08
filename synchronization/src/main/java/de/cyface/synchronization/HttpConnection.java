@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.0
+ * @version 10.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -74,12 +74,16 @@ public class HttpConnection implements Http {
      * The tail to be used in the Multipart request to indicate that the request end.
      */
     final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
-
     /**
      * The status code returned when the MultiPart request is erroneous, e.g. when there is not exactly onf file or a
      * syntax error.
      */
     final static int HTTP_ENTITY_NOT_PROCESSABLE = 422;
+    /**
+     * The status code returned when the server thinks that this client sent too many requests in to short time.
+     * This helps to prevent DDoS attacks. The client should just retry a short time later.
+     */
+    final static int HTTP_TOO_MANY_REQUESTS = 429;
 
     @NonNull
     @Override
@@ -144,7 +148,7 @@ public class HttpConnection implements Http {
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException,
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
-            NetworkUnavailableException {
+            NetworkUnavailableException, TooManyRequestsException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
@@ -186,7 +190,7 @@ public class HttpConnection implements Http {
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            SynchronizationInterruptedException {
+            SynchronizationInterruptedException, TooManyRequestsException {
 
         // Generate header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
@@ -411,11 +415,12 @@ public class HttpConnection implements Http {
      * @throws ConflictException When the server returns {@code HttpURLConnection#HTTP_CONFLICT}
      * @throws EntityNotParsableException When the server returns {@link #HTTP_ENTITY_NOT_PROCESSABLE}
      * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
+     * @throws TooManyRequestsException When the server returns {@link #HTTP_TOO_MANY_REQUESTS}
      */
     @NonNull
     private HttpResponse readResponse(@NonNull final HttpURLConnection connection)
             throws SynchronisationException, BadRequestException, UnauthorizedException, ForbiddenException,
-            ConflictException, EntityNotParsableException, InternalServerErrorException {
+            ConflictException, EntityNotParsableException, InternalServerErrorException, TooManyRequestsException {
 
         // Read response from connection
         final int responseCode;
@@ -458,6 +463,9 @@ public class HttpConnection implements Http {
             case HttpURLConnection.HTTP_INTERNAL_ERROR:
                 Log.w(TAG, "500: Server reported internal error.");
                 throw new InternalServerErrorException(response.getBody());
+            case HTTP_TOO_MANY_REQUESTS:
+                Log.w(TAG, "429: Server reported too many requests received from this client.");
+                throw new TooManyRequestsException(response.getBody());
         }
 
         // Known response
