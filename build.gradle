@@ -10,7 +10,6 @@
 
 // Top-level build file where you can add configuration options common to all sub-projects/modules.
 buildscript {
-
     repositories {
         // Gradle 4.1 and higher include support for Google's Maven repo using
         // the google() method. And you need to include this repo to download
@@ -80,7 +79,7 @@ allprojects {
 
 apply plugin: 'android-reporting'
 
-configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing", "utils"] })) {
+configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing"] })) {
     pr ->
         apply plugin: 'com.android.library'
         apply plugin: 'maven-publish'

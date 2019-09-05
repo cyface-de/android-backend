@@ -37,7 +37,7 @@ dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
     // Cyface dependencies
-    implementation 'de.cyface:android-utils:1.0.0'
+    implementation 'de.cyface:android-utils:1.0.1'
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
