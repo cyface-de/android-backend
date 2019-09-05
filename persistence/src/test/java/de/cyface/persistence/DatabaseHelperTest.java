@@ -37,6 +37,7 @@ import android.database.sqlite.SQLiteCursor;
 import android.database.sqlite.SQLiteCursorDriver;
 import android.database.sqlite.SQLiteDatabase;
 import android.database.sqlite.SQLiteQuery;
+import android.os.Build;
 import android.provider.BaseColumns;
 
 import androidx.annotation.NonNull;
@@ -45,6 +46,7 @@ import androidx.test.core.app.ApplicationProvider;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.testutils.SharedTestUtils;
 
+
 /**
  * This class tests the migration functionality of {@link DatabaseHelper}.
  * <p>
@@ -52,11 +54,13 @@ import de.cyface.testutils.SharedTestUtils;
  * open it with *DB Browser for SQLite* and use File > Export > Database to SQL file.
  *
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.2
  * @since 4.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(manifest = Config.NONE) // To avoid warning
+// Config.NONE: To avoid warning
+// sdk: To be able to execute tests with Java 8 (instead of 9)
+@Config(manifest = Config.NONE, sdk = Build.VERSION_CODES.O_MR1)
 public class DatabaseHelperTest {
 
     /**
@@ -108,7 +112,7 @@ public class DatabaseHelperTest {
         SQLiteDatabase.CursorFactory cursorFactory = new SQLiteDatabase.CursorFactory() {
             @Override
             public Cursor newCursor(final SQLiteDatabase db, final SQLiteCursorDriver masterQuery,
-                    final String editTable, final SQLiteQuery query) {
+                                    final String editTable, final SQLiteQuery query) {
                 return new SQLiteCursor(masterQuery, editTable, query);
             }
         };
@@ -339,7 +343,7 @@ public class DatabaseHelperTest {
      * @param locations number of locations to generate for the measurement to be generated
      */
     private void addDatabaseV11Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
-            final long locations) {
+                                           final long locations) {
 
         // # Insert V11 sample data: (exported from our V12 app and manually adjusted to V11)
 

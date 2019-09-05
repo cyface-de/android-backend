@@ -1,5 +1,6 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
+
     <!-- Login errors -->
     <string name="error_message_unknown_authentication_error">Login failed</string>
     <string name="error_message_credentials_incorrect">Credentials incorrect</string>
