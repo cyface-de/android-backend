@@ -2,7 +2,7 @@
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @version 1.0.5
+ * @version 1.0.6
  * @since 3.0.0
  */
 
@@ -40,6 +40,7 @@ dependencies {
     implementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
     implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
-    implementation project(":utils")
+    // Cyface dependencies
+    implementation 'de.cyface:android-utils:1.0.0'
     implementation project(':persistence')
 }

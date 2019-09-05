@@ -4,7 +4,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.32
+ * @version 2.3.0
  * @since 1.0.0
  */
 
@@ -64,6 +64,10 @@ allprojects {
         // Needed to resolve newest support libraries with IntelliJ / Gradle
         google()
         jcenter()
+        maven {
+            // Repository for Cyface libraries
+            url 'https://dl.bintray.com/cyface-de/android-utils'
+        }
     }
 
     // Uncomment this for additional warnings.
