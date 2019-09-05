@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.7
+ * @version 2.1.8
  * @since 1.0.0
  */
 
@@ -68,7 +68,7 @@ android {
         }
     }
 
-    // Required by Roboeletric
+    // Required by Roboletric
     testOptions {
         unitTests {
             includeAndroidResources = true
@@ -79,7 +79,7 @@ android {
 
 dependencies {
     // Cyface dependencies
-    implementation 'de.cyface:android-utils:1.0.0'
+    implementation 'de.cyface:android-utils:1.0.1'
     implementation project(":persistence")
 
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
