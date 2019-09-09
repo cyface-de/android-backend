@@ -103,7 +103,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 17.0.0
+ * @version 17.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -253,8 +253,6 @@ public abstract class DataCapturingService {
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
-        Validate.notNull(deviceIdentifier,
-                "Sync canceled: No installation identifier for this application set in its preferences.");
         this.appId = context.getPackageName();
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -623,7 +621,8 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.v(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext(), appId);
+        final PongReceiver pongReceiver = new PongReceiver(getContext(), MessageCodes.getPingActionId(appId),
+                MessageCodes.getPongActionId(appId));
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -1211,7 +1210,8 @@ public abstract class DataCapturingService {
                     // The task for the missing test is CY-4111. Currently only tested manually.
                     final Lock lock = new ReentrantLock();
                     final Condition condition = lock.newCondition();
-                    final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
+                    final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition,
+                            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
                     // The background service already received a stopSelf command but as it's still
                     // bound to this service it should be still alive. We unbind it from this service via the
                     // stopService method (to reduce code duplicity).

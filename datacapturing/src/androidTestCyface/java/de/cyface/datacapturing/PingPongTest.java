@@ -44,6 +44,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.backend.TestCallback;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
@@ -61,7 +62,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.5
+ * @version 1.2.8
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -104,8 +105,8 @@ public class PingPongTest {
         lock = new ReentrantLock();
         condition = lock.newCondition();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-
-        oocut = new PongReceiver(context, context.getPackageName());
+        final String appId = context.getPackageName();
+        oocut = new PongReceiver(context, MessageCodes.getPingActionId(appId), MessageCodes.getPongActionId(appId));
     }
 
     @After
@@ -146,7 +147,7 @@ public class PingPongTest {
 
         // Start Capturing
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                context.getPackageName());
+                MessageCodes.getServiceStartedActionId(context.getPackageName()));
         dcs.start(Vehicle.UNKNOWN, finishedHandler);
 
         // Give the async start some time to start the DataCapturingBackgroundService
@@ -181,7 +182,8 @@ public class PingPongTest {
 
         // Cleanup
         // Stop Capturing
-        TestShutdownFinishedHandler shutdownHandler = new TestShutdownFinishedHandler(lock, condition);
+        TestShutdownFinishedHandler shutdownHandler = new TestShutdownFinishedHandler(lock, condition,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         dcs.stop(shutdownHandler);
 
         // Give the async stop some time to stop gracefully

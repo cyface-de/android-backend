@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.1
+ * @version 5.5.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -197,7 +197,7 @@ public class DataCapturingServiceTest {
             final Lock lock = new ReentrantLock();
             final Condition condition = lock.newCondition();
             final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock,
-                    condition);
+                    condition, MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
             oocut.stop(shutDownFinishedHandler);
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
@@ -249,7 +249,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
@@ -271,7 +271,8 @@ public class DataCapturingServiceTest {
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         oocut.pause(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
@@ -299,7 +300,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         oocut.resume(startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
@@ -324,7 +325,8 @@ public class DataCapturingServiceTest {
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         oocut.stop(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
@@ -446,29 +448,32 @@ public class DataCapturingServiceTest {
         final Lock lock1 = new ReentrantLock();
         final Condition condition1 = lock1.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock1, condition1,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         // Do not reuse the lock/condition!
         final Lock lock2 = new ReentrantLock();
         final Condition condition2 = lock2.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock2, condition2,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         // Do not reuse the lock/condition!
         final Lock lock3 = new ReentrantLock();
         final Condition condition3 = lock3.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock3, condition3,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         // Do not reuse the lock/condition!
         final Lock lock4 = new ReentrantLock();
         final Condition condition4 = lock4.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock4, condition4);
+        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock4, condition4,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         // Do not reuse the lock/condition!
         final Lock lock5 = new ReentrantLock();
         final Condition condition5 = lock5.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock5, condition5);
+        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock5, condition5,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         // Do not reuse the lock/condition!
         final Lock lock6 = new ReentrantLock();
         final Condition condition6 = lock6.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock6, condition6);
+        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock6, condition6,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
 
         // First Start/stop without waiting
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler1);
@@ -552,7 +557,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
@@ -579,7 +584,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         // must throw NoSuchMeasurementException
-        oocut.stop(new TestShutdownFinishedHandler(lock, condition));
+        oocut.stop(new TestShutdownFinishedHandler(lock, condition, MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED));
     }
 
     /**
@@ -710,7 +715,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         oocut.resume(startUpFinishedHandler);
         final boolean isRunning = isDataCapturingServiceRunning();
         assertThat(isRunning, is(equalTo(true)));

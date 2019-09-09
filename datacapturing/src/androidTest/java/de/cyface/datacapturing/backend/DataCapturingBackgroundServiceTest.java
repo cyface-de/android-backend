@@ -51,8 +51,10 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
+
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.IsRunningCallback;
+import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
@@ -69,7 +71,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.4
+ * @version 2.3.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -231,7 +233,9 @@ public class DataCapturingBackgroundServiceTest {
         InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
             @Override
             public void run() {
-                final PongReceiver isRunningChecker = new PongReceiver(context, context.getPackageName());
+                final String appId = context.getPackageName();
+                final PongReceiver isRunningChecker = new PongReceiver(context, MessageCodes.getPingActionId(appId),
+                        MessageCodes.getPongActionId(appId));
                 isRunningChecker.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
             }
         });

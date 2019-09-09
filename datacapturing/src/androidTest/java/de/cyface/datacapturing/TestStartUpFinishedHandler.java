@@ -29,7 +29,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 3.0.0
  * @since 2.2.0
  */
 final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
@@ -53,13 +53,12 @@ final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
      *
      * @param lock The lock used to synchronize this handler with the calling test.
      * @param condition The condition used to synchronize this handler with the calling test.
-     * @param appId A device-wide unique identifier for the application containing this SDK such as
-     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * @param serviceStartedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     *            so that only the service in question receives the expected ping-back.
      */
     TestStartUpFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition,
-            @NonNull final String appId) {
-        super(appId);
+            @NonNull final String serviceStartedActionId) {
+        super(serviceStartedActionId);
         this.lock = lock;
         this.condition = condition;
     }

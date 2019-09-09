@@ -18,7 +18,6 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.utils.DiskConsumption.spaceAvailable;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
@@ -26,6 +25,7 @@ import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATE
 import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static de.cyface.utils.DiskConsumption.spaceAvailable;
 
 import java.lang.ref.WeakReference;
 import java.util.Collections;
@@ -85,7 +85,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.1
+ * @version 7.1.2
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -214,7 +214,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
         // which we cannot pass via bind() as documented by the {@link #onBind()} method.
         final String appId = getBaseContext().getPackageName();
-        pingReceiver = new PingReceiver(appId);
+        pingReceiver = new PingReceiver(MessageCodes.getPingActionId(appId), MessageCodes.getPongActionId(appId));
         registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
         Log.d(TAG, "onCreate: Ping Receiver registered");
 

@@ -24,8 +24,8 @@ import android.content.Intent;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.BuildConfig;
-import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.Validate;
@@ -36,7 +36,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 4.0.0
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -46,20 +46,25 @@ public class PingReceiver extends BroadcastReceiver {
      */
     private static final String TAG = PongReceiver.TAG;
     /**
-     * A device-wide unique identifier for the application containing this SDK such as
-     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     * <p>
-     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * An app and device-wide unique identifier. Each service of this app needs to use a different id so that only the
+     * service in question "replies" to the ping request
      */
-    private final String appId;
+    private final String pingActionId;
+    /**
+     * An app and device-wide unique identifier. Each service of this app needs to use a different id so that only the
+     * service in question "replies" to the ping request
+     */
+    private final String pongActionId;
 
     /**
-     * @param appId A device-wide unique identifier for the application containing this SDK such as
-     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * @param pingActionId An app and device-wide unique identifier. Each service of this app needs to use
+     *            a different id so that only the service in question "replies" to the ping request.
+     * @param pongActionId An app and device-wide unique identifier. Each service of this app needs to use
+     *            a different id so that only the service in question "replies" to the ping request.
      */
-    public PingReceiver(@NonNull final String appId) {
-        this.appId = appId;
+    public PingReceiver(@NonNull final String pingActionId, @NonNull final String pongActionId) {
+        this.pingActionId = pingActionId;
+        this.pongActionId = pongActionId;
     }
 
     @Override
@@ -67,8 +72,8 @@ public class PingReceiver extends BroadcastReceiver {
         Validate.notNull(intent.getAction());
         Log.v(TAG, "PingReceiver.onReceive()");
 
-        if (intent.getAction().equals(MessageCodes.getPingActionId(appId))) {
-            final Intent pongIntent = new Intent(MessageCodes.getPongActionId(appId));
+        if (intent.getAction().equals(pingActionId)) {
+            final Intent pongIntent = new Intent(pongActionId);
             if (BuildConfig.DEBUG) {
                 final String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.v(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
