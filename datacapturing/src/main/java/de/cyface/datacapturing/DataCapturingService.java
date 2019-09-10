@@ -103,7 +103,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 17.0.2
+ * @version 17.1.0
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1081,6 +1081,35 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"unused", "UnusedReturnValue"}) // Used by SDK implementing apps (S, C)
     public boolean removeDataCapturingListener(@NonNull final DataCapturingListener listener) {
         return fromServiceMessageHandler.removeListener(listener);
+    }
+
+    /**
+     * Called when the user switches the {@link Vehicle} via UI.
+     * <p>
+     * In order to record multi-modal {@code Measurement}s this method records {@code Vehicle} switches as
+     * {@link Event}s when this occurs during an ongoing {@link Measurement}. Does nothing when no capturing
+     * {@link #isRunning}.
+     *
+     * @param newVehicle the identifier of the new {@link Vehicle}
+     */
+    public void changeVehicleType(@NonNull final Vehicle newVehicle) {
+        final long timestamp = System.currentTimeMillis();
+
+        if (!getIsRunning()) {
+            Log.v(TAG, "changeVehicleType(): Service not alive, event not recorded");
+            return;
+        }
+
+        // Record modality-switch Event for ongoing Measurements
+        Log.v(TAG, "changeVehicleType(): Service is alive!");
+        final Measurement measurement;
+        try {
+            measurement = loadCurrentlyCapturedMeasurement();
+            persistenceLayer.logEvent(Event.EventType.VEHICLE_TYPE_CHANGE, measurement, timestamp,
+                    newVehicle.getDatabaseIdentifier());
+        } catch (final CursorIsNullException | NoSuchMeasurementException e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     /**
