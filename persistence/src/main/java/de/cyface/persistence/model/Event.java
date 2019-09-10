@@ -9,7 +9,7 @@ import androidx.annotation.NonNull;
  * For examples see the {@link EventType}s.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.2.0
  * @since 4.0.0
  */
 public class Event {
@@ -22,6 +22,12 @@ public class Event {
      * The timestamp at which this {@code Event} was captured in milliseconds since 1.1.1970.
      */
     private long timestamp;
+    /**
+     * A String which provides information about the {@link Event} which is not already clarified by
+     * {@link #getType()}, e.g.: Even type {@link EventType#VEHICLE_TYPE_CHANGE} requires a {@code #value}, e.g.
+     * {@link Vehicle#CAR} which defines the new {@link Vehicle}.
+     */
+    private String value;
 
     /**
      * @param type The {@link EventType} collected by this {@link Event}.
@@ -32,12 +38,29 @@ public class Event {
         this.timestamp = timestamp;
     }
 
+    /**
+     * @param type The {@link EventType} collected by this {@link Event}.
+     * @param timestamp The timestamp at which this {@code Event} was captured in milliseconds since 1.1.1970.
+     * @param value A String which provides information about the {@link Event} which is not already clarified by
+     *            {@link #getType()}, e.g.: Even type {@link EventType#VEHICLE_TYPE_CHANGE} requires a {@code #value},
+     *            e.g. {@link Vehicle#CAR} which defines the new {@link Vehicle}. If no such information is required use
+     *            the other constructor.
+     */
+    public Event(EventType type, long timestamp, String value) {
+        this(type, timestamp);
+        this.value = value;
+    }
+
     public EventType getType() {
         return type;
     }
 
     public long getTimestamp() {
         return timestamp;
+    }
+
+    public String getValue() {
+        return value;
     }
 
     @Override
@@ -47,18 +70,24 @@ public class Event {
         if (o == null || getClass() != o.getClass())
             return false;
         Event event = (Event)o;
-        return timestamp == event.timestamp && type == event.type;
+        return timestamp == event.timestamp &&
+                value.equals(event.value) &&
+                type == event.type;
     }
 
     @Override
     public int hashCode() {
-        return Arrays.hashCode(new Object[] {type, timestamp});
+        return Arrays.hashCode(new Object[] {type, timestamp, value});
     }
 
     @NonNull
     @Override
     public String toString() {
-        return "Event{" + "type=" + type + ", timestamp=" + timestamp + '}';
+        return "Event{" +
+                "type=" + type +
+                ", timestamp=" + timestamp +
+                ", value='" + value + '\'' +
+                '}';
     }
 
     /**
@@ -66,10 +95,14 @@ public class Event {
      * <p>
      * An example are the use of the life-cycle methods such as start, pause, resume, etc. which are required to
      * slice {@link Measurement}s into {@link Track}s before they are resumed.
+     *
+     * @author Armin Schnabel
+     * @version 1.0.0
+     * @since 4.0.0
      */
     public enum EventType {
         LIFECYCLE_START("LIFECYCLE_START"), LIFECYCLE_PAUSE("LIFECYCLE_PAUSE"), LIFECYCLE_RESUME(
-                "LIFECYCLE_RESUME"), LIFECYCLE_STOP("LIFECYCLE_STOP");
+                "LIFECYCLE_RESUME"), LIFECYCLE_STOP("LIFECYCLE_STOP"), VEHICLE_TYPE_CHANGE("VEHICLE_TYPE_CHANGE");
 
         private String databaseIdentifier;
 

@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.2.1
+ * @version 15.3.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -992,13 +992,31 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
             final long timestamp) {
+        logEvent(eventType, measurement, timestamp, null);
+    }
+
+    /**
+     * Stores a new {@link Event} in the {@link PersistenceLayer} which is linked to a {@link Measurement}.
+     *
+     * @param eventType The {@link Event.EventType} to be logged.
+     * @param measurement The {@code Measurement} which is linked to the {@code Event}.
+     * @param timestamp The timestamp in ms at which the event was triggered
+     * @param value The (optional) {@link Event#getValue()}
+     */
+    public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
+            final long timestamp, @Nullable final String value) {
         Log.v(TAG,
-                "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
+                "Storing Event:" + eventType + (value == null ? "" : " (" + value + ")") + " for Measurement "
+                        + measurement.getIdentifier() + " at " + timestamp);
 
         final ContentValues contentValues = new ContentValues();
         contentValues.put(EventTable.COLUMN_TYPE, eventType.getDatabaseIdentifier());
         contentValues.put(EventTable.COLUMN_TIMESTAMP, timestamp);
         contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
+        if (value != null) {
+            Validate.isTrue(!value.isEmpty());
+            contentValues.put(EventTable.COLUMN_VALUE, value);
+        }
 
         resolver.insert(getEventUri(), contentValues);
     }
