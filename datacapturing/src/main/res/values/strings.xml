@@ -22,8 +22,8 @@
     <string name="capturing_active">Thank you for your participation</string>
     <string name="notification_channel_description_running">Notification which shows that there is a measurement running.</string>
 
-    <string name="missing_data_error">Captured data was missing from message!</string>
-    <string name="unknown_message_error">Received unknown message %d from data capturing service!</string>
-
     <string name="ticker_text" translatable="false">Ticker</string>
+
+    <string name="missing_data_error" translatable="false">Captured data was missing from message!</string>
+    <string name="unknown_message_error" translatable="false">Received unknown message %d from data capturing service!</string>
 </resources>
