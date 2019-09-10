@@ -9,7 +9,7 @@ import android.os.Build;
  * Implementation for a <code>GeoLocationDeviceStatusHandler</code> for version above and including Android Nougat (API 24).
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.3
  * @since 1.0.0
  * @see GeoLocationStatusListener
  */
@@ -26,7 +26,7 @@ public class GnssStatusCallback extends GeoLocationDeviceStatusHandler {
 
         @Override
         public void onSatelliteStatusChanged(GnssStatus status) {
-            handleSatteliteStatusChange();
+            handleSatelliteStatusChange();
         }
     };
 
@@ -38,7 +38,7 @@ public class GnssStatusCallback extends GeoLocationDeviceStatusHandler {
      * @param manager The <code>LocationManager</code> used by this class to get update about GNSS status changes.
      * @throws SecurityException If permission to access location via GNSS has not been granted.
      */
-    public GnssStatusCallback(final LocationManager manager) throws SecurityException {
+    GnssStatusCallback(final LocationManager manager) throws SecurityException {
         super(manager);
         locationManager.registerGnssStatusCallback(callback);
     }

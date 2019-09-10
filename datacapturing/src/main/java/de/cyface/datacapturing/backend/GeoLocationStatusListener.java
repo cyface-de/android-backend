@@ -8,7 +8,7 @@ import android.location.LocationManager;
  * 24).
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.2
  * @since 1.0.0
  * @see GnssStatusCallback
  */
@@ -24,14 +24,14 @@ public class GeoLocationStatusListener extends GeoLocationDeviceStatusHandler {
      * @param manager The <code>LocationManager</code> used to get geo location status updates.
      * @throws SecurityException If fine location permission has not been granted.
      */
-    public GeoLocationStatusListener(final LocationManager manager) throws SecurityException {
+    GeoLocationStatusListener(final LocationManager manager) throws SecurityException {
         super(manager);
         this.listener = new GpsStatus.Listener() {
             @Override
             public void onGpsStatusChanged(int event) {
                 switch (event) {
                     case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
-                        handleSatteliteStatusChange();
+                        handleSatelliteStatusChange();
                         break;
                     case GpsStatus.GPS_EVENT_FIRST_FIX:
                         handleFirstFix();

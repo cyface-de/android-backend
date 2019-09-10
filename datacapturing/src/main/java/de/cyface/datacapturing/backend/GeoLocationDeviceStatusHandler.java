@@ -11,12 +11,12 @@ import android.location.LocationManager;
  * change.
  *
  * @author Klemens Muthmann
- * @version 2.0.1
+ * @version 2.0.2
  * @since 1.0.0
  */
-public abstract class GeoLocationDeviceStatusHandler {
+abstract class GeoLocationDeviceStatusHandler {
     /**
-     * Interval in which location updates need to occur for the device to consider itself having a fix. Reasing behind
+     * Interval in which location updates need to occur for the device to consider itself having a fix. Reasoning behind
      * this number is the following: Usually the geo location device provides updates every second, give or take a few
      * milliseconds. According to sampling theorem we could guarantee updates every 2 seconds if a proper fix is
      * available.
@@ -92,12 +92,12 @@ public abstract class GeoLocationDeviceStatusHandler {
     abstract void shutdown();
 
     /**
-     * Called each time the service receives an update from the geo location sattelites.
+     * Called each time the service receives an update from the geo location satellites.
      */
-    void handleSatteliteStatusChange() {
+    void handleSatelliteStatusChange() {
         // If time of last location update was less then 2 seconds we still have a fix.
-        long timePassedSinceLastSatteliteUpdate = System.currentTimeMillis() - timeOfLastLocationUpdate;
-        hasGeoLocationFix = timePassedSinceLastSatteliteUpdate < MAX_TIME_SINCE_LAST_SATELLITE_UPDATE;
+        long timePassedSinceLastSatelliteUpdate = System.currentTimeMillis() - timeOfLastLocationUpdate;
+        hasGeoLocationFix = timePassedSinceLastSatelliteUpdate < MAX_TIME_SINCE_LAST_SATELLITE_UPDATE;
     }
 
     /**
