@@ -6,7 +6,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.8
+ * @version 2.2.0
  * @since 1.0.0
  */
 
@@ -79,15 +79,16 @@ android {
 
 dependencies {
     // Cyface dependencies
-    implementation 'de.cyface:android-utils:1.0.1'
+    implementation "de.cyface:android-utils:$rootProject.ext.utilsVersion"
     implementation project(":persistence")
 
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
-    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
     androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"
     // For some reasons the CI does does pull the transitive dependencies of mockito-android which will fails
@@ -98,7 +99,7 @@ dependencies {
     testImplementation project(":testutils")
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
     // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other dependencies (e.g. testCompile)
-    testImplementation "junit:junit:$rootProject.ext.junitVersion"
+    testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"

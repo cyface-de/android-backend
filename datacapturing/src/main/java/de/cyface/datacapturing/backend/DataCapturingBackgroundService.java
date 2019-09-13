@@ -74,6 +74,7 @@ import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
+import de.cyface.utils.PlaceholderNotificationBuilder;
 import de.cyface.utils.Validate;
 
 /**
@@ -85,7 +86,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.2
+ * @version 7.1.3
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
