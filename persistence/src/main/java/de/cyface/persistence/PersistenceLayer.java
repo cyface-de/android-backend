@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.3.0
+ * @version 15.4.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -262,7 +262,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final long timestamp = cursor.getLong(cursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
         final Event.EventType eventType = Event.EventType
                 .valueOf(cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_TYPE)));
-        return new Event(eventType, timestamp);
+        final String value = cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_VALUE));
+        return new Event(eventType, timestamp, value);
     }
 
     /**
@@ -622,7 +623,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @Nullable
     private Cursor loadEventsCursor(final long measurementIdentifier) {
 
-        return resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+        return resolver.query(getEventUri(), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()},
                 EventTable.COLUMN_TIMESTAMP + " ASC");
     }
@@ -634,7 +635,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * {@code Cursor} is always closed after use.</b>
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the {@code Event}s for.
-     * @return The {@code Cursor} pointing to the {@code Event}s of of the {@code Measurement} with the provided
+     * @return The {@code Cursor} pointing to the {@code Event}s of the {@code Measurement} with the provided
      *         {@param measurementId}.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
@@ -652,6 +653,43 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 final Event event = loadEvent(cursor);
                 events.add(event);
             }
+            return events;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Loads all {@link Event}s of a specific {@link Event.EventType} for the provided {@link Measurement} from the data
+     * storage.
+     *
+     * @param measurementId The id of the {@code Measurement} to load the {@code Event}s for.
+     * @param eventType the {@code EventType} of which all {@code Event}s are to be loaded
+     * @return All the {code Event}s of the {@code Measurement} with the provided {@param measurementId} of the
+     *         specified {@param eventType}. An empty list if there are no such Events, but never <code>null</code>.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @SuppressWarnings("unused") // Implementing apps (CY) use this
+    public List<Event> loadEvents(final long measurementId, @NonNull final Event.EventType eventType)
+            throws CursorIsNullException {
+        Cursor cursor = null;
+
+        try {
+            final List<Event> events = new ArrayList<>();
+
+            cursor = resolver.query(getEventUri(), null,
+                    EventTable.COLUMN_MEASUREMENT_FK + "=? AND " + EventTable.COLUMN_TYPE + "=?",
+                    new String[] {Long.valueOf(measurementId).toString(), eventType.getDatabaseIdentifier()},
+                    EventTable.COLUMN_TIMESTAMP + " ASC");
+            softCatchNullCursor(cursor);
+
+            while (cursor.moveToNext()) {
+                final Event event = loadEvent(cursor);
+                events.add(event);
+            }
+
             return events;
         } finally {
             if (cursor != null) {

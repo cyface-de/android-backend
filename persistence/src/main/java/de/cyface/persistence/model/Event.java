@@ -3,13 +3,14 @@ package de.cyface.persistence.model;
 import java.util.Arrays;
 
 import androidx.annotation.NonNull;
+import androidx.annotation.Nullable;
 
 /**
  * {@code Event}s are things that happen on the user device which may be important and are, thus, logged.
  * For examples see the {@link EventType}s.
  *
  * @author Armin Schnabel
- * @version 1.2.0
+ * @version 1.3.0
  * @since 4.0.0
  */
 public class Event {
@@ -25,9 +26,10 @@ public class Event {
     /**
      * A String which provides information about the {@link Event} which is not already clarified by
      * {@link #getType()}, e.g.: Even type {@link EventType#VEHICLE_TYPE_CHANGE} requires a {@code #value}, e.g.
-     * {@link Vehicle#CAR} which defines the new {@link Vehicle}.
+     * {@link Vehicle#CAR} which defines the new {@link Vehicle}. Or {@code Null} if the {@code EventType} does not
+     * required this attribute.
      */
-    private String value;
+    private final String value;
 
     /**
      * @param type The {@link EventType} collected by this {@link Event}.
@@ -36,6 +38,7 @@ public class Event {
     public Event(EventType type, long timestamp) {
         this.type = type;
         this.timestamp = timestamp;
+        this.value = null;
     }
 
     /**
@@ -46,11 +49,13 @@ public class Event {
      *            e.g. {@link Vehicle#CAR} which defines the new {@link Vehicle}. If no such information is required use
      *            the other constructor.
      */
-    public Event(EventType type, long timestamp, String value) {
-        this(type, timestamp);
+    public Event(@NonNull final EventType type, final long timestamp, @NonNull final String value) {
+        this.type = type;
+        this.timestamp = timestamp;
         this.value = value;
     }
 
+    @NonNull
     public EventType getType() {
         return type;
     }
@@ -59,6 +64,7 @@ public class Event {
         return timestamp;
     }
 
+    @Nullable
     public String getValue() {
         return value;
     }
@@ -70,8 +76,9 @@ public class Event {
         if (o == null || getClass() != o.getClass())
             return false;
         Event event = (Event)o;
+        // noinspection EqualsReplaceableByObjectsCall - not available in this minSDK version
         return timestamp == event.timestamp &&
-                value.equals(event.value) &&
+                (value == null ? event.value == null : value.equals(event.value)) &&
                 type == event.type;
     }
 
