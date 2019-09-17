@@ -27,7 +27,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.utils.Validate;
 
 /**
@@ -42,7 +42,7 @@ import de.cyface.utils.Validate;
  * @version 5.0.0
  * @since 2.0.0
  * @see DataCapturingService#resume(StartUpFinishedHandler)
- * @see DataCapturingService#start(Vehicle, StartUpFinishedHandler)
+ * @see DataCapturingService#start(Modality, StartUpFinishedHandler)
  */
 public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 

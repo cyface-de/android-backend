@@ -58,8 +58,8 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -347,7 +347,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         return new MetaData(startLocation, endLocation, deviceId, measurement.getIdentifier(), deviceType, osVersion,
-                appVersion, measurement.getDistance(), locationCount, measurement.getVehicle());
+                appVersion, measurement.getDistance(), locationCount, measurement.getModality());
     }
 
     /**
@@ -393,12 +393,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final String appVersion;
         final double length;
         final int locationCount;
-        final Vehicle vehicle;
+        final Modality modality;
 
         MetaData(@Nullable final GeoLocation startLocation, @Nullable final GeoLocation endLocation,
                 @NonNull final String deviceId, final long measurementId, @NonNull final String deviceType,
                 @NonNull final String osVersion, @NonNull final String appVersion, final double length,
-                final int locationCount, @NonNull Vehicle vehicle) {
+                final int locationCount, @NonNull Modality modality) {
             this.startLocation = startLocation;
             this.endLocation = endLocation;
             this.deviceId = deviceId;
@@ -408,7 +408,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             this.appVersion = appVersion;
             this.length = length;
             this.locationCount = locationCount;
-            this.vehicle = vehicle;
+            this.modality = modality;
         }
     }
 }

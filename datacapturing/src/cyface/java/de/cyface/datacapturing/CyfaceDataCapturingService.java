@@ -48,7 +48,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
@@ -201,8 +201,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * {@link Measurement}. "Dead" {@code MeasurementStatus#OPEN} and {@link MeasurementStatus#PAUSED} measurements are
      * then marked as {@code FINISHED}.
      *
-     * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
-     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
+     * @param modality The {@link Modality} used to capture this data. If you have no way to know which kind of
+     *            <code>Modality</code> was used, just use {@link Modality#UNKNOWN}.
      * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      *             Android context was available.
@@ -213,11 +213,11 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      */
     @Override
     @SuppressWarnings("unused") // This is called by the SDK implementing app to start a measurement
-    public void start(@NonNull Vehicle vehicle, @NonNull StartUpFinishedHandler finishedHandler)
+    public void start(@NonNull Modality modality, @NonNull StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
 
         try {
-            super.start(vehicle, finishedHandler);
+            super.start(modality, finishedHandler);
         } catch (final CorruptedMeasurementException e) {
             final List<Measurement> corruptedMeasurements = new ArrayList<>();
             final List<Measurement> openMeasurements = this.persistenceLayer.loadMeasurements(MeasurementStatus.OPEN);
@@ -240,7 +240,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {
-                super.start(vehicle, finishedHandler);
+                super.start(modality, finishedHandler);
             } catch (final CorruptedMeasurementException e1) {
                 throw new IllegalStateException(e1);
             }

@@ -47,7 +47,7 @@ import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -112,11 +112,11 @@ public class PersistenceLayerTest {
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
             throws NoSuchMeasurementException, CursorIsNullException {
 
-        oocut.newMeasurement(Vehicle.UNKNOWN);
+        oocut.newMeasurement(Modality.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
         capturingBehaviour.updateRecentMeasurement(FINISHED);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(false)));
-        oocut.newMeasurement(Vehicle.UNKNOWN);
+        oocut.newMeasurement(Modality.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
         assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).size(), is(equalTo(1)));
     }
@@ -146,7 +146,7 @@ public class PersistenceLayerTest {
     @Test
     public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
 
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
@@ -165,7 +165,7 @@ public class PersistenceLayerTest {
     @Test
     public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
 
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
         oocut.markAsSynchronized(measurement);
 
@@ -221,7 +221,7 @@ public class PersistenceLayerTest {
     public void testUpdateDistanceDuringCapturing() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
 
         // Act
         oocut.setDistance(measurement.getIdentifier(), 2.0);

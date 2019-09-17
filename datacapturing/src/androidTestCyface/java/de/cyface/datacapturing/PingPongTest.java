@@ -52,7 +52,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.NoSuchMeasurementException;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.CursorIsNullException;
 
@@ -148,7 +148,7 @@ public class PingPongTest {
         // Start Capturing
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 MessageCodes.getServiceStartedActionId(context.getPackageName()));
-        dcs.start(Vehicle.UNKNOWN, finishedHandler);
+        dcs.start(Modality.UNKNOWN, finishedHandler);
 
         // Give the async start some time to start the DataCapturingBackgroundService
         lock.lock();

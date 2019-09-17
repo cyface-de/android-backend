@@ -24,7 +24,7 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
-import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
+import static de.cyface.persistence.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
@@ -51,9 +51,9 @@ import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -143,19 +143,19 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Creates a new, {@link MeasurementStatus#OPEN} {@link Measurement} for the provided {@link Vehicle}.
+     * Creates a new, {@link MeasurementStatus#OPEN} {@link Measurement} for the provided {@link Modality}.
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
-     * @param vehicle The {@code Vehicle} to create a new {@code Measurement} for.
+     * @param modality The {@code Modality} to create a new {@code Measurement} for.
      * @return The newly created {@code Measurement}.
      */
-    public Measurement newMeasurement(@NonNull final Vehicle vehicle) {
+    public Measurement newMeasurement(@NonNull final Modality modality) {
 
         final long timestamp = System.currentTimeMillis();
 
         final ContentValues measurementValues = new ContentValues();
-        measurementValues.put(COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
+        measurementValues.put(COLUMN_MODALITY, modality.getDatabaseIdentifier());
         measurementValues.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
         measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
@@ -170,7 +170,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
             final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
-            return new Measurement(measurementId, OPEN, vehicle, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+            return new Measurement(measurementId, OPEN, modality, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
                     0.0, timestamp);
         }
     }
@@ -245,11 +245,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
         final MeasurementStatus status = MeasurementStatus
                 .valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
-        final Vehicle vehicle = Vehicle.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_VEHICLE)));
+        final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_MODALITY)));
         final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
         final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
-        return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance, timestamp);
+        return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, timestamp);
     }
 
     /**

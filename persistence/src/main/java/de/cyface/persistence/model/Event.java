@@ -25,8 +25,8 @@ public class Event {
     private long timestamp;
     /**
      * A String which provides information about the {@link Event} which is not already clarified by
-     * {@link #getType()}, e.g.: Even type {@link EventType#VEHICLE_TYPE_CHANGE} requires a {@code #value}, e.g.
-     * {@link Vehicle#CAR} which defines the new {@link Vehicle}. Or {@code Null} if the {@code EventType} does not
+     * {@link #getType()}, e.g.: Even type {@link EventType#MODALITY_TYPE_CHANGE} requires a {@code #value}, e.g.
+     * {@link Modality#CAR} which defines the new {@link Modality}. Or {@code Null} if the {@code EventType} does not
      * required this attribute.
      */
     private final String value;
@@ -45,8 +45,8 @@ public class Event {
      * @param type The {@link EventType} collected by this {@link Event}.
      * @param timestamp The timestamp at which this {@code Event} was captured in milliseconds since 1.1.1970.
      * @param value A String which provides information about the {@link Event} which is not already clarified by
-     *            {@link #getType()}, e.g.: Even type {@link EventType#VEHICLE_TYPE_CHANGE} requires a {@code #value},
-     *            e.g. {@link Vehicle#CAR} which defines the new {@link Vehicle}. If no such information is required use
+     *            {@link #getType()}, e.g.: Even type {@link EventType#MODALITY_TYPE_CHANGE} requires a {@code #value},
+     *            e.g. {@link Modality#CAR} which defines the new {@link Modality}. If no such information is required use
      *            the other constructor.
      */
     public Event(@NonNull final EventType type, final long timestamp, @NonNull final String value) {
@@ -109,7 +109,7 @@ public class Event {
      */
     public enum EventType {
         LIFECYCLE_START("LIFECYCLE_START"), LIFECYCLE_PAUSE("LIFECYCLE_PAUSE"), LIFECYCLE_RESUME(
-                "LIFECYCLE_RESUME"), LIFECYCLE_STOP("LIFECYCLE_STOP"), VEHICLE_TYPE_CHANGE("VEHICLE_TYPE_CHANGE");
+                "LIFECYCLE_RESUME"), LIFECYCLE_STOP("LIFECYCLE_STOP"), MODALITY_TYPE_CHANGE("MODALITY_TYPE_CHANGE");
 
         private String databaseIdentifier;
 

@@ -411,7 +411,7 @@ To capture a measurement you need to start the capturing and stop it after some 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
     public void onClick(View view) {
-        dataCapturingService.start(vehicle, new StartUpFinishedHandler(context.getPackageName()) {
+        dataCapturingService.start(modality, new StartUpFinishedHandler(context.getPackageName()) {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -419,7 +419,7 @@ public class DataCapturingButton implements DataCapturingListener {
             }
         });
         // or
-        dataCapturingService.stop(vehicle, new ShutDownFinishedHandler() {
+        dataCapturingService.stop(modality, new ShutDownFinishedHandler() {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:

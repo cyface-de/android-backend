@@ -4,7 +4,7 @@ import android.content.ContentProvider;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -23,7 +23,7 @@ public interface PersistenceBehaviour {
     void onStart(@NonNull PersistenceLayer persistenceLayer);
 
     /**
-     * This is called after a {@link PersistenceLayer#newMeasurement(Vehicle)} was created.
+     * This is called after a {@link PersistenceLayer#newMeasurement(Modality)} was created.
      * 
      * @param measurementId The id of the recently created {@link Measurement}
      */

@@ -11,7 +11,7 @@ import org.junit.Before;
 import org.junit.Test;
 
 import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 
 /**
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
@@ -45,7 +45,7 @@ public class HttpConnectionTest {
         final GeoLocation startLocation = generateGeoLocation(0);
         final GeoLocation endLocation = generateGeoLocation(10);
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test-did", 78,
-                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Vehicle.BICYCLE);
+                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
 
         // Act
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
@@ -90,7 +90,7 @@ public class HttpConnectionTest {
 
         // Arrange
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
-                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Vehicle.BICYCLE);
+                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
 
         final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte

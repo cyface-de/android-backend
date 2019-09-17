@@ -23,12 +23,12 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.utils.DiskConsumption;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
- * {@link DataCapturingService} via {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}.
+ * {@link DataCapturingService} via {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}.
  * <p>
  * This interface needs to be public as this interface is implemented by sdk implementing apps (SR).
  *

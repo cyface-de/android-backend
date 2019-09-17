@@ -1,19 +1,19 @@
 package de.cyface.persistence.model;
 
 /**
- * The vehicle context to choose from when starting a measurement.
+ * The {@link Modality} context to choose from when starting a measurement.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
  * @version 1.0.1
  * @since 1.0.0
  */
-public enum Vehicle {
+public enum Modality {
     BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), UNKNOWN("UNKNOWN");
 
     private String databaseIdentifier;
 
-    Vehicle(final String databaseIdentifier) {
+    Modality(final String databaseIdentifier) {
         this.databaseIdentifier = databaseIdentifier;
     }
 

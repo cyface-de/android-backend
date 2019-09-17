@@ -76,8 +76,8 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
@@ -152,7 +152,7 @@ public class MeasurementSerializerTest {
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 
         // Mock point counters
-        final Measurement measurement = new Measurement(1L, OPEN, Vehicle.UNKNOWN,
+        final Measurement measurement = new Measurement(1L, OPEN, Modality.UNKNOWN,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0, 123L);
         when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
