@@ -9,7 +9,8 @@ package de.cyface.persistence.model;
  * @since 1.0.0
  */
 public enum Modality {
-    BICYCLE("BICYCLE"), CAR("CAR"), BUS("BUS"), TRAIN("TRAIN"), WALKING("WALKING"), UNKNOWN("UNKNOWN");
+    BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), BUS("BUS"), TRAIN("TRAIN"), WALKING("WALKING"), UNKNOWN(
+            "UNKNOWN");
 
     private String databaseIdentifier;
 

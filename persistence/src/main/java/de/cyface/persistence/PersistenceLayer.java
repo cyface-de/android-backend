@@ -21,10 +21,10 @@ package de.cyface.persistence;
 import static android.provider.BaseColumns._ID;
 import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
+import static de.cyface.persistence.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
-import static de.cyface.persistence.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.4.0
+ * @version 15.5.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -259,11 +259,12 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return the {@code Event} of the {@code Cursor}
      */
     private Event loadEvent(@NonNull final Cursor cursor) {
+        final long id = cursor.getLong(cursor.getColumnIndex(_ID));
         final long timestamp = cursor.getLong(cursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
         final Event.EventType eventType = Event.EventType
                 .valueOf(cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_TYPE)));
         final String value = cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_VALUE));
-        return new Event(eventType, timestamp, value);
+        return new Event(id, eventType, timestamp, value);
     }
 
     /**
@@ -293,6 +294,42 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
             if (cursor.moveToFirst()) {
                 return loadMeasurement(cursor);
+            } else {
+                return null;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Provide one specific {@link Event} from the data storage if it exists.
+     *
+     * Attention: At the loaded {@code Event} object and the persistent version of it in the
+     * {@link PersistenceLayer} are not directly connected the loaded object is not notified when
+     * the it's counterpart in the {@code PersistenceLayer} is changed (e.g. the {@code Event.EventType}).
+     *
+     * @param eventId The device wide unique identifier of the {@code Event} to load.
+     * @return The loaded {@code Event} if it exists; <code>null</code> otherwise.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @SuppressWarnings("unused") // Sdk implementing apps (CY)
+    public Event loadEvent(final long eventId) throws CursorIsNullException {
+        final Uri eventUri = getEventUri().buildUpon().appendPath(Long.toString(eventId)).build();
+        Cursor cursor = null;
+
+        try {
+            cursor = resolver.query(eventUri, null, _ID + "=?",
+                    new String[] {String.valueOf(eventId)}, null);
+            softCatchNullCursor(cursor);
+            if (cursor.getCount() > 1) {
+                throw new IllegalStateException("Too many Events loaded from URI: " + eventUri);
+            }
+
+            if (cursor.moveToFirst()) {
+                return loadEvent(cursor);
             } else {
                 return null;
             }
@@ -497,6 +534,16 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         resolver.delete(getEventUri(), EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
+    }
+
+    /**
+     * Removes one {@link Event} from the local persistent data storage.
+     *
+     * @param eventId The id of the {@code Event} to remove.
+     */
+    @SuppressWarnings("unused") // Sdk implementing apps (CY) use this
+    public void deleteEvent(final long eventId) {
+        resolver.delete(getEventUri(), _ID + "=?", new String[] {Long.valueOf(eventId).toString()});
     }
 
     /**
@@ -822,7 +869,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * @return The content provider {@link Uri} for the {@link EventTable}.
      */
-    private Uri getEventUri() {
+    public Uri getEventUri() {
         return Utils.getEventUri(authority);
     }
 

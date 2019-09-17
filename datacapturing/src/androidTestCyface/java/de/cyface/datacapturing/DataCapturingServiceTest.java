@@ -53,6 +53,7 @@ import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -871,7 +872,8 @@ public class DataCapturingServiceTest {
                         .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
                 final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
                 final String value = eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_VALUE));
-                events.add(new Event(eventType, eventTime, value));
+                final long eventId = eventCursor.getLong(eventCursor.getColumnIndex(BaseColumns._ID));
+                events.add(new Event(eventId, eventType, eventTime, value));
             }
 
             assertThat(events.size(), is(equalTo(5)));
