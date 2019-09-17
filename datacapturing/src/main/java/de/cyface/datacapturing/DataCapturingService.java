@@ -1098,15 +1098,18 @@ public abstract class DataCapturingService {
     public void changeVehicleType(@NonNull final Vehicle newVehicle) {
         final long timestamp = System.currentTimeMillis();
 
-        if (!getIsRunning()) {
-            Log.v(TAG, "changeVehicleType(): Service not alive, event not recorded");
-            return;
-        }
-
-        // Record modality-switch Event for ongoing Measurements
-        Log.v(TAG, "changeVehicleType(): Service is alive!");
-        final Measurement measurement;
         try {
+            final boolean hasOpenMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN);
+            final boolean hasPausedMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED);
+            if (!hasOpenMeasurements && !hasPausedMeasurements) {
+                Log.v(TAG, "changeVehicleType(): No unfinished measurement, event not recorded");
+                return;
+            }
+
+            // Record modality-switch Event for ongoing Measurements
+            Log.v(TAG, "changeVehicleType(): Logging vehicle type change!");
+            final Measurement measurement;
+
             measurement = loadCurrentlyCapturedMeasurement();
             persistenceLayer.logEvent(Event.EventType.VEHICLE_TYPE_CHANGE, measurement, timestamp,
                     newVehicle.getDatabaseIdentifier());
