@@ -103,7 +103,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 17.1.0
+ * @version 17.1.1
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -328,7 +328,10 @@ public abstract class DataCapturingService {
 
             // Start new measurement
             final Measurement measurement = prepareStart(vehicle);
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_START, measurement);
+            final long timestamp = System.currentTimeMillis();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_START, measurement, timestamp);
+            persistenceLayer.logEvent(Event.EventType.VEHICLE_TYPE_CHANGE, measurement, timestamp,
+                    vehicle.getDatabaseIdentifier());
             runService(measurement, finishedHandler);
         } finally {
             Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
