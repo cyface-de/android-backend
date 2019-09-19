@@ -55,13 +55,13 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.6
+ * @version 2.1.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 @FlakyTest
-@Ignore // Ignore this test until Android is capable of resetting permissions for every test
+@Ignore("Ignore this test until Android is capable of resetting permissions for every test")
 public class DataCapturingServiceTestWithoutPermission {
 
     /**

@@ -30,7 +30,7 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 5.0.0
  * @since 1.0.0
  */
 public final class Measurement {

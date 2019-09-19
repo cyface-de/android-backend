@@ -34,7 +34,7 @@ import de.cyface.utils.DiskConsumption;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.5
+ * @version 1.3.6
  * @since 1.0.0
  */
 public interface DataCapturingListener {

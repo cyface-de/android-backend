@@ -71,7 +71,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.6
+ * @version 4.2.7
  * @since 3.0.0
  */
 public class SharedTestUtils {

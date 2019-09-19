@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.4
+ * @version 1.5.5
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
