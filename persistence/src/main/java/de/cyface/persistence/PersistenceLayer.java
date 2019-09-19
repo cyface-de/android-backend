@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.5.0
+ * @version 16.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -1087,8 +1087,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param measurement The {@code Measurement} which is linked to the {@code Event}.
      * @param timestamp The timestamp in ms at which the event was triggered
      * @param value The (optional) {@link Event#getValue()}
+     * @return The id of the added {@code Event}
      */
-    public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
+    public long logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
             final long timestamp, @Nullable final String value) {
         Log.v(TAG,
                 "Storing Event:" + eventType + (value == null ? "" : " (" + value + ")") + " for Measurement "
@@ -1103,7 +1104,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             contentValues.put(EventTable.COLUMN_VALUE, value);
         }
 
-        resolver.insert(getEventUri(), contentValues);
+        final Uri resultUri = resolver.insert(getEventUri(), contentValues);
+        Validate.notNull("New Event could not be created!", resultUri);
+        Validate.notNull(resultUri.getLastPathSegment());
+
+        return Long.valueOf(resultUri.getLastPathSegment());
     }
 
     /**
