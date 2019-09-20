@@ -55,7 +55,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.5
+ * @version 2.1.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -121,7 +121,7 @@ public class DataCapturingServiceTestWithoutPermission {
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
             CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                context.getPackageName());
+                MessageCodes.getServiceStartedActionId(context.getPackageName()));
         oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
@@ -138,7 +138,7 @@ public class DataCapturingServiceTestWithoutPermission {
         boolean exceptionCaught = false;
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                    context.getPackageName());
+                    MessageCodes.getServiceStartedActionId(context.getPackageName()));
             oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));

@@ -28,6 +28,7 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
+import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -65,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.2.0
+ * @version 15.2.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -190,7 +191,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             synchronized (this) {
                 cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
                         new String[] {status.getDatabaseIdentifier()}, null);
-                Validate.softCatchNullCursor(cursor);
+                softCatchNullCursor(cursor);
 
                 final boolean hasMeasurement = cursor.getCount() > 0;
                 Log.v(TAG, hasMeasurement ? "At least one measurement is " + status + "."
@@ -219,7 +220,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         try {
             List<Measurement> ret = new ArrayList<>();
             cursor = resolver.query(getMeasurementUri(), null, null, null, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
                 final Measurement measurement = loadMeasurement(cursor);
@@ -284,7 +285,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         try {
             cursor = resolver.query(measurementUri, null, _ID + "=?",
                     new String[] {String.valueOf(measurementIdentifier)}, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
             }
@@ -320,7 +321,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         try {
             cursor = resolver.query(measurementUri, null, null, null, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
             }
@@ -353,7 +354,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final List<Measurement> measurements = new ArrayList<>();
             cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
                     new String[] {status.getDatabaseIdentifier()}, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
                 final Measurement measurement = loadMeasurement(cursor);
@@ -456,7 +457,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 // Try to get device id from database
                 deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(),
                         new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
-                Validate.softCatchNullCursor(deviceIdentifierQueryCursor);
+                softCatchNullCursor(deviceIdentifierQueryCursor);
                 if (deviceIdentifierQueryCursor.getCount() > 1) {
                     throw new IllegalStateException("More entries than expected");
                 }
@@ -548,14 +549,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor eventCursor = null;
         try {
             eventCursor = loadEventsCursor(measurementIdentifier);
-            Validate.softCatchNullCursor(eventCursor);
+            softCatchNullCursor(eventCursor);
 
             // Load GeoLocations
             geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()},
                     GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
-            Validate.softCatchNullCursor(geoLocationCursor);
+            softCatchNullCursor(geoLocationCursor);
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
@@ -588,11 +589,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor eventCursor = null;
         try {
             eventCursor = loadEventsCursor(measurementIdentifier);
-            Validate.softCatchNullCursor(eventCursor);
+            softCatchNullCursor(eventCursor);
 
             geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
                     getGeoLocationsUri());
-            Validate.softCatchNullCursor(geoLocationCursor);
+            softCatchNullCursor(geoLocationCursor);
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
@@ -644,7 +645,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor cursor = null;
         try {
             cursor = loadEventsCursor(measurementIdentifier);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             final List<Event> events = new ArrayList<>();
             while (cursor.moveToNext()) {

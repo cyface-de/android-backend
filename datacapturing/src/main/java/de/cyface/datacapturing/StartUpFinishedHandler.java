@@ -26,6 +26,7 @@ import android.content.Intent;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.Vehicle;
 import de.cyface.utils.Validate;
 
@@ -38,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 5.0.0
  * @since 2.0.0
  * @see DataCapturingService#resume(StartUpFinishedHandler)
  * @see DataCapturingService#start(Vehicle, StartUpFinishedHandler)
@@ -55,21 +56,15 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
      */
     private boolean receivedServiceStarted = false;
     /**
-     * A device-wide unique identifier for the application containing this SDK such as
-     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     * <p>
-     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * An app and device-wide unique identifier. Each service needs to use a different id so that only the
+     * service in question receives the expected ping-back.
      */
-    private final String appId;
+    private final String serviceStartedActionId;
 
     /**
-     * @param appId A device-wide unique identifier for the application containing this SDK such as
-     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
      */
-    public StartUpFinishedHandler(@NonNull final String appId) {
-        Validate.notNull(appId);
-        this.appId = appId;
+    public StartUpFinishedHandler(@NonNull final String serviceStartedActionId) {
+        this.serviceStartedActionId = serviceStartedActionId;
     }
 
     /**
@@ -81,8 +76,9 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
 
     @Override
     public void onReceive(@NonNull Context context, @NonNull Intent intent) {
-        Validate.notNull(intent.getAction());
-        Validate.isTrue(intent.getAction().equals(MessageCodes.getServiceStartedActionId(appId)));
+        final String action = intent.getAction();
+        Validate.notNull(action);
+        Validate.isTrue(action.equals(serviceStartedActionId));
 
         receivedServiceStarted = true;
         final long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1L);

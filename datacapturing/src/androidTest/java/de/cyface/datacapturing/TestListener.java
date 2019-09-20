@@ -27,16 +27,18 @@ import java.util.List;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.utils.DiskConsumption;
 
 /**
  * A listener for events from the capturing service, only used by tests.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.2
+ * @version 1.2.3
  * @since 2.0.0
  */
 class TestListener implements DataCapturingListener {

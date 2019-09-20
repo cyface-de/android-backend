@@ -24,6 +24,7 @@ import de.cyface.datacapturing.ui.Reason;
 import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Vehicle;
+import de.cyface.utils.DiskConsumption;
 
 /**
  * An interface for a listener, listening for data capturing events. This listener can be registered with a
@@ -33,7 +34,7 @@ import de.cyface.persistence.model.Vehicle;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.4
+ * @version 1.3.5
  * @since 1.0.0
  */
 public interface DataCapturingListener {

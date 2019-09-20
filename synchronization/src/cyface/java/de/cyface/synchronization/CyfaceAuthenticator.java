@@ -18,13 +18,13 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.utils.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
-import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
-import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
+import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.IOException;
 import java.io.InputStream;
