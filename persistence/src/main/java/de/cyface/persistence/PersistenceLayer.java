@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.2.0
+ * @version 15.2.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -702,14 +702,22 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 // Pause reached: Move geoLocationCursor to the first location of the next sub-track
                 // We do this to ignore locations between pause and resume event (STAD-140)
                 while (location.getTimestamp() < resumeEventTime) {
-                    geoLocationCursor.moveToNext();
+                    if (!geoLocationCursor.moveToNext()) {
+                        // No more GeoLocations
+                        break;
+                    }
+
                     // Load next location to see if it's the first location of the next sub-track
                     location = loadGeoLocation(geoLocationCursor);
                 }
 
-                // We reached the first location of the next sub-track, thus, move pointer back one step
-                // As the next outer while iteration will move the pointer one step forward
-                geoLocationCursor.moveToPrevious();
+                // Check if there is another sub-track after this sub-tracks resume event
+                if (location.getTimestamp() >= resumeEventTime) {
+                    // We reached the first location of the next sub-track, thus, move pointer back one step
+                    // As the next outer while iteration will move the pointer one step forward
+                    geoLocationCursor.moveToPrevious();
+                }
+
                 break; // Continue with next sub track (i.e. search for next resume event)
             }
 
