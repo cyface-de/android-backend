@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 15.2.0
+ * @version 16.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -672,6 +672,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     private List<Track> loadTracks(@NonNull final Cursor geoLocationCursor, @NonNull final Cursor eventCursor) {
         final List<Track> tracks = new ArrayList<>();
 
+        // The geoLocationCursor always needs to point to the first GeoLocation of the next sub track
+        if (!geoLocationCursor.moveToNext()) {
+            return tracks;
+        }
+
         // Slice Tracks before resume events
         Long pauseEventTime = null;
         while (eventCursor.moveToNext()) {
@@ -686,51 +691,83 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 continue;
             }
             Validate.notNull(pauseEventTime);
-
-            // Add all GeoLocations until the pause event as a sub-track
             final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
-            final Track track = new Track();
-            while (geoLocationCursor.moveToNext()) {
 
-                // Collect locations before pause event
-                GeoLocation location = loadGeoLocation(geoLocationCursor);
-                if (location.getTimestamp() <= pauseEventTime) {
-                    track.add(location);
-                    continue;
-                }
-
-                // Pause reached: Move geoLocationCursor to the first location of the next sub-track
-                // We do this to ignore locations between pause and resume event (STAD-140)
-                while (location.getTimestamp() < resumeEventTime) {
-                    geoLocationCursor.moveToNext();
-                    // Load next location to see if it's the first location of the next sub-track
-                    location = loadGeoLocation(geoLocationCursor);
-                }
-
-                // We reached the first location of the next sub-track, thus, move pointer back one step
-                // As the next outer while iteration will move the pointer one step forward
-                geoLocationCursor.moveToPrevious();
-                break; // Continue with next sub track (i.e. search for next resume event)
-            }
-
+            // Collect all GeoLocations until the pause event
+            final Track track = collectNextSubTrack(geoLocationCursor, pauseEventTime);
             // Add sub-track to track
             if (track.getGeoLocations().size() > 0) {
                 tracks.add(track);
             }
+
+            // Pause reached: Move geoLocationCursor to the first location of the next sub-track
+            // We do this to ignore locations between pause and resume event (STAD-140)
+            moveCursorToFirstAfter(geoLocationCursor, resumeEventTime);
+
+            // Stop GeoLocation collection if we already reached the last GeoLocation
+            if (geoLocationCursor.isAfterLast()) {
+                break;
+            }
         }
 
-        // Create track for tail (remaining locations after the last pause event)
+        // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
+        if (geoLocationCursor.isAfterLast()) {
+            return tracks;
+        }
+
+        // Collect tail sub track
         // This is ether the track between start[, pause] and stop or resume[, pause] and stop.
         final Track track = new Track();
-        while (geoLocationCursor.moveToNext()) {
+        do {
             final GeoLocation location = loadGeoLocation(geoLocationCursor);
             track.add(location);
-        }
-        if (track.getGeoLocations().size() > 0) {
-            tracks.add(track);
+
+        } while (geoLocationCursor.moveToNext());
+        Validate.isTrue(track.getGeoLocations().size() > 0);
+        tracks.add(track);
+        return tracks;
+    }
+
+    /**
+     * Collects a sub {@link Track} of a {@code Measurement}.
+     *
+     * @param geoLocationCursor The {@code Cursor} pointing to the {@code GeoLocation}s. The {@param geoLocationCursor}
+     *            must point to the first {@code GeoLocation} of the sub track to be collected.
+     * @param pauseEventTime the Unix timestamp of the {@link Event.EventType#LIFECYCLE_PAUSE} which defines the end of
+     *            this sub Track.
+     * @return The sub {@code Track}. The {@param geoLocationCursor} points to the first {@code GeoLocation} which is
+     *         later in time than the {@param pauseEventTime} or to the last GeoLocation if the earlier does not exist.
+     */
+    private Track collectNextSubTrack(@NonNull final Cursor geoLocationCursor, @NonNull final Long pauseEventTime) {
+        final Track track = new Track();
+
+        GeoLocation location = loadGeoLocation(geoLocationCursor);
+        while (location.getTimestamp() <= pauseEventTime) {
+
+            track.add(location);
+            geoLocationCursor.moveToNext();
+            location = loadGeoLocation(geoLocationCursor);
         }
 
-        return tracks;
+        return track;
+    }
+
+    /**
+     * Moves the {@param geoLocationCursor} to the first GeoLocation starting at {@param resumeEventTime}.
+     * <p>
+     * If there is no such {@code GeoLocation} then the cursor points to {@link Cursor#isAfterLast()}.
+     *
+     * @param geoLocationCursor The {@code Cursor} pointing to the {@code GeoLocation}s.
+     * @param resumeEventTime the Unix timestamp, e.g. of {@link Event.EventType#LIFECYCLE_RESUME}
+     */
+    private void moveCursorToFirstAfter(@NonNull final Cursor geoLocationCursor, final long resumeEventTime) {
+
+        GeoLocation location = loadGeoLocation(geoLocationCursor);
+        while (location.getTimestamp() < resumeEventTime && geoLocationCursor.moveToNext()) {
+
+            // Load next location to check it's timestamp
+            location = loadGeoLocation(geoLocationCursor);
+        }
     }
 
     /**
