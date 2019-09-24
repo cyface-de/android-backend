@@ -701,11 +701,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
                 // Pause reached: Move geoLocationCursor to the first location of the next sub-track
                 // We do this to ignore locations between pause and resume event (STAD-140)
-                while (location.getTimestamp() < resumeEventTime) {
-                    if (!geoLocationCursor.moveToNext()) {
-                        // No more GeoLocations
-                        break;
-                    }
+                while (location.getTimestamp() < resumeEventTime && geoLocationCursor.moveToNext()) {
 
                     // Load next location to see if it's the first location of the next sub-track
                     location = loadGeoLocation(geoLocationCursor);
