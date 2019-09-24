@@ -66,7 +66,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -77,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.5
+ * @version 2.0.6
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -163,7 +163,7 @@ public class SyncPerformerTest {
             final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
             final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "testDeviceId",
                     measurementIdentifier, "testDeviceType", "testOsVersion", "testAppVersion",
-                    measurement.getDistance(), locationCount, Vehicle.BICYCLE);
+                    measurement.getDistance(), locationCount, Modality.BICYCLE);
 
             // Mock the actual post request
             when(mockedHttp.openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(), anyString()))
@@ -257,7 +257,7 @@ public class SyncPerformerTest {
             final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
             final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "testDeviceId",
                     measurementIdentifier, "testDeviceType", "testOsVersion", "testAppVersion",
-                    measurement.getDistance(), locationCount, Vehicle.BICYCLE);
+                    measurement.getDistance(), locationCount, Modality.BICYCLE);
 
             // Act
             try {

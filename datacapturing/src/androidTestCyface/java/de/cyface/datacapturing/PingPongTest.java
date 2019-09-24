@@ -52,7 +52,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.NoSuchMeasurementException;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.CursorIsNullException;
 
@@ -62,7 +62,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.8
+ * @version 1.2.9
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -148,7 +148,7 @@ public class PingPongTest {
         // Start Capturing
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 MessageCodes.getServiceStartedActionId(context.getPackageName()));
-        dcs.start(Vehicle.UNKNOWN, finishedHandler);
+        dcs.start(Modality.UNKNOWN, finishedHandler);
 
         // Give the async start some time to start the DataCapturingBackgroundService
         lock.lock();

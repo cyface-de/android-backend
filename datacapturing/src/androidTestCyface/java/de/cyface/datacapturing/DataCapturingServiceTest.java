@@ -24,6 +24,7 @@ import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.persistence.model.Modality.UNKNOWN;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -52,6 +53,7 @@ import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -78,7 +80,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
@@ -91,7 +93,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.3
+ * @version 5.5.4
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -184,7 +186,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -250,7 +252,7 @@ public class DataCapturingServiceTest {
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 MessageCodes.getServiceStartedActionId(appId));
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
     }
@@ -261,7 +263,7 @@ public class DataCapturingServiceTest {
      * @param measurementIdentifier The if of the measurement expected to be closed.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} prior to
      *             pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -289,7 +291,7 @@ public class DataCapturingServiceTest {
      *             again.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} prior to
      *             pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -315,7 +317,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -334,7 +336,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Checks that a {@link DataCapturingService} actually started after calling the life-cycle method
-     * {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} or
+     * {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} or
      * {@link DataCapturingService#resume(StartUpFinishedHandler)}
      *
      * @param startUpFinishedHandler The {@link TestStartUpFinishedHandler} which was used to start the service
@@ -476,13 +478,13 @@ public class DataCapturingServiceTest {
                 MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
 
         // First Start/stop without waiting
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler1);
+        oocut.start(UNKNOWN, startUpFinishedHandler1);
         oocut.stop(shutDownFinishedHandler1);
         // Second start/stop without waiting
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler2);
+        oocut.start(UNKNOWN, startUpFinishedHandler2);
         oocut.stop(shutDownFinishedHandler2);
         // Second start/stop without waiting
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler3);
+        oocut.start(UNKNOWN, startUpFinishedHandler3);
         oocut.stop(shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
@@ -558,7 +560,7 @@ public class DataCapturingServiceTest {
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 MessageCodes.getServiceStartedActionId(appId));
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
+        oocut.start(UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
 
@@ -869,14 +871,18 @@ public class DataCapturingServiceTest {
                 final Event.EventType eventType = Event.EventType
                         .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
                 final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
-                events.add(new Event(eventType, eventTime));
+                final String value = eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_VALUE));
+                final long eventId = eventCursor.getLong(eventCursor.getColumnIndex(BaseColumns._ID));
+                events.add(new Event(eventId, eventType, eventTime, value));
             }
 
-            assertThat(events.size(), is(equalTo(4)));
+            assertThat(events.size(), is(equalTo(5)));
             assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
+            assertThat(events.get(1).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+            assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
         } finally {
             if (eventCursor != null) {
                 eventCursor.close();
@@ -886,7 +892,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests whether actual sensor data is captured after running the method
-     * {@link CyfaceDataCapturingService#start(Vehicle, StartUpFinishedHandler)} ()}.
+     * {@link CyfaceDataCapturingService#start(Modality, StartUpFinishedHandler)} ()}.
      * In bug #CY-3862 only the {@link DataCapturingService} was started and measurements created
      * but no sensor data was captured as the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
      * was not started. The cause was: disables sensor capturing.

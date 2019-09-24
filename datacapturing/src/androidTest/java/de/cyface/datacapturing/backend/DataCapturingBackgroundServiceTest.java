@@ -62,7 +62,7 @@ import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 
@@ -71,7 +71,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.5
+ * @version 2.3.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -126,7 +126,7 @@ public class DataCapturingBackgroundServiceTest {
                 context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
-        testMeasurement = persistenceLayer.newMeasurement(Vehicle.BICYCLE);
+        testMeasurement = persistenceLayer.newMeasurement(Modality.BICYCLE);
     }
 
     @After

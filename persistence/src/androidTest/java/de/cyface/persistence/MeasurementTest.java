@@ -71,7 +71,7 @@ public class MeasurementTest {
         resolver = context.getContentResolver();
         fixtureMeasurement = new ContentValues();
         fixtureMeasurement.put(MeasurementTable.COLUMN_STATUS, MeasurementStatus.SYNCED.getDatabaseIdentifier());
-        fixtureMeasurement.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
+        fixtureMeasurement.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
