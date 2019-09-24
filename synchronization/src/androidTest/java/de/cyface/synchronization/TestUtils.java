@@ -5,7 +5,7 @@ package de.cyface.synchronization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.3
+ * @version 2.4.0
  * @since 2.1.0
  */
 public final class TestUtils {
@@ -23,16 +23,22 @@ public final class TestUtils {
      */
     final static String ACCOUNT_TYPE = "de.cyface.synchronization.test";
     /**
-     * An username used by the tests to set up a Cyface account for synchronization.
+     * For manual testing this can be replaced with an username available at {@link #TEST_API_URL}.
+     * <p>
+     * Never use actual APIs credentials in automated tests.
      */
-    final static String DEFAULT_USERNAME = "test@cyface.de";
+    final static String DEFAULT_USERNAME = "REPLACE_WITH_USERNAME";
     /**
-     * A password used by the tests to set up a Cyface account for synchronization.
+     * For manual testing this can be replaced with a password available at {@link #TEST_API_URL}.
+     * <p>
+     * Never use actual APIs credentials in automated tests.
      */
-    final static String DEFAULT_PASSWORD = "7vXnwVAXfWXKbC32";
+    final static String DEFAULT_PASSWORD = "REPLACE_WITH_PASSWORD";
     /**
-     * Path to an API available for testing.
+     * For manual testing this can be replaced with a path to an API available for testing.
+     * <p>
+     * Never use actual APIs in automated tests.
      */
     @SuppressWarnings("unused") // because this is used in the cyface flavour
-    final static String TEST_API_URL = "https://s2.cyface.de/api/v2";
+    final static String TEST_API_URL = "https://replace.with/url"; // never use a non-numeric port here!
 }
