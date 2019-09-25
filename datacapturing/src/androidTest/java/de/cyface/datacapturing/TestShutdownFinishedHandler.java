@@ -28,7 +28,8 @@ import androidx.annotation.NonNull;
  * transmitted with that event. You may assert on that identifier.
  *
  * @author Klemens Muthmann
- * @version 1.0.2
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 2.2.0
  */
 final class TestShutdownFinishedHandler extends ShutDownFinishedHandler {
@@ -51,14 +52,18 @@ final class TestShutdownFinishedHandler extends ShutDownFinishedHandler {
      *
      * @param lock The lock used to synchronize this handler with the calling test.
      * @param condition The condition used to synchronize this handler with the calling test.
+     * @param serviceStoppedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     *            so that only the service in question receives the expected ping-back.
      */
-    TestShutdownFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition) {
+    TestShutdownFinishedHandler(@NonNull final Lock lock, @NonNull final Condition condition,
+            @NonNull final String serviceStoppedActionId) {
+        super(serviceStoppedActionId);
         this.condition = condition;
         this.lock = lock;
     }
 
     @Override
-    public void shutDownFinished(long measurementIdentifier) {
+    public void shutDownFinished(final long measurementIdentifier) {
         lock.lock();
         try {
             this.receivedMeasurementIdentifier = measurementIdentifier;

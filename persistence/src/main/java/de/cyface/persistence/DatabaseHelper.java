@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.4.5
+ * @version 4.5.0
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -59,7 +59,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      */
-    private final static int DATABASE_VERSION = 14;
+    private final static int DATABASE_VERSION = 16;
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
@@ -187,6 +187,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         ret += deleteDataForMeasurement(database, Long.parseLong(rowIdentifier));
                         // continues here until return ! -->
                     case GeoLocationsTable.URI_PATH:
+                    case EventTable.URI_PATH:
                         // Add the id specified by the URI to implement expected behaviour of a content resolver, where
                         // the last element of the path is the identifier of the element requested. This is only
                         // necessary for single row deletions.

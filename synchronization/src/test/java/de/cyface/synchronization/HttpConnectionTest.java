@@ -1,3 +1,21 @@
+/*
+ * Copyright 2018 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.HttpConnection.BOUNDARY;
@@ -11,13 +29,13 @@ import org.junit.Before;
 import org.junit.Test;
 
 import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 
 /**
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.7
+ * @version 1.1.8
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -45,7 +63,7 @@ public class HttpConnectionTest {
         final GeoLocation startLocation = generateGeoLocation(0);
         final GeoLocation endLocation = generateGeoLocation(10);
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test-did", 78,
-                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Vehicle.BICYCLE);
+                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
 
         // Act
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
@@ -90,7 +108,7 @@ public class HttpConnectionTest {
 
         // Arrange
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
-                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Vehicle.BICYCLE);
+                "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
         final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
 
         final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte

@@ -24,7 +24,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
  * Final static constants used by multiple classes.
  *
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.1.0
  * @since 2.5.0
  */
 public final class Constants {
@@ -37,11 +37,6 @@ public final class Constants {
      * Tas used for logging from {@link DataCapturingBackgroundService}
      */
     public final static String BACKGROUND_TAG = "de.cyface.capturing.bgs";
-    /**
-     * The minimum space required for capturing. We don't want to use the space full up as this would
-     * slow down the device and could get unusable.
-     */
-    final static long MINIMUM_MEGABYTES_REQUIRED = 100L;
 
     private Constants() {
         // Nothing to do here.

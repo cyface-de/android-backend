@@ -8,7 +8,7 @@ import android.location.LocationManager;
  * 24).
  *
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.2
  * @since 1.0.0
  * @see GnssStatusCallback
  */
@@ -31,7 +31,7 @@ public class GeoLocationStatusListener extends GeoLocationDeviceStatusHandler {
             public void onGpsStatusChanged(int event) {
                 switch (event) {
                     case GpsStatus.GPS_EVENT_SATELLITE_STATUS:
-                        handleSatteliteStatusChange();
+                        handleSatelliteStatusChange();
                         break;
                     case GpsStatus.GPS_EVENT_FIRST_FIX:
                         handleFirstFix();

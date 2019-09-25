@@ -28,7 +28,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 2.0.0
  */
 public class MessageCodes {
@@ -68,6 +68,7 @@ public class MessageCodes {
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
      * {@link DataCapturingService} if the background service stopped (after being asked to from outside).
      */
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // to be accessible for the camera service
     public static final int SERVICE_STOPPED = 10;
     /**
      * The code for messages sent from the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService} to the
@@ -140,7 +141,7 @@ public class MessageCodes {
      * after it has received a inter-process {@link MessageCodes#SERVICE_STOPPED} from the
      * {@link DataCapturingBackgroundService} that it has successfully stopped.
      */
-    static final String LOCAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
+    public static final String LOCAL_BROADCAST_SERVICE_STOPPED = "de.cyface.service_stopped";
 
     /**
      * Private constructor for utility class.
