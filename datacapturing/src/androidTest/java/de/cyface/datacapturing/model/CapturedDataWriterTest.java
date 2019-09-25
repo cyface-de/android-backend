@@ -551,7 +551,7 @@ public class CapturedDataWriterTest {
     public void testLoadTrack_startPauseResumeStop_withoutGeoLocationsAfterResume() throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
 
         // Start event and 2 locations
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
