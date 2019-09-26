@@ -19,7 +19,9 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.HttpConnection.BOUNDARY;
+import static de.cyface.synchronization.HttpConnection.LINE_FEED;
 import static de.cyface.synchronization.HttpConnection.TAIL;
+import static de.cyface.synchronization.HttpConnection.generateFileHeaderPart;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
@@ -35,7 +37,7 @@ import de.cyface.persistence.model.Modality;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.8
+ * @version 1.1.9
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -66,34 +68,47 @@ public class HttpConnectionTest {
                 "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
 
         // Act
-        final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
+        final String header = oocut.generateHeader(metaData);
 
         // Assert
-        final String expectedHeader = "--" + BOUNDARY + "\r\n"
+        final String expectedHeader = "--" + BOUNDARY + LINE_FEED
 
-                + "Content-Disposition: form-data; name=\"startLocLat\"\r\n" + "\r\n" + "51.1\r\n" + "--" + BOUNDARY
-                + "\r\n" + "Content-Disposition: form-data; name=\"startLocLon\"\r\n" + "\r\n" + "13.1\r\n" + "--"
-                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"startLocTS\"\r\n" + "\r\n"
-                + "1000000000\r\n" + "--" + BOUNDARY + "\r\n"
+                + "Content-Disposition: form-data; name=\"startLocLat\"" + LINE_FEED + LINE_FEED + "51.1" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"startLocLon\"" + LINE_FEED + LINE_FEED + "13.1" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"startLocTS\"" + LINE_FEED + LINE_FEED + "1000000000"
+                + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
 
-                + "Content-Disposition: form-data; name=\"endLocLat\"\r\n" + "\r\n" + "51.10008993199995\r\n" + "--"
-                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"endLocLon\"\r\n" + "\r\n"
-                + "13.100000270697\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"endLocTS\"\r\n" + "\r\n" + "1000010000\r\n" + "--" + BOUNDARY
-                + "\r\n"
+                + "Content-Disposition: form-data; name=\"endLocLat\"" + LINE_FEED + LINE_FEED + "51.10008993199995"
+                + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"endLocLon\"" + LINE_FEED
+                + LINE_FEED
+                + "13.100000270697" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"endLocTS\"" + LINE_FEED + LINE_FEED + "1000010000" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
 
-                + "Content-Disposition: form-data; name=\"deviceId\"\r\n" + "\r\n" + "test-did\r\n" + "--" + BOUNDARY
-                + "\r\n" + "Content-Disposition: form-data; name=\"measurementId\"\r\n" + "\r\n" + "78\r\n" + "--"
-                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"deviceType\"\r\n" + "\r\n"
-                + "test_deviceType\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"osVersion\"\r\n" + "\r\n" + "test_osVersion\r\n" + "--"
-                + BOUNDARY + "\r\n" + "Content-Disposition: form-data; name=\"appVersion\"\r\n" + "\r\n"
-                + "test_appVersion\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"length\"\r\n" + "\r\n" + "10.0\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"locationCount\"\r\n" + "\r\n" + "5\r\n" + "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"vehicle\"\r\n" + "\r\n" + "BICYCLE\r\n" + "--" + BOUNDARY
-                + "\r\n" + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"test-did_78.cyf\"\r\n"
-                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
+                + "Content-Disposition: form-data; name=\"deviceId\"" + LINE_FEED + LINE_FEED + "test-did" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"measurementId\"" + LINE_FEED + LINE_FEED + "78" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"deviceType\"" + LINE_FEED + LINE_FEED + "test_deviceType"
+                + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"osVersion\"" + LINE_FEED + LINE_FEED + "test_osVersion"
+                + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"appVersion\"" + LINE_FEED + LINE_FEED + "test_appVersion"
+                + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"length\"" + LINE_FEED + LINE_FEED + "10.0" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"locationCount\"" + LINE_FEED + LINE_FEED + "5" + LINE_FEED
+                + "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"vehicle\"" + LINE_FEED + LINE_FEED + "BICYCLE" + LINE_FEED;
         assertThat(header, is(equalTo(expectedHeader)));
     }
 
@@ -109,15 +124,27 @@ public class HttpConnectionTest {
         // Arrange
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
                 "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
-        final String header = oocut.generateHeader(metaData, "test-did_78.cyf");
+        final String header = oocut.generateHeader(metaData);
+
+        final String fileHeaderPart = generateFileHeaderPart("fileToUpload", "test-did_78.cyf");
+        final String eventsFileHeaderPart = generateFileHeaderPart("eventsFile", "test-did_78.cyfe");
 
         final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte
         final long filePartSize = testFile.length;
 
+        final byte[] eventsTestFile = "TEST_FÄ`&ô»ω_EVENTS".getBytes(); // with chars which require > 1 Byte
+        final long eventsPartSize = eventsTestFile.length;
+
         // Act
-        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes(), filePartSize);
+        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes(),
+                fileHeaderPart.getBytes().length, eventsFileHeaderPart.getBytes().length, filePartSize,
+                eventsPartSize);
 
         // Assert
-        assertThat((int)requestLength, is(equalTo(header.getBytes().length + testFile.length + TAIL.length())));
+        assertThat((int)requestLength,
+                is(equalTo(header.getBytes().length + fileHeaderPart.getBytes().length + testFile.length
+                        + LINE_FEED.getBytes().length
+                        + eventsFileHeaderPart.getBytes().length + eventsTestFile.length + LINE_FEED.getBytes().length
+                        + TAIL.getBytes().length)));
     }
 }

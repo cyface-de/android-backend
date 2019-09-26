@@ -36,7 +36,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 9.0.0
  * @since 3.0.0
  */
 interface Http {
@@ -107,7 +107,8 @@ interface Http {
      * @param transferTempFile The {@link Measurement} data to transmit
      * @param eventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param fileName The name of the file to be uploaded
+     * @param fileName The name of the {@link Measurement} file to be uploaded
+     * @param eventsFileName The name of the {@link Event}s file to be uploaded
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @throws SynchronisationException If an IOException occurred during synchronization.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
@@ -125,7 +126,7 @@ interface Http {
     @NonNull
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
                       @NonNull final File eventsTransferTempFile, @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
-                      @NonNull final UploadProgressListener progressListener)
+                      String eventsFileName, @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException;

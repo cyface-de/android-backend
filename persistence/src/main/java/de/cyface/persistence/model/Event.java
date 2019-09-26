@@ -23,12 +23,14 @@ import java.util.Arrays;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import de.cyface.persistence.serialization.MeasurementSerializer;
+
 /**
  * {@code Event}s are things that happen on the user device which may be important and are, thus, logged.
  * For examples see the {@link EventType}s.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 4.0.0
  */
 public class Event {
@@ -109,6 +111,7 @@ public class Event {
         return Arrays.hashCode(new Object[] {type, timestamp, value});
     }
 
+    @NonNull
     @Override
     public String toString() {
         return "Event{" +

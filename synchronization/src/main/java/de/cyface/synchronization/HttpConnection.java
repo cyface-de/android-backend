@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 10.0.1
+ * @version 11.0.0
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -71,9 +71,13 @@ public class HttpConnection implements Http {
      */
     final static String BOUNDARY = "---------------------------boundary";
     /**
+     * The string which is used for a line feed.
+     */
+    final static String LINE_FEED = "\r\n";
+    /**
      * The tail to be used in the Multipart request to indicate that the request end.
      */
-    final static String TAIL = "\r\n--" + BOUNDARY + "--\r\n";
+    final static String TAIL = "--" + BOUNDARY + "--" + LINE_FEED;
     /**
      * The status code returned when the MultiPart request is erroneous, e.g. when there is not exactly onf file or a
      * syntax error.
@@ -110,14 +114,14 @@ public class HttpConnection implements Http {
             final boolean hasBinaryContent) throws ServerUnavailableException {
         HttpURLConnection connection;
         try {
-            connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection)url.openConnection();
         } catch (final IOException e) {
             throw new ServerUnavailableException(
                     String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
         }
 
         if (url.getPath().startsWith("https://")) {
-            final HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+            final HttpsURLConnection httpsURLConnection = (HttpsURLConnection)connection;
             // Without verifying the hostname we receive the "Trust Anchor..." Error
             httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
             httpsURLConnection.setHostnameVerifier(new HostnameVerifier() {
@@ -128,7 +132,6 @@ public class HttpConnection implements Http {
                 }
             });
         }
-
 
         if (hasBinaryContent) {
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
@@ -191,7 +194,7 @@ public class HttpConnection implements Http {
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
             @NonNull final File eventsTransferTempFile, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final String fileName,
+            @NonNull final String fileName, @NonNull final String eventsFileName,
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
@@ -199,15 +202,23 @@ public class HttpConnection implements Http {
 
         // Generate header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
-        final String remainingHeader = generateHeader(metaData, fileName);
+        final String remainingHeader = generateHeader(metaData);
         final byte[] remainingHeaderBytes = remainingHeader.getBytes();
+
+        // File parts
+        // Measurement file meta data
+        final String fileHeaderPart = generateFileHeaderPart("fileToUpload", fileName);
+        // Events file meta data
+        final String eventsFileHeaderPart = generateFileHeaderPart("eventsFile", eventsFileName);
+        // There should be no need to set a content length of the fileHeaderPart here
 
         // Set the fixed number of bytes which will be written to the OutputStream
         final long binarySize = transferTempFile.length();
         final long eventsBinarySize = eventsTransferTempFile.length();
         Validate.isTrue(binarySize != 0L); // We don't post empty files, ensure files still exists
         Validate.isTrue(eventsBinarySize != 0L); // We don't post empty files, ensure files still exists
-        final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderBytes, binarySize,
+        final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderBytes,
+                fileHeaderPart.getBytes().length, eventsFileHeaderPart.getBytes().length, binarySize,
                 eventsBinarySize);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             connection.setFixedLengthStreamingMode(fixedStreamLength);
@@ -239,16 +250,20 @@ public class HttpConnection implements Http {
                 outputStream.write(remainingHeaderBytes);
 
                 // Write Measurement binary
+                outputStream.write(fileHeaderPart.getBytes());
+                bytesWrittenToOutputStream += fileHeaderPart.getBytes().length;
                 bytesWrittenToOutputStream += writeToOutputStream(outputStream, bufferedFileInputStream, binarySize,
                         progressListener);
-
-                // Write MultiPart boundary
-                outputStream.write(BOUNDARY.getBytes());
-                bytesWrittenToOutputStream += BOUNDARY.getBytes().length;
+                outputStream.write(LINE_FEED.getBytes());
+                bytesWrittenToOutputStream += LINE_FEED.getBytes().length;
 
                 // Write Events binary
+                outputStream.write(eventsFileHeaderPart.getBytes());
+                bytesWrittenToOutputStream += eventsFileHeaderPart.getBytes().length;
                 bytesWrittenToOutputStream += writeToOutputStream(outputStream, bufferedEventsFileInputStream,
                         eventsBinarySize, progressListener);
+                outputStream.write(LINE_FEED.getBytes());
+                bytesWrittenToOutputStream += LINE_FEED.getBytes().length;
 
                 // Write MultiPart Tail boundary
                 outputStream.write(TAIL.getBytes());
@@ -258,6 +273,7 @@ public class HttpConnection implements Http {
                 outputStream.flush(); // This way we can identify exceptions thrown by flush easier
                 Validate.isTrue(bytesWrittenToOutputStream == fixedStreamLength, "bytesWrittenToOutputStream "
                         + bytesWrittenToOutputStream + " != " + fixedStreamLength + " fixedStreamLength");
+                Log.d(TAG, "Total bytes written to output stream: " + bytesWrittenToOutputStream);
             } finally {
                 outputStream.close();
             }
@@ -309,6 +325,7 @@ public class HttpConnection implements Http {
             bufferSize = Math.min(bytesAvailable, maxBufferSize);
             bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
         }
+        Log.d(TAG, "writeToOutputStream() file -> " + bytesWritten);
         return bytesWritten;
     }
 
@@ -318,18 +335,23 @@ public class HttpConnection implements Http {
      * reduce the amount of bytes kept in memory.
      * 
      * @param headerBytes The MultiPart header as string which will be written to the {@code OutputStream}
+     * @param fileHeaderPartSize The {@code Byte} size of the header part of the multipart file part
+     * @param eventsFileHeaderPartSize The {@code Byte} size of the header part of the multipart file part
      * @param binarySize The number of bytes of the binary which will be written to the {@code OutputStream}
      * @param eventsBinarySize The number of bytes of the events binary which will be written to the
      *            {@code OutputStream}
      */
-    long calculateBytesWrittenToOutputStream(final byte[] headerBytes, final long binarySize,
+    long calculateBytesWrittenToOutputStream(final byte[] headerBytes, final int fileHeaderPartSize,
+            final int eventsFileHeaderPartSize, final long binarySize,
             final long eventsBinarySize) {
 
         // This should be obsolete with setFixedLengthStreamingMode:
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
 
         // Set count of Bytes not chars in the header!
-        return headerBytes.length + binarySize + BOUNDARY.getBytes().length + eventsBinarySize + TAIL.getBytes().length;
+        return headerBytes.length + fileHeaderPartSize + binarySize + LINE_FEED.getBytes().length
+                + eventsFileHeaderPartSize + eventsBinarySize + LINE_FEED.getBytes().length
+                + TAIL.getBytes().length;
     }
 
     private byte[] gzip(byte[] input) {
@@ -378,11 +400,10 @@ public class HttpConnection implements Http {
      * Assembles the header of the Multipart request.
      *
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param fileName The name of the file to be uploaded
      * @return The Multipart header
      */
     @NonNull
-    String generateHeader(@NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName) {
+    String generateHeader(@NonNull final SyncAdapter.MetaData metaData) {
 
         // Location meta data
         String startLocationPart = ""; // We only transfer this part if there are > 0 locations
@@ -411,14 +432,22 @@ public class HttpConnection implements Http {
         // To support the API v2 specification we may not change the "vehicle" key name of the modality
         final String modalityPart = generatePart("vehicle", String.valueOf(metaData.modality.getDatabaseIdentifier()));
 
-        // File meta data
-        final String fileHeaderPart = "--" + BOUNDARY + "\r\n"
-                + "Content-Disposition: form-data; name=\"fileToUpload\"; filename=\"" + fileName + "\"\r\n"
-                + "Content-Type: application/octet-stream\r\n" + "Content-Transfer-Encoding: binary\r\n" + "\r\n";
-        // There should be no need to set a content length of the fileHeaderPart here
-
         return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
-                + appVersionPart + lengthPart + locationCountPart + modalityPart + fileHeaderPart;
+                + appVersionPart + lengthPart + locationCountPart + modalityPart;
+    }
+
+    /**
+     * Generates a valid Multipart header entry for a file part.
+     *
+     * @param partName The name of the file part
+     * @param fileName The name of the file attached
+     * @return The generated part entry.
+     */
+    public static String generateFileHeaderPart(@NonNull final String partName, @NonNull final String fileName) {
+        return "--" + BOUNDARY + LINE_FEED
+                + "Content-Disposition: form-data; name=\"" + partName + "\"; filename=\"" + fileName + "\"" + LINE_FEED
+                + "Content-Type: application/octet-stream" + LINE_FEED + "Content-Transfer-Encoding: binary" + LINE_FEED
+                + LINE_FEED;
     }
 
     /**
@@ -430,7 +459,9 @@ public class HttpConnection implements Http {
      */
     @NonNull
     private String generatePart(final @NonNull String key, final @NonNull String value) {
-        return String.format("--%s\r\nContent-Disposition: form-data; name=\"%s\"\r\n\r\n%s\r\n",
+        return String.format(
+                "--%s" + LINE_FEED + "Content-Disposition: form-data; name=\"%s\"" + LINE_FEED
+                        + LINE_FEED + "%s" + LINE_FEED,
                 HttpConnection.BOUNDARY, key, value);
     }
 

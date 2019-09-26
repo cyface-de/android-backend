@@ -49,6 +49,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.model.Event;
+import de.cyface.persistence.model.Measurement;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -56,7 +58,7 @@ import de.cyface.persistence.DefaultFileAccess;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.4
+ * @version 4.0.0
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -103,28 +105,33 @@ class SyncPerformer {
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param dataServerUrl The server URL to send the data to.
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param compressedTransferTempFile The data to transmit
+     * @param compressedTransferTempFile The {@link Measurement} data to transmit
+     * @param compressedEventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
     boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
             @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
+            @NonNull final File compressedTransferTempFile, @NonNull final File compressedEventsTransferTempFile,
+            @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
         Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
                 DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
+        Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed events (%s)",
+                DefaultFileAccess.humanReadableByteCount(compressedEventsTransferTempFile.length(), true)));
         HttpURLConnection.setFollowRedirects(false);
         HttpURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
+        final String eventsFileName = String.format(Locale.US, "%s_%d_.cyfe", metaData.deviceId, metaData.measurementId);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
-            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
+            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s and %s to %s", fileName, eventsFileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, compressedTransferTempFile, metaData, fileName, progressListener);
+                http.post(connection, compressedTransferTempFile, compressedEventsTransferTempFile, metaData, fileName, eventsFileName, progressListener);
             } finally {
                 if (connection != null) {
                     connection.disconnect();

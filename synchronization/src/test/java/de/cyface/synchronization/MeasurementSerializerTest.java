@@ -306,7 +306,7 @@ public class MeasurementSerializerTest {
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
         final long SERIALIZED_COMPRESSED_SIZE = 43L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
-                persistence);
+                persistence, false);
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
     }
 
@@ -318,7 +318,7 @@ public class MeasurementSerializerTest {
 
         // Assemble serialized compressed bytes
         final File compressedTransferTempFile = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
-                persistence);
+                persistence, false);
         // Load bytes from compressedTransferFile
         final byte[] compressedBytes = new byte[(int)compressedTransferTempFile.length()];
         DataInputStream dis = new DataInputStream(new FileInputStream(compressedTransferTempFile));

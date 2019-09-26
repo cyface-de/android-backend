@@ -35,7 +35,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.2
+ * @version 3.0.3
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
@@ -74,7 +74,7 @@ final class MockedHttpConnection implements Http {
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
                              @NonNull File eventsTransferTempFile, @NonNull SyncAdapter.MetaData metaData, @NonNull String fileName,
-                             @NonNull UploadProgressListener progressListener) {
+                             String eventsFileName, @NonNull UploadProgressListener progressListener) {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }

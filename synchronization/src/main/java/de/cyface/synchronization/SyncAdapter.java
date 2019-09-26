@@ -69,7 +69,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.11
+ * @version 2.6.12
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -168,9 +168,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
+                File compressedEventsTransferTempFile = null;
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence);
+                            measurement.getIdentifier(), persistence, false);
+                    compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
+                            measurement.getIdentifier(), persistence, true);
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     final String jwtAuthToken = getAuthToken(authenticator, account);
@@ -183,7 +186,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // Synchronize measurement
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                            metaData, compressedTransferTempFile, new UploadProgressListener() {
+                            metaData, compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
                                 @Override
                                 public void updatedProgress(float percent) {
                                     for (final ConnectionStatusListener listener : progressListener) {
