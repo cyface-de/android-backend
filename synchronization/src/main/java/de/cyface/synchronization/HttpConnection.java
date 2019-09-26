@@ -97,34 +97,38 @@ public class HttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
+    public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
             final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
-        final HttpsURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
+        final HttpURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         return connection;
     }
 
     @NonNull
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
+    public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
             final boolean hasBinaryContent) throws ServerUnavailableException {
-        HttpsURLConnection connection;
+        HttpURLConnection connection;
         try {
-            connection = (HttpsURLConnection)url.openConnection();
+            connection = (HttpURLConnection) url.openConnection();
         } catch (final IOException e) {
             throw new ServerUnavailableException(
                     String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
         }
 
-        // Without verifying the hostname we receive the "Trust Anchor..." Error
-        connection.setSSLSocketFactory(sslContext.getSocketFactory());
-        connection.setHostnameVerifier(new HostnameVerifier() {
-            @Override
-            public boolean verify(final String hostname, final SSLSession session) {
-                HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
-                return hv.verify(url.getHost(), session);
-            }
-        });
+        if (url.getPath().startsWith("https://")) {
+            final HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+            // Without verifying the hostname we receive the "Trust Anchor..." Error
+            httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
+            httpsURLConnection.setHostnameVerifier(new HostnameVerifier() {
+                @Override
+                public boolean verify(final String hostname, final SSLSession session) {
+                    HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+                    return hv.verify(url.getHost(), session);
+                }
+            });
+        }
+
 
         if (hasBinaryContent) {
             connection.setRequestProperty("Content-Type", "multipart/form-data; boundary=" + BOUNDARY);
@@ -186,7 +190,8 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
-            @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
+            @NonNull final File eventsTransferTempFile, @NonNull final SyncAdapter.MetaData metaData,
+            @NonNull final String fileName,
             @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
@@ -199,8 +204,11 @@ public class HttpConnection implements Http {
 
         // Set the fixed number of bytes which will be written to the OutputStream
         final long binarySize = transferTempFile.length();
+        final long eventsBinarySize = eventsTransferTempFile.length();
         Validate.isTrue(binarySize != 0L); // We don't post empty files, ensure files still exists
-        final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderBytes, binarySize);
+        Validate.isTrue(eventsBinarySize != 0L); // We don't post empty files, ensure files still exists
+        final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderBytes, binarySize,
+                eventsBinarySize);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             connection.setFixedLengthStreamingMode(fixedStreamLength);
         } else {
@@ -210,12 +218,15 @@ public class HttpConnection implements Http {
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
         final FileInputStream fileInputStream;
+        final FileInputStream eventFileInputStream;
         try {
             fileInputStream = new FileInputStream(transferTempFile);
+            eventFileInputStream = new FileInputStream(eventsTransferTempFile);
         } catch (final FileNotFoundException e) {
             throw new IllegalStateException(e);
         }
         final BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
+        final BufferedInputStream bufferedEventsFileInputStream = new BufferedInputStream(eventFileInputStream);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
@@ -227,29 +238,17 @@ public class HttpConnection implements Http {
                 bytesWrittenToOutputStream += remainingHeaderBytes.length;
                 outputStream.write(remainingHeaderBytes);
 
-                // Create file upload buffer
-                // noinspection PointlessArithmeticExpression - makes semantically more sense
-                final int maxBufferSize = 1 * 1024 * 1024;
-                int bytesAvailable, bufferSize;
-                byte[] buffer;
-                bytesAvailable = bufferedFileInputStream.available();
-                bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                buffer = new byte[bufferSize];
+                // Write Measurement binary
+                bytesWrittenToOutputStream += writeToOutputStream(outputStream, bufferedFileInputStream, binarySize,
+                        progressListener);
 
-                // Write the binaries to the OutputStream
-                int bytesWritten = 0;
-                int bytesRead;
-                bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
-                while (bytesRead > 0) {
-                    outputStream.write(buffer, 0, bufferSize);
-                    bytesWritten += bytesRead; // Here progress is total uploaded bytes
-                    progressListener.updatedProgress((bytesWritten * 100.0f) / binarySize);
+                // Write MultiPart boundary
+                outputStream.write(BOUNDARY.getBytes());
+                bytesWrittenToOutputStream += BOUNDARY.getBytes().length;
 
-                    bytesAvailable = bufferedFileInputStream.available();
-                    bufferSize = Math.min(bytesAvailable, maxBufferSize);
-                    bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
-                }
-                bytesWrittenToOutputStream += bytesWritten;
+                // Write Events binary
+                bytesWrittenToOutputStream += writeToOutputStream(outputStream, bufferedEventsFileInputStream,
+                        eventsBinarySize, progressListener);
 
                 // Write MultiPart Tail boundary
                 outputStream.write(TAIL.getBytes());
@@ -285,21 +284,52 @@ public class HttpConnection implements Http {
         return readResponse(connection);
     }
 
+    private int writeToOutputStream(@NonNull final BufferedOutputStream outputStream,
+            @NonNull final BufferedInputStream bufferedFileInputStream, final long binarySize,
+            @NonNull final UploadProgressListener progressListener) throws IOException {
+        // Create file upload buffer
+        // noinspection PointlessArithmeticExpression - makes semantically more sense
+        final int maxBufferSize = 1 * 1024 * 1024;
+        int bytesAvailable, bufferSize;
+        byte[] buffer;
+        bytesAvailable = bufferedFileInputStream.available();
+        bufferSize = Math.min(bytesAvailable, maxBufferSize);
+        buffer = new byte[bufferSize];
+
+        // Write the binaries to the OutputStream
+        int bytesWritten = 0;
+        int bytesRead;
+        bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
+        while (bytesRead > 0) {
+            outputStream.write(buffer, 0, bufferSize);
+            bytesWritten += bytesRead; // Here progress is total uploaded bytes
+            progressListener.updatedProgress((bytesWritten * 100.0f) / binarySize);
+
+            bytesAvailable = bufferedFileInputStream.available();
+            bufferSize = Math.min(bytesAvailable, maxBufferSize);
+            bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
+        }
+        return bytesWritten;
+    }
+
     /**
      * Setting the number of bytes which will be written to the {@code OutputStream} up front (via
      * {@code HttpConnection#setFixedLengthStreamingMode()}) allows to flush the {@code OutputStream} frequently to
      * reduce the amount of bytes kept in memory.
-     *
+     * 
      * @param headerBytes The MultiPart header as string which will be written to the {@code OutputStream}
      * @param binarySize The number of bytes of the binary which will be written to the {@code OutputStream}
+     * @param eventsBinarySize The number of bytes of the events binary which will be written to the
+     *            {@code OutputStream}
      */
-    long calculateBytesWrittenToOutputStream(final byte[] headerBytes, final long binarySize) {
+    long calculateBytesWrittenToOutputStream(final byte[] headerBytes, final long binarySize,
+            final long eventsBinarySize) {
 
         // This should be obsolete with setFixedLengthStreamingMode:
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
 
         // Set count of Bytes not chars in the header!
-        return headerBytes.length + binarySize + TAIL.getBytes().length;
+        return headerBytes.length + binarySize + BOUNDARY.getBytes().length + eventsBinarySize + TAIL.getBytes().length;
     }
 
     private byte[] gzip(byte[] input) {

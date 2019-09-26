@@ -23,7 +23,6 @@ import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
@@ -49,17 +48,17 @@ final class MockedHttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
+    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
             boolean hasBinaryContent, @NonNull String jwtBearer) throws ServerUnavailableException {
         return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
     @NonNull
     @Override
-    public HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
+    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
             boolean hasBinaryContent) throws ServerUnavailableException {
         try {
-            return (HttpsURLConnection)url.openConnection();
+            return (HttpURLConnection)url.openConnection();
         } catch (IOException e) {
             throw new ServerUnavailableException("Mocked Err", e);
         }
@@ -74,8 +73,8 @@ final class MockedHttpConnection implements Http {
     @NonNull
     @Override
     public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
-            @NonNull SyncAdapter.MetaData metaData, @NonNull String fileName,
-            @NonNull UploadProgressListener progressListener) {
+                             @NonNull File eventsTransferTempFile, @NonNull SyncAdapter.MetaData metaData, @NonNull String fileName,
+                             @NonNull UploadProgressListener progressListener) {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }

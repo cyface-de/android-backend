@@ -39,7 +39,6 @@ import java.security.NoSuchAlgorithmException;
 import java.security.SecureRandom;
 import java.security.cert.CertificateException;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.TrustManagerFactory;
 
@@ -313,7 +312,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
         // Login to get JWT token
         Log.d(TAG, "Authenticating at " + authUrl + " with " + loginPayload);
-        HttpsURLConnection connection = null;
+        HttpURLConnection connection = null;
         final String authToken;
         try {
             connection = http.openHttpConnection(authUrl, sslContext, false);

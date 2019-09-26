@@ -36,7 +36,7 @@ import java.io.File;
 import java.net.URL;
 import java.util.List;
 
-import javax.net.ssl.HttpsURLConnection;
+import javax.net.ssl.HttpURLConnection;
 import javax.net.ssl.SSLContext;
 
 import org.junit.After;
@@ -97,7 +97,7 @@ public class SyncPerformerTest {
     @Mock
     private Http mockedHttp;
     @Mock
-    private HttpsURLConnection mockedConnection;
+    private HttpURLConnection mockedConnection;
 
     @Before
     public void setUp() {
@@ -168,7 +168,7 @@ public class SyncPerformerTest {
             // Mock the actual post request
             when(mockedHttp.openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(), anyString()))
                     .thenReturn(mockedConnection);
-            when(mockedHttp.post(any(HttpsURLConnection.class), any(File.class), any(SyncAdapter.MetaData.class),
+            when(mockedHttp.post(any(HttpURLConnection.class), any(File.class), any(SyncAdapter.MetaData.class),
                     anyString(), any(UploadProgressListener.class)))
                             .thenThrow(new ConflictException("Test ConflictException"));
 
@@ -186,7 +186,7 @@ public class SyncPerformerTest {
                 // Assert:
                 verify(mockedHttp, times(1)).openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(),
                         anyString());
-                verify(mockedHttp, times(1)).post(any(HttpsURLConnection.class), any(File.class),
+                verify(mockedHttp, times(1)).post(any(HttpURLConnection.class), any(File.class),
                         any(SyncAdapter.MetaData.class), anyString(), any(UploadProgressListener.class));
                 // because of the ConflictException true should be returned
                 assertThat(result, is(equalTo(true)));

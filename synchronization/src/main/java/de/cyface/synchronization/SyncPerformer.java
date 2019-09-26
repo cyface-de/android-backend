@@ -20,8 +20,6 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -31,15 +29,17 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 import android.content.Context;
@@ -115,8 +115,8 @@ class SyncPerformer {
 
         Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
                 DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
-        HttpsURLConnection.setFollowRedirects(false);
-        HttpsURLConnection connection = null;
+        HttpURLConnection.setFollowRedirects(false);
+        HttpURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
 
         try {

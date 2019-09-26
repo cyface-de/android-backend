@@ -238,7 +238,7 @@ public abstract class DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
 
-        if (!dataUploadServerAddress.startsWith("https://")) {
+        if (!dataUploadServerAddress.startsWith("https://") && !dataUploadServerAddress.startsWith("http://")) {
             throw new SetupException("Invalid URL protocol");
         }
         this.context = new WeakReference<>(context);
