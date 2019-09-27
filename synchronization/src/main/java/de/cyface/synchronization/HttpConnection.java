@@ -300,6 +300,17 @@ public class HttpConnection implements Http {
         return readResponse(connection);
     }
 
+    /**
+     * Writes the content of {@param bufferedFileInputStream} to the {@param outputStream} and informs the
+     * {@param progressListener} about the progress.
+     * 
+     * @param outputStream the {@code BufferedOutputStream} to write the data to
+     * @param bufferedFileInputStream the {@code BufferedInputStream} to read the data from
+     * @param binarySize the {code Byte} size of the data to read
+     * @param progressListener the {@code UploadProgressListener} to inform about the progress
+     * @return the number of {@code Byte}s written to the {@param outputStream}
+     * @throws IOException when an I/O operation fails
+     */
     private int writeToOutputStream(@NonNull final BufferedOutputStream outputStream,
             @NonNull final BufferedInputStream bufferedFileInputStream, final long binarySize,
             @NonNull final UploadProgressListener progressListener) throws IOException {

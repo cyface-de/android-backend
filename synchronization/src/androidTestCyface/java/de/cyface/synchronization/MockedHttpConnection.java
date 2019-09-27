@@ -35,7 +35,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.3
+ * @version 3.0.4
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {

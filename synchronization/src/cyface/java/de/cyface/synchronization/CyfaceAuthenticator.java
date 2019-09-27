@@ -18,12 +18,12 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.IOException;
@@ -61,8 +61,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.utils.Validate;
-
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
  * tasks such as getting stored auth-tokens, opening the login activity and handling user authentication
@@ -74,7 +72,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {

@@ -88,7 +88,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.3
+ * @version 2.1.4
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)

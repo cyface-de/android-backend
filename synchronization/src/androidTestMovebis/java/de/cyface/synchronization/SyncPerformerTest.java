@@ -33,10 +33,10 @@ import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
 
 import java.io.File;
+import java.net.HttpURLConnection;
 import java.net.URL;
 import java.util.List;
 
-import javax.net.ssl.HttpURLConnection;
 import javax.net.ssl.SSLContext;
 
 import org.junit.After;
@@ -65,8 +65,8 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Track;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -77,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.6
+ * @version 2.0.7
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -149,7 +149,9 @@ public class SyncPerformerTest {
                     client, AUTHORITY);
             final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence);
+                    measurement.getIdentifier(), persistence, false);
+            final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
+                    measurement.getIdentifier(), persistence, true);
             Log.d(TAG, "CompressedTransferTempFile size: "
                     + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
 
@@ -168,15 +170,16 @@ public class SyncPerformerTest {
             // Mock the actual post request
             when(mockedHttp.openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(), anyString()))
                     .thenReturn(mockedConnection);
-            when(mockedHttp.post(any(HttpURLConnection.class), any(File.class), any(SyncAdapter.MetaData.class),
-                    anyString(), any(UploadProgressListener.class)))
+            when(mockedHttp.post(any(HttpURLConnection.class), any(File.class), any(File.class),
+                    any(SyncAdapter.MetaData.class),
+                    anyString(), anyString(), any(UploadProgressListener.class)))
                             .thenThrow(new ConflictException("Test ConflictException"));
 
             // Act
             try {
                 // In the mock settings above we faked a ConflictException from the server
                 final boolean result = oocut.sendData(mockedHttp, syncResult, TEST_API_URL, metaData,
-                        compressedTransferTempFile, new UploadProgressListener() {
+                        compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 Log.d(TAG, String.format("Upload Progress %f", percent));
@@ -186,8 +189,8 @@ public class SyncPerformerTest {
                 // Assert:
                 verify(mockedHttp, times(1)).openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(),
                         anyString());
-                verify(mockedHttp, times(1)).post(any(HttpURLConnection.class), any(File.class),
-                        any(SyncAdapter.MetaData.class), anyString(), any(UploadProgressListener.class));
+                verify(mockedHttp, times(1)).post(any(HttpURLConnection.class), any(File.class), any(File.class),
+                        any(SyncAdapter.MetaData.class), anyString(), anyString(), any(UploadProgressListener.class));
                 // because of the ConflictException true should be returned
                 assertThat(result, is(equalTo(true)));
                 // Make sure the ConflictException is actually called (instead of no exception because of mock)
@@ -243,7 +246,9 @@ public class SyncPerformerTest {
                     client, AUTHORITY);
             final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence);
+                    measurement.getIdentifier(), persistence, false);
+            final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
+                    measurement.getIdentifier(), persistence, true);
             Log.d(TAG, "CompressedTransferTempFile size: "
                     + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
 
@@ -262,7 +267,7 @@ public class SyncPerformerTest {
             // Act
             try {
                 final boolean result = oocut.sendData(new HttpConnection(), syncResult, TEST_API_URL, metaData,
-                        compressedTransferTempFile, new UploadProgressListener() {
+                        compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
                             @Override
                             public void updatedProgress(float percent) {
                                 Log.d(TAG, String.format("Upload Progress %f", percent));
