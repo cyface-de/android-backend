@@ -807,10 +807,19 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
+    public void testStartPauseResumeStop_EventsAreLogged() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
-        startPauseResumeStop();
+        final long measurementIdentifier = startPauseResumeStop();
+
+        final List<Event> events = oocut.persistenceLayer.loadEvents(measurementIdentifier);
+        // start, pause, resume, stop and initial MODALITY_TYPE_CHANGE event
+        assertThat(events.size(), is(equalTo(5)));
+        assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
+        assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
+        assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+        assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+        assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
     }
 
     /**
@@ -841,7 +850,7 @@ public class DataCapturingServiceTest {
         }
     }
 
-    private void startPauseResumeStop() throws DataCapturingException, NoSuchMeasurementException,
+    private long startPauseResumeStop() throws DataCapturingException, NoSuchMeasurementException,
             CursorIsNullException, CorruptedMeasurementException, MissingPermissionException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
@@ -882,6 +891,8 @@ public class DataCapturingServiceTest {
             assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
             assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
             assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+
+            return measurementIdentifier;
         } finally {
             if (eventCursor != null) {
                 eventCursor.close();
