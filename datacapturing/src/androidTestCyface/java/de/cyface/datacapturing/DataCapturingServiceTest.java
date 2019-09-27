@@ -24,6 +24,7 @@ import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.persistence.model.Modality.CAR;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -93,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.6.0
+ * @version 5.7.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -432,17 +433,15 @@ public class DataCapturingServiceTest {
     /**
      * Tests that a double start-stop combination without waiting for the callback does not break the service.
      *
-     * IGNORED: This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.
-     * To fix this we need to re-use a handler for a sequential execution. See CY-4098, MOV-378
-     * We should consider refactoring the code before to use startCommandReceived as intended CY-4097.
-     *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    @Ignore
+    @Ignore("This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.\n" +
+            "To fix this we need to re-use a handler for a sequential execution. See CY-4098, MOV-378\n" +
+            "We should consider refactoring the code before to use startCommandReceived as intended CY-4097.")
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
@@ -755,7 +754,7 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    @Ignore // Not needed to be executed automatically as MOV-527 made the normal tests flaky
+    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     public void testStartPauseStop_MultipleTimes() throws MissingPermissionException, DataCapturingException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
@@ -827,7 +826,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @Ignore // Not needed to be executed automatically as MOV-527 made the normal tests flaky
+    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Test
     public void testStartPauseResumeStop_MultipleTimes() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
@@ -945,5 +944,76 @@ public class DataCapturingServiceTest {
 
         new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                 ACCOUNT_TYPE, "localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
+    }
+
+    /**
+     * Tests that starting a new {@code Measurement} and changing the {@code Modality} during runtime creates two
+     * {@link Event.EventType#MODALITY_TYPE_CHANGE} entries.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testChangeModality_EventLogContainsTwoModalities()
+            throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        oocut.changeModalityType(CAR);
+        stopAndCheckThatStopped(measurementIdentifier);
+        final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
+                Event.EventType.MODALITY_TYPE_CHANGE);
+        assertThat(modalityTypeChanges.size(), is(equalTo(2)));
+        assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));
+    }
+
+    /**
+     * Tests that changing to the same {@code Modality} twice does not produce a new
+     * {@link Event.EventType#MODALITY_TYPE_CHANGE} {@code Event}.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testChangeModalityToSameModalityTwice_EventLogStillContainsOnlyTwoModalities()
+            throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        oocut.changeModalityType(CAR);
+        oocut.changeModalityType(CAR);
+        stopAndCheckThatStopped(measurementIdentifier);
+        final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
+                Event.EventType.MODALITY_TYPE_CHANGE);
+        assertThat(modalityTypeChanges.size(), is(equalTo(2)));
+    }
+
+    /**
+     * Tests that changing {@code Modality} during a {@link Event.EventType#LIFECYCLE_PAUSE} works as expected.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testChangeModalityWhilePaused_EventLogStillContainsModalityChange()
+            throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        pauseAndCheckThatStopped(measurementIdentifier);
+        oocut.changeModalityType(CAR);
+        stopAndCheckThatStopped(-1L); // -1 because it's already stopped
+        final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
+                Event.EventType.MODALITY_TYPE_CHANGE);
+        assertThat(modalityTypeChanges.size(), is(equalTo(2)));
+        assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));
     }
 }

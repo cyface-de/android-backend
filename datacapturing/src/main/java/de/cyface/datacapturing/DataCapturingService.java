@@ -33,6 +33,7 @@ import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -103,7 +104,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.1
+ * @version 18.0.2
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1110,8 +1111,19 @@ public abstract class DataCapturingService {
             // Record modality-switch Event for ongoing Measurements
             Log.v(TAG, "changeModalityType(): Logging Modality type change!");
             final Measurement measurement;
-
             measurement = loadCurrentlyCapturedMeasurement();
+
+            // Ensure the newModality is actually different to the current Modality
+            final List<Event> modalityChanges = persistenceLayer.loadEvents(measurement.getIdentifier(), Event.EventType.MODALITY_TYPE_CHANGE);
+            if (modalityChanges.size() > 0) {
+                final Event lastModalityChangeEvent = modalityChanges.get(modalityChanges.size() - 1);
+                Validate.notNull(lastModalityChangeEvent);
+                if (lastModalityChangeEvent.getValue().equals(newModality.getDatabaseIdentifier())) {
+                    Log.d(TAG, "changeModalityType(): Doing nothing as current Modality equals the newModality.");
+                    return;
+                }
+            }
+
             persistenceLayer.logEvent(Event.EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
                     newModality.getDatabaseIdentifier());
         } catch (final CursorIsNullException | NoSuchMeasurementException e) {
