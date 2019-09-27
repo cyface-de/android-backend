@@ -92,7 +92,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -381,7 +381,7 @@ public final class MeasurementSerializer {
      * @param serializedEventType the serialized value of the actual {@code Event.EventType}
      * @return the deserialized {@code EventType}
      */
-    private Event.EventType deserializeEventType(final short serializedEventType) {
+    public static Event.EventType deserializeEventType(final short serializedEventType) {
         switch (serializedEventType) {
             case 1:
                 return LIFECYCLE_START;
@@ -470,7 +470,7 @@ public final class MeasurementSerializer {
      */
     private byte[] serializeEventTransferFileHeader(final int eventsCount) {
 
-        byte[] ret = new byte[18];
+        byte[] ret = new byte[6];
         ret[0] = (byte)(EVENT_TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)EVENT_TRANSFER_FILE_FORMAT_VERSION;
         ret[2] = (byte)(eventsCount >> 24);

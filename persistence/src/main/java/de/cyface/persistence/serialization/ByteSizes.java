@@ -5,14 +5,14 @@ package de.cyface.persistence.serialization;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.1
  * @since 2.0.0
  */
-final class ByteSizes {
+public final class ByteSizes {
     /**
      * Since our current API Level does not support <code>Long.Bytes</code>.
      */
-    final static int LONG_BYTES = Long.SIZE / Byte.SIZE;
+    public final static int LONG_BYTES = Long.SIZE / Byte.SIZE;
     /**
      * Since our current API Level does not support <code>Integer.Bytes</code>.
      */
@@ -24,5 +24,5 @@ final class ByteSizes {
     /**
      * Since our current API Level does not support <code>Short.Bytes</code>.
      */
-    final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
+    public final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
 }
