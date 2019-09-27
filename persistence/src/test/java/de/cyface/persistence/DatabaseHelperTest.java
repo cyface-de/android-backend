@@ -44,6 +44,7 @@ import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.testutils.SharedTestUtils;
 
 
@@ -54,7 +55,7 @@ import de.cyface.testutils.SharedTestUtils;
  * open it with *DB Browser for SQLite* and use File > Export > Database to SQL file.
  *
  * @author Armin Schnabel
- * @version 1.3.2
+ * @version 1.4.0
  * @since 4.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -125,6 +126,38 @@ public class DatabaseHelperTest {
     @After
     public void tearDown() {
         db.close();
+    }
+
+    /**
+     * Test upgrading the {@link MeasurementTable} to Database V16.
+     * <p>
+     * We test that the there are now Exceptions when renaming the former `vehicle` column to `modality`.
+     */
+    @Test
+    public void testMigrationV15ToV16() {
+
+        // Arrange
+        // This is simpler than copying and adjusting the code from previous versions
+        createV15Database(db);
+        addDatabaseV15Measurement(db, 43L, 1);
+
+        // Act
+        oocut.onUpgrade(db, 15, 16);
+
+        // Assert the former Vehicle attribute contains the same content after renaming it to Modality
+        Cursor cursor = null;
+        try {
+            // Measurements with GeoLocations should have the timestamp of the first GeoLocation as timestamp
+            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor.moveToNext();
+            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
+            assertThat(cursor.getString(cursor.getColumnIndex("modality")), is(equalTo("BICYCLE")));
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
     }
 
     /**
@@ -296,6 +329,39 @@ public class DatabaseHelperTest {
     }
 
     /**
+     * Creates a database as it would have been created with {@code DatabaseHelper#DATABASE_VERSION} 15.
+     * <p>
+     * <b>Attention:</b>
+     * It's important that the create statements only contains hardcoded Strings as the table and column names
+     * should be the same as they were in that version to really test the migration as it would happen in real.
+     *
+     * @param db A clean {@link SQLiteDatabase} to use for testing.
+     */
+    private void createV15Database(@NonNull final SQLiteDatabase db) {
+
+        // # Create V15 Tables:
+
+        // Create android_metadata table (exists in SQLite export)
+        db.execSQL("DROP TABLE IF EXISTS android_metadata");
+        db.execSQL("CREATE TABLE android_metadata (locale TEXT);");
+        // Create IdentifierTable
+        db.execSQL("CREATE TABLE identifiers (_id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL);");
+        // Create MeasurementTable
+        db.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, "
+                + "vehicle TEXT NOT NULL, file_format_version INTEGER NOT NULL, distance REAL NOT NULL, timestamp INTEGER NOT NULL);");
+        // Create GeoLocationsTable
+        db.execSQL("CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
+                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
+                + "measurement_fk INTEGER NOT NULL);");
+
+        // Insert sample android_metadata table entry (exists in SQLite export)
+        db.execSQL("INSERT INTO android_metadata (locale) VALUES ('de_DE');");
+
+        // Insert sample IdentifierTable entry
+        db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
+    }
+
+    /**
      * Creates a database as it would have been created with {@code DatabaseHelper#DATABASE_VERSION} 11.
      * <p>
      * <b>Attention:</b>
@@ -328,6 +394,35 @@ public class DatabaseHelperTest {
         db.execSQL("INSERT INTO android_metadata (locale) VALUES ('de_DE');");
         // Insert sample IdentifierTable entry
         db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
+    }
+
+    /**
+     * Adds a {@link Measurement} with {@param locations} {@link GeoLocation}s to a test database of
+     * {@code DatabaseHelper#DATABASE_VERSION} 15 as created by {@link #createV15Database(SQLiteDatabase)}.
+     * <p>
+     * <b>Attention:</b>
+     * It's important that the create statements only contains hardcoded Strings as the table and column names
+     * should be the same as they were in that version to really test the migration as it would happen in real.
+     *
+     * @param db A clean {@link SQLiteDatabase} to use for testing.
+     * @param measurementId the id of the measurement to generate
+     * @param locations number of locations to generate for the measurement to be generated
+     */
+    private void addDatabaseV15Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
+                                           final long locations) {
+
+        // # Insert V15 sample data: (exported from our V12 app and manually adjusted to V15)
+
+        // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
+        db.execSQL(
+                "INSERT INTO measurements (_id,status,vehicle,file_format_version,distance,timestamp) VALUES "
+                        + " (" + measurementId + ",'FINISHED','BICYCLE',1,5396.62473698979,1551431485000);");
+        // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
+        for (int i = 0; i < locations; i++) {
+            db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
+                    + " (" + (1 + i) + "," + (1551431485000L + i) + ",51.05210394,13.72873203,0.0,1179," + measurementId
+                    + ");");
+        }
     }
 
     /**
