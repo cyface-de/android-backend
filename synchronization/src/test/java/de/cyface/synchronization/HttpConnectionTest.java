@@ -37,7 +37,7 @@ import de.cyface.persistence.model.Modality;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.9
+ * @version 1.1.10
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -126,8 +126,8 @@ public class HttpConnectionTest {
                 "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
         final String header = oocut.generateHeader(metaData);
 
-        final String fileHeaderPart = generateFileHeaderPart("fileToUpload", "test-did_78.cyf");
-        final String eventsFileHeaderPart = generateFileHeaderPart("eventsFile", "test-did_78.cyfe");
+        final String fileHeaderPart = generateFileHeaderPart("fileToUpload", "test-did_78.ccyf");
+        final String eventsFileHeaderPart = generateFileHeaderPart("eventsFile", "test-did_78.ccyfe");
 
         final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte
         final long filePartSize = testFile.length;

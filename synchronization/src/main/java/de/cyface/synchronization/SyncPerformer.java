@@ -58,7 +58,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 5.0.0
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -123,8 +123,8 @@ class SyncPerformer {
                 DefaultFileAccess.humanReadableByteCount(compressedEventsTransferTempFile.length(), true)));
         HttpURLConnection.setFollowRedirects(false);
         HttpURLConnection connection = null;
-        final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
-        final String eventsFileName = String.format(Locale.US, "%s_%d_.cyfe", metaData.deviceId, metaData.measurementId);
+        final String fileName = String.format(Locale.US, "%s_%d.ccyf", metaData.deviceId, metaData.measurementId);
+        final String eventsFileName = String.format(Locale.US, "%s_%d_.ccyfe", metaData.deviceId, metaData.measurementId);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
