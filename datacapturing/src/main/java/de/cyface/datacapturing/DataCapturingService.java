@@ -104,7 +104,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.2
+ * @version 18.0.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1117,7 +1117,6 @@ public abstract class DataCapturingService {
             final List<Event> modalityChanges = persistenceLayer.loadEvents(measurement.getIdentifier(), Event.EventType.MODALITY_TYPE_CHANGE);
             if (modalityChanges.size() > 0) {
                 final Event lastModalityChangeEvent = modalityChanges.get(modalityChanges.size() - 1);
-                Validate.notNull(lastModalityChangeEvent);
                 if (lastModalityChangeEvent.getValue().equals(newModality.getDatabaseIdentifier())) {
                     Log.d(TAG, "changeModalityType(): Doing nothing as current Modality equals the newModality.");
                     return;
