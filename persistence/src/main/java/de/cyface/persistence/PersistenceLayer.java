@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.0
+ * @version 17.0.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -745,7 +745,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         while (location.getTimestamp() <= pauseEventTime) {
 
             track.add(location);
-            geoLocationCursor.moveToNext();
+
+            // Stop if this is the last GeoLocation
+            if (!geoLocationCursor.moveToNext()) {
+                break;
+            }
+
+            // Load next GeoLocation to check it's timestamp in next iteration
             location = loadGeoLocation(geoLocationCursor);
         }
 
@@ -761,6 +767,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param resumeEventTime the Unix timestamp, e.g. of {@link Event.EventType#LIFECYCLE_RESUME}
      */
     private void moveCursorToFirstAfter(@NonNull final Cursor geoLocationCursor, final long resumeEventTime) {
+
+        // Stop if we already reached the last element
+        if (geoLocationCursor.isAfterLast()) {
+            return;
+        }
 
         GeoLocation location = loadGeoLocation(geoLocationCursor);
         while (location.getTimestamp() < resumeEventTime && geoLocationCursor.moveToNext()) {
