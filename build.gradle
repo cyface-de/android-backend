@@ -27,7 +27,7 @@ buildscript {
 
 ext {
     groupId = 'de.cyface'
-    version = "4.2.2"
+    version = "4.2.3"
 
     utilsVersion = "1.1.0"
 

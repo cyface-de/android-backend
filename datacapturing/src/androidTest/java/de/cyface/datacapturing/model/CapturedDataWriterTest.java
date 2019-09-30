@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.3
+ * @version 5.5.4
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -534,6 +534,50 @@ public class CapturedDataWriterTest {
         assertThat(tracks.get(0).getGeoLocations().get(1).getTimestamp(), is(equalTo(2L)));
         assertThat(tracks.get(1).getGeoLocations().get(0).getTimestamp(), is(equalTo(6L)));
         assertThat(tracks.get(1).getGeoLocations().get(1).getTimestamp(), is(equalTo(8L)));
+    }
+
+    /**
+     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * <p>
+     * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
+     * storing an event when the test assumes otherwise.
+     * <p>
+     * This test reproduced STAD-171 where the loadTracks() method did not check the return value of
+     * moveToNext() when searching for the next GeoLocation while iterating through the points between pause and resume.
+     *
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testLoadTrack_startPauseResumeStop_withoutGeoLocationsAfterResume() throws CursorIsNullException {
+
+        // Arrange
+        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
+
+        // Start event and 2 locations
+        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
+
+        // Pause event and a slightly late 3rd location
+        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
+        capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
+
+        // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
+        capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
+        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 6L);
+
+        // Stop event and a lightly late 2nd location
+        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 7L);
+
+        // Act
+        final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
+        assertThat(loadedMeasurements.size(), is(equalTo(1)));
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+
+        // Assert
+        assertThat(tracks.size(), is(equalTo(1)));
+        assertThat(tracks.get(0).getGeoLocations().size(), is(equalTo(2)));
+        assertThat(tracks.get(0).getGeoLocations().get(1).getTimestamp(), is(equalTo(2L)));
     }
 
     /**

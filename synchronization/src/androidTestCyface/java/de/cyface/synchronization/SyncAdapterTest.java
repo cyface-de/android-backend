@@ -134,8 +134,11 @@ public final class SyncAdapterTest {
 
     /**
      * Tests whether measurements are correctly marked as synced.
+     *
+     * TODO [CY-4960]: Make test work in mock flavour without an actual API
      */
     @Test
+    @Ignore("Set to ignore as this test requires an actual API even in mock flavour")
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Arrange
@@ -189,7 +192,7 @@ public final class SyncAdapterTest {
      */
     @Test
     @LargeTest // ~ 8-10 minutes
-    @Ignore
+    @Ignore("Because this is a very large test which does not need to be executed each time")
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
         final int point3dCount = 2_880_000; // 100 Hz * 8 h
