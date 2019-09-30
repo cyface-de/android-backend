@@ -65,7 +65,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.0
+ * @version 17.0.2
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -720,7 +720,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final Track track = new Track();
         do {
             final GeoLocation location = loadGeoLocation(geoLocationCursor);
-            track.add(location);
+            if (location != null) {
+                track.add(location);
+            }
 
         } while (geoLocationCursor.moveToNext());
         Validate.isTrue(track.getGeoLocations().size() > 0);
@@ -742,9 +744,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final Track track = new Track();
 
         GeoLocation location = loadGeoLocation(geoLocationCursor);
-        while (location.getTimestamp() <= pauseEventTime) {
+        while (location != null && location.getTimestamp() <= pauseEventTime) {
 
             track.add(location);
+
+            // Load next GeoLocation to check it's timestamp in next iteration
             geoLocationCursor.moveToNext();
             location = loadGeoLocation(geoLocationCursor);
         }
@@ -762,8 +766,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     private void moveCursorToFirstAfter(@NonNull final Cursor geoLocationCursor, final long resumeEventTime) {
 
+        @Nullable
         GeoLocation location = loadGeoLocation(geoLocationCursor);
-        while (location.getTimestamp() < resumeEventTime && geoLocationCursor.moveToNext()) {
+        while (location != null && location.getTimestamp() < resumeEventTime && geoLocationCursor.moveToNext()) {
 
             // Load next location to check it's timestamp
             location = loadGeoLocation(geoLocationCursor);
@@ -774,9 +779,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * Loads the {@link GeoLocation} at the {@code Cursor}'s current position.
      *
      * @param geoLocationCursor the {@code Cursor} pointing to a {@code GeoLocation} in the database.
-     * @return the {@code GeoLocation} loaded.
+     * @return the {@code GeoLocation} loaded or {@code Null} if the cursor points to the entry after the last one.
      */
+    @Nullable
     private GeoLocation loadGeoLocation(@NonNull final Cursor geoLocationCursor) {
+        if (geoLocationCursor.isAfterLast()) {
+            return null;
+        }
 
         final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
         final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
