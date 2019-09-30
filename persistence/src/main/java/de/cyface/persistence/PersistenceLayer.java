@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 16.0.0
+ * @version 16.0.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -765,7 +765,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         // Slice Tracks before resume events
         Long pauseEventTime = null;
-        while (eventCursor.moveToNext()) {
+        while (eventCursor.moveToNext() && !geoLocationCursor.isAfterLast()) {
             final Event.EventType eventType = Event.EventType
                     .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
 
@@ -789,11 +789,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Pause reached: Move geoLocationCursor to the first location of the next sub-track
             // We do this to ignore locations between pause and resume event (STAD-140)
             moveCursorToFirstAfter(geoLocationCursor, resumeEventTime);
-
-            // Stop GeoLocation collection if we already reached the last GeoLocation
-            if (geoLocationCursor.isAfterLast()) {
-                break;
-            }
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
