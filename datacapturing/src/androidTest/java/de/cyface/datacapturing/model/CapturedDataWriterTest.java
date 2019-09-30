@@ -77,6 +77,7 @@ import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.Vehicle.UNKNOWN;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
@@ -160,7 +161,7 @@ public class CapturedDataWriterTest {
     public void testCreateNewMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Create a measurement
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        Measurement measurement = oocut.newMeasurement(UNKNOWN);
         assertThat(measurement.getIdentifier() > 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
@@ -179,7 +180,7 @@ public class CapturedDataWriterTest {
             assertThat(result.moveToFirst(), is(equalTo(true)));
 
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
-                    is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
+                    is(equalTo(UNKNOWN.getDatabaseIdentifier())));
             assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
             assertThat(result.getShort(result.getColumnIndex(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
@@ -213,7 +214,7 @@ public class CapturedDataWriterTest {
             assertThat(finishingResult.moveToFirst(), is(equalTo(true)));
 
             assertThat(finishingResult.getString(finishingResult.getColumnIndex(MeasurementTable.COLUMN_VEHICLE)),
-                    is(equalTo(Vehicle.UNKNOWN.getDatabaseIdentifier())));
+                    is(equalTo(UNKNOWN.getDatabaseIdentifier())));
             assertThat(finishingResult.getString(finishingResult.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(FINISHED.getDatabaseIdentifier())));
         } finally {
@@ -229,7 +230,7 @@ public class CapturedDataWriterTest {
     @Test
     public void testStoreData() throws NoSuchFileException {
         // Manually trigger data capturing (new measurement with sensor data and a location)
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -302,7 +303,7 @@ public class CapturedDataWriterTest {
 
         // Insert test measurements
         final int testMeasurements = 2;
-        oocut.newMeasurement(Vehicle.UNKNOWN);
+        oocut.newMeasurement(UNKNOWN);
         Measurement measurement = oocut.newMeasurement(Vehicle.CAR);
 
         final Lock lock = new ReentrantLock();
@@ -397,7 +398,7 @@ public class CapturedDataWriterTest {
      */
     @Test
     public void testLoadMeasurements() throws CursorIsNullException {
-        oocut.newMeasurement(Vehicle.UNKNOWN);
+        oocut.newMeasurement(UNKNOWN);
         oocut.newMeasurement(Vehicle.CAR);
 
         List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -415,7 +416,7 @@ public class CapturedDataWriterTest {
     public void testDeleteMeasurement() throws CursorIsNullException {
 
         // Arrange
-        Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        Measurement measurement = oocut.newMeasurement(UNKNOWN);
         final long measurementId = measurement.getIdentifier();
 
         final Lock lock = new ReentrantLock();
@@ -502,7 +503,7 @@ public class CapturedDataWriterTest {
     public void testLoadTrack_startPauseResumeStop() throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and 2 locations
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
@@ -552,7 +553,7 @@ public class CapturedDataWriterTest {
             throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and 2 locations
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
@@ -598,7 +599,7 @@ public class CapturedDataWriterTest {
             throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and at least one location between start and pause
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
@@ -630,7 +631,7 @@ public class CapturedDataWriterTest {
     public void testLoadTrack_startPauseResumePauseStop() throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and 2 locations
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
@@ -678,7 +679,7 @@ public class CapturedDataWriterTest {
     public void testLoadTrack_startPauseStop() throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
@@ -710,7 +711,7 @@ public class CapturedDataWriterTest {
     public void testLoadTrack_startStop() throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
@@ -739,7 +740,7 @@ public class CapturedDataWriterTest {
     public void testLoadCleanedTrack() throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Vehicle.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
         final long startTime = 1000000000L;
         final GeoLocation locationWithJustTooBadAccuracy = new GeoLocation(51.1, 13.1,
                 startTime + 1, 5.0, 2000f);
