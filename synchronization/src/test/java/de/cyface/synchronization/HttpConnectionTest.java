@@ -37,7 +37,7 @@ import de.cyface.persistence.model.Modality;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.10
+ * @version 1.1.11
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -136,7 +136,7 @@ public class HttpConnectionTest {
         final long eventsPartSize = eventsTestFile.length;
 
         // Act
-        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes(),
+        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes().length,
                 fileHeaderPart.getBytes().length, eventsFileHeaderPart.getBytes().length, filePartSize,
                 eventsPartSize);
 
