@@ -19,16 +19,11 @@
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.KITKAT;
-import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
-import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
-import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_EVENT_FILE_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSION_NOWRAP;
-import static de.cyface.persistence.serialization.MeasurementSerializer.deserializeEventType;
 import static de.cyface.persistence.serialization.MeasurementSerializer.serialize;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -47,7 +42,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.UnsupportedEncodingException;
 import java.nio.ByteBuffer;
 import java.nio.ByteOrder;
 import java.util.ArrayList;
@@ -75,13 +69,11 @@ import android.net.Uri;
 import android.os.RemoteException;
 
 import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.EventTable;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
-import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Modality;
@@ -96,7 +88,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.2.0
+ * @version 2.3.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -128,11 +120,6 @@ public class MeasurementSerializerTest {
      */
     @Mock
     private Cursor geoLocationsCursor;
-    /**
-     * A mocked cursor for {@code Event}s.
-     */
-    @Mock
-    private Cursor eventsCursor;
     @Mock
     private FileAccessLayer mockedFileAccessLayer;
     @Mock
@@ -146,22 +133,13 @@ public class MeasurementSerializerTest {
     private final static int SAMPLE_ROTATION_POINTS = 20;
     private final static int SAMPLE_DIRECTION_POINTS = 10;
     private final static int SAMPLE_GEO_LOCATIONS = 3;
-    private final static int SAMPLE_EVENTS = 5;
     private final static double SAMPLE_DOUBLE_VALUE = 1.0;
     private final static long SAMPLE_LONG_VALUE = 1L;
-    private final static String SAMPLE_STRING_VALUE = Modality.UNKNOWN.getDatabaseIdentifier();
     private final static long SAMPLE_MEASUREMENT_ID = 1L;
     private final static long SERIALIZED_SIZE = BYTES_IN_HEADER + SAMPLE_GEO_LOCATIONS * BYTES_IN_ONE_GEO_LOCATION_ENTRY
             + SAMPLE_ACCELERATION_POINTS * BYTES_IN_ONE_POINT_3D_ENTRY
             + SAMPLE_ROTATION_POINTS * BYTES_IN_ONE_POINT_3D_ENTRY
             + SAMPLE_DIRECTION_POINTS * BYTES_IN_ONE_POINT_3D_ENTRY;
-    /**
-     * The number of bytes of a serialized Event entry of each {@link #SAMPLE_EVENTS} in the
-     * {@link MeasurementSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION} file
-     * <p>
-     * The dynamic {@link Event#getValue()} size is {@code 7} is SAMPLE_STRING_VALUE.getBytes(DEFAULT_CHARSET).length
-     */
-    private final static long SERIALIZED_SAMPLE_EVENT_SIZE = LONG_BYTES + SHORT_BYTES + SHORT_BYTES + 7;
 
     @Before
     public void setUp() throws RemoteException, CursorIsNullException {
@@ -173,26 +151,15 @@ public class MeasurementSerializerTest {
                 .thenReturn(SAMPLE_GEO_LOCATIONS);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 
-        // Mock Event database access
-        Uri eventUri = Utils.getEventUri(AUTHORITY);
-        when(loader.createEventTableUri()).thenReturn(eventUri);
-        when(loader.countData(eventUri, EventTable.COLUMN_MEASUREMENT_FK)).thenReturn(SAMPLE_EVENTS);
-        when(loader.loadEvents(anyInt(), anyInt())).thenReturn(eventsCursor);
-
         // Mock point counters
         final Measurement measurement = new Measurement(1L, OPEN, Modality.UNKNOWN,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0, 123L);
         when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
         when(geoLocationsCursor.getCount()).thenReturn(SAMPLE_GEO_LOCATIONS);
-        when(eventsCursor.getCount()).thenReturn(SAMPLE_EVENTS);
 
         // Mock insert of 3 GeoLocations
         when(geoLocationsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(false);
-
-        // Mock insert of 5 Events
-        when(eventsCursor.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(true).thenReturn(true)
-                .thenReturn(true).thenReturn(false);
 
         // Mock load sample GeoLocation data
         int sampleColumnIndex = 0;
@@ -201,16 +168,6 @@ public class MeasurementSerializerTest {
         when(geoLocationsCursor.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
         int sampleIntValue = 1;
         when(geoLocationsCursor.getInt(sampleColumnIndex)).thenReturn(sampleIntValue);
-
-        // Mock load sample Event data
-        int sampleTypeColumnIndex = 1;
-        when(eventsCursor.getColumnIndex(EventTable.COLUMN_TYPE)).thenReturn(sampleTypeColumnIndex);
-        when(eventsCursor.getColumnIndex(EventTable.COLUMN_VALUE)).thenReturn(sampleColumnIndex);
-        when(eventsCursor.getString(sampleTypeColumnIndex))
-                .thenReturn(Event.EventType.MODALITY_TYPE_CHANGE.getDatabaseIdentifier());
-        when(eventsCursor.getString(sampleColumnIndex))
-                .thenReturn(Modality.UNKNOWN.getDatabaseIdentifier());
-        when(eventsCursor.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
 
         // Mock load sample Point3dFile data
         final List<Point3d> accelerations = new ArrayList<>();
@@ -332,56 +289,6 @@ public class MeasurementSerializerTest {
 
             // Act & Assert
             deserializeAndCheck(new DefaultFileAccess().loadBytes(serializedFile));
-        } finally {
-            if (serializedFile.exists()) {
-                Validate.isTrue(serializedFile.delete());
-            }
-        }
-    }
-
-    /**
-     * Tests if serialization of {@link Event}s is successful.
-     */
-    @Test
-    public void testSerializeEvents() throws IOException, CursorIsNullException {
-
-        // Arrange
-        final File serializedFile = File.createTempFile("serializedTestEventsFile", ".tmp");
-        try {
-            final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
-            final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-
-            // Act
-            oocut.loadSerializedEvents(bufferedFileOutputStream, loader);
-
-            // Assert
-            assertThat(serializedFile.exists(), is(true));
-            assertThat(serializedFile.length(),
-                    is(equalTo(BYTES_IN_EVENT_FILE_HEADER + SAMPLE_EVENTS * SERIALIZED_SAMPLE_EVENT_SIZE)));
-        } finally {
-            if (serializedFile.exists()) {
-                Validate.isTrue(serializedFile.delete());
-            }
-        }
-    }
-
-    /**
-     * Tests whether deserialization of {@link Event}s is successful.
-     */
-    @Test
-    public void testDeserializeEvents() throws CursorIsNullException, IOException {
-
-        // Arrange
-        final File serializedFile = File.createTempFile("serializedTestEventsFile", ".tmp");
-        try {
-            final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
-            final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-            oocut.loadSerializedEvents(bufferedFileOutputStream, loader);
-            assertThat(serializedFile.length(),
-                    is(equalTo(BYTES_IN_EVENT_FILE_HEADER + SAMPLE_EVENTS * SERIALIZED_SAMPLE_EVENT_SIZE)));
-
-            // Act & Assert
-            deserializeEventsAndCheck(new DefaultFileAccess().loadBytes(serializedFile));
         } finally {
             if (serializedFile.exists()) {
                 Validate.isTrue(serializedFile.delete());
@@ -525,38 +432,6 @@ public class MeasurementSerializerTest {
         return new MeasurementData(formatVersion, geoLocations, accelerations, rotations, directions);
     }
 
-    private void deserializeEventsAndCheck(byte[] uncompressedEventsFileBytes) throws UnsupportedEncodingException {
-        EventsFileData eventsFileData = deserializeEventsTransferFile(uncompressedEventsFileBytes);
-
-        // Check header
-        assertThat(eventsFileData.transferFileFormat, is(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION));
-        assertThat(eventsFileData.events.size(), is(SAMPLE_EVENTS));
-
-        // check values
-        for (int i = 0; i < SAMPLE_EVENTS; i++) {
-            assertThat(eventsFileData.events.get(i).getTimestamp(), is(SAMPLE_LONG_VALUE));
-            assertThat(eventsFileData.events.get(i).getType().getDatabaseIdentifier(), is(Event.EventType.MODALITY_TYPE_CHANGE.getDatabaseIdentifier()));
-            assertThat(eventsFileData.events.get(i).getValue(), is(SAMPLE_STRING_VALUE));
-        }
-    }
-
-    private EventsFileData deserializeEventsTransferFile(byte[] uncompressedEventsFileBytes)
-            throws UnsupportedEncodingException {
-
-        ByteBuffer buffer = ByteBuffer.wrap(uncompressedEventsFileBytes);
-        short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
-        int numberOfEvents = buffer.order(ByteOrder.BIG_ENDIAN).getInt(2);
-        assertThat(numberOfEvents, is(equalTo(SAMPLE_EVENTS)));
-        // noinspection UnnecessaryLocalVariable // for readability
-        int beginOfEventsIndex = BYTES_IN_EVENT_FILE_HEADER;
-
-        List<Event> events = deserializeEvents(
-                Arrays.copyOfRange(uncompressedEventsFileBytes, beginOfEventsIndex,
-                        uncompressedEventsFileBytes.length));
-
-        return new EventsFileData(formatVersion, events);
-    }
-
     /**
      * Deserializes a list of {@link Point3d}s (i.e. acceleration, rotation or direction) from an array of bytes in
      * Cyface {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}.
@@ -607,41 +482,6 @@ public class MeasurementSerializerTest {
     }
 
     /**
-     * Deserializes a list of {@link Event}s from an array of bytes in Cyface
-     * {@link MeasurementSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION}.
-     *
-     * @param bytes The bytes array to deserialize the {@code Event}s from.
-     * @return A list of the deserialized {@code Event}s.
-     */
-    private List<Event> deserializeEvents(byte[] bytes) throws UnsupportedEncodingException {
-        List<Event> events = new ArrayList<>();
-        int i = 0;
-        while (i < bytes.length) {
-
-            // Don't change the order how the bytes are read from the buffer
-            // Timestamp, eventType, byte length of value string
-            ByteBuffer buffer = ByteBuffer
-                    .wrap(Arrays.copyOfRange(bytes, i, i + LONG_BYTES + SHORT_BYTES + SHORT_BYTES));
-            final long timestamp = buffer.getLong();
-            final short serializedEventType = buffer.getShort();
-            final short valueBytesLength = buffer.getShort();
-            final Event.EventType eventType = deserializeEventType(serializedEventType);
-            i += LONG_BYTES + SHORT_BYTES + SHORT_BYTES;
-
-            // Value String
-            buffer = ByteBuffer.wrap(Arrays.copyOfRange(bytes, i, i + valueBytesLength));
-            final byte[] valueBytes = new byte[valueBytesLength];
-            buffer.get(valueBytes);
-            final String value = new String(valueBytes, DEFAULT_CHARSET);
-            i += valueBytesLength;
-
-            final Event event = new Event(SAMPLE_LONG_VALUE, eventType, timestamp, value);
-            events.add(event);
-        }
-        return events;
-    }
-
-    /**
      * Helper class for testing which wraps all data of a {@link Measurement} which was serialized into the
      * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}.
      */
@@ -659,20 +499,6 @@ public class MeasurementSerializerTest {
             this.accelerations = accelerations;
             this.rotations = rotations;
             this.directions = directions;
-        }
-    }
-
-    /**
-     * Helper class for testing which wraps all data of {@link Event}s which were serialized into the
-     * {@link MeasurementSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION}.
-     */
-    private class EventsFileData {
-        short transferFileFormat;
-        List<Event> events;
-
-        EventsFileData(short transferFileFormat, List<Event> events) {
-            this.transferFileFormat = transferFileFormat;
-            this.events = events;
         }
     }
 }
