@@ -2,15 +2,20 @@ package de.cyface.persistence;
 
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
 
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
+
+import static de.cyface.persistence.Constants.TAG;
 
 /**
  * Table for storing {@link Event}s.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 4.0.0
  */
 public class EventTable extends AbstractCyfaceMeasurementTable {
@@ -33,9 +38,13 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
     /**
+     * Column name for the column storing the {@link Event.EventType#getValue()}.
+     */
+    public static final String COLUMN_VALUE = "value";
+    /**
      * An array containing all the column names used by a {@link EventTable}.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_TIMESTAMP, COLUMN_TYPE, COLUMN_MEASUREMENT_FK};
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_TIMESTAMP, COLUMN_TYPE, COLUMN_MEASUREMENT_FK, COLUMN_VALUE};
 
     /**
      * Provides a completely initialized object as a representation of a table containing {@link Event}s in the
@@ -50,7 +59,7 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
         // The COLUMN_MEASUREMENT_FK may be null if the Event is not linked to a Measurement.
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_TIMESTAMP + " INTEGER NOT NULL, " + COLUMN_TYPE + " TEXT NOT NULL, " + COLUMN_MEASUREMENT_FK
-                + " INTEGER);";
+                + " INTEGER, " + COLUMN_VALUE + " TEXT" + ");";
     }
 
     /**
@@ -60,7 +69,7 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
      * <p>
      * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
      * <p>
-     * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
+     * @see CyfaceMeasurementTable#onUpgrade(SQLiteDatabase, int, int)
      */
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
@@ -70,6 +79,12 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
             case 11:
                 // This table was added in version 12
                 onCreate(database);
+                break; // onUpgrade is called incrementally by DatabaseHelper
+
+            case 14:
+                // This column was added in version 15
+                Log.d(TAG, "Upgrading event table from V14");
+                database.execSQL("ALTER TABLE events ADD COLUMN value TEXT");
                 break; // onUpgrade is called incrementally by DatabaseHelper
         }
 

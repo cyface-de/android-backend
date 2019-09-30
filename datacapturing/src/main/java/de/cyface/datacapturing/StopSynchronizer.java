@@ -11,7 +11,8 @@ import androidx.annotation.NonNull;
  * of the <code>DataCapturingService</code>.
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @author Armin Schnabel
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class StopSynchronizer extends ShutDownFinishedHandler {
@@ -27,13 +28,17 @@ public class StopSynchronizer extends ShutDownFinishedHandler {
      *
      * @param lock The lock used for synchronization. Usually a <code>ReentrantLock</code>.
      * @param condition The condition waiting for a signal from this <code>StopSynchronizer</code>.
+     * @param serviceStoppedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     *            so that only the service in question receives the expected ping-back.
      */
-    public StopSynchronizer(final @NonNull Lock lock, final Condition condition) {
+    public StopSynchronizer(@NonNull final Lock lock, @NonNull final Condition condition,
+            @NonNull final String serviceStoppedActionId) {
+        super(serviceStoppedActionId);
         synchronizer = new Synchronizer(lock, condition);
     }
 
     @Override
-    public void shutDownFinished(final @NonNull long measurementIdentifier) {
+    public void shutDownFinished(final long measurementIdentifier) {
         synchronizer.signal();
     }
 }

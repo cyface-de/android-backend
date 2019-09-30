@@ -17,13 +17,9 @@
  You should have received a copy of the GNU General Public License
  along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
 -->
-
 <resources>
     <string name="capturing_service_description">Sammelt Sensordaten von deinem Smartphone (GNSS(GPS), Beschleunigungen, Drehungen, Kompassdaten) und sendet sie anonymisiert an deine Kommune zur Verbesserung der Verkehrsinfrastruktur.</string>
     <string name="capturing_active">Vielen Dank für Ihren Beitrag</string>
-    <string name="missing_data_error">Die Nachricht enthält keine aufgezeichneten Daten.</string>
-    <string name="unknown_message_error">Unbekannte Nachricht %d aus Datenerfassungsdienst erhalten!</string>
-    <string name="notification_title">Datenerfassung läuft</string>
-    <string name="notification_text">Lädt &#8230;</string>
+
     <string name="notification_channel_description_running">Benachrichtigung die auf eine laufende Messunge hinweist.</string>
 </resources>

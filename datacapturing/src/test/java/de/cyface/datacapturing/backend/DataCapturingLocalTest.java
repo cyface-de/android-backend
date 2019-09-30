@@ -45,7 +45,9 @@ import org.mockito.Spy;
 import org.mockito.junit.MockitoJUnit;
 import org.mockito.junit.MockitoRule;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
+import android.os.Build;
 import android.os.Parcelable;
 
 import de.cyface.datacapturing.EventHandlingStrategy;
@@ -65,10 +67,11 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.3.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
+@Config(sdk = Build.VERSION_CODES.O_MR1) // To be able to execute tests with Java 8 (instead of 9)
 public class DataCapturingLocalTest {
 
     /**

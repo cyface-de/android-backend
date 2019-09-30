@@ -9,7 +9,7 @@ import android.os.Build;
  * Implementation for a <code>GeoLocationDeviceStatusHandler</code> for version above and including Android Nougat (API 24).
  *
  * @author Klemens Muthmann
- * @version 1.0.1
+ * @version 1.0.3
  * @since 1.0.0
  * @see GeoLocationStatusListener
  */
@@ -26,7 +26,7 @@ public class GnssStatusCallback extends GeoLocationDeviceStatusHandler {
 
         @Override
         public void onSatelliteStatusChanged(GnssStatus status) {
-            handleSatteliteStatusChange();
+            handleSatelliteStatusChange();
         }
     };
 

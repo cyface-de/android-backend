@@ -66,7 +66,7 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
@@ -77,7 +77,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.4
+ * @version 1.4.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -149,7 +149,7 @@ public class UploadProgressTest {
 
         ContentProviderClient client = null;
         try {
-            final Measurement measurement = insertMeasurementEntry(persistenceLayer, Vehicle.UNKNOWN);
+            final Measurement measurement = insertMeasurementEntry(persistenceLayer, Modality.UNKNOWN);
             final long measurementIdentifier = measurement.getIdentifier();
             insertGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055141000L, 49.9304133333333,
                     8.82831833333333, 0.0, 940);

@@ -1,6 +1,5 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <string name="app_name" translatable="false">utils</string>
 
     <!-- Login errors -->
     <string name="error_message_unknown_authentication_error">Login failed</string>

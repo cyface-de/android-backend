@@ -30,7 +30,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.2
+ * @version 2.0.0
  * @since 2.0.0
  */
 public class StartSynchronizer extends StartUpFinishedHandler {
@@ -46,14 +46,12 @@ public class StartSynchronizer extends StartUpFinishedHandler {
      *
      * @param lock The lock used for synchronization. Usually a <code>ReentrantLock</code>.
      * @param condition The condition waiting for a signal from this <code>StartSynchronizer</code>.
-     * @param appId used to make the global broadcast id in {@link StartUpFinishedHandler} unique.
-     *            This must be a device-wide unique identifier for the application containing this SDK such as
-     *            {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     *            <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
+     * @param serviceStartedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     *            so that only the service in question receives the expected ping-back.
      */
     public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition,
-            @NonNull final String appId) {
-        super(appId);
+            @NonNull final String serviceStartedActionId) {
+        super(serviceStartedActionId);
         synchronizer = new Synchronizer(lock, condition);
     }
 

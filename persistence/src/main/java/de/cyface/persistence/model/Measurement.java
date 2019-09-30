@@ -25,12 +25,12 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
 /**
  * An object of this class represents a single {@link Measurement} captured by the {@code DataCapturingService}. This
  * usually happens between complementary calls to
- * {@code DataCapturingService#start(DataCapturingListener, Vehicle, StartUpFinishedHandler)} and
+ * {@code DataCapturingService#start(DataCapturingListener, Modality, StartUpFinishedHandler)} and
  * {@code DataCapturingService#stop(ShutDownFinishedHandler)}.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 5.0.0
  * @since 1.0.0
  */
 public final class Measurement {
@@ -46,9 +46,9 @@ public final class Measurement {
      */
     private MeasurementStatus status;
     /**
-     * The {@link Vehicle} used in this {@link Measurement}.
+     * The {@link Modality} used in this {@link Measurement}.
      */
-    private Vehicle vehicle;
+    private Modality modality;
     /**
      * The {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the data in the file
      * persistence layer of for this {@link Measurement}.
@@ -71,17 +71,17 @@ public final class Measurement {
      * @param status The {@link MeasurementStatus} of the {@link Measurement}. Usually only one measurement should be in
      *            the {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} state, else there has been some
      *            error.
-     * @param vehicle The {@link Vehicle} used in this {@link Measurement}.
+     * @param modality The {@link Modality} used in this {@link Measurement}.
      * @param fileFormatVersion The {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the
      *            data in the file persistence layer of for this {@link Measurement}.
      * @param distance The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
      * @param timestamp The Unix timestamp in milliseconds indicating the start time of the measurement.
      */
-    public Measurement(final long id, @NonNull final MeasurementStatus status, @NonNull final Vehicle vehicle,
+    public Measurement(final long id, @NonNull final MeasurementStatus status, @NonNull final Modality modality,
             final short fileFormatVersion, final double distance, final long timestamp) {
         this.id = id;
         this.status = status;
-        this.vehicle = vehicle;
+        this.modality = modality;
         this.fileFormatVersion = fileFormatVersion;
         this.distance = distance;
         this.timestamp = timestamp;
@@ -96,7 +96,7 @@ public final class Measurement {
         Measurement that = (Measurement)o;
         return fileFormatVersion == that.fileFormatVersion && Double.compare(that.distance, distance) == 0
                 && timestamp == that.timestamp && id.equals(that.id) && status == that.status
-                && vehicle == that.vehicle;
+                && modality == that.modality;
     }
 
     @Override
@@ -112,8 +112,8 @@ public final class Measurement {
         return status;
     }
 
-    public Vehicle getVehicle() {
-        return vehicle;
+    public Modality getModality() {
+        return modality;
     }
 
     public short getFileFormatVersion() {
@@ -133,7 +133,7 @@ public final class Measurement {
         return "Measurement{" +
                 "id=" + id +
                 ", status=" + status +
-                ", vehicle=" + vehicle +
+                ", modality=" + modality +
                 ", fileFormatVersion=" + fileFormatVersion +
                 ", distance=" + distance +
                 ", timestamp=" + timestamp +

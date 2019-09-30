@@ -21,13 +21,14 @@ package de.cyface.persistence;
 import static android.provider.BaseColumns._ID;
 import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
+import static de.cyface.persistence.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
-import static de.cyface.persistence.MeasurementTable.COLUMN_VEHICLE;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
+import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -50,9 +51,9 @@ import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -142,19 +143,19 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Creates a new, {@link MeasurementStatus#OPEN} {@link Measurement} for the provided {@link Vehicle}.
+     * Creates a new, {@link MeasurementStatus#OPEN} {@link Measurement} for the provided {@link Modality}.
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
-     * @param vehicle The {@code Vehicle} to create a new {@code Measurement} for.
+     * @param modality The {@code Modality} to create a new {@code Measurement} for.
      * @return The newly created {@code Measurement}.
      */
-    public Measurement newMeasurement(@NonNull final Vehicle vehicle) {
+    public Measurement newMeasurement(@NonNull final Modality modality) {
 
         final long timestamp = System.currentTimeMillis();
 
         final ContentValues measurementValues = new ContentValues();
-        measurementValues.put(COLUMN_VEHICLE, vehicle.getDatabaseIdentifier());
+        measurementValues.put(COLUMN_MODALITY, modality.getDatabaseIdentifier());
         measurementValues.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
         measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
@@ -169,7 +170,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
             final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
-            return new Measurement(measurementId, OPEN, vehicle, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+            return new Measurement(measurementId, OPEN, modality, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
                     0.0, timestamp);
         }
     }
@@ -190,7 +191,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             synchronized (this) {
                 cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
                         new String[] {status.getDatabaseIdentifier()}, null);
-                Validate.softCatchNullCursor(cursor);
+                softCatchNullCursor(cursor);
 
                 final boolean hasMeasurement = cursor.getCount() > 0;
                 Log.v(TAG, hasMeasurement ? "At least one measurement is " + status + "."
@@ -219,7 +220,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         try {
             List<Measurement> ret = new ArrayList<>();
             cursor = resolver.query(getMeasurementUri(), null, null, null, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
                 final Measurement measurement = loadMeasurement(cursor);
@@ -244,11 +245,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
         final MeasurementStatus status = MeasurementStatus
                 .valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
-        final Vehicle vehicle = Vehicle.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_VEHICLE)));
+        final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_MODALITY)));
         final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
         final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
-        return new Measurement(measurementIdentifier, status, vehicle, fileFormatVersion, distance, timestamp);
+        return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, timestamp);
     }
 
     /**
@@ -258,10 +259,12 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return the {@code Event} of the {@code Cursor}
      */
     private Event loadEvent(@NonNull final Cursor cursor) {
+        final long id = cursor.getLong(cursor.getColumnIndex(_ID));
         final long timestamp = cursor.getLong(cursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
         final Event.EventType eventType = Event.EventType
                 .valueOf(cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_TYPE)));
-        return new Event(eventType, timestamp);
+        final String value = cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_VALUE));
+        return new Event(id, eventType, timestamp, value);
     }
 
     /**
@@ -284,13 +287,49 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         try {
             cursor = resolver.query(measurementUri, null, _ID + "=?",
                     new String[] {String.valueOf(measurementIdentifier)}, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
             }
 
             if (cursor.moveToFirst()) {
                 return loadMeasurement(cursor);
+            } else {
+                return null;
+            }
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Provide one specific {@link Event} from the data storage if it exists.
+     *
+     * Attention: At the loaded {@code Event} object and the persistent version of it in the
+     * {@link PersistenceLayer} are not directly connected the loaded object is not notified when
+     * the it's counterpart in the {@code PersistenceLayer} is changed (e.g. the {@code Event.EventType}).
+     *
+     * @param eventId The device wide unique identifier of the {@code Event} to load.
+     * @return The loaded {@code Event} if it exists; <code>null</code> otherwise.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @SuppressWarnings("unused") // Sdk implementing apps (CY)
+    public Event loadEvent(final long eventId) throws CursorIsNullException {
+        final Uri eventUri = getEventUri().buildUpon().appendPath(Long.toString(eventId)).build();
+        Cursor cursor = null;
+
+        try {
+            cursor = resolver.query(eventUri, null, _ID + "=?",
+                    new String[] {String.valueOf(eventId)}, null);
+            softCatchNullCursor(cursor);
+            if (cursor.getCount() > 1) {
+                throw new IllegalStateException("Too many Events loaded from URI: " + eventUri);
+            }
+
+            if (cursor.moveToFirst()) {
+                return loadEvent(cursor);
             } else {
                 return null;
             }
@@ -320,7 +359,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         try {
             cursor = resolver.query(measurementUri, null, null, null, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
             }
@@ -353,7 +392,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final List<Measurement> measurements = new ArrayList<>();
             cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
                     new String[] {status.getDatabaseIdentifier()}, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
                 final Measurement measurement = loadMeasurement(cursor);
@@ -456,7 +495,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 // Try to get device id from database
                 deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(),
                         new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
-                Validate.softCatchNullCursor(deviceIdentifierQueryCursor);
+                softCatchNullCursor(deviceIdentifierQueryCursor);
                 if (deviceIdentifierQueryCursor.getCount() > 1) {
                     throw new IllegalStateException("More entries than expected");
                 }
@@ -495,6 +534,16 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         resolver.delete(getEventUri(), EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
+    }
+
+    /**
+     * Removes one {@link Event} from the local persistent data storage.
+     *
+     * @param eventId The id of the {@code Event} to remove.
+     */
+    @SuppressWarnings("unused") // Sdk implementing apps (CY) use this
+    public void deleteEvent(final long eventId) {
+        resolver.delete(getEventUri(), _ID + "=?", new String[] {Long.valueOf(eventId).toString()});
     }
 
     /**
@@ -548,14 +597,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor eventCursor = null;
         try {
             eventCursor = loadEventsCursor(measurementIdentifier);
-            Validate.softCatchNullCursor(eventCursor);
+            softCatchNullCursor(eventCursor);
 
             // Load GeoLocations
             geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()},
                     GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
-            Validate.softCatchNullCursor(geoLocationCursor);
+            softCatchNullCursor(geoLocationCursor);
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
@@ -588,11 +637,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor eventCursor = null;
         try {
             eventCursor = loadEventsCursor(measurementIdentifier);
-            Validate.softCatchNullCursor(eventCursor);
+            softCatchNullCursor(eventCursor);
 
             geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
                     getGeoLocationsUri());
-            Validate.softCatchNullCursor(geoLocationCursor);
+            softCatchNullCursor(geoLocationCursor);
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
@@ -621,7 +670,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @Nullable
     private Cursor loadEventsCursor(final long measurementIdentifier) {
 
-        return resolver.query(getEventUri(), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+        return resolver.query(getEventUri(), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()},
                 EventTable.COLUMN_TIMESTAMP + " ASC");
     }
@@ -633,7 +682,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * {@code Cursor} is always closed after use.</b>
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the {@code Event}s for.
-     * @return The {@code Cursor} pointing to the {@code Event}s of of the {@code Measurement} with the provided
+     * @return The {@code Cursor} pointing to the {@code Event}s of the {@code Measurement} with the provided
      *         {@param measurementId}.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
@@ -644,13 +693,50 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Cursor cursor = null;
         try {
             cursor = loadEventsCursor(measurementIdentifier);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             final List<Event> events = new ArrayList<>();
             while (cursor.moveToNext()) {
                 final Event event = loadEvent(cursor);
                 events.add(event);
             }
+            return events;
+        } finally {
+            if (cursor != null) {
+                cursor.close();
+            }
+        }
+    }
+
+    /**
+     * Loads all {@link Event}s of a specific {@link Event.EventType} for the provided {@link Measurement} from the data
+     * storage.
+     *
+     * @param measurementId The id of the {@code Measurement} to load the {@code Event}s for.
+     * @param eventType the {@code EventType} of which all {@code Event}s are to be loaded
+     * @return All the {code Event}s of the {@code Measurement} with the provided {@param measurementId} of the
+     *         specified {@param eventType}. An empty list if there are no such Events, but never <code>null</code>.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @SuppressWarnings("unused") // Implementing apps (CY) use this
+    public List<Event> loadEvents(final long measurementId, @NonNull final Event.EventType eventType)
+            throws CursorIsNullException {
+        Cursor cursor = null;
+
+        try {
+            final List<Event> events = new ArrayList<>();
+
+            cursor = resolver.query(getEventUri(), null,
+                    EventTable.COLUMN_MEASUREMENT_FK + "=? AND " + EventTable.COLUMN_TYPE + "=?",
+                    new String[] {Long.valueOf(measurementId).toString(), eventType.getDatabaseIdentifier()},
+                    EventTable.COLUMN_TIMESTAMP + " ASC");
+            softCatchNullCursor(cursor);
+
+            while (cursor.moveToNext()) {
+                final Event event = loadEvent(cursor);
+                events.add(event);
+            }
+
             return events;
         } finally {
             if (cursor != null) {
@@ -679,7 +765,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
         // Slice Tracks before resume events
         Long pauseEventTime = null;
-        while (eventCursor.moveToNext()) {
+        while (eventCursor.moveToNext() && !geoLocationCursor.isAfterLast()) {
             final Event.EventType eventType = Event.EventType
                     .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
 
@@ -703,11 +789,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Pause reached: Move geoLocationCursor to the first location of the next sub-track
             // We do this to ignore locations between pause and resume event (STAD-140)
             moveCursorToFirstAfter(geoLocationCursor, resumeEventTime);
-
-            // Stop GeoLocation collection if we already reached the last GeoLocation
-            if (geoLocationCursor.isAfterLast()) {
-                break;
-            }
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -831,7 +912,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * @return The content provider {@link Uri} for the {@link EventTable}.
      */
-    private Uri getEventUri() {
+    public Uri getEventUri() {
         return Utils.getEventUri(authority);
     }
 
@@ -1039,15 +1120,38 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public void logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
             final long timestamp) {
+        logEvent(eventType, measurement, timestamp, null);
+    }
+
+    /**
+     * Stores a new {@link Event} in the {@link PersistenceLayer} which is linked to a {@link Measurement}.
+     *
+     * @param eventType The {@link Event.EventType} to be logged.
+     * @param measurement The {@code Measurement} which is linked to the {@code Event}.
+     * @param timestamp The timestamp in ms at which the event was triggered
+     * @param value The (optional) {@link Event#getValue()}
+     * @return The id of the added {@code Event}
+     */
+    public long logEvent(@NonNull final Event.EventType eventType, @NonNull final Measurement measurement,
+            final long timestamp, @Nullable final String value) {
         Log.v(TAG,
-                "Storing Event:" + eventType + " for Measurement " + measurement.getIdentifier() + " at " + timestamp);
+                "Storing Event:" + eventType + (value == null ? "" : " (" + value + ")") + " for Measurement "
+                        + measurement.getIdentifier() + " at " + timestamp);
 
         final ContentValues contentValues = new ContentValues();
         contentValues.put(EventTable.COLUMN_TYPE, eventType.getDatabaseIdentifier());
         contentValues.put(EventTable.COLUMN_TIMESTAMP, timestamp);
         contentValues.put(EventTable.COLUMN_MEASUREMENT_FK, measurement.getIdentifier());
+        if (value != null) {
+            Validate.isTrue(!value.isEmpty());
+            contentValues.put(EventTable.COLUMN_VALUE, value);
+        }
 
-        resolver.insert(getEventUri(), contentValues);
+        final Uri resultUri = resolver.insert(getEventUri(), contentValues);
+        Validate.notNull("New Event could not be created!", resultUri);
+        Validate.notNull(resultUri.getLastPathSegment());
+
+        return Long.valueOf(resultUri.getLastPathSegment());
     }
 
     /**

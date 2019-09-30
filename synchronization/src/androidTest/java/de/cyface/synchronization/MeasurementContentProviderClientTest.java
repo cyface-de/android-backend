@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.6
+ * @version 1.1.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -112,7 +112,7 @@ public class MeasurementContentProviderClientTest {
             }
 
             ContentValues measurementValues = new ContentValues();
-            measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
+            measurementValues.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
@@ -190,7 +190,7 @@ public class MeasurementContentProviderClientTest {
 
             // Create test measurement data
             ContentValues measurementValues = new ContentValues();
-            measurementValues.put(MeasurementTable.COLUMN_VEHICLE, "BICYCLE");
+            measurementValues.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
