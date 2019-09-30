@@ -18,6 +18,33 @@
  */
 package de.cyface.datacapturing.model;
 
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
+import static de.cyface.datacapturing.TestUtils.TAG;
+import static de.cyface.persistence.Utils.getEventUri;
+import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.Utils.getIdentifierUri;
+import static de.cyface.persistence.Utils.getMeasurementUri;
+import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
+import static de.cyface.testutils.SharedTestUtils.deserialize;
+import static org.hamcrest.core.Is.is;
+import static org.hamcrest.core.IsEqual.equalTo;
+import static org.junit.Assert.assertThat;
+
+import java.io.File;
+import java.util.ArrayList;
+import java.util.List;
+import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Condition;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantLock;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Rule;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -29,20 +56,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Rule;
-import org.junit.Test;
-import org.junit.runner.RunWith;
-
-import java.io.File;
-import java.util.ArrayList;
-import java.util.List;
-import java.util.concurrent.TimeUnit;
-import java.util.concurrent.locks.Condition;
-import java.util.concurrent.locks.Lock;
-import java.util.concurrent.locks.ReentrantLock;
 
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
@@ -70,19 +83,6 @@ import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
-import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.datacapturing.TestUtils.TAG;
-import static de.cyface.persistence.Utils.getEventUri;
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getIdentifierUri;
-import static de.cyface.persistence.Utils.getMeasurementUri;
-import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
-import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
-import static de.cyface.testutils.SharedTestUtils.deserialize;
-import static org.hamcrest.core.Is.is;
-import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
-
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
  * <code>ProviderTestRule</code> to get a mocked content provider. Implementation details are explained in the
@@ -91,7 +91,7 @@ import static org.junit.Assert.assertThat;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.3
+ * @version 5.5.4
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -153,7 +153,7 @@ public class CapturedDataWriterTest {
     /**
      * Tests whether creating and closing a measurement works as expected.
      *
-     * @throws CursorIsNullException      If {@link ContentProvider} was inaccessible.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
      */
     @Test
@@ -169,7 +169,7 @@ public class CapturedDataWriterTest {
         Cursor result = null;
         try {
             result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
-                    new String[]{identifierString}, null);
+                    new String[] {identifierString}, null);
             if (result == null) {
                 throw new IllegalStateException(
                         "Test failed because it was unable to load data from content provider.");
@@ -203,7 +203,7 @@ public class CapturedDataWriterTest {
         Cursor finishingResult = null;
         try {
             finishingResult = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
-                    new String[]{identifierString}, null);
+                    new String[] {identifierString}, null);
             if (finishingResult == null) {
                 throw new IllegalStateException(
                         "Test failed because it was unable to load data from content provider.");
@@ -354,7 +354,7 @@ public class CapturedDataWriterTest {
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[]{Long.toString(measurement.getIdentifier())}, null);
+                    new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
             identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
@@ -463,7 +463,7 @@ public class CapturedDataWriterTest {
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[]{Long.valueOf(measurement.getIdentifier()).toString()}, null);
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
 
@@ -477,7 +477,7 @@ public class CapturedDataWriterTest {
         Cursor eventsCursor = null;
         try {
             eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[]{Long.valueOf(measurement.getIdentifier()).toString()}, null);
+                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.", eventsCursor);
 
             assertThat(eventsCursor.getCount(), is(equalTo(0)));
