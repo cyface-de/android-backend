@@ -22,7 +22,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.5.0
+ * @version 2.5.1
  * @since 1.0.0
  */
 
@@ -47,7 +47,7 @@ ext {
     groupId = 'de.cyface'
     version = "4.2.4"
 
-    utilsVersion = "1.1.0"
+    utilsVersion = "1.1.1"
 
     minSdkVersion = 16
     targetSdkVersion = 28
