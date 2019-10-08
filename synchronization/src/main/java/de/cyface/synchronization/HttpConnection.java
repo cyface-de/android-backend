@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.1
+ * @version 11.0.2
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -257,6 +257,8 @@ public class HttpConnection implements Http {
                 Log.d(TAG, "Total bytes written to output stream: " + bytesWrittenToOutputStream);
             } finally {
                 outputStream.close();
+                bufferedMeasurementFileInputStream.close();
+                bufferedEventsFileInputStream.close();
             }
         } catch (final SSLException e) {
             Log.w(TAG, "Caught SSLException: " + e.getMessage());
