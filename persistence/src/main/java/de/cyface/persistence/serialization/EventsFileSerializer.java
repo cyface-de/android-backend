@@ -80,7 +80,7 @@ import de.cyface.utils.Validate;
  * WARNING: This implementation loads all data from one measurement into memory. So be careful with large measurements.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 5.0.0-beta1
  */
 public class EventsFileSerializer {

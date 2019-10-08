@@ -136,7 +136,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         Log.d(TAG, "Sync started");
         final Context context = getContext();
-        final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
+        final MeasurementSerializer serializer = new MeasurementSerializer();
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
         final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);

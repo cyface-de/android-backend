@@ -89,7 +89,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.0
+ * @version 2.3.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -244,7 +244,7 @@ public class MeasurementSerializerTest {
             }
         }).when(mockedFileAccessLayer).writeToOutputStream(eq(mockedDirectionFile), any(BufferedOutputStream.class));
 
-        oocut = new MeasurementSerializer(mockedFileAccessLayer);
+        oocut = new MeasurementSerializer();
     }
 
     /**

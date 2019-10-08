@@ -40,7 +40,6 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
@@ -74,7 +73,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 7.0.0
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -115,17 +114,6 @@ public final class MeasurementSerializer {
      * The prefix of the filename used to store compressed files for serialization.
      */
     private static final String COMPRESSED_TRANSFER_FILE_PREFIX = "compressedTransferFile";
-    /**
-     * The {@link FileAccessLayer} used to interact with files.
-     */
-    private final FileAccessLayer fileAccessLayer;
-
-    /**
-     * @param fileAccessLayer The {@link FileAccessLayer} used to interact with files.
-     */
-    public MeasurementSerializer(@NonNull final FileAccessLayer fileAccessLayer) {
-        this.fileAccessLayer = fileAccessLayer;
-    }
 
     /**
      * Loads the {@link Measurement} with the provided identifier from the persistence layer serialized and compressed
