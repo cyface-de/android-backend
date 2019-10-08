@@ -67,6 +67,8 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
+import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
+import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -77,7 +79,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.7
+ * @version 2.0.8
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -147,11 +149,11 @@ public class SyncPerformerTest {
             // Load measurement serialized compressed
             final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
-            final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
+            final MeasurementSerializer serializer = new MeasurementSerializer();
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, false);
+                    measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
             final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, true);
+                    measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
             Log.d(TAG, "CompressedTransferTempFile size: "
                     + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
 
@@ -244,11 +246,11 @@ public class SyncPerformerTest {
             // Load measurement serialized compressed
             final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
                     client, AUTHORITY);
-            final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
+            final MeasurementSerializer serializer = new MeasurementSerializer();
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, false);
+                    measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
             final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, true);
+                    measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
             Log.d(TAG, "CompressedTransferTempFile size: "
                     + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
 
