@@ -60,6 +60,8 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
+import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
+import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -171,9 +173,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 File compressedEventsTransferTempFile = null;
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence, false);
+                            measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
                     compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence, true);
+                            measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     final String jwtAuthToken = getAuthToken(authenticator, account);
@@ -186,7 +188,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // Synchronize measurement
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                            metaData, compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
+                            metaData, compressedTransferTempFile, compressedEventsTransferTempFile,
+                            new UploadProgressListener() {
                                 @Override
                                 public void updatedProgress(float percent) {
                                     for (final ConnectionStatusListener listener : progressListener) {

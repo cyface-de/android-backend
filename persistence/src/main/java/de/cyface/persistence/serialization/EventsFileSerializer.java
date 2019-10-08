@@ -105,7 +105,7 @@ public class EventsFileSerializer {
      * @throws UnsupportedEncodingException if {@link Constants#DEFAULT_CHARSET} is not supported
      * @throws IOException if a serialized {@code Event} could not be serialized to a {@link Byte} array.
      */
-    private static byte[] serializeEvents(@NonNull final Cursor eventsCursor) throws IOException {
+    static byte[] serializeEvents(@NonNull final Cursor eventsCursor) throws IOException {
         // Allocate enough space for all Events
         Log.v(TAG, String.format("Serializing %d Events for synchronization.", eventsCursor.getCount()));
 
@@ -213,7 +213,7 @@ public class EventsFileSerializer {
      * @param eventsCount Number of {@link Event}s in the serialized {@code Measurement}.
      * @return The header byte array.
      */
-    private static byte[] serializeEventTransferFileHeader(final int eventsCount) {
+    static byte[] serializeEventTransferFileHeader(final int eventsCount) {
 
         byte[] ret = new byte[6];
         ret[0] = (byte)(EVENT_TRANSFER_FILE_FORMAT_VERSION >> 8);
