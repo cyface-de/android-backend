@@ -22,19 +22,21 @@ import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.persistence.model.Event;
+import de.cyface.persistence.model.Measurement;
+
 /**
  * An interface for http connections.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 9.0.0
  * @since 3.0.0
  */
 interface Http {
@@ -59,7 +61,7 @@ interface Http {
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      */
     @NonNull
-    HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent,
+    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent,
             @NonNull String jwtBearer) throws ServerUnavailableException;
 
     /**
@@ -72,7 +74,7 @@ interface Http {
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      */
     @NonNull
-    HttpsURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent)
+    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent)
             throws ServerUnavailableException;
 
     /**
@@ -102,9 +104,11 @@ interface Http {
      * The serialized post request which transmits a measurement through an existing http connection
      *
      * @param connection The {@code HttpURLConnection} to be used for the request.
-     * @param transferTempFile The data to transmit
+     * @param transferTempFile The {@link Measurement} data to transmit
+     * @param eventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param fileName The name of the file to be uploaded
+     * @param fileName The name of the {@link Measurement} file to be uploaded
+     * @param eventsFileName The name of the {@link Event}s file to be uploaded
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @throws SynchronisationException If an IOException occurred during synchronization.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
@@ -121,8 +125,8 @@ interface Http {
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
-            @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
-            @NonNull final UploadProgressListener progressListener)
+                      @NonNull final File eventsTransferTempFile, @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
+                      String eventsFileName, @NonNull final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException;

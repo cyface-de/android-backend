@@ -58,9 +58,9 @@ import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
@@ -71,7 +71,7 @@ import de.cyface.utils.Validate;
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 4.2.6
+ * @version 5.0.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -305,7 +305,7 @@ public class SharedTestUtils {
         Validate.isTrue(locationCount > 0);
 
         final List<GeoLocation> geoLocations = new ArrayList<>();
-        Measurement measurement = insertMeasurementEntry(persistence, Vehicle.UNKNOWN);
+        Measurement measurement = insertMeasurementEntry(persistence, Modality.UNKNOWN);
         final long measurementIdentifier = measurement.getIdentifier();
         for (int i = 0; i < locationCount; i++) {
             // We add some salt to make sure the compression of the data is realistic
@@ -398,19 +398,19 @@ public class SharedTestUtils {
      * {@link SharedTestUtils#insertPoint3d(Point3dFile, long, double, double, double)} (Context, long, long, double,
      * double, double)},
      *
-     * @param vehicle The {@link Vehicle} type of the {@code Measurement}. A common value is {@link Vehicle#UNKNOWN} if
+     * @param modality The {@link Modality} type of the {@code Measurement}. A common value is {@link Modality#UNKNOWN} if
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by the cyface flavour tests
     @NonNull
     public static Measurement insertMeasurementEntry(@NonNull final PersistenceLayer persistence,
-            @NonNull final Vehicle vehicle) throws CursorIsNullException {
+            @NonNull final Modality modality) throws CursorIsNullException {
 
         // usually called in DataCapturingService#Constructor
         persistence.restoreOrCreateDeviceId();
 
-        return persistence.newMeasurement(vehicle);
+        return persistence.newMeasurement(modality);
     }
 
     /**

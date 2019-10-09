@@ -30,7 +30,7 @@ import androidx.annotation.NonNull;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
 
@@ -39,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 4.0.0
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -55,9 +55,9 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_STATUS = "status";
     /**
-     * Column name for the {@link Vehicle#getDatabaseIdentifier()} value of the {@link Vehicle} enumeration.
+     * Column name for the {@link Modality#getDatabaseIdentifier()} value of the {@link Modality} enumeration.
      */
-    public static final String COLUMN_VEHICLE = "vehicle";
+    public static final String COLUMN_MODALITY = "modality";
     /**
      * Column name for the {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
      * persistence layer of for this {@link Measurement}.
@@ -74,7 +74,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * An array containing all columns from this table in default order.
      */
-    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_VEHICLE,
+    private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_MODALITY,
             COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, COLUMN_TIMESTAMP};
 
     /**
@@ -87,7 +87,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     @Override
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
-                + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_VEHICLE + " TEXT NOT NULL, "
+                + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_MODALITY + " TEXT NOT NULL, "
                 + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, " + COLUMN_DISTANCE + " REAL NOT NULL, "
                 + COLUMN_TIMESTAMP + " INTEGER NOT NULL);";
     }
@@ -137,8 +137,39 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 updateMeasurementTimestampForV13Measurements(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
+
+            case 15:
+                // This column was added in version 16
+                Log.d(TAG, "Upgrading event table from V15");
+                migrateDatabaseFromV15(database);
+
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
+    }
+
+    /**
+     * Adds timestamp columns to table.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void migrateDatabaseFromV15(@NonNull final SQLiteDatabase database) {
+        // To rename columns we need to copy the table.
+        database.execSQL("ALTER TABLE measurements RENAME TO _measurements_old;");
+
+        // Create the new table schema with the renamed column
+        database.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, "
+                + "status TEXT NOT NULL, modality TEXT NOT NULL, file_format_version INTEGER NOT NULL, "
+                + "distance REAL NOT NULL, timestamp INTEGER NOT NULL);");
+
+        // Insert the old data into the new column
+        database.execSQL("INSERT INTO measurements "
+                + "(_id,status,modality,file_format_version,distance,timestamp) "
+                + "SELECT _id,status,vehicle,file_format_version,distance,timestamp "
+                + "FROM _measurements_old");
+
+        // Remove temp table
+        database.execSQL("DROP TABLE _measurements_old;");
     }
 
     /**

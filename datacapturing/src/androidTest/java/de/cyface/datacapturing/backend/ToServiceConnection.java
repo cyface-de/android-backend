@@ -32,6 +32,7 @@ import android.os.RemoteException;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 
@@ -40,7 +41,7 @@ import de.cyface.datacapturing.PongReceiver;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.0.2
  * @since 2.0.0
  */
 class ToServiceConnection implements ServiceConnection {
@@ -95,7 +96,8 @@ class ToServiceConnection implements ServiceConnection {
             throw new IllegalStateException(e);
         }
 
-        PongReceiver isRunningChecker = new PongReceiver(context, appId);
+        PongReceiver isRunningChecker = new PongReceiver(context, MessageCodes.getPingActionId(appId),
+                MessageCodes.getPongActionId(appId));
         isRunningChecker.checkIsRunningAsync(1, TimeUnit.MINUTES, callback);
     }
 

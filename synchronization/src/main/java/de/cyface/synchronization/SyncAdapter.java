@@ -20,10 +20,10 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.DATABASE_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
+import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.DATABASE_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
 import static java.lang.Thread.interrupted;
 
 import java.io.File;
@@ -58,8 +58,10 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
+import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -69,7 +71,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.10
+ * @version 2.6.12
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -134,7 +136,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
         Log.d(TAG, "Sync started");
         final Context context = getContext();
-        final MeasurementSerializer serializer = new MeasurementSerializer(new DefaultFileAccess());
+        final MeasurementSerializer serializer = new MeasurementSerializer();
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
         final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
@@ -168,9 +170,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
+                File compressedEventsTransferTempFile = null;
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence);
+                            measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
+                    compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
+                            measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     final String jwtAuthToken = getAuthToken(authenticator, account);
@@ -183,7 +188,8 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // Synchronize measurement
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                            metaData, compressedTransferTempFile, new UploadProgressListener() {
+                            metaData, compressedTransferTempFile, compressedEventsTransferTempFile,
+                            new UploadProgressListener() {
                                 @Override
                                 public void updatedProgress(float percent) {
                                     for (final ConnectionStatusListener listener : progressListener) {
@@ -347,7 +353,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
 
         return new MetaData(startLocation, endLocation, deviceId, measurement.getIdentifier(), deviceType, osVersion,
-                appVersion, measurement.getDistance(), locationCount, measurement.getVehicle());
+                appVersion, measurement.getDistance(), locationCount, measurement.getModality());
     }
 
     /**
@@ -393,12 +399,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final String appVersion;
         final double length;
         final int locationCount;
-        final Vehicle vehicle;
+        final Modality modality;
 
         MetaData(@Nullable final GeoLocation startLocation, @Nullable final GeoLocation endLocation,
                 @NonNull final String deviceId, final long measurementId, @NonNull final String deviceType,
                 @NonNull final String osVersion, @NonNull final String appVersion, final double length,
-                final int locationCount, @NonNull Vehicle vehicle) {
+                final int locationCount, @NonNull Modality modality) {
             this.startLocation = startLocation;
             this.endLocation = endLocation;
             this.deviceId = deviceId;
@@ -408,7 +414,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             this.appVersion = appVersion;
             this.length = length;
             this.locationCount = locationCount;
-            this.vehicle = vehicle;
+            this.modality = modality;
         }
     }
 }

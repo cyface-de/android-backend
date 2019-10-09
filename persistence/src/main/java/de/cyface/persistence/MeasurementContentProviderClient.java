@@ -1,15 +1,19 @@
 package de.cyface.persistence;
 
+import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
+
 import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
+
 import androidx.annotation.NonNull;
+
+import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.CursorIsNullException;
-import de.cyface.utils.Validate;
 
 /**
  * A wrapper for a <code>ContentProviderClient</code> used to provide access to one specific measurement.
@@ -20,7 +24,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.2.0
  * @since 2.0.0
  */
 public class MeasurementContentProviderClient {
@@ -69,7 +73,8 @@ public class MeasurementContentProviderClient {
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
         final Uri uri = Utils.getGeoLocationsUri(authority);
-        final String[] projection = new String[] {GeoLocationsTable.COLUMN_GEOLOCATION_TIME, GeoLocationsTable.COLUMN_LAT,
+        final String[] projection = new String[] {GeoLocationsTable.COLUMN_GEOLOCATION_TIME,
+                GeoLocationsTable.COLUMN_LAT,
                 GeoLocationsTable.COLUMN_LON, GeoLocationsTable.COLUMN_SPEED, GeoLocationsTable.COLUMN_ACCURACY};
         final String selection = GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?";
         final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
@@ -93,6 +98,28 @@ public class MeasurementContentProviderClient {
     }
 
     /**
+     * Loads a page of the {@link Event}s for the {@code Measurement}.
+     *
+     * @param offset The start index of the first {@code Event} to load within the Measurement
+     * @param limit The number of Events to load. A recommended upper limit is:
+     *            {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}
+     * @return A <code>Cursor</code> on the {@link Event}s stored for the {@link Measurement}.
+     * @throws RemoteException If the content provider is not accessible.
+     */
+    public Cursor loadEvents(final int offset, final int limit) throws RemoteException {
+        final Uri uri = Utils.getEventUri(authority);
+        final String[] projection = new String[] {EventTable.COLUMN_TYPE, EventTable.COLUMN_VALUE,
+                EventTable.COLUMN_TIMESTAMP};
+        final String selection = EventTable.COLUMN_MEASUREMENT_FK + "=?";
+        final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
+
+        // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
+        // the arguments limit and offset are only available starting with API 26 ("O")
+        return client.query(uri, projection, selection, selectionArgs,
+                EventTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset);
+    }
+
+    /**
      * Counts all the data elements from one table for the {@link Measurement}s. Data elements depend on the provided
      * {@link ContentProvider} {@link Uri} and might be {@link GeoLocation}s.
      *
@@ -112,7 +139,7 @@ public class MeasurementContentProviderClient {
             final String[] selectionArgs = new String[] {Long.valueOf(measurementIdentifier).toString()};
 
             cursor = client.query(tableUri, null, selection, selectionArgs, null);
-            Validate.softCatchNullCursor(cursor);
+            softCatchNullCursor(cursor);
 
             return cursor.getCount();
         } finally {
@@ -124,5 +151,9 @@ public class MeasurementContentProviderClient {
 
     public @NonNull Uri createGeoLocationTableUri() {
         return Utils.getGeoLocationsUri(authority);
+    }
+
+    public @NonNull Uri createEventTableUri() {
+        return Utils.getEventUri(authority);
     }
 }

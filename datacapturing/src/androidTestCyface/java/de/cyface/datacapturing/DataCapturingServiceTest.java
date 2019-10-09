@@ -24,6 +24,9 @@ import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.persistence.model.Modality.CAR;
+import static de.cyface.persistence.model.Modality.UNKNOWN;
+import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -51,6 +54,7 @@ import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.database.Cursor;
+import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -77,7 +81,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
@@ -90,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.5.0
+ * @version 5.7.0
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -183,7 +187,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -196,7 +200,7 @@ public class DataCapturingServiceTest {
             final Lock lock = new ReentrantLock();
             final Condition condition = lock.newCondition();
             final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock,
-                    condition);
+                    condition, MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
             oocut.stop(shutDownFinishedHandler);
 
             // Ensure the zombie sent a stopped message back to the DataCapturingService
@@ -248,8 +252,8 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
+                MessageCodes.getServiceStartedActionId(appId));
+        oocut.start(UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
     }
@@ -258,20 +262,20 @@ public class DataCapturingServiceTest {
      * Pauses a {@link DataCapturingService} and checks that it's not running afterwards.
      *
      * @param measurementIdentifier The if of the measurement expected to be closed.
-     * @throws DataCapturingException In case the service was not stopped successfully.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} prior to
      *             pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void pauseAndCheckThatStopped(long measurementIdentifier)
-            throws NoSuchMeasurementException, DataCapturingException, CursorIsNullException {
+            throws NoSuchMeasurementException, CursorIsNullException {
 
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         oocut.pause(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
@@ -288,7 +292,7 @@ public class DataCapturingServiceTest {
      *             again.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} prior to
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} prior to
      *             pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -299,7 +303,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         oocut.resume(startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
@@ -314,7 +318,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
-     *             {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)}
+     *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -324,7 +328,8 @@ public class DataCapturingServiceTest {
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition);
+        final TestShutdownFinishedHandler shutDownFinishedHandler = new TestShutdownFinishedHandler(lock, condition,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         oocut.stop(shutDownFinishedHandler);
 
         checkThatStopped(shutDownFinishedHandler, measurementIdentifier);
@@ -332,7 +337,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Checks that a {@link DataCapturingService} actually started after calling the life-cycle method
-     * {@link DataCapturingService#start(Vehicle, StartUpFinishedHandler)} or
+     * {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} or
      * {@link DataCapturingService#resume(StartUpFinishedHandler)}
      *
      * @param startUpFinishedHandler The {@link TestStartUpFinishedHandler} which was used to start the service
@@ -428,17 +433,15 @@ public class DataCapturingServiceTest {
     /**
      * Tests that a double start-stop combination without waiting for the callback does not break the service.
      *
-     * IGNORED: This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.
-     * To fix this we need to re-use a handler for a sequential execution. See CY-4098, MOV-378
-     * We should consider refactoring the code before to use startCommandReceived as intended CY-4097.
-     *
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    @Ignore
+    @Ignore("This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.\n" +
+            "To fix this we need to re-use a handler for a sequential execution. See CY-4098, MOV-378\n" +
+            "We should consider refactoring the code before to use startCommandReceived as intended CY-4097.")
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
@@ -446,38 +449,41 @@ public class DataCapturingServiceTest {
         final Lock lock1 = new ReentrantLock();
         final Condition condition1 = lock1.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock1, condition1,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         // Do not reuse the lock/condition!
         final Lock lock2 = new ReentrantLock();
         final Condition condition2 = lock2.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock2, condition2,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         // Do not reuse the lock/condition!
         final Lock lock3 = new ReentrantLock();
         final Condition condition3 = lock3.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock3, condition3,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         // Do not reuse the lock/condition!
         final Lock lock4 = new ReentrantLock();
         final Condition condition4 = lock4.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock4, condition4);
+        final TestShutdownFinishedHandler shutDownFinishedHandler1 = new TestShutdownFinishedHandler(lock4, condition4,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         // Do not reuse the lock/condition!
         final Lock lock5 = new ReentrantLock();
         final Condition condition5 = lock5.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock5, condition5);
+        final TestShutdownFinishedHandler shutDownFinishedHandler2 = new TestShutdownFinishedHandler(lock5, condition5,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
         // Do not reuse the lock/condition!
         final Lock lock6 = new ReentrantLock();
         final Condition condition6 = lock6.newCondition();
-        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock6, condition6);
+        final TestShutdownFinishedHandler shutDownFinishedHandler3 = new TestShutdownFinishedHandler(lock6, condition6,
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
 
         // First Start/stop without waiting
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler1);
+        oocut.start(UNKNOWN, startUpFinishedHandler1);
         oocut.stop(shutDownFinishedHandler1);
         // Second start/stop without waiting
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler2);
+        oocut.start(UNKNOWN, startUpFinishedHandler2);
         oocut.stop(shutDownFinishedHandler2);
         // Second start/stop without waiting
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler3);
+        oocut.start(UNKNOWN, startUpFinishedHandler3);
         oocut.stop(shutDownFinishedHandler3);
 
         // Now let's make sure all measurements started and stopped as expected
@@ -552,8 +558,8 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
+                MessageCodes.getServiceStartedActionId(appId));
+        oocut.start(UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
 
@@ -579,7 +585,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         // must throw NoSuchMeasurementException
-        oocut.stop(new TestShutdownFinishedHandler(lock, condition));
+        oocut.stop(new TestShutdownFinishedHandler(lock, condition, MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED));
     }
 
     /**
@@ -710,7 +716,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                appId);
+                MessageCodes.getServiceStartedActionId(appId));
         oocut.resume(startUpFinishedHandler);
         final boolean isRunning = isDataCapturingServiceRunning();
         assertThat(isRunning, is(equalTo(true)));
@@ -748,7 +754,7 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    @Ignore // Not needed to be executed automatically as MOV-527 made the normal tests flaky
+    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     public void testStartPauseStop_MultipleTimes() throws MissingPermissionException, DataCapturingException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
@@ -801,10 +807,19 @@ public class DataCapturingServiceTest {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
-    public void testStartPauseResumeStop() throws DataCapturingException, MissingPermissionException,
+    public void testStartPauseResumeStop_EventsAreLogged() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
 
-        startPauseResumeStop();
+        final long measurementIdentifier = startPauseResumeStop();
+
+        final List<Event> events = oocut.persistenceLayer.loadEvents(measurementIdentifier);
+        // start, pause, resume, stop and initial MODALITY_TYPE_CHANGE event
+        assertThat(events.size(), is(equalTo(5)));
+        assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
+        assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
+        assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+        assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+        assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
     }
 
     /**
@@ -820,7 +835,7 @@ public class DataCapturingServiceTest {
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @Ignore // Not needed to be executed automatically as MOV-527 made the normal tests flaky
+    @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Test
     public void testStartPauseResumeStop_MultipleTimes() throws DataCapturingException, MissingPermissionException,
             NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
@@ -835,7 +850,7 @@ public class DataCapturingServiceTest {
         }
     }
 
-    private void startPauseResumeStop() throws DataCapturingException, NoSuchMeasurementException,
+    private long startPauseResumeStop() throws DataCapturingException, NoSuchMeasurementException,
             CursorIsNullException, CorruptedMeasurementException, MissingPermissionException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
@@ -857,21 +872,27 @@ public class DataCapturingServiceTest {
             eventCursor = contentResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurementIdentifier).toString()},
                     EventTable.COLUMN_TIMESTAMP + " ASC");
-            Validate.softCatchNullCursor(eventCursor);
+            softCatchNullCursor(eventCursor);
 
             final List<Event> events = new ArrayList<>();
             while (eventCursor.moveToNext()) {
                 final Event.EventType eventType = Event.EventType
                         .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
                 final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
-                events.add(new Event(eventType, eventTime));
+                final String value = eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_VALUE));
+                final long eventId = eventCursor.getLong(eventCursor.getColumnIndex(BaseColumns._ID));
+                events.add(new Event(eventId, eventType, eventTime, value));
             }
 
-            assertThat(events.size(), is(equalTo(4)));
+            assertThat(events.size(), is(equalTo(5)));
             assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
+            assertThat(events.get(1).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
+            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
+            assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+
+            return measurementIdentifier;
         } finally {
             if (eventCursor != null) {
                 eventCursor.close();
@@ -881,7 +902,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests whether actual sensor data is captured after running the method
-     * {@link CyfaceDataCapturingService#start(Vehicle, StartUpFinishedHandler)} ()}.
+     * {@link CyfaceDataCapturingService#start(Modality, StartUpFinishedHandler)} ()}.
      * In bug #CY-3862 only the {@link DataCapturingService} was started and measurements created
      * but no sensor data was captured as the {@link de.cyface.datacapturing.backend.DataCapturingBackgroundService}
      * was not started. The cause was: disables sensor capturing.
@@ -929,24 +950,81 @@ public class DataCapturingServiceTest {
      * our code throws a hard exception if this happens again which should help to identify this prior to release.
      */
     @Test(expected = SetupException.class)
-    public void testDataCapturingService_doesNotAcceptHttpProtocolUrl() throws CursorIsNullException, SetupException {
-
-        new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
-                ACCOUNT_TYPE, "http://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
-    }
-
-    /**
-     * Test that checks that the {@link DataCapturingService} constructor only accepts API URls with "https://" as
-     * protocol.
-     * <p>
-     * We had twice the problem that SDK implementors used no or a false protocol. This test ensures that
-     * our code throws a hard exception if this happens again which should help to identify this prior to release.
-     */
-    @Test(expected = SetupException.class)
     public void testDataCapturingService_doesNotAcceptUrlWithoutProtocol()
             throws CursorIsNullException, SetupException {
 
         new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                 ACCOUNT_TYPE, "localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
+    }
+
+    /**
+     * Tests that starting a new {@code Measurement} and changing the {@code Modality} during runtime creates two
+     * {@link Event.EventType#MODALITY_TYPE_CHANGE} entries.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testChangeModality_EventLogContainsTwoModalities()
+            throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        oocut.changeModalityType(CAR);
+        stopAndCheckThatStopped(measurementIdentifier);
+        final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
+                Event.EventType.MODALITY_TYPE_CHANGE);
+        assertThat(modalityTypeChanges.size(), is(equalTo(2)));
+        assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));
+    }
+
+    /**
+     * Tests that changing to the same {@code Modality} twice does not produce a new
+     * {@link Event.EventType#MODALITY_TYPE_CHANGE} {@code Event}.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testChangeModalityToSameModalityTwice_EventLogStillContainsOnlyTwoModalities()
+            throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        oocut.changeModalityType(CAR);
+        oocut.changeModalityType(CAR);
+        stopAndCheckThatStopped(measurementIdentifier);
+        final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
+                Event.EventType.MODALITY_TYPE_CHANGE);
+        assertThat(modalityTypeChanges.size(), is(equalTo(2)));
+    }
+
+    /**
+     * Tests that changing {@code Modality} during a {@link Event.EventType#LIFECYCLE_PAUSE} works as expected.
+     *
+     * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
+     * @throws DataCapturingException If any unexpected error occurs.
+     * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    @Test
+    public void testChangeModalityWhilePaused_EventLogStillContainsModalityChange()
+            throws MissingPermissionException, DataCapturingException,
+            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+
+        final long measurementIdentifier = startAndCheckThatLaunched();
+        pauseAndCheckThatStopped(measurementIdentifier);
+        oocut.changeModalityType(CAR);
+        stopAndCheckThatStopped(-1L); // -1 because it's already stopped
+        final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
+                Event.EventType.MODALITY_TYPE_CHANGE);
+        assertThat(modalityTypeChanges.size(), is(equalTo(2)));
+        assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));
     }
 }

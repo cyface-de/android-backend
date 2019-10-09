@@ -33,6 +33,7 @@ import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
+import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -80,7 +81,7 @@ import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
@@ -103,7 +104,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 17.0.0
+ * @version 18.0.3
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -238,7 +239,7 @@ public abstract class DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
 
-        if (!dataUploadServerAddress.startsWith("https://")) {
+        if (!dataUploadServerAddress.startsWith("https://") && !dataUploadServerAddress.startsWith("http://")) {
             throw new SetupException("Invalid URL protocol");
         }
         this.context = new WeakReference<>(context);
@@ -253,8 +254,6 @@ public abstract class DataCapturingService {
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
-        Validate.notNull(deviceIdentifier,
-                "Sync canceled: No installation identifier for this application set in its preferences.");
         this.appId = context.getPackageName();
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
@@ -291,8 +290,8 @@ public abstract class DataCapturingService {
      * <b>ATTENTION:</b> If there are errors while starting the service, your handler might never be called. You may
      * need to apply some timeout mechanism to not wait indefinitely.
      *
-     * @param vehicle The {@link Vehicle} used to capture this data. If you have no way to know which kind of
-     *            <code>Vehicle</code> was used, just use {@link Vehicle#UNKNOWN}.
+     * @param modality The {@link Modality} used to capture this data. If you have no way to know which kind of
+     *            <code>Modality</code> was used, just use {@link Modality#UNKNOWN}.
      * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      *             Android context was available.
@@ -303,7 +302,7 @@ public abstract class DataCapturingService {
      * @throws CorruptedMeasurementException when there are unfinished, dead measurements.
      */
     // This life-cycle method is called by sdk implementing apps (e.g. SR)
-    public void start(final @NonNull Vehicle vehicle, final @NonNull StartUpFinishedHandler finishedHandler)
+    public void start(@NonNull final Modality modality, @NonNull final StartUpFinishedHandler finishedHandler)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException,
             CorruptedMeasurementException {
         Log.d(TAG, "Starting asynchronously.");
@@ -329,8 +328,11 @@ public abstract class DataCapturingService {
             }
 
             // Start new measurement
-            final Measurement measurement = prepareStart(vehicle);
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_START, measurement);
+            final Measurement measurement = prepareStart(modality);
+            final long timestamp = System.currentTimeMillis();
+            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_START, measurement, timestamp);
+            persistenceLayer.logEvent(Event.EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
+                    modality.getDatabaseIdentifier());
             runService(measurement, finishedHandler);
         } finally {
             Log.v(TAG, "Unlocking lifecycle from asynchronous start.");
@@ -355,7 +357,7 @@ public abstract class DataCapturingService {
      *            completed.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
-     *             there was no call to {@link #start(Vehicle, StartUpFinishedHandler)}
+     *             there was no call to {@link #start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -449,7 +451,7 @@ public abstract class DataCapturingService {
      *             again.
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} while pausing the
      *             service. This usually occurs if there was no call to
-     *             {@link #start(Vehicle, StartUpFinishedHandler)} prior to pausing.
+     *             {@link #start(Modality, StartUpFinishedHandler)} prior to pausing.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // used by sdk implementing apps (e.g. SR)
@@ -623,7 +625,8 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.v(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext(), appId);
+        final PongReceiver pongReceiver = new PongReceiver(getContext(), MessageCodes.getPingActionId(appId),
+                MessageCodes.getPongActionId(appId));
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -847,8 +850,9 @@ public abstract class DataCapturingService {
      * new {@link Measurement} and initializing the message handler for messages from the data capturing background
      * service.
      *
-     * @param vehicle The type of vehicle this method is called for. If you do not know which vehicle was used you might
-     *            use {@link Vehicle#UNKNOWN}.
+     * @param modality The type of modality this method is called for. If you do not know which modality was used you
+     *            might
+     *            use {@link Modality#UNKNOWN}.
      * @return The prepared measurement, which is ready to receive data.
      * @throws DataCapturingException If this object has no valid Android <code>Context</code>.
      * @throws MissingPermissionException If permission <code>ACCESS_FINE_LOCATION</code> has not been granted or
@@ -861,7 +865,7 @@ public abstract class DataCapturingService {
      *             up such measurements.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    private Measurement prepareStart(final @NonNull Vehicle vehicle)
+    private Measurement prepareStart(final @NonNull Modality modality)
             throws DataCapturingException, MissingPermissionException, CursorIsNullException {
         if (context.get() == null) {
             throw new DataCapturingException("No context to start service!");
@@ -874,7 +878,7 @@ public abstract class DataCapturingService {
         Validate.isTrue(!hasOpenMeasurements, "There is a dead OPEN measurement!");
         Validate.isTrue(!hasPausedMeasurements, "There is a dead PAUSED measurement or wrong life-cycle call.");
 
-        return persistenceLayer.newMeasurement(vehicle);
+        return persistenceLayer.newMeasurement(modality);
     }
 
     /**
@@ -1085,6 +1089,48 @@ public abstract class DataCapturingService {
     }
 
     /**
+     * Called when the user switches the {@link Modality} via UI.
+     * <p>
+     * In order to record multi-{@code Modality} {@code Measurement}s this method records {@code Modality} switches as
+     * {@link Event}s when this occurs during an ongoing {@link Measurement}. Does nothing when no capturing
+     * {@link #isRunning}.
+     *
+     * @param newModality the identifier of the new {@link Modality}
+     */
+    public void changeModalityType(@NonNull final Modality newModality) {
+        final long timestamp = System.currentTimeMillis();
+
+        try {
+            final boolean hasOpenMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.OPEN);
+            final boolean hasPausedMeasurements = persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED);
+            if (!hasOpenMeasurements && !hasPausedMeasurements) {
+                Log.v(TAG, "changeModalityType(): No unfinished measurement, event not recorded");
+                return;
+            }
+
+            // Record modality-switch Event for ongoing Measurements
+            Log.v(TAG, "changeModalityType(): Logging Modality type change!");
+            final Measurement measurement;
+            measurement = loadCurrentlyCapturedMeasurement();
+
+            // Ensure the newModality is actually different to the current Modality
+            final List<Event> modalityChanges = persistenceLayer.loadEvents(measurement.getIdentifier(), Event.EventType.MODALITY_TYPE_CHANGE);
+            if (modalityChanges.size() > 0) {
+                final Event lastModalityChangeEvent = modalityChanges.get(modalityChanges.size() - 1);
+                if (lastModalityChangeEvent.getValue().equals(newModality.getDatabaseIdentifier())) {
+                    Log.d(TAG, "changeModalityType(): Doing nothing as current Modality equals the newModality.");
+                    return;
+                }
+            }
+
+            persistenceLayer.logEvent(Event.EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
+                    newModality.getDatabaseIdentifier());
+        } catch (final CursorIsNullException | NoSuchMeasurementException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    /**
      * A handler for messages coming from the {@link DataCapturingBackgroundService}.
      *
      * @author Klemens Muthmann
@@ -1211,7 +1257,8 @@ public abstract class DataCapturingService {
                     // The task for the missing test is CY-4111. Currently only tested manually.
                     final Lock lock = new ReentrantLock();
                     final Condition condition = lock.newCondition();
-                    final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition);
+                    final StopSynchronizer synchronizationReceiver = new StopSynchronizer(lock, condition,
+                            MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
                     // The background service already received a stopSelf command but as it's still
                     // bound to this service it should be still alive. We unbind it from this service via the
                     // stopService method (to reduce code duplicity).

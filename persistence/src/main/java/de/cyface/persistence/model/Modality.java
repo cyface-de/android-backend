@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2019 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,23 +16,27 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.utils;
+package de.cyface.persistence.model;
 
 /**
- * A runtime exception thrown when a pre- or post condition check fails.
+ * The {@link Modality} types to choose from when starting a {@link Measurement}.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @author Klemens Muthmann
+ * @version 2.0.0
  * @since 1.0.0
  */
-public class ValidationException extends RuntimeException {
-    /**
-     * Creates a new completely initialized {@code ValidationException} with a message explaining further details about
-     * the reasons of this exception.
-     *
-     * @param detailMessage Provides a detailed explanation about this exception.
-     */
-    public ValidationException(final String detailMessage) {
-        super(detailMessage);
+public enum Modality {
+    BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), BUS("BUS"), TRAIN("TRAIN"), WALKING("WALKING"), UNKNOWN(
+            "UNKNOWN");
+
+    private String databaseIdentifier;
+
+    Modality(final String databaseIdentifier) {
+        this.databaseIdentifier = databaseIdentifier;
+    }
+
+    public String getDatabaseIdentifier() {
+        return databaseIdentifier;
     }
 }

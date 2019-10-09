@@ -33,6 +33,7 @@ How to integrate the SDK
 	- [Load Tracks](#load-tracks)
 	- [Load Measurement Distance (new feature)](#load-measurement-distance)
 	- [Delete Measurements](#delete-measurements)
+	- [Load Events](#load-events)
 - [Documentation Incomplete](#documentation-incomplete)
 
 ### Resource Files
@@ -380,7 +381,7 @@ To capture a measurement you need to start the capturing and stop it after some 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
     public void onClick(View view) {
-        dataCapturingService.start(vehicle, new StartUpFinishedHandler(context.getPackageName()) {
+        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(context.getPackageName()) {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -388,7 +389,7 @@ public class DataCapturingButton implements DataCapturingListener {
             }
         });
         // or
-        dataCapturingService.stop(vehicle, new ShutDownFinishedHandler() {
+        dataCapturingService.stop(new ShutDownFinishedHandler() {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -534,6 +535,41 @@ class measurementControlOrAccessClass {
 }
 ```
 
+#### Load Events
+
+The `loadEvents()` method returns a chronologically ordered list of `Event`s.
+
+These Events log `Measurement` related interactions of the user, e.g.:
+
+- EventType.LIFECYCLE_START, EventType.LIFECYCLE_PAUSE, EventType.LIFECYCLE_RESUME, EventType.LIFECYCLE_STOP
+  whenever a user starts, pauses, resumes or stops the Measurement.
+  
+- EventType.MODALITY_TYPE_CHANGE at the start of a Measurement to define the Modality used in the Measurement
+  and when the user selects a new `Modality` type during an ongoing (or paused) Measurement.
+  The later is logged when `persistenceLayer.changeModalityType(Modality newModality)` is called with a different Modality than the current one.
+  
+- The `Event` class contains a `getValue()` attribute which contains the `newModality`
+  in case of a `EventType.MODALITY_TYPE_CHANGE` or else `Null`
+
+```java
+class measurementControlOrAccessClass {
+    void loadEvents() {
+        
+        // To retrieve all Events of that Measurement
+        //noinspection UnusedAssignment
+        List<Event> events = persistence.loadEvents(measurementId);
+        
+        // Or to retrieve only the Events of a specific EventType
+        events = persistence.loadEvents(measurementId, EventType.MODALITY_TYPE_CHANGE);
+        
+        //noinspection StatementWithEmptyBody
+        if (events.size() > 0 ) {
+            // your logic
+        }
+    }
+}
+```
+
 
 ### Documentation Incomplete
 
@@ -544,12 +580,13 @@ This documentation still lacks of samples for the following features:
 * ConnectionStatusListener
 * Disable synchronization
 * Enable synchronization on metered connections
-* Usage of Camera, Bluetooth (not yet implemented in the SDK)
+* The synchronization talks to a [Cyface Data Collector](https://github.com/cyface-de/data-collector) 
 
 
 Migration from Earlier Versions
 --------------------------------
  - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
+ - [Migrate to 5.0.0-beta1](documentation/migration-guide_5.0.0-beta1.md)
 
 
 License

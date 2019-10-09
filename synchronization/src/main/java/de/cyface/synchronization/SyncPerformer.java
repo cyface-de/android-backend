@@ -20,26 +20,26 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
-import static de.cyface.utils.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
-import static de.cyface.utils.ErrorHandler.sendErrorIntent;
-import static de.cyface.utils.ErrorHandler.ErrorCode.BAD_REQUEST;
-import static de.cyface.utils.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.FORBIDDEN;
-import static de.cyface.utils.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.MALFORMED_URL;
-import static de.cyface.utils.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
-import static de.cyface.utils.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
-import static de.cyface.utils.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.FORBIDDEN;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.File;
 import java.io.IOException;
+import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
 import java.util.Locale;
 
-import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 
 import android.content.Context;
@@ -49,6 +49,8 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.model.Event;
+import de.cyface.persistence.model.Measurement;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -56,7 +58,7 @@ import de.cyface.persistence.DefaultFileAccess;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.4
+ * @version 5.0.0
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -94,7 +96,7 @@ class SyncPerformer {
      * <code>deviceIdentifier</code> need to be globally unique. If they are not the server will probably reject the
      * request.
      * <p>
-     * Sync errors are broadcasted to the {@link de.cyface.utils.ErrorHandler}.
+     * Sync errors are broadcasted to the {@link ErrorHandler}.
      * <p>
      * Since this is a synchronous call it can take from seconds to minutes depending on the size of <code>data</code>.
      * Never call this on the UI thread. Your users are going to hate you.
@@ -103,28 +105,33 @@ class SyncPerformer {
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param dataServerUrl The server URL to send the data to.
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param compressedTransferTempFile The data to transmit
+     * @param compressedTransferTempFile The {@link Measurement} data to transmit
+     * @param compressedEventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
     boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
             @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
+            @NonNull final File compressedTransferTempFile, @NonNull final File compressedEventsTransferTempFile,
+            @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
         Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed measurement (%s)",
                 DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
-        HttpsURLConnection.setFollowRedirects(false);
-        HttpsURLConnection connection = null;
-        final String fileName = String.format(Locale.US, "%s_%d.cyf", metaData.deviceId, metaData.measurementId);
+        Log.d(de.cyface.persistence.Constants.TAG, String.format("Transferring compressed events (%s)",
+                DefaultFileAccess.humanReadableByteCount(compressedEventsTransferTempFile.length(), true)));
+        HttpURLConnection.setFollowRedirects(false);
+        HttpURLConnection connection = null;
+        final String fileName = String.format(Locale.US, "%s_%d.ccyf", metaData.deviceId, metaData.measurementId);
+        final String eventsFileName = String.format(Locale.US, "%s_%d_.ccyfe", metaData.deviceId, metaData.measurementId);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
-            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
+            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s and %s to %s", fileName, eventsFileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, compressedTransferTempFile, metaData, fileName, progressListener);
+                http.post(connection, compressedTransferTempFile, compressedEventsTransferTempFile, metaData, fileName, eventsFileName, progressListener);
             } finally {
                 if (connection != null) {
                     connection.disconnect();

@@ -38,7 +38,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.2
+ * @version 2.0.3
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
@@ -99,7 +99,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
 
         return new NotificationCompat.Builder(context, channelId)
                 .setContentTitle(context.getString(R.string.notification_title))
-                .setSmallIcon(R.drawable.ic_hourglass_empty_black_24dp)
+                .setSmallIcon(de.cyface.utils.R.drawable.ic_hourglass_empty_black_24dp)
                 .setContentText(context.getString(R.string.notification_text)).setOngoing(true).setAutoCancel(false)
                 .build();
     }

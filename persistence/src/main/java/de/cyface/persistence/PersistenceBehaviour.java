@@ -1,10 +1,28 @@
+/*
+ * Copyright 2019 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence;
 
 import android.content.ContentProvider;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -12,7 +30,7 @@ import de.cyface.utils.CursorIsNullException;
  * if you want to use the {@code PersistenceLayer} to capture a new {@link Measurement} or to load existing data.
  *
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 1.0.4
  * @since 3.0.0
  */
 public interface PersistenceBehaviour {
@@ -23,7 +41,7 @@ public interface PersistenceBehaviour {
     void onStart(@NonNull PersistenceLayer persistenceLayer);
 
     /**
-     * This is called after a {@link PersistenceLayer#newMeasurement(Vehicle)} was created.
+     * This is called after a {@link PersistenceLayer#newMeasurement(Modality)} was created.
      * 
      * @param measurementId The id of the recently created {@link Measurement}
      */

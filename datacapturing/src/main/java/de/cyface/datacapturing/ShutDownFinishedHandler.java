@@ -1,15 +1,18 @@
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
-import static de.cyface.datacapturing.Constants.TAG;
 
 import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 import androidx.localbroadcastmanager.content.LocalBroadcastManager;
+
+import de.cyface.utils.Validate;
 
 /**
  * Handler for shutdown finished events. Just implement the {@link #shutDownFinished(long)} method with the code you
@@ -19,10 +22,11 @@ import androidx.localbroadcastmanager.content.LocalBroadcastManager;
  * To work properly you must register this object as an Android <code>BroadcastReceiver</code>.
  *
  * @author Klemens Muthmann
- * @version 2.0.6
+ * @author Armin Schnabel
+ * @version 3.0.0
  * @since 2.0.0
- * @see #pause(ShutDownFinishedHandler)
- * @see DataCapturingService#stop(DataCapturingListener, ShutDownFinishedHandler)
+ * @see DataCapturingService#pause(ShutDownFinishedHandler)
+ * @see DataCapturingService#stop(ShutDownFinishedHandler)
  */
 public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
 
@@ -32,6 +36,19 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
      * been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code> otherwise.
      */
     private boolean receivedServiceStopped;
+    /**
+     * An app and device-wide unique identifier. Each service needs to use a different id so that only the
+     * service in question receives the expected ping-back.
+     */
+    private final String serviceStoppedActionId;
+
+    /**
+     * @param serviceStoppedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     *            so that only the service in question receives the expected ping-back.
+     */
+    public ShutDownFinishedHandler(@NonNull final String serviceStoppedActionId) {
+        this.serviceStoppedActionId = serviceStoppedActionId;
+    }
 
     /**
      * Method called if shutdown has been finished.
@@ -42,29 +59,24 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     public abstract void shutDownFinished(final long measurementIdentifier);
 
     @Override
-    public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
+    public void onReceive(@NonNull final Context context, @NonNull final Intent intent) {
         Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
-        if (intent.getAction() == null) {
-            throw new IllegalStateException("Received broadcast with null action.");
+        final String action = intent.getAction();
+        Validate.notNull("Received broadcast with null action.", action);
+        Validate.isTrue(serviceStoppedActionId.equals(intent.getAction()),
+                "Received undefined broadcast " + intent.getAction());
+
+        Log.v(TAG, "Received Service stopped broadcast!");
+        receivedServiceStopped = true;
+        boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY, false);
+        long measurementIdentifier = -1;
+        if (serviceWasStoppedSuccessfully) {
+            measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
+            if (measurementIdentifier == -1) {
+                throw new IllegalStateException("No measurement identifier provided for stopped service!");
+            }
         }
-        // noinspection SwitchStatementWithTooFewBranches
-        switch (intent.getAction()) {
-            case MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED:
-                Log.v(TAG, "Received Service stopped broadcast!");
-                receivedServiceStopped = true;
-                boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY, false);
-                long measurementIdentifier = -1;
-                if (serviceWasStoppedSuccessfully) {
-                    measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
-                    if (measurementIdentifier == -1) {
-                        throw new IllegalStateException("No measurement identifier provided for stopped service!");
-                    }
-                }
-                shutDownFinished(measurementIdentifier);
-                break;
-            default:
-                throw new IllegalStateException("Received undefined broadcast " + intent.getAction());
-        }
+        shutDownFinished(measurementIdentifier);
 
         try {
             LocalBroadcastManager.getInstance(context).unregisterReceiver(this);

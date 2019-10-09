@@ -10,11 +10,11 @@ import androidx.annotation.NonNull;
 
 /**
  * Listener for interested parties to subscribe to synchronization status updates.
- * Synchronization errors are broadcasted via the {@link de.cyface.utils.ErrorHandler}.
+ * Synchronization errors are broadcasted via the {@link ErrorHandler}.
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 public final class CyfaceConnectionStatusListener implements ConnectionStatusListener {

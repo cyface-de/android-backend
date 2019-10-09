@@ -15,11 +15,12 @@ import androidx.annotation.NonNull;
  * This class is used by a {@link PongReceiver} to inform a reconnection process about the status and wake it up.
  * 
  * @author Klemens Muthmann
- * @version 1.0.6
+ * @version 1.0.7
  * @since 2.0.1
  * @see DataCapturingService#reconnect(long)
  */
-abstract class ReconnectCallback implements IsRunningCallback {
+@SuppressWarnings("WeakerAccess") // to be accessible for the camera service
+public abstract class ReconnectCallback implements IsRunningCallback {
 
     /**
      * Flag indicating whether the background service was running after the callback has returned. This is
@@ -46,7 +47,8 @@ abstract class ReconnectCallback implements IsRunningCallback {
      * @param lock A <code>lock</code> provided to this callback to protect the wake up process of the calling thread.
      * @param condition A <code>condition</code> used to wake up the calling process.
      */
-    ReconnectCallback(final @NonNull Lock lock, final @NonNull Condition condition) {
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // to be accessible for the camera service
+    protected ReconnectCallback(final @NonNull Lock lock, final @NonNull Condition condition) {
         this.lock = lock;
         this.condition = condition;
     }

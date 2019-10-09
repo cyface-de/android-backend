@@ -25,8 +25,10 @@ import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.robolectric.RobolectricTestRunner;
+import org.robolectric.annotation.Config;
 
 import android.location.Location;
+import android.os.Build;
 
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.model.GeoLocation;
@@ -38,10 +40,11 @@ import de.cyface.persistence.model.Measurement;
  * This has to be an integration test as we use Android's {@link Location} class for distance calculation.
  *
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.0.5
  * @since 3.2.0
  */
 @RunWith(RobolectricTestRunner.class)
+@Config(sdk = Build.VERSION_CODES.O_MR1) // To be able to execute tests with Java 8 (instead of 9)
 public class DefaultDistanceCalculationStrategyTest {
 
     /**

@@ -46,7 +46,7 @@ import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.CursorIsNullException;
 
@@ -55,13 +55,13 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.5
+ * @version 2.1.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @MediumTest
 @FlakyTest
-@Ignore // Ignore this test until Android is capable of resetting permissions for every test
+@Ignore("Ignore this test until Android is capable of resetting permissions for every test")
 public class DataCapturingServiceTestWithoutPermission {
 
     /**
@@ -121,8 +121,8 @@ public class DataCapturingServiceTestWithoutPermission {
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
             CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                context.getPackageName());
-        oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
+                MessageCodes.getServiceStartedActionId(context.getPackageName()));
+        oocut.start(Modality.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
 
@@ -138,8 +138,8 @@ public class DataCapturingServiceTestWithoutPermission {
         boolean exceptionCaught = false;
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                    context.getPackageName());
-            oocut.start(Vehicle.UNKNOWN, startUpFinishedHandler);
+                    MessageCodes.getServiceStartedActionId(context.getPackageName()));
+            oocut.start(Modality.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
             exceptionCaught = true;

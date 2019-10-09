@@ -76,8 +76,9 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.Vehicle;
+import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
@@ -88,7 +89,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 2.3.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -152,7 +153,7 @@ public class MeasurementSerializerTest {
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 
         // Mock point counters
-        final Measurement measurement = new Measurement(1L, OPEN, Vehicle.UNKNOWN,
+        final Measurement measurement = new Measurement(1L, OPEN, Modality.UNKNOWN,
                 MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0, 123L);
         when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
@@ -191,6 +192,9 @@ public class MeasurementSerializerTest {
         Validate.notNull(serializedRotations);
         final byte[] serializedDirections = serialize(directions);
         Validate.notNull(serializedDirections);
+
+        // Mock persistence
+        when(persistence.getFileAccessLayer()).thenReturn(mockedFileAccessLayer);
 
         // Mock FileAccessLayer
         when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
@@ -240,7 +244,7 @@ public class MeasurementSerializerTest {
             }
         }).when(mockedFileAccessLayer).writeToOutputStream(eq(mockedDirectionFile), any(BufferedOutputStream.class));
 
-        oocut = new MeasurementSerializer(mockedFileAccessLayer);
+        oocut = new MeasurementSerializer();
     }
 
     /**
@@ -258,7 +262,8 @@ public class MeasurementSerializerTest {
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
             // Act
-            oocut.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
+            new MeasurementFileSerializerStrategy().loadSerialized(bufferedFileOutputStream, loader,
+                    SAMPLE_MEASUREMENT_ID, persistence);
 
             // Assert
             assertThat(serializedFile.exists(), is(true));
@@ -284,7 +289,8 @@ public class MeasurementSerializerTest {
         try {
             final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-            oocut.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
+            new MeasurementFileSerializerStrategy().loadSerialized(bufferedFileOutputStream, loader,
+                    SAMPLE_MEASUREMENT_ID, persistence);
             assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
 
             // Act & Assert
@@ -306,7 +312,7 @@ public class MeasurementSerializerTest {
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
         final long SERIALIZED_COMPRESSED_SIZE = 43L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
-                persistence);
+                persistence, new MeasurementFileSerializerStrategy());
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
     }
 
@@ -318,7 +324,7 @@ public class MeasurementSerializerTest {
 
         // Assemble serialized compressed bytes
         final File compressedTransferTempFile = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
-                persistence);
+                persistence, new MeasurementFileSerializerStrategy());
         // Load bytes from compressedTransferFile
         final byte[] compressedBytes = new byte[(int)compressedTransferTempFile.length()];
         DataInputStream dis = new DataInputStream(new FileInputStream(compressedTransferTempFile));
@@ -346,7 +352,8 @@ public class MeasurementSerializerTest {
         try {
             final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-            oocut.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
+            new MeasurementFileSerializerStrategy().loadSerialized(bufferedFileOutputStream, loader,
+                    SAMPLE_MEASUREMENT_ID, persistence);
             assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
 
             uncompressedTransferFileBytes = new DefaultFileAccess().loadBytes(serializedFile);

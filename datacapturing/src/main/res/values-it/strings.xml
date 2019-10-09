@@ -18,8 +18,7 @@
  along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
 -->
 <resources>
-    <string name="capturing_service_description">Sammelt Sensordaten von deinem Smartphone (GNSS(GPS), Beschleunigungen, Drehungen, Kompassdaten) und sendet sie anonymisiert an deine Kommune zur Verbesserung der Verkehrsinfrastruktur.</string>
-    <string name="capturing_active">Vielen Dank für Ihren Beitrag</string>
-
-    <string name="notification_channel_description_running">Benachrichtigung die auf eine laufende Messunge hinweist.</string>
+    <string name="capturing_service_description">Servizio usato per raccogliere i dati di sensori interni al telefono cellulare (quali GPS, accelerometro, giroscopio, magnetometro) e per utilizzarli al fine di migliorare la mobilità a nella vostra città.</string>
+    <string name="capturing_active">Grazie per la tua partecipazione</string>
+    <string name="notification_channel_description_running">Notifica che mostra che c\'è una misura in esecuzione.</string>
 </resources>

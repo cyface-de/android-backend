@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 
@@ -6,7 +24,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.6
+ * @version 2.2.1
  * @since 1.0.0
  */
 
@@ -68,7 +86,7 @@ android {
         }
     }
 
-    // Required by Roboeletric
+    // Required by Roboletric
     testOptions {
         unitTests {
             includeAndroidResources = true
@@ -78,14 +96,17 @@ android {
 }
 
 dependencies {
-    implementation project(":utils")
+    // Cyface dependencies
+    implementation "de.cyface:android-utils:$rootProject.ext.utilsVersion"
     implementation project(":persistence")
+
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
+    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
-    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.extJunitVersion"
+    androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
     androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"
     // For some reasons the CI does does pull the transitive dependencies of mockito-android which will fails
@@ -96,7 +117,7 @@ dependencies {
     testImplementation project(":testutils")
     // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
     // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other dependencies (e.g. testCompile)
-    testImplementation "junit:junit:$rootProject.ext.junitVersion"
+    testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
