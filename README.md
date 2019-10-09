@@ -586,7 +586,7 @@ This documentation still lacks of samples for the following features:
 Migration from Earlier Versions
 --------------------------------
  - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
- - [Migrate to 5.0.0-alpha1](documentation/migration-guide_5.0.0-alpha1.md)
+ - [Migrate to 5.0.0-beta1](documentation/migration-guide_5.0.0-beta1.md)
 
 
 License
