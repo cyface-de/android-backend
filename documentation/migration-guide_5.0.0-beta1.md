@@ -1,4 +1,4 @@
-Cyface Android SDK 5.0.0-alpha1 Migration Guide
+Cyface Android SDK 5.0.0-beta1 Migration Guide
 =================================================
 
 This migration guide is written for apps using the `MovebisDataCapturingService`.
