@@ -598,7 +598,7 @@ public class CapturedDataWriterTest {
             throws CursorIsNullException {
 
         // Arrange
-        final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
+        final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and at least one location between start and pause
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
