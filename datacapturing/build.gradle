@@ -42,12 +42,6 @@ android {
         missingDimensionStrategy 'full', 'mock'
     }
 
-    testOptions {
-        unitTests {
-            includeAndroidResources = true
-        }
-    }
-
     // Specifies the flavor dimensions you want to use. The order in which you
     // list each dimension determines its priority, from highest to lowest,
     // when Gradle merges variant sources and configurations. You must assign
