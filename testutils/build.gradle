@@ -34,8 +34,6 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 
-        versionCode 1 // this must be incremented if new apk should be pushed to play store
-        // this is shown to the users, see Confluence/Android Client for naming guideline
         versionName rootProject.ext.version
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
