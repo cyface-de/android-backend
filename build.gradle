@@ -46,6 +46,7 @@ buildscript {
 ext {
     groupId = 'de.cyface'
     version = "5.0.0-beta1"
+    artifactId = 'android-backend'
 
     utilsVersion = "1.1.1"
 
@@ -70,16 +71,14 @@ ext {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 }
 
-group = ext.groupId
-
 allprojects {
     repositories {
         // Needed to resolve newest support libraries with IntelliJ / Gradle
         google()
         jcenter()
         maven {
-            // Repository for Cyface libraries
-            url 'https://dl.bintray.com/cyface-de/android-utils'
+            // Repository for Cyface Android Utils
+            url = uri("https://maven.pkg.github.com/cyface-de/android-utils")
         }
     }
 
@@ -93,64 +92,7 @@ allprojects {
 
 apply plugin: 'android-reporting'
 
-configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing"] })) {
-    pr ->
-        apply plugin: 'com.android.library'
-        apply plugin: 'maven-publish'
-
-        group = rootProject.group
-
-        publish.dependsOn 'assemble'
-
-        publishing.publications {
-            pr.android.libraryVariants.all { variant ->
-                def flavored = !variant.flavorName.isEmpty()
-                def variantArtifactId = flavored ? variant.flavorName.replace('_', '-') : project.name
-                variantArtifactId += variant.getBuildType().name=='release'?'':variant.getBuildType().name.capitalize()
-
-                def javaDocDestDir = file("${buildDir}/docs/javadoc ${flavored ? variantArtifactId : ""}")
-
-                def sourceDirs = variant.sourceSets.collect {
-                    it.javaDirectories // includes Kotlin sources
-                }
-                def javadoc = task("${variant.name}Javadoc", type: Javadoc) {
-                    description "Generates Javadoc for ${variant.name}."
-                    source = variant.javaCompileProvider.get().source
-                    destinationDir = javaDocDestDir
-                    classpath += files(android.getBootClasspath().join(File.pathSeparator))
-                    classpath += files(configurations.compile)
-                    options.links("http://docs.oracle.com/javase/7/docs/api/")
-                    options.links("http://d.android.com/reference/")
-                    exclude '**/BuildConfig.java'
-                    exclude '**/R.java'
-                    failOnError false
-                }
-                def javadocJar = task("${variant.name}JavadocJar", type: Jar, dependsOn: javadoc) {
-                    description "Puts Javadoc for ${variant.name} in a jar."
-                    classifier = 'javadoc'
-                    from javadoc.destinationDir
-                }
-                def sourcesJar = task("${variant.name}SourcesJar", type: Jar) {
-                    description "Puts sources for ${variant.name} in a jar."
-                    from sourceDirs
-                    classifier = 'sources'
-                }
-
-                "${project.name}${variant.name.capitalize()}${variant.getBuildType().name=='release'?'':variant.getBuildType().name.capitalize()}"(MavenPublication) {
-                    groupId project.group
-                    artifactId "${project.name}${variantArtifactId.capitalize()}"
-                    version android.defaultConfig.versionName
-                    artifact(variant.packageLibraryProvider.get().archivePath)
-                    artifact(javadocJar)
-                    artifact(sourcesJar)
-                }
-            }
-        }
-        repositories {
-            mavenLocal()
-        }
-}
-
+// To publish all subprojects
 task publishAll() {
     subprojects.each { pr ->
         dependsOn {
@@ -165,3 +107,6 @@ publishAll.outputs.upToDateWhen { false }
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
+
+// The gradle publish tasks is defined in a separate file:
+apply from: 'publish.gradle'

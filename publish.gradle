@@ -1,0 +1,95 @@
+/*
+ * Copyright 2019 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
+/**
+ * Gradle's publish file for this module.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 5.0.0-beta2
+ */
+
+configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "datacapturing"] })) {
+    pr ->
+        apply plugin: 'com.android.library'
+        apply plugin: 'maven-publish'
+
+        publish.dependsOn 'assemble'
+
+        // Load credentials
+        def properties = new Properties()
+        properties.load(new FileInputStream("local.properties"))
+
+        publishing {
+            // Authenticate at the repository
+            repositories {
+                maven {
+                    url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
+                    credentials {
+                        username = properties.getProperty("github.user")
+                        password = properties.getProperty("github.token")
+                    }
+                }
+            }
+            publications {
+
+                pr.android.libraryVariants.all { variant ->
+                    def flavored = !variant.flavorName.isEmpty()
+                    def variantArtifactId = flavored ? variant.flavorName.replace('_', '-') : project.name
+                    variantArtifactId += variant.getBuildType().name == 'release' ? '' : variant.getBuildType().name.capitalize()
+
+                    def javaDocDestDir = file("${buildDir}/docs/javadoc ${flavored ? variantArtifactId : ""}")
+
+                    def sourceDirs = variant.sourceSets.collect {
+                        it.javaDirectories // includes Kotlin sources
+                    }
+                    def javadoc = task("${variant.name}Javadoc", type: Javadoc) {
+                        description "Generates Javadoc for ${variant.name}."
+                        source = variant.javaCompileProvider.get().source
+                        destinationDir = javaDocDestDir
+                        classpath += classpath + files(android.getBootClasspath().join(File.pathSeparator))
+                        classpath += files(configurations.compile)
+                        options.links("http://docs.oracle.com/javase/7/docs/api/")
+                        options.links("http://d.android.com/reference/")
+                        exclude '**/BuildConfig.java'
+                        exclude '**/R.java'
+                        failOnError false
+                    }
+                    def javadocJar = task("${variant.name}JavadocJar", type: Jar, dependsOn: javadoc) {
+                        description "Puts Javadoc for ${variant.name} in a jar."
+                        archiveClassifier.set('javadoc')
+                        from javadoc.destinationDir
+                    }
+                    def sourcesJar = task("${variant.name}SourcesJar", type: Jar) {
+                        description "Puts sources for ${variant.name} in a jar."
+                        from sourceDirs
+                        archiveClassifier.set('sources')
+                    }
+
+                    "${project.name}${variant.name.capitalize()}${variant.getBuildType().name == 'release' ? '' : variant.getBuildType().name.capitalize()}"(MavenPublication) {
+                        groupId rootProject.ext.groupId
+                        artifactId "${project.name}${variantArtifactId.capitalize()}"
+                        version android.defaultConfig.versionName
+                        artifact(variant.packageLibraryProvider.get().archivePath)
+                        artifact(javadocJar)
+                        artifact(sourcesJar)
+                    }
+                }
+            }
+        }
+}
