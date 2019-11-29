@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.0
+ * @version 2.6.1
  * @since 1.0.0
  */
 
@@ -38,7 +38,6 @@ buildscript {
 ext {
     groupId = 'de.cyface'
     version = "5.0.0-beta1"
-    artifactId = 'android-backend'
 
     // Cyface dependencies
     utilsVersion = "1.1.3"
