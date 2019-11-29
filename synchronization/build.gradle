@@ -24,7 +24,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.1
+ * @version 2.2.2
  * @since 1.0.0
  */
 
