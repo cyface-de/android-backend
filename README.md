@@ -15,13 +15,25 @@ Integration Guide
 
 This library is published to the Github Package Registry.
 
-To use it's submodules as a dependencies you need to:
+To use it as a dependency you need to:
 
-1. Make sure you linked the repository:
+1. Make sure you are authenticated to the repository:
 
-    * Add the custom repository in your `build.gradle`:
+    * You need a Github account with read-access to this Github repository
+    * Create a [personal access token on Github](https://github.com/settings/tokens) with "read:packages" permissions
+    * Create or adjust a `local.properties` file in the project root containing:
+
+    ```
+    github.user=YOUR_USERNAME
+    github.token=YOUR_ACCESS_TOKEN
+    ```
+
+    * Add the custom repository to your `build.gradle`:
 
     ``` 
+    def properties = new Properties()
+    properties.load(new FileInputStream("local.properties"))
+
     repositories {
         // Other maven repositories, e.g.:
         jcenter()
@@ -29,6 +41,10 @@ To use it's submodules as a dependencies you need to:
         // Repository for this library
         maven {
             url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
+            credentials {
+                username = properties.getProperty("github.user")
+                password = properties.getProperty("github.token")
+            }
         }
     }
     ```
@@ -36,10 +52,12 @@ To use it's submodules as a dependencies you need to:
 2. Add this package as a dependency to your app's `build.gradle`:
 
     ```
+    # Attention: If you require another flavor like "movebis" use 'datacapturingMovebis', etc.!
+    
     dependencies {
-        implementation "de.cyface:datacapturingCyfaceFull:$cyfaceBackendVersion"
-        implementation "de.cyface:synchronizationCyfaceFull:$cyfaceBackendVersion"
-        implementation "de.cyface:persistenceCyfaceFull:$cyfaceBackendVersion"
+        implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
+        implementation "de.cyface:synchronization:$cyfaceBackendVersion"
+        implementation "de.cyface:persistence:$cyfaceBackendVersion"
     }
     ```
 
@@ -639,7 +657,7 @@ To publish a new version you need to:
 
 1. Make sure you are authenticated to the repository:
 
-    * Have write-access to this Github repository 
+    * You need a Github account with write-access to this Github repository 
     * Create a [personal access token on Github](https://github.com/settings/tokens) with "write:packages" permissions
     * Create or adjust a `local.properties` file in the project root containing:
 
