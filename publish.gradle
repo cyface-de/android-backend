@@ -47,33 +47,41 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
                 }
             }
             publications {
-
                 pr.android.libraryVariants.all { variant ->
-                    def flavored = !variant.flavorName.isEmpty()
-                    def variantArtifactId = flavored ? variant.flavorName.replace('_', '-') : project.name
-                    variantArtifactId += variant.getBuildType().name == 'release' ? '' : variant.getBuildType().name.capitalize()
 
-                    def javaDocDestDir = file("${buildDir}/docs/javadoc ${flavored ? variantArtifactId : ""}")
-
-                    def sourceDirs = variant.sourceSets.collect {
-                        it.javaDirectories // includes Kotlin sources
+                    // Only publish full release variants
+                    def isDebug = variant.getBuildType().name == 'debug'
+                    def isFlavored = !variant.flavorName.isEmpty()
+                    def flavor = variant.flavorName.replace('_', '-')
+                    def isMock = isFlavored && flavor.contains('Mock')
+                    if (isDebug || isMock) {
+                        return
                     }
+
+                    // Setup javadoc
+                    def optionalDebugAppendix = isDebug ? variant.getBuildType().name.capitalize() : ''
+                    def javaDocDestDir = file("${buildDir}/docs/javadoc ${isFlavored ? flavor + optionalDebugAppendix : ""}")
                     def javadoc = task("${variant.name}Javadoc", type: Javadoc) {
                         description "Generates Javadoc for ${variant.name}."
                         source = variant.javaCompileProvider.get().source
                         destinationDir = javaDocDestDir
-                        classpath += classpath + files(android.getBootClasspath().join(File.pathSeparator))
+                        classpath += files(android.getBootClasspath().join(File.pathSeparator))
                         classpath += files(configurations.compile)
                         options.links("http://docs.oracle.com/javase/7/docs/api/")
                         options.links("http://d.android.com/reference/")
-                        exclude '**/BuildConfig.java'
-                        exclude '**/R.java'
+                        exclude '**     /BuildConfig.java'
+                        exclude '**      /R.java'
                         failOnError false
                     }
+
+                    // Put javadoc and sources into jar
                     def javadocJar = task("${variant.name}JavadocJar", type: Jar, dependsOn: javadoc) {
                         description "Puts Javadoc for ${variant.name} in a jar."
                         archiveClassifier.set('javadoc')
                         from javadoc.destinationDir
+                    }
+                    def sourceDirs = variant.sourceSets.collect {
+                        it.javaDirectories // includes Kotlin sources
                     }
                     def sourcesJar = task("${variant.name}SourcesJar", type: Jar) {
                         description "Puts sources for ${variant.name} in a jar."
@@ -81,9 +89,13 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
                         archiveClassifier.set('sources')
                     }
 
-                    "${project.name}${variant.name.capitalize()}${variant.getBuildType().name == 'release' ? '' : variant.getBuildType().name.capitalize()}"(MavenPublication) {
+                    // Set artifact name to [submodule, submoduleMovebis]
+                    def optionalMovebisFlavor = flavor.contains('movebis') ? 'movebis' : ''
+
+                    // Configure artifacts
+                    "${project.name}${variant.name.capitalize()}"(MavenPublication) {
                         groupId rootProject.ext.groupId
-                        artifactId "${project.name}${variantArtifactId.capitalize()}"
+                        artifactId "${project.name}${optionalMovebisFlavor.capitalize()}"
                         version android.defaultConfig.versionName
                         artifact(variant.packageLibraryProvider.get().archivePath)
                         artifact(javadocJar)
