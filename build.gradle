@@ -36,11 +36,11 @@ buildscript {
 }
 
 ext {
-    groupId = 'de.cyface'
-    version = "5.0.0-beta1"
+    // This libraries version
+    cyfaceBackendVersion = "5.0.0-beta1"
 
     // Cyface dependencies
-    utilsVersion = "1.1.3"
+    cyfaceUtilsVersion = "1.1.3"
 
     minSdkVersion = 16
     targetSdkVersion = 28

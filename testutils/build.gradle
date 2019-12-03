@@ -33,13 +33,10 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-
-        versionName rootProject.ext.version
-
+        versionName rootProject.ext.cyfaceBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
-    // Enable Proguard for the release build type.
     buildTypes {
         release {
             // Enable in app module to generate a single mapping.xml which can be uploaded to PlayStore
@@ -47,7 +44,6 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-
 }
 
 dependencies {
@@ -57,6 +53,7 @@ dependencies {
     implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
     // Cyface dependencies
-    implementation "de.cyface:android-utils:$rootProject.ext.utilsVersion"
+    implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    // No circular dependency: persistence.dependency.testImplementation(testutils) is not imported transitively
     implementation project(':persistence')
 }
