@@ -20,7 +20,7 @@
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @version 1.0.10
+ * @version 1.0.11
  * @since 3.0.0
  */
 
@@ -48,7 +48,6 @@ android {
 
 dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
-
     implementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
