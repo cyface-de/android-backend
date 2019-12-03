@@ -24,7 +24,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.1
+ * @version 2.2.2
  * @since 1.0.0
  */
 
@@ -38,8 +38,6 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 
-        versionCode 1 // this must be incremented if new apk should be pushed to play store
-        // this is shown to the users, see Confluence/Android Client for naming guideline
         versionName rootProject.ext.version
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
@@ -101,11 +99,11 @@ dependencies {
     implementation project(":persistence")
 
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
-    implementation 'androidx.localbroadcastmanager:localbroadcastmanager:1.0.0'
+    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
+    implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
-    implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
     androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"

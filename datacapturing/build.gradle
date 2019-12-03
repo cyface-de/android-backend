@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.0
+ * @version 2.2.1
  * @since 1.0.0
  */
 
@@ -35,19 +35,11 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 
-        versionCode 1 // this must be incremented if new apk should be pushed to play store
-        // this is shown to the users, see Confluence/Android Client for naming guideline
         versionName rootProject.ext.version
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
 
         missingDimensionStrategy 'full', 'mock'
-    }
-
-    testOptions {
-        unitTests {
-            includeAndroidResources = true
-        }
     }
 
     // Specifies the flavor dimensions you want to use. The order in which you
@@ -101,7 +93,7 @@ android {
 dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
-    implementation "androidx.localbroadcastmanager:localbroadcastmanager:1.0.0"
+    implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.utilsVersion"

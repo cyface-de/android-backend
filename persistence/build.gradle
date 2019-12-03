@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.1.5
+ * @version 2.1.6
  * @since 1.0.0
  */
 
@@ -35,8 +35,7 @@ android {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
 
-        versionCode 1 // this is not used
-        versionName rootProject.ext.version // this is not used
+        versionName rootProject.ext.version
 
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }

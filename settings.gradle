@@ -2,7 +2,7 @@
  * Gradle's setting file which references all modules.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.1.0
  * @since 1.0.0
  */
-include ':app', ':datacapturing', ':persistence', ':synchronization', ':testutils'
+include ':datacapturing', ':persistence', ':synchronization', ':testutils'
