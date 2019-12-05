@@ -3,12 +3,69 @@ Cyface Android SDK
 
 This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
 
-- [How to integrate the SDK](#how-to-integrate-the-sdk)
-- [Migration from Earlier Versions](#migration-from-earlier-versions)
+- [Integration Guide](#integration-guide)
+- [API Usage Guide](#api-usage-guide)
+- [Migration Guide](#migration-guide)
+- [Developer Guide](#developer-guide)
 - [License](#license)
 
 
-How to integrate the SDK
+Integration Guide
+---------------------
+
+This library is published to the Github Package Registry.
+
+To use it as a dependency in your app you need to:
+
+1. Make sure you are authenticated to the repository:
+
+    * You need a Github account with read-access to this Github repository
+    * Create a [personal access token on Github](https://github.com/settings/tokens) with "read:packages" permissions
+    * Create or adjust a `local.properties` file in the project root containing:
+
+    ```
+    github.user=YOUR_USERNAME
+    github.token=YOUR_ACCESS_TOKEN
+    ```
+
+    * Add the custom repository to your app's `build.gradle`:
+
+    ``` 
+    def properties = new Properties()
+    properties.load(new FileInputStream("local.properties"))
+
+    repositories {
+        // Other maven repositories, e.g.:
+        jcenter()
+        google()
+        // Repository for this library
+        maven {
+            url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
+            credentials {
+                username = properties.getProperty("github.user")
+                password = properties.getProperty("github.token")
+            }
+        }
+    }
+    ```
+    
+2. Add this package as a dependency to your app's `build.gradle`:
+
+    ```
+    dependencies {
+        # To use the 'movebis' flavour, use: 'datacapturingMovebis' 
+        implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
+        # To use the 'movebis' flavour, use: 'synchronizationMovebis'
+        implementation "de.cyface:synchronization:$cyfaceBackendVersion"
+        # There is only one 'persistence' flavor
+        implementation "de.cyface:persistence:$cyfaceBackendVersion"
+    }
+    ```
+
+3. Set the `$cyfaceBackendVersion` gradle variable to the [latest version](https://github.com/cyface-de/android-backend/releases).
+
+
+API Usage Guide
 ---------------------------
 
 - [Resource Files](#resource-files)
@@ -570,7 +627,6 @@ class measurementControlOrAccessClass {
 }
 ```
 
-
 ### Documentation Incomplete
 
 This documentation still lacks of samples for the following features:
@@ -583,10 +639,49 @@ This documentation still lacks of samples for the following features:
 * The synchronization talks to a [Cyface Data Collector](https://github.com/cyface-de/data-collector) 
 
 
-Migration from Earlier Versions
+Migration Guide
 --------------------------------
+
  - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
  - [Migrate to 5.0.0-beta1](documentation/migration-guide_5.0.0-beta1.md)
+ - TODO: migrate to 5.0.0-beta2
+
+
+Developer Guide
+---------------------------
+
+This section is only relevant for developers of this library.
+
+### Release a new version
+
+To release a new version:
+
+1. Create a new branch following the format `release/x.y.z/PRJ-<Number>_some-optional-explanation`. 
+Where `x.y.z` is the number of the new version following semantic versioning, `PRJ` is the project this release has been created for, `<Number>` is the issue in the task tracker created for this release.
+You may also add an optional human readable explanation.
+2. Increase version numbers in `build.gradle`.
+3. Commit and push everything to Github.
+4. Create Pull Requests to master and dev branches.
+5. If those Pull Requests are accepted merge them back, but make sure, you are still based on the most recent versions of master and dev.
+6. Create a tag with the version on the merged master branch and push that tag to the repository.
+7. Make sure the new version is successfully publish by the [Github Actions](https://github.com/cyface-de/android-backend/actions/new) to the [Github Registry](https://github.com/cyface-de/android-backend/packages).
+8. Mark the released version as 'new Release' on [Github](https://github.com/cyface-de/data-collector/releases).
+
+
+In case you need to publish _manually_ to the Github Registry:
+
+1. Make sure you are authenticated to the repository:
+
+    * You need a Github account with write-access to this Github repository 
+    * Create a [personal access token on Github](https://github.com/settings/tokens) with "write:packages" permissions
+    * Create or adjust a `local.properties` file in the project root containing:
+
+    ```
+    github.user=YOUR_USERNAME
+    github.token=YOUR_ACCESS_TOKEN
+    ```
+
+2. Execute the publish command `./gradlew publishAll`
 
 
 License
