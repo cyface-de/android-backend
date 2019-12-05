@@ -24,7 +24,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.2
+ * @version 3.0.0
  * @since 1.0.0
  */
 
@@ -37,9 +37,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-
-        versionName rootProject.ext.version
-
+        versionName rootProject.ext.cyfaceBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -57,25 +55,20 @@ android {
         // priority than the second, and so on.
         movebis {
             dimension "project"
-            versionNameSuffix "-full"
         }
         cyface {
             dimension "project"
-            versionNameSuffix "-cyface"
         }
-
         mock {
             dimension "mode"
             // Excludes flaky tests that are trying to access a Cyface server.
             testInstrumentationRunnerArgument "notAnnotation", "androidx.test.filters.FlakyTest"
         }
-
         full {
             dimension "mode"
         }
     }
 
-    // Enable Proguard for the release build type.
     buildTypes {
         release {
             // Enable in app module to generate a single mapping.xml which can be uploaded to PlayStore
@@ -95,7 +88,7 @@ android {
 
 dependencies {
     // Cyface dependencies
-    implementation "de.cyface:android-utils:$rootProject.ext.utilsVersion"
+    implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     implementation project(":persistence")
 
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
@@ -113,13 +106,11 @@ dependencies {
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
-    // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
-    // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other dependencies (e.g. testCompile)
+    // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
-
     testImplementation "org.robolectric:robolectric:$rootProject.ext.robolectricVersion"
     testImplementation "androidx.test:core:$rootProject.ext.androidxTestCoreVersion"
 }

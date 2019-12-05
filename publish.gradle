@@ -20,7 +20,7 @@
  * Gradle's publish file for this module.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 5.0.0-beta2
  */
 
@@ -94,7 +94,7 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
 
                     // Configure artifacts
                     "${project.name}${variant.name.capitalize()}"(MavenPublication) {
-                        groupId rootProject.ext.groupId
+                        groupId = 'de.cyface'
                         artifactId "${project.name}${optionalMovebisFlavor.capitalize()}"
                         version android.defaultConfig.versionName
                         artifact(variant.packageLibraryProvider.get().archivePath)

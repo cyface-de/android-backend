@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.2.1
+ * @version 3.0.0
  * @since 1.0.0
  */
 
@@ -34,12 +34,8 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-
-        versionName rootProject.ext.version
-
+        versionName rootProject.ext.cyfaceBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
-
-        missingDimensionStrategy 'full', 'mock'
     }
 
     // Specifies the flavor dimensions you want to use. The order in which you
@@ -56,23 +52,18 @@ android {
         // priority than the second, and so on.
         movebis {
             dimension "project"
-            versionNameSuffix "-full"
         }
         cyface {
             dimension "project"
-            versionNameSuffix "-cyface"
         }
-
         mock {
             dimension "mode"
         }
-
         full {
             dimension "mode"
         }
     }
 
-    // Enable Proguard for the release build type.
     buildTypes {
         release {
             // Enable in app module to generate a single mapping.xml which can be uploaded to PlayStore
@@ -96,7 +87,7 @@ dependencies {
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
 
     // Cyface dependencies
-    implementation "de.cyface:android-utils:$rootProject.ext.utilsVersion"
+    implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     implementation project(":persistence")
     implementation project(":synchronization")
 
@@ -107,8 +98,7 @@ dependencies {
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
-    // - If Junit symbols are not resolvable in IntelliJ, make sure Build Variant is set to debug
-    // - Loading another dependency (e.g. module) only it's production dependencies (compile) are loaded but not other dependencies (e.g. testCompile)
+    // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
     // Optional - For better debuggable asserts
