@@ -4,6 +4,7 @@
     <!-- Required to keep the app from being send to sleep by the system. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />
     <!-- Required to access GNSS location providers -->
+    <!-- (!) We do *not* need ACCESS_BACKGROUND_LOCATION as we only need location in Foreground Service-->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
     <!-- Required to change periodic synchronisation intervals in the background -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
@@ -15,11 +16,19 @@
     <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
 
     <application>
-        <!-- Declares the data capturing service which is not exported to other applications. Most important is the android:process declaration with the ":" in the beginning. It tells the system to run the service in its own process. -->
+        <!-- Declares the data capturing service which is not exported to other applications.
+        Most important is the android:process declaration with the ":" in the beginning.
+        It tells the system to run the service in its own process. -->
+        <!-- Foreground services in Q+ require type 'location' to get the location when the app
+        is minimized. ACCESS_FINE_LOCATION and foregroundServiceType="location" is enough on Q+
+        as long as we target the Q+ API. -->
+        <!-- The "unused attribute" warning for foregroundServiceType can be ignored as this declaration
+        requirement was added in Android Q so no handling is required for lower APIs. -->
         <service
             android:name=".backend.DataCapturingBackgroundService"
             android:description="@string/capturing_service_description"
             android:exported="false"
+            android:foregroundServiceType="location"
             android:process=":capturing_process" />
     </application>
 </manifest>
