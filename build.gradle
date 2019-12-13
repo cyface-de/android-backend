@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.2
+ * @version 2.7.1
  * @since 1.0.0
  */
 
@@ -31,21 +31,21 @@ buildscript {
         jcenter()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:3.5.2'
+        classpath 'com.android.tools.build:gradle:3.5.3'
     }
 }
 
 ext {
     // This libraries version
-    cyfaceBackendVersion = "5.0.0-beta2"
+    cyfaceBackendVersion = "5.0.0-beta3"
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "1.1.3"
+    cyfaceUtilsVersion = "1.2.1"
 
     minSdkVersion = 16
-    targetSdkVersion = 28
-    compileSdkVersion = 28
-    buildToolsVersion = '28.0.3'
+    targetSdkVersion = 29
+    compileSdkVersion = 29
+    buildToolsVersion = '29.0.0'
 
     androidxAnnotationVersion = "1.0.0"
     androidxAppCompatVersion = "1.1.0"
