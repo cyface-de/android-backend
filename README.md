@@ -1,6 +1,10 @@
 Cyface Android SDK
 ========================
 
+[<img src="https://github.com/cyface-de/android-backend/workflows/Gradle%20Build/badge.svg">](https://github.com/cyface-de/android-backend/actions)
+[<img src="https://github.com/cyface-de/android-backend/workflows/Gradle%20Publish/badge.svg">](https://github.com/cyface-de/android-backend/actions)
+[![Build Status](https://app.bitrise.io/app/3f7da1f067e2d183/status.svg?token=Ggdr1abrQO7N_Pm1uI4kjg&branch=master)](https://app.bitrise.io/app/3f7da1f067e2d183)
+
 This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
 
 - [Integration Guide](#integration-guide)
