@@ -1,13 +1,17 @@
+# This workflow publishes a new version to the Github Registry.
+#
+# @author Armin Schnabel
+# @version 1.0.0
+# @since 5.0.0-beta2
 name: Gradle Publish
 
 on:
   push:
-    branches:
-      - master
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]+*'
 
 jobs:
   build:
-
     runs-on: ubuntu-latest
 
     steps:
@@ -16,18 +20,13 @@ jobs:
       uses: actions/setup-java@v1
       with:
         java-version: 1.8
+
     - name: Create empty truststore file
       run: |
         # When no truststore is required by the server we create an empty file or else the build fails
         mkdir -p synchronization/src/main/res/raw
         touch synchronization/src/main/res/raw/truststore.jks
-    - name: Create local.properties with a read token
-      run: |
-        # Use a personal read token to install the Cyface Utils package
-        echo "github.user=${{ secrets.GITHUB_READ_ACCOUNT }}" > local.properties
-        echo "github.token=${{ secrets.GITHUB_READ_TOKEN }}" >> local.properties
-    - name: Build with Gradle
-      run: ./gradlew build
+
     - name: Create local.properties with a repository token
       run: |
         # Use the repository's automatically set up token to pushlish to the registry
