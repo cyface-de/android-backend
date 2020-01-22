@@ -18,18 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import org.junit.Before;
-import org.junit.Test;
-
-import java.io.BufferedWriter;
-import java.io.File;
-import java.io.FileWriter;
-import java.io.IOException;
-
-import de.cyface.persistence.Constants;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Modality;
-
 import static de.cyface.synchronization.HttpConnection.BOUNDARY;
 import static de.cyface.synchronization.HttpConnection.LINE_FEED;
 import static de.cyface.synchronization.HttpConnection.TAIL;
@@ -37,6 +25,18 @@ import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
+
+import org.junit.Before;
+import org.junit.Test;
+
+import de.cyface.persistence.Constants;
+import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.Modality;
 
 /**
  * Tests whether our default implementation of the {@link Http} protocol works as expected.

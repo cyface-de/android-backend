@@ -18,12 +18,7 @@
  */
 package de.cyface.synchronization;
 
-import android.os.Build;
-import android.util.Log;
-
-import androidx.annotation.NonNull;
-
-import org.json.JSONObject;
+import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -44,9 +39,14 @@ import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
 import javax.net.ssl.SSLSession;
 
-import de.cyface.utils.Validate;
+import org.json.JSONObject;
 
-import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
+import android.os.Build;
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
+import de.cyface.utils.Validate;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
