@@ -1,3 +1,21 @@
+/*
+ * Copyright 2020 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import android.util.Log;
@@ -46,7 +64,7 @@ class FilePart {
      * Creates a new completely initialized object of this class.
      *
      * @param fileName The multipart name of the file to transfer
-     * @param file     The file to transfer itself
+     * @param file The file to transfer itself
      * @param partName The name of the part in a multi part request
      */
     public FilePart(@NonNull final String fileName, @NonNull final File file, @NonNull final String partName) {
@@ -75,20 +93,23 @@ class FilePart {
      */
     private String generateHeaderPart() {
         return "--" + Http.BOUNDARY + Http.LINE_FEED
-                + "Content-Disposition: form-data; name=\"" + partName + "\"; filename=\"" + fileName + "\"" + Http.LINE_FEED
-                + "Content-Type: application/octet-stream" + Http.LINE_FEED + "Content-Transfer-Encoding: binary" + Http.LINE_FEED
+                + "Content-Disposition: form-data; name=\"" + partName + "\"; filename=\"" + fileName + "\""
+                + Http.LINE_FEED
+                + "Content-Type: application/octet-stream" + Http.LINE_FEED + "Content-Transfer-Encoding: binary"
+                + Http.LINE_FEED
                 + Http.LINE_FEED;
     }
 
     /**
      * Writes to an {@code OutputStream} in the MultiPart format.
      *
-     * @param outputStream     the {@code HttpURLConnection} to write to
+     * @param outputStream the {@code HttpURLConnection} to write to
      * @param progressListener the {@link UploadProgressListener} to inform about the upload progress
      * @return the total number of {@code Byte}s written to the stream
      * @throws IOException when an I/O operation fails
      */
-    public long writeTo(@NonNull final BufferedOutputStream outputStream, @NonNull final UploadProgressListener progressListener) throws IOException {
+    public long writeTo(@NonNull final BufferedOutputStream outputStream,
+            @NonNull final UploadProgressListener progressListener) throws IOException {
         FileInputStream fileInputStream = null;
         try {
             fileInputStream = new FileInputStream(file);
@@ -118,16 +139,16 @@ class FilePart {
      * Writes the content of {@param bufferedFileInputStream} to the {@param outputStream} and informs the
      * {@param progressListener} about the progress.
      *
-     * @param outputStream            the {@code BufferedOutputStream} to write the data to
+     * @param outputStream the {@code BufferedOutputStream} to write the data to
      * @param bufferedFileInputStream the {@code BufferedInputStream} to read the data from
-     * @param binarySize              the {code Byte} size of the data to read
-     * @param progressListener        the {@code UploadProgressListener} to inform about the progress
+     * @param binarySize the {code Byte} size of the data to read
+     * @param progressListener the {@code UploadProgressListener} to inform about the progress
      * @return the number of {@code Byte}s written to the {@param outputStream}
      * @throws IOException when an I/O operation fails
      */
     private int writeToOutputStream(@NonNull final BufferedOutputStream outputStream,
-                                    @NonNull final BufferedInputStream bufferedFileInputStream, final long binarySize,
-                                    @NonNull final UploadProgressListener progressListener) throws IOException {
+            @NonNull final BufferedInputStream bufferedFileInputStream, final long binarySize,
+            @NonNull final UploadProgressListener progressListener) throws IOException {
         // Create file upload buffer
         // noinspection PointlessArithmeticExpression - makes semantically more sense
         final int maxBufferSize = 1 * 1_024 * 1_024;

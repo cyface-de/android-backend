@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -90,7 +90,7 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
-                                                final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
+            final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
         final HttpURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         return connection;
@@ -99,17 +99,17 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
-                                                final boolean hasBinaryContent) throws ServerUnavailableException {
+            final boolean hasBinaryContent) throws ServerUnavailableException {
         HttpURLConnection connection;
         try {
-            connection = (HttpURLConnection) url.openConnection();
+            connection = (HttpURLConnection)url.openConnection();
         } catch (final IOException e) {
             throw new ServerUnavailableException(
                     String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
         }
 
         if (url.getPath().startsWith("https://")) {
-            final HttpsURLConnection httpsURLConnection = (HttpsURLConnection) connection;
+            final HttpsURLConnection httpsURLConnection = (HttpsURLConnection)connection;
             // Without verifying the hostname we receive the "Trust Anchor..." Error
             httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
             httpsURLConnection.setHostnameVerifier(new HostnameVerifier() {
@@ -140,7 +140,7 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
-                             final boolean compress)
+            final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException,
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
             NetworkUnavailableException, TooManyRequestsException {
@@ -181,7 +181,7 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final SyncAdapter.MetaData metaData,
-                             @NonNull final UploadProgressListener progressListener, @NonNull final FilePart... fileParts)
+            @NonNull final UploadProgressListener progressListener, @NonNull final FilePart... fileParts)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException {
@@ -197,7 +197,8 @@ public class HttpConnection implements Http {
             sizeOfFileParts += filePart.partLength();
         }
 
-        final long fixedStreamLength = setupFixedLengthStreamingMode(connection, remainingHeaderBytes.length, sizeOfFileParts);
+        final long fixedStreamLength = setupFixedLengthStreamingMode(connection, remainingHeaderBytes.length,
+                sizeOfFileParts);
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
         final BufferedOutputStream outputStream = initOutputStream(connection);
@@ -254,14 +255,14 @@ public class HttpConnection implements Http {
     /**
      * Sets the length of the fixed number of byte to be streamed to the {@param connection}.
      *
-     * @param connection              The {@code HttpURLConnection} to be streamed to
+     * @param connection The {@code HttpURLConnection} to be streamed to
      * @param remainingHeaderByteSize the number of bytes of the header part which is to be written
-     * @param filesSize               The sum of the sizes in bytes of all files and their multipart headers
+     * @param filesSize The sum of the sizes in bytes of all files and their multipart headers
      * @return the fixed number of bytes to be written which were registered for the {@param connection}
      */
     private long setupFixedLengthStreamingMode(@NonNull final HttpURLConnection connection,
-                                               final long remainingHeaderByteSize,
-                                               final long filesSize) {
+            final long remainingHeaderByteSize,
+            final long filesSize) {
 
         // We don't post empty files, ensure files still exists
         Validate.isTrue(filesSize != 0L);
@@ -272,7 +273,7 @@ public class HttpConnection implements Http {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             connection.setFixedLengthStreamingMode(fixedStreamLength);
         } else {
-            connection.setFixedLengthStreamingMode((int) fixedStreamLength);
+            connection.setFixedLengthStreamingMode((int)fixedStreamLength);
         }
         // connection.setRequestProperty("Content-length" should be obsolete with setFixedLengthStreamingMode
         return fixedStreamLength;
@@ -284,7 +285,7 @@ public class HttpConnection implements Http {
      * reduce the amount of bytes kept in memory.
      *
      * @param headerByteSize The MultiPart header as string which will be written to the {@code OutputStream}
-     * @param filesSize      The number of bytes added by file upload parts.
+     * @param filesSize The number of bytes added by file upload parts.
      */
     long calculateBytesWrittenToOutputStream(final long headerByteSize, final long filesSize) {
 
@@ -292,7 +293,8 @@ public class HttpConnection implements Http {
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
 
         // Set count of Bytes not chars in the header!
-        return headerByteSize + filesSize + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length + TAIL.getBytes().length;
+        return headerByteSize + filesSize + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length
+                + TAIL.getBytes().length;
     }
 
     private byte[] gzip(byte[] input) {
@@ -325,7 +327,7 @@ public class HttpConnection implements Http {
      * @param connection the {@code HttpURLConnection} to create the stream for.
      * @return the {@code BufferedOutputStream} created.
      * @throws SynchronisationException when initializing the stream failed. This happened e.g. when Wifi was manually
-     *                                  disabled just after synchronization started (Pixel 2 XL).
+     *             disabled just after synchronization started (Pixel 2 XL).
      */
     private BufferedOutputStream initOutputStream(final HttpURLConnection connection) throws SynchronisationException {
         connection.setDoOutput(true); // To upload data to the server
@@ -380,7 +382,7 @@ public class HttpConnection implements Http {
     /**
      * Generates a valid Multipart entry.
      *
-     * @param key   The name of the part.
+     * @param key The name of the part.
      * @param value The value of the part entry.
      * @return The generated part entry.
      */
@@ -397,14 +399,14 @@ public class HttpConnection implements Http {
      *
      * @param connection The connection that received the response.
      * @return The {@link HttpResponse}.
-     * @throws SynchronisationException     If an IOException occurred while reading the response code.
-     * @throws BadRequestException          When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
-     * @throws UnauthorizedException        When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
-     * @throws ForbiddenException           When the server returns {@code HttpURLConnection#HTTP_FORBIDDEN}
-     * @throws ConflictException            When the server returns {@code HttpURLConnection#HTTP_CONFLICT}
-     * @throws EntityNotParsableException   When the server returns {@link #HTTP_ENTITY_NOT_PROCESSABLE}
+     * @throws SynchronisationException If an IOException occurred while reading the response code.
+     * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
+     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
+     * @throws ForbiddenException When the server returns {@code HttpURLConnection#HTTP_FORBIDDEN}
+     * @throws ConflictException When the server returns {@code HttpURLConnection#HTTP_CONFLICT}
+     * @throws EntityNotParsableException When the server returns {@link #HTTP_ENTITY_NOT_PROCESSABLE}
      * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
-     * @throws TooManyRequestsException     When the server returns {@link #HTTP_TOO_MANY_REQUESTS}
+     * @throws TooManyRequestsException When the server returns {@link #HTTP_TOO_MANY_REQUESTS}
      */
     @NonNull
     private HttpResponse readResponse(@NonNull final HttpURLConnection connection)
@@ -494,7 +496,7 @@ public class HttpConnection implements Http {
      *
      * @param inputStream the {@code InputStream} to read from
      * @return the {@link String} read from the InputStream. If an I/O error occurs while reading fro the stream, the
-     * already read string is returned which might my empty or cut short.
+     *         already read string is returned which might my empty or cut short.
      */
     @NonNull
     private String readInputStream(@NonNull final InputStream inputStream) {

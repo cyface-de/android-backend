@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -122,6 +122,7 @@ public class HttpConnectionTest {
      * <p>
      * This test is indented to avoid MOV-669 where we accidentally used the number of characters in the header
      * instead of the number of bytes to set the fixed content length for steaming mode.
+     * Therefore it uses files with strings, which contain chars which require > 1 Byte.
      *
      * @throws IOException if the test files were not accessible
      */

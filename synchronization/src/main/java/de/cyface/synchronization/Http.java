@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -40,11 +40,11 @@ interface Http {
     /**
      * The boundary to be used in the Multipart request to separate data.
      */
-    public final String BOUNDARY = "---------------------------boundary";
+    String BOUNDARY = "---------------------------boundary";
     /**
      * The string which is used for a line feed.
      */
-    public final String LINE_FEED = "\r\n";
+    String LINE_FEED = "\r\n";
 
     /**
      * Adds a trailing slash to the server URL or leaves an existing trailing slash untouched.
@@ -103,7 +103,8 @@ interface Http {
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
-            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException, TooManyRequestsException;
+            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
+            TooManyRequestsException;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
@@ -111,7 +112,8 @@ interface Http {
      * @param connection The {@code HttpURLConnection} to be used for the request.
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
-     * @param files The data files to upload via this post request. Currently these should be a sensor data file and an events data file.
+     * @param files The data files to upload via this post request. Currently these should be a sensor data file and an
+     *            events data file.
      * @throws SynchronisationException If an IOException occurred during synchronization.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
@@ -126,7 +128,8 @@ interface Http {
      */
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
-    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull SyncAdapter.MetaData metaData, @NonNull final UploadProgressListener progressListener, @NonNull FilePart...files)
+    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull SyncAdapter.MetaData metaData,
+            @NonNull final UploadProgressListener progressListener, @NonNull FilePart... files)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException;

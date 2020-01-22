@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -172,9 +172,8 @@ public class SyncPerformerTest {
             // Mock the actual post request
             when(mockedHttp.openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(), anyString()))
                     .thenReturn(mockedConnection);
-            when(mockedHttp.post(any(HttpURLConnection.class), any(File.class), any(File.class),
-                    any(SyncAdapter.MetaData.class),
-                    anyString(), anyString(), any(UploadProgressListener.class)))
+            when(mockedHttp.post(any(HttpURLConnection.class), any(SyncAdapter.MetaData.class),
+                    any(UploadProgressListener.class), any(FilePart.class), any(FilePart.class)))
                             .thenThrow(new ConflictException("Test ConflictException"));
 
             // Act
@@ -191,8 +190,9 @@ public class SyncPerformerTest {
                 // Assert:
                 verify(mockedHttp, times(1)).openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(),
                         anyString());
-                verify(mockedHttp, times(1)).post(any(HttpURLConnection.class), any(File.class), any(File.class),
-                        any(SyncAdapter.MetaData.class), anyString(), anyString(), any(UploadProgressListener.class));
+                verify(mockedHttp, times(1)).post(any(HttpURLConnection.class),
+                        any(SyncAdapter.MetaData.class), any(UploadProgressListener.class), any(FilePart.class),
+                        any(FilePart.class));
                 // because of the ConflictException true should be returned
                 assertThat(result, is(equalTo(true)));
                 // Make sure the ConflictException is actually called (instead of no exception because of mock)
