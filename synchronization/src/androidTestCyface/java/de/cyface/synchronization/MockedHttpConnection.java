@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,7 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
@@ -72,9 +71,8 @@ final class MockedHttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull File transferTempFile,
-                             @NonNull File eventsTransferTempFile, @NonNull SyncAdapter.MetaData metaData, @NonNull String fileName,
-                             String eventsFileName, @NonNull UploadProgressListener progressListener) {
+    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull SyncAdapter.MetaData metaData,
+            @NonNull UploadProgressListener progressListener, @NonNull FilePart... fileParts) {
         progressListener.updatedProgress(1.0f); // 100%
         return new HttpResponse(201, "");
     }
