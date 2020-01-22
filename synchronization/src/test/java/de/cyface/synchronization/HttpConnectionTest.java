@@ -18,21 +18,25 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.HttpConnection.BOUNDARY;
-import static de.cyface.synchronization.HttpConnection.LINE_FEED;
-import static de.cyface.synchronization.HttpConnection.TAIL;
-import static de.cyface.synchronization.HttpConnection.generateFileHeaderPart;
-import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
-import static org.hamcrest.MatcherAssert.assertThat;
-import static org.hamcrest.Matchers.equalTo;
-import static org.hamcrest.Matchers.is;
-
 import org.junit.Before;
 import org.junit.Test;
+
+import java.io.BufferedWriter;
+import java.io.File;
+import java.io.FileWriter;
+import java.io.IOException;
 
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Modality;
+
+import static de.cyface.synchronization.HttpConnection.BOUNDARY;
+import static de.cyface.synchronization.HttpConnection.LINE_FEED;
+import static de.cyface.synchronization.HttpConnection.TAIL;
+import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.equalTo;
+import static org.hamcrest.Matchers.is;
 
 /**
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
@@ -118,36 +122,52 @@ public class HttpConnectionTest {
      * <p>
      * This test is indented to avoid MOV-669 where we accidentally used the number of characters in the header
      * instead of the number of bytes to set the fixed content length for steaming mode.
+     *
+     * @throws IOException if the test files were not accessible
      */
     @Test
-    public void testCalculateBytesWrittenToOutputStream() {
+    public void testCalculateBytesWrittenToOutputStream() throws IOException {
 
         // Arrange
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
                 "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
         final String header = oocut.generateHeader(metaData);
 
-        final String fileHeaderPart = generateFileHeaderPart("fileToUpload",
-                "test-did_78." + Constants.TRANSFER_FILE_EXTENSION);
-        final String eventsFileHeaderPart = generateFileHeaderPart("eventsFile",
-                "test-did_78." + Constants.EVENTS_TRANSFER_FILE_EXTENSION);
+        File testFile = writeTempFile("TEST_FÄ`&ô»ω_CONTENT", "test-did_78", Constants.TRANSFER_FILE_EXTENSION);
+        File eventsTestFile = writeTempFile("TEST_FÄ`&ô»ω_EVENTS", "test-did_78",
+                Constants.EVENTS_TRANSFER_FILE_EXTENSION);
 
-        final byte[] testFile = "TEST_FÄ`&ô»ω_CONTENT".getBytes(); // with chars which require > 1 Byte
-        final long filePartSize = testFile.length;
-
-        final byte[] eventsTestFile = "TEST_FÄ`&ô»ω_EVENTS".getBytes(); // with chars which require > 1 Byte
-        final long eventsPartSize = eventsTestFile.length;
+        final FilePart filePart = new FilePart("test-did_78." + Constants.TRANSFER_FILE_EXTENSION, testFile,
+                "fileToUpload");
+        final FilePart eventsFilePart = new FilePart("test-did_78." + Constants.EVENTS_TRANSFER_FILE_EXTENSION,
+                eventsTestFile, "eventsFile");
 
         // Act
         final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes().length,
-                fileHeaderPart.getBytes().length, eventsFileHeaderPart.getBytes().length, filePartSize,
-                eventsPartSize);
+                filePart.partLength() + eventsFilePart.partLength());
 
         // Assert
-        assertThat((int)requestLength,
-                is(equalTo(header.getBytes().length + fileHeaderPart.getBytes().length + testFile.length
-                        + LINE_FEED.getBytes().length
-                        + eventsFileHeaderPart.getBytes().length + eventsTestFile.length + LINE_FEED.getBytes().length
-                        + TAIL.getBytes().length)));
+        assertThat(requestLength,
+                is(equalTo(header.getBytes().length + filePart.partLength() + eventsFilePart.partLength()
+                        + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length + TAIL.getBytes().length)));
+    }
+
+    private File writeTempFile(final String content, final String name, final String extension) throws IOException {
+        BufferedWriter writer = null;
+        try {
+
+            // create a temp file
+            File temp = File.createTempFile(name, extension);
+
+            // write it
+            writer = new BufferedWriter(new FileWriter(temp));
+            writer.write(content);
+
+            return temp;
+        } finally {
+            if (writer != null) {
+                writer.close();
+            }
+        }
     }
 }

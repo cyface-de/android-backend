@@ -18,15 +18,6 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
-import static de.cyface.utils.TestEnvironment.isEmulator;
-
-import java.io.Closeable;
-import java.util.Collection;
-import java.util.HashSet;
-import java.util.List;
-import java.util.Vector;
-
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
 import android.hardware.SensorEventListener;
@@ -42,11 +33,20 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import java.io.Closeable;
+import java.util.Collection;
+import java.util.HashSet;
+import java.util.List;
+import java.util.Vector;
+
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.utils.Validate;
+
+import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.utils.TestEnvironment.isEmulator;
 
 /**
  * Implements the data capturing functionality for Cyface. This class implements the SensorEventListener to listen to

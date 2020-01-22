@@ -102,21 +102,21 @@ class SyncPerformer {
      * Since this is a synchronous call it can take from seconds to minutes depending on the size of <code>data</code>.
      * Never call this on the UI thread. Your users are going to hate you.
      *
-     * @param http The {@link Http} connection to use for transmission
-     * @param syncResult The {@link SyncResult} used to store sync error information.
-     * @param dataServerUrl The server URL to send the data to.
-     * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param compressedTransferTempFile The {@link Measurement} data to transmit
+     * @param http                             The {@link Http} connection to use for transmission
+     * @param syncResult                       The {@link SyncResult} used to store sync error information.
+     * @param dataServerUrl                    The server URL to send the data to.
+     * @param metaData                         The {@link SyncAdapter.MetaData} required for the Multipart request.
+     * @param compressedTransferTempFile       The {@link Measurement} data to transmit
      * @param compressedEventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
-     * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
-     * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
+     * @param progressListener                 The {@link UploadProgressListener} to be informed about the upload progress.
+     * @param jwtAuthToken                     A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
     boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
-            @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final File compressedTransferTempFile, @NonNull final File compressedEventsTransferTempFile,
-            @NonNull final UploadProgressListener progressListener,
-            @NonNull final String jwtAuthToken) {
+                     @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
+                     @NonNull final File compressedTransferTempFile, @NonNull final File compressedEventsTransferTempFile,
+                     @NonNull final UploadProgressListener progressListener,
+                     @NonNull final String jwtAuthToken) {
 
         Log.d(Constants.TAG, String.format("Transferring compressed measurement (%s)",
                 DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
@@ -135,8 +135,7 @@ class SyncPerformer {
                     url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, compressedTransferTempFile, compressedEventsTransferTempFile, metaData, fileName,
-                        eventsFileName, progressListener);
+                http.post(connection, metaData, progressListener, new FilePart(fileName, compressedTransferTempFile, "fileToUpload"), new FilePart(eventsFileName, compressedEventsTransferTempFile, "eventsFile"));
             } finally {
                 if (connection != null) {
                     connection.disconnect();
