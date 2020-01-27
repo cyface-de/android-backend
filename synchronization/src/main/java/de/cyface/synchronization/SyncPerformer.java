@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -135,8 +135,9 @@ class SyncPerformer {
                     url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, compressedTransferTempFile, compressedEventsTransferTempFile, metaData, fileName,
-                        eventsFileName, progressListener);
+                http.post(connection, metaData, progressListener,
+                        new FilePart(fileName, compressedTransferTempFile, "fileToUpload"),
+                        new FilePart(eventsFileName, compressedEventsTransferTempFile, "eventsFile"));
             } finally {
                 if (connection != null) {
                     connection.disconnect();

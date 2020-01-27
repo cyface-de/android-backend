@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,7 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
@@ -27,9 +26,6 @@ import javax.net.ssl.SSLContext;
 import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
-
-import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.Measurement;
 
 /**
  * An interface for http connections.
@@ -40,6 +36,15 @@ import de.cyface.persistence.model.Measurement;
  * @since 3.0.0
  */
 interface Http {
+
+    /**
+     * The boundary to be used in the Multipart request to separate data.
+     */
+    String BOUNDARY = "---------------------------boundary";
+    /**
+     * The string which is used for a line feed.
+     */
+    String LINE_FEED = "\r\n";
 
     /**
      * Adds a trailing slash to the server URL or leaves an existing trailing slash untouched.
@@ -98,18 +103,17 @@ interface Http {
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
-            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException, TooManyRequestsException;
+            ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
+            TooManyRequestsException;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
      *
      * @param connection The {@code HttpURLConnection} to be used for the request.
-     * @param transferTempFile The {@link Measurement} data to transmit
-     * @param eventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param fileName The name of the {@link Measurement} file to be uploaded
-     * @param eventsFileName The name of the {@link Event}s file to be uploaded
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
+     * @param files The data files to upload via this post request. Currently these should be a sensor data file and an
+     *            events data file.
      * @throws SynchronisationException If an IOException occurred during synchronization.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
@@ -124,9 +128,8 @@ interface Http {
      */
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
-    HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final File transferTempFile,
-                      @NonNull final File eventsTransferTempFile, @NonNull final SyncAdapter.MetaData metaData, @NonNull final String fileName,
-                      String eventsFileName, @NonNull final UploadProgressListener progressListener)
+    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull SyncAdapter.MetaData metaData,
+            @NonNull final UploadProgressListener progressListener, @NonNull FilePart... files)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException;

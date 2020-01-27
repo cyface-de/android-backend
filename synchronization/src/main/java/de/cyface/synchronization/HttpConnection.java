@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017 - 2020 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,13 +20,9 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 
-import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
 import java.io.ByteArrayOutputStream;
-import java.io.File;
-import java.io.FileInputStream;
-import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
@@ -66,14 +62,6 @@ public class HttpConnection implements Http {
      * A String to filter log output from {@link HttpConnection} logs.
      */
     final static String TAG = "de.cyface.sync.http";
-    /**
-     * The boundary to be used in the Multipart request to separate data.
-     */
-    final static String BOUNDARY = "---------------------------boundary";
-    /**
-     * The string which is used for a line feed.
-     */
-    final static String LINE_FEED = "\r\n";
     /**
      * The tail to be used in the Multipart request to indicate that the request end.
      */
@@ -192,11 +180,8 @@ public class HttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpResponse post(@NonNull final HttpURLConnection connection,
-            @NonNull final File measurementTransferTempFile,
-            @NonNull final File eventsTransferTempFile, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final String fileName, @NonNull final String eventsFileName,
-            @NonNull final UploadProgressListener progressListener)
+    public HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final SyncAdapter.MetaData metaData,
+            @NonNull final UploadProgressListener progressListener, @NonNull final FilePart... fileParts)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException {
@@ -206,27 +191,16 @@ public class HttpConnection implements Http {
         final String remainingHeader = generateHeader(metaData);
         final byte[] remainingHeaderBytes = remainingHeader.getBytes();
 
-        // Generate File Multipart headers
-        final String measurementFileHeaderPart = generateFileHeaderPart("fileToUpload", fileName);
-        final String eventsFileHeaderPart = generateFileHeaderPart("eventsFile", eventsFileName);
-
         // The streaming length needs to be set up before the connection is connected.
+        long sizeOfFileParts = 0L;
+        for (FilePart filePart : fileParts) {
+            sizeOfFileParts += filePart.partLength();
+        }
+
         final long fixedStreamLength = setupFixedLengthStreamingMode(connection, remainingHeaderBytes.length,
-                measurementTransferTempFile.length(), eventsTransferTempFile.length(),
-                measurementFileHeaderPart.getBytes().length,
-                eventsFileHeaderPart.getBytes().length);
+                sizeOfFileParts);
 
         // Use a buffered stream to upload the transfer file to avoid OOM and for performance
-        final FileInputStream fileInputStream;
-        final FileInputStream eventFileInputStream;
-        try {
-            fileInputStream = new FileInputStream(measurementTransferTempFile);
-            eventFileInputStream = new FileInputStream(eventsTransferTempFile);
-        } catch (final FileNotFoundException e) {
-            throw new IllegalStateException(e);
-        }
-        final BufferedInputStream bufferedMeasurementFileInputStream = new BufferedInputStream(fileInputStream);
-        final BufferedInputStream bufferedEventsFileInputStream = new BufferedInputStream(eventFileInputStream);
         final BufferedOutputStream outputStream = initOutputStream(connection);
 
         try {
@@ -238,13 +212,10 @@ public class HttpConnection implements Http {
                 bytesWrittenToOutputStream += remainingHeaderBytes.length;
                 outputStream.write(remainingHeaderBytes);
 
-                // Write Measurement binary
-                bytesWrittenToOutputStream += writeFile(outputStream, measurementFileHeaderPart,
-                        bufferedMeasurementFileInputStream, measurementTransferTempFile.length(), progressListener);
-
-                // Write Events binary
-                bytesWrittenToOutputStream += writeFile(outputStream, eventsFileHeaderPart,
-                        bufferedEventsFileInputStream, eventsTransferTempFile.length(), progressListener);
+                // Write MultiPart file parts
+                for (FilePart filePart : fileParts) {
+                    filePart.writeTo(outputStream, progressListener);
+                }
 
                 // Write MultiPart Tail boundary
                 outputStream.write(TAIL.getBytes());
@@ -257,8 +228,6 @@ public class HttpConnection implements Http {
                 Log.d(TAG, "Total bytes written to output stream: " + bytesWrittenToOutputStream);
             } finally {
                 outputStream.close();
-                bufferedMeasurementFileInputStream.close();
-                bufferedEventsFileInputStream.close();
             }
         } catch (final SSLException e) {
             Log.w(TAG, "Caught SSLException: " + e.getMessage());
@@ -284,54 +253,23 @@ public class HttpConnection implements Http {
     }
 
     /**
-     * Writes a file to an {@code OutputStream} in the MultiPart format.
-     * 
-     * @param outputStream the {@code HttpURLConnection} to write to
-     * @param fileHeaderPart the MultiPart header part of the file to be written
-     * @param bufferedFileInputStream the {@code InputStream} of the file to be written
-     * @param transferFileByteSize the {@code Byte} length of the file to be written
-     * @param progressListener the {@link UploadProgressListener} to inform about the upload progress
-     * @return the total number of {@code Byte}s written to the stream
-     * @throws IOException when an I/O operation fails
-     */
-    private long writeFile(@NonNull final BufferedOutputStream outputStream, @NonNull final String fileHeaderPart,
-            @NonNull final BufferedInputStream bufferedFileInputStream, final long transferFileByteSize,
-            @NonNull final UploadProgressListener progressListener) throws IOException {
-
-        outputStream.write(fileHeaderPart.getBytes());
-        long bytesWrittenToOutputStream = fileHeaderPart.getBytes().length;
-        bytesWrittenToOutputStream += writeToOutputStream(outputStream, bufferedFileInputStream, transferFileByteSize,
-                progressListener);
-        outputStream.write(LINE_FEED.getBytes());
-        bytesWrittenToOutputStream += LINE_FEED.getBytes().length;
-
-        return bytesWrittenToOutputStream;
-    }
-
-    /**
      * Sets the length of the fixed number of byte to be streamed to the {@param connection}.
-     * 
-     * @param connection The {@code HttpURLConnection} to be streamed to.
+     *
+     * @param connection The {@code HttpURLConnection} to be streamed to
      * @param remainingHeaderByteSize the number of bytes of the header part which is to be written
-     * @param measurementFileHeaderPartByteSize the number of bytes of the file header to be written
-     * @param eventsFileHeaderPartByteSize the number of bytes of the {@code Event}s file to be written
-     * @param measurementFileByteSize the number of bytes of the {@code Measurement} file to be written
-     * @param eventsFileByteSize the number of bytes of the {@code Event}s file to be written
+     * @param filesSize The sum of the sizes in bytes of all files and their multipart headers
      * @return the fixed number of bytes to be written which were registered for the {@param connection}
      */
     private long setupFixedLengthStreamingMode(@NonNull final HttpURLConnection connection,
             final long remainingHeaderByteSize,
-            final long measurementFileHeaderPartByteSize, final long eventsFileHeaderPartByteSize,
-            final long measurementFileByteSize, final long eventsFileByteSize) {
+            final long filesSize) {
 
         // We don't post empty files, ensure files still exists
-        Validate.isTrue(measurementFileByteSize != 0L);
-        Validate.isTrue(eventsFileByteSize != 0L);
+        Validate.isTrue(filesSize != 0L);
 
         // Set the fixed number of bytes which will be written to the OutputStream
         final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderByteSize,
-                measurementFileHeaderPartByteSize, eventsFileHeaderPartByteSize, measurementFileByteSize,
-                eventsFileByteSize);
+                filesSize);
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
             connection.setFixedLengthStreamingMode(fixedStreamLength);
         } else {
@@ -342,69 +280,21 @@ public class HttpConnection implements Http {
     }
 
     /**
-     * Writes the content of {@param bufferedFileInputStream} to the {@param outputStream} and informs the
-     * {@param progressListener} about the progress.
-     * 
-     * @param outputStream the {@code BufferedOutputStream} to write the data to
-     * @param bufferedFileInputStream the {@code BufferedInputStream} to read the data from
-     * @param binarySize the {code Byte} size of the data to read
-     * @param progressListener the {@code UploadProgressListener} to inform about the progress
-     * @return the number of {@code Byte}s written to the {@param outputStream}
-     * @throws IOException when an I/O operation fails
-     */
-    private int writeToOutputStream(@NonNull final BufferedOutputStream outputStream,
-            @NonNull final BufferedInputStream bufferedFileInputStream, final long binarySize,
-            @NonNull final UploadProgressListener progressListener) throws IOException {
-        // Create file upload buffer
-        // noinspection PointlessArithmeticExpression - makes semantically more sense
-        final int maxBufferSize = 1 * 1024 * 1024;
-        int bytesAvailable, bufferSize;
-        byte[] buffer;
-        bytesAvailable = bufferedFileInputStream.available();
-        bufferSize = Math.min(bytesAvailable, maxBufferSize);
-        buffer = new byte[bufferSize];
-
-        // Write the binaries to the OutputStream
-        int bytesWritten = 0;
-        int bytesRead;
-        bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
-        while (bytesRead > 0) {
-            outputStream.write(buffer, 0, bufferSize);
-            bytesWritten += bytesRead; // Here progress is total uploaded bytes
-            progressListener.updatedProgress((bytesWritten * 100.0f) / binarySize);
-
-            bytesAvailable = bufferedFileInputStream.available();
-            bufferSize = Math.min(bytesAvailable, maxBufferSize);
-            bytesRead = bufferedFileInputStream.read(buffer, 0, bufferSize);
-        }
-        Log.d(TAG, "writeToOutputStream() file -> " + bytesWritten);
-        return bytesWritten;
-    }
-
-    /**
      * Setting the number of bytes which will be written to the {@code OutputStream} up front (via
      * {@code HttpConnection#setFixedLengthStreamingMode()}) allows to flush the {@code OutputStream} frequently to
      * reduce the amount of bytes kept in memory.
-     * 
+     *
      * @param headerByteSize The MultiPart header as string which will be written to the {@code OutputStream}
-     * @param measurementFileHeaderPartByteSize The {@code Byte} size of the header part of the multipart file part
-     * @param eventsFileHeaderPartByteSize The {@code Byte} size of the header part of the multipart file part
-     * @param measurementFileByteSize The number of bytes of the binary which will be written to the
-     *            {@code OutputStream}
-     * @param eventsFileByteSize The number of bytes of the events binary which will be written to the
-     *            {@code OutputStream}
+     * @param filesSize The number of bytes added by file upload parts.
      */
-    long calculateBytesWrittenToOutputStream(final long headerByteSize, final long measurementFileHeaderPartByteSize,
-            final long eventsFileHeaderPartByteSize, final long measurementFileByteSize,
-            final long eventsFileByteSize) {
+    long calculateBytesWrittenToOutputStream(final long headerByteSize, final long filesSize) {
 
         // This should be obsolete with setFixedLengthStreamingMode:
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
 
         // Set count of Bytes not chars in the header!
-        return headerByteSize + measurementFileHeaderPartByteSize + measurementFileByteSize
-                + LINE_FEED.getBytes().length + eventsFileHeaderPartByteSize + eventsFileByteSize
-                + LINE_FEED.getBytes().length + TAIL.getBytes().length;
+        return headerByteSize + filesSize + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length
+                + TAIL.getBytes().length;
     }
 
     private byte[] gzip(byte[] input) {
@@ -487,20 +377,6 @@ public class HttpConnection implements Http {
 
         return startLocationPart + endLocationPart + deviceIdPart + measurementIdPart + deviceTypePart + osVersionPart
                 + appVersionPart + lengthPart + locationCountPart + modalityPart;
-    }
-
-    /**
-     * Generates a valid Multipart header entry for a file part.
-     *
-     * @param partName The name of the file part
-     * @param fileName The name of the file attached
-     * @return The generated part entry.
-     */
-    public static String generateFileHeaderPart(@NonNull final String partName, @NonNull final String fileName) {
-        return "--" + BOUNDARY + LINE_FEED
-                + "Content-Disposition: form-data; name=\"" + partName + "\"; filename=\"" + fileName + "\"" + LINE_FEED
-                + "Content-Type: application/octet-stream" + LINE_FEED + "Content-Transfer-Encoding: binary" + LINE_FEED
-                + LINE_FEED;
     }
 
     /**
@@ -646,4 +522,5 @@ public class HttpConnection implements Http {
             throw new IllegalStateException(e);
         }
     }
+
 }
