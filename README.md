@@ -72,6 +72,7 @@ To use it as a dependency in your app you need to:
 API Usage Guide
 ---------------------------
 
+- [Collector Compatibility](#collector-compatibility)
 - [Resource Files](#resource-files)
     - [Truststore](#truststore)
     - [Content Provider Authority](#content-provider-authority)
@@ -96,6 +97,10 @@ API Usage Guide
 	- [Delete Measurements](#delete-measurements)
 	- [Load Events](#load-events)
 - [Documentation Incomplete](#documentation-incomplete)
+
+### Collector Compatibility
+
+This SDK is compatible with our [Data Collector Version 5](https://github.com/cyface-de/data-collector/releases/tag/5.0.0).
 
 ### Resource Files
 
@@ -442,15 +447,17 @@ To capture a measurement you need to start the capturing and stop it after some 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
     public void onClick(View view) {
-        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(context.getPackageName()) {
+        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(
+                MessageCodes.getServiceStartedActionId(context.getPackageName())) {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
                 setButtonStatus(button, true);
             }
         });
-        // or
-        dataCapturingService.stop(new ShutDownFinishedHandler() {
+        // and
+        dataCapturingService.stop(new ShutDownFinishedHandler(
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -647,8 +654,7 @@ Migration Guide
 --------------------------------
 
  - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
- - [Migrate to 5.0.0-beta1](documentation/migration-guide_5.0.0-beta1.md)
- - TODO: migrate to 5.0.0-beta2
+ - [Migrate to 5.0.0](documentation/migration-guide_5.0.0.md)
 
 
 Developer Guide

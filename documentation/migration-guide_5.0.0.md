@@ -1,4 +1,4 @@
-Cyface Android SDK 5.0.0-beta1 Migration Guide
+Cyface Android SDK 5.0.0 Migration Guide
 =================================================
 
 This migration guide is written for apps using the `MovebisDataCapturingService`.
@@ -70,6 +70,7 @@ API Changes
 
 Upgrading from 4.2.3:
 
+- [Collector Compatibility](#collector-compatibility)
 - [Resource Files](#resource-files)
     - [Truststore](#truststore)
     - [Content Provider Authority](#content-provider-authority)
@@ -93,6 +94,10 @@ Upgrading from 4.2.3:
 	- [Load Measurement Distance (new feature)](#load-measurement-distance)
 	- [Delete Measurements](#delete-measurements)
 	- [Load Events](#load-events)
+
+### Collector Compatibility
+
+This SDK is compatible with our [Data Collector Version 5](https://github.com/cyface-de/data-collector/releases/tag/5.0.0).
 
 ### Resource Files
 
@@ -158,7 +163,17 @@ public class DataCapturingButton implements DataCapturingListener {
     public void onClick(View view) {
         
         // Before
-        dataCapturingService.start(Vehicle.BICYCLE, new StartUpFinishedHandler(context.getPackageName()) {
+        dataCapturingService.start(Vehicle.BICYCLE, new StartUpFinishedHandler(
+                context.getPackageName()) {
+            @Override
+            public void startUpFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, true);
+            }
+        });
+        // Now
+        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(
+                MessageCodes.getServiceStartedActionId(context.getPackageName())) {
             @Override
             public void startUpFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
@@ -166,12 +181,23 @@ public class DataCapturingButton implements DataCapturingListener {
             }
         });
         
-        // Now
-        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(context.getPackageName()) {
+        // Before
+        dataCapturingService.stop(new ShutDownFinishedHandler() {
             @Override
-            public void startUpFinished(final long measurementIdentifier) {
+            public void shutDownFinished(final long measurementIdentifier) {
                 // Your logic, e.g.:
-                setButtonStatus(button, true);
+                setButtonStatus(button, false);
+                setButtonEnabled(button);
+            }
+        });
+        // Now
+        dataCapturingService.stop(new ShutDownFinishedHandler(
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
+            @Override
+            public void shutDownFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, false);
+                setButtonEnabled(button);
             }
         });
     }
