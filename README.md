@@ -647,8 +647,7 @@ Migration Guide
 --------------------------------
 
  - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
- - [Migrate to 5.0.0-beta1](documentation/migration-guide_5.0.0-beta1.md)
- - TODO: migrate to 5.0.0-beta2
+ - [Migrate to 5.0.0](documentation/migration-guide_5.0.0.md)
 
 
 Developer Guide
