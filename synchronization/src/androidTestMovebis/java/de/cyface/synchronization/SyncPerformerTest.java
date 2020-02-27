@@ -79,7 +79,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.8
+ * @version 2.0.9
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -262,7 +262,8 @@ public class SyncPerformerTest {
             final GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
             final List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
             final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
-            final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "testDeviceId",
+            final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
+            final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, deviceId,
                     measurementIdentifier, "testDeviceType", "testOsVersion", "testAppVersion",
                     measurement.getDistance(), locationCount, Modality.BICYCLE);
 
