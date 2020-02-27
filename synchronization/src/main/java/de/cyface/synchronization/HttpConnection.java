@@ -53,7 +53,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.2
+ * @version 11.0.3
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -214,7 +214,7 @@ public class HttpConnection implements Http {
 
                 // Write MultiPart file parts
                 for (FilePart filePart : fileParts) {
-                    filePart.writeTo(outputStream, progressListener);
+                    bytesWrittenToOutputStream += filePart.writeTo(outputStream, progressListener);
                 }
 
                 // Write MultiPart Tail boundary
