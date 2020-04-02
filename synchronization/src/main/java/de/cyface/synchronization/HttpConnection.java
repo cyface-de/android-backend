@@ -41,7 +41,6 @@ import javax.net.ssl.SSLSession;
 
 import org.json.JSONObject;
 
-import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -53,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.4
+ * @version 11.0.5
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -270,11 +269,7 @@ public class HttpConnection implements Http {
         // Set the fixed number of bytes which will be written to the OutputStream
         final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderByteSize,
                 filesSize);
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-            connection.setFixedLengthStreamingMode(fixedStreamLength);
-        } else {
-            connection.setFixedLengthStreamingMode((int)fixedStreamLength);
-        }
+        connection.setFixedLengthStreamingMode(fixedStreamLength);
         // connection.setRequestProperty("Content-length" should be obsolete with setFixedLengthStreamingMode
         return fixedStreamLength;
     }

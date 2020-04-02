@@ -18,7 +18,7 @@
  */
 package de.cyface.synchronization;
 
-import static android.os.Build.VERSION_CODES.KITKAT;
+import static android.os.Build.VERSION_CODES.P;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
@@ -89,11 +89,11 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.2
+ * @version 2.4.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = KITKAT) // Because this test is not yet implemented for the code used on newer devices
+@Config(sdk = P) // >= Q needs java 9
 public class MeasurementSerializerTest {
 
     /**

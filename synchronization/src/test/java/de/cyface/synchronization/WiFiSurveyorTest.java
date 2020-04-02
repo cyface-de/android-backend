@@ -53,9 +53,6 @@ import de.cyface.utils.Validate;
 /**
  * Tests the correct functionality of the <code>WiFiSurveyor</code> class.
  * <p>
- * Robolectric is used to emulate the Android context. The tests are currently executed explicitly with KITKAT SDK
- * as we did not yet port the tests to the newer Robolectric version (or we failed to).
- * <p>
  * We execute these test on multiple SDKs as we have different production code depending on the SDK:
  * - MARSHMALLOW (i.e. SDK < OREO) to test {@link NetworkCallback} with
  * {@code NetworkCapabilities#NET_WIFI_TRANSPORT}. Adding this should prevent bug MOV-650 from reoccurring.
