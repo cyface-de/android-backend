@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.0
+ * @version 5.7.1
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -314,7 +314,7 @@ public class DataCapturingServiceTest {
      * Stops a {@link DataCapturingService} and checks that it's not running afterwards.
      *
      * @param measurementIdentifier The if of the measurement expected to be closed.
-     * 
+     *
      * @throws NoSuchMeasurementException If no measurement was {@link MeasurementStatus#OPEN} or
      *             {@link MeasurementStatus#PAUSED} while stopping the service. This usually occurs if
      *             there was no call to
@@ -867,11 +867,10 @@ public class DataCapturingServiceTest {
 
         // Check Events
         ContentResolver contentResolver = context.getContentResolver();
-        Cursor eventCursor = null;
-        try {
-            eventCursor = contentResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()},
-                    EventTable.COLUMN_TIMESTAMP + " ASC");
+        try (final Cursor eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
+                EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()},
+                EventTable.COLUMN_TIMESTAMP + " ASC")) {
             softCatchNullCursor(eventCursor);
 
             final List<Event> events = new ArrayList<>();
@@ -893,10 +892,6 @@ public class DataCapturingServiceTest {
             assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
 
             return measurementIdentifier;
-        } finally {
-            if (eventCursor != null) {
-                eventCursor.close();
-            }
         }
     }
 

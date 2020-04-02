@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.5
+ * @version 7.1.6
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -178,7 +178,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             scheduleSyncNow(); // Needs to be called after currentSynchronizationAccount is set
         }
 
-        // Roboelectric is currently only testing the deprecated code, see class documentation
+        // Robolectric is currently only testing the deprecated code, see class documentation
         if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
 
             final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
@@ -211,7 +211,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * - UI.onDestroyView does not expect periodic sync to be removed (tested in MOV-619).
      * This way synchronization also works after onDestroyView was called when there is still syncable connection.
      * If the syncable connection is lost after onDestroyView is called sync does not happen.
-     * 
+     *
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
     @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by CyfaceDataCapturingService

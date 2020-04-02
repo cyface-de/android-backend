@@ -42,7 +42,7 @@ import de.cyface.persistence.model.Modality;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 1.1.12
+ * @version 1.1.13
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -153,7 +153,7 @@ public class HttpConnectionTest {
                         + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length + TAIL.getBytes().length)));
     }
 
-    private File writeTempFile(final String content, final String name, final String extension) throws IOException {
+    private File writeTempFile(final String content, @SuppressWarnings("SameParameterValue") final String name, final String extension) throws IOException {
         BufferedWriter writer = null;
         try {
 

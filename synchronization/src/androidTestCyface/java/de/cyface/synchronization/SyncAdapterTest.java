@@ -74,7 +74,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.3
+ * @version 2.4.4
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -155,19 +155,14 @@ public final class SyncAdapterTest {
         // Mock - nothing to do
 
         // Act: sync
-        ContentProviderClient client = null;
-        try {
-            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
+        try (final ContentProviderClient client = contentResolver
+                .acquireContentProviderClient(getGeoLocationsUri(AUTHORITY))) {
             final SyncResult result = new SyncResult();
             Validate.notNull(client);
 
             final Bundle testBundle = new Bundle();
             testBundle.putString(MOCK_IS_CONNECTED_TO_RETURN_TRUE, "");
             oocut.onPerformSync(account, testBundle, AUTHORITY, client, result);
-        } finally {
-            if (client != null) {
-                client.close();
-            }
         }
 
         // Assert: synced data is marked as synced

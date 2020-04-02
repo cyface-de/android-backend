@@ -50,7 +50,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -71,7 +70,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.12
+ * @version 2.6.13
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
@@ -170,7 +169,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
-                File compressedEventsTransferTempFile = null;
+                File compressedEventsTransferTempFile;
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
                             measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
@@ -241,7 +240,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     /**
      * Gets the authentication token from the {@link CyfaceAuthenticator}.
-     * 
+     *
      * @param authenticator The {@code CyfaceAuthenticator} to be used
      * @param account The {@code Account} to get the token for
      * @return The token as string

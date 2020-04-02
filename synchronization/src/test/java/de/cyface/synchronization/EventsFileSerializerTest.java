@@ -70,7 +70,7 @@ import de.cyface.utils.Validate;
 /**
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 5.0.0-beta1
  */
 @RunWith(RobolectricTestRunner.class)
@@ -250,7 +250,7 @@ public class EventsFileSerializerTest {
      * Helper class for testing which wraps all data of {@link Event}s which were serialized into the
      * {@link EventsFileSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION}.
      */
-    private class EventsFileData {
+    private static class EventsFileData {
         short transferFileFormat;
         List<Event> events;
 

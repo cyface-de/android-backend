@@ -53,7 +53,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.3
+ * @version 11.0.4
  * @since 2.0.0
  */
 public class HttpConnection implements Http {
@@ -502,9 +502,8 @@ public class HttpConnection implements Http {
     private String readInputStream(@NonNull final InputStream inputStream) {
 
         try {
-            BufferedReader bufferedReader = null;
-            try {
-                bufferedReader = new BufferedReader(new InputStreamReader(inputStream, DEFAULT_CHARSET));
+            try (final BufferedReader bufferedReader = new BufferedReader(
+                    new InputStreamReader(inputStream, DEFAULT_CHARSET))) {
                 final StringBuilder responseString = new StringBuilder();
                 String line;
                 while ((line = bufferedReader.readLine()) != null) {
@@ -513,10 +512,6 @@ public class HttpConnection implements Http {
                 return responseString.toString();
             } catch (final UnsupportedEncodingException e) {
                 throw new IllegalStateException(e);
-            } finally {
-                if (bufferedReader != null) {
-                    bufferedReader.close();
-                }
             }
         } catch (final IOException e) {
             throw new IllegalStateException(e);

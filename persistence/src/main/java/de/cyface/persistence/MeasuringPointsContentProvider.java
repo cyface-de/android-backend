@@ -17,7 +17,7 @@ import de.cyface.utils.Validate;
  * transferring the data to the server.
  *
  * @author Klemens Muthmann
- * @version 1.1.4
+ * @version 1.1.5
  * @since 1.0.0
  */
 public final class MeasuringPointsContentProvider extends ContentProvider {
@@ -41,7 +41,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
 
     /**
      * When only one element should be deleted (by id) this method adjusts the url accordingly (i.e. ../ids to ../#id)
-     * 
+     *
      * @param uri The uri identifies the type ob object which should be deleted
      * @param selection The selection defines by which column the deleted object is to be found (e.g. id)
      * @param selectionArgs The selectionArgs contain the column values (e.g. the id(s) of the targeted objects)
@@ -51,7 +51,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
     public int delete(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
         Uri uriWithPotentialSelection = uri;
         if (selectionArgs != null && (BaseColumns._ID + "=?").equals(selection) && selectionArgs.length == 1) {
-            uriWithPotentialSelection = ContentUris.withAppendedId(uri, Long.valueOf(selectionArgs[0]));
+            uriWithPotentialSelection = ContentUris.withAppendedId(uri, Long.parseLong(selectionArgs[0]));
         }
         int rowsDeleted = database.deleteRow(uriWithPotentialSelection, selection, selectionArgs);
         context.getContentResolver().notifyChange(uriWithPotentialSelection, null);

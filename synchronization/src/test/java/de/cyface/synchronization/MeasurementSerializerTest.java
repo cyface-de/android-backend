@@ -89,7 +89,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.1
+ * @version 2.3.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -492,7 +492,7 @@ public class MeasurementSerializerTest {
      * Helper class for testing which wraps all data of a {@link Measurement} which was serialized into the
      * {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION}.
      */
-    private class MeasurementData {
+    private static class MeasurementData {
         short transferFileFormat;
         List<GeoLocation> geoLocations;
         List<Point3d> accelerations;
