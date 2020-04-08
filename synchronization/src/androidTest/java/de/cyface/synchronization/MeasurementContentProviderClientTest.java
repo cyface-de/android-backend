@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.7
+ * @version 1.1.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -181,10 +181,8 @@ public class MeasurementContentProviderClientTest {
      */
     @Test
     public void test() throws RemoteException {
-        ContentProviderClient client = null;
 
-        try {
-            client = contentResolver.acquireContentProviderClient(AUTHORITY);
+        try (ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
             Validate.notNull(String.format("Unable to initialize content provider client for content provider \"(%s)\"",
                     AUTHORITY), client);
 
@@ -220,10 +218,6 @@ public class MeasurementContentProviderClientTest {
                     AUTHORITY);
             Cursor geoLocationCursor = oocut.loadGeoLocations(0, DATABASE_QUERY_LIMIT);
             assertThat(geoLocationCursor.getCount(), is(equalTo(2)));
-        } finally {
-            if (client != null) {
-                client.close();
-            }
         }
     }
 }

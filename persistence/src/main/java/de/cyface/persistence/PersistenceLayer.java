@@ -66,7 +66,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 17.0.2
+ * @version 17.0.3
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -168,7 +168,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             Validate.notNull("New measurement could not be created!", resultUri);
             Validate.notNull(resultUri.getLastPathSegment());
 
-            final long measurementId = Long.valueOf(resultUri.getLastPathSegment());
+            final long measurementId = Long.parseLong(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
             return new Measurement(measurementId, OPEN, modality, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
                     0.0, timestamp);
@@ -282,11 +282,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
         final Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier))
                 .build();
-        Cursor cursor = null;
 
-        try {
-            cursor = resolver.query(measurementUri, null, _ID + "=?",
-                    new String[] {String.valueOf(measurementIdentifier)}, null);
+        try (final Cursor cursor = resolver.query(measurementUri, null, _ID + "=?",
+                new String[] {String.valueOf(measurementIdentifier)}, null)) {
             softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
@@ -296,10 +294,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 return loadMeasurement(cursor);
             } else {
                 return null;
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
             }
         }
     }
@@ -318,11 +312,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @SuppressWarnings("unused") // Sdk implementing apps (CY)
     public Event loadEvent(final long eventId) throws CursorIsNullException {
         final Uri eventUri = getEventUri().buildUpon().appendPath(Long.toString(eventId)).build();
-        Cursor cursor = null;
 
-        try {
-            cursor = resolver.query(eventUri, null, _ID + "=?",
-                    new String[] {String.valueOf(eventId)}, null);
+        try (final Cursor cursor = resolver.query(eventUri, null, _ID + "=?",
+                new String[] {String.valueOf(eventId)}, null)) {
             softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many Events loaded from URI: " + eventUri);
@@ -332,10 +324,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 return loadEvent(cursor);
             } else {
                 return null;
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
             }
         }
     }
@@ -355,10 +343,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public MeasurementStatus loadMeasurementStatus(final long measurementIdentifier)
             throws NoSuchMeasurementException, CursorIsNullException {
         Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier)).build();
-        Cursor cursor = null;
 
-        try {
-            cursor = resolver.query(measurementUri, null, null, null, null);
+        try (final Cursor cursor = resolver.query(measurementUri, null, null, null, null)) {
             softCatchNullCursor(cursor);
             if (cursor.getCount() > 1) {
                 throw new IllegalStateException("Too many measurements loaded from URI: " + measurementUri);
@@ -368,10 +354,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
 
             return MeasurementStatus.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
@@ -690,9 +672,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @NonNull
     public List<Event> loadEvents(final long measurementIdentifier) throws CursorIsNullException {
 
-        Cursor cursor = null;
-        try {
-            cursor = loadEventsCursor(measurementIdentifier);
+        try (final Cursor cursor = loadEventsCursor(measurementIdentifier)) {
             softCatchNullCursor(cursor);
 
             final List<Event> events = new ArrayList<>();
@@ -701,10 +681,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 events.add(event);
             }
             return events;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
@@ -1149,7 +1125,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Validate.notNull("New Event could not be created!", resultUri);
         Validate.notNull(resultUri.getLastPathSegment());
 
-        return Long.valueOf(resultUri.getLastPathSegment());
+        return Long.parseLong(resultUri.getLastPathSegment());
     }
 
     /**

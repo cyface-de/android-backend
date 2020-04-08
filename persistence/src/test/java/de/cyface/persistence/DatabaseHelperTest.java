@@ -47,7 +47,6 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.testutils.SharedTestUtils;
 
-
 /**
  * This class tests the migration functionality of {@link DatabaseHelper}.
  * <p>
@@ -55,7 +54,7 @@ import de.cyface.testutils.SharedTestUtils;
  * open it with *DB Browser for SQLite* and use File > Export > Database to SQL file.
  *
  * @author Armin Schnabel
- * @version 1.4.0
+ * @version 1.4.1
  * @since 4.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -113,7 +112,7 @@ public class DatabaseHelperTest {
         SQLiteDatabase.CursorFactory cursorFactory = new SQLiteDatabase.CursorFactory() {
             @Override
             public Cursor newCursor(final SQLiteDatabase db, final SQLiteCursorDriver masterQuery,
-                                    final String editTable, final SQLiteQuery query) {
+                    final String editTable, final SQLiteQuery query) {
                 return new SQLiteCursor(masterQuery, editTable, query);
             }
         };
@@ -145,18 +144,13 @@ public class DatabaseHelperTest {
         oocut.onUpgrade(db, 15, 16);
 
         // Assert the former Vehicle attribute contains the same content after renaming it to Modality
-        Cursor cursor = null;
-        try {
+        try (final Cursor cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null,
+                null, null)) {
             // Measurements with GeoLocations should have the timestamp of the first GeoLocation as timestamp
-            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
             assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
             assertThat(cursor.getString(cursor.getColumnIndex("modality")), is(equalTo("BICYCLE")));
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
@@ -220,10 +214,8 @@ public class DatabaseHelperTest {
 
         // Assert 43,'FINISHED','BICYCLE',690481,690336,166370,1,5396.62473698979
         // Make sure the relevant data from before the upgrade still exists
-        Cursor cursor = null;
-        try {
+        try (final Cursor cursor = db.query("measurements", null, null, null, null, null, null)) {
             // Measurements must still exist after the upgrade
-            cursor = db.query("measurements", null, null, null, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
             assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
@@ -231,10 +223,6 @@ public class DatabaseHelperTest {
             assertThat(cursor.getString(cursor.getColumnIndex("vehicle")), is(equalTo("BICYCLE")));
             assertThat(cursor.getDouble(cursor.getColumnIndex("distance")), is(equalTo(5396.62473698979)));
             assertThat(cursor.getInt(cursor.getColumnIndex("file_format_version")), is(equalTo(1)));
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
@@ -408,8 +396,9 @@ public class DatabaseHelperTest {
      * @param measurementId the id of the measurement to generate
      * @param locations number of locations to generate for the measurement to be generated
      */
-    private void addDatabaseV15Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
-                                           final long locations) {
+    private void addDatabaseV15Measurement(@NonNull final SQLiteDatabase db,
+            @SuppressWarnings("SameParameterValue") final long measurementId,
+            @SuppressWarnings("SameParameterValue") final long locations) {
 
         // # Insert V15 sample data: (exported from our V12 app and manually adjusted to V15)
 
@@ -438,7 +427,7 @@ public class DatabaseHelperTest {
      * @param locations number of locations to generate for the measurement to be generated
      */
     private void addDatabaseV11Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
-                                           final long locations) {
+            final long locations) {
 
         // # Insert V11 sample data: (exported from our V12 app and manually adjusted to V11)
 
@@ -530,15 +519,9 @@ public class DatabaseHelperTest {
                 + " (101,0.123,0.234,-0.321,1552917550000,43,0);");
 
         // Make sure the relevant data exists
-        Cursor cursor = null;
-        try {
+        try (Cursor cursor = db.query("measurement", null, null, null, null, null, null, null)) {
             // Measurements must still exist after the upgrade
-            cursor = db.query("measurement", null, null, null, null, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(3)));
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 }

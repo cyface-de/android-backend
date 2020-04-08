@@ -15,13 +15,14 @@ import android.content.Context;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.utils.Validate;
 
 /**
  * Implementation of the {@link FileAccessLayer} which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 3.1.3
+ * @version 3.1.4
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {
@@ -67,12 +68,8 @@ public final class DefaultFileAccess implements FileAccessLayer {
         final byte[] bytes = new byte[(int)file.length()];
 
         try {
-            BufferedInputStream bufferedInputStream = null;
-            try {
-                bufferedInputStream = new BufferedInputStream(new FileInputStream(file));
-                DataInputStream inputStream = null;
-                try {
-                    inputStream = new DataInputStream(bufferedInputStream);
+            try (final BufferedInputStream bufferedInputStream = new BufferedInputStream(new FileInputStream(file))) {
+                try (final DataInputStream inputStream = new DataInputStream(bufferedInputStream)) {
                     try {
                         inputStream.readFully(bytes);
                         Log.d(Constants.TAG, "Read " + humanReadableByteCount(bytes.length, true) + " (from "
@@ -81,16 +78,8 @@ public final class DefaultFileAccess implements FileAccessLayer {
                         inputStream.close();
                         bufferedInputStream.close();
                     }
-                } finally {
-                    if (inputStream != null) {
-                        inputStream.close();
-                    }
                 }
                 return bytes;
-            } finally {
-                if (bufferedInputStream != null) {
-                    bufferedInputStream.close();
-                }
             }
         } catch (final IOException e) {
             throw new IllegalStateException("Failed to read file.");
@@ -135,16 +124,11 @@ public final class DefaultFileAccess implements FileAccessLayer {
     public void write(File file, byte[] data, boolean append) {
         Validate.isTrue(file.exists(), "Failed to write to file as it does not exist: " + file.getPath());
         try {
-            BufferedOutputStream outputStream = null;
-            try {
-                outputStream = new BufferedOutputStream(new FileOutputStream(file, append));
+            try (final BufferedOutputStream outputStream = new BufferedOutputStream(
+                    new FileOutputStream(file, append))) {
                 try {
                     outputStream.write(data);
                 } finally {
-                    outputStream.close();
-                }
-            } finally {
-                if (outputStream != null) {
                     outputStream.close();
                 }
             }

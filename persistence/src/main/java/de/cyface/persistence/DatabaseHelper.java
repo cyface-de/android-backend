@@ -46,7 +46,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.5.0
+ * @version 4.5.1
  * @since 1.0.0
  */
 class DatabaseHelper extends SQLiteOpenHelper {
@@ -210,17 +210,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
                         database.setTransactionSuccessful();
                         return ret;
                     case MeasurementTable.URI_PATH:
-                        Cursor selectedMeasurementsCursor = null;
-                        try {
-                            selectedMeasurementsCursor = query(uri, new String[] {BaseColumns._ID}, selection,
-                                    selectionArgs, null);
+                        try (final Cursor selectedMeasurementsCursor = query(uri, new String[] {BaseColumns._ID}, selection,
+                                selectionArgs, null)) {
                             while (selectedMeasurementsCursor.moveToNext()) {
                                 ret += deleteDataForMeasurement(database, selectedMeasurementsCursor
                                         .getLong(selectedMeasurementsCursor.getColumnIndex(BaseColumns._ID)));
-                            }
-                        } finally {
-                            if (selectedMeasurementsCursor != null) {
-                                selectedMeasurementsCursor.close();
                             }
                         }
                         // continues here until return ! -->

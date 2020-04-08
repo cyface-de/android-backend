@@ -38,6 +38,7 @@ import android.database.Cursor;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
@@ -47,7 +48,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.5
+ * @version 1.1.6
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -100,17 +101,11 @@ public class MeasurementTest {
         TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
 
         // Test load the create measurement
-        Cursor measurementCursor = null;
-        try {
-            measurementCursor = resolver.query(getMeasurementUri(AUTHORITY), null,
-                    MeasurementTable.COLUMN_STATUS + "=?",
-                    new String[] {MeasurementStatus.SYNCED.getDatabaseIdentifier()}, null);
+        try (final Cursor measurementCursor = resolver.query(getMeasurementUri(AUTHORITY), null,
+                MeasurementTable.COLUMN_STATUS + "=?",
+                new String[] {MeasurementStatus.SYNCED.getDatabaseIdentifier()}, null)) {
             Validate.notNull(measurementCursor);
             assertThat(measurementCursor.getCount() > 0, is(equalTo(true)));
-        } finally {
-            if (measurementCursor != null) {
-                measurementCursor.close();
-            }
         }
 
         // Ensure deletion of measurement with data works
