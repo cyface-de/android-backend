@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.7.4
+ * @version 2.7.5
  * @since 1.0.0
  */
 
@@ -37,7 +37,7 @@ buildscript {
 
 ext {
     // This libraries version
-    cyfaceBackendVersion = "5.0.1"
+    cyfaceBackendVersion = "0.0.0" // Only increase in release branch. Not merged back to master
 
     // Cyface dependencies
     cyfaceUtilsVersion = "1.4.0"
