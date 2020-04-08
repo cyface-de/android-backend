@@ -34,7 +34,7 @@ To use it as a dependency in your app you need to:
 
     * Add the custom repository to your app's `build.gradle`:
 
-    ``` 
+    ```
     def properties = new Properties()
     properties.load(new FileInputStream("local.properties"))
 
@@ -52,7 +52,7 @@ To use it as a dependency in your app you need to:
         }
     }
     ```
-    
+
 2. Add this package as a dependency to your app's `build.gradle`:
 
     ```
@@ -152,9 +152,9 @@ application separately.
 </manifest>
 ```
 
-* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below). 
+* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below).
   This must be the same as defined in the `AndroidManifest.xml` above.
-  
+
 ```java
 public class Constants {
     public final static String AUTHORITY = "your.domain.app.provider"; // replace this
@@ -240,7 +240,7 @@ of the `de.cyface.datacapturing.DataCapturingService`.
 
 An example implementation is provided by `de.cyface.datacapturing.IgnoreEventsStrategy`.
 The most important step is to implement the method
-`de.cyface.datacapturing.EventHandlingStrategy#buildCapturingNotification(DataCapturingBackgroundService)`. 
+`de.cyface.datacapturing.EventHandlingStrategy#buildCapturingNotification(DataCapturingBackgroundService)`.
 
 This can look like:
 
@@ -279,8 +279,8 @@ The most likely adaptation an application using the Cyface SDK for Android shoul
 
   Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
   on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
-  A simple fix is to have the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`). 
-  
+  A simple fix is to have the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same resource name in the usual paths (`res/drawable-**dpi/icon.png`).
+
 #### Start Service
 
 To save resources your should create your service when the view is created
@@ -312,7 +312,7 @@ When your UI resumes you need to reconnect to your service:
 
 The `reconnect()` method returns true when there was a capturing running during reconnect.
 This way we can use the `isRunning()` result from within `reconnect()` and avoid duplicate
-`isRunning()` calls which saves time. 
+`isRunning()` calls which saves time.
 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
@@ -338,9 +338,9 @@ public class DataCapturingButton implements DataCapturingListener {
 
 #### Link your Login Activity
 
-This is only required for `CyfaceDataCapturingService`. 
+This is only required for `CyfaceDataCapturingService`.
 
-Define which Activity should be launched to request the user to log in: 
+Define which Activity should be launched to request the user to log in:
 
 ```java
 public class CustomApplication extends Application {
@@ -485,7 +485,7 @@ public class DataCapturingButton implements DataCapturingListener {
 
 ### Access Measurements
 
-You now need to use the `PersistenceLayer` to access and control captured *measurement data*. 
+You now need to use the `PersistenceLayer` to access and control captured *measurement data*.
 
 ```java
 class measurementControlOrAccessClass {
@@ -495,7 +495,7 @@ class measurementControlOrAccessClass {
 }
 ```
 
-* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement 
+* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement
 * Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
 
 Loaded `Measurement`s contain details, e.g. the [Measurement Distance](#load-measurement-distance).
@@ -611,11 +611,11 @@ These Events log `Measurement` related interactions of the user, e.g.:
 
 - EventType.LIFECYCLE_START, EventType.LIFECYCLE_PAUSE, EventType.LIFECYCLE_RESUME, EventType.LIFECYCLE_STOP
   whenever a user starts, pauses, resumes or stops the Measurement.
-  
+
 - EventType.MODALITY_TYPE_CHANGE at the start of a Measurement to define the Modality used in the Measurement
   and when the user selects a new `Modality` type during an ongoing (or paused) Measurement.
   The later is logged when `persistenceLayer.changeModalityType(Modality newModality)` is called with a different Modality than the current one.
-  
+
 - The `Event` class contains a `getValue()` attribute which contains the `newModality`
   in case of a `EventType.MODALITY_TYPE_CHANGE` or else `Null`
 
@@ -647,7 +647,7 @@ This documentation still lacks of samples for the following features:
 * ConnectionStatusListener
 * Disable synchronization
 * Enable synchronization on metered connections
-* The synchronization talks to a [Cyface Data Collector](https://github.com/cyface-de/data-collector) 
+* The synchronization talks to a [Cyface Data Collector](https://github.com/cyface-de/data-collector)
 
 
 Migration Guide
@@ -655,6 +655,7 @@ Migration Guide
 
  - [Migrate to 4.1.0](documentation/migration-guide_4.1.0.md)
  - [Migrate to 5.0.0](documentation/migration-guide_5.0.0.md)
+ - [Migrate to 6.0.0](documentation/migration-guide_6.0.0.md)
 
 
 Developer Guide
@@ -666,7 +667,7 @@ This section is only relevant for developers of this library.
 
 To release a new version:
 
-1. Create a new branch following the format `release/x.y.z/PRJ-<Number>_some-optional-explanation`. 
+1. Create a new branch following the format `release/x.y.z/PRJ-<Number>_some-optional-explanation`.
 Where `x.y.z` is the number of the new version following semantic versioning, `PRJ` is the project this release has been created for, `<Number>` is the issue in the task tracker created for this release.
 You may also add an optional human readable explanation.
 2. Increase version numbers in `build.gradle`.
@@ -682,7 +683,7 @@ In case you need to publish _manually_ to the Github Registry:
 
 1. Make sure you are authenticated to the repository:
 
-    * You need a Github account with write-access to this Github repository 
+    * You need a Github account with write-access to this Github repository
     * Create a [personal access token on Github](https://github.com/settings/tokens) with "write:packages" permissions
     * Create or adjust a `local.properties` file in the project root containing:
 
