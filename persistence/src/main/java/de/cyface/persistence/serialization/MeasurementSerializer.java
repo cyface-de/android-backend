@@ -73,7 +73,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 7.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -122,7 +122,7 @@ public final class MeasurementSerializer {
      * <p>
      * <b>ATTENTION</b>: The caller needs to delete the file which is referenced by the returned {@code FileInputStream}
      * when no longer needed or on program crash!
-     * 
+     *
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
@@ -199,18 +199,12 @@ public final class MeasurementSerializer {
         final DeflaterOutputStream deflaterStream = new DeflaterOutputStream(bufferedFileOutputStream, compressor);
 
         // This architecture catches the IOException thrown by the close() called in the finally without IDE warning
-        BufferedOutputStream bufferedDeflaterOutputStream = null;
-        try {
-            bufferedDeflaterOutputStream = new BufferedOutputStream(deflaterStream);
+        try (BufferedOutputStream bufferedDeflaterOutputStream = new BufferedOutputStream(deflaterStream)) {
 
             // Injecting the outputStream into which the serialized (in this case compressed) data is written to
             fileSerializerStrategy.loadSerialized(bufferedDeflaterOutputStream, loader, measurementId,
                     persistenceLayer);
             bufferedDeflaterOutputStream.flush();
-        } finally {
-            if (bufferedDeflaterOutputStream != null) {
-                bufferedDeflaterOutputStream.close();
-            }
         }
         Log.d(TAG, "loadSerializedCompressed: finished after " + ((System.currentTimeMillis() - startTimestamp) / 1000)
                 + " s with Deflater Level: " + DEFLATER_LEVEL);

@@ -79,7 +79,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.9
+ * @version 2.0.10
  * @since 2.0.0
  *
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
@@ -138,9 +138,7 @@ public class SyncPerformerTest {
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
-        ContentProviderClient client = null;
-        try {
-            client = contentResolver.acquireContentProviderClient(AUTHORITY);
+        try (final ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
 
             if (client == null)
                 throw new IllegalStateException(
@@ -204,10 +202,6 @@ public class SyncPerformerTest {
                     Validate.isTrue(compressedTransferTempFile.delete());
                 }
             }
-        } finally {
-            if (client != null) {
-                client.close();
-            }
         }
     }
 
@@ -235,9 +229,7 @@ public class SyncPerformerTest {
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
-        ContentProviderClient client = null;
-        try {
-            client = contentResolver.acquireContentProviderClient(AUTHORITY);
+        try (final ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
 
             if (client == null)
                 throw new IllegalStateException(
@@ -285,10 +277,6 @@ public class SyncPerformerTest {
                 if (compressedTransferTempFile.exists()) {
                     Validate.isTrue(compressedTransferTempFile.delete());
                 }
-            }
-        } finally {
-            if (client != null) {
-                client.close();
             }
         }
     }

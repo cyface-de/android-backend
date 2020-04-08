@@ -28,7 +28,6 @@ import android.content.BroadcastReceiver;
 import android.content.ContentResolver;
 import android.content.Context;
 import android.content.Intent;
-import android.content.IntentFilter;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -49,7 +48,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.5
+ * @version 7.2.0
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -108,7 +107,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      */
     final ConnectivityManager connectivityManager;
     /**
-     * A callback which handles changes on the connectivity starting at API {@link Build.VERSION_CODES#LOLLIPOP}
+     * A callback which handles changes on the connectivity
      */
     private NetworkCallback networkCallback;
     /**
@@ -178,29 +177,21 @@ public class WiFiSurveyor extends BroadcastReceiver {
             scheduleSyncNow(); // Needs to be called after currentSynchronizationAccount is set
         }
 
-        // Roboelectric is currently only testing the deprecated code, see class documentation
-        if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.LOLLIPOP) {
+        // Robolectric is currently only testing the deprecated code, see class documentation
+        final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
+        if (syncOnUnMeteredNetworkOnly) {
+            final boolean isUsingUnMeteredCheckInsteadOfWifi = Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
 
-            final NetworkRequest.Builder requestBuilder = new NetworkRequest.Builder();
-            if (syncOnUnMeteredNetworkOnly) {
-                final boolean isUsingUnMeteredCheckInsteadOfWifi = Build.VERSION.SDK_INT >= MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
-
-                if (isUsingUnMeteredCheckInsteadOfWifi) {
-                    requestBuilder.addCapability(NET_CAPABILITY_NOT_METERED);
-                } else {
-                    requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
-                }
-                Log.v(TAG, "startSurveillance for " + (isUsingUnMeteredCheckInsteadOfWifi ? "unMetered" : "wifi")
-                        + " networks only");
+            if (isUsingUnMeteredCheckInsteadOfWifi) {
+                requestBuilder.addCapability(NET_CAPABILITY_NOT_METERED);
+            } else {
+                requestBuilder.addTransportType(NetworkCapabilities.TRANSPORT_WIFI);
             }
-            networkCallback = new NetworkCallback(this, currentSynchronizationAccount);
-            connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
-
-        } else {
-            final IntentFilter intentFilter = new IntentFilter();
-            intentFilter.addAction(ConnectivityManager.CONNECTIVITY_ACTION);
-            context.get().registerReceiver(this, intentFilter);
+            Log.v(TAG, "startSurveillance for " + (isUsingUnMeteredCheckInsteadOfWifi ? "unMetered" : "wifi")
+                    + " networks only");
         }
+        networkCallback = new NetworkCallback(this, currentSynchronizationAccount);
+        connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
     }
 
     /**
@@ -211,7 +202,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
      * - UI.onDestroyView does not expect periodic sync to be removed (tested in MOV-619).
      * This way synchronization also works after onDestroyView was called when there is still syncable connection.
      * If the syncable connection is lost after onDestroyView is called sync does not happen.
-     * 
+     *
      * @throws SynchronisationException If no current Android <code>Context</code> is available.
      */
     @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by CyfaceDataCapturingService
@@ -220,20 +211,12 @@ public class WiFiSurveyor extends BroadcastReceiver {
             throw new SynchronisationException("No valid context available!");
         }
 
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.LOLLIPOP) {
-            if (networkCallback == null) {
-                Log.w(TAG, "Unable to unregister NetworkCallback because it's null.");
-                return;
-            }
-            connectivityManager.unregisterNetworkCallback(networkCallback);
-            networkCallback = null;
-        } else {
-            try {
-                context.get().unregisterReceiver(this);
-            } catch (IllegalArgumentException e) {
-                throw new SynchronisationException(e);
-            }
+        if (networkCallback == null) {
+            Log.w(TAG, "Unable to unregister NetworkCallback because it's null.");
+            return;
         }
+        connectivityManager.unregisterNetworkCallback(networkCallback);
+        networkCallback = null;
 
         // This interrupts ongoing synchronization or else it may crash because required data is missing (token,
         // account)

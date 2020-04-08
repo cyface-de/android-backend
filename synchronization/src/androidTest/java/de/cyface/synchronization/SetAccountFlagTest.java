@@ -57,7 +57,7 @@ import de.cyface.utils.Validate;
  * The tests in this class require an emulator or a real device.
  *
  * @author Armin Schnabel
- * @version 2.0.1
+ * @version 2.0.2
  * @since 4.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -311,7 +311,7 @@ public class SetAccountFlagTest {
      * @version 1.0.0
      * @since 4.0.0
      */
-    private class CheckerParameters {
+    private static class CheckerParameters {
 
         /**
          * Lock used to synchronize the test case with the account manager.

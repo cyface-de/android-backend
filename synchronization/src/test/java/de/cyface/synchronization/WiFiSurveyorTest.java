@@ -18,8 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static android.os.Build.VERSION_CODES.KITKAT;
-import static android.os.Build.VERSION_CODES.LOLLIPOP;
 import static android.os.Build.VERSION_CODES.M;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
@@ -41,13 +39,10 @@ import org.robolectric.shadows.ShadowNetworkInfo;
 import android.accounts.Account;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.Intent;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
 import android.net.NetworkInfo;
-import android.net.wifi.WifiManager;
-import android.os.Build;
 import android.os.Bundle;
 
 import androidx.annotation.NonNull;
@@ -58,24 +53,19 @@ import de.cyface.utils.Validate;
 /**
  * Tests the correct functionality of the <code>WiFiSurveyor</code> class.
  * <p>
- * Robolectric is used to emulate the Android context. The tests are currently executed explicitly with KITKAT SDK
- * as we did not yet port the tests to the newer Robolectric version (or we failed to).
- * <p>
  * We execute these test on multiple SDKs as we have different production code depending on the SDK:
- * - KITKAT (i.e. SDK < LOLLIPOP) to test {@link WiFiSurveyor#onReceive}. We choose KITKAT as this is the mostly used
- * version below LOLLIPOP.
- * - MARSHMALLOW (i.e. LOLLIPOP >= SDK < OREO) to test {@link NetworkCallback} with
+ * - MARSHMALLOW (i.e. SDK < OREO) to test {@link NetworkCallback} with
  * {@code NetworkCapabilities#NET_WIFI_TRANSPORT}. Adding this should prevent bug MOV-650 from reoccurring.
  * - PIE (i.e. SDK >= OREO) to test {@link NetworkCallback} with {@code NetworkCapabilities#NET_CAPABILITY_NOT_METERED}.
  * TODO [MOV-699]: add this as soon as ShadowNetworkCapabilities support adding NET_CAPABILITY_NOT_METERED
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.1.0
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = {KITKAT, M/* , P */})
+@Config(sdk = {M/* , P */})
 public class WiFiSurveyorTest {
 
     /**
@@ -248,16 +238,7 @@ public class WiFiSurveyorTest {
             assertThat(activeInfo.getType(), is(equalTo(connectionType)));
         }
 
-        // Send broadcasts for WifiSurveyor.onReceive (code used for SDK < LOLLIPOP)
-        if (Build.VERSION.SDK_INT < LOLLIPOP) {
-
-            final Intent broadcastIntent = new Intent(ConnectivityManager.CONNECTIVITY_ACTION);
-            broadcastIntent.putExtra(WifiManager.EXTRA_SUPPLICANT_CONNECTED, connected);
-            context.sendBroadcast(broadcastIntent);
-            return;
-        }
-
-        // Send NetworkCallbacks starting at LOLLIPOP
+        // Send NetworkCallbacks
         // We need to set the transportType (for SDK M) and networkCapability (not_metered) for SDK P
         final NetworkCapabilities networkCapabilities = ShadowNetworkCapabilities.newInstance();
         final ShadowNetworkCapabilities shadowNetworkCapabilities = shadowOf(networkCapabilities);

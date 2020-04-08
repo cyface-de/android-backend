@@ -38,10 +38,9 @@ import de.cyface.utils.Validate;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @since 3.0.0
  */
-@TargetApi(Build.VERSION_CODES.LOLLIPOP)
 public class NetworkCallback extends ConnectivityManager.NetworkCallback {
 
     /**

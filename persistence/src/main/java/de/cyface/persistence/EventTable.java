@@ -4,8 +4,6 @@ import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
 import android.util.Log;
 
-import androidx.annotation.NonNull;
-
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 

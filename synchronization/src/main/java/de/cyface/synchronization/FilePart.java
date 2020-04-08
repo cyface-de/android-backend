@@ -18,10 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import android.util.Log;
-
-import androidx.annotation.NonNull;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -29,13 +25,17 @@ import java.io.FileInputStream;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 
+import android.util.Log;
+
+import androidx.annotation.NonNull;
+
 import de.cyface.utils.Validate;
 
 /**
  * Encapsulates a data file that is transferred together with its meta data.
  *
  * @author Klemens Muthmann
- * @version 1.0.0
+ * @version 1.0.1
  * @since 5.0.0
  */
 class FilePart {
@@ -110,9 +110,7 @@ class FilePart {
      */
     public long writeTo(@NonNull final BufferedOutputStream outputStream,
             @NonNull final UploadProgressListener progressListener) throws IOException {
-        FileInputStream fileInputStream = null;
-        try {
-            fileInputStream = new FileInputStream(file);
+        try (final FileInputStream fileInputStream = new FileInputStream(file)) {
 
             final BufferedInputStream bufferedFileInputStream = new BufferedInputStream(fileInputStream);
 
@@ -128,10 +126,6 @@ class FilePart {
             return bytesWrittenToOutputStream;
         } catch (final FileNotFoundException e) {
             throw new IllegalStateException(e);
-        } finally {
-            if (fileInputStream != null) {
-                fileInputStream.close();
-            }
         }
     }
 

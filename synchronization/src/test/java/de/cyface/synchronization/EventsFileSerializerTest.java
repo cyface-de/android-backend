@@ -18,7 +18,7 @@
  */
 package de.cyface.synchronization;
 
-import static android.os.Build.VERSION_CODES.KITKAT;
+import static android.os.Build.VERSION_CODES.P;
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.serialization.ByteSizes.LONG_BYTES;
 import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
@@ -70,11 +70,11 @@ import de.cyface.utils.Validate;
 /**
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 5.0.0-beta1
  */
 @RunWith(RobolectricTestRunner.class)
-@Config(sdk = KITKAT) // Because this test is not yet implemented for the code used on newer devices
+@Config(sdk = P) // >= Q needs java 9
 public class EventsFileSerializerTest {
 
     /**
@@ -250,7 +250,7 @@ public class EventsFileSerializerTest {
      * Helper class for testing which wraps all data of {@link Event}s which were serialized into the
      * {@link EventsFileSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION}.
      */
-    private class EventsFileData {
+    private static class EventsFileData {
         short transferFileFormat;
         List<Event> events;
 

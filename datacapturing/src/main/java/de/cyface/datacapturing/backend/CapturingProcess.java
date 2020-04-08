@@ -54,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -349,13 +349,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
         if (sensor != null) {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.KITKAT) {
-                sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
-                        SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
-            } else {
-                sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
-                        sensorEventHandler);
-            }
+            sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
+                    SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
         }
     }
 
