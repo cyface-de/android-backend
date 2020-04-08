@@ -15,7 +15,7 @@ import androidx.annotation.NonNull;
  * last locations is reached.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 4.0.0
  */
 public class Track {
@@ -36,8 +36,11 @@ public class Track {
         geoLocations.add(location);
     }
 
-    public List<GeoLocation> getGeoLocations() {
-        return geoLocations;
+  /**
+   * @return Returns a copy of the track's locations
+   */
+  public List<GeoLocation> getGeoLocations() {
+        return new ArrayList<>(geoLocations);
     }
 
     @NonNull
