@@ -247,6 +247,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (eventTimeOffset == null) {
             // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with
             // rebooting)
+            // Attention: onSensorChanged might be called > 1 ms later than the actual event.
+            // Thus, the offset can be > 0 even on devices which use the system time as event time.
+            // This means we shift the sensor data (all together) slightly, execution time dependent
             eventTimeOffset = System.currentTimeMillis() - event.timestamp / 1_000_000L;
             Log.d(TAG, "onSensorChanged: eventTimeOffset initialized. Set to " + eventTimeOffset);
         }
