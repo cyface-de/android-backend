@@ -103,7 +103,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Time offset used to move event time on devices measuring that time in milliseconds since device activation and
      * not Unix timestamp format. If event time is already in Unix timestamp format this should always be 0.
      */
-    private long eventTimeOffset = 0;
+    private Long eventTimeOffset = null;
     /**
      * Used for logging the time between sensor events. This is mainly used for debugging purposes.
      */
@@ -245,11 +245,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
         // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
         // been the other way around.
-        if (eventTimeOffset == 0) {
+        if (eventTimeOffset == null) {
             // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with
             // rebooting)
             eventTimeOffset = System.currentTimeMillis() - event.timestamp / 1_000_000L;
+            Log.d(TAG, "onSensorChanged: eventTimeOffset initialized. Set to " + eventTimeOffset);
         }
+        Validate.notNull(eventTimeOffset);
         long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffset;
 
         // Notify client about sensor update & bulkInsert data into database even without location fix
