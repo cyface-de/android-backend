@@ -246,7 +246,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (eventTimeOffsetMillis == null) {
             eventTimeOffsetMillis = eventTimeOffset(event.timestamp);
         }
-        Validate.notNull(eventTimeOffsetMillis);
         long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffsetMillis;
 
         // Notify client about sensor update & bulkInsert data into database even without location fix
