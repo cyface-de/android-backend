@@ -244,7 +244,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     @Override
     public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
         if (eventTimeOffsetMillis == null) {
-            eventTimeOffsetMillis = eventTimeOffset(event);
+            eventTimeOffsetMillis = eventTimeOffset(event.timestamp);
         }
         Validate.notNull(eventTimeOffsetMillis);
         long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffsetMillis;
@@ -290,10 +290,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * As we only use `SystemClock` to calculate the offset (e.g. bootTime) this approach should
      * allow to synchronize the event timestamps between phones by syncing their system time.
      *
-     * @param event the {@code SensorEvent} to be used to determine the time offset
+     * @param eventTimeNanos the timestamp of the {@code SensorEvent} used to determine the offset
      * @return the offset in milliseconds
      */
-    private long eventTimeOffset(final SensorEvent event) {
+    long eventTimeOffset(final long eventTimeNanos) {
 
         // Capture timestamps of event reporting time
         final long elapsedRealTimeMillis = SystemClock.elapsedRealtime();
@@ -304,7 +304,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         // instead of the elapsedRealTime as the official documentation states for the `event.time`.
         // Once example could be the Nexus 4 according to https://stackoverflow.com/a/9333605/5815054,
         // but we also noticed this on some of our devices which we tested back in 2016/2017.
-        final long eventTimeMillis = event.timestamp / 1_000_000L;
+        final long eventTimeMillis = eventTimeNanos / 1_000_000L;
         final long elapsedTimeDiff = elapsedRealTimeMillis - eventTimeMillis;
         final long upTimeDiff = upTimeMillis - eventTimeMillis;
         final long currentTimeDiff = currentTimeMillis - eventTimeMillis;
