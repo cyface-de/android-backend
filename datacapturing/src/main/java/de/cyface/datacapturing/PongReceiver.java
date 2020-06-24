@@ -28,6 +28,7 @@ import android.content.BroadcastReceiver;
 import android.content.Context;
 import android.content.Intent;
 import android.content.IntentFilter;
+import android.os.Build;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.Process;
@@ -202,7 +203,11 @@ public class PongReceiver extends BroadcastReceiver {
 
     private void quitBackgroundHandlerThread() {
         if (Thread.currentThread().getName().equals(pongReceiverThread.getName())) {
-            pongReceiverThread.quitSafely();
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+                pongReceiverThread.quitSafely();
+            } else {
+                pongReceiverThread.quit();
+            }
         }
     }
 }

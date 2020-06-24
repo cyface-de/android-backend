@@ -34,6 +34,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -261,7 +262,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 rotations.clear();
                 directions.clear();
                 lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
-            } catch (SecurityException | DataCapturingException e) {
+            } catch (SecurityException e) {
+                throw new IllegalStateException(e);
+            } catch (DataCapturingException e) {
                 throw new IllegalStateException(e);
             }
         }
@@ -369,8 +372,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         locationManager.removeUpdates(this);
         locationStatusHandler.shutdown();
         sensorService.unregisterListener(this);
-        sensorEventHandlerThread.quitSafely();
-        locationEventHandlerThread.quitSafely();
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.JELLY_BEAN_MR2) {
+            sensorEventHandlerThread.quitSafely();
+            locationEventHandlerThread.quitSafely();
+        } else {
+            sensorEventHandlerThread.quit();
+            locationEventHandlerThread.quit();
+        }
     }
 
     /**
