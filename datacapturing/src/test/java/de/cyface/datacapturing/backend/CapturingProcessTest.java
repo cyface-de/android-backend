@@ -18,6 +18,8 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
@@ -43,8 +45,10 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationManager;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.utils.Validate;
@@ -139,6 +143,30 @@ public class CapturingProcessTest {
                         + testListener.getCapturedData().get(1).getAccelerations().size(),
                 Matchers.is(Matchers.equalTo(400)));
         assertThat(testListener.getCapturedLocations(), Matchers.hasSize(2));
+    }
+
+    /**
+     * Tests that the correct `eventTimeOffset` is calculated for known `event.time` implementations.
+     */
+    @Test
+    public void testEventTimeOffset() {
+
+        // Arrange
+        final long eventDelayNanos = 9_000_000;
+        final long elapsedRealTimeMillis = SystemClock.elapsedRealtime();
+        final long currentTimeMillis = System.currentTimeMillis();
+        final long eventTimeDefaultImplementation = elapsedRealTimeMillis - eventDelayNanos;
+        final long eventTimeBasedOnCurrentTime = currentTimeMillis * 1_000_000 - eventDelayNanos;
+
+        // Act
+        final long eventTimeOffsetDefault = oocut.eventTimeOffset(eventTimeDefaultImplementation);
+        final long eventTimeOffsetCurrentTime = oocut.eventTimeOffset(eventTimeBasedOnCurrentTime);
+
+        // Arrange
+        final long expectedEventTimeOffset = currentTimeMillis - elapsedRealTimeMillis; // bootTime
+        final long expectedEventTimeOffsetCurrent = 0; // event.time equals currentTime of event
+        assertThat(eventTimeOffsetDefault, is(equalTo(expectedEventTimeOffset)));
+        assertThat(eventTimeOffsetCurrentTime, is(equalTo(expectedEventTimeOffsetCurrent)));
     }
 
     /**

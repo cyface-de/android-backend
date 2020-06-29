@@ -38,6 +38,7 @@ import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
+import android.os.SystemClock;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -103,7 +104,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Time offset used to move event time on devices measuring that time in milliseconds since device activation and
      * not Unix timestamp format. If event time is already in Unix timestamp format this should always be 0.
      */
-    private long eventTimeOffset = 0;
+    private Long eventTimeOffsetMillis = null;
     /**
      * Used for logging the time between sensor events. This is mainly used for debugging purposes.
      */
@@ -243,14 +244,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     @Override
     public synchronized void onSensorChanged(final @NonNull SensorEvent event) {
-        // The following block was moved before the setting of thisSensorEventTime without really knowing why it has
-        // been the other way around.
-        if (eventTimeOffset == 0) {
-            // event.timestamp on Nexus5 with Android 6.0.1 seems to be the uptime in Nanoseconds (resets with
-            // rebooting)
-            eventTimeOffset = System.currentTimeMillis() - event.timestamp / 1_000_000L;
+        if (eventTimeOffsetMillis == null) {
+            eventTimeOffsetMillis = eventTimeOffset(event.timestamp);
         }
-        long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffset;
+        long thisSensorEventTime = event.timestamp / 1_000_000L + eventTimeOffsetMillis;
 
         // Notify client about sensor update & bulkInsert data into database even without location fix
         if (!locationStatusHandler.hasLocationFix() && (lastNoGeoLocationFixUpdateTime == 0
@@ -282,6 +279,64 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         } else if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD))) {
             saveSensorValue(event, directions);
         }
+    }
+
+    /**
+     * Calculates the static offset (ms) which needs to be added to the `event.time` (ns) in order
+     * to calculate the Unix timestamp of the event.
+     * <p>
+     * The official `SensorEvent#timestamp` documentation states the `event.time` the
+     * `SystemClock.elapsedRealTimeNanos()` at the time of capture. But we are taking into account that some
+     * manufacturers/devices use the nano-second equivalent of `SystemClock.currentTimeMillis()` instead.
+     * <p>
+     * As we only use `SystemClock` to calculate the offset (e.g. bootTime) this approach should
+     * allow to synchronize the event timestamps between phones by syncing their system time.
+     *
+     * @param eventTimeNanos the timestamp of the {@code SensorEvent} used to determine the offset
+     * @return the offset in milliseconds
+     */
+    long eventTimeOffset(final long eventTimeNanos) {
+
+        // Capture timestamps of event reporting time
+        final long elapsedRealTimeMillis = SystemClock.elapsedRealtime();
+        final long upTimeMillis = SystemClock.uptimeMillis();
+        final long currentTimeMillis = System.currentTimeMillis();
+
+        // Check which timestamp the event.time is closest to, because some manufacturers and models use the currentTime
+        // instead of the elapsedRealTime as the official documentation states for the `event.time`.
+        // Once example could be the Nexus 4 according to https://stackoverflow.com/a/9333605/5815054,
+        // but we also noticed this on some of our devices which we tested back in 2016/2017.
+        final long eventTimeMillis = eventTimeNanos / 1_000_000L;
+        final long elapsedTimeDiff = elapsedRealTimeMillis - eventTimeMillis;
+        final long upTimeDiff = upTimeMillis - eventTimeMillis;
+        final long currentTimeDiff = currentTimeMillis - eventTimeMillis;
+        if (Math.min(Math.abs(currentTimeDiff), Math.abs(elapsedTimeDiff)) >= 1_000) {
+            // Not really a problem but could indicate there is another case we did not think of
+            Log.w(TAG,
+                    "sensorTimeOffset: event delay seems to be relatively high: " + currentTimeDiff + " ms");
+        }
+
+        // Default case (elapsedRealTime, following the documentation)
+        if (Math.abs(elapsedTimeDiff) <= Math.min(Math.abs(upTimeDiff), Math.abs(currentTimeDiff))) {
+            final long bootTimeMillis = currentTimeMillis - elapsedRealTimeMillis;
+            Log.d(TAG, "sensorTimeOffset: event.time seems to be elapsedTime, setting offset "
+                    + "to bootTime: " + bootTimeMillis + " ms");
+            return bootTimeMillis;
+        }
+        // Other seen case (currentTime, e.g. Nexus 4)
+        if (Math.abs(currentTimeDiff) <= Math.abs(upTimeDiff)) {
+            Log.d(TAG, "sensorTimeOffset: event.time seems to be currentTime, setting offset "
+                    + "to zero ms");
+            return 0;
+        }
+        // Possible case, but unknown if actually used by manufacturers (upTime)
+        // If we calculate a static offset between currentTime and upTime this would lead to time
+        // shifts when the device is in (deep) sleep again. We would need to calculate the offset
+        // dynamically for each event which is quite heavy. Thus, we throw an exception to see
+        // in the Play Store if this actually happens on devices. If so, this could be tested using:
+        // https://developer.android.com/training/monitoring-device-state/doze-standby#testing_doze_and_app_standby
+        throw new IllegalStateException("The event.time seems to be upTime. In this case we cannot"
+                + " use a static offset to calculate the Unix timestamp of the event");
     }
 
     /**
@@ -336,7 +391,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     private void saveSensorValue(final SensorEvent event, final List<Point3d> storage) {
         Point3d dataPoint = new Point3d(event.values[0], event.values[1], event.values[2],
-                event.timestamp / 1000000L + eventTimeOffset);
+                event.timestamp / 1_000_000L + eventTimeOffsetMillis);
         storage.add(dataPoint);
     }
 
