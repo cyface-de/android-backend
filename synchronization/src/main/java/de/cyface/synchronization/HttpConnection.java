@@ -162,7 +162,8 @@ public class HttpConnection implements Http {
             outputStream.close();
         } catch (final SSLException e) {
             // This exception is thrown by OkHttp when the network is no longer available
-            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+            final String message = e.getMessage();
+            if (message != null && message.contains("I/O error during system call, Broken pipe")) {
                 Log.w(TAG, "Caught SSLException: " + e.getMessage());
                 throw new NetworkUnavailableException("Network became unavailable during transmission.", e);
             } else {
@@ -233,7 +234,8 @@ public class HttpConnection implements Http {
         } catch (final SSLException e) {
             Log.w(TAG, "Caught SSLException: " + e.getMessage());
             // This exception is thrown by OkHttp when the network is no longer available
-            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+            final String message = e.getMessage();
+            if (message != null && message.contains("I/O error during system call, Broken pipe")) {
                 throw new NetworkUnavailableException("Network became unavailable during transmission.");
             }
             throw new SynchronisationException(e); // SSLException with unknown cause MOV-774
@@ -243,7 +245,8 @@ public class HttpConnection implements Http {
         } catch (final IOException e) {
             Log.w(TAG, "Caught IOException: " + e.getMessage());
             // Logging out interrupts the sync thread. This must not throw a RuntimeException, thus:
-            if (e.getMessage().contains("unexpected end of stream")) {
+            final String message = e.getMessage();
+            if (message != null && message.contains("unexpected end of stream")) {
                 throw new SynchronizationInterruptedException("Sync was probably interrupted via cancelSynchronization",
                         e);
             }

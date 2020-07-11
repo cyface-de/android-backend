@@ -101,8 +101,9 @@ public class ErrorHandler extends BroadcastReceiver {
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
-        Log.d(TAG, message);
-        // Log.d(TAG, (message != null && message.length() > 0 ? message : "no error message provide"));
+        if (message != null) {
+            Log.d(TAG, message);
+        }
     }
 
     @Override
