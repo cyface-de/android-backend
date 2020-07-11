@@ -70,6 +70,7 @@ import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.synchronization.exception.HostUnresolvable;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -125,9 +126,9 @@ public class SyncPerformerTest {
      */
     @Test
     public void testSendData_returnsTrueWhenServerReturns409() throws CursorIsNullException, NoSuchMeasurementException,
-            ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
-            UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
-            NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException {
+      ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
+      UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
+      NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable {
 
         // Arrange
         // Insert data to be synced

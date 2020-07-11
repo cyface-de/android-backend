@@ -48,18 +48,18 @@ final class MockedHttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
-            boolean hasBinaryContent, @NonNull String jwtBearer) throws ServerUnavailableException {
+            boolean hasBinaryContent, @NonNull String jwtBearer) throws SynchronisationException {
         return openHttpConnection(url, sslContext, hasBinaryContent);
     }
 
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
-            boolean hasBinaryContent) throws ServerUnavailableException {
+            boolean hasBinaryContent) throws SynchronisationException {
         try {
             return (HttpURLConnection)url.openConnection();
         } catch (IOException e) {
-            throw new ServerUnavailableException("Mocked Err", e);
+            throw new SynchronisationException("Mocked Err", e);
         }
     }
 
