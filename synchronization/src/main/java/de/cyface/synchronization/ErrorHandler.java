@@ -122,7 +122,7 @@ public class ErrorHandler extends BroadcastReceiver {
                 break;
 
             case MALFORMED_URL:
-                errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_server_unavailable);
+                errorMessage = context.getString(R.string.error_message_url_unreadable);
                 break;
 
             case UNREADABLE_HTTP_RESPONSE:
