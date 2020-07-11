@@ -24,6 +24,7 @@ import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.FORBIDDEN;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.HOST_UNRESOLVABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
@@ -52,6 +53,7 @@ import de.cyface.persistence.Constants;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.synchronization.exception.HostUnresolvable;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -187,6 +189,10 @@ class SyncPerformer {
         } catch (final TooManyRequestsException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
+            return false;
+        } catch (final HostUnresolvable e) {
+            syncResult.stats.numIoExceptions++;
+            sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
             return false;
         } catch (final ConflictException e) {
             syncResult.stats.numSkippedEntries++;

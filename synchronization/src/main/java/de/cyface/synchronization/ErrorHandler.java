@@ -198,6 +198,10 @@ public class ErrorHandler extends BroadcastReceiver {
                 errorMessage = context.getString(R.string.error_message_too_many_requests);
                 break;
 
+            case HOST_UNRESOLVABLE:
+                errorMessage = context.getString(R.string.error_message_host_unresolvable);
+                break;
+
             default:
                 errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_unknown_error);
         }
@@ -222,7 +226,8 @@ public class ErrorHandler extends BroadcastReceiver {
                                 11), BAD_REQUEST(12), FORBIDDEN(13), INTERNAL_SERVER_ERROR(
                                         14), ENTITY_NOT_PARSABLE(
                                                 15), NETWORK_UNAVAILABLE(
-                                                        16), SYNCHRONIZATION_INTERRUPTED(17), TOO_MANY_REQUESTS(18);
+                                                        16), SYNCHRONIZATION_INTERRUPTED(
+                                                                17), TOO_MANY_REQUESTS(18), HOST_UNRESOLVABLE(19);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;

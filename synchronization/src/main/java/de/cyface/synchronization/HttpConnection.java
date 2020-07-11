@@ -45,6 +45,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.synchronization.exception.HostUnresolvable;
 import de.cyface.utils.Validate;
 
 /**
@@ -142,7 +143,7 @@ public class HttpConnection implements Http {
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException,
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
-            NetworkUnavailableException, TooManyRequestsException {
+            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
@@ -183,7 +184,8 @@ public class HttpConnection implements Http {
             @NonNull final UploadProgressListener progressListener, @NonNull final FilePart... fileParts)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            SynchronizationInterruptedException, TooManyRequestsException {
+            SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable,
+            ServerUnavailableException {
 
         // Generate MetaData Multipart header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
@@ -321,16 +323,24 @@ public class HttpConnection implements Http {
      *
      * @param connection the {@code HttpURLConnection} to create the stream for.
      * @return the {@code BufferedOutputStream} created.
-     * @throws SynchronisationException when initializing the stream failed. This happened e.g. when Wifi was manually
-     *             disabled just after synchronization started (Pixel 2 XL).
+     * @throws ServerUnavailableException When no connection could be established with the server
+     * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet.
+     *
      */
-    private BufferedOutputStream initOutputStream(final HttpURLConnection connection) throws SynchronisationException {
+    private BufferedOutputStream initOutputStream(final HttpURLConnection connection)
+            throws ServerUnavailableException, HostUnresolvable {
         connection.setDoOutput(true); // To upload data to the server
         try {
             // Wrapping this in a Buffered steam for performance reasons
             return new BufferedOutputStream(connection.getOutputStream());
         } catch (final IOException e) {
-            throw new SynchronisationException(String.format("getOutputStream failed: %s", e.getMessage()), e);
+            final String message = e.getMessage();
+            if (message != null && message.contains("Unable to resolve host")) {
+                throw new HostUnresolvable(e);
+            }
+            // Happened e.g. when Wifi was manually disabled just after synchronization started (Pixel 2 XL).
+            // Or when the hostname is not verified (e.g. typo in sub-domain part)
+            throw new ServerUnavailableException(e);
         }
     }
 
