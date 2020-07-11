@@ -65,11 +65,11 @@ interface Http {
      * @param hasBinaryContent True if binary content is to be transmitted
      * @param jwtBearer A String in the format "Bearer TOKEN".
      * @return the HTTPURLConnection
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
+     * @throws SynchronisationException When the connection object could not be prepared
      */
     @NonNull
     HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent,
-            @NonNull String jwtBearer) throws ServerUnavailableException;
+            @NonNull String jwtBearer) throws SynchronisationException;
 
     /**
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
@@ -78,11 +78,11 @@ interface Http {
      * @param sslContext The {@link SSLContext} to open a secure connection to the server
      * @param hasBinaryContent True if binary content is to be transmitted
      * @return the HTTPURLConnection
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
+     * @throws SynchronisationException When the connection object could not be prepared
      */
     @NonNull
     HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent)
-            throws ServerUnavailableException;
+            throws SynchronisationException;
 
     /**
      * The compressed post request which transmits a measurement batch through an existing http

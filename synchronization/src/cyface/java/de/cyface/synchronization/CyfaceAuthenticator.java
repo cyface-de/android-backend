@@ -284,7 +284,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      *            logging in to the Cyface server.
      * @param sslContext To open a SSL connection
      * @return The currently valid auth token to be used by further requests from this application.
-     * @throws SynchronisationException – If an IOException occurred while reading the response code.
+     * @throws SynchronisationException If an IOException occurred while reading the response code or the connection
+     *             could not be prepared
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
      * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.

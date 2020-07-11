@@ -90,7 +90,7 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
-            final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
+            final boolean hasBinaryContent, final @NonNull String jwtToken) throws SynchronisationException {
         final HttpURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         return connection;
@@ -99,13 +99,14 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
-            final boolean hasBinaryContent) throws ServerUnavailableException {
+            final boolean hasBinaryContent) throws SynchronisationException {
         HttpURLConnection connection;
         try {
             connection = (HttpURLConnection)url.openConnection();
         } catch (final IOException e) {
-            throw new ServerUnavailableException(
-                    String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
+            // openConnection() only prepares, but does not establish an actual network connection
+            throw new SynchronisationException(String.format("Error %s. Unable to prepare connection for URL  %s.",
+                    e.getMessage(), url.toString()), e);
         }
 
         if (url.getPath().startsWith("https://")) {
