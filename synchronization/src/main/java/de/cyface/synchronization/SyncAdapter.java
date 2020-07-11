@@ -20,6 +20,7 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
 import static de.cyface.synchronization.Constants.TAG;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_ERROR;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.DATABASE_ERROR;
@@ -229,7 +230,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         } catch (final NetworkErrorException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
+            sendErrorIntent(context, NETWORK_ERROR.getCode(), e.getMessage());
         } finally {
             Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
