@@ -150,6 +150,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         } catch (final SynchronisationException e) {
             throw new IllegalStateException(e);
         }
+        // Due to the interface we can only throw NetworkErrorException
+        // Thus, we report the specific error type via sendErrorIntent()
         try {
             freshAuthToken = login(account.name, password, sslContext);
         } catch (final ServerUnavailableException | ForbiddenException e) {
