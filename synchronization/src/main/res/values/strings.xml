@@ -25,6 +25,7 @@
     <string name="error_message_network_unavailable">Connection interrupted</string>
     <string name="error_message_synchronization_interrupted">Synchronization interrupted</string>
     <string name="error_message_too_many_requests">Too many requests</string>
+    <string name="error_message_host_unresolvable">Cannot find server. Please check your internet connection.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unexpected error</string>

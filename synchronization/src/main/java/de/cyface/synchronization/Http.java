@@ -27,6 +27,8 @@ import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.synchronization.exception.HostUnresolvable;
+
 /**
  * An interface for http connections.
  *
@@ -63,11 +65,11 @@ interface Http {
      * @param hasBinaryContent True if binary content is to be transmitted
      * @param jwtBearer A String in the format "Bearer TOKEN".
      * @return the HTTPURLConnection
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
+     * @throws SynchronisationException When the connection object could not be prepared
      */
     @NonNull
     HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent,
-            @NonNull String jwtBearer) throws ServerUnavailableException;
+            @NonNull String jwtBearer) throws SynchronisationException;
 
     /**
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
@@ -76,11 +78,11 @@ interface Http {
      * @param sslContext The {@link SSLContext} to open a secure connection to the server
      * @param hasBinaryContent True if binary content is to be transmitted
      * @return the HTTPURLConnection
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
+     * @throws SynchronisationException When the connection object could not be prepared
      */
     @NonNull
     HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent)
-            throws ServerUnavailableException;
+            throws SynchronisationException;
 
     /**
      * The compressed post request which transmits a measurement batch through an existing http
@@ -98,13 +100,15 @@ interface Http {
      * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
+     * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet
+     * @throws ServerUnavailableException When no connection could be established with the server
      */
     @NonNull
     HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            TooManyRequestsException;
+            TooManyRequestsException, HostUnresolvable, ServerUnavailableException;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
@@ -125,6 +129,8 @@ interface Http {
      * @throws SynchronizationInterruptedException When the transmission stream ended too early, likely because the sync
      *             thread was interrupted (sync canceled)
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
+     * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet
+     * @throws ServerUnavailableException When no connection could be established with the server
      */
     @SuppressWarnings("UnusedReturnValue") // May be used in the future
     @NonNull
@@ -132,5 +138,5 @@ interface Http {
             @NonNull final UploadProgressListener progressListener, @NonNull FilePart... files)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            SynchronizationInterruptedException, TooManyRequestsException;
+            SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException;
 }

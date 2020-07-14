@@ -45,6 +45,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.synchronization.exception.HostUnresolvable;
 import de.cyface.utils.Validate;
 
 /**
@@ -89,7 +90,7 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
-            final boolean hasBinaryContent, final @NonNull String jwtToken) throws ServerUnavailableException {
+            final boolean hasBinaryContent, final @NonNull String jwtToken) throws SynchronisationException {
         final HttpURLConnection connection = openHttpConnection(url, sslContext, hasBinaryContent);
         connection.setRequestProperty("Authorization", "Bearer " + jwtToken);
         return connection;
@@ -98,13 +99,14 @@ public class HttpConnection implements Http {
     @NonNull
     @Override
     public HttpURLConnection openHttpConnection(@NonNull final URL url, @NonNull final SSLContext sslContext,
-            final boolean hasBinaryContent) throws ServerUnavailableException {
+            final boolean hasBinaryContent) throws SynchronisationException {
         HttpURLConnection connection;
         try {
             connection = (HttpURLConnection)url.openConnection();
         } catch (final IOException e) {
-            throw new ServerUnavailableException(
-                    String.format("Error %s. There seems to be no server at %s.", e.getMessage(), url.toString()), e);
+            // openConnection() only prepares, but does not establish an actual network connection
+            throw new SynchronisationException(String.format("Error %s. Unable to prepare connection for URL  %s.",
+                    e.getMessage(), url.toString()), e);
         }
 
         if (url.getPath().startsWith("https://")) {
@@ -142,7 +144,7 @@ public class HttpConnection implements Http {
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException,
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
-            NetworkUnavailableException, TooManyRequestsException {
+            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
@@ -161,7 +163,8 @@ public class HttpConnection implements Http {
             outputStream.close();
         } catch (final SSLException e) {
             // This exception is thrown by OkHttp when the network is no longer available
-            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+            final String message = e.getMessage();
+            if (message != null && message.contains("I/O error during system call, Broken pipe")) {
                 Log.w(TAG, "Caught SSLException: " + e.getMessage());
                 throw new NetworkUnavailableException("Network became unavailable during transmission.", e);
             } else {
@@ -183,7 +186,8 @@ public class HttpConnection implements Http {
             @NonNull final UploadProgressListener progressListener, @NonNull final FilePart... fileParts)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            SynchronizationInterruptedException, TooManyRequestsException {
+            SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable,
+            ServerUnavailableException {
 
         // Generate MetaData Multipart header
         // Attention: Parts of the header (Content-Type, boundary, request method, user agent) are already set
@@ -231,7 +235,8 @@ public class HttpConnection implements Http {
         } catch (final SSLException e) {
             Log.w(TAG, "Caught SSLException: " + e.getMessage());
             // This exception is thrown by OkHttp when the network is no longer available
-            if (e.getMessage().contains("I/O error during system call, Broken pipe")) {
+            final String message = e.getMessage();
+            if (message != null && message.contains("I/O error during system call, Broken pipe")) {
                 throw new NetworkUnavailableException("Network became unavailable during transmission.");
             }
             throw new SynchronisationException(e); // SSLException with unknown cause MOV-774
@@ -241,7 +246,8 @@ public class HttpConnection implements Http {
         } catch (final IOException e) {
             Log.w(TAG, "Caught IOException: " + e.getMessage());
             // Logging out interrupts the sync thread. This must not throw a RuntimeException, thus:
-            if (e.getMessage().contains("unexpected end of stream")) {
+            final String message = e.getMessage();
+            if (message != null && message.contains("unexpected end of stream")) {
                 throw new SynchronizationInterruptedException("Sync was probably interrupted via cancelSynchronization",
                         e);
             }
@@ -321,16 +327,24 @@ public class HttpConnection implements Http {
      *
      * @param connection the {@code HttpURLConnection} to create the stream for.
      * @return the {@code BufferedOutputStream} created.
-     * @throws SynchronisationException when initializing the stream failed. This happened e.g. when Wifi was manually
-     *             disabled just after synchronization started (Pixel 2 XL).
+     * @throws ServerUnavailableException When no connection could be established with the server
+     * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet.
+     *
      */
-    private BufferedOutputStream initOutputStream(final HttpURLConnection connection) throws SynchronisationException {
+    private BufferedOutputStream initOutputStream(final HttpURLConnection connection)
+            throws ServerUnavailableException, HostUnresolvable {
         connection.setDoOutput(true); // To upload data to the server
         try {
             // Wrapping this in a Buffered steam for performance reasons
             return new BufferedOutputStream(connection.getOutputStream());
         } catch (final IOException e) {
-            throw new SynchronisationException(String.format("getOutputStream failed: %s", e.getMessage()), e);
+            final String message = e.getMessage();
+            if (message != null && message.contains("Unable to resolve host")) {
+                throw new HostUnresolvable(e);
+            }
+            // Happened e.g. when Wifi was manually disabled just after synchronization started (Pixel 2 XL).
+            // Or when the hostname is not verified (e.g. typo in sub-domain part)
+            throw new ServerUnavailableException(e);
         }
     }
 

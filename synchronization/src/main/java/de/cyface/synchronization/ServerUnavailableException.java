@@ -21,6 +21,13 @@ public class ServerUnavailableException extends Exception {
      * @param cause The <code>Exception</code> that caused this one.
      */
     public ServerUnavailableException(final String detailedMessage, final Exception cause) {
-        super(detailedMessage,cause);
+        super(detailedMessage, cause);
+    }
+
+    /**
+     * @param cause The <code>Exception</code> that caused this one.
+     */
+    public ServerUnavailableException(final Exception cause) {
+        super(cause);
     }
 }

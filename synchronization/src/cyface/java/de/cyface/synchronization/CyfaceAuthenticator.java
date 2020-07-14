@@ -19,6 +19,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.HOST_UNRESOLVABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABLE;
@@ -60,6 +61,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+
+import de.cyface.synchronization.exception.HostUnresolvable;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -147,9 +150,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         } catch (final SynchronisationException e) {
             throw new IllegalStateException(e);
         }
+        // Due to the interface we can only throw NetworkErrorException
+        // Thus, we report the specific error type via sendErrorIntent()
         try {
             freshAuthToken = login(account.name, password, sslContext);
-        } catch (final ServerUnavailableException e) {
+        } catch (final ServerUnavailableException | ForbiddenException e) {
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
         } catch (final MalformedURLException e) {
@@ -166,6 +171,9 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             throw new NetworkErrorException(e);
         } catch (final TooManyRequestsException e) {
             sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
+        } catch (final HostUnresolvable e) {
+            sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
         }
 
@@ -278,16 +286,18 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      *            logging in to the Cyface server.
      * @param sslContext To open a SSL connection
      * @return The currently valid auth token to be used by further requests from this application.
-     * @throws SynchronisationException – If an IOException occurred while reading the response code.
+     * @throws SynchronisationException If an IOException occurred while reading the response code or the connection
+     *             could not be prepared
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
      * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
      * @throws ServerUnavailableException When there seems to be no server at the given URL.
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
+     * @throws ForbiddenException E.g. when there is no actual API running at the URL
      */
     private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
             throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            NetworkUnavailableException, TooManyRequestsException {
+            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl
@@ -319,8 +329,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             final HttpResponse loginResponse;
             try {
                 loginResponse = http.post(connection, loginPayload, false);
-            } catch (final BadRequestException | InternalServerErrorException | ForbiddenException
-                    | EntityNotParsableException | ConflictException e) {
+            } catch (final BadRequestException | InternalServerErrorException | EntityNotParsableException
+                    | ConflictException e) {
                 throw new IllegalStateException(e); // API definition does not define those errors
             }
 

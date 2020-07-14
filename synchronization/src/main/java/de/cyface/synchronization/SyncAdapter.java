@@ -229,7 +229,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         } catch (final NetworkErrorException e) {
             Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
+            // No need to sendErrorIntent() as CyfaceAuthenticator already throws more specific error
         } finally {
             Log.d(TAG, String.format("Sync finished. (%s)", syncResult.hasError() ? "ERROR" : "success"));
             for (final ConnectionStatusListener listener : progressListener) {
