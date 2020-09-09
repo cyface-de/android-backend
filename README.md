@@ -57,7 +57,7 @@ To use it as a dependency in your app you need to:
 
     ```
     dependencies {
-        # To use the 'movebis' flavour, use: 'datacapturingMovebis' 
+        # To use the 'movebis' flavour, use: 'datacapturingMovebis'
         implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
         # To use the 'movebis' flavour, use: 'synchronizationMovebis'
         implementation "de.cyface:synchronization:$cyfaceBackendVersion"
@@ -91,9 +91,9 @@ API Usage Guide
 	- [Start/Stop Capturing](#startstop-capturing)
 	- [Pause/Resume Capturing](#pauseresume-capturing)
 - [Access Measurements](#access-measurements)
-	- [Load finished measurements](#load-finished-measurements)
+	- [Load Finished Measurements](#load-finished-measurements)
 	- [Load Tracks](#load-tracks)
-	- [Load Measurement Distance (new feature)](#load-measurement-distance)
+	- [Load Measurement Distance](#load-measurement-distance)
 	- [Delete Measurements](#delete-measurements)
 	- [Load Events](#load-events)
 - [Documentation Incomplete](#documentation-incomplete)
@@ -198,12 +198,12 @@ Here is a basic example implementation.
 
 ```java
 class DataCapturingListenerImpl implements DataCapturingListener {
-    
+
     @Override
     public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
-        
+
         // To identify invalid ("unclean") location, check geoLocation.isValid()
-        
+
         // Load updated measurement distance
         final Measurement measurement;
         try {
@@ -211,11 +211,11 @@ class DataCapturingListenerImpl implements DataCapturingListener {
         } catch (final NoSuchMeasurementException | CursorIsNullException e) {
             throw new IllegalStateException(e);
         }
-        
+
         final double distanceMeter = measurement.getDistance();
         // Your logic, e.g. update the UI with the current distance
     }
-    
+
     // The other interface methods
 }
 ```
@@ -246,7 +246,7 @@ This can look like:
 
 ```java
 public class EventHandlingStrategyImpl implements EventHandlingStrategy {
-    
+
     @Override
     public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
       final String channelId = "channel";
@@ -255,7 +255,7 @@ public class EventHandlingStrategyImpl implements EventHandlingStrategy {
         final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
         notificationManager.createNotificationChannel(channel);
       }
-    
+
       return new NotificationCompat.Builder(context, channelId)
         .setContentTitle("Cyface")
         .setSmallIcon(R.drawable.your_icon) // see "attention" notes below
@@ -288,17 +288,17 @@ and reuse this instance when you need to communicate with it.
 
 ```java
 class MainFragment extends Fragment {
-    
+
     private MovebisDataCapturingService dataCapturingService;
-    
+
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
             final Bundle savedInstanceState) {
-        
+
         final static int SENSOR_FREQUENCY = 100;
         dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
             uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener, SENSOR_FREQUENCY);
-        
+
         // dataCapturingButton is our sample DataCapturingListenerImpl
         // Depending on your implementation you need to register the DataCapturingService:
         this.dataCapturingButton.setDataCapturingService(dataCapturingService);
@@ -316,12 +316,12 @@ This way we can use the `isRunning()` result from within `reconnect()` and avoid
 
 ```java
 public class DataCapturingButton implements DataCapturingListener {
-    
+
     PersistenceLayer<DefaultPersistenceBehaviour> persistence =
         new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
-    
+
     public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
-        
+
         if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
             // Your logic, e.g.:
             setButtonStatus(button, true);
@@ -344,7 +344,7 @@ Define which Activity should be launched to request the user to log in:
 
 ```java
 public class CustomApplication extends Application {
-    
+
     @Override
     public void onCreate() {
         super.onCreate();
@@ -361,28 +361,28 @@ Create an account for synchronization and start `WifiSurveyor`:
 
 ```java
 public class MainFragment extends Fragment implements ConnectionStatusListener {
-    
+
     @Override
     public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
             final Bundle savedInstanceState) {
         try {
             // dataCapturingService = ... - see above
-            
+
             // Needs to be called after new CyfaceDataCapturingService()
             startSynchronization(context);
-            
+
             // If you want to receive events for the synchronization status
             dataCapturingService.addConnectionStatusListener(this);
         } catch (final SetupException | CursorIsNullException e) {
             throw new IllegalStateException(e);
         }
     }
-    
+
     @SuppressWarnings("WeakerAccess")
     public void startSynchronization(final Context context) {
         final AccountManager accountManager = AccountManager.get(context);
         final boolean validAccountExists = accountWithTokenExists(accountManager);
-    
+
         if (validAccountExists) {
             try {
                 dataCapturingService.startWifiSurveyor();
@@ -391,7 +391,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
             }
             return;
         }
-        
+
         // Login via LoginActivity, create account and using dynamic tokens
         // The LoginActivity is called by Android which handles the account creation
         accountManager.addAccount(ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
@@ -418,7 +418,7 @@ public class MainFragment extends Fragment implements ConnectionStatusListener {
                 }
             }, null);
     }
-    
+
     private static boolean accountWithTokenExists(final AccountManager accountManager) {
         final Account[] existingAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
         Validate.isTrue(existingAccounts.length < 2, "More than one account exists.");
@@ -489,7 +489,7 @@ You now need to use the `PersistenceLayer` to access and control captured *measu
 
 ```java
 class measurementControlOrAccessClass {
-    
+
     PersistenceLayer<DefaultPersistenceBehaviour> persistence =
         new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
 }
@@ -498,7 +498,7 @@ class measurementControlOrAccessClass {
 * Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement
 * Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
 
-Loaded `Measurement`s contain details, e.g. the [Measurement Distance](#load-measurement-distance).
+Loaded `Measurement`s contain details, e.g. the [Load Measurement Distance](#load-measurement-distance).
 
 **Attention:** The attributes of a Measurement which is not yet finished change
 over time so you need to make sure you reload it.
@@ -511,7 +511,7 @@ Finished measurements are measurements which are stopped (i.e. not paused or ong
 ```java
 class measurementControlOrAccessClass {
     void loadMeasurements() {
-    
+
         persistence.loadMeasurements(MeasurementStatus.FINISHED);
     }
 }
@@ -530,13 +530,13 @@ You can ether load the raw track or a "cleaned" version of it. See the `DefaultL
 ```java
 class measurementControlOrAccessClass {
     void loadTrack() {
-        
+
         // Raw track:
         List<Track> tracks = persistence.loadTracks(measurementId);
-        
+
         // or, "cleaned" track:
         List<Track> tracks = persistence.loadTracks(measurementId, new DefaultLocationCleaningStrategy());
-        
+
         //noinspection StatementWithEmptyBody
         if (tracks.size() > 0 ) {
             // your logic
@@ -560,7 +560,7 @@ To delete the measurement data stored on the device for finished or synchronized
 
 ```java
 class measurementControlOrAccessClass {
-    
+
     void deleteMeasurement(final long measurementId) throws CursorIsNullException {
         // To make sure you don't delete the ongoing measurement because this leads to an exception
         Measurement currentlyCapturedMeasurement;
@@ -569,7 +569,7 @@ class measurementControlOrAccessClass {
         } catch (NoSuchMeasurementException e) {
             // do nothing
         }
-        
+
         if (currentlyCapturedMeasurement == null || currentlyCapturedMeasurement.getIdentifier() != measurementId) {
             new DeleteFromDBTask()
                     .execute(new DeleteFromDBTaskParams(persistenceLayer, this, measurementId));
@@ -577,7 +577,7 @@ class measurementControlOrAccessClass {
             Log.d(TAG, "Not deleting currently captured measurement: " + measurementId);
         }
     }
-    
+
     private static class DeleteFromDBTaskParams {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
         final long measurementId;
@@ -622,14 +622,14 @@ These Events log `Measurement` related interactions of the user, e.g.:
 ```java
 class measurementControlOrAccessClass {
     void loadEvents() {
-        
+
         // To retrieve all Events of that Measurement
         //noinspection UnusedAssignment
         List<Event> events = persistence.loadEvents(measurementId);
-        
+
         // Or to retrieve only the Events of a specific EventType
         events = persistence.loadEvents(measurementId, EventType.MODALITY_TYPE_CHANGE);
-        
+
         //noinspection StatementWithEmptyBody
         if (events.size() > 0 ) {
             // your logic
@@ -659,27 +659,42 @@ Migration Guide
 
 
 Developer Guide
----------------------------
+---------------
 
 This section is only relevant for developers of this library.
 
 ### Release a new version
 
-To release a new version:
+Versions of this project inside the master branch are always `0.0.0`. To release a new version:
 
-1. Create a new branch following the format `release/x.y.z/PRJ-<Number>_some-optional-explanation`.
-Where `x.y.z` is the number of the new version following semantic versioning, `PRJ` is the project this release has been created for, `<Number>` is the issue in the task tracker created for this release.
-You may also add an optional human readable explanation.
-2. Increase version numbers in `build.gradle`.
-3. Commit and push everything to Github.
-4. Create Pull Requests to master and dev branches.
-5. If those Pull Requests are accepted merge them back, but make sure, you are still based on the most recent versions of master and dev.
-6. Create a tag with the version on the merged master branch and push that tag to the repository.
-7. Make sure the new version is successfully publish by the [Github Actions](https://github.com/cyface-de/android-backend/actions/new) to the [Github Registry](https://github.com/cyface-de/android-backend/packages).
-8. Mark the released version as 'new Release' on [Github](https://github.com/cyface-de/data-collector/releases).
+* **Create a new release branch** following the format `release/x.y`.
+  * `x.y` is the number of the first two sections of the new version following [Semantic Versioning](http://semver.org).
+  * **Hotfixes should be applied on top of the already existing release-branch**.
+    * Apply the hotfix on the `master` branch, create a Pull-Request and pass reviewing.
+    * Cherry-pick the fix on top of the already existing `release/x.y` branch.
+    * No new features are allowed on a release-branch, only fixes and minor changes.
+
+* **Increase version numbers** in root `build.gradle`,
+  * and optional in any associated `docker-compose.yml` or OpenAPI documentation (usually located in `src/main/resources/webroot/openapi.yml`).
+  * If you need to version sub-projects differently, create a version attribute in the corresponding `build.gradle`.
+
+* **Commit version bump and push branch** to Github.
+  * Wait until the continuous integration system passes.
+  * Do **not** merge the release-branch back to master.
+
+* **Tag the new release on the release branch**.
+  * Ensure you are on the correct branch and commit.
+  * Follow the guidelines from ["Keep a Changelog"](https://keepachangelog.com) in your tag description.
+
+* **Push the release tag to Github**.
+  * The docker image and Github packages are automatically published when a new version is tagged and pushed by our
+[Github Actions](https://github.com/cyface-de/android-backend/actions) to the
+[Github Registry](https://github.com/cyface-de/android-backend/packages).
+
+* **Mark the released version as 'new Release' on [Github](https://github.com/cyface-de/android-backend/releases)**.
 
 
-In case you need to publish _manually_ to the Github Registry:
+####  In case you need to publish _manually_ to the Github Registry
 
 1. Make sure you are authenticated to the repository:
 
