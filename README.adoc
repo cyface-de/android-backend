@@ -1,0 +1,892 @@
+= Cyface Android SDK
+
+image:https://github.com/cyface-de/android-backend/workflows/Gradle%20Build/badge.svg[link="https://github.com/cyface-de/android-backend/actions"]
+image:https://github.com/cyface-de/android-backend/workflows/Gradle%20Publish/badge.svg[link="https://github.com/cyface-de/android-backend/actions"]
+image:https://app.bitrise.io/app/3f7da1f067e2d183/status.svg?token=Ggdr1abrQO7N_Pm1uI4kjg&branch=master[Build Status,link="https://app.bitrise.io/app/3f7da1f067e2d183"]
+
+This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
+
+* <<integration-guide,Integration Guide>>
+* <<api-usage-guide,API Usage Guide>>
+* <<migration-guide,Migration Guide>>
+* <<developer-guide,Developer Guide>>
+* <<license,License>>
+
+[[integration-guide]]
+== Integration Guide
+
+This library is published to the Github Package Registry.
+
+To use it as a dependency in your app you need to:
+
+. Make sure you are authenticated to the repository:
+ ** You need a Github account with read-access to this Github repository
+ ** Create a https://github.com/settings/tokens[personal access token on Github] with "read:packages" permissions
+ ** Create or adjust a `local.properties` file in the project root containing:
+
++
+----
+ github.user=YOUR_USERNAME
+ github.token=YOUR_ACCESS_TOKEN
+----
+ ** Add the custom repository to your app's `build.gradle`:
+
++
+----
+ def properties = new Properties()
+ properties.load(new FileInputStream("local.properties"))
+
+ repositories {
+     // Other maven repositories, e.g.:
+     jcenter()
+     google()
+     // Repository for this library
+     maven {
+         url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
+         credentials {
+             username = properties.getProperty("github.user")
+             password = properties.getProperty("github.token")
+         }
+     }
+ }
+----
+. Add this package as a dependency to your app's `build.gradle`:
++
+----
+ dependencies {
+     # To use the 'movebis' flavour, use: 'datacapturingMovebis'
+     implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
+     # To use the 'movebis' flavour, use: 'synchronizationMovebis'
+     implementation "de.cyface:synchronization:$cyfaceBackendVersion"
+     # There is only one 'persistence' flavor
+     implementation "de.cyface:persistence:$cyfaceBackendVersion"
+ }
+----
+
+. Set the `$cyfaceBackendVersion` gradle variable to the https://github.com/cyface-de/android-backend/releases[latest version].
+
+[[api-usage-guide]]
+== API Usage Guide
+
+* <<collector-compatibility,Collector Compatibility>>
+* <<resource-files,Resource Files>>
+ ** <<truststore,Truststore>>
+ ** <<content-provider-authority,Content Provider Authority>>
+* <<service-initialization,Service Initialization>>
+ ** <<implement-ui-listener,Implement UI Listener>>
+ ** <<implement-event-handling-strategy,Implement Event Handling Strategy>>
+  *** <<custom-capturing-notification,Custom Capturing Notification>>
+ ** <<start-service,Start Service>>
+ ** <<reconnect-to-service,Reconnect to Service>>
+ ** <<link-your-login-activity,Link your Login Activity>>
+ ** <<start-wifisurveyor,Start WifiSurveyor>>
+ ** <<de-register-jwt-auth-tokens,De-/Register JWT Auth Tokens>>
+ ** <<start-stop-ui-location-updates,Start/Stop UI Location Updates>>
+ ** <<implement-data-capturing-listener,Implement Data Capturing Listener>>
+* <<control-capturing,Control Capturing>>
+ ** <<start-stop-capturing,Start/Stop Capturing>>
+ ** <<pause-resume-capturing,Pause/Resume Capturing>>
+* <<access-measurements,Access Measurements>>
+ ** <<load-finished-measurements,Load finished measurements>>
+ ** <<load-tracks,Load Tracks>>
+ ** <<load-measurement-distance,Load Measurement Distance (new feature)>>
+ ** <<delete-measurements,Delete Measurements>>
+ ** <<load-events,Load Events>>
+* <<documentation-incomplete,Documentation Incomplete>>
+
+[[collector-compatibility]]
+=== Collector Compatibility
+
+This SDK is compatible with our https://github.com/cyface-de/data-collector/releases/tag/5.0.0[Data Collector Version 5].
+
+[[resource-files]]
+=== Resource Files
+
+The following steps are required before you can start coding.
+
+[[truststore]]
+==== Truststore
+
+Geo location tracks such as those captured by the Cyface Android SDK, should only be transmitted
+via a secure HTTPS connection.
+
+If you use a self-signed certificate the SDK requires a truststore containing the key of the server
+you are transmitting to.
+
+Since we can not know which public key your server uses, this must be provided by you.
+To do so place a truststore containing your key in:
+
+ synchronization/src/main/res/raw/truststore.jks
+
+If this (by default empty) file is not replaced, the SDK can only communicate with
+servers which are certified by one of its trusted Certification Authorities.
+
+[[content-provider-authority]]
+==== Content Provider Authority
+
+You need to set a provider and to make sure you use the same provider everywhere:
+
+* The `AndroidManifest.xml` is required to override the default content provider as
+declared by the persistence project. This needs to be done by each SDK integrating
+application separately.
+
+[source,xml]
+----
+<?xml version="1.0" encoding="utf-8"?>
+<manifest xmlns:android="http://schemas.android.com/apk/res/android"
+    xmlns:tools="http://schemas.android.com/tools"
+    package="your.domain.app"> <!-- replace this! -->
+
+    <application>
+        <!-- This overwrites the provider in the SDK. This way the app can
+        be installed next to other SDK using apps.
+        The "authorities" must match the one in your AndroidManifest.xml! -->
+        <provider
+            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:authorities="your.domain.app.provider"
+            android:exported="false"
+            android:process=":persistence_process"
+            android:syncable="true"
+            tools:replace="android:authorities" />
+    </application>
+
+</manifest>
+----
+
+* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below).
+This must be the same as defined in the `AndroidManifest.xml` above.
+
+[source,java]
+----
+public class Constants {
+    public final static String AUTHORITY = "your.domain.app.provider"; // replace this
+}
+----
+
+* Create a resource file `src/main/res/xml/sync_adapter.xml` and use the same provider:
+
+[source,xml]
+----
+<?xml version="1.0" encoding="UTF-8" ?>
+<sync-adapter xmlns:android="http://schemas.android.com/apk/res/android"
+    android:contentAuthority="your.domain.app.provider"
+    android:accountType="your.domain.app"
+    android:userVisible="false"
+    android:supportsUploading="true"
+    android:allowParallelSyncs="false"
+    android:isAlwaysSyncable="true" />
+----
+
+[[service-initialization]]
+=== Service Initialization
+
+The core of our SDK is the `DataCapturingService` which controls the capturing process.
+
+We provide two interfaces for this service: `CyfaceDataCapturingService` and `MovebisDataCapturingService`.
+Unless you are part of the _Movebis project_ `CyfaceDataCapturingService` is your candidate.
+
+To keep this documentation lightweight, we currently only use `MovebisDataCapturingService` in the samples
+but the interface for `CyfaceDataCapturingService` is mostly the same.
+
+The following steps are required to communicate with this service.
+
+These instructions assume a `DataCapturingButton` is used to display the current capturing status
+and to control the capture status.
+
+[[implement-ui-listener]]
+==== Implement UI Listener
+
+This is only required for `MovebisDataCapturingService`.
+
+[[implement-event-handling-strategy]]
+==== Implement Event Handling Strategy
+
+This interface allows us to inject your custom strategies into our SDK.
+
+[[custom-capturing-notification]]
+===== Custom Capturing Notification
+
+To continuously run an Android service, without the system killing said service,
+it needs to show a notification to the user in the Android status bar.
+
+The Cyface data capturing runs as such a service and thus needs to display such a notification.
+Applications using the Cyface SDK may configure style and behaviour of this notification by
+providing an implementation of `de.cyface.datacapturing.EventHandlingStrategy` to the constructor
+of the `de.cyface.datacapturing.DataCapturingService`.
+
+An example implementation is provided by `de.cyface.datacapturing.IgnoreEventsStrategy`.
+The most important step is to implement the method
+`de.cyface.datacapturing.EventHandlingStrategy#buildCapturingNotification(DataCapturingBackgroundService)`.
+
+This can look like:
+
+[source,java]
+----
+public class EventHandlingStrategyImpl implements EventHandlingStrategy {
+
+    @Override
+    public @NonNull Notification buildCapturingNotification(final @NonNull DataCapturingBackgroundService context) {
+      final String channelId = "channel";
+      NotificationManager notificationManager = (NotificationManager) context.getSystemService(Context.NOTIFICATION_SERVICE);
+      if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O && notificationManager.getNotificationChannel(channelId)==null) {
+        final NotificationChannel channel = new NotificationChannel(channelId, "Cyface Data Capturing", NotificationManager.IMPORTANCE_DEFAULT);
+        notificationManager.createNotificationChannel(channel);
+      }
+
+      return new NotificationCompat.Builder(context, channelId)
+        .setContentTitle("Cyface")
+        .setSmallIcon(R.drawable.your_icon) // see "attention" notes below
+        .setContentText("Running Data Capturing")
+        .setOngoing(true)
+        .setAutoCancel(false)
+        .build();
+    }
+}
+----
+
+Further details about how to create a proper notification are available via the https://developer.android.com/guide/topics/ui/notifiers/notifications[Google developer documentation].
+The most likely adaptation an application using the Cyface SDK for Android should do, is use the `android.app.Notification.Builder.setContentIntent(PendingIntent)` to call the applications main activity if the user presses the notification.
+
+*ATTENTION:*
+
+* Service notifications require an application wide unique identifier.
+This identifier is 74.656.
+Due to limitations in the Android framework, this is not configurable.
+You must not use the same notification identifier for any other notification displayed by your app!
+* If you want to use a *vector xml drawable as Notification icon* make sure to do the following:
++
+Even with `vectorDrawables.useSupportLibrary` enabled the vector drawable won't work as a notification icon (`notificationBuilder.setSmallIcon()`)
+on devices with API < 21. We assume that's because of the way we need to inject your custom notification.
+A simple fix is to have the xml in `res/drawable-anydpi-v21/icon.xml` and to generate notification icon PNGs under the same resource name in the usual paths (`+res/drawable-**dpi/icon.png+`).
+
+[[start-service]]
+==== Start Service
+
+To save resources your should create your service when the view is created
+and reuse this instance when you need to communicate with it.
+
+[source,java]
+----
+class MainFragment extends Fragment {
+
+    private MovebisDataCapturingService dataCapturingService;
+    private DataCapturingButton dataCapturingButton;
+
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
+
+        final static int SENSOR_FREQUENCY = 100;
+        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
+            uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener, SENSOR_FREQUENCY);
+    }
+
+    // Depending on your implementation you need to register the DataCapturingService in your DataCapturingButton:
+    @Override
+    public void onResume() {
+        super.onResume();
+        // If you want to receive events for the synchronization status
+        dataCapturingService.addConnectionStatusListener(this);
+
+        dataCapturingButton.onResume(dataCapturingService);
+    }
+
+    // If you registered to receive events for the synchronization status
+    @Override
+    public void onPause() {
+        dataCapturingService.removeConnectionStatusListener(this);
+        super.onPause();
+    }
+
+    @Override
+    public void onDestroyView() {
+        try {
+            // As required by the `WiFiSurveyor.startSurveillance()`
+            dataCapturingService.shutdownDataCapturingService();
+        } catch (SynchronisationException e) {
+            Log.w(TAG, "Failed to shut down CyfaceDataCapturingService. ", e);
+        }
+        // If you registered to receive events for the synchronization status
+        dataCapturingService.removeConnectionStatusListener(this);
+        super.onDestroyView();
+    }
+}
+----
+
+[[reconnect-to-service]]
+==== Reconnect to Service
+
+When your UI resumes you need to reconnect to your service:
+
+The `reconnect()` method returns true when there was a capturing running during reconnect.
+This way we can use the `isRunning()` result from within `reconnect()` and avoid duplicate
+`isRunning()` calls.
+
+[source,java]
+----
+public class DataCapturingButton implements DataCapturingListener {
+
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+
+    public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
+        this.dataCapturingService = dataCapturingService;
+        dataCapturingService.addDataCapturingListener(this);
+
+        if (dataCapturingService.reconnect(IS_RUNNING_CALLBACK_TIMEOUT)) {
+            // Your logic, e.g.:
+            setButtonStatus(button, OPEN);
+        } else {
+            // Attention: reconnect() only returns true if there is an OPEN measurement
+            // To check for PAUSED measurements use the persistence layer.
+            if (persistenceLayer.hasMeasurement(PAUSED)) {
+                // Your logic, e.g.:
+                setButtonStatus(button, PAUSED);
+            } else {
+                // Your logic, e.g.:
+                setButtonStatus(button, FINISHED);
+            }
+        }
+    }
+
+    public void onPause() {
+        dataCapturingService.removeDataCapturingListener(this);
+    }
+
+    @Override
+    public void onDestroyView() {
+        // Unbinds the services. They continue to run in the background but won't send any updates to this button.
+        if (dataCapturingService != null) {
+            try {
+                dataCapturingService.disconnect();
+            } catch (DataCapturingException e) {
+                // This just tells us there is no running capturing in the background, see [MOV-588]
+                Log.d(TAG, "No need to unbind as the background service was not running.");
+            }
+        }
+    }
+}
+----
+
+[[link-your-login-activity]]
+==== Link your Login Activity
+
+This is only required for `CyfaceDataCapturingService`.
+
+Define which Activity should be launched to request the user to log in:
+
+[source,java]
+----
+public class CustomApplication extends Application {
+
+    @Override
+    public void onCreate() {
+        super.onCreate();
+        CyfaceAuthenticator.LOGIN_ACTIVITY = LoginActivity.class;
+    }
+}
+----
+
+[[start-wifisurveyor]]
+==== Start WifiSurveyor
+
+This is only required for `CyfaceDataCapturingService`.
+
+Create an account for synchronization and start `WifiSurveyor`:
+
+[source,java]
+----
+public class MainFragment extends Fragment implements ConnectionStatusListener {
+
+    @Override
+    public View onCreateView(final LayoutInflater inflater, final ViewGroup container,
+            final Bundle savedInstanceState) {
+        try {
+            // dataCapturingService = ... - see above
+
+            // Needs to be called after `new CyfaceDataCapturingService()`
+            startSynchronization(context);
+
+            // If you want to receive events for the synchronization status
+            dataCapturingService.addConnectionStatusListener(this);
+        } catch (final SetupException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+    }
+
+    @SuppressWarnings("WeakerAccess")
+    public void startSynchronization(final Context context) {
+        final AccountManager accountManager = AccountManager.get(context);
+        final boolean validAccountExists = accountWithTokenExists(accountManager);
+
+        if (validAccountExists) {
+            try {
+                dataCapturingService.startWifiSurveyor();
+            } catch (SetupException e) {
+                throw new IllegalStateException(e);
+            }
+            return;
+        }
+
+        // Login via LoginActivity, create account and using dynamic tokens
+        // The LoginActivity is called by Android which handles the account creation
+        accountManager.addAccount(ACCOUNT_TYPE, AUTH_TOKEN_TYPE, null, null,
+            getMainActivityFromContext(context), new AccountManagerCallback<Bundle>() {
+                @Override
+                public void run(AccountManagerFuture<Bundle> future) {
+                    try {
+                        // noinspection unused - this allows us to detect when LoginActivity is closed
+                        final Bundle bundle = future.getResult();
+
+                        // The LoginActivity created a temporary account which cannot yet be used for synchronization.
+                        // As the login was successful we now register the account correctly:
+                        final AccountManager accountManager = AccountManager.get(context);
+                        final Account account = accountManager.getAccountsByType(ACCOUNT_TYPE)[0];
+                        dataCapturingService.getWifiSurveyor().makeAccountSyncable(account, syncEnabledPreference);
+
+                        dataCapturingService.startWifiSurveyor();
+                    } catch (OperationCanceledException e) {
+                        // This closes the app when the LoginActivity is closed
+                        getMainActivityFromContext(context).finish();
+                    } catch (AuthenticatorException | IOException | SetupException e) {
+                        throw new IllegalStateException(e);
+                    }
+                }
+            }, null);
+    }
+
+    private static boolean accountWithTokenExists(final AccountManager accountManager) {
+        final Account[] existingAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        Validate.isTrue(existingAccounts.length < 2, "More than one account exists.");
+        return existingAccounts.length != 0
+                && accountManager.peekAuthToken(existingAccounts[0], AUTH_TOKEN_TYPE) != null;
+    }
+}
+----
+
+[[de-register-jwt-auth-tokens]]
+==== De-/Register JWT Auth Tokens
+
+This is only required for `MovebisDataCapturingService`.
+
+[[start-stop-ui-location-updates]]
+==== Start/Stop UI Location Updates
+
+This is only required for `MovebisDataCapturingService`.
+
+[[implement-data-capturing-listener]]
+==== Implement Data Capturing Listener
+
+This interface informs your app about data capturing events. Implement the interface to update your UI depending on these events.
+
+[NOTE]
+====
+Please use `dataCapturingService.loadCurrentlyCapturedMeasurement()` instead of `persistenceLayer.loadCurrentlyCapturedMeasurement()`
+to load the measurement data for the currently captured measurement which uses a cache.
+
+This way the database access is reduced which is especially important when executing this frequently,
+like in the example below - on each location update.
+====
+
+Here is a basic example implementation.
+
+[source,java]
+----
+class DataCapturingButton implements DataCapturingListener {
+
+    @Override
+    public void onNewGeoLocationAcquired(GeoLocation geoLocation) {
+
+        // To identify invalid ("unclean") location, check geoLocation.isValid()
+
+        // Load updated measurement distance
+        final Measurement measurement;
+        try {
+            measurement = dataCapturingService.loadCurrentlyCapturedMeasurement();
+        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+
+        final double distance = measurement.getDistance();
+        // Your logic, e.g. update the UI with the current distance
+    }
+
+    // The other interface methods
+}
+----
+
+[[control-capturing]]
+=== Control Capturing
+
+Now you can actually use the `DataCapturingService` instance to capture data.
+
+[[start-stop-capturing]]
+==== Start/Stop Capturing
+
+To capture a measurement you need to start the capturing and stop it after some time:
+
+[source,java]
+----
+public class DataCapturingButton implements DataCapturingListener {
+    public void onClick(View view) {
+
+        dataCapturingService.isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, new IsRunningCallback() {
+            @Override
+            public void isRunning() {
+                Validate.isTrue(buttonStatus == OPEN, "DataCapturingButton is out of sync.");
+                stopCapturing();
+            }
+
+            @Override
+            public void timedOut() {
+                Validate.isTrue(buttonStatus != OPEN, "DataCapturingButton is out of sync.");
+
+                try {
+                    // If Measurement is paused, resume the measurement on a normal click
+                    if (persistenceLayer.hasMeasurement(PAUSED)) {
+                        resumeCapturing();
+                        return;
+                    }
+                    startCapturing();
+
+                } catch (final CursorIsNullException e) {
+                    throw new IllegalStateException(e);
+                }
+
+            }
+        });
+    }
+
+    private void startCapturing() {
+        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(
+                MessageCodes.getServiceStartedActionId(context.getPackageName())) {
+            @Override
+            public void startUpFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, OPEN);
+            }
+        });
+    }
+
+    private void stopCapturing() {
+        dataCapturingService.stop(new ShutDownFinishedHandler(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
+            @Override
+            public void shutDownFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, FINISHED);
+            }
+        });
+    }
+
+    private void resumeCapturing() {
+        dataCapturingService.resume(new StartUpFinishedHandler(MessageCodes.getServiceStartedActionId(context.getPackageName())) {
+             @Override
+             public void startUpFinished(final long measurementIdentifier) {
+                 setButtonStatus(button, OPEN);
+             }
+         });
+    }
+}
+----
+
+[[pause-resume-capturing]]
+==== Pause/Resume Capturing
+
+If you want to pause a measurement you can use:
+
+[source,java]
+----
+public class DataCapturingButton implements DataCapturingListener {
+    public void onLongClick(View view) {
+        dataCapturingService.isRunning(IS_RUNNING_CALLBACK_TIMEOUT, TimeUnit.MILLISECONDS, new IsRunningCallback() {@Override
+            public void isRunning() {
+                Validate.isTrue(buttonStatus == OPEN, "DataCapturingButton is out of sync.");
+                pauseCapturing();
+            }
+
+            @Override
+            public void timedOut() {
+                Validate.isTrue(buttonStatus != OPEN, "DataCapturingButton is out of sync.");
+
+                try {
+                    // If Measurement is paused, stop the measurement on long press
+                    if (persistenceLayer.hasMeasurement(PAUSED)) {
+                        stopCapturing();
+                        return;
+                    }
+                    startCapturing();
+
+                } catch (final CursorIsNullException e) {
+                    throw new IllegalStateException(e);
+                }
+            }
+        });
+        return true;
+    }
+}
+----
+
+[[access-measurements]]
+=== Access Measurements
+
+You now need to use the `PersistenceLayer` to access and control captured _measurement data_.
+
+[source,java]
+----
+class measurementControlOrAccessClass {
+
+    PersistenceLayer<DefaultPersistenceBehaviour> persistence =
+        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+}
+----
+
+* Use `persistenceLayer.loadMeasurement(mid)` to load a specific measurement
+* Use `loadMeasurements()` or `loadMeasurements(MeasurementStatus)` to load multiple measurements (of a specific state)
+
+Loaded ``Measurement``s contain details, e.g. the <<load-measurement-distance,Measurement Distance>>.
+
+[NOTE]
+====
+The attributes of a Measurement which is not yet finished change
+over time so you need to make sure you reload it.
+You can find an example for this in <<implement-data-capturing-listener,Implement Data Capturing Listener>>.
+====
+
+[[load-finished-measurements]]
+==== Load Finished Measurements
+
+Finished measurements are measurements which are stopped (i.e. not paused or ongoing).
+
+[source,java]
+----
+class measurementControlOrAccessClass {
+    void loadMeasurements() {
+
+        persistence.loadMeasurements(MeasurementStatus.FINISHED);
+    }
+}
+----
+
+[[load-tracks]]
+==== Load Tracks
+
+The `loadTracks()` method returns a chronologically ordered list of ``Track``s.
+
+Each time a measurement is paused and resumed, a new `Track` is started for the same measurement.
+
+A `Track` contains the chronologically ordered ``GeoLocation``s captured.
+
+You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaningStrategy` class for details.
+
+[source,java]
+----
+class measurementControlOrAccessClass {
+    void loadTrack() {
+
+        // Raw track:
+        List<Track> tracks = persistence.loadTracks(measurementId);
+
+        // or, "cleaned" track:
+        List<Track> tracks = persistence.loadTracks(measurementId, new DefaultLocationCleaningStrategy());
+
+        //noinspection StatementWithEmptyBody
+        if (tracks.size() > 0 ) {
+            // your logic
+        }
+    }
+}
+----
+
+[[load-measurement-distance]]
+==== Load Measurement Distance
+
+To display the distance for an ongoing measurement (which is updated about once per second) you need to call
+`dataCapturingService.loadCurrentlyCapturedMeasurement()` regularly, e.g. on each location update to always have the most recent information.
+
+For this you need to implement the `DataCapturingListener` interface to be notified on `onNewGeoLocationAcquired(GeoLocation)` events.
+
+See <<implement-data-capturing-listener,Implement Data Capturing Listener>> for sample code.
+
+[[delete-measurements]]
+==== Delete Measurements
+
+To delete the measurement data stored on the device for finished or synchronized measurements use:
+
+[source,java]
+----
+class measurementControlOrAccessClass {
+
+    void deleteMeasurement(final long measurementId) throws CursorIsNullException {
+        // To make sure you don't delete the ongoing measurement because this leads to an exception
+        Measurement currentlyCapturedMeasurement;
+        try {
+            currentlyCapturedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+        } catch (NoSuchMeasurementException e) {
+            // do nothing
+        }
+
+        if (currentlyCapturedMeasurement == null || currentlyCapturedMeasurement.getIdentifier() != measurementId) {
+            new DeleteFromDBTask()
+                    .execute(new DeleteFromDBTaskParams(persistenceLayer, this, measurementId));
+        } else {
+            Log.d(TAG, "Not deleting currently captured measurement: " + measurementId);
+        }
+    }
+
+    private static class DeleteFromDBTaskParams {
+        final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+        final long measurementId;
+
+        DeleteFromDBTaskParams(final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer,
+                final long measurementId) {
+            this.persistenceLayer = persistenceLayer;
+            this.measurementId = measurementId;
+        }
+    }
+
+    private class DeleteFromDBTask extends AsyncTask<DeleteFromDBTaskParams, Void, Void> {
+        protected Void doInBackground(final DeleteFromDBTaskParams... params) {
+            final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer = params[0].persistenceLayer;
+            final long measurementId = params[0].measurementId;
+            persistenceLayer.delete(measurementId);
+        }
+
+        protected void onPostExecute(Void v) {
+            // Your logic
+        }
+    }
+}
+----
+
+[[load-events]]
+==== Load Events
+
+The `loadEvents()` method returns a chronologically ordered list of ``Event``s.
+
+These Events log `Measurement` related interactions of the user, e.g.:
+
+* EventType.LIFECYCLE_START, EventType.LIFECYCLE_PAUSE, EventType.LIFECYCLE_RESUME, EventType.LIFECYCLE_STOP
+whenever a user starts, pauses, resumes or stops the Measurement.
+* EventType.MODALITY_TYPE_CHANGE at the start of a Measurement to define the Modality used in the Measurement
+and when the user selects a new `Modality` type during an ongoing (or paused) Measurement.
+The later is logged when `persistenceLayer.changeModalityType(Modality newModality)` is called with a different Modality than the current one.
+* The `Event` class contains a `getValue()` attribute which contains the `newModality`
+in case of a `EventType.MODALITY_TYPE_CHANGE` or else `Null`
+
+[source,java]
+----
+class measurementControlOrAccessClass {
+    void loadEvents() {
+
+        // To retrieve all Events of that Measurement
+        //noinspection UnusedAssignment
+        List<Event> events = persistence.loadEvents(measurementId);
+
+        // Or to retrieve only the Events of a specific EventType
+        events = persistence.loadEvents(measurementId, EventType.MODALITY_TYPE_CHANGE);
+
+        //noinspection StatementWithEmptyBody
+        if (events.size() > 0 ) {
+            // your logic
+        }
+    }
+}
+----
+
+[[documentation-incomplete]]
+=== Documentation Incomplete
+
+This documentation still lacks of samples for the following features:
+
+* ErrorHandler
+* Force Synchronization
+* ConnectionStatusListener implementation
+* Disable synchronization
+* Enable synchronization on metered connections
+* Logout
+
+[[migration-guide]]
+== Migration Guide
+
+* xref:documentation/migration-guide_5.0.0.adoc[Migrate to 5.0.0]
+* xref:documentation/migration-guide_6.0.0.adoc[Migrate to 6.0.0]
+
+[[developer-guide]]
+== Developer Guide
+
+This section is only relevant for developers of this library.
+
+[[release-a-new-version]]
+=== Release a new version
+
+Versions of this project inside the master branch are always `0.0.0`. To
+release a new version:
+
+* *Create a new release branch* following the format `release/x.y`.
+** `x.y` is the number of the first two sections of the new version
+following http://semver.org[Semantic Versioning].
+** *Hotfixes should be applied on top of the already existing
+release-branch*.
+*** Apply the hotfix on the `master` branch, create a Pull-Request and
+pass reviewing.
+*** Cherry-pick the fix on top of the already existing `release/x.y`
+branch.
+*** No new features are allowed on a release-branch, only fixes and
+minor changes.
+* *Increase version numbers* in root `build.gradle`,
+** and optional in any associated `docker-compose.yml` or OpenAPI
+documentation (usually located in
+`src/main/resources/webroot/openapi.yml`).
+** If you need to version sub-projects differently, create a version
+attribute in the corresponding `build.gradle`.
+* *Commit version bump and push branch* to Github.
+** Wait until the continuous integration system passes.
+** Do *not* merge the release-branch back to master.
+* *Tag the new release on the release branch*.
+** Ensure you are on the correct branch and commit.
+** Follow the guidelines from https://keepachangelog.com["Keep a
+Changelog"] in your tag description.
+* *Push the release tag to Github*.
+** The docker image and Github packages are automatically published when
+a new version is tagged and pushed by our
+https://github.com/cyface-de/android-backend/actions[Github Actions] to
+the https://github.com/cyface-de/android-backend/packages[Github
+Registry].
+* *Mark the released version as 'new Release' on
+https://github.com/cyface-de/android-backend/releases[Github]*.
+
+== In case you need to publish _manually_ to the Github Registry
+
+[arabic]
+. Make sure you are authenticated to the repository:
+* You need a Github account with write-access to this Github repository
+* Create a https://github.com/settings/tokens[personal access token on
+Github] with "write:packages" permissions
+* Create or adjust a `local.properties` file in the project root
+containing:
++
+....
+github.user=YOUR_USERNAME
+github.token=YOUR_ACCESS_TOKEN
+....
+. Execute the publish command `./gradlew publishAll`
+
+
+[[license]]
+== License
+Copyright 2017 Cyface GmbH
+
+This file is part of the Cyface SDK for Android.
+
+The Cyface SDK for Android is free software: you can redistribute it and/or modify
+it under the terms of the GNU General Public License as published by
+the Free Software Foundation, either version 3 of the License, or
+(at your option) any later version.
+
+The Cyface SDK for Android is distributed in the hope that it will be useful,
+but WITHOUT ANY WARRANTY; without even the implied warranty of
+MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+GNU General Public License for more details.
+
+You should have received a copy of the GNU General Public License
+along with the Cyface SDK for Android. If not, see http://www.gnu.org/licenses/.
