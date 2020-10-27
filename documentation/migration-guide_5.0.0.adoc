@@ -1,0 +1,301 @@
+= Cyface Android SDK 5.0.0 Migration Guide
+
+This migration guide is written for apps using the `MovebisDataCapturingService`.
+
+If you use the `CyfaceDataCapturingService` instead, please contact us.
+
+* <<integration-changes,Integration Changes>>
+* <<api-changes,API Changes>>
+* <<developer-changes,Developer Changes>>
+
+[[integration-changes]]
+== Integration Changes
+
+This section was newly added as this library is now published to the Github Package Registry.
+
+To use it as a dependency in your app you need to:
+
+. Make sure you are authenticated to the repository:
+ ** You need a Github account with read-access to this Github repository
+ ** Create a https://github.com/settings/tokens[personal access token on Github] with "read:packages" permissions
+ ** Create or adjust a `local.properties` file in the project root containing:
+
++
+----
+ github.user=YOUR_USERNAME
+ github.token=YOUR_ACCESS_TOKEN
+----
+ ** Add the custom repository to your app's `build.gradle`:
+
++
+----
+ def properties = new Properties()
+ properties.load(new FileInputStream("local.properties"))
+
+ repositories {
+     // Other maven repositories, e.g.:
+     jcenter()
+     google()
+     // Repository for this library
+     maven {
+         url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
+         credentials {
+             username = properties.getProperty("github.user")
+             password = properties.getProperty("github.token")
+         }
+     }
+ }
+----
+. Add this package as a dependency to your app's `build.gradle`:
++
+----
+ dependencies {
+     # To use the 'movebis' flavour, use: 'datacapturingMovebis'
+     implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
+     # To use the 'movebis' flavour, use: 'synchronizationMovebis'
+     implementation "de.cyface:synchronization:$cyfaceBackendVersion"
+     # There is only one 'persistence' flavor
+     implementation "de.cyface:persistence:$cyfaceBackendVersion"
+ }
+----
+
+. Set the `$cyfaceBackendVersion` gradle variable to the https://github.com/cyface-de/android-backend/releases[latest version].
+
+[[api-changes]]
+== API Changes
+
+Upgrading from 4.2.3:
+
+* <<collector-compatibility,Collector Compatibility>>
+* <<resource-files,Resource Files>>
+ ** <<truststore,Truststore>>
+ ** <<content-provider-authority,Content Provider Authority>>
+* <<service-initialization,Service Initialization>>
+ ** <<implement-data-capturing-listener,Implement Data Capturing Listener>>
+ ** <<implement-ui-listener,Implement UI Listener>>
+ ** <<implement-event-handling-strategy,Implement Event Handling Strategy>>
+  *** <<custom-capturing-notification,Custom Capturing Notification>>
+ ** <<start-service,Start Service>>
+ ** <<reconnect-to-service,Reconnect to Service>>
+ ** <<link-your-login-activity,Link your Login Activity>>
+ ** <<start-wifisurveyor,Start WifiSurveyor>>
+ ** <<de-register-jwt-auth-tokens,De-/Register JWT Auth Tokens>>
+ ** <<startstop-ui-location-updates,Start/Stop UI Location Updates>>
+* <<control-capturing,Control Capturing>>
+ ** <<startstop-capturing,Start/Stop Capturing>>
+ ** <<pauseresume-capturing,Pause/Resume Capturing>>
+* <<access-measurements,Access Measurements>>
+ ** <<load-finished-measurements,Load finished measurements>>
+ ** <<load-tracks,Load Tracks>>
+ ** <<load-measurement-distance,Load Measurement Distance (new feature)>>
+ ** <<delete-measurements,Delete Measurements>>
+ ** <<load-events,Load Events>>
+
+=== Collector Compatibility
+
+This SDK is compatible with our https://github.com/cyface-de/data-collector/releases/tag/5.0.0[Data Collector Version 5].
+
+=== Resource Files
+
+==== Truststore
+
+_No API changes._
+
+==== Content Provider Authority
+
+_No API changes._
+
+=== Service Initialization
+
+==== Implement Data Capturing Listener
+
+_No API changes_
+
+==== Implement UI Listener
+
+_No API changes._
+
+==== Implement Event Handling Strategy
+
+_No API changes_
+
+===== Custom Capturing Notification
+
+_No API changes._
+
+==== Start Service
+
+_No API changes._
+
+==== Reconnect to Service
+
+_No API changes._
+
+==== Link your Login Activity
+
+_No API changes._
+
+==== Start WifiSurveyor
+
+_No API changes._
+
+==== De-/Register JWT Auth Tokens
+
+_No API changes._
+
+==== Start/Stop UI Location Updates
+
+_No API changes._
+
+=== Control Capturing
+
+==== Start/Stop Capturing
+
+The class `Vehicle` required in the `MovebisDataCapturingService.start()` method
+is renamed to `Modality` as this describes the data collected more precisely.
+
+[source,java]
+----
+public class DataCapturingButton implements DataCapturingListener {
+    public void onClick(View view) {
+
+        // Before
+        dataCapturingService.start(Vehicle.BICYCLE, new StartUpFinishedHandler(
+                context.getPackageName()) {
+            @Override
+            public void startUpFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, true);
+            }
+        });
+        // Now
+        dataCapturingService.start(Modality.BICYCLE, new StartUpFinishedHandler(
+                MessageCodes.getServiceStartedActionId(context.getPackageName())) {
+            @Override
+            public void startUpFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, true);
+            }
+        });
+
+        // Before
+        dataCapturingService.stop(new ShutDownFinishedHandler() {
+            @Override
+            public void shutDownFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, false);
+                setButtonEnabled(button);
+            }
+        });
+        // Now
+        dataCapturingService.stop(new ShutDownFinishedHandler(
+                MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
+            @Override
+            public void shutDownFinished(final long measurementIdentifier) {
+                // Your logic, e.g.:
+                setButtonStatus(button, false);
+                setButtonEnabled(button);
+            }
+        });
+    }
+}
+----
+
+==== Pause/Resume Capturing
+
+The method `dataCapturingService.pause(finishedHandler)` now does not throw a `DataCapturingException` anymore.
+
+=== Access Measurements
+
+_No API changes._
+
+==== Load Finished Measurements
+
+_No API changes._
+
+==== Load Tracks
+
+_No API changes._
+
+==== Load Measurement Distance
+
+_No API changes._
+
+==== Delete Measurements
+
+_No API changes._
+
+==== Load Events
+
+The `loadEvents()` method returns a chronologically ordered list of ``Event``s.
+
+These Events log `Measurement` related interactions of the user, e.g.:
+
+Until now there were only:
+
+* EventType.LIFECYCLE_START, EventType.LIFECYCLE_PAUSE, EventType.LIFECYCLE_RESUME, EventType.LIFECYCLE_STOP
+whenever a user starts, pauses, resumes or stops the Measurement.
+
+We added the following EventType:
+
+* EventType.MODALITY_TYPE_CHANGE at the start of a Measurement to define the Modality used in the Measurement
+and when the user selects a new `Modality` type during an ongoing (or paused) Measurement.
+The later is logged when `persistenceLayer.changeModalityType(Modality newModality)` is called with a different Modality than the current one.
+* The `Event` class now contains a `getValue()` attribute which contains the `newModality`
+in case of a `EventType.MODALITY_TYPE_CHANGE` or else `Null`
+
+[source,java]
+----
+class measurementControlOrAccessClass {
+    void loadEvents() {
+
+        // Still supported:
+        // To retrieve all Events of that Measurement
+        //noinspection UnusedAssignment
+        List<Event> events = persistence.loadEvents(measurementId);
+
+        // Newly added:
+        // To retrieve only the Events of a specific EventType
+        events = persistence.loadEvents(measurementId, EventType.MODALITY_TYPE_CHANGE);
+
+        //noinspection StatementWithEmptyBody
+        if (events.size() > 0 ) {
+            // your logic
+        }
+    }
+}
+----
+
+[[developer-changes]]
+== Developer Changes
+
+This section was newly added and is only relevant for developers of this library.
+
+=== Release a new version
+
+To release a new version:
+
+. Create a new branch following the format `release/x.y.z/PRJ-<Number>_some-optional-explanation`.
+Where `x.y.z` is the number of the new version following semantic versioning, `PRJ` is the project this release has been created for, `<Number>` is the issue in the task tracker created for this release.
+You may also add an optional human readable explanation.
+. Increase version numbers in `build.gradle`.
+. Commit and push everything to Github.
+. Create Pull Requests to master and dev branches.
+. If those Pull Requests are accepted merge them back, but make sure, you are still based on the most recent versions of master and dev.
+. Create a tag with the version on the merged master branch and push that tag to the repository.
+. Make sure the new version is successfully publish by the https://github.com/cyface-de/android-backend/actions/new[Github Actions] to the https://github.com/cyface-de/android-backend/packages[Github Registry].
+. Mark the released version as 'new Release' on https://github.com/cyface-de/data-collector/releases[Github].
+
+In case you need to publish _manually_ to the Github Registry:
+
+. Make sure you are authenticated to the repository:
+ ** You need a Github account with write-access to this Github repository
+ ** Create a https://github.com/settings/tokens[personal access token on Github] with "write:packages" permissions
+ ** Create or adjust a `local.properties` file in the project root containing:
+
++
+----
+ github.user=YOUR_USERNAME
+ github.token=YOUR_ACCESS_TOKEN
+----
+. Execute the publish command `./gradlew publishAll`
