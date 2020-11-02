@@ -95,7 +95,9 @@ configure(subprojects.findAll({ it.name in ["persistence", "synchronization", "d
                     // Configure artifacts
                     "${project.name}${variant.name.capitalize()}"(MavenPublication) {
                         groupId = 'de.cyface'
-                        artifactId "${project.name}${optionalMovebisFlavor.capitalize()}"
+                        // The artifactId must not contain upper case chars [STAD-234]
+                        artifactId "${project.name}${optionalMovebisFlavor}"
+                        project.logger.lifecycle('artifactId: ' + artifactId)
                         version android.defaultConfig.versionName
                         artifact(variant.packageLibraryProvider.get().archivePath)
                         artifact(javadocJar)
