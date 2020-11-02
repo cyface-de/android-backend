@@ -833,10 +833,7 @@ pass reviewing.
 branch.
 *** No new features are allowed on a release-branch, only fixes and
 minor changes.
-* *Increase version numbers* in root `build.gradle`,
-** and optional in any associated `docker-compose.yml` or OpenAPI
-documentation (usually located in
-`src/main/resources/webroot/openapi.yml`).
+* *Increase version numbers* in root `build.gradle`
 ** If you need to version sub-projects differently, create a version
 attribute in the corresponding `build.gradle`.
 * *Commit version bump and push branch* to Github.
