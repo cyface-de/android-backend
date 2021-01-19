@@ -849,7 +849,7 @@ https://github.com/cyface-de/android-backend/actions[Github Actions] to
 the https://github.com/cyface-de/android-backend/packages[Github Registry]
 * The tag is automatically marked as a 'new Release' on https://github.com/cyface-de/android-backend/releases[Github]
 
-== In case you need to publish _manually_ to the Github Registry
+==== In case you need to publish _manually_ to the Github Registry
 
 [arabic]
 . Make sure you are authenticated to the repository:
