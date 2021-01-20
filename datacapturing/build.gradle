@@ -72,7 +72,7 @@ android {
         }
     }
 
-    // Required by Roboeletric
+    // Required by Roboletric
     testOptions {
         unitTests {
             includeAndroidResources = true
