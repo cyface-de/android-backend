@@ -18,6 +18,7 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
@@ -193,7 +194,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // We only have 5 seconds to call startForeground before the service crashes, so we call it as early as possible
         // with a placeholder notification. This is substituted by the provided notification in onStartCommand. On most
         // devices the user should not even see this happening.
-        startForeground(NOTIFICATION_ID, PlaceholderNotificationBuilder.build(this));
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.Q) {
+            // Requests the foreground service types as declared in the manifest (here: location)
+            startForeground(NOTIFICATION_ID, PlaceholderNotificationBuilder.build(this),
+                    FOREGROUND_SERVICE_TYPE_MANIFEST);
+        } else {
+            startForeground(NOTIFICATION_ID, PlaceholderNotificationBuilder.build(this));
+        }
         super.onCreate();
 
         // Prevents this process from being killed by the system.

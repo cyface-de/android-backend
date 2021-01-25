@@ -131,7 +131,7 @@ public class SetAccountFlagTest {
      * Tests that marking the connection as syncable using the account flags works.
      * <p>
      * This test reproduced MOV-635 where the periodic sync flag did not change because syncAutomatically was not set.
-     * This bug was only reproducible in integration environment (device and emulator) but not as roboelectric test.
+     * This bug was only reproducible in integration environment (device and emulator) but not as robolectric test.
      * <p>
      * This test may be flaky on a <b>real</b> device when the network changes during the test.
      */

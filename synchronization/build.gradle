@@ -84,6 +84,13 @@ android {
             returnDefaultValues = true
         }
     }
+
+    // Enabling desugaring as a dependency (mockito-core-3.3.3) contains Java 8 bytecode.
+    // See https://developer.android.com/studio/write/java8-support.html
+    compileOptions {
+      sourceCompatibility rootProject.ext.sourceCompatibility
+      targetCompatibility rootProject.ext.targetCompatibility
+    }
 }
 
 dependencies {
