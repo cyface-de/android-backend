@@ -79,6 +79,11 @@ android {
             returnDefaultValues = true
         }
     }
+
+    // To avoid having to upgrade to `androidX.appCompat:1.3.0-beta1` [CY-5525]
+    lintOptions {
+        disable 'ObsoleteLintCustomCheck'
+    }
 }
 
 dependencies {
