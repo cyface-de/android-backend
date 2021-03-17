@@ -54,9 +54,9 @@ To use it as a dependency in your app you need to:
 +
 ----
  dependencies {
-     # To use the 'movebis' flavour, use: 'datacapturingMovebis'
+     # To use the 'movebis' flavour, use: 'datacapturingmovebis'
      implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
-     # To use the 'movebis' flavour, use: 'synchronizationMovebis'
+     # To use the 'movebis' flavour, use: 'synchronizationmovebis'
      implementation "de.cyface:synchronization:$cyfaceBackendVersion"
      # There is only one 'persistence' flavor
      implementation "de.cyface:persistence:$cyfaceBackendVersion"
