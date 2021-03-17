@@ -25,5 +25,5 @@
     <string name="ticker_text" translatable="false">Ticker</string>
 
     <string name="missing_data_error" translatable="false">Captured data was missing from message!</string>
-    <string name="unknown_message_error" translatable="false">Received unknown message %d from data capturing service!</string>
+    <string name="unknown_message_error" translatable="false">Received unknown message from data capturing service (code %d)!</string>
 </resources>
