@@ -225,15 +225,15 @@ public final class MeasurementSerializer {
 
         while (geoLocationsCursor.moveToNext()) {
             buffer.putLong(geoLocationsCursor
-                    .getLong(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
+                    .getLong(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
             buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT)));
+                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT)));
             buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON)));
+                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON)));
             buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED)));
+                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED)));
             buffer.putInt(
-                    geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY)));
+                    geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY)));
         }
 
         byte[] payload = new byte[buffer.capacity()];

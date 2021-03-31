@@ -242,13 +242,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return the {@code Measurement} of the {@code Cursor}
      */
     private Measurement loadMeasurement(@NonNull final Cursor cursor) {
-        final long measurementIdentifier = cursor.getLong(cursor.getColumnIndex(_ID));
+        final long measurementIdentifier = cursor.getLong(cursor.getColumnIndexOrThrow(_ID));
         final MeasurementStatus status = MeasurementStatus
-                .valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
-        final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_MODALITY)));
-        final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
-        final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
-        final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
+                .valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS)));
+        final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MODALITY)));
+        final short fileFormatVersion = cursor.getShort(cursor.getColumnIndexOrThrow(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
+        final double distance = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_DISTANCE));
+        final long timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP));
         return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, timestamp);
     }
 
@@ -259,11 +259,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return the {@code Event} of the {@code Cursor}
      */
     private Event loadEvent(@NonNull final Cursor cursor) {
-        final long id = cursor.getLong(cursor.getColumnIndex(_ID));
-        final long timestamp = cursor.getLong(cursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+        final long id = cursor.getLong(cursor.getColumnIndexOrThrow(_ID));
+        final long timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
         final Event.EventType eventType = Event.EventType
-                .valueOf(cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_TYPE)));
-        final String value = cursor.getString(cursor.getColumnIndex(EventTable.COLUMN_VALUE));
+                .valueOf(cursor.getString(cursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)));
+        final String value = cursor.getString(cursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE));
         return new Event(id, eventType, timestamp, value);
     }
 
@@ -353,7 +353,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 throw new NoSuchMeasurementException("Failed to load MeasurementStatus.");
             }
 
-            return MeasurementStatus.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_STATUS)));
+            return MeasurementStatus.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS)));
         }
     }
 
@@ -483,7 +483,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 }
                 if (deviceIdentifierQueryCursor.moveToFirst()) {
                     final int indexOfMeasurementIdentifierColumn = deviceIdentifierQueryCursor
-                            .getColumnIndex(IdentifierTable.COLUMN_DEVICE_ID);
+                            .getColumnIndexOrThrow(IdentifierTable.COLUMN_DEVICE_ID);
                     final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
                     Log.v(TAG, "Providing device identifier " + did);
                     Validate.notNull(did);
@@ -743,17 +743,17 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         Long pauseEventTime = null;
         while (eventCursor.moveToNext() && !geoLocationCursor.isAfterLast()) {
             final Event.EventType eventType = Event.EventType
-                    .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+                    .valueOf(eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)));
 
             // Search for next resume event and capture it's previous pause event
             if (eventType != Event.EventType.LIFECYCLE_RESUME) {
                 if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
-                    pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                    pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
                 }
                 continue;
             }
             Validate.notNull(pauseEventTime);
-            final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+            final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
 
             // Collect all GeoLocations until the pause event
             final Track track = collectNextSubTrack(geoLocationCursor, pauseEventTime);
@@ -844,14 +844,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             return null;
         }
 
-        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT));
-        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_LON));
+        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT));
+        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON));
         final long timestamp = geoLocationCursor
-                .getLong(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
+                .getLong(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
         final double speed = geoLocationCursor
-                .getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED));
+                .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED));
         final float accuracy = geoLocationCursor
-                .getFloat(geoLocationCursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY));
+                .getFloat(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY));
         return new GeoLocation(lat, lon, timestamp, speed, accuracy);
     }
 

@@ -57,17 +57,17 @@ public final class GeoLocationTest {
         cursor.moveToFirst();
 
         assertThat(values.getAsLong(GeoLocationsTable.COLUMN_GEOLOCATION_TIME),
-                is(cursor.getLong(cursor.getColumnIndex(GeoLocationsTable.COLUMN_GEOLOCATION_TIME))));
+                is(cursor.getLong(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME))));
         assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_LAT),
-                is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT))));
+                is(cursor.getFloat(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT))));
         assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_LON),
-                is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_LON))));
+                is(cursor.getFloat(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON))));
         assertThat(values.getAsInteger(GeoLocationsTable.COLUMN_MEASUREMENT_FK),
-                is(cursor.getInt(cursor.getColumnIndex(GeoLocationsTable.COLUMN_MEASUREMENT_FK))));
+                is(cursor.getInt(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_MEASUREMENT_FK))));
         assertThat(values.getAsFloat(GeoLocationsTable.COLUMN_SPEED),
-                is(cursor.getFloat(cursor.getColumnIndex(GeoLocationsTable.COLUMN_SPEED))));
+                is(cursor.getFloat(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED))));
         assertThat(values.getAsInteger(GeoLocationsTable.COLUMN_ACCURACY),
-                is(cursor.getInt(cursor.getColumnIndex(GeoLocationsTable.COLUMN_ACCURACY))));
+                is(cursor.getInt(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY))));
     }
 
     @Before
@@ -186,7 +186,7 @@ public final class GeoLocationTest {
             softCatchNullCursor(cursor);
             assertThat(cursor.getCount(), is(1));
             cursor.moveToFirst();
-            int columnIndex = cursor.getColumnIndex(GeoLocationsTable.COLUMN_LAT);
+            int columnIndex = cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT);
             assertThat(cursor.getFloat(columnIndex), is(10.34F));
         }
     }

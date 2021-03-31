@@ -117,21 +117,21 @@ public class EventsFileSerializer {
             while (eventsCursor.moveToNext()) {
                 // The value string length is dynamic so we need to allocate the buffer for each table row
                 @Nullable // Because not all EventTypes use this field
-                final String value = eventsCursor.getString(eventsCursor.getColumnIndex(EventTable.COLUMN_VALUE));
+                final String value = eventsCursor.getString(eventsCursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE));
                 final boolean valueIsNull = value == null;
                 final byte[] valueBytes = valueIsNull ? new byte[] {} : value.getBytes(DEFAULT_CHARSET);
                 final int valueBytesLength = valueBytes.length;
                 Validate.isTrue(valueBytesLength <= Short.MAX_VALUE);
                 final short shortValueBytesLength = (short)valueBytesLength;
                 final String eventTypeString = eventsCursor
-                        .getString(eventsCursor.getColumnIndex(EventTable.COLUMN_TYPE));
+                        .getString(eventsCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE));
                 final Event.EventType eventType = Event.EventType.valueOf(eventTypeString);
                 final short serializedEventType = serializeEventType(eventType);
 
                 // Bytes: long timestamp, short event type enum, short value byte length, variable value UTF-8 bytes
                 final ByteBuffer buffer = ByteBuffer
                         .allocate(LONG_BYTES + SHORT_BYTES + SHORT_BYTES + valueBytes.length);
-                buffer.putLong(eventsCursor.getLong(eventsCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP)));
+                buffer.putLong(eventsCursor.getLong(eventsCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP)));
                 buffer.putShort(serializedEventType);
                 buffer.putShort(shortValueBytesLength);
                 buffer.put(valueBytes);

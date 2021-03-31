@@ -119,8 +119,8 @@ public class EventsFileSerializerTest {
         // Mock load sample Event data
         int sampleColumnIndex = 0;
         int sampleTypeColumnIndex = 1;
-        when(eventsCursor.getColumnIndex(EventTable.COLUMN_TYPE)).thenReturn(sampleTypeColumnIndex);
-        when(eventsCursor.getColumnIndex(EventTable.COLUMN_VALUE)).thenReturn(sampleColumnIndex);
+        when(eventsCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)).thenReturn(sampleTypeColumnIndex);
+        when(eventsCursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE)).thenReturn(sampleColumnIndex);
         when(eventsCursor.getString(sampleTypeColumnIndex))
                 .thenReturn(Event.EventType.MODALITY_TYPE_CHANGE.getDatabaseIdentifier());
         when(eventsCursor.getString(sampleColumnIndex))

@@ -179,13 +179,13 @@ public class CapturedDataWriterTest {
             assertThat(result.getCount(), is(equalTo(1)));
             assertThat(result.moveToFirst(), is(equalTo(true)));
 
-            assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_MODALITY)),
+            assertThat(result.getString(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_MODALITY)),
                     is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-            assertThat(result.getString(result.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
+            assertThat(result.getString(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
-            assertThat(result.getShort(result.getColumnIndex(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
+            assertThat(result.getShort(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
                     is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
-            assertThat(result.getDouble(result.getColumnIndex(MeasurementTable.COLUMN_DISTANCE)), is(equalTo(0.0)));
+            assertThat(result.getDouble(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_DISTANCE)), is(equalTo(0.0)));
 
         } finally {
             if (result != null) {
@@ -213,9 +213,9 @@ public class CapturedDataWriterTest {
             assertThat(finishingResult.getCount(), is(equalTo(1)));
             assertThat(finishingResult.moveToFirst(), is(equalTo(true)));
 
-            assertThat(finishingResult.getString(finishingResult.getColumnIndex(MeasurementTable.COLUMN_MODALITY)),
+            assertThat(finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_MODALITY)),
                     is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-            assertThat(finishingResult.getString(finishingResult.getColumnIndex(MeasurementTable.COLUMN_STATUS)),
+            assertThat(finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(FINISHED.getDatabaseIdentifier())));
         } finally {
             if (finishingResult != null) {
