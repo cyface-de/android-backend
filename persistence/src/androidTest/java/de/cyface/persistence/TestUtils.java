@@ -53,7 +53,7 @@ class TestUtils {
         for (ContentValues values : contentValues) {
             cursor.moveToNext();
             for (String key : values.keySet()) {
-                int cursorColumnIndex = cursor.getColumnIndex(key);
+                int cursorColumnIndex = cursor.getColumnIndexOrThrow(key);
                 assertNotEquals(cursorColumnIndex, -1);
                 int dataType = cursor.getType(cursorColumnIndex);
                 switch (dataType) {

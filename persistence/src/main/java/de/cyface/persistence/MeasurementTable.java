@@ -200,7 +200,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
             // Check all measurements
             while (measurementCursor.moveToNext()) {
-                final int identifierColumnIndex = measurementCursor.getColumnIndex("_id");
+                final int identifierColumnIndex = measurementCursor.getColumnIndexOrThrow("_id");
                 final long measurementId = measurementCursor.getLong(identifierColumnIndex);
 
                 geoLocationCursor = database.query("locations",
@@ -209,7 +209,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
                 long timestamp = 0L; // Default value for measurements without GeoLocations
                 if (geoLocationCursor.moveToNext()) {
-                    final int timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time");
+                    final int timeColumnIndex = geoLocationCursor.getColumnIndexOrThrow("gps_time");
                     timestamp = geoLocationCursor.getLong(timeColumnIndex);
                 }
                 Validate.isTrue(timestamp >= 0L);
@@ -268,7 +268,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
             // Check all measurements
             while (measurementCursor.moveToNext()) {
-                final int identifierColumnIndex = measurementCursor.getColumnIndex("_id");
+                final int identifierColumnIndex = measurementCursor.getColumnIndexOrThrow("_id");
                 final long measurementId = measurementCursor.getLong(identifierColumnIndex);
 
                 geoLocationCursor = database.query("locations",
@@ -284,11 +284,11 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 double distance = 0.0;
                 GeoLocation previousLocation = null;
                 while (geoLocationCursor.moveToNext()) {
-                    final int latColumnIndex = geoLocationCursor.getColumnIndex("lat");
-                    final int lonColumnIndex = geoLocationCursor.getColumnIndex("lon");
-                    final int timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time");
-                    final int speedColumnIndex = geoLocationCursor.getColumnIndex("speed");
-                    final int accuracyColumnIndex = geoLocationCursor.getColumnIndex("accuracy");
+                    final int latColumnIndex = geoLocationCursor.getColumnIndexOrThrow("lat");
+                    final int lonColumnIndex = geoLocationCursor.getColumnIndexOrThrow("lon");
+                    final int timeColumnIndex = geoLocationCursor.getColumnIndexOrThrow("gps_time");
+                    final int speedColumnIndex = geoLocationCursor.getColumnIndexOrThrow("speed");
+                    final int accuracyColumnIndex = geoLocationCursor.getColumnIndexOrThrow("accuracy");
                     final double lat = geoLocationCursor.getFloat(latColumnIndex);
                     final double lon = geoLocationCursor.getFloat(lonColumnIndex);
                     final long time = geoLocationCursor.getLong(timeColumnIndex);

@@ -876,10 +876,10 @@ public class DataCapturingServiceTest {
             final List<Event> events = new ArrayList<>();
             while (eventCursor.moveToNext()) {
                 final Event.EventType eventType = Event.EventType
-                        .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
-                final long eventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
-                final String value = eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_VALUE));
-                final long eventId = eventCursor.getLong(eventCursor.getColumnIndex(BaseColumns._ID));
+                        .valueOf(eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)));
+                final long eventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
+                final String value = eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE));
+                final long eventId = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(BaseColumns._ID));
                 events.add(new Event(eventId, eventType, eventTime, value));
             }
 

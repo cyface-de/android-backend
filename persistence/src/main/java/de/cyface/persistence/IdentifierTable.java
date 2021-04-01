@@ -52,7 +52,7 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
     private final static String[] COLUMNS = {BaseColumns._ID, COLUMN_DEVICE_ID};
     /**
      * The {@code Context} required to load the old device id from the {@code SharedPreferences} when
-     * upgrading from {@link DatabaseHelper#DATABASE_VERSION} 8.
+     * upgrading from {@code DatabaseHelper#DATABASE_VERSION} 8.
      */
     private final Context context;
 
@@ -60,7 +60,7 @@ public final class IdentifierTable extends AbstractCyfaceMeasurementTable {
      * Creates a new completely initialized {@code IdentifierTable} using the name {@code URI_PATH}.
      * 
      * @param context The {@code Context} required to load the old device id from the {@code SharedPreferences} when
-     *            upgrading from {@link DatabaseHelper#DATABASE_VERSION} 8.
+     *            upgrading from {@code DatabaseHelper#DATABASE_VERSION} 8.
      */
     IdentifierTable(@NonNull final Context context) {
         super(URI_PATH);

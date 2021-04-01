@@ -164,7 +164,7 @@ public class MeasurementSerializerTest {
 
         // Mock load sample GeoLocation data
         int sampleColumnIndex = 0;
-        when(geoLocationsCursor.getColumnIndex(any(String.class))).thenReturn(sampleColumnIndex);
+        when(geoLocationsCursor.getColumnIndexOrThrow(any(String.class))).thenReturn(sampleColumnIndex);
         when(geoLocationsCursor.getDouble(sampleColumnIndex)).thenReturn(SAMPLE_DOUBLE_VALUE);
         when(geoLocationsCursor.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
         int sampleIntValue = 1;
