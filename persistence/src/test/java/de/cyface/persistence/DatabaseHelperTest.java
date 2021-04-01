@@ -149,8 +149,8 @@ public class DatabaseHelperTest {
             // Measurements with GeoLocations should have the timestamp of the first GeoLocation as timestamp
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
-            assertThat(cursor.getString(cursor.getColumnIndex("modality")), is(equalTo("BICYCLE")));
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("_id")), is(equalTo(43L)));
+            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("modality")), is(equalTo("BICYCLE")));
         }
     }
 
@@ -181,15 +181,15 @@ public class DatabaseHelperTest {
             cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
-            assertThat(cursor.getLong(cursor.getColumnIndex("timestamp")), is(equalTo(DEFAULT_GEOLOCATION_TIMESTAMP)));
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("_id")), is(equalTo(43L)));
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")), is(equalTo(DEFAULT_GEOLOCATION_TIMESTAMP)));
 
             // Measurement without GeoLocations should have 0L als timestamp
             cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"44"}, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(44L)));
-            assertThat(cursor.getLong(cursor.getColumnIndex("timestamp")), is(equalTo(0L)));
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("_id")), is(equalTo(44L)));
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")), is(equalTo(0L)));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -218,11 +218,11 @@ public class DatabaseHelperTest {
             // Measurements must still exist after the upgrade
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
-            assertThat(cursor.getString(cursor.getColumnIndex("status")), is(equalTo("FINISHED")));
-            assertThat(cursor.getString(cursor.getColumnIndex("vehicle")), is(equalTo("BICYCLE")));
-            assertThat(cursor.getDouble(cursor.getColumnIndex("distance")), is(equalTo(5396.62473698979)));
-            assertThat(cursor.getInt(cursor.getColumnIndex("file_format_version")), is(equalTo(1)));
+            assertThat(cursor.getLong(cursor.getColumnIndexOrThrow("_id")), is(equalTo(43L)));
+            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("status")), is(equalTo("FINISHED")));
+            assertThat(cursor.getString(cursor.getColumnIndexOrThrow("vehicle")), is(equalTo("BICYCLE")));
+            assertThat(cursor.getDouble(cursor.getColumnIndexOrThrow("distance")), is(equalTo(5396.62473698979)));
+            assertThat(cursor.getInt(cursor.getColumnIndexOrThrow("file_format_version")), is(equalTo(1)));
         }
     }
 
@@ -284,7 +284,7 @@ public class DatabaseHelperTest {
                     new String[] {"FINISHED", "1"}, null, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
-            final int distanceColumnIndex = cursor.getColumnIndex("distance");
+            final int distanceColumnIndex = cursor.getColumnIndexOrThrow("distance");
             final double loadedDistance = cursor.getDouble(distanceColumnIndex);
             assertThat(loadedDistance, is(closeTo(expectedLocation123Distance, 0.1)));
 

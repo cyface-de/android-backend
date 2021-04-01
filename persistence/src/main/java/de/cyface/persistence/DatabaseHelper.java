@@ -214,7 +214,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
                                 selectionArgs, null)) {
                             while (selectedMeasurementsCursor.moveToNext()) {
                                 ret += deleteDataForMeasurement(database, selectedMeasurementsCursor
-                                        .getLong(selectedMeasurementsCursor.getColumnIndex(BaseColumns._ID)));
+                                        .getLong(selectedMeasurementsCursor.getColumnIndexOrThrow(BaseColumns._ID)));
                             }
                         }
                         // continues here until return ! -->
