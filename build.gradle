@@ -41,7 +41,7 @@ ext {
     cyfaceBackendVersion = "0.0.0" // Only increase in release branch. Not merged back to `main`
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "2.0.1"
+    cyfaceUtilsVersion = "2.0.2"
 
     minSdkVersion = 21
     targetSdkVersion = 30
