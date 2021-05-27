@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -24,6 +24,7 @@ import java.util.List;
 import android.content.Context;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.model.Measurement;
@@ -33,7 +34,7 @@ import de.cyface.persistence.model.Point3d;
  * The file format to persist {@link Point3d}s such as accelerations, rotations and directions.
  *
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 5.0.0
  * @since 3.0.0
  */
 public class Point3dFile implements FileSupport<List<Point3d>> {
@@ -73,10 +74,6 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      */
     private final File file;
     /**
-     * The identifier of the {@link Measurement} for this file
-     */
-    private long measurementId;
-    /**
      * The {@link FileAccessLayer} used to interact with files.
      */
     private FileAccessLayer fileAccessLayer;
@@ -93,18 +90,15 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
             @NonNull final String fileExtension) {
         this.fileAccessLayer = new DefaultFileAccess();
         this.file = fileAccessLayer.createFile(context, measurementId, folderName, fileExtension);
-        this.measurementId = measurementId;
     }
 
     /**
      * Constructor to reference an existing {@link Point3dFile}.
      *
-     * @param measurementId the identifier of the measurement for this file
      * @param file The already existing file which represents the {@link Point3dFile}
      */
-    private Point3dFile(final long measurementId, @NonNull final File file) {
+    private Point3dFile(@NonNull final File file) {
         this.file = file;
-        this.measurementId = measurementId;
     }
 
     public File getFile() {
@@ -142,6 +136,6 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
             throw new NoSuchFileException("The follow file could not be loaded: " + file.getPath());
         }
 
-        return new Point3dFile(measurementId, file);
+        return new Point3dFile(file);
     }
 }

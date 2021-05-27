@@ -98,6 +98,9 @@ dependencies {
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
 
+    // Utility
+    implementation "org.apache.commons:commons-lang3:$commonsLangVersion" // Using Validate
+
     // Dependencies for local unit tests
     testImplementation project(":testutils")
     // If Junit symbols are unresolvable make sure Build Variant is set to debug

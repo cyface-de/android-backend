@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -36,6 +36,8 @@ import java.util.Collections;
 import java.util.List;
 import java.util.UUID;
 
+import org.apache.commons.lang3.Validate;
+
 import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.ContentValues;
@@ -58,7 +60,6 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
-import de.cyface.utils.Validate;
 
 /**
  * This class wraps the Cyface Android persistence API as required by the {@code DataCapturingListener} and its delegate
@@ -76,7 +77,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     private final Context context;
     /**
-     * <code>ContentResolver</code> that provides access to the {@link MeasuringPointsContentProvider}.
+     * {@code ContentResolver} that provides access to the {@link MeasuringPointsContentProvider}.
      */
     private final ContentResolver resolver;
     /**
@@ -91,7 +92,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * The {@link FileAccessLayer} used to interact with files.
      */
-    private FileAccessLayer fileAccessLayer;
+    private final FileAccessLayer fileAccessLayer;
 
     /**
      * <b>This constructor is only for testing.</b>
@@ -165,7 +166,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
             Uri resultUri = resolver.insert(getMeasurementUri(), measurementValues);
-            Validate.notNull("New measurement could not be created!", resultUri);
+            Validate.notNull(resultUri, "New measurement could not be created!");
             Validate.notNull(resultUri.getLastPathSegment());
 
             final long measurementId = Long.parseLong(resultUri.getLastPathSegment());
@@ -214,7 +215,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         list if there are no such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings({"unused"}) // Used by cyface flavour tests and possibly by implementing apps
+    // Used by cyface flavour tests and possibly by implementing apps
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public @NonNull List<Measurement> loadMeasurements() throws CursorIsNullException {
         Cursor cursor = null;
         try {
@@ -246,7 +248,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final MeasurementStatus status = MeasurementStatus
                 .valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS)));
         final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MODALITY)));
-        final short fileFormatVersion = cursor.getShort(cursor.getColumnIndexOrThrow(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
+        final short fileFormatVersion = cursor
+                .getShort(cursor.getColumnIndexOrThrow(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_DISTANCE));
         final long timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP));
         return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, timestamp);
@@ -278,7 +281,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return The loaded {@code Measurement} if it exists; <code>null</code> otherwise.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to load single measurements
+    // Sdk implementing apps (SR) use this to load single measurements
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Measurement loadMeasurement(final long measurementIdentifier) throws CursorIsNullException {
         final Uri measurementUri = getMeasurementUri().buildUpon().appendPath(Long.toString(measurementIdentifier))
                 .build();
@@ -309,7 +313,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return The loaded {@code Event} if it exists; <code>null</code> otherwise.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("unused") // Sdk implementing apps (CY)
+    @SuppressWarnings({"unused", "RedundantSuppression"}) // Sdk implementing apps (CY)
     public Event loadEvent(final long eventId) throws CursorIsNullException {
         final Uri eventUri = getEventUri().buildUpon().appendPath(Long.toString(eventId)).build();
 
@@ -366,7 +370,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         such measurements, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("unused") // Implementing apps (SR) use this api to load the finished measurements
+    // Implementing apps (SR) use this api to load the finished measurements
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) throws CursorIsNullException {
         Cursor cursor = null;
 
@@ -452,7 +457,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final ContentValues identifierValues = new ContentValues();
             identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
             final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
-            Validate.notNull("New device id could not be created!", resultUri);
+            Validate.notNull(resultUri, "New device id could not be created!");
             // Show info in log so that we see if this happens more than once (or on app data reset)
             Log.i(TAG, "Created new device id: " + deviceId);
             return deviceId;
@@ -505,7 +510,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The id of the {@code Measurement} to remove.
      */
-    @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to delete measurements
+    // Sdk implementing apps (SR) use this to delete measurements
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public void delete(final long measurementIdentifier) {
 
         deletePoint3dData(measurementIdentifier);
@@ -523,7 +529,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param eventId The id of the {@code Event} to remove.
      */
-    @SuppressWarnings("unused") // Sdk implementing apps (CY) use this
+    @SuppressWarnings({"unused", "RedundantSuppression"}) // Sdk implementing apps (CY) use this
     public void deleteEvent(final long eventId) {
         resolver.delete(getEventUri(), _ID + "=?", new String[] {Long.valueOf(eventId).toString()});
     }
@@ -572,7 +578,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         list is returned.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
-    @SuppressWarnings("unused") // May be used by SDK implementing app
+    @SuppressWarnings({"unused", "RedundantSuppression"}) // May be used by SDK implementing app
     public List<Track> loadTracks(final long measurementIdentifier) throws CursorIsNullException {
 
         Cursor geoLocationCursor = null;
@@ -611,7 +617,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         list is returned.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
-    @SuppressWarnings("unused") // Used by SDK implementing apps (SR, CY)
+    @SuppressWarnings({"unused", "RedundantSuppression"}) // Used by SDK implementing apps (SR, CY)
     public List<Track> loadTracks(final long measurementIdentifier,
             @NonNull final LocationCleaningStrategy locationCleaningStrategy) throws CursorIsNullException {
 
@@ -668,7 +674,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         {@param measurementId}.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
-    @SuppressWarnings("unused") // Used by implementing apps (SR) to calculate the time
+    // Used by implementing apps (SR) to calculate the time
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     @NonNull
     public List<Event> loadEvents(final long measurementIdentifier) throws CursorIsNullException {
 
@@ -694,7 +701,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *         specified {@param eventType}. An empty list if there are no such Events, but never <code>null</code>.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    @SuppressWarnings("unused") // Implementing apps (CY) use this
+    @SuppressWarnings({"unused", "RedundantSuppression"}) // Implementing apps (CY) use this
     public List<Event> loadEvents(final long measurementId, @NonNull final Event.EventType eventType)
             throws CursorIsNullException {
         Cursor cursor = null;
@@ -748,12 +755,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Search for next resume event and capture it's previous pause event
             if (eventType != Event.EventType.LIFECYCLE_RESUME) {
                 if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
-                    pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
+                    pauseEventTime = eventCursor
+                            .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
                 }
                 continue;
             }
             Validate.notNull(pauseEventTime);
-            final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
+            final long resumeEventTime = eventCursor
+                    .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
 
             // Collect all GeoLocations until the pause event
             final Track track = collectNextSubTrack(geoLocationCursor, pauseEventTime);
@@ -844,8 +853,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             return null;
         }
 
-        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT));
-        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON));
+        final double lat = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT));
+        final double lon = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON));
         final long timestamp = geoLocationCursor
                 .getLong(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
         final double speed = geoLocationCursor
@@ -928,7 +939,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @return the currently captured {@link Measurement}
      */
-    @SuppressWarnings("unused") // Implementing apps use this to get the ongoing measurement info
+    // Implementing apps use this to get the ongoing measurement info
+    @SuppressWarnings({"unused", "RedundantSuppression"})
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         return persistenceBehaviour.loadCurrentlyCapturedMeasurement();
     }
@@ -1122,7 +1134,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         }
 
         final Uri resultUri = resolver.insert(getEventUri(), contentValues);
-        Validate.notNull("New Event could not be created!", resultUri);
+        Validate.notNull(resultUri, "New Event could not be created!");
         Validate.notNull(resultUri.getLastPathSegment());
 
         return Long.parseLong(resultUri.getLastPathSegment());
