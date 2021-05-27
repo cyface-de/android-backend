@@ -25,7 +25,9 @@
  * @since 1.0.0
  */
 
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion

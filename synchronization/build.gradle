@@ -28,7 +28,9 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  * @since 1.0.0
  */
 
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -98,6 +100,7 @@ android {
     }
 }
 
+//noinspection SpellCheckingInspection
 dependencies {
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

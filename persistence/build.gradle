@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,11 +21,17 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.1.0
  * @since 1.0.0
  */
 
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+    id 'com.google.protobuf' version '0.8.16'
+    // To download the `measurement.proto` file and to generate `java-lite` files required here
+    //noinspection SpellCheckingInspection
+    id "de.undercouch.download" version "4.1.1"
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -56,9 +62,37 @@ android {
         options.compilerArgs << '-Xlint:unchecked'
         options.deprecation = true
     }*/
+
+    // To add the `measurement.proto` file (downloadAndUnzipProto task) to the sourceSet
+    sourceSets {
+        main {
+            proto {
+                // In addition to the default 'src/main/proto'
+                srcDir 'build/protos-0.0.2/src/main/proto'
+            }
+        }
+        test {
+            proto {
+                srcDir 'build/protos-0.0.2/src/main/proto'
+            }
+        }
+    }
 }
 
 dependencies {
+    // Protocol Buffer: Download proto file from Cyface `protos` repo
+    // https://github.com/google/protobuf-gradle-plugin#protos-in-dependencies
+    // `protobuf` instead of `implementation` as we want to re-compile the proto files
+    //protobuf "de.cyface:protos:$rootProject.ext.cyfaceProtosVersion"
+    // `protobuf` loads both, our proto and the google proto -> collision
+    // `implementation` also loads the java classes, which we don't want
+    // instead of importing our proto file  via dependencies which fails because it
+    // includes the google proto files which collide with the dependency of java-lite
+    // we probably download the zip, extract the proto file of ours and include the sourceset
+    // But document this and open an issue in gradleprotobuf plugin repo
+
+    // Protocol Buffer: generate java files
+    implementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
     // Cyface dependencies
@@ -78,3 +112,31 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 }
+
+// Gradle Protocol Buffer Plugin: https://github.com/google/protobuf-gradle-plugin
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:$protobufVersion"
+    }
+    generateProtoTasks {
+        //noinspection GroovyAssignabilityCheck
+        all().each { task ->
+            task.builtins {
+                java {
+                    option "lite"
+                }
+            }
+        }
+    }
+}
+
+// Download the `measurement.proto` file to compile the `java-lite` proto classes
+task downloadProto(type: Download) {
+    src "https://github.com/cyface-de/protos/archive/refs/tags/${cyfaceProtosVersion}.zip"
+    dest new File(buildDir, "protos-${cyfaceProtosVersion}.zip")
+}
+task downloadAndUnzipProto(dependsOn: downloadProto, type: Copy) {
+    from zipTree(downloadProto.dest)
+    into buildDir
+}
+assemble.dependsOn downloadAndUnzipProto

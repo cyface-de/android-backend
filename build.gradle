@@ -42,6 +42,8 @@ ext {
 
     // Cyface dependencies
     cyfaceUtilsVersion = "2.0.2"
+    cyfaceProtosVersion = "0.0.2"
+    protobufVersion = "3.17.0"
 
     minSdkVersion = 21
     targetSdkVersion = 30
