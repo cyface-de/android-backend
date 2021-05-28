@@ -1,7 +1,9 @@
 package de.cyface.persistence.serialization;
 
+import de.cyface.persistence.model.Point3d;
+
 /**
- * The protocol for writing accelerations to a file.
+ * The protocol for writing {@link Point3d}s such as accelerations, rotations and directions to a file.
  *
  * @author Armin Schnabel
  * @version 1.0.0

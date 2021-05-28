@@ -20,7 +20,6 @@ package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.DefaultFileAccess.humanReadableSize;
-import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -75,6 +74,10 @@ public final class MeasurementSerializer {
      */
     public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1; // FIXME --> 2
     /**
+     * Since our current API Level does not support {@code Short.Bytes}.
+     */
+    private final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
+    /**
      * A constant with the number of bytes for the header of the {@link #TRANSFER_FILE_FORMAT_VERSION} file.
      */
     public final static int BYTES_IN_HEADER = SHORT_BYTES; // FIXME --> keep version? [DAT-686]
@@ -102,14 +105,11 @@ public final class MeasurementSerializer {
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
-     * @param fileSerializerStrategy The {@link FileSerializerStrategy} used to load Measurement data in the serialized
-     *            format.
      * @return A {@link File} pointing to a temporary file containing the serialized compressed data for transfer.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
-            final long measurementId, @NonNull final PersistenceLayer persistenceLayer,
-            @NonNull final FileSerializerStrategy fileSerializerStrategy) throws CursorIsNullException {
+            final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
         FileOutputStream fileOutputStream = null;
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
@@ -117,14 +117,14 @@ public final class MeasurementSerializer {
         final File cacheDir = persistenceLayer.getCacheDir();
 
         try {
+            // noinspection SpellCheckingInspection
             try {
                 compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
 
                 // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
                 fileOutputStream = new FileOutputStream(compressedTempFile);
 
-                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer,
-                        fileSerializerStrategy);
+                loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
             } finally {
                 if (fileOutputStream != null) {
                     fileOutputStream.close();
@@ -151,17 +151,13 @@ public final class MeasurementSerializer {
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data
-     * @param fileSerializerStrategy The {@link FileSerializerStrategy} used to load Measurement data in the serialized
-     *            format.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws IOException When flushing or closing the {@link OutputStream} fails
      */
     @SuppressWarnings("SpellCheckingInspection")
     private void loadSerializedCompressed(@NonNull final OutputStream fileOutputStream,
             @NonNull final MeasurementContentProviderClient loader, final long measurementId,
-            @NonNull final PersistenceLayer persistenceLayer,
-            @NonNull final FileSerializerStrategy fileSerializerStrategy)
-            throws CursorIsNullException, IOException {
+            @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
 
         Log.d(TAG, "loadSerializedCompressed: start");
         final long startTimestamp = System.currentTimeMillis();
@@ -176,12 +172,11 @@ public final class MeasurementSerializer {
         final DeflaterOutputStream deflaterStream = new DeflaterOutputStream(bufferedFileOutputStream, compressor);
 
         // This architecture catches the IOException thrown by the close() called in the finally without IDE warning
-        try (BufferedOutputStream bufferedDeflaterOutputStream = new BufferedOutputStream(deflaterStream)) {
+        try (BufferedOutputStream outputStream = new BufferedOutputStream(deflaterStream)) {
 
             // Injecting the outputStream into which the serialized (in this case compressed) data is written to
-            fileSerializerStrategy.loadSerialized(bufferedDeflaterOutputStream, loader, measurementId,
-                    persistenceLayer);
-            bufferedDeflaterOutputStream.flush();
+            TransferFileSerializer.loadSerialized(outputStream, loader, measurementId, persistenceLayer);
+            outputStream.flush();
         }
         Log.d(TAG, "loadSerializedCompressed: finished after " + ((System.currentTimeMillis() - startTimestamp) / 1000)
                 + " s with Deflater Level: " + DEFLATER_LEVEL);

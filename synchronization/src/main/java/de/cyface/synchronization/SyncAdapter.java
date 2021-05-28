@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -59,8 +59,6 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
-import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -169,12 +167,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
-                File compressedEventsTransferTempFile;
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
-                    compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
+                            measurement.getIdentifier(), persistence);
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     final String jwtAuthToken = getAuthToken(authenticator, account);
@@ -187,13 +182,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                     // Synchronize measurement
                     final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                            metaData, compressedTransferTempFile, compressedEventsTransferTempFile,
-                            new UploadProgressListener() {
-                                @Override
-                                public void updatedProgress(float percent) {
-                                    for (final ConnectionStatusListener listener : progressListener) {
-                                        listener.onProgress(percent, measurement.getIdentifier());
-                                    }
+                            metaData, compressedTransferTempFile, percent -> {
+                                for (final ConnectionStatusListener listener : progressListener) {
+                                    listener.onProgress(percent, measurement.getIdentifier());
                                 }
                             }, jwtAuthToken);
                     if (!transmissionSuccessful) {
@@ -285,9 +276,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
     private String getApiUrl(@NonNull final Context context) {
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
+        // noinspection ObviousNullCheck
         Validate.notNull(endPointUrl,
                 "Sync canceled: Server url not available. Please set the applications server url preference.");
-        // noinspection ConstantConditions - cannot be null because of the validation
         return endPointUrl;
     }
 

@@ -15,7 +15,7 @@
  *
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
- */
+ * /
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.P;
@@ -67,29 +67,31 @@ import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
+FIXME: check if some of these tests need to be reimplemented with the new architecture
+
 /**
  *
  * @author Armin Schnabel
  * @version 1.1.0
  * @since 5.0.0-beta1
- */
+ * /
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = P) // >= Q needs java 9
 public class EventsFileSerializerTest {
 
     /**
      * Used to mock Android API objects.
-     */
+     * /
     @Rule
     public MockitoRule mockitoRule = MockitoJUnit.rule();
     /**
      * A mock loader, not accessing any database
-     */
+     * /
     @Mock
     private MeasurementContentProviderClient loader;
     /**
      * A mocked cursor for {@code Event}s.
-     */
+     * /
     @Mock
     private Cursor eventsCursor;
     private final static int SAMPLE_EVENTS = 5;
@@ -100,7 +102,7 @@ public class EventsFileSerializerTest {
      * {@link de.cyface.persistence.serialization.EventsFileSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION} file
      * <p>
      * The dynamic {@link Event#getValue()} size is {@code 7} is SAMPLE_STRING_VALUE.getBytes(DEFAULT_CHARSET).length
-     */
+     * /
     private final static long SERIALIZED_SAMPLE_EVENT_SIZE = LONG_BYTES + SHORT_BYTES + SHORT_BYTES + 7;
 
     @Before
@@ -130,7 +132,7 @@ public class EventsFileSerializerTest {
 
     /**
      * Tests if serialization of {@link Event}s is successful.
-     */
+     * /
     @Test
     public void testSerializeEvents() throws IOException, CursorIsNullException {
 
@@ -156,7 +158,7 @@ public class EventsFileSerializerTest {
 
     /**
      * Tests whether deserialization of {@link Event}s is successful.
-     */
+     * /
     @Test
     public void testDeserializeEvents() throws CursorIsNullException, IOException {
 
@@ -217,7 +219,7 @@ public class EventsFileSerializerTest {
      *
      * @param bytes The bytes array to deserialize the {@code Event}s from.
      * @return A list of the deserialized {@code Event}s.
-     */
+     * /
     private List<Event> deserializeEvents(byte[] bytes) throws UnsupportedEncodingException {
         List<Event> events = new ArrayList<>();
         int i = 0;
@@ -230,7 +232,7 @@ public class EventsFileSerializerTest {
             final long timestamp = buffer.getLong();
             final short serializedEventType = buffer.getShort();
             final short valueBytesLength = buffer.getShort();
-            final Event.EventType eventType = deserializeEventType(serializedEventType);
+            final Event.EventType eventType = EventType.forNumber(serializedEventType);
             i += LONG_BYTES + SHORT_BYTES + SHORT_BYTES;
 
             // Value String
@@ -249,7 +251,7 @@ public class EventsFileSerializerTest {
     /**
      * Helper class for testing which wraps all data of {@link Event}s which were serialized into the
      * {@link EventsFileSerializer#EVENT_TRANSFER_FILE_FORMAT_VERSION}.
-     */
+     * /
     private static class EventsFileData {
         short transferFileFormat;
         List<Event> events;
@@ -260,3 +262,4 @@ public class EventsFileSerializerTest {
         }
     }
 }
+*/

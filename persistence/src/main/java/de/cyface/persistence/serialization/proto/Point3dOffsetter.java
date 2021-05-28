@@ -26,22 +26,6 @@ public class Point3dOffsetter {
         return new Point3sOffsets(timestamp, (int)xValue, (int)yValue, (int)zValue);
     }
 
-    public Offsetter getTs() {
-        return ts;
-    }
-
-    public Offsetter getX() {
-        return x;
-    }
-
-    public Offsetter getY() {
-        return y;
-    }
-
-    public Offsetter getZ() {
-        return z;
-    }
-
     public static class Point3sOffsets {
         private final long timestamp;
         private final int x;

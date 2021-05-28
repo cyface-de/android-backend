@@ -7,8 +7,6 @@ import android.database.Cursor;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.protos.model.LocationRecords;
 
 public class LocationSerializer {
@@ -18,20 +16,6 @@ public class LocationSerializer {
     public LocationSerializer() {
         this.builder = LocationRecords.newBuilder();
     }
-
-    /**
-     * Serializes all {@link GeoLocation}s of a {@link Measurement}.
-     *
-     * @param cursor A {@link Cursor} which points to the {@code GeoLocation}s.
-     * @return A {@code byte} array containing all the data.
-     *         /
-     *         public static byte[] serialize(@NonNull final Cursor cursor) {
-     *         Log.v(TAG, String.format("Serializing %d Locations.", cursor.getCount()));
-     * 
-     *         final LocationRecords records = readFrom(cursor);
-     *         return records.toByteArray();
-     *         }
-     */
 
     public void readFrom(@NonNull final Cursor cursor) {
 

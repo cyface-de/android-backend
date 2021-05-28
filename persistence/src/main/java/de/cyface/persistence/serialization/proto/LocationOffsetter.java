@@ -30,26 +30,6 @@ public class LocationOffsetter {
         return new LocationOffsets(timestamp, (int)latitude, (int)longitude, (int)accuracy, (int)speed);
     }
 
-    public Offsetter getTs() {
-        return ts;
-    }
-
-    public Offsetter getLat() {
-        return lat;
-    }
-
-    public Offsetter getLon() {
-        return lon;
-    }
-
-    public Offsetter getAcc() {
-        return acc;
-    }
-
-    public Offsetter getSpe() {
-        return spe;
-    }
-
     public static class LocationOffsets {
         private final long timestamp;
         private final int latitude;

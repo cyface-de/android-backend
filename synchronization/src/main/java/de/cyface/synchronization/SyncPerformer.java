@@ -51,7 +51,6 @@ import androidx.annotation.NonNull;
 
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.synchronization.exception.HostUnresolvable;
 
@@ -73,8 +72,8 @@ class SyncPerformer {
      * and for example <a href=
      * "https://stackoverflow.com/questions/24555890/using-a-custom-truststore-in-java-as-well-as-the-default-one">here</a>.
      */
-    private SSLContext sslContext;
-    private Context context;
+    private final SSLContext sslContext;
+    private final Context context;
 
     /**
      * Creates a new completely initialized <code>SyncPerformer</code> for a given Android <code>Context</code>.
@@ -109,37 +108,29 @@ class SyncPerformer {
      * @param dataServerUrl The server URL to send the data to.
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param compressedTransferTempFile The {@link Measurement} data to transmit
-     * @param compressedEventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
     boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
             @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final File compressedTransferTempFile, @NonNull final File compressedEventsTransferTempFile,
-            @NonNull final UploadProgressListener progressListener,
+            @NonNull final File compressedTransferTempFile, @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
         Log.d(Constants.TAG, String.format("Transferring compressed measurement (%s)",
                 DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true)));
-        Log.d(Constants.TAG, String.format("Transferring compressed events (%s)",
-                DefaultFileAccess.humanReadableSize(compressedEventsTransferTempFile.length(), true)));
         HttpURLConnection.setFollowRedirects(false);
         HttpURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d." + Constants.TRANSFER_FILE_EXTENSION,
                 metaData.deviceId, metaData.measurementId);
-        final String eventsFileName = String.format(Locale.US, "%s_%d." + Constants.EVENTS_TRANSFER_FILE_EXTENSION,
-                metaData.deviceId, metaData.measurementId);
 
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
-            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s and %s to %s", fileName, eventsFileName,
-                    url.toString()));
+            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
             try {
                 connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
                 http.post(connection, metaData, progressListener,
-                        new FilePart(fileName, compressedTransferTempFile, "fileToUpload"),
-                        new FilePart(eventsFileName, compressedEventsTransferTempFile, "eventsFile"));
+                        new FilePart(fileName, compressedTransferTempFile, "fileToUpload"));
             } finally {
                 if (connection != null) {
                     connection.disconnect();

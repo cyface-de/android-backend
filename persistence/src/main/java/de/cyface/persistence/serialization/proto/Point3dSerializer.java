@@ -37,7 +37,8 @@ public class Point3dSerializer {
         for (final Point3d point : data) {
 
             // The proto serializer expects some fields in a different format and in offset-format
-            final Formatter.Point3d formatted = new Formatter.Point3d(type, point.getTimestamp(), point.getX(), point.getY(), point.getZ());
+            final Formatter.Point3d formatted = new Formatter.Point3d(type, point.getTimestamp(), point.getX(),
+                    point.getY(), point.getZ());
             final Point3dOffsetter.Point3sOffsets offsets = offsetter.offset(formatted);
 
             builder.addTimestamp(offsets.getTimestamp())

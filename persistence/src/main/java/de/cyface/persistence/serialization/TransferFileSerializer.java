@@ -31,9 +31,12 @@ import static de.cyface.persistence.serialization.Point3dFile.ROTATION_FILE_EXTE
 import java.io.BufferedOutputStream;
 import java.io.File;
 import java.io.IOException;
+import java.io.OutputStream;
+import java.util.List;
 
 import com.google.protobuf.ByteString;
 
+import android.content.ContentProvider;
 import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
@@ -41,53 +44,61 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.persistence.EventTable;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.serialization.proto.EventSerializer;
 import de.cyface.persistence.serialization.proto.LocationSerializer;
+import de.cyface.protos.model.Event;
 import de.cyface.protos.model.LocationRecords;
 import de.cyface.protos.model.MeasurementBytes;
 import de.cyface.utils.CursorIsNullException;
 
 /**
- * {@code FileSerializerStrategy} implementation for {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} files.
+ * Serializes {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} files.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 5.0.0-beta1
+ * @version 2.0.0
+ * @since 5.0.0
  */
-public class MeasurementFileSerializerStrategy implements FileSerializerStrategy {
+public class TransferFileSerializer {
 
-    @Override
-    public void loadSerialized(@NonNull final BufferedOutputStream bufferedOutputStream,
+    /**
+     * Implements the core algorithm of loading data of a {@link Measurement} from the {@link PersistenceLayer}
+     * and serializing it into an array of bytes, ready to be compressed.
+     * <p>
+     * We use the {@param loader} to access the measurement data.
+     * <p>
+     * We assemble the data using a buffer to avoid OOM exceptions.
+     * <p>
+     * <b>ATTENTION:</b> The caller must make sure the {@param bufferedOutputStream} is closed when no longer needed
+     * or the app crashes.
+     *
+     * @param bufferedOutputStream The {@link OutputStream} to which the serialized data should be written. Injecting
+     *            this allows us to compress the serialized data without the need to write it into a temporary file.
+     *            We require a {@link BufferedOutputStream} for performance reasons.
+     * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link GeoLocation}s.
+     * @param measurementIdentifier The id of the {@code Measurement} to load
+     * @param persistence The {@code PersistenceLayer} to access file based data
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    public static void loadSerialized(@NonNull final BufferedOutputStream bufferedOutputStream,
             @NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier,
             @NonNull final PersistenceLayer persistence)
             throws CursorIsNullException {
 
+        // Load data from ContentProvider
+        final List<Event> events = loadEvents(loader);
+        final LocationRecords locationRecords = loadLocations(loader);
+
         // Using the modified `MeasurementBytes` class to inject the sensor bytes without parsing
         final MeasurementBytes.Builder builder = MeasurementBytes.newBuilder()
-                .setFormatVersion(2); // FIXME: use `TRANSFER_FILE_FORMAT_VERSION` when set to 2
-
-        // Load GeoLocations and write to ProtoBuf `builder`
-        Cursor geoLocationsCursor = null;
-        final LocationSerializer locationSerializer = new LocationSerializer();
-        try {
-            final Uri geoLocationTableUri = loader.createGeoLocationTableUri();
-            final int geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
-            for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
-                geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
-                locationSerializer.readFrom(geoLocationsCursor);
-            }
-            final LocationRecords locationRecords = locationSerializer.result();
-            builder.setLocationRecords(locationRecords);
-        } catch (final RemoteException e) {
-            throw new IllegalStateException(e);
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
-        }
+                .setFormatVersion(2) // FIXME: use `TRANSFER_FILE_FORMAT_VERSION` when set to 2
+                .addAllEvents(events)
+                .setLocationRecords(locationRecords);
 
         // Get already serialized Point3dFiles
         final File accelerationFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
@@ -137,5 +148,47 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
 
         Log.d(TAG, String.format("Serialized %s",
                 humanReadableSize(transferFileHeader.length + measurementBytes.length, true)));
+    }
+
+    private static List<Event> loadEvents(MeasurementContentProviderClient loader) throws CursorIsNullException {
+
+        final EventSerializer eventSerializer = new EventSerializer();
+        Cursor eventsCursor = null;
+        try {
+            final Uri eventTableUri = loader.createEventTableUri();
+            final int eventCount = loader.countData(eventTableUri, EventTable.COLUMN_MEASUREMENT_FK);
+            for (int startIndex = 0; startIndex < eventCount; startIndex += DATABASE_QUERY_LIMIT) {
+                eventsCursor = loader.loadEvents(startIndex, DATABASE_QUERY_LIMIT);
+                eventSerializer.readFrom(eventsCursor);
+            }
+        } catch (final RemoteException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            if (eventsCursor != null) {
+                eventsCursor.close();
+            }
+        }
+        return eventSerializer.result();
+    }
+
+    private static LocationRecords loadLocations(MeasurementContentProviderClient loader) throws CursorIsNullException {
+
+        final LocationSerializer locationSerializer = new LocationSerializer();
+        Cursor geoLocationsCursor = null;
+        try {
+            final Uri geoLocationTableUri = loader.createGeoLocationTableUri();
+            final int geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
+            for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
+                geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
+                locationSerializer.readFrom(geoLocationsCursor);
+            }
+        } catch (final RemoteException e) {
+            throw new IllegalStateException(e);
+        } finally {
+            if (geoLocationsCursor != null) {
+                geoLocationsCursor.close();
+            }
+        }
+        return locationSerializer.result();
     }
 }

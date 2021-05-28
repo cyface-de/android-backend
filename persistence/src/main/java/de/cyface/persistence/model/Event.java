@@ -126,6 +126,8 @@ public class Event {
      * An example are the use of the life-cycle methods such as start, pause, resume, etc. which are required to
      * slice {@link Measurement}s into {@link Track}s before they are resumed.
      *
+     * FIXME: can and should we reused the proto-generated class `EventType` here?
+     *
      * @author Armin Schnabel
      * @version 1.0.0
      * @since 4.0.0

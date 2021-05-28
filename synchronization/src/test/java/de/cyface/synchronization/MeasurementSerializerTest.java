@@ -78,7 +78,7 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
+import de.cyface.persistence.serialization.TransferFileSerializer;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.persistence.serialization.proto.Point3dSerializer;
@@ -263,7 +263,7 @@ public class MeasurementSerializerTest {
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
 
             // Act
-            new MeasurementFileSerializerStrategy().loadSerialized(bufferedFileOutputStream, loader,
+            new TransferFileSerializer().loadSerialized(bufferedFileOutputStream, loader,
                     SAMPLE_MEASUREMENT_ID, persistence);
 
             // Assert
@@ -290,7 +290,7 @@ public class MeasurementSerializerTest {
         try {
             final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-            new MeasurementFileSerializerStrategy().loadSerialized(bufferedFileOutputStream, loader,
+            new TransferFileSerializer().loadSerialized(bufferedFileOutputStream, loader,
                     SAMPLE_MEASUREMENT_ID, persistence);
             assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
 
@@ -313,7 +313,7 @@ public class MeasurementSerializerTest {
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
         final long SERIALIZED_COMPRESSED_SIZE = 43L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
-                persistence, new MeasurementFileSerializerStrategy());
+                persistence);
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
     }
 
@@ -325,7 +325,7 @@ public class MeasurementSerializerTest {
 
         // Assemble serialized compressed bytes
         final File compressedTransferTempFile = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
-                persistence, new MeasurementFileSerializerStrategy());
+                persistence);
         // Load bytes from compressedTransferFile
         final byte[] compressedBytes = new byte[(int)compressedTransferTempFile.length()];
         DataInputStream dis = new DataInputStream(new FileInputStream(compressedTransferTempFile));
@@ -353,7 +353,7 @@ public class MeasurementSerializerTest {
         try {
             final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-            new MeasurementFileSerializerStrategy().loadSerialized(bufferedFileOutputStream, loader,
+            new TransferFileSerializer().loadSerialized(bufferedFileOutputStream, loader,
                     SAMPLE_MEASUREMENT_ID, persistence);
             assertThat(serializedFile.length(), is(equalTo(SERIALIZED_SIZE)));
 

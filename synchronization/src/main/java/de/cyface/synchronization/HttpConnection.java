@@ -37,7 +37,6 @@ import javax.net.ssl.HostnameVerifier;
 import javax.net.ssl.HttpsURLConnection;
 import javax.net.ssl.SSLContext;
 import javax.net.ssl.SSLException;
-import javax.net.ssl.SSLSession;
 
 import org.json.JSONObject;
 
@@ -113,12 +112,9 @@ public class HttpConnection implements Http {
             final HttpsURLConnection httpsURLConnection = (HttpsURLConnection)connection;
             // Without verifying the hostname we receive the "Trust Anchor..." Error
             httpsURLConnection.setSSLSocketFactory(sslContext.getSocketFactory());
-            httpsURLConnection.setHostnameVerifier(new HostnameVerifier() {
-                @Override
-                public boolean verify(final String hostname, final SSLSession session) {
-                    HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
-                    return hv.verify(url.getHost(), session);
-                }
+            httpsURLConnection.setHostnameVerifier((hostname, session) -> {
+                HostnameVerifier hv = HttpsURLConnection.getDefaultHostnameVerifier();
+                return hv.verify(url.getHost(), session);
             });
         }
 
@@ -273,7 +269,7 @@ public class HttpConnection implements Http {
         Validate.isTrue(filesSize != 0L);
 
         // Set the fixed number of bytes which will be written to the OutputStream
-        final long fixedStreamLength = calculateBytesWrittenToOutputStream(remainingHeaderByteSize,
+        final long fixedStreamLength = writtenBytes(remainingHeaderByteSize,
                 filesSize);
         connection.setFixedLengthStreamingMode(fixedStreamLength);
         // connection.setRequestProperty("Content-length" should be obsolete with setFixedLengthStreamingMode
@@ -288,7 +284,7 @@ public class HttpConnection implements Http {
      * @param headerByteSize The MultiPart header as string which will be written to the {@code OutputStream}
      * @param filesSize The number of bytes added by file upload parts.
      */
-    long calculateBytesWrittenToOutputStream(final long headerByteSize, final long filesSize) {
+    long writtenBytes(final long headerByteSize, final long filesSize) {
 
         // This should be obsolete with setFixedLengthStreamingMode:
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));

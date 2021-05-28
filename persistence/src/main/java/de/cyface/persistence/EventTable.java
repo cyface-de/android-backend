@@ -23,7 +23,7 @@ public class EventTable extends AbstractCyfaceMeasurementTable {
      */
     final static String URI_PATH = "events";
     /**
-     * Column name for the column storing the {@link Event} timestamp.
+     * Column name for the column storing the {@link Event} timestamp in ms.
      */
     public static final String COLUMN_TIMESTAMP = "timestamp";
     /**

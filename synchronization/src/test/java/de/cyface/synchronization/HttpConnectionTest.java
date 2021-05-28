@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 - 2020 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.Constants.TRANSFER_FILE_EXTENSION;
 import static de.cyface.synchronization.HttpConnection.BOUNDARY;
 import static de.cyface.synchronization.HttpConnection.LINE_FEED;
 import static de.cyface.synchronization.HttpConnection.TAIL;
@@ -34,7 +35,6 @@ import java.io.IOException;
 import org.junit.Before;
 import org.junit.Test;
 
-import de.cyface.persistence.Constants;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Modality;
 
@@ -47,6 +47,7 @@ import de.cyface.persistence.model.Modality;
  */
 public class HttpConnectionTest {
 
+    @SuppressWarnings("SpellCheckingInspection")
     private HttpConnection oocut;
 
     /**
@@ -133,32 +134,24 @@ public class HttpConnectionTest {
         final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(generateGeoLocation(0), generateGeoLocation(10),
                 "test-did", 78, "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
         final String header = oocut.generateHeader(metaData);
-
-        File testFile = writeTempFile("TEST_FÄ`&ô»ω_CONTENT", "test-did_78", Constants.TRANSFER_FILE_EXTENSION);
-        File eventsTestFile = writeTempFile("TEST_FÄ`&ô»ω_EVENTS", "test-did_78",
-                Constants.EVENTS_TRANSFER_FILE_EXTENSION);
-
-        final FilePart filePart = new FilePart("test-did_78." + Constants.TRANSFER_FILE_EXTENSION, testFile,
-                "fileToUpload");
-        final FilePart eventsFilePart = new FilePart("test-did_78." + Constants.EVENTS_TRANSFER_FILE_EXTENSION,
-                eventsTestFile, "eventsFile");
+        File testFile = writeTempFile("TEST_FÄ`&ô»ω_CONTENT", "test-did_78");
+        final FilePart filePart = new FilePart("test-did_78." + TRANSFER_FILE_EXTENSION, testFile, "fileToUpload");
 
         // Act
-        final long requestLength = oocut.calculateBytesWrittenToOutputStream(header.getBytes().length,
-                filePart.partLength() + eventsFilePart.partLength());
+        final long requestLength = oocut.writtenBytes(header.getBytes().length, filePart.partLength());
 
         // Assert
         assertThat(requestLength,
-                is(equalTo(header.getBytes().length + filePart.partLength() + eventsFilePart.partLength()
-                        + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length + TAIL.getBytes().length)));
+                is(equalTo(header.getBytes().length + filePart.partLength() + LINE_FEED.getBytes().length
+                        + LINE_FEED.getBytes().length + TAIL.getBytes().length)));
     }
 
-    private File writeTempFile(final String content, @SuppressWarnings("SameParameterValue") final String name, final String extension) throws IOException {
+    private File writeTempFile(@SuppressWarnings("SameParameterValue") final String content,
+            @SuppressWarnings("SameParameterValue") final String name) throws IOException {
         BufferedWriter writer = null;
         try {
-
             // create a temp file
-            File temp = File.createTempFile(name, extension);
+            File temp = File.createTempFile(name, TRANSFER_FILE_EXTENSION);
 
             // write it
             writer = new BufferedWriter(new FileWriter(temp));

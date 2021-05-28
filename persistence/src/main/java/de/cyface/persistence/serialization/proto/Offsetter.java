@@ -1,7 +1,5 @@
 package de.cyface.persistence.serialization.proto;
 
-import org.apache.commons.lang3.Validate;
-
 /**
  * Calculates the offset/diff format, e.g.: 12345678901234, 1000, 1000, 1000 for timestamps.
  * <p>
