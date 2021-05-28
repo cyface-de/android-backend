@@ -29,9 +29,10 @@ import static de.cyface.persistence.serialization.Point3dFile.ROTATIONS_FOLDER_N
 import static de.cyface.persistence.serialization.Point3dFile.ROTATION_FILE_EXTENSION;
 
 import java.io.BufferedOutputStream;
-import java.io.ByteArrayOutputStream;
 import java.io.File;
 import java.io.IOException;
+
+import com.google.protobuf.ByteString;
 
 import android.database.Cursor;
 import android.net.Uri;
@@ -45,6 +46,8 @@ import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.serialization.proto.LocationSerializer;
+import de.cyface.protos.model.LocationRecords;
+import de.cyface.protos.model.MeasurementBytes;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -62,29 +65,23 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
             @NonNull final PersistenceLayer persistence)
             throws CursorIsNullException {
 
-        // Logging to collect data on serialization and compression sizes
-        long bytesSerialized = 0;
+        // Using the modified `MeasurementBytes` class to inject the sensor bytes without parsing
+        final MeasurementBytes.Builder builder = MeasurementBytes.newBuilder()
+                .setFormatVersion(2); // FIXME: use `TRANSFER_FILE_FORMAT_VERSION` when set to 2
 
-        // GeoLocations
+        // Load GeoLocations and write to ProtoBuf `builder`
         Cursor geoLocationsCursor = null;
-        final byte[] serializedGeoLocations;
-        final int geoLocationCount;
+        final LocationSerializer locationSerializer = new LocationSerializer();
         try {
             final Uri geoLocationTableUri = loader.createGeoLocationTableUri();
-            geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
-
-            // Serialize GeoLocations
-            final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
+            final int geoLocationCount = loader.countData(geoLocationTableUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK);
             for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
                 geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
-                outputStream.write(LocationSerializer.serialize(geoLocationsCursor));
+                locationSerializer.readFrom(geoLocationsCursor);
             }
-            serializedGeoLocations = outputStream.toByteArray();
-            Log.v(TAG, String.format("Serialized %s geoLocations for synchronization.",
-                    humanReadableSize(serializedGeoLocations.length, true)));
-            bytesSerialized += serializedGeoLocations.length;
-
-        } catch (final RemoteException | IOException e) {
+            final LocationRecords locationRecords = locationSerializer.result();
+            builder.setLocationRecords(locationRecords);
+        } catch (final RemoteException e) {
             throw new IllegalStateException(e);
         } finally {
             if (geoLocationsCursor != null) {
@@ -100,48 +97,45 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
         final File directionFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
                 measurementIdentifier, DIRECTIONS_FOLDER_NAME, DIRECTION_FILE_EXTENSION);
 
-        // Generate transfer file header
-        final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
-        final byte[] transferFileHeader = MeasurementSerializer.transferFileHeader(measurement);
-        Log.v(TAG, String.format("Serialized %s binaryHeader for synchronization.",
-                humanReadableSize(transferFileHeader.length, true)));
-        bytesSerialized += transferFileHeader.length;
-
-        // Assemble bytes to transfer via buffered stream to avoid OOM
-        try {
-            // The stream must be closed by the called in a finally catch
-            bufferedOutputStream.write(transferFileHeader);
-            bufferedOutputStream.write(serializedGeoLocations);
-        } catch (final IOException e) {
-            throw new IllegalStateException(e);
-        }
-
         // FIXME: test what happens when one such file does not exist
+        // FIXME: check FORMAT VERSION to ensure we inject compatibly bytes and remove the version-bytes
         if (accelerationFile.exists()) {
             Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
                     humanReadableSize(accelerationFile.length(), true)));
-            bytesSerialized += accelerationFile.length();
-            persistence.getFileAccessLayer().writeToOutputStream(accelerationFile, bufferedOutputStream);
+            final byte[] bytes = persistence.getFileAccessLayer().loadBytes(accelerationFile);
+            builder.setAccelerations(ByteString.copyFrom(bytes));
         }
         if (rotationFile.exists()) {
             Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
                     humanReadableSize(rotationFile.length(), true)));
-            bytesSerialized += rotationFile.length();
-            persistence.getFileAccessLayer().writeToOutputStream(rotationFile, bufferedOutputStream);
+            final byte[] bytes = persistence.getFileAccessLayer().loadBytes(rotationFile);
+            builder.setRotations(ByteString.copyFrom(bytes));
         }
         if (directionFile.exists()) {
             Log.v(TAG, String.format("Serializing %s directions for synchronization.",
                     humanReadableSize(directionFile.length(), true)));
-            bytesSerialized += directionFile.length();
-            persistence.getFileAccessLayer().writeToOutputStream(directionFile, bufferedOutputStream);
+            final byte[] bytes = persistence.getFileAccessLayer().loadBytes(directionFile);
+            builder.setDirections(ByteString.copyFrom(bytes));
         }
 
+        // Assemble bytes to transfer via buffered stream to avoid OOM
+        final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
+        final byte[] transferFileHeader = MeasurementSerializer.transferFileHeader(measurement);
+        final byte[] measurementBytes = builder.build().toByteArray();
+        try {
+            // The stream must be closed by the called in a finally catch
+            bufferedOutputStream.write(transferFileHeader);
+            bufferedOutputStream.write(measurementBytes);
+        } catch (final IOException e) {
+            throw new IllegalStateException(e);
+        }
         try {
             bufferedOutputStream.flush();
         } catch (IOException e) {
             throw new IllegalStateException(e);
         }
 
-        Log.d(TAG, String.format("Serialized %s", humanReadableSize(bytesSerialized, true)));
+        Log.d(TAG, String.format("Serialized %s",
+                humanReadableSize(transferFileHeader.length + measurementBytes.length, true)));
     }
 }

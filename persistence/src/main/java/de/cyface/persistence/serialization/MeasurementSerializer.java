@@ -19,6 +19,7 @@
 package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.DefaultFileAccess.humanReadableSize;
 import static de.cyface.persistence.serialization.ByteSizes.SHORT_BYTES;
 
 import java.io.BufferedOutputStream;
@@ -197,9 +198,12 @@ public final class MeasurementSerializer {
     static byte[] transferFileHeader(final Measurement measurement) {
         Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
 
-        byte[] ret = new byte[18];
+        byte[] ret = new byte[2];
+        // noinspection ConstantConditions // FIXME: why does this warning occur now?
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
+
+        Log.v(TAG, String.format("Serialized %s fileHeader.", humanReadableSize(ret.length, true)));
         return ret;
     }
 }

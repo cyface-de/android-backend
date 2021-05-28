@@ -1,36 +1,39 @@
 package de.cyface.persistence.serialization.proto;
 
-import static de.cyface.persistence.Constants.TAG;
+import org.apache.commons.lang3.Validate;
 
 import android.database.Cursor;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.serialization.proto.Formatter;
-import de.cyface.persistence.serialization.proto.LocationOffsetter;
 import de.cyface.protos.model.LocationRecords;
 
 public class LocationSerializer {
+
+    private final LocationRecords.Builder builder;
+
+    public LocationSerializer() {
+        this.builder = LocationRecords.newBuilder();
+    }
 
     /**
      * Serializes all {@link GeoLocation}s of a {@link Measurement}.
      *
      * @param cursor A {@link Cursor} which points to the {@code GeoLocation}s.
      * @return A {@code byte} array containing all the data.
+     *         /
+     *         public static byte[] serialize(@NonNull final Cursor cursor) {
+     *         Log.v(TAG, String.format("Serializing %d Locations.", cursor.getCount()));
+     * 
+     *         final LocationRecords records = readFrom(cursor);
+     *         return records.toByteArray();
+     *         }
      */
-    public static byte[] serialize(@NonNull final Cursor cursor) {
-        Log.v(TAG, String.format("Serializing %d Locations.", cursor.getCount()));
 
-        final LocationRecords records = readFrom(cursor);
-        return records.toByteArray();
-    }
-
-    private static LocationRecords readFrom(@NonNull final Cursor cursor) {
-        final LocationRecords.Builder builder = LocationRecords.newBuilder();
+    public void readFrom(@NonNull final Cursor cursor) {
 
         // The offsetter must be initialized once for each location
         final LocationOffsetter offsetter = new LocationOffsetter();
@@ -54,7 +57,10 @@ public class LocationSerializer {
                     .addAccuracy(offsets.getAccuracy())
                     .addSpeed(offsets.getSpeed());
         }
+    }
 
+    public LocationRecords result() {
+        Validate.isTrue(builder.isInitialized());
         return builder.build();
     }
 }
