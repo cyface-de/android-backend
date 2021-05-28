@@ -72,7 +72,7 @@ public final class DefaultFileAccess implements FileAccessLayer {
                 try (final DataInputStream inputStream = new DataInputStream(bufferedInputStream)) {
                     try {
                         inputStream.readFully(bytes);
-                        Log.d(Constants.TAG, "Read " + humanReadableByteCount(bytes.length, true) + " (from "
+                        Log.d(Constants.TAG, "Read " + humanReadableSize(bytes.length, true) + " (from "
                                 + file.getName() + ")");
                     } finally {
                         inputStream.close();
@@ -139,7 +139,7 @@ public final class DefaultFileAccess implements FileAccessLayer {
     }
 
     // From https://stackoverflow.com/a/3758880/5815054
-    public static String humanReadableByteCount(final long bytes, final boolean si) {
+    public static String humanReadableSize(final long bytes, final boolean si) {
         final int unit = si ? 1000 : 1024;
         if (bytes < unit)
             return bytes + " B";

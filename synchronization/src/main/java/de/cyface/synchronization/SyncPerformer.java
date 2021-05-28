@@ -121,9 +121,9 @@ class SyncPerformer {
             @NonNull final String jwtAuthToken) {
 
         Log.d(Constants.TAG, String.format("Transferring compressed measurement (%s)",
-                DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
+                DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true)));
         Log.d(Constants.TAG, String.format("Transferring compressed events (%s)",
-                DefaultFileAccess.humanReadableByteCount(compressedEventsTransferTempFile.length(), true)));
+                DefaultFileAccess.humanReadableSize(compressedEventsTransferTempFile.length(), true)));
         HttpURLConnection.setFollowRedirects(false);
         HttpURLConnection connection = null;
         final String fileName = String.format(Locale.US, "%s_%d." + Constants.TRANSFER_FILE_EXTENSION,

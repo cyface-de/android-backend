@@ -75,7 +75,7 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
             }
             serializedGeoLocations = outputStream.toByteArray();
             Log.v(TAG, String.format("Serialized %s geoLocations for synchronization.",
-                    DefaultFileAccess.humanReadableByteCount(serializedGeoLocations.length, true)));
+                    humanReadableSize(serializedGeoLocations.length, true)));
             bytesSerialized += serializedGeoLocations.length;
 
         } catch (final RemoteException | IOException e) {
@@ -123,7 +123,7 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
                 measurement, accelerationsCount,
                 rotationsCount, directionsCount);
         Log.v(TAG, String.format("Serialized %s binaryHeader for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(transferFileHeader.length, true)));
+                humanReadableSize(transferFileHeader.length, true)));
         bytesSerialized += transferFileHeader.length;
 
         // Assemble bytes to transfer via buffered stream to avoid OOM
@@ -160,7 +160,6 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
             throw new IllegalStateException(e);
         }
 
-        Log.d(TAG, String.format("Serialized %s",
-                DefaultFileAccess.humanReadableByteCount(bytesSerialized, true)));
+        Log.d(TAG, String.format("Serialized %s", humanReadableSize(bytesSerialized, true)));
     }
 }

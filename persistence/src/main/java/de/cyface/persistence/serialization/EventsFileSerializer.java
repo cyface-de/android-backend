@@ -265,7 +265,7 @@ public class EventsFileSerializer {
             }
             serializedEvents = outputStream.toByteArray();
             Log.v(TAG, String.format("Serialized %s Events for synchronization.",
-                    DefaultFileAccess.humanReadableByteCount(serializedEvents.length, true)));
+                    DefaultFileAccess.humanReadableSize(serializedEvents.length, true)));
             bytesSerialized += serializedEvents.length;
 
         } catch (final RemoteException | IOException e) {
@@ -279,7 +279,7 @@ public class EventsFileSerializer {
         // Generate transfer file header
         final byte[] eventTransferFileHeader = serializeEventTransferFileHeader(eventCount);
         Log.v(TAG, String.format("Serialized %s Events binaryHeader for synchronization.",
-                DefaultFileAccess.humanReadableByteCount(eventTransferFileHeader.length, true)));
+                DefaultFileAccess.humanReadableSize(eventTransferFileHeader.length, true)));
         bytesSerialized += eventTransferFileHeader.length;
 
         // Assemble bytes to transfer via buffered stream to avoid OOM
@@ -298,6 +298,6 @@ public class EventsFileSerializer {
         }
 
         Log.d(TAG,
-                String.format("Serialized %s Events", DefaultFileAccess.humanReadableByteCount(bytesSerialized, true)));
+                String.format("Serialized %s Events", DefaultFileAccess.humanReadableSize(bytesSerialized, true)));
     }
 }
