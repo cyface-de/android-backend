@@ -19,6 +19,9 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
 import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
@@ -158,11 +161,11 @@ public class UploadProgressTest {
 
             // Insert file base data
             final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                    ACCELERATION);
             final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                    ROTATION);
             final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                    DIRECTION);
             insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
             insertPoint3d(accelerationsFile, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
             insertPoint3d(accelerationsFile, 1501662635983L, 10.171648, -0.2921924, 0.3784131);

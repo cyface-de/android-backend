@@ -1,4 +1,4 @@
-package de.cyface.persistence.serialization;
+package de.cyface.persistence.serialization.proto;
 
 import static de.cyface.persistence.Constants.TAG;
 

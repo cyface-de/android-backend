@@ -28,6 +28,9 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 
 import java.io.File;
@@ -414,24 +417,23 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
 
         try {
-            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
+            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId, ACCELERATION)
+                    .getFile();
             Validate.isTrue(accelerationFile.delete());
         } catch (final NoSuchFileException e) {
             Log.v(TAG, "markAsSynchronized: No acceleration file found to delete, nothing to do");
         }
 
         try {
-            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
+            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId, ROTATION).getFile();
             Validate.isTrue(rotationFile.delete());
         } catch (final NoSuchFileException e) {
             Log.v(TAG, "markAsSynchronized: No rotation file found to delete, nothing to do");
         }
 
         try {
-            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
+            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId, DIRECTION)
+                    .getFile();
             Validate.isTrue(directionFile.delete());
         } catch (final NoSuchFileException e) {
             Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do");

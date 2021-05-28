@@ -20,6 +20,13 @@ package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.DefaultFileAccess.humanReadableSize;
+import static de.cyface.persistence.serialization.Point3dFile.ACCELERATIONS_FILE_EXTENSION;
+import static de.cyface.persistence.serialization.Point3dFile.ACCELERATIONS_FOLDER_NAME;
+import static de.cyface.persistence.serialization.Point3dFile.DIRECTIONS_FOLDER_NAME;
+import static de.cyface.persistence.serialization.Point3dFile.DIRECTION_FILE_EXTENSION;
+import static de.cyface.persistence.serialization.Point3dFile.ROTATIONS_FOLDER_NAME;
+import static de.cyface.persistence.serialization.Point3dFile.ROTATION_FILE_EXTENSION;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -33,13 +40,12 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.serialization.proto.LocationSerializer;
 import de.cyface.utils.CursorIsNullException;
-import de.cyface.utils.Validate;
 
 /**
  * {@code FileSerializerStrategy} implementation for {@link MeasurementSerializer#TRANSFER_FILE_FORMAT_VERSION} files.
@@ -88,40 +94,15 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
 
         // Get already serialized Point3dFiles
         final File accelerationFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
-                measurementIdentifier,
-                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                measurementIdentifier, ACCELERATIONS_FOLDER_NAME, ACCELERATIONS_FILE_EXTENSION);
         final File rotationFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
-                measurementIdentifier,
-                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                measurementIdentifier, ROTATIONS_FOLDER_NAME, ROTATION_FILE_EXTENSION);
         final File directionFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
-                measurementIdentifier,
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-
-        // Calculate how many points the files contain (for the binary header)
-        int accelerationsCount = 0;
-        int rotationsCount = 0;
-        int directionsCount = 0;
-        // noinspection ConstantConditions // can happen in tests
-        if (accelerationFile != null && accelerationFile.exists()) {
-            accelerationsCount = (int)(accelerationFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
-            Validate.isTrue(accelerationsCount * BYTES_IN_ONE_POINT_3D_ENTRY == accelerationFile.length());
-        }
-        // noinspection ConstantConditions // can happen in tests
-        if (rotationFile != null && rotationFile.exists()) {
-            rotationsCount = (int)(rotationFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
-            Validate.isTrue(rotationsCount * BYTES_IN_ONE_POINT_3D_ENTRY == rotationFile.length());
-        }
-        // noinspection ConstantConditions // can happen in tests
-        if (directionFile != null && directionFile.exists()) {
-            directionsCount = (int)(directionFile.length() / BYTES_IN_ONE_POINT_3D_ENTRY);
-            Validate.isTrue(directionsCount * BYTES_IN_ONE_POINT_3D_ENTRY == directionFile.length());
-        }
+                measurementIdentifier, DIRECTIONS_FOLDER_NAME, DIRECTION_FILE_EXTENSION);
 
         // Generate transfer file header
         final Measurement measurement = persistence.loadMeasurement(measurementIdentifier);
-        final byte[] transferFileHeader = MeasurementSerializer.serializeTransferFileHeader(geoLocationCount,
-                measurement, accelerationsCount,
-                rotationsCount, directionsCount);
+        final byte[] transferFileHeader = MeasurementSerializer.transferFileHeader(measurement);
         Log.v(TAG, String.format("Serialized %s binaryHeader for synchronization.",
                 humanReadableSize(transferFileHeader.length, true)));
         bytesSerialized += transferFileHeader.length;
@@ -135,21 +116,22 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
             throw new IllegalStateException(e);
         }
 
-        if (accelerationsCount > 0) {
+        // FIXME: test what happens when one such file does not exist
+        if (accelerationFile.exists()) {
             Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
-                    DefaultFileAccess.humanReadableByteCount(accelerationFile.length(), true)));
+                    humanReadableSize(accelerationFile.length(), true)));
             bytesSerialized += accelerationFile.length();
             persistence.getFileAccessLayer().writeToOutputStream(accelerationFile, bufferedOutputStream);
         }
-        if (rotationsCount > 0) {
+        if (rotationFile.exists()) {
             Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
-                    DefaultFileAccess.humanReadableByteCount(rotationFile.length(), true)));
+                    humanReadableSize(rotationFile.length(), true)));
             bytesSerialized += rotationFile.length();
             persistence.getFileAccessLayer().writeToOutputStream(rotationFile, bufferedOutputStream);
         }
-        if (directionsCount > 0) {
+        if (directionFile.exists()) {
             Log.v(TAG, String.format("Serializing %s directions for synchronization.",
-                    DefaultFileAccess.humanReadableByteCount(directionFile.length(), true)));
+                    humanReadableSize(directionFile.length(), true)));
             bytesSerialized += directionFile.length();
             persistence.getFileAccessLayer().writeToOutputStream(directionFile, bufferedOutputStream);
         }

@@ -26,6 +26,9 @@ import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
@@ -279,11 +282,11 @@ public class CapturedDataWriterTest {
 
             // Point3ds
             Point3dFile accelerationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                    ACCELERATION);
             Point3dFile rotationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                    ROTATION);
             Point3dFile directionsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+                    DIRECTION);
 
             List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), TEST_DATA_COUNT);
             List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), TEST_DATA_COUNT);

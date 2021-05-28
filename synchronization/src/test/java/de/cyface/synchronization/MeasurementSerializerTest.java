@@ -21,10 +21,10 @@ package de.cyface.synchronization;
 import static android.os.Build.VERSION_CODES.P;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_GEO_LOCATION_ENTRY;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSION_NOWRAP;
-import static de.cyface.persistence.serialization.MeasurementSerializer.serialize;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -81,6 +81,7 @@ import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.proto.Point3dSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -186,11 +187,11 @@ public class MeasurementSerializerTest {
             directions.add(new Point3d((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
                     (float)SAMPLE_DOUBLE_VALUE, SAMPLE_LONG_VALUE));
         }
-        final byte[] serializedAccelerations = serialize(accelerations);
+        final byte[] serializedAccelerations = Point3dSerializer.serialize(accelerations, ACCELERATION);
         Validate.notNull(serializedAccelerations);
-        final byte[] serializedRotations = serialize(rotations);
+        final byte[] serializedRotations = Point3dSerializer.serialize(rotations, ROTATION);
         Validate.notNull(serializedRotations);
-        final byte[] serializedDirections = serialize(directions);
+        final byte[] serializedDirections = Point3dSerializer.serialize(directions, DIRECTION);
         Validate.notNull(serializedDirections);
 
         // Mock persistence

@@ -29,6 +29,7 @@ import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.serialization.proto.Point3dSerializer;
 
 /**
  * The file format to persist {@link Point3d}s such as accelerations, rotations and directions.
@@ -80,32 +81,33 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * The {@link FileAccessLayer} used to interact with files.
      */
     private FileAccessLayer fileAccessLayer;
+    /**
+     * The sensor data type of the {@link Point3d} data.
+     */
+    private final Point3dType type;
 
     /**
      * Constructor which actually creates a new {@link File} in the persistence layer.
-     *
+     * 
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param measurementId the identifier of the {@link Measurement} for which the file is to be created
-     * @param folderName The folder name defining the {@link Point3d} type of the file
-     * @param fileExtension the extension of the file type
+     * @param type The sensor data type of the {@code Point3d} data.
      */
-    public Point3dFile(@NonNull final Context context, final long measurementId, @NonNull final String folderName,
-            @NonNull final String fileExtension) {
+    public Point3dFile(@NonNull final Context context, final long measurementId, final Point3dType type) {
+        this.type = type;
         this.fileAccessLayer = new DefaultFileAccess();
-        this.file = fileAccessLayer.createFile(context, measurementId, folderName, fileExtension);
+        this.file = fileAccessLayer.createFile(context, measurementId, type.folderName(), type.fileExtension());
     }
 
     /**
      * Constructor to reference an existing {@link Point3dFile}.
      *
-     * @param file The already existing file which represents the {@link Point3dFile}
+     * @param file The already existing file which represents the {@code Point3dFile}
+     * @param type The sensor data type of the {@link Point3d} data.
      */
-    private Point3dFile(@NonNull final File file) {
+    private Point3dFile(@NonNull final File file, Point3dType type) {
         this.file = file;
-    }
-
-    public File getFile() {
-        return file;
+        this.type = type;
     }
 
     @Override
@@ -116,7 +118,7 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
 
     @Override
     public byte[] serialize(final List<Point3d> dataPoints) {
-        return MeasurementSerializer.serialize(dataPoints);
+        return Point3dSerializer.serialize(dataPoints, getType());
     }
 
     /**
@@ -125,20 +127,27 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param fileAccessLayer The {@link FileAccessLayer} used to access the file;
      * @param measurementId the identifier of the measurement for which the file is to be found
-     * @param folderName The folder name defining the {@link Point3d} type of the file
-     * @param fileExtension the extension of the file type
+     * @param type The sensor data type of the {@link Point3d} data.
      * @return the {@link Point3dFile} link to the file
      * @throws NoSuchFileException if there is no such file
      */
     public static Point3dFile loadFile(@NonNull final Context context, @NonNull FileAccessLayer fileAccessLayer,
-            final long measurementId, @NonNull final String folderName, @NonNull final String fileExtension)
+            final long measurementId, @NonNull final Point3dType type)
             throws NoSuchFileException {
 
-        final File file = fileAccessLayer.getFilePath(context, measurementId, folderName, fileExtension);
+        final File file = fileAccessLayer.getFilePath(context, measurementId, type.folderName(), type.fileExtension());
         if (!file.exists()) {
             throw new NoSuchFileException("The follow file could not be loaded: " + file.getPath());
         }
 
-        return new Point3dFile(file);
+        return new Point3dFile(file, type);
+    }
+
+    public Point3dType getType() {
+        return type;
+    }
+
+    public File getFile() {
+        return file;
     }
 }

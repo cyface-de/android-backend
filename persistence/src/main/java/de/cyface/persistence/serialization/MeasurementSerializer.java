@@ -27,27 +27,20 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.nio.ByteBuffer;
-import java.util.List;
 import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 
 import android.content.ContentProvider;
-import android.content.ContentResolver;
-import android.database.Cursor;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.protos.model.LocationRecords;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -59,6 +52,8 @@ import de.cyface.utils.Validate;
  * - the data in our Protocol Buffer message format: https://github.com/cyface-de/protos (v 1.X)
  * <p>
  * WARNING: This implementation loads all data from one measurement into memory. So be careful with large measurements.
+ *
+ * FIXME: This now only generates the transfer file for synchronization. Maybe rename and move this to synchronization?
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -162,9 +157,9 @@ public final class MeasurementSerializer {
      */
     @SuppressWarnings("SpellCheckingInspection")
     private void loadSerializedCompressed(@NonNull final OutputStream fileOutputStream,
-                                          @NonNull final MeasurementContentProviderClient loader, final long measurementId,
-                                          @NonNull final PersistenceLayer persistenceLayer,
-                                          @NonNull final FileSerializerStrategy fileSerializerStrategy)
+            @NonNull final MeasurementContentProviderClient loader, final long measurementId,
+            @NonNull final PersistenceLayer persistenceLayer,
+            @NonNull final FileSerializerStrategy fileSerializerStrategy)
             throws CursorIsNullException, IOException {
 
         Log.d(TAG, "loadSerializedCompressed: start");
@@ -192,63 +187,19 @@ public final class MeasurementSerializer {
     }
 
     /**
-     * Serializes the provided {@link Point3d} points.
-     *
-     * @return A <code>byte</code> array containing all the data.
-     */
-    public static byte[] serialize(final @NonNull List<Point3d> dataPoints) {
-        Log.v(TAG, String.format("Serializing %d Point3d points!", dataPoints.size()));
-
-        final ByteBuffer buffer = ByteBuffer.allocate(dataPoints.size() * BYTES_IN_ONE_POINT_3D_ENTRY);
-        for (final Point3d point : dataPoints) {
-            buffer.putLong(point.getTimestamp());
-            buffer.putDouble(point.getX());
-            buffer.putDouble(point.getY());
-            buffer.putDouble(point.getZ());
-        }
-
-        byte[] payload = new byte[buffer.capacity()];
-        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
-        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
-        return payload;
-    }
-
-    /**
      * Creates the header field for a serialized {@link Measurement} in big endian format for synchronization.
      *
      * (!) Attention: Changes to this format must be discussed with compatible API providers.
      *
-     * @param geoLocationCount Number of {@link GeoLocation} in the serialized {@code Measurement}.
-     * @param measurement the {@link Measurement} containing the number of {@link Point3d} points in the serialized
-     *            {@code Measurement}.
-     * @param accelerationsCount The number of accelerations stored for this {@code Measurement}.
-     * @param rotationsCount The number of rotations stored for this {@code Measurement}.
-     * @param directionsCount The number of directions stored for this {@code Measurement}.
+     * @param measurement the {@code Measurement} to generate the transfer file header for.
      * @return The header byte array.
      */
-    static byte[] serializeTransferFileHeader(final int geoLocationCount, final Measurement measurement,
-            final int accelerationsCount, final int rotationsCount, final int directionsCount) {
+    static byte[] transferFileHeader(final Measurement measurement) {
         Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
 
         byte[] ret = new byte[18];
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
-        ret[2] = (byte)(geoLocationCount >> 24);
-        ret[3] = (byte)(geoLocationCount >> 16);
-        ret[4] = (byte)(geoLocationCount >> 8);
-        ret[5] = (byte)geoLocationCount;
-        ret[6] = (byte)(accelerationsCount >> 24);
-        ret[7] = (byte)(accelerationsCount >> 16);
-        ret[8] = (byte)(accelerationsCount >> 8);
-        ret[9] = (byte)accelerationsCount;
-        ret[10] = (byte)(rotationsCount >> 24);
-        ret[11] = (byte)(rotationsCount >> 16);
-        ret[12] = (byte)(rotationsCount >> 8);
-        ret[13] = (byte)rotationsCount;
-        ret[14] = (byte)(directionsCount >> 24);
-        ret[15] = (byte)(directionsCount >> 16);
-        ret[16] = (byte)(directionsCount >> 8);
-        ret[17] = (byte)directionsCount;
         return ret;
     }
 }

@@ -25,6 +25,9 @@ import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
@@ -318,11 +321,11 @@ public class SharedTestUtils {
 
         // Insert file base data
         final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                ACCELERATION);
         final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                ROTATION);
         final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+                DIRECTION);
 
         final List<Point3d> aPoints = new ArrayList<>();
         final List<Point3d> rPoints = new ArrayList<>();
@@ -398,7 +401,8 @@ public class SharedTestUtils {
      * {@link SharedTestUtils#insertPoint3d(Point3dFile, long, double, double, double)} (Context, long, long, double,
      * double, double)},
      *
-     * @param modality The {@link Modality} type of the {@code Measurement}. A common value is {@link Modality#UNKNOWN} if
+     * @param modality The {@link Modality} type of the {@code Measurement}. A common value is {@link Modality#UNKNOWN}
+     *            if
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */

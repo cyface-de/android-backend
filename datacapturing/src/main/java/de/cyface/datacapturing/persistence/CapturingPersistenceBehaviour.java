@@ -2,6 +2,9 @@ package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -99,15 +102,15 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         }
         if (accelerationsFile == null) {
             accelerationsFile = new Point3dFile(persistenceLayer.getContext(), measurementIdentifier,
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                    ACCELERATION);
         }
         if (rotationsFile == null) {
             rotationsFile = new Point3dFile(persistenceLayer.getContext(), measurementIdentifier,
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                    ROTATION);
         }
         if (directionsFile == null) {
             directionsFile = new Point3dFile(persistenceLayer.getContext(), measurementIdentifier,
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+                    DIRECTION);
         }
 
         final CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
