@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -47,6 +47,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.protos.model.LocationRecords;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -54,21 +55,9 @@ import de.cyface.utils.Validate;
  * This class implements the serialization from data stored in a <code>MeasuringPointContentProvider</code> and
  * Cyface {@link #PERSISTENCE_FILE_FORMAT_VERSION} binary format into the Cyface {@link #TRANSFER_FILE_FORMAT_VERSION}
  * binary format. The later consists of a header with the following information:
- * <ul>
- * <li>2 Bytes format version</li>
- * <li>4 Bytes amount of geo locations</li>
- * <li>4 Bytes amount of accelerations</li>
- * <li>4 Bytes amount of rotations</li>
- * <li>4 Bytes amount of directions</li>
- * <li>All geo locations as: 8 Bytes long timestamp, 8 Bytes double lat, 8 Bytes double lon, 8 Bytes double speed and 4
- * Bytes integer accuracy</li>
- * <li>All accelerations as: 8 Bytes long timestamp, 8 Bytes double x acceleration, 8 Bytes double y acceleration, 8
- * Bytes double z acceleration</li>
- * <li>All rotations as: 8 Bytes long timestamp, 8 Bytes double x rotation, 8 Bytes double y rotation, 8 Bytes double z
- * rotation</li>
- * <li>All directions as: 8 Bytes long timestamp, 8 Bytes double x direction, 8 Bytes double y direction, 8 Bytes double
- * z direction</li>
- * </ul>
+ * - 2 Bytes format version FIXME: do we still support this? see [DAT-686]
+ * - the data in our Protocol Buffer message format: https://github.com/cyface-de/protos (v 1.X)
+ * <p>
  * WARNING: This implementation loads all data from one measurement into memory. So be careful with large measurements.
  *
  * @author Klemens Muthmann
@@ -79,29 +68,20 @@ import de.cyface.utils.Validate;
 public final class MeasurementSerializer {
 
     /**
-     * A constant with the number of bytes for one uncompressed {@link Point3d} entry in the Cyface binary format.
-     */
-    public static final int BYTES_IN_ONE_POINT_3D_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES;
-    /**
      * The current version of the transferred file. This is always specified by the first two bytes of the file
      * transferred and helps compatible APIs to process data from different client versions.
      */
-    public final static short TRANSFER_FILE_FORMAT_VERSION = 1;
+    public final static short TRANSFER_FILE_FORMAT_VERSION = 1; // FIXME --> 2
     /**
      * The current version of the file format used to persist {@link Point3d} data.
      * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
      * measurements and files with different {@code #PERSISTENCE_FILE_FORMAT_VERSION} at the same time.
      */
-    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1;
+    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1; // FIXME --> 2
     /**
      * A constant with the number of bytes for the header of the {@link #TRANSFER_FILE_FORMAT_VERSION} file.
      */
-    public final static int BYTES_IN_HEADER = SHORT_BYTES + 4 * ByteSizes.INT_BYTES;
-    /**
-     * A constant with the number of bytes for one uncompressed geo location entry in the Cyface binary format.
-     */
-    public final static int BYTES_IN_ONE_GEO_LOCATION_ENTRY = ByteSizes.LONG_BYTES + 3 * ByteSizes.DOUBLE_BYTES
-            + ByteSizes.INT_BYTES;
+    public final static int BYTES_IN_HEADER = SHORT_BYTES; // FIXME --> keep version? [DAT-686]
     /**
      * In iOS there are no parameters to set nowrap to false as it is default in Android.
      * In order for the iOS and Android Cyface SDK to be compatible we set nowrap explicitly to true
@@ -180,10 +160,11 @@ public final class MeasurementSerializer {
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws IOException When flushing or closing the {@link OutputStream} fails
      */
+    @SuppressWarnings("SpellCheckingInspection")
     private void loadSerializedCompressed(@NonNull final OutputStream fileOutputStream,
-            @NonNull final MeasurementContentProviderClient loader, final long measurementId,
-            @NonNull final PersistenceLayer persistenceLayer,
-            @NonNull final FileSerializerStrategy fileSerializerStrategy)
+                                          @NonNull final MeasurementContentProviderClient loader, final long measurementId,
+                                          @NonNull final PersistenceLayer persistenceLayer,
+                                          @NonNull final FileSerializerStrategy fileSerializerStrategy)
             throws CursorIsNullException, IOException {
 
         Log.d(TAG, "loadSerializedCompressed: start");
@@ -208,38 +189,6 @@ public final class MeasurementSerializer {
         }
         Log.d(TAG, "loadSerializedCompressed: finished after " + ((System.currentTimeMillis() - startTimestamp) / 1000)
                 + " s with Deflater Level: " + DEFLATER_LEVEL);
-    }
-
-    /**
-     * Serializes all the {@link GeoLocation}s from the {@link Measurement} identified by the provided
-     * {@code measurementIdentifier}.
-     *
-     * @param geoLocationsCursor A {@link Cursor} returned by a {@link ContentResolver} to load {@code GeoLocation}s
-     *            from.
-     * @return A <code>byte</code> array containing all the data.
-     */
-    static byte[] serializeGeoLocations(@NonNull final Cursor geoLocationsCursor) {
-        // Allocate enough space for all geo locations
-        Log.v(TAG, String.format("Serializing %d GeoLocations for synchronization.", geoLocationsCursor.getCount()));
-        final ByteBuffer buffer = ByteBuffer.allocate(geoLocationsCursor.getCount() * BYTES_IN_ONE_GEO_LOCATION_ENTRY);
-
-        while (geoLocationsCursor.moveToNext()) {
-            buffer.putLong(geoLocationsCursor
-                    .getLong(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME)));
-            buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT)));
-            buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON)));
-            buffer.putDouble(
-                    geoLocationsCursor.getDouble(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED)));
-            buffer.putInt(
-                    geoLocationsCursor.getInt(geoLocationsCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY)));
-        }
-
-        byte[] payload = new byte[buffer.capacity()];
-        ((ByteBuffer)buffer.duplicate().clear()).get(payload);
-        // if we want to switch from write to read mode on the byte buffer we need to .flip() !!
-        return payload;
     }
 
     /**

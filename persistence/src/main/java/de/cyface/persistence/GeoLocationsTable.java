@@ -34,7 +34,7 @@ import de.cyface.persistence.model.Measurement;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.4.4
+ * @version 2.4.5
  * @since 1.0.0
  */
 public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
@@ -44,7 +44,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
      */
     final static String URI_PATH = "locations";
     /**
-     * Column name for the column storing the {@link GeoLocation} timestamp.
+     * Column name for the column storing the {@link GeoLocation} timestamp in milliseconds.
      */
     public static final String COLUMN_GEOLOCATION_TIME = "gps_time";
     /**

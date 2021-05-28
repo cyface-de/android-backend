@@ -20,7 +20,6 @@ package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
 
 import java.io.BufferedOutputStream;
 import java.io.ByteArrayOutputStream;
@@ -72,7 +71,7 @@ public class MeasurementFileSerializerStrategy implements FileSerializerStrategy
             final ByteArrayOutputStream outputStream = new ByteArrayOutputStream();
             for (int startIndex = 0; startIndex < geoLocationCount; startIndex += DATABASE_QUERY_LIMIT) {
                 geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT);
-                outputStream.write(MeasurementSerializer.serializeGeoLocations(geoLocationsCursor));
+                outputStream.write(LocationSerializer.serialize(geoLocationsCursor));
             }
             serializedGeoLocations = outputStream.toByteArray();
             Log.v(TAG, String.format("Serialized %s geoLocations for synchronization.",

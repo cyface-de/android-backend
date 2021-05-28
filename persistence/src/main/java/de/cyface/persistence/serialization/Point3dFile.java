@@ -58,16 +58,19 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * The file extension of files containing acceleration data. This makes sure no system-generated files in the
      * {@link #ACCELERATIONS_FOLDER_NAME} are identified as {@link Point3dFile}s.
      */
+    @SuppressWarnings("SpellCheckingInspection")
     public final static String ACCELERATIONS_FILE_EXTENSION = "cyfa";
     /**
      * The file extension of files containing rotation data. This makes sure no system-generated files in the
      * {@link #ROTATIONS_FOLDER_NAME} are identified as {@link Point3dFile}s.
      */
+    @SuppressWarnings("SpellCheckingInspection")
     public final static String ROTATION_FILE_EXTENSION = "cyfr";
     /**
      * The file extension of files containing direction data. This makes sure no system-generated files in the
      * {@link #DIRECTIONS_FOLDER_NAME} are identified as {@link Point3dFile}s.
      */
+    @SuppressWarnings("SpellCheckingInspection")
     public final static String DIRECTION_FILE_EXTENSION = "cyfd";
     /**
      * The {@link File} pointer to the actual file.
