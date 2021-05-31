@@ -29,6 +29,7 @@ import static de.cyface.persistence.model.Modality.UNKNOWN;
 import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
 import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
 import static de.cyface.persistence.serialization.Point3dType.ROTATION;
+import static de.cyface.protos.model.Measurement.parseFrom;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
@@ -61,6 +62,8 @@ import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.provider.ProviderTestRule;
 
+import com.google.protobuf.InvalidProtocolBufferException;
+
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DefaultFileAccess;
@@ -83,6 +86,7 @@ import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.protos.model.MeasurementBytes;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -235,7 +239,7 @@ public class CapturedDataWriterTest {
      * Tests whether data is stored correctly via the <code>PersistenceLayer</code>.
      */
     @Test
-    public void testStoreData() throws NoSuchFileException {
+    public void testStoreData() throws NoSuchFileException, InvalidProtocolBufferException {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
@@ -271,11 +275,9 @@ public class CapturedDataWriterTest {
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
 
         // Check if the captured data was persisted
-        Cursor geoLocationsCursor = null;
         FileAccessLayer fileAccessLayer = new DefaultFileAccess();
-        try {
+        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null)) {
             // GeoLocations
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
             assertThat(geoLocationsCursor.getCount(), is(equalTo(TEST_LOCATION_COUNT)));
@@ -288,17 +290,16 @@ public class CapturedDataWriterTest {
             Point3dFile directionsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     DIRECTION);
 
-            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), TEST_DATA_COUNT);
-            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), TEST_DATA_COUNT);
-            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), TEST_DATA_COUNT);
+            final de.cyface.protos.model.Measurement accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), ACCELERATION);
+            final de.cyface.protos.model.Measurement rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), ROTATION);
+            final de.cyface.protos.model.Measurement directions = deserialize(fileAccessLayer, directionsFile.getFile(), DIRECTION);
 
-            assertThat(accelerations.size(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(rotations.size(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(directions.size(), is(equalTo(TEST_DATA_COUNT)));
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
+            assertThat(accelerations.getAccelerations().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerations.getAccelerations().getXCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerations.getAccelerations().getYCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerations.getAccelerations().getZCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(rotations.getRotations().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(directions.getDirections().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
         }
     }
 

@@ -105,6 +105,7 @@ dependencies {
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
+    testImplementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
     // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
