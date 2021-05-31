@@ -40,7 +40,7 @@ public class OffsetterTest {
 
         // Assert
         assertThat(result1, is(equalTo(numbers[0])));
-        assertThat(result1, is(equalTo(numbers[1] - numbers[0])));
-        assertThat(result1, is(equalTo(numbers[2] - numbers[1])));
+        assertThat(result2, is(equalTo(numbers[1] - numbers[0])));
+        assertThat(result3, is(equalTo(numbers[2] - numbers[1])));
     }
 }
