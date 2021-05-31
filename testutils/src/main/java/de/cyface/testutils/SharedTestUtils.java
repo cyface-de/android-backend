@@ -245,10 +245,12 @@ public class SharedTestUtils {
         if (accelerationFolder.exists()) {
             Validate.isTrue(accelerationFolder.isDirectory());
             final File[] accelerationFiles = accelerationFolder.listFiles();
-            for (File file : accelerationFiles) {
-                Validate.isTrue(file.delete());
+            if (accelerationFiles != null) {
+                for (File file : accelerationFiles) {
+                    Validate.isTrue(file.delete());
+                }
+                removedFiles += accelerationFiles.length;
             }
-            removedFiles += accelerationFiles.length;
             Validate.isTrue(accelerationFolder.delete());
         }
 
@@ -256,10 +258,12 @@ public class SharedTestUtils {
         if (rotationFolder.exists()) {
             Validate.isTrue(rotationFolder.isDirectory());
             final File[] rotationFiles = rotationFolder.listFiles();
-            for (File file : rotationFiles) {
-                Validate.isTrue(file.delete());
+            if (rotationFiles != null) {
+                for (File file : rotationFiles) {
+                    Validate.isTrue(file.delete());
+                }
+                removedFiles += rotationFiles.length;
             }
-            removedFiles += rotationFiles.length;
             Validate.isTrue(rotationFolder.delete());
         }
 
@@ -267,10 +271,12 @@ public class SharedTestUtils {
         if (directionFolder.exists()) {
             Validate.isTrue(directionFolder.isDirectory());
             final File[] directionFiles = directionFolder.listFiles();
-            for (File file : directionFiles) {
-                Validate.isTrue(file.delete());
+            if (directionFiles != null) {
+                for (File file : directionFiles) {
+                    Validate.isTrue(file.delete());
+                }
+                removedFiles += directionFiles.length;
             }
-            removedFiles += directionFiles.length;
             Validate.isTrue(directionFolder.delete());
         }
 
@@ -314,13 +320,9 @@ public class SharedTestUtils {
         insertGeoLocations(context.getContentResolver(), authority, measurement.getIdentifier(), geoLocations);
 
         // Insert file base data
-        final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
-                ACCELERATION);
-        final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
-                ROTATION);
-        final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                DIRECTION);
-
+        final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier, ACCELERATION);
+        final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier, ROTATION);
+        final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier, DIRECTION);
         final List<Point3d> aPoints = new ArrayList<>();
         final List<Point3d> rPoints = new ArrayList<>();
         final List<Point3d> dPoints = new ArrayList<>();
@@ -356,25 +358,12 @@ public class SharedTestUtils {
                     measurementIdentifier);
             persistence.setStatus(measurementIdentifier, FINISHED, false);
         }
-
-        // Check the sensor data (must be before measurements are marked as sync which deletes the data)
-        // noinspection ConstantConditions - we may add tests with a 0 count later
-        if (point3dCount > 0) {
-            assertThat((int)(accelerationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));
-            assertThat((int)(rotationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));
-            assertThat((int)(directionsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));
-        }
-
         if (status == SYNCED) {
             persistence.markAsSynchronized(measurement);
         }
 
         // Check the measurement entry
-        final Measurement loadedMeasurement;
-        loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
+        final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
         assertThat(loadedMeasurement.getFileFormatVersion(),
