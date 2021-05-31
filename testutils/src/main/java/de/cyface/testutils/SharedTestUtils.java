@@ -196,9 +196,11 @@ public class SharedTestUtils {
      */
     public static de.cyface.protos.model.Measurement deserialize(final FileAccessLayer fileAccessLayer, final File file,
             final Point3dType type) throws InvalidProtocolBufferException {
+
         final byte[] bytes = fileAccessLayer.loadBytes(file);
         final MeasurementBytes.Builder measurementBytes = MeasurementBytes.newBuilder()
                 .setFormatVersion(2); // FIXME: read this from the sensor data bytes!
+
         switch (type) {
             case ACCELERATION:
                 measurementBytes.setAccelerations(ByteString.copyFrom(bytes));
@@ -212,6 +214,7 @@ public class SharedTestUtils {
             default:
                 throw new IllegalArgumentException("Unknown type: " + type);
         }
+
         final MeasurementBytes data = measurementBytes.build();
         return parseFrom(data.toByteArray());
     }
