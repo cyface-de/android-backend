@@ -137,12 +137,8 @@ public class TransferFileSerializer {
             // The stream must be closed by the called in a finally catch
             bufferedOutputStream.write(transferFileHeader);
             bufferedOutputStream.write(measurementBytes);
-        } catch (final IOException e) {
-            throw new IllegalStateException(e);
-        }
-        try {
             bufferedOutputStream.flush();
-        } catch (IOException e) {
+        } catch (final IOException e) {
             throw new IllegalStateException(e);
         }
 

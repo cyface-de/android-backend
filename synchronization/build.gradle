@@ -106,6 +106,9 @@ dependencies {
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     implementation project(":persistence")
 
+    // Utility
+    implementation "org.apache.commons:commons-lang3:$commonsLangVersion" // Using Validate
+
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"

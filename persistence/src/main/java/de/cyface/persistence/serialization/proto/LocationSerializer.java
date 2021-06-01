@@ -33,7 +33,7 @@ public class LocationSerializer {
             // The proto serializer expects some fields in a different format and in offset-format
             final Formatter.Location formatted = new Formatter.Location(timestamp, latitude, longitude, speedMps,
                     accuracyCm);
-            final LocationOffsetter.LocationOffsets offsets = offsetter.offset(formatted);
+            final LocationOffsetter.Location offsets = offsetter.offset(formatted);
 
             builder.addTimestamp(offsets.getTimestamp())
                     .addLatitude(offsets.getLatitude())

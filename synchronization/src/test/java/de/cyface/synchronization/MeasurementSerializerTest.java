@@ -75,17 +75,16 @@ import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.persistence.serialization.TransferFileSerializer;
+import de.cyface.synchronization.serialization.proto.LocationDeserializer;
 import de.cyface.persistence.serialization.proto.Point3dSerializer;
-import de.cyface.protos.model.Accelerations;
-import de.cyface.protos.model.Directions;
-import de.cyface.protos.model.LocationRecords;
 import de.cyface.protos.model.Measurement;
-import de.cyface.protos.model.Rotations;
+import de.cyface.synchronization.serialization.proto.Point3dDeserializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -140,8 +139,10 @@ public class MeasurementSerializerTest {
     private final static int SAMPLE_DIRECTION_POINTS = 10;
     private final static int SAMPLE_GEO_LOCATIONS = 3;
     private final static double SAMPLE_DOUBLE_VALUE = 1.0;
+    private final static int SAMPLE_ACCURACY_VALUE = 1;
     private final static long SAMPLE_LONG_VALUE = 1L;
     private final static long SAMPLE_MEASUREMENT_ID = 1L;
+    private final static long SERIALIZED_MEASUREMENT_FILE_SIZE = 284L; // FIXME: just updated
 
     @Before
     public void setUp() throws RemoteException, CursorIsNullException {
@@ -169,8 +170,7 @@ public class MeasurementSerializerTest {
         when(geoLocationsCursor.getColumnIndexOrThrow(any(String.class))).thenReturn(sampleColumnIndex);
         when(geoLocationsCursor.getDouble(sampleColumnIndex)).thenReturn(SAMPLE_DOUBLE_VALUE);
         when(geoLocationsCursor.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
-        int sampleIntValue = 1;
-        when(geoLocationsCursor.getInt(sampleColumnIndex)).thenReturn(sampleIntValue);
+        when(geoLocationsCursor.getInt(sampleColumnIndex)).thenReturn(SAMPLE_ACCURACY_VALUE);
 
         // Mock load sample Point3dFile data
         final List<Point3d> accelerations = new ArrayList<>();
@@ -208,6 +208,9 @@ public class MeasurementSerializerTest {
         when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
                 eq(Point3dFile.DIRECTIONS_FOLDER_NAME), eq(Point3dFile.DIRECTION_FILE_EXTENSION)))
                         .thenReturn(mockedDirectionFile);
+        when(mockedFileAccessLayer.loadBytes(mockedAccelerationFile)).thenReturn(serializedAccelerations);
+        when(mockedFileAccessLayer.loadBytes(mockedRotationFile)).thenReturn(serializedRotations);
+        when(mockedFileAccessLayer.loadBytes(mockedDirectionFile)).thenReturn(serializedDirections);
         when(mockedAccelerationFile.exists()).thenReturn(true);
         when(mockedRotationFile.exists()).thenReturn(true);
         when(mockedDirectionFile.exists()).thenReturn(true);
@@ -259,7 +262,7 @@ public class MeasurementSerializerTest {
 
             // Assert
             assertThat(serializedFile.exists(), is(true));
-            assertThat(serializedFile.length(), is(equalTo(1234 /* FIXME */ )));
+            assertThat(serializedFile.length(), is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
         } finally {
             if (serializedFile.exists()) {
                 Validate.isTrue(serializedFile.delete());
@@ -281,10 +284,12 @@ public class MeasurementSerializerTest {
         try {
             final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
-            TransferFileSerializer.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
-            assertThat(serializedFile.length(), is(equalTo(1234 /* FIXME */)));
 
-            // Act & Assert
+            // Already tested by `testSerializeMeasurement` - but not the deserialized bytes
+            TransferFileSerializer.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
+            assertThat(serializedFile.length(), is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
+
+            // Act & Assert - check the deserialized bytes
             deserializeAndCheck(new DefaultFileAccess().loadBytes(serializedFile));
         } finally {
             if (serializedFile.exists()) {
@@ -300,7 +305,11 @@ public class MeasurementSerializerTest {
     public void testSerializeCompressedMeasurement() throws CursorIsNullException {
 
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
-        final long SERIALIZED_COMPRESSED_SIZE = 43L; // When compression Deflater(level 9, true)
+        // FIXME: increased from 43L to 91L. Maybe just because the sample data is like 0,0,0,0,0
+        // which can be compressed unrealistically?
+        // TODO: compare the file size with the analysis we did in MOVEBIS
+        // TODO: check if the compression still makes sense with the new custom encoding!
+        final long SERIALIZED_COMPRESSED_SIZE = 91L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
                 persistence);
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
@@ -326,7 +335,7 @@ public class MeasurementSerializerTest {
         byte[] decompressedBytes = new byte[2000];
         long decompressedLength = inflater.inflate(decompressedBytes);
         inflater.end();
-        assertThat(decompressedLength, is(equalTo(1234 /* FIXME */)));
+        assertThat(decompressedLength, is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
 
         // Deserialize
         byte[] decompressedTransferFileBytes = Arrays.copyOfRange(decompressedBytes, 0, (int)1234 /* FIXME */);
@@ -362,41 +371,49 @@ public class MeasurementSerializerTest {
      */
     private void deserializeAndCheck(byte[] bytes) throws InvalidProtocolBufferException {
 
+        Validate.isTrue(bytes.length > 0);
         Measurement measurement = deserializeTransferFile(bytes);
-        assertThat(measurement.getFormatVersion(), is(MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION));
+        assertThat(measurement.getFormatVersion(), is((int)MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION));
         assertThat(measurement.getLocationRecords().getSpeedCount(), is(SAMPLE_GEO_LOCATIONS));
         assertThat(measurement.getAccelerations().getXCount(), is(SAMPLE_ACCELERATION_POINTS));
         assertThat(measurement.getRotations().getYCount(), is(SAMPLE_ROTATION_POINTS));
         assertThat(measurement.getDirections().getZCount(), is(SAMPLE_DIRECTION_POINTS));
 
-        final LocationRecords locations = measurement.getLocationRecords();
-        final Accelerations accelerations = measurement.getAccelerations();
-        final Rotations rotations = measurement.getRotations();
-        final Directions directions = measurement.getDirections();
+        // Convert back to the model format (from the offset/diff proto format)
+        final List<GeoLocation> locations = LocationDeserializer.deserialize(measurement.getLocationRecords());
+
+        final List<Point3d> accelerations = Point3dDeserializer.deserialize(measurement.getAccelerations());
+        final List<Point3d> rotations = Point3dDeserializer.deserialize(measurement.getRotations());
+        final List<Point3d> directions = Point3dDeserializer.deserialize(measurement.getDirections());
+
         for (int i = 0; i < SAMPLE_GEO_LOCATIONS; i++) {
-            assertThat(locations.getAccuracy(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(locations.getLatitude(i), is(SAMPLE_DOUBLE_VALUE));
-            assertThat(locations.getLongitude(i), is(SAMPLE_DOUBLE_VALUE));
-            assertThat(locations.getSpeed(i), is(SAMPLE_DOUBLE_VALUE));
-            assertThat(locations.getTimestamp(i), is(SAMPLE_LONG_VALUE));
+            final GeoLocation entry = locations.get(i);
+            assertThat(entry.getAccuracy(), is((float)SAMPLE_ACCURACY_VALUE));
+            assertThat(entry.getLat(), is(SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getLon(), is(SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getSpeed(), is(SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_ACCELERATION_POINTS; i++) {
-            assertThat(accelerations.getX(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(accelerations.getY(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(accelerations.getZ(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(accelerations.getTimestamp(i), is(SAMPLE_LONG_VALUE));
+            final Point3d entry = accelerations.get(i);
+            assertThat(entry.getX(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getY(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getZ(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_ROTATION_POINTS; i++) {
-            assertThat(rotations.getX(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(rotations.getY(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(rotations.getZ(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(rotations.getTimestamp(i), is(SAMPLE_LONG_VALUE));
+            final Point3d entry = rotations.get(i);
+            assertThat(entry.getX(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getY(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getZ(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_DIRECTION_POINTS; i++) {
-            assertThat(directions.getX(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(directions.getY(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(directions.getZ(i), is((float)SAMPLE_DOUBLE_VALUE));
-            assertThat(directions.getTimestamp(i), is(SAMPLE_LONG_VALUE));
+            final Point3d entry = directions.get(i);
+            assertThat(entry.getX(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getY(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getZ(), is((float)SAMPLE_DOUBLE_VALUE));
+            assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
     }
 
@@ -407,9 +424,12 @@ public class MeasurementSerializerTest {
         // FIXME: Did we decide to keep storing the version like this?
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         final short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
-        assertThat(formatVersion, is(equalTo(2)));
+        assertThat(formatVersion, is(equalTo((short) 2)));
 
-        final Measurement deserialized = parseFrom(bytes);
+        // slice from index 5 to index 9
+        byte[] protoBytes = Arrays.copyOfRange(bytes, 2, bytes.length);
+
+        final Measurement deserialized = parseFrom(protoBytes);
         assertThat(deserialized.getFormatVersion(), is(equalTo(2)));
         assertThat(deserialized.getLocationRecords().getTimestampCount(), is(equalTo(SAMPLE_GEO_LOCATIONS)));
         assertThat(deserialized.getAccelerations().getTimestampCount(), is(equalTo(SAMPLE_ACCELERATION_POINTS)));

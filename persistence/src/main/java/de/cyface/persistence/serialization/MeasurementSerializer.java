@@ -66,21 +66,17 @@ public final class MeasurementSerializer {
      * The current version of the transferred file. This is always specified by the first two bytes of the file
      * transferred and helps compatible APIs to process data from different client versions.
      */
-    public final static short TRANSFER_FILE_FORMAT_VERSION = 1; // FIXME --> 2
+    public final static short TRANSFER_FILE_FORMAT_VERSION = 2;
     /**
      * The current version of the file format used to persist {@link Point3d} data.
      * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
      * measurements and files with different {@code #PERSISTENCE_FILE_FORMAT_VERSION} at the same time.
      */
-    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 1; // FIXME --> 2
+    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 2;
     /**
      * Since our current API Level does not support {@code Short.Bytes}.
      */
-    private final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
-    /**
-     * A constant with the number of bytes for the header of the {@link #TRANSFER_FILE_FORMAT_VERSION} file.
-     */
-    public final static int BYTES_IN_HEADER = SHORT_BYTES; // FIXME --> keep version? [DAT-686]
+    public final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
     /**
      * In iOS there are no parameters to set nowrap to false as it is default in Android.
      * In order for the iOS and Android Cyface SDK to be compatible we set nowrap explicitly to true
@@ -111,33 +107,22 @@ public final class MeasurementSerializer {
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
             final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
 
-        FileOutputStream fileOutputStream = null;
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
-        File compressedTempFile = null;
         final File cacheDir = persistenceLayer.getCacheDir();
 
+        File compressedTempFile = null;
         try {
-            // noinspection SpellCheckingInspection
-            try {
-                compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
-
+            compressedTempFile = File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir);
+            try (FileOutputStream fileOutputStream = new FileOutputStream(compressedTempFile)) {
                 // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
-                fileOutputStream = new FileOutputStream(compressedTempFile);
-
                 loadSerializedCompressed(fileOutputStream, loader, measurementId, persistenceLayer);
-            } finally {
-                if (fileOutputStream != null) {
-                    fileOutputStream.close();
-                }
             }
         } catch (final IOException e) {
             if (compressedTempFile != null && compressedTempFile.exists()) {
                 Validate.isTrue(compressedTempFile.delete());
             }
-
             throw new IllegalStateException(e);
         }
-
         return compressedTempFile;
     }
 
@@ -173,7 +158,6 @@ public final class MeasurementSerializer {
 
         // This architecture catches the IOException thrown by the close() called in the finally without IDE warning
         try (BufferedOutputStream outputStream = new BufferedOutputStream(deflaterStream)) {
-
             // Injecting the outputStream into which the serialized (in this case compressed) data is written to
             TransferFileSerializer.loadSerialized(outputStream, loader, measurementId, persistenceLayer);
             outputStream.flush();
@@ -193,7 +177,7 @@ public final class MeasurementSerializer {
     static byte[] transferFileHeader(final Measurement measurement) {
         Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
 
-        byte[] ret = new byte[2];
+        byte[] ret = new byte[SHORT_BYTES];
         // noinspection ConstantConditions // FIXME: why does this warning occur now?
         ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
         ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;

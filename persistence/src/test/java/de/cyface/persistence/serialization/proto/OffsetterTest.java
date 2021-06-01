@@ -9,7 +9,6 @@ import org.junit.Test;
 
 public class OffsetterTest {
 
-    @SuppressWarnings("SpellCheckingInspection")
     private Offsetter oocut;
 
     @Before

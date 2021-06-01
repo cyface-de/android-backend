@@ -15,7 +15,7 @@ public class Point3dOffsetter {
         z = new Offsetter();
     }
 
-    public Point3sOffsets offset(Formatter.Point3d point) {
+    public Point3d offset(Formatter.Point3d point) {
         final long timestamp = ts.offset(point.getTimestamp());
         final long xValue = x.offset(point.getX());
         final long yValue = y.offset(point.getY());
@@ -23,16 +23,16 @@ public class Point3dOffsetter {
         Validate.isTrue(xValue <= Integer.MAX_VALUE);
         Validate.isTrue(yValue <= Integer.MAX_VALUE);
         Validate.isTrue(zValue <= Integer.MAX_VALUE);
-        return new Point3sOffsets(timestamp, (int)xValue, (int)yValue, (int)zValue);
+        return new Point3d(timestamp, (int)xValue, (int)yValue, (int)zValue);
     }
 
-    public static class Point3sOffsets {
+    public static class Point3d {
         private final long timestamp;
         private final int x;
         private final int y;
         private final int z;
 
-        public Point3sOffsets(long timestamp, int x, int y, int z) {
+        public Point3d(long timestamp, int x, int y, int z) {
             this.timestamp = timestamp;
             this.x = x;
             this.y = y;
