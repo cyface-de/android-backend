@@ -142,4 +142,4 @@ task downloadAndUnzipProto(dependsOn: downloadProto, type: Copy) {
     from zipTree(downloadProto.dest)
     into buildDir
 }
-assemble.dependsOn downloadAndUnzipProto
+preBuild.dependsOn downloadAndUnzipProto
