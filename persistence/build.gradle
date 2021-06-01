@@ -68,12 +68,12 @@ android {
         main {
             proto {
                 // In addition to the default 'src/main/proto'
-                srcDir 'build/protos-0.0.2/src/main/proto'
+                srcDir "build/protos-0.0.3/src/main/proto"
             }
         }
         test {
             proto {
-                srcDir 'build/protos-0.0.2/src/main/proto'
+                srcDir "build/protos-0.0.3/src/main/proto"
             }
         }
     }
@@ -88,8 +88,8 @@ dependencies {
     // `implementation` also loads the java classes, which we don't want
     // instead of importing our proto file  via dependencies which fails because it
     // includes the google proto files which collide with the dependency of java-lite
-    // we probably download the zip, extract the proto file of ours and include the sourceset
-    // But document this and open an issue in gradleprotobuf plugin repo
+    // we probably download the zip, extract the proto file of ours and include the sourceSets
+    // But document this and open an issue in gradle protobuf plugin repo
 
     // Protocol Buffer: generate java files
     implementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"

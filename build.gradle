@@ -42,7 +42,7 @@ ext {
 
     // Cyface dependencies
     cyfaceUtilsVersion = "2.0.2"
-    cyfaceProtosVersion = "0.0.2"
+    cyfaceProtosVersion = "0.0.3" // (!) also update version in persistence/build.gradle `sourceSets`
     protobufVersion = "3.17.0"
 
     // Android SDK versions
