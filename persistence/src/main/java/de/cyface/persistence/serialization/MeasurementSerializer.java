@@ -78,6 +78,10 @@ public final class MeasurementSerializer {
      */
     public final static int SHORT_BYTES = Short.SIZE / Byte.SIZE;
     /**
+     * A constant with the number of bytes for the header of the {@link #TRANSFER_FILE_FORMAT_VERSION} file.
+     */
+    public final static int BYTES_IN_HEADER = SHORT_BYTES; // FIXME --> keep version? [DAT-686]
+    /**
      * In iOS there are no parameters to set nowrap to false as it is default in Android.
      * In order for the iOS and Android Cyface SDK to be compatible we set nowrap explicitly to true
      * <p>

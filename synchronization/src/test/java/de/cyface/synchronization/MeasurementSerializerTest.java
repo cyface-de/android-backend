@@ -20,6 +20,7 @@ package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.P;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSION_NOWRAP;
 import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
 import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
@@ -81,9 +82,9 @@ import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.persistence.serialization.TransferFileSerializer;
-import de.cyface.synchronization.serialization.proto.LocationDeserializer;
 import de.cyface.persistence.serialization.proto.Point3dSerializer;
 import de.cyface.protos.model.Measurement;
+import de.cyface.synchronization.serialization.proto.LocationDeserializer;
 import de.cyface.synchronization.serialization.proto.Point3dDeserializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -338,7 +339,8 @@ public class MeasurementSerializerTest {
         assertThat(decompressedLength, is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
 
         // Deserialize
-        byte[] decompressedTransferFileBytes = Arrays.copyOfRange(decompressedBytes, 0, (int)1234 /* FIXME */);
+        byte[] decompressedTransferFileBytes = Arrays.copyOfRange(decompressedBytes, 0,
+                (int)SERIALIZED_MEASUREMENT_FILE_SIZE);
 
         // Deserialize bytes back to Objects and check their values
         deserializeAndCheck(decompressedTransferFileBytes);
@@ -352,7 +354,7 @@ public class MeasurementSerializerTest {
             final FileOutputStream fileOutputStream = new FileOutputStream(serializedFile);
             final BufferedOutputStream bufferedFileOutputStream = new BufferedOutputStream(fileOutputStream);
             TransferFileSerializer.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
-            assertThat(serializedFile.length(), is(equalTo(1234 /* FIXME */)));
+            assertThat(serializedFile.length(), is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
 
             uncompressedTransferFileBytes = new DefaultFileAccess().loadBytes(serializedFile);
             deserializeAndCheck(uncompressedTransferFileBytes); // just to be sure
@@ -424,10 +426,10 @@ public class MeasurementSerializerTest {
         // FIXME: Did we decide to keep storing the version like this?
         ByteBuffer buffer = ByteBuffer.wrap(bytes);
         final short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
-        assertThat(formatVersion, is(equalTo((short) 2)));
+        assertThat(formatVersion, is(equalTo((short)2)));
 
         // slice from index 5 to index 9
-        byte[] protoBytes = Arrays.copyOfRange(bytes, 2, bytes.length);
+        byte[] protoBytes = Arrays.copyOfRange(bytes, BYTES_IN_HEADER, bytes.length);
 
         final Measurement deserialized = parseFrom(protoBytes);
         assertThat(deserialized.getFormatVersion(), is(equalTo(2)));
