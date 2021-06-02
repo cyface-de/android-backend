@@ -30,7 +30,7 @@ plugins {
     id 'com.google.protobuf' version '0.8.16'
     // To download the `measurement.proto` file and to generate `java-lite` files required here
     //noinspection SpellCheckingInspection
-    id "de.undercouch.download"
+    id 'de.undercouch.download'
 }
 
 android {

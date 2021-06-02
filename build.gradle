@@ -101,10 +101,7 @@ allprojects {
     }*/
 }
 
-plugins {
-    id 'android-reporting'
-    id "de.undercouch.download" version '4.1.1'
-}
+apply plugin: 'android-reporting'
 
 // To publish all sub-projects
 task publishAll() {

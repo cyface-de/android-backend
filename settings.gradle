@@ -5,4 +5,15 @@
  * @version 1.1.0
  * @since 1.0.0
  */
+
+/**
+ * To fix `Plugin request for plugin already on the classpath must not include a version`
+ * when executing `./gradlew build` from the app including this SDK.
+ */
+pluginManagement {
+    plugins {
+        id 'de.undercouch.download' version '4.1.1'
+    }
+}
+
 include ':datacapturing', ':persistence', ':synchronization', ':testutils'
