@@ -4,7 +4,8 @@
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
     <!-- Content provider used for storing and retrieving test data.-->
-    <application>
+    <application
+        android:usesCleartextTraffic="true">
         <provider
             android:name="de.cyface.persistence.MeasuringPointsContentProvider"
             android:authorities="de.cyface.synchronization.test.provider"
