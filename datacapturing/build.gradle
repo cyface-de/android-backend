@@ -82,6 +82,13 @@ android {
         }
     }
 
+    // Enabling desugaring as a dependency (commons-lang3:3.12.0) contains Java 8 bytecode.
+    // See https://developer.android.com/studio/write/java8-support.html
+    compileOptions {
+        sourceCompatibility rootProject.ext.sourceCompatibility
+        targetCompatibility rootProject.ext.targetCompatibility
+    }
+
     // To avoid having to upgrade to `androidX.appCompat:1.3.0-beta1` [CY-5525]
     lintOptions {
         disable 'ObsoleteLintCustomCheck'
