@@ -169,7 +169,7 @@ public class SyncPerformerTest {
             when(mockedHttp.openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(), anyString()))
                     .thenReturn(mockedConnection);
             when(mockedHttp.post(any(HttpURLConnection.class), any(SyncAdapter.MetaData.class),
-                    any(UploadProgressListener.class), any(FilePart.class), any(FilePart.class)))
+                    any(UploadProgressListener.class), any(FilePart.class)))
                             .thenThrow(new ConflictException("Test ConflictException"));
 
             // Act
@@ -183,8 +183,7 @@ public class SyncPerformerTest {
                 verify(mockedHttp, times(1)).openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(),
                         anyString());
                 verify(mockedHttp, times(1)).post(any(HttpURLConnection.class),
-                        any(SyncAdapter.MetaData.class), any(UploadProgressListener.class), any(FilePart.class),
-                        any(FilePart.class));
+                        any(SyncAdapter.MetaData.class), any(UploadProgressListener.class), any(FilePart.class));
                 // because of the ConflictException true should be returned
                 assertThat(result, is(equalTo(true)));
                 // Make sure the ConflictException is actually called (instead of no exception because of mock)
