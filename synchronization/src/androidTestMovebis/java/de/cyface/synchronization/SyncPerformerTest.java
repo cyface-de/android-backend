@@ -67,8 +67,6 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
-import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exception.HostUnresolvable;
 import de.cyface.utils.CursorIsNullException;
@@ -126,9 +124,10 @@ public class SyncPerformerTest {
      */
     @Test
     public void testSendData_returnsTrueWhenServerReturns409() throws CursorIsNullException, NoSuchMeasurementException,
-      ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
-      UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
-      NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable {
+            ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
+            UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
+            NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException,
+            HostUnresolvable {
 
         // Arrange
         // Insert data to be synced
@@ -150,11 +149,9 @@ public class SyncPerformerTest {
                     client, AUTHORITY);
             final MeasurementSerializer serializer = new MeasurementSerializer();
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
-            final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
+                    measurement.getIdentifier(), persistence);
             Log.d(TAG, "CompressedTransferTempFile size: "
-                    + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
+                    + DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true));
 
             // Prepare transmission
             final SyncResult syncResult = new SyncResult();
@@ -179,12 +176,8 @@ public class SyncPerformerTest {
             try {
                 // In the mock settings above we faked a ConflictException from the server
                 final boolean result = oocut.sendData(mockedHttp, syncResult, TEST_API_URL, metaData,
-                        compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
-                            @Override
-                            public void updatedProgress(float percent) {
-                                Log.d(TAG, String.format("Upload Progress %f", percent));
-                            }
-                        }, TEST_TOKEN);
+                        compressedTransferTempFile, percent -> Log.d(TAG, String.format("Upload Progress %f", percent)),
+                        TEST_TOKEN);
 
                 // Assert:
                 verify(mockedHttp, times(1)).openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(),
@@ -241,11 +234,9 @@ public class SyncPerformerTest {
                     client, AUTHORITY);
             final MeasurementSerializer serializer = new MeasurementSerializer();
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
-            final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
+                    measurement.getIdentifier(), persistence);
             Log.d(TAG, "CompressedTransferTempFile size: "
-                    + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
+                    + DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true));
 
             // Prepare transmission
             final SyncResult syncResult = new SyncResult();
@@ -263,12 +254,8 @@ public class SyncPerformerTest {
             // Act
             try {
                 final boolean result = oocut.sendData(new HttpConnection(), syncResult, TEST_API_URL, metaData,
-                        compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
-                            @Override
-                            public void updatedProgress(float percent) {
-                                Log.d(TAG, String.format("Upload Progress %f", percent));
-                            }
-                        }, TEST_TOKEN);
+                        compressedTransferTempFile, percent -> Log.d(TAG, String.format("Upload Progress %f", percent)),
+                        TEST_TOKEN);
 
                 // Assert
                 assertThat(result, is(equalTo(true)));
