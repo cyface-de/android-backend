@@ -93,6 +93,8 @@ dependencies {
 
     // Protocol Buffer: generate java files
     implementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
+
+    // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
     // Cyface dependencies
