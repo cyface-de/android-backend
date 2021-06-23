@@ -138,7 +138,7 @@ public class HttpConnectionTest {
         final FilePart filePart = new FilePart("test-did_78." + TRANSFER_FILE_EXTENSION, testFile, "fileToUpload");
 
         // Act
-        final long requestLength = oocut.writtenBytes(header.getBytes().length, filePart.partLength());
+        final long requestLength = oocut.writtenBytes(header.getBytes().length, filePart.partLength(), 1);
 
         // Assert
         assertThat(requestLength,

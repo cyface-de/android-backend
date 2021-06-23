@@ -176,6 +176,7 @@ class SyncPerformer {
         } catch (final SynchronizationInterruptedException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
+            e.printStackTrace();
             return false;
         } catch (final TooManyRequestsException e) {
             syncResult.stats.numIoExceptions++;

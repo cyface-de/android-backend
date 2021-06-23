@@ -262,15 +262,13 @@ public class HttpConnection implements Http {
      * @return the fixed number of bytes to be written which were registered for the {@param connection}
      */
     private long setupFixedLengthStreamingMode(@NonNull final HttpURLConnection connection,
-            final long remainingHeaderByteSize,
-            final long filesSize) {
+            final long remainingHeaderByteSize, final long filesSize) {
 
         // We don't post empty files, ensure files still exists
         Validate.isTrue(filesSize != 0L);
 
         // Set the fixed number of bytes which will be written to the OutputStream
-        final long fixedStreamLength = writtenBytes(remainingHeaderByteSize,
-                filesSize);
+        final long fixedStreamLength = writtenBytes(remainingHeaderByteSize, filesSize, 1);
         connection.setFixedLengthStreamingMode(fixedStreamLength);
         // connection.setRequestProperty("Content-length" should be obsolete with setFixedLengthStreamingMode
         return fixedStreamLength;
@@ -283,14 +281,15 @@ public class HttpConnection implements Http {
      *
      * @param headerByteSize The MultiPart header as string which will be written to the {@code OutputStream}
      * @param filesSize The number of bytes added by file upload parts.
+     * @param numberOfFiles The number of files attached to the MultiPart header
      */
-    long writtenBytes(final long headerByteSize, final long filesSize) {
+    long writtenBytes(final long headerByteSize, final long filesSize, @SuppressWarnings("SameParameterValue") final int numberOfFiles) {
 
         // This should be obsolete with setFixedLengthStreamingMode:
         // connection.setRequestProperty("Content-length", String.valueOf(requestLength));
 
         // Set count of Bytes not chars in the header!
-        return headerByteSize + filesSize + LINE_FEED.getBytes().length + LINE_FEED.getBytes().length
+        return headerByteSize + filesSize + numberOfFiles * LINE_FEED.getBytes().length
                 + TAIL.getBytes().length;
     }
 
