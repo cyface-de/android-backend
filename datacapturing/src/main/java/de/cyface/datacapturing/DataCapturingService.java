@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,6 +19,8 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.model.MeasurementStatus.DEPRECATED;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
@@ -104,7 +106,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.3
+ * @version 18.0.4
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -159,7 +161,7 @@ public abstract class DataCapturingService {
      * You should use something world wide unique, like your domain, to avoid collisions between different apps using
      * the Cyface SDK.
      */
-    private String authority;
+    private final String authority;
     /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
@@ -255,6 +257,20 @@ public abstract class DataCapturingService {
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
         this.appId = context.getPackageName();
+
+        // Mark deprecated measurements
+        for (final var m : persistenceLayer.loadMeasurements()) {
+            if (m.getFileFormatVersion() < PERSISTENCE_FILE_FORMAT_VERSION && !m.getStatus().equals(DEPRECATED)) {
+                try {
+                    markDeprecated(m.getIdentifier(), m.getStatus());
+                } catch (NoSuchMeasurementException e) {
+                    throw new IllegalStateException(e); // Should not happen
+                }
+            } else if (m.getFileFormatVersion() > PERSISTENCE_FILE_FORMAT_VERSION) {
+                throw new IllegalArgumentException(
+                        String.format("Invalid format version: %d", m.getFileFormatVersion()));
+            }
+        }
 
         SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         SharedPreferences.Editor sharedPreferencesEditor = preferences.edit();
@@ -457,6 +473,7 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // used by sdk implementing apps (e.g. SR)
     public void resume(@NonNull final StartUpFinishedHandler finishedHandler) throws DataCapturingException,
             MissingPermissionException, NoSuchMeasurementException, CursorIsNullException {
+        final var persistenceBehavior = persistenceLayer.getPersistenceBehaviour();
         Log.d(TAG, "Resuming asynchronously.");
         if (getContext() == null) {
             return;
@@ -474,7 +491,7 @@ public abstract class DataCapturingService {
             setIsStoppingOrHasStopped(false);
 
             if (!checkFineLocationAccess(getContext())) {
-                persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
+                persistenceBehavior.updateRecentMeasurement(FINISHED);
                 throw new MissingPermissionException();
             }
 
@@ -486,11 +503,12 @@ public abstract class DataCapturingService {
 
             // Resume paused measurement
             final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
+            Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION);
             persistenceLayer.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
             runService(measurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
-            persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(OPEN);
+            persistenceBehavior.updateRecentMeasurement(OPEN);
         } finally {
             Log.v(TAG, "Unlocking in asynchronous resume.");
             lifecycleLock.unlock();
@@ -504,7 +522,7 @@ public abstract class DataCapturingService {
      * <p>
      * The goal here is the resolve states which are sort of reasonable to reduce the number of crashes or get more
      * information how this state actually popped up.
-     * 
+     *
      * @param currentlyCapturedMeasurement The currently captured {@link Measurement}
      */
     private void handleStopFailed(@NonNull final Measurement currentlyCapturedMeasurement) {
@@ -552,7 +570,7 @@ public abstract class DataCapturingService {
      * <p>
      * The goal here is the resolve states which are sort of reasonable to reduce the number of crashes or get more
      * information how this state actually popped up.
-     * 
+     *
      * @param currentlyCapturedMeasurement the currently captured {@code Measurement}
      */
     private void handlePauseFailed(@NonNull final Measurement currentlyCapturedMeasurement) {
@@ -889,11 +907,11 @@ public abstract class DataCapturingService {
      * currentlyCapturedMeasurement from the cache as the {@link DefaultPersistenceBehaviour} does not have a cache
      * which is the only {@link PersistenceBehaviour} the implementor may use directly.
      *
+     * @return the currently captured {@link Measurement}
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
      *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     * @return the currently captured {@link Measurement}
      */
     @SuppressWarnings("unused") // Used by SDK implementing apps (SR) onNewGeoLocationAcquired
     @NonNull
@@ -1114,10 +1132,13 @@ public abstract class DataCapturingService {
             measurement = loadCurrentlyCapturedMeasurement();
 
             // Ensure the newModality is actually different to the current Modality
-            final List<Event> modalityChanges = persistenceLayer.loadEvents(measurement.getIdentifier(), Event.EventType.MODALITY_TYPE_CHANGE);
+            final List<Event> modalityChanges = persistenceLayer.loadEvents(measurement.getIdentifier(),
+                    Event.EventType.MODALITY_TYPE_CHANGE);
             if (modalityChanges.size() > 0) {
                 final Event lastModalityChangeEvent = modalityChanges.get(modalityChanges.size() - 1);
-                if (lastModalityChangeEvent.getValue().equals(newModality.getDatabaseIdentifier())) {
+                final String lastChangeValue = lastModalityChangeEvent.getValue();
+                Validate.notNull(lastChangeValue);
+                if (lastChangeValue.equals(newModality.getDatabaseIdentifier())) {
                     Log.d(TAG, "changeModalityType(): Doing nothing as current Modality equals the newModality.");
                     return;
                 }
@@ -1127,6 +1148,39 @@ public abstract class DataCapturingService {
                     newModality.getDatabaseIdentifier());
         } catch (final CursorIsNullException | NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
+        }
+    }
+
+    /**
+     * Marks a measurement which is in an unsupported format as {@link MeasurementStatus#DEPRECATED}.
+     *
+     * @param measurementIdentifier the id of the measurement to update
+     * @param status the current {@link MeasurementStatus} of the measurement
+     * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    private void markDeprecated(final long measurementIdentifier, final MeasurementStatus status)
+            throws CursorIsNullException, NoSuchMeasurementException {
+        Log.d(TAG, String.format("markDeprecated(): Updating measurement %d: %s -> %s", measurementIdentifier, status,
+                DEPRECATED));
+        switch (status) {
+            case OPEN:
+            case PAUSED:
+                // Mark as finished, to use `markFinishedAs` for cleaning afterwards
+                persistenceLayer.setStatus(measurementIdentifier, FINISHED, false);
+                // no break, continue with next
+            case FINISHED:
+                persistenceLayer.markFinishedAs(DEPRECATED, measurementIdentifier);
+                break;
+
+            case SKIPPED:
+            case SYNCED:
+                // No need to clean the measurement using `markFinishedAs`
+                persistenceLayer.setStatus(measurementIdentifier, DEPRECATED, false);
+                break;
+
+            case DEPRECATED:
+                // Nothing to do
         }
     }
 
@@ -1143,7 +1197,7 @@ public abstract class DataCapturingService {
         /**
          * A listener that is notified of important events during data capturing.
          */
-        private Collection<DataCapturingListener> listener;
+        private final Collection<DataCapturingListener> listener;
         /**
          * The Android context this handler is running under.
          */
@@ -1182,7 +1236,7 @@ public abstract class DataCapturingService {
 
         /**
          * Informs a {@link DataCapturingListener} about events from {@link DataCapturingBackgroundService}.
-         * 
+         *
          * @param listener the {@link DataCapturingListener} to inform
          * @param messageCode the {@link MessageCodes} code which identifies the {@code Message}
          * @param parcel the {@link Bundle} containing the parcel delivered with the message
@@ -1232,7 +1286,7 @@ public abstract class DataCapturingService {
 
         /**
          * Informs the {@link ShutDownFinishedHandler} that the {@link DataCapturingBackgroundService} stopped.
-         * 
+         *
          * @param messageCode the {@link MessageCodes} code identifying the {@code Message} type
          * @param parcel the {@link Bundle} containing the parcel delivered with the message
          */

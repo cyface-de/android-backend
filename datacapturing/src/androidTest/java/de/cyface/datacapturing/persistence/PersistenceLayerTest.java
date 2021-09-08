@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -42,6 +42,7 @@ import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
@@ -57,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.5
+ * @version 1.5.6
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -167,7 +168,7 @@ public class PersistenceLayerTest {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
-        oocut.markAsSynchronized(measurement);
+        oocut.markFinishedAs(SYNCED, measurement.getIdentifier());
 
         // Check that measurement was marked as synced
         List<Measurement> syncedMeasurements = oocut.loadMeasurements(SYNCED);

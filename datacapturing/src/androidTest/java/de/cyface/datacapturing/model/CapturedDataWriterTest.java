@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,12 +20,16 @@ package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
 import static org.hamcrest.core.Is.is;
@@ -45,6 +49,8 @@ import org.junit.Before;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
+
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import android.content.ContentProvider;
 import android.content.ContentResolver;
@@ -77,7 +83,6 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.testutils.SharedTestUtils;
@@ -92,7 +97,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.6.0
+ * @version 5.6.1
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -167,10 +172,8 @@ public class CapturedDataWriterTest {
         // Try to load the created measurement and check its properties
         String identifierString = Long.valueOf(measurement.getIdentifier()).toString();
         Log.d(TAG, identifierString);
-        Cursor result = null;
-        try {
-            result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
-                    new String[] {identifierString}, null);
+        try (Cursor result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
+                new String[] {identifierString}, null)) {
             if (result == null) {
                 throw new IllegalStateException(
                         "Test failed because it was unable to load data from content provider.");
@@ -183,28 +186,24 @@ public class CapturedDataWriterTest {
                     is(equalTo(UNKNOWN.getDatabaseIdentifier())));
             assertThat(result.getString(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
-            assertThat(result.getShort(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
-                    is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
-            assertThat(result.getDouble(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_DISTANCE)), is(equalTo(0.0)));
+            assertThat(
+                    result.getShort(
+                            result.getColumnIndexOrThrow(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
+                    is(equalTo(PERSISTENCE_FILE_FORMAT_VERSION)));
+            assertThat(result.getDouble(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_DISTANCE)),
+                    is(equalTo(0.0)));
 
-        } finally {
-            if (result != null) {
-                result.close();
-            }
         }
 
         // Store persistenceFileFormatVersion
-        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
 
         // Finish the measurement
         capturingBehaviour.updateRecentMeasurement(FINISHED);
 
         // Load the finished measurement
-        Cursor finishingResult = null;
-        try {
-            finishingResult = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
-                    new String[] {identifierString}, null);
+        try (Cursor finishingResult = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
+                new String[] {identifierString}, null)) {
             if (finishingResult == null) {
                 throw new IllegalStateException(
                         "Test failed because it was unable to load data from content provider.");
@@ -213,14 +212,11 @@ public class CapturedDataWriterTest {
             assertThat(finishingResult.getCount(), is(equalTo(1)));
             assertThat(finishingResult.moveToFirst(), is(equalTo(true)));
 
-            assertThat(finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_MODALITY)),
+            assertThat(
+                    finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_MODALITY)),
                     is(equalTo(UNKNOWN.getDatabaseIdentifier())));
             assertThat(finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_STATUS)),
                     is(equalTo(FINISHED.getDatabaseIdentifier())));
-        } finally {
-            if (finishingResult != null) {
-                finishingResult.close();
-            }
         }
     }
 
@@ -228,29 +224,25 @@ public class CapturedDataWriterTest {
      * Tests whether data is stored correctly via the <code>PersistenceLayer</code>.
      */
     @Test
-    public void testStoreData() throws NoSuchFileException {
+    public void testStoreData() throws NoSuchFileException, InvalidProtocolBufferException {
         // Manually trigger data capturing (new measurement with sensor data and a location)
         Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        WritingDataCompletedCallback callback = new WritingDataCompletedCallback() {
-            @Override
-            public void writingDataCompleted() {
-                lock.lock();
-                try {
-                    condition.signal();
-                } finally {
-                    lock.unlock();
-                }
+        WritingDataCompletedCallback callback = () -> {
+            lock.lock();
+            try {
+                condition.signal();
+            } finally {
+                lock.unlock();
             }
         };
 
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
 
         // Store persistenceFileFormatVersion
-        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
 
         lock.lock();
         try {
@@ -264,34 +256,34 @@ public class CapturedDataWriterTest {
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
 
         // Check if the captured data was persisted
-        Cursor geoLocationsCursor = null;
         FileAccessLayer fileAccessLayer = new DefaultFileAccess();
-        try {
+        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null)) {
             // GeoLocations
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
+            Validate.notNull(geoLocationsCursor,
+                    "Test failed because it was unable to load data from the content provider.");
             assertThat(geoLocationsCursor.getCount(), is(equalTo(TEST_LOCATION_COUNT)));
 
             // Point3ds
             Point3dFile accelerationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                    ACCELERATION);
             Point3dFile rotationsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                    ROTATION);
             Point3dFile directionsFile = Point3dFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+                    DIRECTION);
 
-            List<Point3d> accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), TEST_DATA_COUNT);
-            List<Point3d> rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), TEST_DATA_COUNT);
-            List<Point3d> directions = deserialize(fileAccessLayer, directionsFile.getFile(), TEST_DATA_COUNT);
+            final de.cyface.protos.model.Measurement accelerations = deserialize(fileAccessLayer,
+                    accelerationsFile.getFile(), ACCELERATION);
+            final de.cyface.protos.model.Measurement rotations = deserialize(fileAccessLayer, rotationsFile.getFile(),
+                    ROTATION);
+            final de.cyface.protos.model.Measurement directions = deserialize(fileAccessLayer, directionsFile.getFile(),
+                    DIRECTION);
 
-            assertThat(accelerations.size(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(rotations.size(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(directions.size(), is(equalTo(TEST_DATA_COUNT)));
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
+            assertThat(accelerations.getAccelerations().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerations.getAccelerations().getXCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerations.getAccelerations().getYCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerations.getAccelerations().getZCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(rotations.getRotations().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(directions.getDirections().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
         }
     }
 
@@ -308,15 +300,12 @@ public class CapturedDataWriterTest {
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        WritingDataCompletedCallback finishedCallback = new WritingDataCompletedCallback() {
-            @Override
-            public void writingDataCompleted() {
-                lock.lock();
-                try {
-                    condition.signal();
-                } finally {
-                    lock.unlock();
-                }
+        WritingDataCompletedCallback finishedCallback = () -> {
+            lock.lock();
+            try {
+                condition.signal();
+            } finally {
+                lock.unlock();
             }
         };
 
@@ -326,8 +315,7 @@ public class CapturedDataWriterTest {
         oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
-        oocut.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
 
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, System.currentTimeMillis());
@@ -349,35 +337,21 @@ public class CapturedDataWriterTest {
                 + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents)));
 
         // make sure nothing is left in the database
-        Cursor geoLocationsCursor = null;
-        Cursor measurementsCursor = null;
-        Cursor identifierCursor = null;
-        try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
-                    GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.toString(measurement.getIdentifier())}, null);
-            measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
-            identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    measurementsCursor);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    identifierCursor);
+        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
+                GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.toString(measurement.getIdentifier())}, null);
+                Cursor measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
+                Cursor identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null)) {
+            Validate.notNull(geoLocationsCursor,
+                    "Test failed because it was unable to load data from the content provider.");
+            Validate.notNull(measurementsCursor,
+                    "Test failed because it was unable to load data from the content provider.");
+            Validate.notNull(identifierCursor,
+                    "Test failed because it was unable to load data from the content provider.");
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
             assertThat(measurementsCursor.getCount(), is(equalTo(0)));
             assertThat(identifierCursor.getCount(), is(equalTo(1))); // because we don't clean it up currently
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
-            if (measurementsCursor != null) {
-                measurementsCursor.close();
-            }
-            if (identifierCursor != null) {
-                identifierCursor.close();
-            }
         }
 
         // Make sure nothing is left of the Point3dFiles
@@ -421,15 +395,12 @@ public class CapturedDataWriterTest {
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
-        WritingDataCompletedCallback callback = new WritingDataCompletedCallback() {
-            @Override
-            public void writingDataCompleted() {
-                lock.lock();
-                try {
-                    condition.signal();
-                } finally {
-                    lock.unlock();
-                }
+        WritingDataCompletedCallback callback = () -> {
+            lock.lock();
+            try {
+                condition.signal();
+            } finally {
+                lock.unlock();
             }
         };
 
@@ -460,32 +431,21 @@ public class CapturedDataWriterTest {
         assertThat(!rotationFile.exists(), is(true));
         assertThat(!directionFile.exists(), is(true));
 
-        Cursor geoLocationsCursor = null;
-        try {
-            geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
-                    GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
+        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
+                GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null)) {
+            Validate.notNull(geoLocationsCursor,
+                    "Test failed because it was unable to load data from the content provider.");
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-        } finally {
-            if (geoLocationsCursor != null) {
-                geoLocationsCursor.close();
-            }
         }
 
-        Cursor eventsCursor = null;
-        try {
-            eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.", eventsCursor);
+        try (Cursor eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null,
+                EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null)) {
+            Validate.notNull(eventsCursor, "Test failed because it was unable to load data from the content provider.");
 
             assertThat(eventsCursor.getCount(), is(equalTo(0)));
-        } finally {
-            if (eventsCursor != null) {
-                eventsCursor.close();
-            }
         }
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
@@ -779,23 +739,20 @@ public class CapturedDataWriterTest {
 
     @Test
     public void testProvokeAnr() {
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    if (!oocut.hasMeasurement(MeasurementStatus.OPEN)) {
-                        oocut.newMeasurement(Modality.BICYCLE);
-                    }
-                    if (!oocut.hasMeasurement(MeasurementStatus.OPEN)) {
-                        oocut.newMeasurement(Modality.BICYCLE);
-                    }
-
-                    if (oocut.hasMeasurement(MeasurementStatus.OPEN)) {
-                        capturingBehaviour.updateRecentMeasurement(FINISHED);
-                    }
-                } catch (final NoSuchMeasurementException | CursorIsNullException e) {
-                    throw new IllegalStateException(e);
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            try {
+                if (!oocut.hasMeasurement(MeasurementStatus.OPEN)) {
+                    oocut.newMeasurement(Modality.BICYCLE);
                 }
+                if (!oocut.hasMeasurement(MeasurementStatus.OPEN)) {
+                    oocut.newMeasurement(Modality.BICYCLE);
+                }
+
+                if (oocut.hasMeasurement(MeasurementStatus.OPEN)) {
+                    capturingBehaviour.updateRecentMeasurement(FINISHED);
+                }
+            } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+                throw new IllegalStateException(e);
             }
         });
     }

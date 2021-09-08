@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,6 +20,7 @@ package de.cyface.datacapturing.backend;
 
 import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -63,7 +64,6 @@ import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
@@ -72,7 +72,6 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.PlaceholderNotificationBuilder;
@@ -87,7 +86,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.3
+ * @version 7.1.4
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -293,7 +292,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
+        Validate.notNull(intent, "The process should not be automatically recreated without START_STICKY!");
         Log.v(TAG, "onStartCommand: Starting DataCapturingBackgroundService");
 
         // Loads authority / persistence layer
@@ -338,8 +337,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
             // Ensure we resume measurements with a known file format version
             final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
-            Validate.isTrue(persistenceFileFormatVersion == MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                    "Resume a measurement of a previous persistence file format version is not yet supported!");
+            Validate.isTrue(persistenceFileFormatVersion == PERSISTENCE_FILE_FORMAT_VERSION,
+                    "Resume a measurement of a previous persistence file format version is not supported!");
         } catch (final CursorIsNullException e) {
             // because onStartCommand is called by Android so we can't throw soft exception.
             throw new IllegalStateException(e);
@@ -388,7 +387,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 : new GeoLocationStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         Validate.notNull(sensorManager);
+        //noinspection SpellCheckingInspection
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
+        //noinspection SpellCheckingInspection
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
         return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler,
                 geoLocationEventHandlerThread, sensorEventHandlerThread, sensorFrequency);
@@ -440,11 +441,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
                     sampleSubList(rotations, i), sampleSubList(directions, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
-            capturingBehaviour.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
-                @Override
-                public void writingDataCompleted() {
-                    // Nothing to do here!
-                }
+            capturingBehaviour.storeData(dataSublist, currentMeasurementIdentifier, () -> {
+                // Nothing to do here!
             });
         }
     }
@@ -459,7 +457,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     private @NonNull List<Point3d> sampleSubList(final @NonNull List<Point3d> completeList, final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
-        return (fromIndex >= toIndex) ? Collections.<Point3d> emptyList() : completeList.subList(fromIndex, toIndex);
+        return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override

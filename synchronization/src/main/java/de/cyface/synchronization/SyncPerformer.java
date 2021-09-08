@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2020 Cyface GmbH
+ * Copyright 2017 - 2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,8 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.synchronization.CyfaceAuthenticator.loadSslContext;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -35,13 +33,8 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
 import java.io.File;
-import java.io.IOException;
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.util.Locale;
-
-import javax.net.ssl.SSLContext;
 
 import android.content.Context;
 import android.content.SyncResult;
@@ -51,9 +44,20 @@ import androidx.annotation.NonNull;
 
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.synchronization.exception.BadRequestException;
+import de.cyface.synchronization.exception.ConflictException;
+import de.cyface.synchronization.exception.EntityNotParsableException;
+import de.cyface.synchronization.exception.ForbiddenException;
 import de.cyface.synchronization.exception.HostUnresolvable;
+import de.cyface.synchronization.exception.InternalServerErrorException;
+import de.cyface.synchronization.exception.MeasurementTooLarge;
+import de.cyface.synchronization.exception.NetworkUnavailableException;
+import de.cyface.synchronization.exception.ServerUnavailableException;
+import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.synchronization.exception.SynchronizationInterruptedException;
+import de.cyface.synchronization.exception.TooManyRequestsException;
+import de.cyface.synchronization.exception.UnauthorizedException;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -61,20 +65,17 @@ import de.cyface.synchronization.exception.HostUnresolvable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.2
+ * @version 6.0.0
  * @since 2.0.0
  */
 class SyncPerformer {
 
     /**
-     * Socket Factory required to communicate with the Cyface Server when using a self signed certificate issued by that
-     * server. Further details are available in the
-     * <a href="https://developer.android.com/training/articles/security-ssl.html#UnknownCa">Android documentation</a>
-     * and for example <a href=
-     * "https://stackoverflow.com/questions/24555890/using-a-custom-truststore-in-java-as-well-as-the-default-one">here</a>.
+     * A String to filter log output from {@link SyncPerformer} logs.
      */
-    private SSLContext sslContext;
-    private Context context;
+    final static String TAG = "de.cyface.sync.perf";
+
+    private final Context context;
 
     /**
      * Creates a new completely initialized <code>SyncPerformer</code> for a given Android <code>Context</code>.
@@ -83,15 +84,6 @@ class SyncPerformer {
      */
     SyncPerformer(final @NonNull Context context) {
         this.context = context;
-
-        // Load SSLContext
-        try {
-            sslContext = loadSslContext(context);
-        } catch (final IOException e) {
-            throw new IllegalStateException("Trust store file failed while closing", e);
-        } catch (final SynchronisationException e) {
-            throw new IllegalStateException(e);
-        }
     }
 
     /**
@@ -108,98 +100,89 @@ class SyncPerformer {
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param dataServerUrl The server URL to send the data to.
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
-     * @param compressedTransferTempFile The {@link Measurement} data to transmit
-     * @param compressedEventsTransferTempFile The {@link Event} data of the {@link Measurement} to transmit
+     * @param file The compressed transfer file containing the {@link Measurement} data to transmit
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
-    boolean sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
+    HttpConnection.Result sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
             @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
-            @NonNull final File compressedTransferTempFile, @NonNull final File compressedEventsTransferTempFile,
-            @NonNull final UploadProgressListener progressListener,
+            @NonNull final File file, @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
         Log.d(Constants.TAG, String.format("Transferring compressed measurement (%s)",
-                DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true)));
-        Log.d(Constants.TAG, String.format("Transferring compressed events (%s)",
-                DefaultFileAccess.humanReadableByteCount(compressedEventsTransferTempFile.length(), true)));
-        HttpURLConnection.setFollowRedirects(false);
-        HttpURLConnection connection = null;
-        final String fileName = String.format(Locale.US, "%s_%d." + Constants.TRANSFER_FILE_EXTENSION,
-                metaData.deviceId, metaData.measurementId);
-        final String eventsFileName = String.format(Locale.US, "%s_%d." + Constants.EVENTS_TRANSFER_FILE_EXTENSION,
-                metaData.deviceId, metaData.measurementId);
+                DefaultFileAccess.humanReadableSize(file.length(), true)));
 
+        final HttpConnection.Result result;
         try {
             final URL url = new URL(String.format("%s/measurements", dataServerUrl));
-            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s and %s to %s", fileName, eventsFileName,
-                    url.toString()));
-            try {
-                connection = http.openHttpConnection(url, sslContext, true, jwtAuthToken);
-                http.post(connection, metaData, progressListener,
-                        new FilePart(fileName, compressedTransferTempFile, "fileToUpload"),
-                        new FilePart(eventsFileName, compressedEventsTransferTempFile, "eventsFile"));
-            } finally {
-                if (connection != null) {
-                    connection.disconnect();
-                }
-            }
+            result = http.upload(url, jwtAuthToken, metaData, file, progressListener);
         } catch (final ServerUnavailableException e) {
             // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final ForbiddenException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, FORBIDDEN.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final MalformedURLException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final SynchronisationException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final UnauthorizedException e) {
             syncResult.stats.numAuthExceptions++;
             sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final InternalServerErrorException e) {
             syncResult.stats.numConflictDetectedExceptions++;
             sendErrorIntent(context, INTERNAL_SERVER_ERROR.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final EntityNotParsableException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, ENTITY_NOT_PARSABLE.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final BadRequestException e) {
             syncResult.stats.numParseExceptions++;
             sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final NetworkUnavailableException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final SynchronizationInterruptedException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
-            return false;
+            e.printStackTrace();
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final TooManyRequestsException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final HostUnresolvable e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
-            return false;
+            return HttpConnection.Result.UPLOAD_FAILED;
+        } catch (final MeasurementTooLarge e) {
+            syncResult.stats.numSkippedEntries++;
+            Log.d(TAG, e.getMessage());
+            return HttpConnection.Result.UPLOAD_SKIPPED;
         } catch (final ConflictException e) {
             syncResult.stats.numSkippedEntries++;
-            return true; // We consider the upload successful and mark the measurement as synced
+            // We consider the upload successful and mark the measurement as synced
+            return HttpConnection.Result.UPLOAD_SUCCESSFUL;
         }
 
-        syncResult.stats.numUpdates++; // Upload was successful, measurement can be marked as synced
-        return true;
+        // Upload was successful, measurement can be marked as synced
+        if (result.equals(HttpConnection.Result.UPLOAD_SKIPPED)) {
+            syncResult.stats.numSkippedEntries++;
+        } else {
+            syncResult.stats.numUpdates++;
+        }
+        return result;
     }
 }

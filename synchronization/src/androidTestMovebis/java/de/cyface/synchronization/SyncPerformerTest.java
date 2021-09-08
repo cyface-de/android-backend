@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 - 2020 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -26,18 +26,15 @@ import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
-import static org.mockito.ArgumentMatchers.anyBoolean;
 import static org.mockito.ArgumentMatchers.anyString;
+import static org.mockito.Mockito.doThrow;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
-import static org.mockito.Mockito.when;
 
 import java.io.File;
-import java.net.HttpURLConnection;
+import java.io.IOException;
 import java.net.URL;
 import java.util.List;
-
-import javax.net.ssl.SSLContext;
 
 import org.junit.After;
 import org.junit.Before;
@@ -67,11 +64,22 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
-import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.synchronization.exception.BadRequestException;
+import de.cyface.synchronization.exception.ConflictException;
+import de.cyface.synchronization.exception.EntityNotParsableException;
+import de.cyface.synchronization.exception.ForbiddenException;
 import de.cyface.synchronization.exception.HostUnresolvable;
+import de.cyface.synchronization.exception.InternalServerErrorException;
+import de.cyface.synchronization.exception.MeasurementTooLarge;
+import de.cyface.synchronization.exception.NetworkUnavailableException;
+import de.cyface.synchronization.exception.ServerUnavailableException;
+import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.synchronization.exception.SynchronizationInterruptedException;
+import de.cyface.synchronization.exception.TooManyRequestsException;
+import de.cyface.synchronization.exception.UnauthorizedException;
 import de.cyface.utils.CursorIsNullException;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -80,10 +88,9 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.10
- * @since 2.0.0
- *
+ * @version 2.1.0
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
+ * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
@@ -99,8 +106,6 @@ public class SyncPerformerTest {
     private PersistenceLayer<DefaultPersistenceBehaviour> persistence;
     @Mock
     private Http mockedHttp;
-    @Mock
-    private HttpURLConnection mockedConnection;
 
     @Before
     public void setUp() {
@@ -125,10 +130,12 @@ public class SyncPerformerTest {
      * {@code java.net.HttpURLConnection#HTTP_CONFLICT}.
      */
     @Test
-    public void testSendData_returnsTrueWhenServerReturns409() throws CursorIsNullException, NoSuchMeasurementException,
-      ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
-      UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
-      NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable {
+    public void testSendData_returnsSuccessWhenServerReturns409()
+            throws CursorIsNullException, NoSuchMeasurementException,
+            ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
+            UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
+            NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException,
+            HostUnresolvable, MeasurementTooLarge {
 
         // Arrange
         // Insert data to be synced
@@ -150,11 +157,9 @@ public class SyncPerformerTest {
                     client, AUTHORITY);
             final MeasurementSerializer serializer = new MeasurementSerializer();
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
-            final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
+                    measurement.getIdentifier(), persistence);
             Log.d(TAG, "CompressedTransferTempFile size: "
-                    + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
+                    + DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true));
 
             // Prepare transmission
             final SyncResult syncResult = new SyncResult();
@@ -169,31 +174,22 @@ public class SyncPerformerTest {
                     measurement.getDistance(), locationCount, Modality.BICYCLE);
 
             // Mock the actual post request
-            when(mockedHttp.openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(), anyString()))
-                    .thenReturn(mockedConnection);
-            when(mockedHttp.post(any(HttpURLConnection.class), any(SyncAdapter.MetaData.class),
-                    any(UploadProgressListener.class), any(FilePart.class), any(FilePart.class)))
-                            .thenThrow(new ConflictException("Test ConflictException"));
+            doThrow(new ConflictException("Test ConflictException"))
+                    .when(mockedHttp).upload(any(URL.class), anyString(), any(SyncAdapter.MetaData.class),
+                            any(File.class), any(UploadProgressListener.class));
 
             // Act
             try {
                 // In the mock settings above we faked a ConflictException from the server
-                final boolean result = oocut.sendData(mockedHttp, syncResult, TEST_API_URL, metaData,
-                        compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
-                            @Override
-                            public void updatedProgress(float percent) {
-                                Log.d(TAG, String.format("Upload Progress %f", percent));
-                            }
-                        }, TEST_TOKEN);
+                final HttpConnection.Result result = oocut.sendData(mockedHttp, syncResult, TEST_API_URL, metaData,
+                        compressedTransferTempFile, percent -> Log.d(TAG, String.format("Upload Progress %f", percent)),
+                        TEST_TOKEN);
 
                 // Assert:
-                verify(mockedHttp, times(1)).openHttpConnection(any(URL.class), any(SSLContext.class), anyBoolean(),
-                        anyString());
-                verify(mockedHttp, times(1)).post(any(HttpURLConnection.class),
-                        any(SyncAdapter.MetaData.class), any(UploadProgressListener.class), any(FilePart.class),
-                        any(FilePart.class));
+                verify(mockedHttp, times(1)).upload(any(URL.class), anyString(),
+                        any(SyncAdapter.MetaData.class), any(File.class), any(UploadProgressListener.class));
                 // because of the ConflictException true should be returned
-                assertThat(result, is(equalTo(true)));
+                assertThat(result, is(equalTo(HttpConnection.Result.UPLOAD_SUCCESSFUL)));
                 // Make sure the ConflictException is actually called (instead of no exception because of mock)
                 assertThat(syncResult.stats.numSkippedEntries, is(equalTo(1L)));
 
@@ -206,22 +202,66 @@ public class SyncPerformerTest {
         }
     }
 
+    @SuppressWarnings("RedundantSuppression")
+    @Test
+    @FlakyTest // still uses an actual API. Flaky currently means it's not executed in the mock flavour test
+    public void testUpload_toActualApi() throws IOException, CursorIsNullException, NoSuchMeasurementException,
+            BadRequestException, EntityNotParsableException, ForbiddenException, ConflictException,
+            NetworkUnavailableException, SynchronizationInterruptedException, InternalServerErrorException,
+            SynchronisationException, UnauthorizedException, TooManyRequestsException, HostUnresolvable,
+            ServerUnavailableException, MeasurementTooLarge {
+
+        // Arrange
+        // 24 hours test data ~ 108 MB which is more then the currently supported upload size (100)
+        final int hours = 1;
+        final int locationCount = hours * 3_600;
+        final Measurement measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
+                persistence, locationCount * 100, locationCount);
+        final long measurementIdentifier = measurement.getIdentifier();
+        final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
+        assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
+        File file = null;
+        try (final ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
+            Validate.notNull(client, String.format("Unable to acquire client for content provider %s", AUTHORITY));
+            file = loadSerializedCompressed(client, measurementIdentifier);
+            final SyncAdapter.MetaData metaData = loadMetaData(measurement, locationCount);
+
+            final URL url = new URL(String.format("%s/measurements", TEST_API_URL + "/api/v3/"));
+
+            // Act
+            final HttpConnection.Result result = new HttpConnection().upload(url, TEST_TOKEN, metaData, file,
+                    percent -> {
+                    });
+
+            // Assert
+            assertThat(result, is(equalTo(HttpConnection.Result.UPLOAD_SUCCESSFUL)));
+
+            // Cleanup
+        } finally {
+            if (file != null && file.exists()) {
+                Validate.isTrue(file.delete());
+            }
+        }
+    }
+
     /**
      * Tests the basic transmission code to a actual Cyface API.
      * <p>
      * Can be used to reproduce bugs in the interaction between an actual API and our client.
      * <p>
-     * <b>Attention: </b> for this you need to adjust {@link #TEST_API_URL}, {@link #TEST_TOKEN} and
-     * `res/raw/truststore.jks`
+     * <b>Attention:</b> for this you need to adjust {@link #TEST_API_URL} and {@link #TEST_TOKEN}.
      */
+    @SuppressWarnings("RedundantSuppression")
     @Test
     @FlakyTest // still uses an actual API. Flaky currently means it's not executed in the mock flavour test
     public void testSendData_toActualApi() throws CursorIsNullException, NoSuchMeasurementException {
 
         // Arrange
         // Adjust depending on your test case: (600k, 3k) ~ 27 MB compressed data ~ 5 min test execution
-        final int point3dCount = 600_000;
-        final int locationCount = 3_000;
+        // noinspection PointlessArithmeticExpression
+        final int point3dCount = 600 * 1_000;
+        // noinspection PointlessArithmeticExpression
+        final int locationCount = 3 * 1_000;
 
         // Insert data to be synced
         final Measurement measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
@@ -231,54 +271,48 @@ public class SyncPerformerTest {
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
         try (final ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
-
-            if (client == null)
-                throw new IllegalStateException(
-                        String.format("Unable to acquire client for content provider %s", AUTHORITY));
-
-            // Load measurement serialized compressed
-            final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                    client, AUTHORITY);
-            final MeasurementSerializer serializer = new MeasurementSerializer();
-            final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
-            final File compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
-            Log.d(TAG, "CompressedTransferTempFile size: "
-                    + DefaultFileAccess.humanReadableByteCount(compressedTransferTempFile.length(), true));
+            Validate.notNull(client, String.format("Unable to acquire client for content provider %s", AUTHORITY));
+            final File compressedTransferTempFile = loadSerializedCompressed(client, measurementIdentifier);
+            final SyncAdapter.MetaData metaData = loadMetaData(measurement, locationCount);
 
             // Prepare transmission
             final SyncResult syncResult = new SyncResult();
 
-            // Load meta data
-            final List<Track> tracks = persistence.loadTracks(measurementIdentifier);
-            final GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
-            final List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
-            final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
-            final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
-            final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, deviceId,
-                    measurementIdentifier, "testDeviceType", "testOsVersion", "testAppVersion",
-                    measurement.getDistance(), locationCount, Modality.BICYCLE);
-
             // Act
-            try {
-                final boolean result = oocut.sendData(new HttpConnection(), syncResult, TEST_API_URL, metaData,
-                        compressedTransferTempFile, compressedEventsTransferTempFile, new UploadProgressListener() {
-                            @Override
-                            public void updatedProgress(float percent) {
-                                Log.d(TAG, String.format("Upload Progress %f", percent));
-                            }
-                        }, TEST_TOKEN);
+            final HttpConnection.Result result = oocut.sendData(new HttpConnection(), syncResult,
+                    TEST_API_URL + "/api/v3/", metaData,
+                    compressedTransferTempFile, percent -> Log.d(TAG, String.format("Upload Progress %f", percent)),
+                    TEST_TOKEN);
 
-                // Assert
-                assertThat(result, is(equalTo(true)));
-
-                // Cleanup
-            } finally {
-                if (compressedTransferTempFile.exists()) {
-                    Validate.isTrue(compressedTransferTempFile.delete());
-                }
-            }
+            // Assert
+            assertThat(result, is(equalTo(HttpConnection.Result.UPLOAD_SUCCESSFUL)));
         }
+    }
+
+    private SyncAdapter.MetaData loadMetaData(Measurement measurement,
+            @SuppressWarnings("SameParameterValue") int locationCount) throws CursorIsNullException {
+        // Load meta data
+        final List<Track> tracks = persistence.loadTracks(measurement.getIdentifier());
+        final GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
+        final List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
+        final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
+        final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
+        return new SyncAdapter.MetaData(startLocation, endLocation, deviceId,
+                measurement.getIdentifier(), "testDeviceType", "testOsVersion", "testAppVersion",
+                measurement.getDistance(), locationCount, Modality.BICYCLE);
+    }
+
+    private File loadSerializedCompressed(ContentProviderClient client, long measurementIdentifier)
+            throws CursorIsNullException {
+
+        // Load measurement serialized compressed
+        final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
+                client, AUTHORITY);
+        final MeasurementSerializer serializer = new MeasurementSerializer();
+        final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurementIdentifier,
+                persistence);
+        Log.d(TAG, "CompressedTransferTempFile size: "
+                + DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true));
+        return compressedTransferTempFile;
     }
 }

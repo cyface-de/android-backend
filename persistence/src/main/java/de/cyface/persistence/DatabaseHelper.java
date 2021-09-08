@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -202,15 +202,13 @@ class DatabaseHelper extends SQLiteOpenHelper {
             } else if (pathSegments.size() == 1) {
                 switch (pathSegments.get(0)) {
                     case EventTable.URI_PATH:
-                        ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
-                        database.setTransactionSuccessful();
-                        return ret;
                     case IdentifierTable.URI_PATH:
                         ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs);
                         database.setTransactionSuccessful();
                         return ret;
                     case MeasurementTable.URI_PATH:
-                        try (final Cursor selectedMeasurementsCursor = query(uri, new String[] {BaseColumns._ID}, selection,
+                        try (final Cursor selectedMeasurementsCursor = query(uri, new String[] {BaseColumns._ID},
+                                selection,
                                 selectionArgs, null)) {
                             while (selectedMeasurementsCursor.moveToNext()) {
                                 ret += deleteDataForMeasurement(database, selectedMeasurementsCursor

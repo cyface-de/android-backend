@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -31,7 +31,6 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
 
 /**
@@ -39,7 +38,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 1.0.0
  */
 public class MeasurementTable extends AbstractCyfaceMeasurementTable {
@@ -59,7 +58,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_MODALITY = "modality";
     /**
-     * Column name for the {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
+     * Column name for the {@link PersistenceLayer#PERSISTENCE_FILE_FORMAT_VERSION} for the data in the file
      * persistence layer of for this {@link Measurement}.
      */
     public static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";

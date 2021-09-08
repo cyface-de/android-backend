@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,33 +16,31 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization;
-
-import androidx.annotation.NonNull;
-import de.cyface.persistence.model.Measurement;
+package de.cyface.synchronization.exception;
 
 /**
- * An {@code Exception} thrown when the {@link Measurement} already exists on the server.
+ * An {@code Exception} thrown when the network used for transmission is no longer available.
+ * <p>
+ * This is usually indicated by OkHttp via {@code SSLException}.
  *
  * @author Armin Schnabel
  * @version 1.0.1
  * @since 4.0.0
  */
-public class ConflictException extends Exception {
+public class NetworkUnavailableException extends Exception {
 
     /**
-     * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
+     * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
-    ConflictException(final String detailedMessage) {
+    public NetworkUnavailableException(final String detailedMessage) {
         super(detailedMessage);
     }
 
     /**
-     * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
-     * @param cause The {@code Exception} that caused this one.
+     * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
+     * @param cause The <code>Exception</code> that caused this one.
      */
-    @SuppressWarnings("unused") // May be used in the future
-    public ConflictException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
+    public NetworkUnavailableException(final String detailedMessage, final Exception cause) {
         super(detailedMessage, cause);
     }
 }

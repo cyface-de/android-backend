@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,24 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization;
+package de.cyface.synchronization.exception;
 
 import androidx.annotation.NonNull;
+import de.cyface.persistence.model.Measurement;
 
 /**
- * An {@code Exception} thrown by the server when the Multipart request is erroneous, e.g. when there is not exactly one
- * file or a syntax error.
+ * An {@code Exception} thrown when the user is authorized but has no permissions to posts {@link Measurement}s.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 4.0.0
  */
-public class EntityNotParsableException extends Exception {
+public class ForbiddenException extends Exception {
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      */
-    EntityNotParsableException(final String detailedMessage) {
+    public ForbiddenException(@NonNull final String detailedMessage) {
         super(detailedMessage);
     }
 
@@ -42,7 +42,7 @@ public class EntityNotParsableException extends Exception {
      * @param cause The {@code Exception} that caused this one.
      */
     @SuppressWarnings("unused") // May be used in the future
-    public EntityNotParsableException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
+    public ForbiddenException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
         super(detailedMessage, cause);
     }
 }

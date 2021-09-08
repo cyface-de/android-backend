@@ -20,6 +20,7 @@ package de.cyface.persistence;
 
 import android.content.ContentProvider;
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;

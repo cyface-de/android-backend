@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -54,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.1.1
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -144,11 +144,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             @NonNull final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
             @NonNull final HandlerThread locationEventHandlerThread,
             @NonNull final HandlerThread sensorEventHandlerThread, final int sensorFrequency) throws SecurityException {
-        Validate.notNull("Illegal argument: locationManager was null!", locationManager);
-        Validate.notNull("Illegal argument: sensorService was null!", sensorService);
-        Validate.notNull("Illegal argument: geoLocationDeviceStatusHandler was null!", geoLocationDeviceStatusHandler);
-        Validate.notNull("Illegal argument: locationEventHandlerThread was null!", locationEventHandlerThread);
-        Validate.notNull("Illegal argument: sensorEventHandlerThread was null!", sensorEventHandlerThread);
+        Validate.notNull(locationManager, "Illegal argument: locationManager was null!");
+        Validate.notNull(sensorService, "Illegal argument: sensorService was null!");
+        Validate.notNull(geoLocationDeviceStatusHandler, "Illegal argument: geoLocationDeviceStatusHandler was null!");
+        Validate.notNull(locationEventHandlerThread, "Illegal argument: locationEventHandlerThread was null!");
+        Validate.notNull(sensorEventHandlerThread, "Illegal argument: sensorEventHandlerThread was null!");
 
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);

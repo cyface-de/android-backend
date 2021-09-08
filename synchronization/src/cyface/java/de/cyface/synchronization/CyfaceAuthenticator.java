@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -27,21 +27,9 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_E
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
 
-import java.io.IOException;
-import java.io.InputStream;
 import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
 import java.net.URL;
-import java.nio.ByteBuffer;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 
 import org.json.JSONException;
 import org.json.JSONObject;
@@ -62,7 +50,17 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import de.cyface.synchronization.exception.BadRequestException;
+import de.cyface.synchronization.exception.ConflictException;
+import de.cyface.synchronization.exception.EntityNotParsableException;
+import de.cyface.synchronization.exception.ForbiddenException;
 import de.cyface.synchronization.exception.HostUnresolvable;
+import de.cyface.synchronization.exception.InternalServerErrorException;
+import de.cyface.synchronization.exception.NetworkUnavailableException;
+import de.cyface.synchronization.exception.ServerUnavailableException;
+import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.synchronization.exception.TooManyRequestsException;
+import de.cyface.synchronization.exception.UnauthorizedException;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -75,7 +73,7 @@ import de.cyface.synchronization.exception.HostUnresolvable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 3.0.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -142,18 +140,10 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         }
 
         // Login to get a new authToken
-        final SSLContext sslContext;
-        try {
-            sslContext = loadSslContext(context);
-        } catch (final IOException e) {
-            throw new IllegalStateException("Trust store file failed while closing", e);
-        } catch (final SynchronisationException e) {
-            throw new IllegalStateException(e);
-        }
         // Due to the interface we can only throw NetworkErrorException
         // Thus, we report the specific error type via sendErrorIntent()
         try {
-            freshAuthToken = login(account.name, password, sslContext);
+            freshAuthToken = login(account.name, password);
         } catch (final ServerUnavailableException | ForbiddenException e) {
             sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
@@ -214,53 +204,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         return bundle;
     }
 
-    /**
-     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}. If the trust
-     * store file is empty, the default context is used.
-     *
-     * @param context The {@link Context} to use to load the trust store file.
-     * @return the {@link SSLContext} to be used for HTTPS connections.
-     * @throws SynchronisationException when the SSLContext could not be loaded
-     * @throws IOException if the trustStoreFile failed while closing.
-     */
-    static SSLContext loadSslContext(final Context context) throws SynchronisationException, IOException {
-        final SSLContext sslContext;
-
-        InputStream trustStoreFile = null;
-        try {
-            // If no self-signed certificate is used and an empty trust store is provided:
-            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            if (trustStoreFile.read() == -1) {
-                Log.d(TAG, "Trust store is empty, loading default sslContext ...");
-                sslContext = SSLContext.getInstance("TLSv1");
-                sslContext.init(null, null, null);
-                return sslContext;
-            }
-
-            // Add trust store to sslContext
-            trustStoreFile.close();
-            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
-            trustStore.load(trustStoreFile, "secret".toCharArray());
-            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-            tmf.init(trustStore);
-
-            // Create an SSLContext that uses our TrustManager
-            sslContext = SSLContext.getInstance("TLSv1");
-            final byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
-            sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
-
-        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
-                | KeyManagementException e) {
-            throw new SynchronisationException("Unable to load SSLContext", e);
-        } finally {
-            if (trustStoreFile != null) {
-                trustStoreFile.close();
-            }
-        }
-        return sslContext;
-    }
-
     @Override
     public String getAuthTokenLabel(String authTokenType) {
         return "JWT Token";
@@ -284,7 +227,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      *            server.
      * @param password The password belonging to the account with the {@code username}
      *            logging in to the Cyface server.
-     * @param sslContext To open a SSL connection
      * @return The currently valid auth token to be used by further requests from this application.
      * @throws SynchronisationException If an IOException occurred while reading the response code or the connection
      *             could not be prepared
@@ -295,7 +237,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      * @throws ForbiddenException E.g. when there is no actual API running at the URL
      */
-    private String login(final @NonNull String username, final @NonNull String password, SSLContext sslContext)
+    private String login(final @NonNull String username, final @NonNull String password)
             throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
             NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException {
         Log.v(TAG, "Logging in to get new authToken");
@@ -323,22 +265,19 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         HttpURLConnection connection = null;
         final String authToken;
         try {
-            connection = http.openHttpConnection(authUrl, sslContext, false);
+            connection = http.open(authUrl, false);
 
             // Try to send the request and handle expected errors
-            final HttpResponse loginResponse;
-            try {
-                loginResponse = http.post(connection, loginPayload, false);
-            } catch (final BadRequestException | InternalServerErrorException | EntityNotParsableException
-                    | ConflictException e) {
-                throw new IllegalStateException(e); // API definition does not define those errors
-            }
+            final HttpConnection.Result loginResponse = http.login(connection, loginPayload, false);
 
             // Make sure the successful response contains an Authorization token
             authToken = connection.getHeaderField("Authorization");
-            if (loginResponse.getResponseCode() == HttpURLConnection.HTTP_OK && authToken == null) {
+            if (loginResponse.equals(HttpConnection.Result.LOGIN_SUCCESSFUL) && authToken == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
             }
+        } catch (final BadRequestException | InternalServerErrorException | EntityNotParsableException
+                | ConflictException e) {
+            throw new IllegalStateException(e); // API definition does not define those errors
         } finally {
             if (connection != null) {
                 connection.disconnect();

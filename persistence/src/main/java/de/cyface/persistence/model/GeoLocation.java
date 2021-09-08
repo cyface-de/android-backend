@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -35,7 +35,7 @@ import de.cyface.persistence.LocationCleaningStrategy;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.0
+ * @version 1.3.1
  * @since 1.0.0
  */
 public class GeoLocation implements Parcelable {
@@ -89,7 +89,7 @@ public class GeoLocation implements Parcelable {
                     "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %f.", lon));
         }
         if (speed < 0.) {
-            // Occurred on Huawai 10 Mate Pro (RAD-51)
+            // Occurred on Huawai 10 Mate Pro (RAD-51) and Huawei P30 Android 10 (2021/07)
             Log.w(TAG,
                     String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
         }
@@ -182,6 +182,7 @@ public class GeoLocation implements Parcelable {
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
      */
+    @SuppressWarnings("Convert2Diamond") // `cannot use '<>' with anonymous inner classes`
     public static final Creator<GeoLocation> CREATOR = new Creator<GeoLocation>() {
         @Override
         public GeoLocation createFromParcel(Parcel in) {

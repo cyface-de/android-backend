@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,8 +18,10 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.model.MeasurementStatus.SKIPPED;
+import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
 import static de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE;
-import static de.cyface.synchronization.Constants.TAG;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.AUTHENTICATION_ERROR;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.DATABASE_ERROR;
@@ -30,6 +32,7 @@ import java.io.File;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
+import java.util.Locale;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -59,9 +62,8 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.EventsFileSerializerStrategy;
-import de.cyface.persistence.serialization.MeasurementFileSerializerStrategy;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -70,10 +72,16 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.6.13
+ * @version 3.0.0
  * @since 2.0.0
  */
 public final class SyncAdapter extends AbstractThreadedSyncAdapter {
+
+    /**
+     * A String to filter log output from {@link SyncPerformer} logs.
+     */
+    @SuppressWarnings("SpellCheckingInspection")
+    final static String TAG = "de.cyface.sync.adaptr";
 
     /**
      * This bundle flag allows our unit tests to mock {@link #isConnected(Account, String)}.
@@ -157,10 +165,16 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 return; // nothing to sync
             }
 
-            for (final Measurement measurement : syncableMeasurements) {
+            final int measurementCount = syncableMeasurements.size();
+            for (int index = 0; index < measurementCount; index++) {
+                final Measurement measurement = syncableMeasurements.get(index);
                 Log.d(Constants.TAG,
                         String.format("Measurement with identifier %d is about to be loaded for transmission.",
                                 measurement.getIdentifier()));
+
+                // Ensure the measurement is supported
+                final short format = measurement.getFileFormatVersion();
+                Validate.isTrue(format == PERSISTENCE_FILE_FORMAT_VERSION);
 
                 // Load measurement data
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
@@ -169,12 +183,9 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
-                File compressedEventsTransferTempFile;
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence, new MeasurementFileSerializerStrategy());
-                    compressedEventsTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence, new EventsFileSerializerStrategy());
+                            measurement.getIdentifier(), persistence);
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     final String jwtAuthToken = getAuthToken(authenticator, account);
@@ -186,24 +197,35 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     }
 
                     // Synchronize measurement
-                    final boolean transmissionSuccessful = syncPerformer.sendData(http, syncResult, endPointUrl,
-                            metaData, compressedTransferTempFile, compressedEventsTransferTempFile,
-                            new UploadProgressListener() {
-                                @Override
-                                public void updatedProgress(float percent) {
-                                    for (final ConnectionStatusListener listener : progressListener) {
-                                        listener.onProgress(percent, measurement.getIdentifier());
-                                    }
+                    int finalIndex = index;
+                    final HttpConnection.Result result = syncPerformer.sendData(http, syncResult, endPointUrl, metaData,
+                            compressedTransferTempFile, percent -> {
+                                // Multi-measurement progress
+                                final double progressPerMeasurement = 100.0 / (double)measurementCount;
+                                final double progressBeforeThis = (double)finalIndex * progressPerMeasurement;
+                                final boolean lastMeasurement = finalIndex == measurementCount - 1;
+                                final double total = lastMeasurement && percent == 1.0 ? 100.0
+                                        : progressBeforeThis + percent * progressPerMeasurement;
+                                for (final ConnectionStatusListener listener : progressListener) {
+                                    listener.onProgress((float)total, measurement.getIdentifier());
                                 }
                             }, jwtAuthToken);
-                    if (!transmissionSuccessful) {
+                    if (result.equals(HttpConnection.Result.UPLOAD_FAILED)) {
                         break;
                     }
 
                     // Mark successfully transmitted measurement as synced
                     try {
-                        persistence.markAsSynchronized(measurement);
-                        Log.d(Constants.TAG, "Measurement marked as synced.");
+                        if (result.equals(HttpConnection.Result.UPLOAD_SKIPPED)) {
+                            persistence.markFinishedAs(SKIPPED, measurement.getIdentifier());
+                        } else if (result.equals(HttpConnection.Result.UPLOAD_SUCCESSFUL)) {
+                            persistence.markFinishedAs(SYNCED, measurement.getIdentifier());
+                        } else {
+                            throw new IllegalArgumentException(String.format("Unknown result: %s", result.toString()));
+                        }
+                        Log.d(Constants.TAG,
+                                String.format("Measurement marked as %s.",
+                                        result.toString().toLowerCase(Locale.ENGLISH)));
                     } catch (final NoSuchMeasurementException e) {
                         throw new IllegalStateException(e);
                     }
@@ -215,7 +237,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 }
             }
         } catch (final CursorIsNullException e) {
-            Log.w(TAG, "DatabaseException: " + e.getMessage());
+            Log.w(TAG, e.getClass().getSimpleName() + ": " + e.getMessage());
             syncResult.databaseError = true;
             sendErrorIntent(context, DATABASE_ERROR.getCode(), e.getMessage());
         } catch (final AuthenticatorException e) {
@@ -287,7 +309,6 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         final String endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         Validate.notNull(endPointUrl,
                 "Sync canceled: Server url not available. Please set the applications server url preference.");
-        // noinspection ConstantConditions - cannot be null because of the validation
         return endPointUrl;
     }
 

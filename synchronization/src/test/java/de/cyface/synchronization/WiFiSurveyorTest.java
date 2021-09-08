@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -48,6 +48,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
+import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.utils.Validate;
 
 /**
@@ -61,7 +62,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)

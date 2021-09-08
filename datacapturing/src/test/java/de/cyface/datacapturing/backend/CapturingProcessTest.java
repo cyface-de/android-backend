@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -58,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.0.5
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -233,12 +233,12 @@ public class CapturingProcessTest {
         /**
          * <code>GeoLocation</code> instances this listener was informed about.
          */
-        private List<GeoLocation> capturedLocations = new ArrayList<>();
+        private final List<GeoLocation> capturedLocations = new ArrayList<>();
 
         /**
          * Captured sensor data this listener was informed about.
          */
-        private List<CapturedData> capturedData = new ArrayList<>();
+        private final List<CapturedData> capturedData = new ArrayList<>();
 
         @Override
         public void onLocationCaptured(@NonNull GeoLocation location) {

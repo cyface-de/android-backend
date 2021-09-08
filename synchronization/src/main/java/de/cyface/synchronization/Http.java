@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2020 Cyface GmbH
+ * Copyright 2017 - 2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,35 +18,37 @@
  */
 package de.cyface.synchronization;
 
+import java.io.File;
 import java.net.HttpURLConnection;
 import java.net.URL;
-
-import javax.net.ssl.SSLContext;
 
 import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.synchronization.exception.BadRequestException;
+import de.cyface.synchronization.exception.ConflictException;
+import de.cyface.synchronization.exception.EntityNotParsableException;
+import de.cyface.synchronization.exception.ForbiddenException;
 import de.cyface.synchronization.exception.HostUnresolvable;
+import de.cyface.synchronization.exception.InternalServerErrorException;
+import de.cyface.synchronization.exception.MeasurementTooLarge;
+import de.cyface.synchronization.exception.NetworkUnavailableException;
+import de.cyface.synchronization.exception.ServerUnavailableException;
+import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.synchronization.exception.SynchronizationInterruptedException;
+import de.cyface.synchronization.exception.TooManyRequestsException;
+import de.cyface.synchronization.exception.UnauthorizedException;
 
 /**
  * An interface for http connections.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 9.0.0
+ * @version 10.0.0
  * @since 3.0.0
  */
 interface Http {
-
-    /**
-     * The boundary to be used in the Multipart request to separate data.
-     */
-    String BOUNDARY = "---------------------------boundary";
-    /**
-     * The string which is used for a line feed.
-     */
-    String LINE_FEED = "\r\n";
 
     /**
      * Adds a trailing slash to the server URL or leaves an existing trailing slash untouched.
@@ -61,28 +63,25 @@ interface Http {
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
      *
      * @param url The URL of the cyface backend's REST API.
-     * @param sslContext The {@link SSLContext} to open a secure connection to the server
      * @param hasBinaryContent True if binary content is to be transmitted
      * @param jwtBearer A String in the format "Bearer TOKEN".
      * @return the HTTPURLConnection
      * @throws SynchronisationException When the connection object could not be prepared
      */
     @NonNull
-    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent,
-            @NonNull String jwtBearer) throws SynchronisationException;
+    HttpURLConnection open(@NonNull URL url, boolean hasBinaryContent, @NonNull String jwtBearer)
+            throws SynchronisationException;
 
     /**
      * A HTTPConnection must be opened with the right header before you can communicate with the Cyface REST API
      *
      * @param url The URL of the cyface backend's REST API.
-     * @param sslContext The {@link SSLContext} to open a secure connection to the server
      * @param hasBinaryContent True if binary content is to be transmitted
      * @return the HTTPURLConnection
      * @throws SynchronisationException When the connection object could not be prepared
      */
     @NonNull
-    HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext, boolean hasBinaryContent)
-            throws SynchronisationException;
+    HttpURLConnection open(@NonNull URL url, boolean hasBinaryContent) throws SynchronisationException;
 
     /**
      * The compressed post request which transmits a measurement batch through an existing http
@@ -102,9 +101,10 @@ interface Http {
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet
      * @throws ServerUnavailableException When no connection could be established with the server
+     * @return {@code HttpConnection.Result.LOGIN_SUCCESSFUL} if successful or else an {@code Exception}.
      */
     @NonNull
-    HttpResponse post(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
+    HttpConnection.Result login(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
@@ -113,11 +113,11 @@ interface Http {
     /**
      * The serialized post request which transmits a measurement through an existing http connection
      *
-     * @param connection The {@code HttpURLConnection} to be used for the request.
+     * @param url the resource to upload the data to
+     * @param jwtBearer A String in the format "Bearer TOKEN".
      * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
-     * @param files The data files to upload via this post request. Currently these should be a sensor data file and an
-     *            events data file.
+     * @param file The data file to upload via this post request.
      * @throws SynchronisationException If an IOException occurred during synchronization.
      * @throws BadRequestException When server returns {@code HttpURLConnection#HTTP_BAD_REQUEST}
      * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
@@ -131,12 +131,15 @@ interface Http {
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet
      * @throws ServerUnavailableException When no connection could be established with the server
+     * @throws MeasurementTooLarge When the transfer file is too large to be uploaded.
+     * @return {@code HttpConnection.Result.UPLOAD_SUCCESSFUL} on success, {@code HttpConnection.Result.UPLOAD_FAILED}
+     *         when the upload attempt should be repeated or {@code HttpConnection.Result.UPLOAD_SKIPPED} if the server
+     *         is not interested in the data.
      */
-    @SuppressWarnings("UnusedReturnValue") // May be used in the future
-    @NonNull
-    HttpResponse post(@NonNull HttpURLConnection connection, @NonNull SyncAdapter.MetaData metaData,
-            @NonNull final UploadProgressListener progressListener, @NonNull FilePart... files)
+    HttpConnection.Result upload(final URL url, final String jwtBearer, final SyncAdapter.MetaData metaData,
+            final File file, final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException;
+            SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException,
+            MeasurementTooLarge;
 }

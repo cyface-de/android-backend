@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,8 +21,6 @@ package de.cyface.synchronization;
 import static de.cyface.synchronization.WiFiSurveyor.MINIMUM_VERSION_TO_USE_NOT_METERED_FLAG;
 import static de.cyface.synchronization.WiFiSurveyor.TAG;
 
-import android.accounts.Account;
-import android.annotation.TargetApi;
 import android.net.ConnectivityManager;
 import android.net.Network;
 import android.net.NetworkCapabilities;
@@ -30,6 +28,7 @@ import android.os.Build;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -38,7 +37,7 @@ import de.cyface.utils.Validate;
  * newly connected network.
  *
  * @author Armin Schnabel
- * @version 2.1.2
+ * @version 3.0.0
  * @since 3.0.0
  */
 public class NetworkCallback extends ConnectivityManager.NetworkCallback {
@@ -47,15 +46,14 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
      * The {@link WiFiSurveyor} which registered this callback used to access some of it's methods.
      */
     private final WiFiSurveyor surveyor;
-    /**
-     * The <code>Account</code> currently used for data synchronization or <code>null</code> if no such
-     * <code>Account</code> has been set.
-     */
-    private Account currentSynchronizationAccount;
 
-    NetworkCallback(@NonNull final WiFiSurveyor wiFiSurveyor, @NonNull final Account currentSynchronizationAccount) {
+    /**
+     * Creates a fully initialized instance of this class.
+     *
+     * @param wiFiSurveyor The {@link WiFiSurveyor} which registered this callback used to access some of it's methods.
+     */
+    NetworkCallback(@NonNull final WiFiSurveyor wiFiSurveyor) {
         this.surveyor = wiFiSurveyor;
-        this.currentSynchronizationAccount = currentSynchronizationAccount;
     }
 
     @Override
@@ -80,11 +78,6 @@ public class NetworkCallback extends ConnectivityManager.NetworkCallback {
             } else {
                 Validate.isTrue(capabilities.hasTransport(NetworkCapabilities.TRANSPORT_WIFI));
             }
-        }
-
-        if (currentSynchronizationAccount == null) {
-            Log.e(TAG, "No account for data synchronization registered with this service. Aborting synchronization.");
-            return;
         }
 
         // Syncable ("not metered") filter is already included

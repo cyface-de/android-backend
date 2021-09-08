@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -140,6 +140,8 @@ public final class SyncAdapterTest {
     @Test
     @Ignore("Set to ignore as this test requires an actual API even in mock flavour")
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
+        final int point3dCount = 1; // 100 Hz * 8 h = 2_880_000
+        final int locationCount = 1; // 1 Hz * 8 h = 28_800
 
         // Arrange
         // Insert data to be synced
@@ -147,7 +149,7 @@ public final class SyncAdapterTest {
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
         final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
-                MeasurementStatus.FINISHED, persistence, 1, 1);
+                MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));

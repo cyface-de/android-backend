@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization;
+package de.cyface.synchronization.exception;
 
 import androidx.annotation.NonNull;
 
@@ -28,23 +28,21 @@ import androidx.annotation.NonNull;
  * @version 2.0.1
  * @since 1.0.0
  */
-final class BadRequestException extends Exception {
+public final class BadRequestException extends Exception {
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      */
-    BadRequestException(@NonNull final String detailedMessage) {
-        this(detailedMessage, null);
-
+    public BadRequestException(@NonNull final String detailedMessage) {
+        super(detailedMessage);
     }
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      * @param cause The {@code Exception} that caused this one.
      */
-    @SuppressWarnings("WeakerAccess") // May be used in future
+    @SuppressWarnings({"WeakerAccess", "unused"}) // May be used in future
     BadRequestException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
         super(detailedMessage, cause);
-
     }
 }

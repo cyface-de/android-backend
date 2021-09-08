@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 - 2020 Cyface GmbH
+ * Copyright 2018 - 2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,15 +18,16 @@
  */
 package de.cyface.synchronization;
 
+import java.io.File;
 import java.io.IOException;
 import java.net.HttpURLConnection;
 import java.net.URL;
 
-import javax.net.ssl.SSLContext;
-
 import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
+
+import de.cyface.synchronization.exception.SynchronisationException;
 
 /**
  * An HTTP connection that does not actually connect to the server. This is useful for testing code requiring a
@@ -34,7 +35,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.4
+ * @version 4.0.0
  * @since 3.0.0
  */
 final class MockedHttpConnection implements Http {
@@ -47,15 +48,14 @@ final class MockedHttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
-            boolean hasBinaryContent, @NonNull String jwtBearer) throws SynchronisationException {
-        return openHttpConnection(url, sslContext, hasBinaryContent);
+    public HttpURLConnection open(@NonNull URL url, boolean hasBinaryContent, @NonNull String jwtBearer)
+            throws SynchronisationException {
+        return open(url, hasBinaryContent);
     }
 
     @NonNull
     @Override
-    public HttpURLConnection openHttpConnection(@NonNull URL url, @NonNull SSLContext sslContext,
-            boolean hasBinaryContent) throws SynchronisationException {
+    public HttpURLConnection open(@NonNull URL url, boolean hasBinaryContent) throws SynchronisationException {
         try {
             return (HttpURLConnection)url.openConnection();
         } catch (IOException e) {
@@ -65,15 +65,15 @@ final class MockedHttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull JSONObject payload, boolean compress) {
-        return new HttpResponse(201, "");
+    public HttpConnection.Result login(@NonNull HttpURLConnection connection, @NonNull JSONObject payload,
+            boolean compress) {
+        return HttpConnection.Result.LOGIN_SUCCESSFUL;
     }
 
-    @NonNull
     @Override
-    public HttpResponse post(@NonNull HttpURLConnection connection, @NonNull SyncAdapter.MetaData metaData,
-            @NonNull UploadProgressListener progressListener, @NonNull FilePart... fileParts) {
+    public HttpConnection.Result upload(URL url, String jwtBearer, SyncAdapter.MetaData metaData, File file,
+            UploadProgressListener progressListener) {
         progressListener.updatedProgress(1.0f); // 100%
-        return new HttpResponse(201, "");
+        return HttpConnection.Result.UPLOAD_SUCCESSFUL;
     }
 }

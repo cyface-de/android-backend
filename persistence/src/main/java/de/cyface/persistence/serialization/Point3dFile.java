@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -28,12 +28,13 @@ import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.serialization.proto.Point3dSerializer;
 
 /**
  * The file format to persist {@link Point3d}s such as accelerations, rotations and directions.
  *
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 5.0.0
  * @since 3.0.0
  */
 public class Point3dFile implements FileSupport<List<Point3d>> {
@@ -57,58 +58,55 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * The file extension of files containing acceleration data. This makes sure no system-generated files in the
      * {@link #ACCELERATIONS_FOLDER_NAME} are identified as {@link Point3dFile}s.
      */
+    @SuppressWarnings("SpellCheckingInspection")
     public final static String ACCELERATIONS_FILE_EXTENSION = "cyfa";
     /**
      * The file extension of files containing rotation data. This makes sure no system-generated files in the
      * {@link #ROTATIONS_FOLDER_NAME} are identified as {@link Point3dFile}s.
      */
+    @SuppressWarnings("SpellCheckingInspection")
     public final static String ROTATION_FILE_EXTENSION = "cyfr";
     /**
      * The file extension of files containing direction data. This makes sure no system-generated files in the
      * {@link #DIRECTIONS_FOLDER_NAME} are identified as {@link Point3dFile}s.
      */
+    @SuppressWarnings("SpellCheckingInspection")
     public final static String DIRECTION_FILE_EXTENSION = "cyfd";
     /**
      * The {@link File} pointer to the actual file.
      */
     private final File file;
     /**
-     * The identifier of the {@link Measurement} for this file
-     */
-    private long measurementId;
-    /**
      * The {@link FileAccessLayer} used to interact with files.
      */
     private FileAccessLayer fileAccessLayer;
+    /**
+     * The sensor data type of the {@link Point3d} data.
+     */
+    private final Point3dType type;
 
     /**
      * Constructor which actually creates a new {@link File} in the persistence layer.
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param measurementId the identifier of the {@link Measurement} for which the file is to be created
-     * @param folderName The folder name defining the {@link Point3d} type of the file
-     * @param fileExtension the extension of the file type
+     * @param type The sensor data type of the {@code Point3d} data.
      */
-    public Point3dFile(@NonNull final Context context, final long measurementId, @NonNull final String folderName,
-            @NonNull final String fileExtension) {
+    public Point3dFile(@NonNull final Context context, final long measurementId, final Point3dType type) {
+        this.type = type;
         this.fileAccessLayer = new DefaultFileAccess();
-        this.file = fileAccessLayer.createFile(context, measurementId, folderName, fileExtension);
-        this.measurementId = measurementId;
+        this.file = fileAccessLayer.createFile(context, measurementId, type.folderName(), type.fileExtension());
     }
 
     /**
      * Constructor to reference an existing {@link Point3dFile}.
      *
-     * @param measurementId the identifier of the measurement for this file
-     * @param file The already existing file which represents the {@link Point3dFile}
+     * @param file The already existing file which represents the {@code Point3dFile}
+     * @param type The sensor data type of the {@link Point3d} data.
      */
-    private Point3dFile(final long measurementId, @NonNull final File file) {
+    private Point3dFile(@NonNull final File file, Point3dType type) {
         this.file = file;
-        this.measurementId = measurementId;
-    }
-
-    public File getFile() {
-        return file;
+        this.type = type;
     }
 
     @Override
@@ -119,7 +117,7 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
 
     @Override
     public byte[] serialize(final List<Point3d> dataPoints) {
-        return MeasurementSerializer.serialize(dataPoints);
+        return Point3dSerializer.serialize(dataPoints, getType());
     }
 
     /**
@@ -128,20 +126,27 @@ public class Point3dFile implements FileSupport<List<Point3d>> {
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param fileAccessLayer The {@link FileAccessLayer} used to access the file;
      * @param measurementId the identifier of the measurement for which the file is to be found
-     * @param folderName The folder name defining the {@link Point3d} type of the file
-     * @param fileExtension the extension of the file type
+     * @param type The sensor data type of the {@link Point3d} data.
      * @return the {@link Point3dFile} link to the file
      * @throws NoSuchFileException if there is no such file
      */
     public static Point3dFile loadFile(@NonNull final Context context, @NonNull FileAccessLayer fileAccessLayer,
-            final long measurementId, @NonNull final String folderName, @NonNull final String fileExtension)
+            final long measurementId, @NonNull final Point3dType type)
             throws NoSuchFileException {
 
-        final File file = fileAccessLayer.getFilePath(context, measurementId, folderName, fileExtension);
+        final File file = fileAccessLayer.getFilePath(context, measurementId, type.folderName(), type.fileExtension());
         if (!file.exists()) {
             throw new NoSuchFileException("The follow file could not be loaded: " + file.getPath());
         }
 
-        return new Point3dFile(measurementId, file);
+        return new Point3dFile(file, type);
+    }
+
+    public Point3dType getType() {
+        return type;
+    }
+
+    public File getFile() {
+        return file;
     }
 }

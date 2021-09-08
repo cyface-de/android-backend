@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -55,7 +55,7 @@ import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
-import de.cyface.synchronization.SynchronisationException;
+import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -76,7 +76,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.0
+ * @version 11.0.1
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Used by SDK implementing apps (SR)

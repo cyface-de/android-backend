@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,7 +19,13 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_FINISHED;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_PROGRESS;
+import static de.cyface.synchronization.CyfaceConnectionStatusListener.SYNC_STARTED;
 import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
@@ -142,9 +148,9 @@ public class UploadProgressTest {
 
         final TestReceiver receiver = new TestReceiver();
         final IntentFilter filter = new IntentFilter();
-        filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED);
-        filter.addAction(CyfaceConnectionStatusListener.SYNC_PROGRESS);
-        filter.addAction(CyfaceConnectionStatusListener.SYNC_STARTED);
+        filter.addAction(SYNC_FINISHED);
+        filter.addAction(SYNC_PROGRESS);
+        filter.addAction(SYNC_STARTED);
         context.registerReceiver(receiver, filter);
 
         ContentProviderClient client = null;
@@ -157,12 +163,9 @@ public class UploadProgressTest {
                     8.82814, 8.78270530700684, 840);
 
             // Insert file base data
-            final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
-            final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
-            final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+            final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier, ACCELERATION);
+            final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier, ROTATION);
+            final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier, DIRECTION);
             insertPoint3d(accelerationsFile, 1501662635973L, 10.1189575, -0.15088624, 0.2921924);
             insertPoint3d(accelerationsFile, 1501662635981L, 10.116563, -0.16765137, 0.3544629);
             insertPoint3d(accelerationsFile, 1501662635983L, 10.171648, -0.2921924, 0.3784131);
@@ -205,20 +208,16 @@ class TestReceiver extends BroadcastReceiver {
         Validate.notNull(intent);
         Validate.notNull(intent.getAction());
 
-        switch (intent.getAction()) {
-            case CyfaceConnectionStatusListener.SYNC_FINISHED:
-                Log.d(TAG, "SYNC FINISHED");
-                break;
-            case CyfaceConnectionStatusListener.SYNC_PROGRESS:
-                final float percentage = intent.getFloatExtra(SYNC_PERCENTAGE_ID, -1.0f);
-                collectedPercentages.add(percentage);
-                Log.d(TAG, "SYNC PROGRESS: " + percentage + " % ");
-                break;
-            case CyfaceConnectionStatusListener.SYNC_STARTED:
-                Log.d(TAG, "SYNC STARTED");
-                break;
-            default:
-                throw new IllegalStateException(String.format("Invalid message %s", intent.getAction()));
+        if (intent.getAction().equals(SYNC_FINISHED)) {
+            Log.d(TAG, "SYNC FINISHED");
+        } else if (intent.getAction().equals(SYNC_PROGRESS)) {
+            final float percentage = intent.getFloatExtra(SYNC_PERCENTAGE_ID, -1.0f);
+            collectedPercentages.add(percentage);
+            Log.d(TAG, "SYNC PROGRESS: " + percentage + " % ");
+        } else if (intent.getAction().equals(SYNC_STARTED)) {
+            Log.d(TAG, "SYNC STARTED");
+        } else {
+            throw new IllegalStateException(String.format("Invalid message %s", intent.getAction()));
         }
     }
 

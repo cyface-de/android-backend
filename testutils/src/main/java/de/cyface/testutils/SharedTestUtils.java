@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,22 +19,28 @@
 package de.cyface.testutils;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
+import static de.cyface.persistence.model.MeasurementStatus.SKIPPED;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
-import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY;
+import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
+import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
+import static de.cyface.persistence.serialization.Point3dType.ROTATION;
+import static de.cyface.protos.model.Measurement.parseFrom;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.notNullValue;
 import static org.junit.Assert.assertThat;
 
 import java.io.File;
-import java.nio.ByteBuffer;
-import java.nio.ByteOrder;
 import java.util.ArrayList;
 import java.util.List;
+
+import com.google.protobuf.ByteString;
+import com.google.protobuf.InvalidProtocolBufferException;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -61,17 +67,18 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3dType;
+import de.cyface.protos.model.MeasurementBytes;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
- * This class (and the module testutils) exist to be able to share test code between modules.
+ * This class (and the module test-utils) exist to be able to share test code between modules.
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 6.0.0
  * @since 3.0.0
  */
 public class SharedTestUtils {
@@ -101,6 +108,7 @@ public class SharedTestUtils {
      * @param accountType The account type to search for.
      * @param authority The authority to access the accounts.
      */
+    @SuppressWarnings({"WeakerAccess", "RedundantSuppression", "unused"}) // Used by the cyface flavour tests
     public static void cleanupOldAccounts(@NonNull final AccountManager accountManager,
             @NonNull final String accountType, @NonNull final String authority) {
 
@@ -180,46 +188,37 @@ public class SharedTestUtils {
     }
 
     /**
-     * This deserializes a {@link File} for testing.
+     * This deserializes a {@link Point3dFile} for testing.
      *
      * @param fileAccessLayer The {@link FileAccessLayer} used to access the files.
-     * @param file The {@link File} to access
-     * @param pointCount The number of points in this file. This number is stored in the associated measurement
-     * @return the {@link Point3d} data restored from the {@code Point3dFile}
+     * @param file The {@code Point3dFile} to access
+     * @param type The {@link Point3dType} for the {@code file} passed as parameter
+     * @return the data restored from the {@code Point3dFile}
+     * @throws InvalidProtocolBufferException if the {@code Point3dFile} format is unknown
      */
-    public static List<Point3d> deserialize(@NonNull final FileAccessLayer fileAccessLayer, @NonNull File file,
-            final int pointCount) {
+    public static de.cyface.protos.model.Measurement deserialize(final FileAccessLayer fileAccessLayer, final File file,
+            final Point3dType type) throws InvalidProtocolBufferException {
+
         final byte[] bytes = fileAccessLayer.loadBytes(file);
-        return deserializePoint3dData(bytes, pointCount);
-    }
+        final MeasurementBytes.Builder measurementBytes = MeasurementBytes.newBuilder()
+                .setFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION);
 
-    /**
-     * Deserialized {@link Point3d} data.
-     *
-     * @param point3dFileBytes The bytes loaded from the {@link Point3dFile}
-     * @return The {@link Point3d} loaded from the file
-     */
-    private static List<Point3d> deserializePoint3dData(final byte[] point3dFileBytes, final int pointCount) {
-
-        Validate.isTrue(point3dFileBytes.length == pointCount * BYTES_IN_ONE_POINT_3D_ENTRY);
-        if (pointCount == 0) {
-            return new ArrayList<>();
+        switch (type) {
+            case ACCELERATION:
+                measurementBytes.setAccelerations(ByteString.copyFrom(bytes));
+                break;
+            case ROTATION:
+                measurementBytes.setRotations(ByteString.copyFrom(bytes));
+                break;
+            case DIRECTION:
+                measurementBytes.setDirections(ByteString.copyFrom(bytes));
+                break;
+            default:
+                throw new IllegalArgumentException("Unknown type: " + type);
         }
 
-        // Deserialize bytes
-        final List<Point3d> points = new ArrayList<>();
-        final ByteBuffer buffer = ByteBuffer.wrap(point3dFileBytes);
-        for (int i = 0; i < pointCount; i++) {
-            final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
-            final double x = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
-            final double y = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
-            final double z = buffer.order(ByteOrder.BIG_ENDIAN).getDouble();
-            // final long timestamp = buffer.order(ByteOrder.BIG_ENDIAN).getLong();
-            points.add(new Point3d((float)x, (float)y, (float)z, timestamp));
-        }
-
-        Log.d(TAG, "Deserialized Points: " + points.size());
-        return points;
+        final MeasurementBytes data = measurementBytes.build();
+        return parseFrom(data.toByteArray());
     }
 
     /**
@@ -248,10 +247,12 @@ public class SharedTestUtils {
         if (accelerationFolder.exists()) {
             Validate.isTrue(accelerationFolder.isDirectory());
             final File[] accelerationFiles = accelerationFolder.listFiles();
-            for (File file : accelerationFiles) {
-                Validate.isTrue(file.delete());
+            if (accelerationFiles != null) {
+                for (final File file : accelerationFiles) {
+                    Validate.isTrue(file.delete());
+                }
+                removedFiles += accelerationFiles.length;
             }
-            removedFiles += accelerationFiles.length;
             Validate.isTrue(accelerationFolder.delete());
         }
 
@@ -259,10 +260,12 @@ public class SharedTestUtils {
         if (rotationFolder.exists()) {
             Validate.isTrue(rotationFolder.isDirectory());
             final File[] rotationFiles = rotationFolder.listFiles();
-            for (File file : rotationFiles) {
-                Validate.isTrue(file.delete());
+            if (rotationFiles != null) {
+                for (final File file : rotationFiles) {
+                    Validate.isTrue(file.delete());
+                }
+                removedFiles += rotationFiles.length;
             }
-            removedFiles += rotationFiles.length;
             Validate.isTrue(rotationFolder.delete());
         }
 
@@ -270,10 +273,12 @@ public class SharedTestUtils {
         if (directionFolder.exists()) {
             Validate.isTrue(directionFolder.isDirectory());
             final File[] directionFiles = directionFolder.listFiles();
-            for (File file : directionFiles) {
-                Validate.isTrue(file.delete());
+            if (directionFiles != null) {
+                for (final File file : directionFiles) {
+                    Validate.isTrue(file.delete());
+                }
+                removedFiles += directionFiles.length;
             }
-            removedFiles += directionFiles.length;
             Validate.isTrue(directionFolder.delete());
         }
 
@@ -317,13 +322,9 @@ public class SharedTestUtils {
         insertGeoLocations(context.getContentResolver(), authority, measurement.getIdentifier(), geoLocations);
 
         // Insert file base data
-        final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
-        final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
-        final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier,
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
-
+        final Point3dFile accelerationsFile = new Point3dFile(context, measurementIdentifier, ACCELERATION);
+        final Point3dFile rotationsFile = new Point3dFile(context, measurementIdentifier, ROTATION);
+        final Point3dFile directionsFile = new Point3dFile(context, measurementIdentifier, DIRECTION);
         final List<Point3d> aPoints = new ArrayList<>();
         final List<Point3d> rPoints = new ArrayList<>();
         final List<Point3d> dPoints = new ArrayList<>();
@@ -354,34 +355,22 @@ public class SharedTestUtils {
         insertPoint3ds(rotationsFile, rPoints);
         insertPoint3ds(directionsFile, dPoints);
 
-        if (status == FINISHED || status == MeasurementStatus.SYNCED) {
-            persistence.storePersistenceFileFormatVersion(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
+        if (status == FINISHED || status == MeasurementStatus.SYNCED || status == SKIPPED) {
+            persistence.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION,
                     measurementIdentifier);
             persistence.setStatus(measurementIdentifier, FINISHED, false);
         }
-
-        // Check the sensor data (must be before measurements are marked as sync which deletes the data)
-        // noinspection ConstantConditions - we may add tests with a 0 count later
-        if (point3dCount > 0) {
-            assertThat((int)(accelerationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));
-            assertThat((int)(rotationsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));
-            assertThat((int)(directionsFile.getFile().length() / MeasurementSerializer.BYTES_IN_ONE_POINT_3D_ENTRY),
-                    is(equalTo(point3dCount)));
-        }
-
         if (status == SYNCED) {
-            persistence.markAsSynchronized(measurement);
+            persistence.markFinishedAs(SYNCED, measurement.getIdentifier());
+        } else if (status == SKIPPED) {
+            persistence.markFinishedAs(SKIPPED, measurement.getIdentifier());
         }
 
         // Check the measurement entry
-        final Measurement loadedMeasurement;
-        loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
+        final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
         assertThat(persistence.loadMeasurementStatus(measurementIdentifier), is(equalTo(status)));
-        assertThat(loadedMeasurement.getFileFormatVersion(),
-                is(equalTo(MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION)));
+        assertThat(loadedMeasurement.getFileFormatVersion(), is(equalTo(PERSISTENCE_FILE_FORMAT_VERSION)));
 
         // Check the Tracks
         // noinspection unchecked
@@ -398,7 +387,8 @@ public class SharedTestUtils {
      * {@link SharedTestUtils#insertPoint3d(Point3dFile, long, double, double, double)} (Context, long, long, double,
      * double, double)},
      *
-     * @param modality The {@link Modality} type of the {@code Measurement}. A common value is {@link Modality#UNKNOWN} if
+     * @param modality The {@link Modality} type of the {@code Measurement}. A common value is {@link Modality#UNKNOWN}
+     *            if
      *            you do not care.
      * @return The database identifier of the created {@link Measurement}.
      */
@@ -425,8 +415,8 @@ public class SharedTestUtils {
      * @param speed The fake test speed of the {@code GeoLocation}.
      * @param accuracy The fake test accuracy of the {@code GeoLocation}.
      */
-    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
     // Used by the cyface flavour tests
+    @SuppressWarnings({"WeakerAccess", "unused", "RedundantSuppression"})
     public static void insertGeoLocation(final ContentResolver resolver, final String authority,
             final long measurementIdentifier, final long timestamp, final double lat, final double lon,
             final double speed, final int accuracy) {

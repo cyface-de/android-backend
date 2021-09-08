@@ -1,6 +1,7 @@
 package de.cyface.persistence;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.CursorIsNullException;
 

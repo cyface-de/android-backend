@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -24,11 +24,13 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.1.0
  * @since 1.0.0
  */
 
-apply plugin: 'com.android.library'
+plugins {
+    id 'de.cyface.android-publish' version '1.0.0'
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -85,24 +87,34 @@ android {
         }
     }
 
-    // Enabling desugaring as a dependency (mockito-core-3.3.3) contains Java 8 bytecode.
-    // See https://developer.android.com/studio/write/java8-support.html
+    // Enabling desugaring to support Java 8 and Java 11 features
     compileOptions {
-      sourceCompatibility rootProject.ext.sourceCompatibility
-      targetCompatibility rootProject.ext.targetCompatibility
+        sourceCompatibility rootProject.ext.sourceCompatibility
+        targetCompatibility rootProject.ext.targetCompatibility
     }
 
     // To avoid having to upgrade to `androidX.appCompat:1.3.0-beta1` [CY-5525]
     lintOptions {
         disable 'ObsoleteLintCustomCheck'
     }
+
+    packagingOptions {
+        // To resolve the conflict warning after adding google-api-client dependency
+        exclude 'META-INF/DEPENDENCIES'
+    }
 }
 
 dependencies {
+    // Upload
+    implementation ("com.google.api-client:google-api-client:$rootProject.ext.googleApiClientVersion",{
+        exclude group:'org.apache.httpcomponents', module:'httpclient'
+    })
+
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     implementation project(":persistence")
 
+    // Android
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
@@ -118,6 +130,9 @@ dependencies {
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
+    // Both, test- and androidTest dependency required or else androidTests fail
+    testImplementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
+    androidTestImplementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
     // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
