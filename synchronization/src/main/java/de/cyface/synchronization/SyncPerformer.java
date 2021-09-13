@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UPLOAD_SESSION_EXPIRED;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -58,6 +59,7 @@ import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UploadSessionExpired;
 
 /**
  * Performs the actual synchronisation with a provided server, by uploading meta data and a file containing
@@ -167,6 +169,10 @@ class SyncPerformer {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
             return HttpConnection.Result.UPLOAD_FAILED;
+        } catch (final UploadSessionExpired e) {
+            syncResult.stats.numIoExceptions++; // Try again
+            sendErrorIntent(context, UPLOAD_SESSION_EXPIRED.getCode(), e.getMessage());
+            return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final MeasurementTooLarge e) {
             syncResult.stats.numSkippedEntries++;
             Log.d(TAG, e.getMessage());
@@ -175,6 +181,14 @@ class SyncPerformer {
             syncResult.stats.numSkippedEntries++;
             // We consider the upload successful and mark the measurement as synced
             return HttpConnection.Result.UPLOAD_SUCCESSFUL;
+        } catch (RuntimeException e) {
+            // Catching this temporarily to indicate a hard error to the sync adapter
+            syncResult.stats.numParseExceptions++;
+
+            // e.g. when the collector API does respond correctly [DAT-775]
+            Log.e(TAG, "Uncaught Exception in `HttpConnection.upload`.");
+            // Throw hard or else this error won't be recognized, fixed & device runs out of storage
+            throw e;
         }
 
         // Upload was successful, measurement can be marked as synced

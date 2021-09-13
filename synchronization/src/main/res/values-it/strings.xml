@@ -26,6 +26,7 @@
     <string name="error_message_synchronization_interrupted">Sincronizzazione interrotta</string>
     <string name="error_message_too_many_requests">Troppe richieste</string>
     <string name="error_message_host_unresolvable">Impossibile trovare il server. Si prega di controllare la connessione internet.</string>
+    <string name="error_message_upload_session_expired">Sessione di caricamento scaduta.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Errore imprevisto</string>

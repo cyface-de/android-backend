@@ -26,7 +26,7 @@ import androidx.annotation.NonNull;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 4.0.0
  * @since 1.0.0
  */
 class HttpResponse {
@@ -40,14 +40,19 @@ class HttpResponse {
      */
     @NonNull
     private final String body;
+    /**
+     * The {@code HttpURLConnection} status message returned by the server's {@link HttpResponse}.
+     */
+    private final String responseMessage;
 
     /**
      * @param responseCode the HTTP status code returned by the server
      * @param responseBody the HTTP response body returned by the server. Can be empty when the server has nothing to
-     *            say.
+     * @param responseMessage the HTTP status message returned by the server
      */
-    HttpResponse(final int responseCode, @NonNull final String responseBody) {
+    HttpResponse(final int responseCode, @NonNull final String responseBody, final String responseMessage) {
         this.responseCode = responseCode;
+        this.responseMessage = responseMessage;
         this.body = responseBody;
     }
 
@@ -58,5 +63,9 @@ class HttpResponse {
 
     int getResponseCode() {
         return responseCode;
+    }
+
+    public String getResponseMessage() {
+        return responseMessage;
     }
 }

@@ -76,6 +76,7 @@ import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UploadSessionExpired;
 
 /**
  * Implements the {@link Http} connection interface for the Cyface apps.
@@ -213,7 +214,11 @@ public class HttpConnection implements Http {
             throw new IllegalStateException(e);
         }
 
-        return readResponse(connection);
+        try {
+            return readResponse(connection);
+        } catch (UploadSessionExpired e) {
+            throw new IllegalStateException(e);
+        }
     }
 
     @Override
@@ -222,7 +227,7 @@ public class HttpConnection implements Http {
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable,
-            ServerUnavailableException, MeasurementTooLarge {
+            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired {
 
         try {
             final String fileName = String.format(Locale.US, "%s_%d." + TRANSFER_FILE_EXTENSION,
@@ -419,17 +424,19 @@ public class HttpConnection implements Http {
     @NonNull
     private Result readResponse(@NonNull final HttpURLConnection connection)
             throws SynchronisationException, BadRequestException, UnauthorizedException, ForbiddenException,
-            ConflictException, EntityNotParsableException, InternalServerErrorException, TooManyRequestsException {
+            ConflictException, EntityNotParsableException, InternalServerErrorException, TooManyRequestsException, UploadSessionExpired {
 
         final int responseCode;
+        final String responseMessage;
         try {
             responseCode = connection.getResponseCode();
+            responseMessage = connection.getResponseMessage();
             final String responseBody = readResponseBody(connection);
 
             if (responseCode >= 200 && responseCode < 300) {
-                return handleSuccess(new HttpResponse(responseCode, responseBody));
+                return handleSuccess(new HttpResponse(responseCode, responseBody, responseMessage));
             }
-            return handleError(new HttpResponse(responseCode, responseBody));
+            return handleError(new HttpResponse(responseCode, responseBody, responseMessage));
         } catch (final IOException e) {
             throw new SynchronisationException(e);
         }
@@ -439,22 +446,23 @@ public class HttpConnection implements Http {
     private Result readResponse(com.google.api.client.http.HttpResponse response, JsonFactory jsonFactory)
             throws BadRequestException, UnauthorizedException, ForbiddenException,
             ConflictException, EntityNotParsableException, InternalServerErrorException, TooManyRequestsException,
-            SynchronisationException {
+            SynchronisationException, UploadSessionExpired {
 
         // Read response from connection
         final int responseCode = response.getStatusCode();
+        final String responseMessage = response.getStatusMessage();
         final String responseBody;
         try {
             responseBody = readResponseBody(response, jsonFactory);
-            return handleSuccess(new HttpResponse(responseCode, responseBody));
+            return handleSuccess(new HttpResponse(responseCode, responseBody, responseMessage));
         } catch (GoogleJsonResponseException e) {
             final GoogleJsonError details = e.getDetails();
             if (details != null) {
-                return handleError(new HttpResponse(responseCode, details.getMessage()));
+                return handleError(new HttpResponse(responseCode, details.getMessage(), responseMessage));
             }
             // TODO: Our server should only add JSON bodies to error responses or else there is no
             // way to read the error body with the Google API client library
-            return handleError(new HttpResponse(responseCode, e.toString()));
+            return handleError(new HttpResponse(responseCode, e.toString(), responseMessage));
         }
     }
 
@@ -478,7 +486,7 @@ public class HttpConnection implements Http {
 
     private Result handleError(HttpResponse response)
             throws BadRequestException, UnauthorizedException, ForbiddenException, ConflictException,
-            EntityNotParsableException, InternalServerErrorException, TooManyRequestsException {
+            EntityNotParsableException, InternalServerErrorException, TooManyRequestsException, UploadSessionExpired {
 
         // Handle known error responses
         final int responseCode = response.getResponseCode();
@@ -492,6 +500,13 @@ public class HttpConnection implements Http {
             case HttpURLConnection.HTTP_FORBIDDEN:
                 Log.w(TAG, "403: The authorized user has no permissions to post measurements");
                 throw new ForbiddenException(response.getBody());
+            case HttpURLConnection.HTTP_NOT_FOUND:
+                if (response.getResponseMessage().equals("Session Not Found")) {
+                    Log.w(TAG, "404: The upload session expired");
+                    throw new UploadSessionExpired(response.getBody());
+                } else {
+                    throw new IllegalStateException("Unknown error code: " + responseCode);
+                }
             case HttpURLConnection.HTTP_CONFLICT:
                 Log.w(TAG, "409: The measurement already exists on the server.");
                 throw new ConflictException(response.getBody());

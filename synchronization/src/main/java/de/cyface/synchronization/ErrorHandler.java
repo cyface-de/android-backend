@@ -41,7 +41,7 @@ import de.cyface.utils.Validate;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
@@ -203,6 +203,10 @@ public class ErrorHandler extends BroadcastReceiver {
                 errorMessage = context.getString(R.string.error_message_host_unresolvable);
                 break;
 
+            case UPLOAD_SESSION_EXPIRED:
+                errorMessage = context.getString(R.string.error_message_upload_session_expired);
+                break;
+
             default:
                 errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_unknown_error);
         }
@@ -216,19 +220,19 @@ public class ErrorHandler extends BroadcastReceiver {
      * A list of known Errors which are thrown by the Cyface SDK.
      *
      * @author Armin Schnabel
-     * @version 1.1.3
+     * @version 1.2.0
      * @since 1.0.0
      */
     public enum ErrorCode {
 
         UNKNOWN(0), UNAUTHORIZED(1), MALFORMED_URL(2), UNREADABLE_HTTP_RESPONSE(3), SERVER_UNAVAILABLE(
                 4), NETWORK_ERROR(5), DATABASE_ERROR(6), AUTHENTICATION_ERROR(7), AUTHENTICATION_CANCELED(
-                        8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10), SSL_CERTIFICATE_UNKNOWN(
-                                11), BAD_REQUEST(12), FORBIDDEN(13), INTERNAL_SERVER_ERROR(
-                                        14), ENTITY_NOT_PARSABLE(
-                                                15), NETWORK_UNAVAILABLE(
-                                                        16), SYNCHRONIZATION_INTERRUPTED(
-                                                                17), TOO_MANY_REQUESTS(18), HOST_UNRESOLVABLE(19);
+                8), SYNCHRONIZATION_ERROR(9), DATA_TRANSMISSION_ERROR(10), SSL_CERTIFICATE_UNKNOWN(
+                11), BAD_REQUEST(12), FORBIDDEN(13), INTERNAL_SERVER_ERROR(
+                14), ENTITY_NOT_PARSABLE(
+                15), NETWORK_UNAVAILABLE(
+                16), SYNCHRONIZATION_INTERRUPTED(
+                17), TOO_MANY_REQUESTS(18), HOST_UNRESOLVABLE(19), UPLOAD_SESSION_EXPIRED(20);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;

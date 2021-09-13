@@ -39,6 +39,7 @@ import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UploadSessionExpired;
 
 /**
  * An interface for http connections.
@@ -141,5 +142,5 @@ interface Http {
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException,
-            MeasurementTooLarge;
+            MeasurementTooLarge, UploadSessionExpired;
 }
