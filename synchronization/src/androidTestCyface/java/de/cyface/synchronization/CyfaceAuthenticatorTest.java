@@ -18,18 +18,13 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
 import static org.junit.Assert.assertThat;
-
-import org.junit.After;
-import org.junit.Before;
-import org.junit.Test;
-import org.junit.runner.RunWith;
+import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
+import static de.cyface.synchronization.TestUtils.AUTHORITY;
+import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 
 import android.accounts.Account;
 import android.accounts.AccountManager;
@@ -41,9 +36,15 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Ignore;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
 
@@ -57,8 +58,7 @@ import de.cyface.utils.Validate;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-@FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
-           // required an actual api)
+@Ignore("because it requires an actual api")
 public class CyfaceAuthenticatorTest {
 
     private AccountManager accountManager;

@@ -38,6 +38,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -57,7 +58,6 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
@@ -132,7 +132,8 @@ public class UploadProgressTest {
     }
 
     @Test
-    @FlakyTest // TODO [MOV-683]: this is currently still dependent on a real test api (see logcat)
+    // TODO [MOV-683]: See logcat - still uses an actual API
+    @Ignore("this is currently still dependent on a real test api")
     public void testUploadProgressHappyPath() throws CursorIsNullException, NoSuchMeasurementException {
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);

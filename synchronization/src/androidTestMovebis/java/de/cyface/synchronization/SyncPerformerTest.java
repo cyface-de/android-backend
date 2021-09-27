@@ -41,6 +41,7 @@ import javax.net.ssl.SSLContext;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -53,7 +54,6 @@ import android.content.SyncResult;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
@@ -215,7 +215,7 @@ public class SyncPerformerTest {
      * `res/raw/truststore.jks`
      */
     @Test
-    @FlakyTest // still uses an actual API. Flaky currently means it's not executed in the mock flavour test
+    @Ignore("Still uses an actual API")
     public void testSendData_toActualApi() throws CursorIsNullException, NoSuchMeasurementException {
 
         // Arrange
