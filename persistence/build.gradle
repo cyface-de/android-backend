@@ -27,10 +27,6 @@
 
 plugins {
     id 'de.cyface.android-publish' version '1.0.0'
-    id 'com.google.protobuf' version '0.8.16'
-    // To download the `measurement.proto` file and to generate `java-lite` files required here
-    //noinspection SpellCheckingInspection
-    id 'de.undercouch.download'
 }
 
 android {
@@ -40,7 +36,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceBackendVersion
+        versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -68,27 +64,9 @@ android {
         options.compilerArgs << '-Xlint:unchecked'
         options.deprecation = true
     }*/
-
-    // To add the `measurement.proto` file (downloadAndUnzipProto task) to the sourceSet
-    sourceSets {
-        main {
-            proto {
-                // In addition to the default 'src/main/proto'
-                srcDir "build/protos-${rootProject.ext.cyfaceProtosVersion}/src/main/proto"
-            }
-        }
-        test {
-            proto {
-                srcDir "build/protos-${rootProject.ext.cyfaceProtosVersion}/src/main/proto"
-            }
-        }
-    }
 }
 
 dependencies {
-    // Protocol Buffer: generate java files
-    implementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
-
     // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
@@ -99,6 +77,7 @@ dependencies {
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    api "de.cyface:serializer:$rootProject.ext.cyfaceBackendVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
@@ -114,41 +93,3 @@ dependencies {
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 }
-
-// Gradle Protocol Buffer Plugin: https://github.com/google/protobuf-gradle-plugin
-protobuf {
-    protoc {
-        artifact = "com.google.protobuf:protoc:$protobufVersion"
-    }
-    generateProtoTasks {
-        //noinspection GroovyAssignabilityCheck
-        all().each { task ->
-            // Explicit dependency or else Gradle 7 shows a warning (implicit dependency)
-            task.dependsOn downloadAndUnzipProto
-            task.builtins {
-                java {
-                    option "lite"
-                }
-            }
-        }
-    }
-}
-
-// Download the `measurement.proto` file to compile the `java-lite` proto classes
-// Instead of dependency: `protobuf "de.cyface:protos:$rootProject.ext.cyfaceProtosVersion"`
-// - `protobuf` loads our proto *and* the google proto -> collision w/dependency of java-lite
-// - `implementation` also loads the java classes, which we don't want
-// - `protobuf` instead of `implementation` as we want to re-compile the proto files
-// - issue: https://github.com/google/protobuf-gradle-plugin/issues/503
-// - Thus, we download the zip, extract the proto file of ours and include the sourceSets for now
-tasks.register("downloadProto", Download) {
-    src "https://github.com/cyface-de/protos/archive/refs/tags/${cyfaceProtosVersion}.zip"
-    dest "$buildDir/protos-${cyfaceProtosVersion}.zip"
-    overwrite false // only download if not existent
-}
-tasks.register("downloadAndUnzipProto", Copy) {
-    dependsOn "downloadProto"
-    from zipTree(downloadProto.dest)
-    into buildDir
-}
-preBuild.dependsOn downloadAndUnzipProto

@@ -53,14 +53,15 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import de.cyface.model.MeasurementIdentifier;
+import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
@@ -179,7 +180,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 // Load measurement data
                 final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
                         measurement.getIdentifier(), provider, authority);
-                final MetaData metaData = loadMetaData(measurement, persistence, deviceId, context);
+                final RequestMetaData metaData = loadMetaData(measurement, persistence, deviceId, context);
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
@@ -340,10 +341,10 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
      * @param persistence The {@link PersistenceLayer} to load track data required
      * @param deviceId The device identifier generated for this device
      * @param context The {@code Context} to load the version name of this SDK
-     * @return The {@link MetaData} loaded
+     * @return The {@link RequestMetaData} loaded
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
-    private MetaData loadMetaData(@NonNull final Measurement measurement,
+    private RequestMetaData loadMetaData(@NonNull final Measurement measurement,
             PersistenceLayer<DefaultPersistenceBehaviour> persistence, @NonNull final String deviceId,
             @NonNull final Context context) throws CursorIsNullException {
 
@@ -355,11 +356,20 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         }
         Validate.isTrue(tracks.size() == 0 || (tracks.get(0).getGeoLocations().size() > 0
                 && tracks.get(tracks.size() - 1).getGeoLocations().size() > 0));
-        final List<GeoLocation> lastTrack = tracks.size() > 0 ? tracks.get(tracks.size() - 1).getGeoLocations() : null;
+        final List<ParcelableGeoLocation> lastTrack = tracks.size() > 0 ? tracks.get(tracks.size() - 1).getGeoLocations() : null;
+        final var id = new MeasurementIdentifier(deviceId, measurement.getIdentifier());
         @Nullable
-        final GeoLocation startLocation = tracks.size() > 0 ? tracks.get(0).getGeoLocations().get(0) : null;
+        RequestMetaData.GeoLocation startLocation = null;
+        if (tracks.size() > 0) {
+            final var l = tracks.get(0).getGeoLocations().get(0);
+            startLocation = new RequestMetaData.GeoLocation(l.getTimestamp(), l.getLat(), l.getLon());
+        }
         @Nullable
-        final GeoLocation endLocation = lastTrack != null ? lastTrack.get(lastTrack.size() - 1) : null;
+        RequestMetaData.GeoLocation endLocation = null;
+        if (lastTrack != null) {
+            final var l = lastTrack.get(lastTrack.size() - 1);
+            endLocation = new RequestMetaData.GeoLocation(l.getTimestamp(), l.getLat(), l.getLon());
+        }
 
         // Non location meta data
         final String deviceType = android.os.Build.MODEL;
@@ -372,8 +382,10 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             throw new IllegalStateException(e);
         }
 
-        return new MetaData(startLocation, endLocation, deviceId, measurement.getIdentifier(), deviceType, osVersion,
-                appVersion, measurement.getDistance(), locationCount, measurement.getModality());
+        return new RequestMetaData(deviceId, String.valueOf(measurement.getIdentifier()), osVersion,
+                deviceType, appVersion, measurement.getDistance(), locationCount, startLocation, endLocation,
+                measurement.getModality().getDatabaseIdentifier(),
+                RequestMetaData.CURRENT_TRANSFER_FILE_FORMAT_VERSION);
     }
 
     /**
@@ -400,41 +412,5 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
 
     private void addConnectionListener(@NonNull final ConnectionStatusListener listener) {
         progressListener.add(listener);
-    }
-
-    /**
-     * Meta data which is required in the Multipart header to transfer files to the API.
-     *
-     * @author Armin Schnabel
-     * @version 2.0.0
-     * @since 4.0.0
-     */
-    static class MetaData {
-        final GeoLocation startLocation;
-        final GeoLocation endLocation;
-        final String deviceId;
-        final long measurementId;
-        final String deviceType;
-        final String osVersion;
-        final String appVersion;
-        final double length;
-        final int locationCount;
-        final Modality modality;
-
-        MetaData(@Nullable final GeoLocation startLocation, @Nullable final GeoLocation endLocation,
-                @NonNull final String deviceId, final long measurementId, @NonNull final String deviceType,
-                @NonNull final String osVersion, @NonNull final String appVersion, final double length,
-                final int locationCount, @NonNull Modality modality) {
-            this.startLocation = startLocation;
-            this.endLocation = endLocation;
-            this.deviceId = deviceId;
-            this.measurementId = measurementId;
-            this.deviceType = deviceType;
-            this.osVersion = osVersion;
-            this.appVersion = appVersion;
-            this.length = length;
-            this.locationCount = locationCount;
-            this.modality = modality;
-        }
     }
 }

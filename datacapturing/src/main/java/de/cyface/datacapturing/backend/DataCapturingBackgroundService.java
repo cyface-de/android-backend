@@ -66,12 +66,12 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.PlaceholderNotificationBuilder;
@@ -142,11 +142,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     EventHandlingStrategy eventHandlingStrategy;
     /**
-     * The strategy used to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs
+     * The strategy used to calculate the {@link Measurement#getDistance()} from {@link ParcelableGeoLocation} pairs
      */
     DistanceCalculationStrategy distanceCalculationStrategy;
     /**
-     * The strategy used to filter the received {@link GeoLocation}s
+     * The strategy used to filter the received {@link ParcelableGeoLocation}s
      */
     LocationCleaningStrategy locationCleaningStrategy;
     /**
@@ -154,9 +154,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     CapturingPersistenceBehaviour capturingBehaviour;
     /**
-     * The last captured {@link GeoLocation} used to calculate the distance to the next {@code GeoLocation}.
+     * The last captured {@link ParcelableGeoLocation} used to calculate the distance to the next {@code GeoLocation}.
      */
-    private GeoLocation lastLocation = null;
+    private ParcelableGeoLocation lastLocation = null;
     /**
      * The {@link Measurement#getDistance()} in meters until the last location update.
      */
@@ -387,9 +387,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                 : new GeoLocationStatusListener(locationManager);
         final SensorManager sensorManager = (SensorManager)getSystemService(Context.SENSOR_SERVICE);
         Validate.notNull(sensorManager);
-        //noinspection SpellCheckingInspection
+        // noinspection SpellCheckingInspection
         final HandlerThread geoLocationEventHandlerThread = new HandlerThread("de.cyface.locationhandler");
-        //noinspection SpellCheckingInspection
+        // noinspection SpellCheckingInspection
         final HandlerThread sensorEventHandlerThread = new HandlerThread("de.cyface.sensoreventhandler");
         return new GeoLocationCapturingProcess(locationManager, sensorManager, locationStatusHandler,
                 geoLocationEventHandlerThread, sensorEventHandlerThread, sensorFrequency);
@@ -432,9 +432,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        final List<Point3d> accelerations = data.getAccelerations();
-        final List<Point3d> rotations = data.getRotations();
-        final List<Point3d> directions = data.getDirections();
+        final List<ParcelablePoint3D> accelerations = data.getAccelerations();
+        final List<ParcelablePoint3D> rotations = data.getRotations();
+        final List<ParcelablePoint3D> directions = data.getDirections();
         final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
         for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
@@ -450,18 +450,18 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      *
-     * @param completeList The {@link List<Point3d>} to extract a subset from
+     * @param completeList The {@link List<  ParcelablePoint3D  >} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
-    private @NonNull List<Point3d> sampleSubList(final @NonNull List<Point3d> completeList, final int fromIndex) {
+    private @NonNull List<ParcelablePoint3D> sampleSubList(final @NonNull List<ParcelablePoint3D> completeList, final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
         return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override
-    public void onLocationCaptured(@NonNull final GeoLocation newLocation) {
+    public void onLocationCaptured(@NonNull final ParcelableGeoLocation newLocation) {
 
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");

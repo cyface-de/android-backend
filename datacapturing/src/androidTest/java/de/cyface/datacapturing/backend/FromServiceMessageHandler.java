@@ -30,7 +30,7 @@ import android.util.Log;
 
 import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.utils.Validate;
 
 /**
@@ -69,7 +69,7 @@ class FromServiceMessageHandler extends Handler {
                 break;
             case MessageCodes.LOCATION_CAPTURED:
                 dataBundle.setClassLoader(getClass().getClassLoader());
-                GeoLocation location = dataBundle.getParcelable("data");
+                ParcelableGeoLocation location = dataBundle.getParcelable("data");
                 Validate.notNull(location);
                 Log.d(TAG, String.format("Test received location %f,%f", location.getLat(), location.getLon()));
                 break;

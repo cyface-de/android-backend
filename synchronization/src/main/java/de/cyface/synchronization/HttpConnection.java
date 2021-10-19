@@ -20,7 +20,6 @@ package de.cyface.synchronization;
 
 import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
 import static de.cyface.persistence.Constants.TRANSFER_FILE_EXTENSION;
-import static de.cyface.persistence.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -63,6 +62,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.model.RequestMetaData;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -222,18 +222,18 @@ public class HttpConnection implements Http {
     }
 
     @Override
-    public Result upload(final URL url, final String jwtAuthToken, final SyncAdapter.MetaData metaData,
-            final File file, final UploadProgressListener progressListener)
+    public Result upload(final URL url, final String jwtToken, final RequestMetaData metaData,
+                         final File file, final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable,
             ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired {
 
         try {
-            final String fileName = String.format(Locale.US, "%s_%d." + TRANSFER_FILE_EXTENSION,
-                    metaData.deviceId, metaData.measurementId);
+            final String fileName = String.format(Locale.US, "%s_%s." + TRANSFER_FILE_EXTENSION,
+                    metaData.getDeviceIdentifier(), metaData.getMeasurementIdentifier());
             Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url.toString()));
-            final String jwtBearer = "Bearer " + jwtAuthToken;
+            final String jwtBearer = "Bearer " + jwtToken;
 
             // Uploader
             final InputStreamContent mediaContent = new InputStreamContent("application/octet-stream",
@@ -372,37 +372,38 @@ public class HttpConnection implements Http {
     }
 
     /**
-     * Assembles a {@code HttpContent} object which contains the {@link SyncAdapter.MetaData}.
+     * Assembles a {@code HttpContent} object which contains the metadata.
      *
-     * @param metaData The {@link SyncAdapter.MetaData} to convert.
+     * @param metaData The metadata to convert.
      * @return The meta data as {@code HttpContent}.
      */
-    static Map<String, String> preRequestBody(final SyncAdapter.MetaData metaData) {
+    static Map<String, String> preRequestBody(final RequestMetaData metaData) {
         final Map<String, String> attributes = new HashMap<>();
 
         // Location meta data
-        if (metaData.startLocation != null) {
-            attributes.put("startLocLat", String.valueOf(metaData.startLocation.getLat()));
-            attributes.put("startLocLon", String.valueOf(metaData.startLocation.getLon()));
-            attributes.put("startLocTS", String.valueOf(metaData.startLocation.getTimestamp()));
+        if (metaData.getStartLocation() != null) {
+            attributes.put("startLocLat", String.valueOf(metaData.getStartLocation().getLatitude()));
+            attributes.put("startLocLon", String.valueOf(metaData.getStartLocation().getLongitude()));
+            attributes.put("startLocTS", String.valueOf(metaData.getStartLocation().getTimestamp()));
         }
-        if (metaData.endLocation != null) {
-            attributes.put("endLocLat", String.valueOf(metaData.endLocation.getLat()));
-            attributes.put("endLocLon", String.valueOf(metaData.endLocation.getLon()));
-            attributes.put("endLocTS", String.valueOf(metaData.endLocation.getTimestamp()));
+        if (metaData.getEndLocation() != null) {
+            attributes.put("endLocLat", String.valueOf(metaData.getEndLocation().getLatitude()));
+            attributes.put("endLocLon", String.valueOf(metaData.getEndLocation().getLongitude()));
+            attributes.put("endLocTS", String.valueOf(metaData.getEndLocation().getTimestamp()));
         }
-        attributes.put("locationCount", String.valueOf(metaData.locationCount));
+        attributes.put("locationCount", String.valueOf(metaData.getLocationCount()));
 
         // Remaining meta data
-        attributes.put("deviceId", metaData.deviceId);
-        attributes.put("measurementId", Long.valueOf(metaData.measurementId).toString());
-        attributes.put("deviceType", metaData.deviceType);
-        attributes.put("osVersion", metaData.osVersion);
-        attributes.put("appVersion", metaData.appVersion);
-        attributes.put("length", String.valueOf(metaData.length));
+        attributes.put("deviceId", metaData.getDeviceIdentifier());
+        attributes.put("measurementId", metaData.getMeasurementIdentifier());
+        attributes.put("deviceType", metaData.getDeviceType());
+        attributes.put("osVersion", metaData.getOperatingSystemVersion());
+        attributes.put("appVersion", metaData.getApplicationVersion());
+        attributes.put("length", String.valueOf(metaData.getLength()));
+        // FIXME: I changed this from `vehicle` to `modality` => add this to the API migration guide
         // To support the API specification we may not change the "vehicle" key name of the modality
-        attributes.put("vehicle", String.valueOf(metaData.modality.getDatabaseIdentifier()));
-        attributes.put("formatVersion", String.valueOf(TRANSFER_FILE_FORMAT_VERSION));
+        attributes.put("modality", String.valueOf(metaData.getModality()));
+        attributes.put("formatVersion", String.valueOf(metaData.getFormatVersion()));
 
         return attributes;
     }
@@ -501,12 +502,9 @@ public class HttpConnection implements Http {
                 Log.w(TAG, "403: The authorized user has no permissions to post measurements");
                 throw new ForbiddenException(response.getBody());
             case HttpURLConnection.HTTP_NOT_FOUND:
-                if (response.getResponseMessage().equals("Session Not Found")) {
-                    Log.w(TAG, "404: The upload session expired");
-                    throw new UploadSessionExpired(response.getBody());
-                } else {
-                    throw new IllegalStateException("Unknown error code: " + responseCode);
-                }
+                // This code is thrown if the upload is expired. Client should restart upload.
+                Log.w(TAG, "404: Did the upload session expire? Try again.");
+                throw new UploadSessionExpired(response.getBody());
             case HttpURLConnection.HTTP_CONFLICT:
                 Log.w(TAG, "409: The measurement already exists on the server.");
                 throw new ConflictException(response.getBody());
@@ -558,7 +556,7 @@ public class HttpConnection implements Http {
             final InputStream errorStream = connection.getErrorStream();
 
             // Return empty string if there were no errors, connection is not connected or server sent no useful data.
-            // This occurred e.g. on Xaomi Mi A1 after disabling WiFi instantly after sync start
+            // This occurred e.g. on Xiaomi Mi A1 after disabling WiFi instantly after sync start
             if (errorStream == null) {
                 return "";
             }

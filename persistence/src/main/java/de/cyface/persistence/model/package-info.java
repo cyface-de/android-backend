@@ -1,7 +1,7 @@
 /**
  * This package contains model classes required by the persistence layer to store captured data.
  * <p>
- * There are {@link de.cyface.persistence.model.DataPoint}s captured at a certain point in time identified by a
+ * There are {@link de.cyface.persistence.model.ParcelablePoint3D}s captured at a certain point in time identified by a
  * timestamp in milliseconds since 1.1.1970.
  * 
  * @author Klemens Muthmann

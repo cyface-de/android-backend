@@ -22,7 +22,7 @@ import android.location.Location;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 
 /**
@@ -73,7 +73,7 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
     }
 
     @Override
-    public double calculateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
+    public double calculateDistance(@NonNull ParcelableGeoLocation lastLocation, @NonNull ParcelableGeoLocation newLocation) {
 
         final Location previousLocation = new Location(DEFAULT_PROVIDER);
         final Location nextLocation = new Location(DEFAULT_PROVIDER);

@@ -10,7 +10,7 @@ import android.os.Parcelable;
  * @version 3.0.0
  * @since 1.0.0
  */
-public final class Point3d extends DataPoint {
+public final class ParcelablePoint3D extends DataPoint implements de.cyface.model.Point3D {
     /**
      * The x component of the data point.
      */
@@ -25,7 +25,7 @@ public final class Point3d extends DataPoint {
     private final float z;
 
     /**
-     * Creates a new completely initialized <code>Point3d</code>.
+     * Creates a new completely initialized <code>Point3D</code>.
      *
      * @param identifier The database wide unique identifier of this data point.
      * @param x The x component of the data point.
@@ -33,7 +33,7 @@ public final class Point3d extends DataPoint {
      * @param z The z component of the data point.
      * @param timestamp The time when this point was measured in milliseconds since 1.1.1970.
      */
-    public Point3d(final Long identifier, final float x, final float y, final float z, final long timestamp) {
+    public ParcelablePoint3D(final Long identifier, final float x, final float y, final float z, final long timestamp) {
         super(identifier, timestamp);
         this.x = x;
         this.y = y;
@@ -41,14 +41,14 @@ public final class Point3d extends DataPoint {
     }
 
     /**
-     * Creates a new completely initialized <code>Point3d</code>.
+     * Creates a new completely initialized <code>Point3D</code>.
      *
      * @param x The x component of the data point.
      * @param y The y component of the data point.
      * @param z The z component of the data point.
      * @param timestamp The time when this point was measured in milliseconds since 1.1.1970.
      */
-    public Point3d(final float x, final float y, final float z, final long timestamp) {
+    public ParcelablePoint3D(final float x, final float y, final float z, final long timestamp) {
         this(null, x, y, z, timestamp);
     }
 
@@ -89,9 +89,9 @@ public final class Point3d extends DataPoint {
     /**
      * Recreates this point from the provided <code>Parcel</code>.
      *
-     * @param in Serialized form of a <code>Point3d</code>.
+     * @param in Serialized form of a <code>Point3D</code>.
      */
-    public Point3d(final Parcel in) {
+    public ParcelablePoint3D(final Parcel in) {
         super(in);
         this.x = in.readFloat();
         this.y = in.readFloat();
@@ -114,16 +114,16 @@ public final class Point3d extends DataPoint {
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
      */
-    public static final Parcelable.Creator<Point3d> CREATOR = new Parcelable.Creator<Point3d>() {
+    public static final Parcelable.Creator<ParcelablePoint3D> CREATOR = new Parcelable.Creator<>() {
 
         @Override
-        public Point3d createFromParcel(Parcel source) {
-            return new Point3d(source);
+        public ParcelablePoint3D createFromParcel(Parcel source) {
+            return new ParcelablePoint3D(source);
         }
 
         @Override
-        public Point3d[] newArray(int size) {
-            return new Point3d[size];
+        public ParcelablePoint3D[] newArray(int size) {
+            return new ParcelablePoint3D[size];
         }
     };
 }

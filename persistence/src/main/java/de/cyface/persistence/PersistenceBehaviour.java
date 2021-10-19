@@ -21,6 +21,7 @@ package de.cyface.persistence;
 import android.content.ContentProvider;
 import androidx.annotation.NonNull;
 
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -39,7 +40,7 @@ public interface PersistenceBehaviour {
     /**
      * This is called in the {@code Persistence}'s constructor.
      */
-    void onStart(@NonNull PersistenceLayer persistenceLayer);
+    void onStart(@SuppressWarnings("rawtypes") @NonNull PersistenceLayer persistenceLayer);
 
     /**
      * This is called after a {@link PersistenceLayer#newMeasurement(Modality)} was created.

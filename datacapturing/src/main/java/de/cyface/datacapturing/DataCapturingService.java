@@ -76,11 +76,11 @@ import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -188,11 +188,11 @@ public abstract class DataCapturingService {
      */
     private final EventHandlingStrategy eventHandlingStrategy;
     /**
-     * The strategy used to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs
+     * The strategy used to calculate the {@link Measurement#getDistance()} from {@link ParcelableGeoLocation} pairs
      */
     private final DistanceCalculationStrategy distanceCalculationStrategy;
     /**
-     * The strategy used to filter the {@link GeoLocation}s
+     * The strategy used to filter the {@link ParcelableGeoLocation}s
      */
     private final LocationCleaningStrategy locationCleaningStrategy;
     /**
@@ -223,7 +223,7 @@ public abstract class DataCapturingService {
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#getDistance()}
      * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
-     *            {@link GeoLocation}s
+     *            {@link ParcelableGeoLocation}s
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -1246,7 +1246,7 @@ public abstract class DataCapturingService {
 
             switch (messageCode) {
                 case MessageCodes.LOCATION_CAPTURED:
-                    final GeoLocation location = parcel.getParcelable("data");
+                    final ParcelableGeoLocation location = parcel.getParcelable("data");
                     if (location == null) {
                         listener.onErrorState(
                                 new DataCapturingException(context.getString(R.string.missing_data_error)));

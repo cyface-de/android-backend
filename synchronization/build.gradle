@@ -39,7 +39,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceBackendVersion
+        versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -61,9 +61,13 @@ android {
         cyface {
             dimension "project"
         }
+        //noinspection SpellCheckingInspection
         mock {
             dimension "mode"
             // Excludes flaky tests that are trying to access a Cyface server.
+            // [DAT-795] This annotation does not ignore tests marked with `@FlakyTest` anymore
+            // ./gradlew module:cAT -Pandroid.testInstrumentationRunnerArguments.notAnnotation=androidx.test.filters.FlakyTest
+            // still works when disabling this line
             testInstrumentationRunnerArgument "notAnnotation", "androidx.test.filters.FlakyTest"
         }
         full {
@@ -130,9 +134,7 @@ dependencies {
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
-    // Both, test- and androidTest dependency required or else androidTests fail
-    testImplementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
-    androidTestImplementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
+    testImplementation "de.cyface:deserializer:$rootProject.ext.cyfaceBackendVersion"
     // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"

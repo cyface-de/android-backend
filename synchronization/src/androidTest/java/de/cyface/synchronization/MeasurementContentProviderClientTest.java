@@ -128,7 +128,7 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1.0f);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
             for (int i = 0; i < numberOftestEntries; i++) {
                 geoLocationValuesArray[i] = geoLocationValues;
@@ -208,7 +208,7 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1L);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1.0f);
 
             // Insert GeoLocations
             client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);

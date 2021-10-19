@@ -20,15 +20,16 @@ package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.DefaultFileAccess.humanReadableSize;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;
-import static de.cyface.persistence.serialization.Point3dFile.ACCELERATIONS_FILE_EXTENSION;
-import static de.cyface.persistence.serialization.Point3dFile.ACCELERATIONS_FOLDER_NAME;
-import static de.cyface.persistence.serialization.Point3dFile.DIRECTIONS_FOLDER_NAME;
-import static de.cyface.persistence.serialization.Point3dFile.DIRECTION_FILE_EXTENSION;
-import static de.cyface.persistence.serialization.Point3dFile.ROTATIONS_FOLDER_NAME;
-import static de.cyface.persistence.serialization.Point3dFile.ROTATION_FILE_EXTENSION;
+import static de.cyface.persistence.serialization.Point3DFile.ACCELERATIONS_FILE_EXTENSION;
+import static de.cyface.persistence.serialization.Point3DFile.ACCELERATIONS_FOLDER_NAME;
+import static de.cyface.persistence.serialization.Point3DFile.DIRECTIONS_FOLDER_NAME;
+import static de.cyface.persistence.serialization.Point3DFile.DIRECTION_FILE_EXTENSION;
+import static de.cyface.persistence.serialization.Point3DFile.ROTATIONS_FOLDER_NAME;
+import static de.cyface.persistence.serialization.Point3DFile.ROTATION_FILE_EXTENSION;
+import static de.cyface.serializer.DataSerializable.humanReadableSize;
+import static de.cyface.serializer.DataSerializable.transferFileHeader;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -50,10 +51,8 @@ import de.cyface.persistence.EventTable;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.serialization.proto.EventSerializer;
-import de.cyface.persistence.serialization.proto.LocationSerializer;
 import de.cyface.protos.model.Event;
 import de.cyface.protos.model.LocationRecords;
 import de.cyface.protos.model.MeasurementBytes;
@@ -83,26 +82,26 @@ public class TransferFileSerializer {
      * @param bufferedOutputStream The {@link OutputStream} to which the serialized data should be written. Injecting
      *            this allows us to compress the serialized data without the need to write it into a temporary file.
      *            We require a {@link BufferedOutputStream} for performance reasons.
-     * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link GeoLocation}s.
+     * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link ParcelableGeoLocation}s.
      * @param measurementIdentifier The id of the {@code Measurement} to load
      * @param persistence The {@code PersistenceLayer} to access file based data
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public static void loadSerialized(@NonNull final BufferedOutputStream bufferedOutputStream,
             @NonNull final MeasurementContentProviderClient loader, final long measurementIdentifier,
-            @NonNull final PersistenceLayer persistence) throws CursorIsNullException {
+            @SuppressWarnings("rawtypes") @NonNull final PersistenceLayer persistence) throws CursorIsNullException {
 
         // Load data from ContentProvider
         final List<Event> events = loadEvents(loader);
         final LocationRecords locationRecords = loadLocations(loader);
 
         // Using the modified `MeasurementBytes` class to inject the sensor bytes without parsing
-        final MeasurementBytes.Builder builder = MeasurementBytes.newBuilder()
+        final var builder = MeasurementBytes.newBuilder()
                 .setFormatVersion(TRANSFER_FILE_FORMAT_VERSION)
                 .addAllEvents(events)
                 .setLocationRecords(locationRecords);
 
-        // Get already serialized Point3dFiles
+        // Get already serialized Point3DFiles
         final File accelerationFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
                 measurementIdentifier, ACCELERATIONS_FOLDER_NAME, ACCELERATIONS_FILE_EXTENSION);
         final File rotationFile = persistence.getFileAccessLayer().getFilePath(persistence.getContext(),
@@ -135,7 +134,7 @@ public class TransferFileSerializer {
         // Currently loading the whole measurement into memory (~ 5MB / hour serialized).
         // - To add high-res image data in the future we cannot use the pre-compiled builder but
         // have to stream the image data without loading it into memory to avoid an OOM exception.
-        final byte[] transferFileHeader = MeasurementSerializer.transferFileHeader(measurement);
+        final byte[] transferFileHeader = transferFileHeader();
         final byte[] measurementBytes = builder.build().toByteArray();
         try {
             // The stream must be closed by the called in a finally catch

@@ -20,9 +20,9 @@ package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
-import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
-import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
-import static de.cyface.persistence.serialization.Point3dType.ROTATION;
+import static de.cyface.serializer.model.Point3DType.ACCELERATION;
+import static de.cyface.serializer.model.Point3DType.DIRECTION;
+import static de.cyface.serializer.model.Point3DType.ROTATION;
 
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
@@ -37,13 +37,13 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -69,15 +69,15 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     /**
      * The file to write the acceleration points to.
      */
-    private Point3dFile accelerationsFile;
+    private Point3DFile accelerationsFile;
     /**
      * The file to write the rotation points to.
      */
-    private Point3dFile rotationsFile;
+    private Point3DFile rotationsFile;
     /**
      * The file to write the direction points to.
      */
-    private Point3dFile directionsFile;
+    private Point3DFile directionsFile;
     /**
      * A reference to the {@link PersistenceLayer} which implements this behaviour to access it's methods.
      */
@@ -119,13 +119,13 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
             return;
         }
         if (accelerationsFile == null) {
-            accelerationsFile = new Point3dFile(persistenceLayer.getContext(), measurementIdentifier, ACCELERATION);
+            accelerationsFile = new Point3DFile(persistenceLayer.getContext(), measurementIdentifier, ACCELERATION);
         }
         if (rotationsFile == null) {
-            rotationsFile = new Point3dFile(persistenceLayer.getContext(), measurementIdentifier, ROTATION);
+            rotationsFile = new Point3DFile(persistenceLayer.getContext(), measurementIdentifier, ROTATION);
         }
         if (directionsFile == null) {
-            directionsFile = new Point3dFile(persistenceLayer.getContext(), measurementIdentifier, DIRECTION);
+            directionsFile = new Point3DFile(persistenceLayer.getContext(), measurementIdentifier, DIRECTION);
         }
 
         final CapturedDataWriter writer = new CapturedDataWriter(data, accelerationsFile, rotationsFile, directionsFile,
@@ -140,10 +140,10 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * @param location The geo location to store.
      * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
-    public void storeLocation(final @NonNull GeoLocation location, final long measurementIdentifier) {
+    public void storeLocation(final @NonNull ParcelableGeoLocation location, final long measurementIdentifier) {
 
         final ContentValues values = new ContentValues();
-        values.put(GeoLocationsTable.COLUMN_ACCURACY, Math.round(location.getAccuracy()));
+        values.put(GeoLocationsTable.COLUMN_ACCURACY, location.getAccuracy());
         values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, location.getTimestamp());
         values.put(GeoLocationsTable.COLUMN_LAT, location.getLat());
         values.put(GeoLocationsTable.COLUMN_LON, location.getLon());

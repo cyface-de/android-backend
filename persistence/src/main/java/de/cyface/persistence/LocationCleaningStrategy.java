@@ -26,11 +26,11 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 
 /**
- * Interface for strategies to filter ("clean") {@link GeoLocation}s captured by
+ * Interface for strategies to filter ("clean") {@link ParcelableGeoLocation}s captured by
  * {@code DataCapturingBackgroundService#onLocationCaptured()} events.
  * <p>
  * Must be {@code Parcelable} to be passed from the {@code DataCapturingService} via {@code Intent}.
@@ -42,16 +42,16 @@ import de.cyface.persistence.model.Measurement;
 public interface LocationCleaningStrategy extends Parcelable {
 
     /**
-     * Implements a strategy to filter {@link GeoLocation}s.
+     * Implements a strategy to filter {@link ParcelableGeoLocation}s.
      *
      * @param location The {@code GeoLocation} to be checked
      * @return {@code True} if the {@code GeoLocation} is considered "clean" by this strategy.
      */
-    boolean isClean(@NonNull final GeoLocation location);
+    boolean isClean(@NonNull final ParcelableGeoLocation location);
 
     /**
-     * Implements the SQL-equivalent to load only the "cleaned" {@link GeoLocation}s with the same filters as in the
-     * {@link #isClean(GeoLocation)} implementation.
+     * Implements the SQL-equivalent to load only the "cleaned" {@link ParcelableGeoLocation}s with the same filters as in the
+     * {@link #isClean(ParcelableGeoLocation)} implementation.
      * <p>
      * <b>Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
      * {@code Cursor} is always closed after use. The cursor cannot be closed within this implementation as it's
@@ -60,7 +60,7 @@ public interface LocationCleaningStrategy extends Parcelable {
      * @param resolver {@code ContentResolver} that provides access to the {@link MeasuringPointsContentProvider}.
      * @param measurementId The identifier for the {@link Measurement} to load the track for.
      * @param geoLocationsUri The content provider {@link Uri} for the {@link GeoLocationsTable}.
-     * @return The {@code Cursor} which points to the "clean" {@link GeoLocation}s in the database.
+     * @return The {@code Cursor} which points to the "clean" {@link ParcelableGeoLocation}s in the database.
      */
     @Nullable
     Cursor loadCleanedLocations(@NonNull final ContentResolver resolver, final long measurementId,

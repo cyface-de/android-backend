@@ -26,10 +26,10 @@ import org.junit.Before;
 import org.junit.Test;
 
 import de.cyface.persistence.DefaultLocationCleaningStrategy;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 
 /**
- * Tests that the {@link GeoLocation}s are filtered as expected.
+ * Tests that the {@link ParcelableGeoLocation}s are filtered as expected.
  *
  * @author Armin Schnabel
  * @version 1.0.2
@@ -48,16 +48,16 @@ public class DefaultLocationCleaningStrategyTest {
     }
 
     /**
-     * Tests if the accuracy filter for {@link GeoLocation}s works as expected.
+     * Tests if the accuracy filter for {@link ParcelableGeoLocation}s works as expected.
      */
     @Test
     public void testIsClean_accuracyFilter() {
 
         // Arrange
-        final GeoLocation locationWithGoodEnoughAccuracy = new GeoLocation(51.1, 13.1,
-                1000000000L, 5.0, 1999f);
-        final GeoLocation locationWithJustTooBadAccuracy = new GeoLocation(51.1, 13.1,
-                1000000000L, 5.0, 2000f);
+        final ParcelableGeoLocation locationWithGoodEnoughAccuracy = new ParcelableGeoLocation(51.1, 13.1,
+                1000000000L, 5.0, 19.99);
+        final ParcelableGeoLocation locationWithJustTooBadAccuracy = new ParcelableGeoLocation(51.1, 13.1,
+                1000000000L, 5.0, 20);
         // Mock - nothing to do
 
         // Act
@@ -70,18 +70,18 @@ public class DefaultLocationCleaningStrategyTest {
     }
 
     /**
-     * Tests if the speed filter for {@link GeoLocation}s works as expected.
+     * Tests if the speed filter for {@link ParcelableGeoLocation}s works as expected.
      */
     @Test
     public void testIsClean_speedFilter() {
 
         // Arrange
-        final GeoLocation locationWithHighEnoughSpeed = new GeoLocation(51.1, 13.1,
-                1000000000L, 1.01, 500f);
-        final GeoLocation locationWithJustTooLowSpeed = new GeoLocation(51.1, 13.1,
-                1000000000L, 1.0, 500f);
-        final GeoLocation locationWithJustTooHighSpeed = new GeoLocation(51.1, 13.1,
-                1000000000L, 100.0, 500f);
+        final ParcelableGeoLocation locationWithHighEnoughSpeed = new ParcelableGeoLocation(51.1, 13.1,
+                1000000000L, 1.01, 5f);
+        final ParcelableGeoLocation locationWithJustTooLowSpeed = new ParcelableGeoLocation(51.1, 13.1,
+                1000000000L, 1.0, 5f);
+        final ParcelableGeoLocation locationWithJustTooHighSpeed = new ParcelableGeoLocation(51.1, 13.1,
+                1000000000L, 100.0, 5f);
         // Mock - nothing to do
 
         // Act

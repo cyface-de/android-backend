@@ -19,8 +19,6 @@
 package de.cyface.persistence.serialization;
 
 import static de.cyface.persistence.Constants.TAG;
-import static de.cyface.persistence.DefaultFileAccess.humanReadableSize;
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -32,7 +30,6 @@ import java.util.zip.Deflater;
 import java.util.zip.DeflaterOutputStream;
 import java.util.zip.Inflater;
 
-import android.content.ContentProvider;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
@@ -99,10 +96,11 @@ public final class MeasurementSerializer {
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data from
      * @return A {@link File} pointing to a temporary file containing the serialized compressed data for transfer.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws CursorIsNullException If {@code ContentProvider} was inaccessible.
      */
     public File writeSerializedCompressed(@NonNull final MeasurementContentProviderClient loader,
-            final long measurementId, @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException {
+            final long measurementId, @SuppressWarnings("rawtypes") @NonNull final PersistenceLayer persistenceLayer)
+            throws CursorIsNullException {
 
         // Store the compressed bytes into a temp file to be able to read the byte size for transmission
         final File cacheDir = persistenceLayer.getCacheDir();
@@ -133,13 +131,14 @@ public final class MeasurementSerializer {
      * @param loader {@link MeasurementContentProviderClient} to load the {@code Measurement} data from the database.
      * @param measurementId The id of the {@link Measurement} to load
      * @param persistenceLayer The {@link PersistenceLayer} to load the file based {@code Measurement} data
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     * @throws CursorIsNullException If {@code ContentProvider} was inaccessible.
      * @throws IOException When flushing or closing the {@link OutputStream} fails
      */
     @SuppressWarnings("SpellCheckingInspection")
     private void loadSerializedCompressed(@NonNull final OutputStream fileOutputStream,
             @NonNull final MeasurementContentProviderClient loader, final long measurementId,
-            @NonNull final PersistenceLayer persistenceLayer) throws CursorIsNullException, IOException {
+            @SuppressWarnings("rawtypes") @NonNull final PersistenceLayer persistenceLayer)
+            throws CursorIsNullException, IOException {
 
         Log.d(TAG, "loadSerializedCompressed: start");
         final long startTimestamp = System.currentTimeMillis();
@@ -161,25 +160,5 @@ public final class MeasurementSerializer {
         }
         Log.d(TAG, "loadSerializedCompressed: finished after " + ((System.currentTimeMillis() - startTimestamp) / 1000)
                 + " s with Deflater Level: " + DEFLATER_LEVEL);
-    }
-
-    /**
-     * Creates the header field for a serialized {@link Measurement} in big endian format for synchronization.
-     *
-     * (!) Attention: Changes to this format must be discussed with compatible API providers.
-     *
-     * @param measurement the {@code Measurement} to generate the transfer file header for.
-     * @return The header byte array.
-     */
-    static byte[] transferFileHeader(final Measurement measurement) {
-        Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION, "Unsupported");
-
-        byte[] ret = new byte[SHORT_BYTES];
-        // noinspection ConstantConditions
-        ret[0] = (byte)(TRANSFER_FILE_FORMAT_VERSION >> 8);
-        ret[1] = (byte)TRANSFER_FILE_FORMAT_VERSION;
-
-        Log.v(TAG, String.format("Serialized %s fileHeader.", humanReadableSize(ret.length, true)));
-        return ret;
     }
 }

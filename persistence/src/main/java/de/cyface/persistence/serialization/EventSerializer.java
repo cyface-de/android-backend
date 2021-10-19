@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.serialization.proto;
+package de.cyface.persistence.serialization;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -27,7 +27,6 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
 import de.cyface.persistence.EventTable;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.protos.model.Event;
 import de.cyface.utils.Validate;
 
@@ -80,6 +79,7 @@ public class EventSerializer {
                 Validate.isTrue(value.length() <= Math.pow(2, 32));
                 builder.setValue(value);
             }
+            events.add(builder.build());
         }
     }
 

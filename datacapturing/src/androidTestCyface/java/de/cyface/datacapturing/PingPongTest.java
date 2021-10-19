@@ -51,7 +51,7 @@ import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
-import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.utils.CursorIsNullException;
@@ -132,16 +132,13 @@ public class PingPongTest {
         final DataCapturingListener testListener = new TestListener();
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
-                            TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener,
-                            100);
-                } catch (SetupException | CursorIsNullException e) {
-                    throw new IllegalStateException(e);
-                }
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            try {
+                dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
+                        TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener,
+                        100);
+            } catch (SetupException | CursorIsNullException e) {
+                throw new IllegalStateException(e);
             }
         });
 
@@ -223,5 +220,4 @@ public class PingPongTest {
         assertThat(testCallback.didTimeOut(), is(equalTo(true)));
         assertThat(testCallback.wasRunning(), is(equalTo(false)));
     }
-
 }

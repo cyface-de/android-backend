@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.serializer.DataSerializable.humanReadableSize;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -38,6 +39,7 @@ import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 import org.mockito.Mock;
@@ -50,16 +52,15 @@ import android.content.SyncResult;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.model.MeasurementIdentifier;
+import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -78,8 +79,8 @@ import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UploadSessionExpired;
 import de.cyface.utils.CursorIsNullException;
-
 import de.cyface.utils.Validate;
 
 /**
@@ -97,8 +98,8 @@ import de.cyface.utils.Validate;
 public class SyncPerformerTest {
 
     // ATTENTION: Depending on the API you test against, you might also need to replace the res/raw/truststore.jks
-    private final static String TEST_API_URL = "https://REPLACE.WITH.URL:1234"; // never use a non-numeric port here!
-    private final static String TEST_TOKEN = "ey-REPLACE-WITH-TOKEN";
+    private final static String TEST_API_URL = "http://localhost:8080"; // never use a non-numeric port here!
+    private final static String TEST_TOKEN = "ey*****";
 
     private Context context;
     private ContentResolver contentResolver;
@@ -135,7 +136,7 @@ public class SyncPerformerTest {
             ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
             UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
             NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException,
-            HostUnresolvable, MeasurementTooLarge {
+            HostUnresolvable, MeasurementTooLarge, UploadSessionExpired {
 
         // Arrange
         // Insert data to be synced
@@ -159,23 +160,29 @@ public class SyncPerformerTest {
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
                     measurement.getIdentifier(), persistence);
             Log.d(TAG, "CompressedTransferTempFile size: "
-                    + DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true));
+                    + humanReadableSize(compressedTransferTempFile.length(), true));
 
             // Prepare transmission
             final SyncResult syncResult = new SyncResult();
 
             // Load meta data
             final List<Track> tracks = persistence.loadTracks(measurementIdentifier);
-            final GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
-            final List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
-            final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
-            final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "testDeviceId",
-                    measurementIdentifier, "testDeviceType", "testOsVersion", "testAppVersion",
-                    measurement.getDistance(), locationCount, Modality.BICYCLE);
+            final var startLocation = tracks.get(0).getGeoLocations().get(0);
+            final var lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
+            final var endLocation = lastTrack.get(lastTrack.size() - 1);
+            final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
+            final var startRecord = new RequestMetaData.GeoLocation(startLocation.getTimestamp(), startLocation.getLat(),
+                    startLocation.getLon());
+            final var endRecord = new RequestMetaData.GeoLocation(endLocation.getTimestamp(), endLocation.getLat(),
+                    endLocation.getLon());
+            final var metaData = new RequestMetaData(deviceId, String.valueOf(measurementIdentifier),
+                    "testOsVersion", "testDeviceType", "testAppVersion",
+                    measurement.getDistance(), locationCount, startRecord, endRecord,
+                    Modality.BICYCLE.getDatabaseIdentifier(), 2);
 
             // Mock the actual post request
             doThrow(new ConflictException("Test ConflictException"))
-                    .when(mockedHttp).upload(any(URL.class), anyString(), any(SyncAdapter.MetaData.class),
+                    .when(mockedHttp).upload(any(URL.class), anyString(), any(RequestMetaData.class),
                             any(File.class), any(UploadProgressListener.class));
 
             // Act
@@ -187,7 +194,7 @@ public class SyncPerformerTest {
 
                 // Assert:
                 verify(mockedHttp, times(1)).upload(any(URL.class), anyString(),
-                        any(SyncAdapter.MetaData.class), any(File.class), any(UploadProgressListener.class));
+                        any(RequestMetaData.class), any(File.class), any(UploadProgressListener.class));
                 // because of the ConflictException true should be returned
                 assertThat(result, is(equalTo(HttpConnection.Result.UPLOAD_SUCCESSFUL)));
                 // Make sure the ConflictException is actually called (instead of no exception because of mock)
@@ -204,12 +211,12 @@ public class SyncPerformerTest {
 
     @SuppressWarnings("RedundantSuppression")
     @Test
-    @FlakyTest // still uses an actual API. Flaky currently means it's not executed in the mock flavour test
+    @Ignore("Still uses an actual API")
     public void testUpload_toActualApi() throws IOException, CursorIsNullException, NoSuchMeasurementException,
             BadRequestException, EntityNotParsableException, ForbiddenException, ConflictException,
             NetworkUnavailableException, SynchronizationInterruptedException, InternalServerErrorException,
             SynchronisationException, UnauthorizedException, TooManyRequestsException, HostUnresolvable,
-            ServerUnavailableException, MeasurementTooLarge {
+            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired {
 
         // Arrange
         // 24 hours test data ~ 108 MB which is more then the currently supported upload size (100)
@@ -224,9 +231,9 @@ public class SyncPerformerTest {
         try (final ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
             Validate.notNull(client, String.format("Unable to acquire client for content provider %s", AUTHORITY));
             file = loadSerializedCompressed(client, measurementIdentifier);
-            final SyncAdapter.MetaData metaData = loadMetaData(measurement, locationCount);
+            final var metaData = loadMetaData(measurement, locationCount);
 
-            final URL url = new URL(String.format("%s/measurements", TEST_API_URL + "/api/v3/"));
+            final URL url = new URL(String.format("%s%s/measurements", TEST_API_URL, "/api/v3"));
 
             // Act
             final HttpConnection.Result result = new HttpConnection().upload(url, TEST_TOKEN, metaData, file,
@@ -253,19 +260,19 @@ public class SyncPerformerTest {
      */
     @SuppressWarnings("RedundantSuppression")
     @Test
-    @FlakyTest // still uses an actual API. Flaky currently means it's not executed in the mock flavour test
+    @Ignore("Still uses an actual API")
     public void testSendData_toActualApi() throws CursorIsNullException, NoSuchMeasurementException {
 
         // Arrange
         // Adjust depending on your test case: (600k, 3k) ~ 27 MB compressed data ~ 5 min test execution
         // noinspection PointlessArithmeticExpression
-        final int point3dCount = 600 * 1_000;
+        final var point3DCount = 600 * 1_000;
         // noinspection PointlessArithmeticExpression
         final int locationCount = 3 * 1_000;
 
         // Insert data to be synced
-        final Measurement measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
-                persistence, point3dCount, locationCount);
+        final var measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
+                persistence, point3DCount, locationCount);
         final long measurementIdentifier = measurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
@@ -273,7 +280,7 @@ public class SyncPerformerTest {
         try (final ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
             Validate.notNull(client, String.format("Unable to acquire client for content provider %s", AUTHORITY));
             final File compressedTransferTempFile = loadSerializedCompressed(client, measurementIdentifier);
-            final SyncAdapter.MetaData metaData = loadMetaData(measurement, locationCount);
+            final var metaData = loadMetaData(measurement, locationCount);
 
             // Prepare transmission
             final SyncResult syncResult = new SyncResult();
@@ -289,17 +296,23 @@ public class SyncPerformerTest {
         }
     }
 
-    private SyncAdapter.MetaData loadMetaData(Measurement measurement,
+    private RequestMetaData loadMetaData(Measurement measurement,
             @SuppressWarnings("SameParameterValue") int locationCount) throws CursorIsNullException {
         // Load meta data
         final List<Track> tracks = persistence.loadTracks(measurement.getIdentifier());
-        final GeoLocation startLocation = tracks.get(0).getGeoLocations().get(0);
-        final List<GeoLocation> lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
-        final GeoLocation endLocation = lastTrack.get(lastTrack.size() - 1);
+        final var startLocation = tracks.get(0).getGeoLocations().get(0);
+        final var lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
+        final var endLocation = lastTrack.get(lastTrack.size() - 1);
         final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
-        return new SyncAdapter.MetaData(startLocation, endLocation, deviceId,
-                measurement.getIdentifier(), "testDeviceType", "testOsVersion", "testAppVersion",
-                measurement.getDistance(), locationCount, Modality.BICYCLE);
+        final var id = new MeasurementIdentifier(deviceId, measurement.getIdentifier());
+        final var startRecord = new RequestMetaData.GeoLocation(startLocation.getTimestamp(), startLocation.getLat(),
+                startLocation.getLon());
+        final var endRecord = new RequestMetaData.GeoLocation(endLocation.getTimestamp(), endLocation.getLat(),
+                endLocation.getLon());
+        return new RequestMetaData(deviceId, String.valueOf(id.getMeasurementIdentifier()),
+                "testOsVersion", "testDeviceType", "testAppVersion",
+                measurement.getDistance(), locationCount, startRecord, endRecord,
+                Modality.BICYCLE.getDatabaseIdentifier(), 2);
     }
 
     private File loadSerializedCompressed(ContentProviderClient client, long measurementIdentifier)
@@ -312,7 +325,7 @@ public class SyncPerformerTest {
         final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurementIdentifier,
                 persistence);
         Log.d(TAG, "CompressedTransferTempFile size: "
-                + DefaultFileAccess.humanReadableSize(compressedTransferTempFile.length(), true));
+                + humanReadableSize(compressedTransferTempFile.length(), true));
         return compressedTransferTempFile;
     }
 }

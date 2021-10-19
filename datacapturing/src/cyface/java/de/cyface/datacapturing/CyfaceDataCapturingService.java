@@ -43,9 +43,9 @@ import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -81,7 +81,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
      *            {@link Measurement#getDistance()}
      * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
-     *            {@link GeoLocation}s
+     *            {@link ParcelableGeoLocation}s
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
      *            capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum

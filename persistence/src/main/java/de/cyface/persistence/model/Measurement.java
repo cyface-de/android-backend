@@ -55,7 +55,7 @@ public final class Measurement {
      */
     private final short fileFormatVersion;
     /**
-     * The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
+     * The distance of this {@link Measurement} based on its {@link ParcelableGeoLocation}s in meters.
      */
     private final double distance;
     /**
@@ -74,7 +74,7 @@ public final class Measurement {
      * @param modality The {@link Modality} used in this {@link Measurement}.
      * @param fileFormatVersion The {@link PersistenceLayer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the
      *            data in the file persistence layer of for this {@link Measurement}.
-     * @param distance The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
+     * @param distance The distance of this {@link Measurement} based on its {@link ParcelableGeoLocation}s in meters.
      * @param timestamp The Unix timestamp in milliseconds indicating the start time of the measurement.
      */
     public Measurement(final long id, @NonNull final MeasurementStatus status, @NonNull final Modality modality,

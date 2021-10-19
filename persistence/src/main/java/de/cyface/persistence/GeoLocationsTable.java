@@ -25,11 +25,12 @@ import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
-import de.cyface.persistence.model.GeoLocation;
+
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 
 /**
- * Table for storing {@link GeoLocation} measuring points. The data in this table is intended for storage prior to
+ * Table for storing {@link ParcelableGeoLocation} measuring points. The data in this table is intended for storage prior to
  * processing it by either transfer to a server or export to some external file or device.
  *
  * @author Klemens Muthmann
@@ -44,28 +45,28 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
      */
     final static String URI_PATH = "locations";
     /**
-     * Column name for the column storing the {@link GeoLocation} timestamp.
+     * Column name for the column storing the {@link ParcelableGeoLocation} timestamp.
      */
     public static final String COLUMN_GEOLOCATION_TIME = "gps_time";
     /**
-     * Column name for the column storing the {@link GeoLocation} latitude.
+     * Column name for the column storing the {@link ParcelableGeoLocation} latitude.
      */
     public static final String COLUMN_LAT = "lat";
     /**
-     * Column name for the column storing the {@link GeoLocation} longitude.
+     * Column name for the column storing the {@link ParcelableGeoLocation} longitude.
      */
     public static final String COLUMN_LON = "lon";
     /**
-     * Column name for the column storing the {@link GeoLocation} speed in meters per second.
+     * Column name for the column storing the {@link ParcelableGeoLocation} speed in meters per second.
      */
     public static final String COLUMN_SPEED = "speed";
     /**
-     * Column name for the column storing the {@link GeoLocation} accuracy in centimeters.
+     * Column name for the column storing the {@link ParcelableGeoLocation} accuracy in meters.
      */
     public static final String COLUMN_ACCURACY = "accuracy";
     /**
      * Column name for the column storing the foreign key referencing the {@link Measurement} for this
-     * {@link GeoLocation}.
+     * {@link ParcelableGeoLocation}.
      */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
     /**
@@ -85,7 +86,7 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_GEOLOCATION_TIME + " INTEGER NOT NULL, " + COLUMN_LAT + " REAL NOT NULL, " + COLUMN_LON
-                + " REAL NOT NULL, " + COLUMN_SPEED + " REAL NOT NULL, " + COLUMN_ACCURACY + " INTEGER NOT NULL, "
+                + " REAL NOT NULL, " + COLUMN_SPEED + " REAL NOT NULL, " + COLUMN_ACCURACY + " REAL NOT NULL, "
                 + COLUMN_MEASUREMENT_FK + " INTEGER NOT NULL);";
     }
 
@@ -101,7 +102,6 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
-        //noinspection SwitchStatementWithTooFewBranches - for readability
         switch (fromVersion) {
 
             case 8:
@@ -109,8 +109,38 @@ public class GeoLocationsTable extends AbstractCyfaceMeasurementTable {
                 migrateDatabaseFromV8(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
+
+            case 16:
+                Log.d(TAG, "Upgrading geoLocation table from V16");
+                migrateDatabaseFromV16(database);
+
+                break; // onUpgrade is called incrementally by DatabaseHelper
         }
 
+    }
+
+    /**
+     * Renames table, updates the table structure and copies the data.
+     *
+     * @param database The {@code SQLiteDatabase} to upgrade
+     */
+    private void migrateDatabaseFromV16(@NonNull final SQLiteDatabase database) {
+
+        // To alter columns we copy the table.
+        database.execSQL("ALTER TABLE locations RENAME TO _locations_old;");
+
+        // Create new table with the changed `accuracy` column type
+        database.execSQL("CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
+                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy REAL NOT NULL, "
+                + "measurement_fk INTEGER NOT NULL);");
+
+        // Insert the old data. Attention: accuracy 100cm is now 100.0m, see next step
+        database.execSQL("INSERT INTO locations " + "(_id,gps_time,lat,lon,speed,accuracy,measurement_fk) "
+                + "SELECT _id,gps_time,lat,lon,speed,CAST(accuracy as REAL)/100,measurement_fk "
+                + "FROM _locations_old");
+
+        // Remove temp table
+        database.execSQL("DROP TABLE _locations_old;");
     }
 
     /**

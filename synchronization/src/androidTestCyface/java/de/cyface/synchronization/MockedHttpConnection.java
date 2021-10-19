@@ -27,6 +27,7 @@ import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.model.RequestMetaData;
 import de.cyface.synchronization.exception.SynchronisationException;
 
 /**
@@ -71,7 +72,7 @@ final class MockedHttpConnection implements Http {
     }
 
     @Override
-    public HttpConnection.Result upload(URL url, String jwtBearer, SyncAdapter.MetaData metaData, File file,
+    public HttpConnection.Result upload(URL url, String jwtBearer, RequestMetaData metaData, File file,
             UploadProgressListener progressListener) {
         progressListener.updatedProgress(1.0f); // 100%
         return HttpConnection.Result.UPLOAD_SUCCESSFUL;

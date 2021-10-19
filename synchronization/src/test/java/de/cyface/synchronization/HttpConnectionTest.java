@@ -18,7 +18,7 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.generateRequestMetaDataGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
@@ -28,7 +28,8 @@ import java.util.Map;
 
 import org.junit.Test;
 
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.model.MeasurementIdentifier;
+import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.model.Modality;
 
 /**
@@ -46,10 +47,13 @@ public class HttpConnectionTest {
     @Test
     public void testPreRequestBody() {
 
-        final GeoLocation startLocation = generateGeoLocation(0);
-        final GeoLocation endLocation = generateGeoLocation(10);
-        final SyncAdapter.MetaData metaData = new SyncAdapter.MetaData(startLocation, endLocation, "test-did", 78,
-                "test_deviceType", "test_osVersion", "test_appVersion", 10.0, 5, Modality.BICYCLE);
+        final var deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
+        final var id = new MeasurementIdentifier(deviceId, 78);
+        final var startLocation = generateRequestMetaDataGeoLocation(0);
+        final var endLocation = generateRequestMetaDataGeoLocation(10);
+        final var metaData = new RequestMetaData(id.getDeviceIdentifier(),
+                String.valueOf(id.getMeasurementIdentifier()), "test_osVersion", "test_deviceType", "test_appVersion",
+                10.0, 5, startLocation, endLocation, Modality.BICYCLE.getDatabaseIdentifier(), 2);
 
         // Act
         final Map<String, String> result = HttpConnection.preRequestBody(metaData);
@@ -62,14 +66,14 @@ public class HttpConnectionTest {
         expected.put("endLocLat", "51.10008993199995");
         expected.put("endLocLon", "13.100000270697");
         expected.put("endLocTS", "1000010000");
-        expected.put("deviceId", "test-did");
+        expected.put("deviceId", deviceId);
         expected.put("measurementId", "78");
         expected.put("deviceType", "test_deviceType");
         expected.put("osVersion", "test_osVersion");
         expected.put("appVersion", "test_appVersion");
         expected.put("length", "10.0");
         expected.put("locationCount", "5");
-        expected.put("vehicle", "BICYCLE");
+        expected.put("modality", "BICYCLE");
         expected.put("formatVersion", "2");
         assertThat(result, is(equalTo(expected)));
     }

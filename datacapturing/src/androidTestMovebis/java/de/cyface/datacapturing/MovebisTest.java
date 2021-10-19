@@ -31,6 +31,7 @@ import java.util.concurrent.locks.ReentrantLock;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
@@ -171,6 +172,7 @@ public final class MovebisTest {
      * FlakyTest: This integration test may be dependent on position / location updates on real devices.
      */
     @Test
+    @Ignore("Flaky both locally and also on the CI [CY-5713]")
     @SdkSuppress(minSdkVersion = 28) // Only succeeded on (Pixel 2) API 28 emulators (only on the CI)
     public void testUiLocationUpdateLifecycle() {
 

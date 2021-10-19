@@ -27,7 +27,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -63,7 +63,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "file_format_version";
     /**
-     * Column name for the distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
+     * Column name for the distance of this {@link Measurement} based on its {@link ParcelableGeoLocation}s in meters.
      */
     public static final String COLUMN_DISTANCE = "distance";
     /**
@@ -281,19 +281,19 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 // Calculate distance for selected measurement
                 final DistanceCalculationStrategy distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
                 double distance = 0.0;
-                GeoLocation previousLocation = null;
+                ParcelableGeoLocation previousLocation = null;
                 while (geoLocationCursor.moveToNext()) {
                     final int latColumnIndex = geoLocationCursor.getColumnIndexOrThrow("lat");
                     final int lonColumnIndex = geoLocationCursor.getColumnIndexOrThrow("lon");
                     final int timeColumnIndex = geoLocationCursor.getColumnIndexOrThrow("gps_time");
                     final int speedColumnIndex = geoLocationCursor.getColumnIndexOrThrow("speed");
                     final int accuracyColumnIndex = geoLocationCursor.getColumnIndexOrThrow("accuracy");
-                    final double lat = geoLocationCursor.getFloat(latColumnIndex);
-                    final double lon = geoLocationCursor.getFloat(lonColumnIndex);
+                    final double lat = geoLocationCursor.getDouble(latColumnIndex);
+                    final double lon = geoLocationCursor.getDouble(lonColumnIndex);
                     final long time = geoLocationCursor.getLong(timeColumnIndex);
-                    final float speed = geoLocationCursor.getFloat(speedColumnIndex);
-                    final int accuracy = geoLocationCursor.getInt(accuracyColumnIndex);
-                    final GeoLocation geoLocation = new GeoLocation(lat, lon, time, speed, accuracy);
+                    final double speed = geoLocationCursor.getDouble(speedColumnIndex);
+                    final double accuracy = geoLocationCursor.getDouble(accuracyColumnIndex);
+                    final ParcelableGeoLocation geoLocation = new ParcelableGeoLocation(lat, lon, time, speed, accuracy);
 
                     // We cannot calculate a distance from just one geoLocation:
                     if (previousLocation == null) {

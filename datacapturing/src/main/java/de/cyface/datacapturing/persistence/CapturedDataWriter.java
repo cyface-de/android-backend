@@ -5,7 +5,7 @@ import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import android.util.Log;
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3DFile;
 
 /**
  * A class responsible for writing captured sensor data to the underlying persistence layer.
@@ -29,17 +29,17 @@ public class CapturedDataWriter implements Runnable {
      */
     private final CapturedData data;
     /**
-     * The {@link Point3dFile} to write acceleration points to.
+     * The {@link Point3DFile} to write acceleration points to.
      */
-    private final Point3dFile accelerationsFile;
+    private final Point3DFile accelerationsFile;
     /**
-     * The {@link Point3dFile} to write rotation points to.
+     * The {@link Point3DFile} to write rotation points to.
      */
-    private final Point3dFile rotationsFile;
+    private final Point3DFile rotationsFile;
     /**
-     * The {@link Point3dFile} to write direction points to.
+     * The {@link Point3DFile} to write direction points to.
      */
-    private final Point3dFile directionsFile;
+    private final Point3DFile directionsFile;
     /**
      * Callback which is called after writing data has finished.
      */
@@ -54,9 +54,9 @@ public class CapturedDataWriter implements Runnable {
      * @param directionsFile The file to write the data to.
      * @param callback Callback which is called after writing data has finished.
      */
-    CapturedDataWriter(final @NonNull CapturedData data, @NonNull final Point3dFile accelerationsFile,
-            @NonNull final Point3dFile rotationsFile, @NonNull final Point3dFile directionsFile,
-            final @NonNull WritingDataCompletedCallback callback) {
+    CapturedDataWriter(final @NonNull CapturedData data, @NonNull final Point3DFile accelerationsFile,
+                       @NonNull final Point3DFile rotationsFile, @NonNull final Point3DFile directionsFile,
+                       final @NonNull WritingDataCompletedCallback callback) {
         this.data = data;
         this.accelerationsFile = accelerationsFile;
         this.rotationsFile = rotationsFile;

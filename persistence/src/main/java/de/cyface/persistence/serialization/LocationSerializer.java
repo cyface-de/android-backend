@@ -16,15 +16,16 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.serialization.proto;
+package de.cyface.persistence.serialization;
 
 import android.database.Cursor;
 
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.protos.model.LocationRecords;
+import de.cyface.serializer.Formatter;
+import de.cyface.serializer.LocationOffsetter;
 import de.cyface.utils.Validate;
 
 /**
@@ -66,12 +67,14 @@ public class LocationSerializer {
                     .getLong(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
             final double latitude = cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT));
             final double longitude = cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON));
-            final double speedMps = cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED));
-            final int accuracyCm = cursor.getInt(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY));
+            final double speedMeterPerSecond = cursor
+                    .getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED));
+            final double accuracy = cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY));
 
             // The proto serializer expects some fields in a different format and in offset-format
-            final Formatter.Location formatted = new Formatter.Location(timestamp, latitude, longitude, speedMps,
-                    accuracyCm);
+            final Formatter.Location formatted = new Formatter.Location(timestamp, latitude, longitude,
+                    speedMeterPerSecond,
+                    accuracy);
             final Formatter.Location offsets = offsetter.offset(formatted);
 
             builder.addTimestamp(offsets.getTimestamp())

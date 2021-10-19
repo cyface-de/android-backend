@@ -18,13 +18,13 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;
-
 import java.io.IOException;
 
 import com.google.api.client.http.HttpHeaders;
 import com.google.api.client.http.HttpRequest;
 import com.google.api.client.http.HttpRequestInitializer;
+
+import de.cyface.model.RequestMetaData;
 
 /**
  * Assembles a request as requested to upload data.
@@ -41,7 +41,7 @@ public class RequestInitializeHandler implements HttpRequestInitializer {
     /**
      * The {@code MetaData} used to request the upload permission from the server.
      */
-    private final SyncAdapter.MetaData metaData;
+    private final RequestMetaData metaData;
 
     /**
      * Constructs a fully initialized instance of this class.
@@ -49,7 +49,7 @@ public class RequestInitializeHandler implements HttpRequestInitializer {
      * @param metaData the {@code MetaData} used to request the upload permission from the server
      * @param jwtBearer the JWT token to authenticate the upload requests
      */
-    public RequestInitializeHandler(SyncAdapter.MetaData metaData, String jwtBearer) {
+    public RequestInitializeHandler(RequestMetaData metaData, String jwtBearer) {
         this.jwtBearer = jwtBearer;
         this.metaData = metaData;
     }
@@ -65,29 +65,30 @@ public class RequestInitializeHandler implements HttpRequestInitializer {
         request.setHeaders(headers);
     }
 
-    private void addMetaData(SyncAdapter.MetaData metaData, HttpHeaders headers) {
+    private void addMetaData(final RequestMetaData metaData, final HttpHeaders headers) {
         // Location meta data
-        if (metaData.startLocation != null) {
-            headers.set("startLocLat", String.valueOf(metaData.startLocation.getLat()));
-            headers.set("startLocLon", String.valueOf(metaData.startLocation.getLon()));
-            headers.set("startLocTS", String.valueOf(metaData.startLocation.getTimestamp()));
+        if (metaData.getStartLocation() != null) {
+            headers.set("startLocLat", String.valueOf(metaData.getStartLocation().getLatitude()));
+            headers.set("startLocLon", String.valueOf(metaData.getStartLocation().getLongitude()));
+            headers.set("startLocTS", String.valueOf(metaData.getStartLocation().getTimestamp()));
         }
-        if (metaData.endLocation != null) {
-            headers.set("endLocLat", String.valueOf(metaData.endLocation.getLat()));
-            headers.set("endLocLon", String.valueOf(metaData.endLocation.getLon()));
-            headers.set("endLocTS", String.valueOf(metaData.endLocation.getTimestamp()));
+        if (metaData.getEndLocation() != null) {
+            headers.set("endLocLat", String.valueOf(metaData.getEndLocation().getLatitude()));
+            headers.set("endLocLon", String.valueOf(metaData.getEndLocation().getLongitude()));
+            headers.set("endLocTS", String.valueOf(metaData.getEndLocation().getTimestamp()));
         }
-        headers.set("locationCount", String.valueOf(metaData.locationCount));
+        headers.set("locationCount", String.valueOf(metaData.getLocationCount()));
 
         // Remaining meta data
-        headers.set("deviceId", metaData.deviceId);
-        headers.set("measurementId", Long.valueOf(metaData.measurementId).toString());
-        headers.set("deviceType", metaData.deviceType);
-        headers.set("osVersion", metaData.osVersion);
-        headers.set("appVersion", metaData.appVersion);
-        headers.set("length", String.valueOf(metaData.length));
+        headers.set("deviceId", metaData.getDeviceIdentifier());
+        headers.set("measurementId", Long.valueOf(metaData.getMeasurementIdentifier()).toString());
+        headers.set("deviceType", metaData.getDeviceType());
+        headers.set("osVersion", metaData.getOperatingSystemVersion());
+        headers.set("appVersion", metaData.getApplicationVersion());
+        headers.set("length", String.valueOf(metaData.getLength()));
+        // FIXME: changed from `vehicle` to `modality` => add to migration guide
         // To support the API v2 specification we may not change the "vehicle" key name of the modality
-        headers.set("vehicle", String.valueOf(metaData.modality.getDatabaseIdentifier()));
-        headers.set("formatVersion", String.valueOf(TRANSFER_FILE_FORMAT_VERSION));
+        headers.set("modality", String.valueOf(metaData.getModality()));
+        headers.set("formatVersion", String.valueOf(metaData.getFormatVersion()));
     }
 }

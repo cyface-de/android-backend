@@ -28,6 +28,7 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
+import org.junit.Ignore;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -41,9 +42,9 @@ import android.os.Bundle;
 import android.preference.PreferenceManager;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.filters.FlakyTest;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
 
@@ -57,8 +58,7 @@ import de.cyface.utils.Validate;
  */
 @RunWith(AndroidJUnit4.class)
 @LargeTest
-@FlakyTest // Flaky means (because of build.gradle) that this test is not executed in the Mock flavour (because it
-           // required an actual api)
+@Ignore("Because it requires an actual api")
 public class CyfaceAuthenticatorTest {
 
     private AccountManager accountManager;

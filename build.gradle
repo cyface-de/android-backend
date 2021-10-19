@@ -40,12 +40,12 @@ buildscript {
 
 ext {
     // This libraries version
-    cyfaceBackendVersion = "0.0.0"
+    cyfaceAndroidBackendVersion = "0.0.0"
 
     // Cyface dependencies
     cyfaceUtilsVersion = "3.2.1"
-    cyfaceProtosVersion = "0.0.3"
     protobufVersion = "3.17.3"
+    cyfaceBackendVersion = "5.0.0-beta1"
 
     // Android SDK versions
     minSdkVersion = 21

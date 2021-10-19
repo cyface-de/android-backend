@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Cyface GmbH
+ * Copyright 2018 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,31 +16,29 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.serialization;
+package de.cyface.persistence.exception;
 
-import de.cyface.persistence.model.Point3d;
+import androidx.annotation.NonNull;
+
+import de.cyface.persistence.PersistenceLayer;
 
 /**
- * The protocol for writing {@link Point3d}s such as accelerations, rotations and directions to a file.
+ * An <code>Exception</code> which occurs every time someone wants to load the device id from the
+ * {@link PersistenceLayer} when there is no such entry in the database.
  *
  * @author Armin Schnabel
  * @version 1.0.1
- * @since 3.0.0
+ * @since 4.0.0
  */
-public interface FileSupport<T> {
+public final class NoDeviceIdException extends Exception {
 
     /**
-     * Appends data to a file for a certain measurement.
+     * Creates a new completely initialized {@link NoDeviceIdException}, providing a detailed explanation
+     * about the error to the caller.
      *
-     * @param data The data to append.
+     * @param message The explanation of why this error occurred.
      */
-    void append(T data);
-
-    /**
-     * Creates a data representation from some serializable object.
-     *
-     * @param data A valid object to create a data in Cyface binary format representation for.
-     * @return The data in the Cyface binary format.
-     */
-    byte[] serialize(T data);
+    public NoDeviceIdException(final @NonNull String message) {
+        super(message);
+    }
 }

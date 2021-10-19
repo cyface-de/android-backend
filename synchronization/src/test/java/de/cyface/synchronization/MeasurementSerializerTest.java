@@ -23,10 +23,10 @@ import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VER
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSION_NOWRAP;
-import static de.cyface.persistence.serialization.Point3dType.ACCELERATION;
-import static de.cyface.persistence.serialization.Point3dType.DIRECTION;
-import static de.cyface.persistence.serialization.Point3dType.ROTATION;
 import static de.cyface.protos.model.Measurement.parseFrom;
+import static de.cyface.serializer.model.Point3DType.ACCELERATION;
+import static de.cyface.serializer.model.Point3DType.DIRECTION;
+import static de.cyface.serializer.model.Point3DType.ROTATION;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -69,22 +69,23 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 
+import de.cyface.deserializer.LocationDeserializer;
+import de.cyface.deserializer.Point3DDeserializer;
+import de.cyface.model.Point3DImpl;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
-import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Modality;
-import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.serialization.MeasurementSerializer;
-import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.persistence.serialization.TransferFileSerializer;
-import de.cyface.persistence.serialization.proto.Point3dSerializer;
 import de.cyface.protos.model.Measurement;
-import de.cyface.synchronization.serialization.proto.LocationDeserializer;
-import de.cyface.synchronization.serialization.proto.Point3dDeserializer;
+import de.cyface.serializer.GeoLocation;
+import de.cyface.serializer.Point3DSerializer;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -113,6 +114,7 @@ public class MeasurementSerializerTest {
     /**
      * A mock persistence layer, not accessing any files.
      */
+    @SuppressWarnings("rawtypes")
     @Mock
     PersistenceLayer persistence;
     /**
@@ -139,10 +141,9 @@ public class MeasurementSerializerTest {
     private final static int SAMPLE_DIRECTION_POINTS = 10;
     private final static int SAMPLE_GEO_LOCATIONS = 3;
     private final static double SAMPLE_DOUBLE_VALUE = 1.0;
-    private final static int SAMPLE_ACCURACY_VALUE = 1;
     private final static long SAMPLE_LONG_VALUE = 1L;
     private final static long SAMPLE_MEASUREMENT_ID = 1L;
-    private final static long SERIALIZED_MEASUREMENT_FILE_SIZE = 284L;
+    private final static long SERIALIZED_MEASUREMENT_FILE_SIZE = 285L;
 
     @Before
     public void setUp() throws RemoteException, CursorIsNullException {
@@ -169,29 +170,28 @@ public class MeasurementSerializerTest {
         when(geoLocationsCursor.getColumnIndexOrThrow(any(String.class))).thenReturn(sampleColumnIndex);
         when(geoLocationsCursor.getDouble(sampleColumnIndex)).thenReturn(SAMPLE_DOUBLE_VALUE);
         when(geoLocationsCursor.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
-        when(geoLocationsCursor.getInt(sampleColumnIndex)).thenReturn(SAMPLE_ACCURACY_VALUE);
 
-        // Mock load sample Point3dFile data
-        final List<Point3d> accelerations = new ArrayList<>();
-        final List<Point3d> rotations = new ArrayList<>();
-        final List<Point3d> directions = new ArrayList<>();
+        // Mock load sample Point3DFile data
+        final List<de.cyface.model.Point3D> accelerations = new ArrayList<>();
+        final List<de.cyface.model.Point3D> rotations = new ArrayList<>();
+        final List<de.cyface.model.Point3D> directions = new ArrayList<>();
         for (int i = 0; i < SAMPLE_ACCELERATION_POINTS; i++) {
-            accelerations.add(new Point3d((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
+            accelerations.add(new Point3DImpl((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
                     (float)SAMPLE_DOUBLE_VALUE, SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_ROTATION_POINTS; i++) {
-            rotations.add(new Point3d((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
+            rotations.add(new Point3DImpl((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
                     (float)SAMPLE_DOUBLE_VALUE, SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_DIRECTION_POINTS; i++) {
-            directions.add(new Point3d((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
+            directions.add(new Point3DImpl((float)SAMPLE_DOUBLE_VALUE, (float)SAMPLE_DOUBLE_VALUE,
                     (float)SAMPLE_DOUBLE_VALUE, SAMPLE_LONG_VALUE));
         }
-        final byte[] serializedAccelerations = Point3dSerializer.serialize(accelerations, ACCELERATION);
+        final byte[] serializedAccelerations = Point3DSerializer.serialize(accelerations, ACCELERATION);
         Validate.notNull(serializedAccelerations);
-        final byte[] serializedRotations = Point3dSerializer.serialize(rotations, ROTATION);
+        final byte[] serializedRotations = Point3DSerializer.serialize(rotations, ROTATION);
         Validate.notNull(serializedRotations);
-        final byte[] serializedDirections = Point3dSerializer.serialize(directions, DIRECTION);
+        final byte[] serializedDirections = Point3DSerializer.serialize(directions, DIRECTION);
         Validate.notNull(serializedDirections);
 
         // Mock persistence
@@ -199,13 +199,13 @@ public class MeasurementSerializerTest {
 
         // Mock FileAccessLayer
         when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
-                eq(Point3dFile.ACCELERATIONS_FOLDER_NAME), eq(Point3dFile.ACCELERATIONS_FILE_EXTENSION)))
+                eq(Point3DFile.ACCELERATIONS_FOLDER_NAME), eq(Point3DFile.ACCELERATIONS_FILE_EXTENSION)))
                         .thenReturn(mockedAccelerationFile);
         when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
-                eq(Point3dFile.ROTATIONS_FOLDER_NAME), eq(Point3dFile.ROTATION_FILE_EXTENSION)))
+                eq(Point3DFile.ROTATIONS_FOLDER_NAME), eq(Point3DFile.ROTATION_FILE_EXTENSION)))
                         .thenReturn(mockedRotationFile);
         when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
-                eq(Point3dFile.DIRECTIONS_FOLDER_NAME), eq(Point3dFile.DIRECTION_FILE_EXTENSION)))
+                eq(Point3DFile.DIRECTIONS_FOLDER_NAME), eq(Point3DFile.DIRECTION_FILE_EXTENSION)))
                         .thenReturn(mockedDirectionFile);
         when(mockedFileAccessLayer.loadBytes(mockedAccelerationFile)).thenReturn(serializedAccelerations);
         when(mockedFileAccessLayer.loadBytes(mockedRotationFile)).thenReturn(serializedRotations);
@@ -223,7 +223,7 @@ public class MeasurementSerializerTest {
     /**
      * Tests if serialization of a measurement is successful.
      * <p>
-     * This test checks that the binary header contains the correct {@link Point3d} counters.
+     * This test checks that the binary header contains the correct {@link ParcelablePoint3D} counters.
      */
     @Test
     public void testSerializeMeasurement() throws IOException, CursorIsNullException {
@@ -282,7 +282,7 @@ public class MeasurementSerializerTest {
     public void testSerializeCompressedMeasurement() throws CursorIsNullException {
 
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
-        final long SERIALIZED_COMPRESSED_SIZE = 91L; // When compression Deflater(level 9, true)
+        final long SERIALIZED_COMPRESSED_SIZE = 89L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
                 persistence);
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
@@ -356,34 +356,34 @@ public class MeasurementSerializerTest {
         // Convert back to the model format (from the offset/diff proto format)
         final List<GeoLocation> locations = LocationDeserializer.deserialize(measurement.getLocationRecords());
 
-        final List<Point3d> accelerations = Point3dDeserializer.deserialize(measurement.getAccelerations());
-        final List<Point3d> rotations = Point3dDeserializer.deserialize(measurement.getRotations());
-        final List<Point3d> directions = Point3dDeserializer.deserialize(measurement.getDirections());
+        final var accelerations = Point3DDeserializer.deserialize(measurement.getAccelerations());
+        final var rotations = Point3DDeserializer.deserialize(measurement.getRotations());
+        final var directions = Point3DDeserializer.deserialize(measurement.getDirections());
 
         for (int i = 0; i < SAMPLE_GEO_LOCATIONS; i++) {
             final GeoLocation entry = locations.get(i);
-            assertThat(entry.getAccuracy(), is((float)SAMPLE_ACCURACY_VALUE));
+            assertThat(entry.getAccuracy(), is(SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getLat(), is(SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getLon(), is(SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getSpeed(), is(SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_ACCELERATION_POINTS; i++) {
-            final Point3d entry = accelerations.get(i);
+            final de.cyface.model.Point3D entry = accelerations.get(i);
             assertThat(entry.getX(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getY(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getZ(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_ROTATION_POINTS; i++) {
-            final Point3d entry = rotations.get(i);
+            final de.cyface.model.Point3D entry = rotations.get(i);
             assertThat(entry.getX(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getY(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getZ(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getTimestamp(), is(SAMPLE_LONG_VALUE));
         }
         for (int i = 0; i < SAMPLE_DIRECTION_POINTS; i++) {
-            final Point3d entry = directions.get(i);
+            final de.cyface.model.Point3D entry = directions.get(i);
             assertThat(entry.getX(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getY(), is((float)SAMPLE_DOUBLE_VALUE));
             assertThat(entry.getZ(), is((float)SAMPLE_DOUBLE_VALUE));

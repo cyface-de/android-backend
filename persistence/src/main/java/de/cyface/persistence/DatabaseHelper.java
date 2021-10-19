@@ -35,9 +35,9 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.utils.Validate;
 
 /**
@@ -59,7 +59,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
      */
-    private final static int DATABASE_VERSION = 16;
+    private final static int DATABASE_VERSION = 17;
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
@@ -158,7 +158,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * Deletes one or multiple rows (depending on the format of the provided URI) from the database. If you delete a
-     * {@link Measurement} all corresponding {@link GeoLocation} data is cascadingly deleted as well.
+     * {@link Measurement} all corresponding {@link ParcelableGeoLocation} data is deleted as well.
      *
      * @param uri The URI specifying the table to delete from. If this ends with a single numeric identifier that row is
      *            deleted otherwise multiple rows might be deleted depending on the <code>selection</code> and
@@ -233,8 +233,8 @@ class DatabaseHelper extends SQLiteOpenHelper {
     }
 
     /**
-     * Cascadingly deletes all data for a single {@link Measurement} from the database. This only includes
-     * {@link GeoLocation}s and {@link Event}s but not the {@link Point3dFile}s as they are not stored in database.
+     * Deletes all data for a single {@link Measurement} from the database. This only includes
+     * {@link ParcelableGeoLocation}s and {@link Event}s but not the {@link Point3DFile}s as they are not stored in database.
      *
      * @param database The database object to delete from.
      * @param measurementIdentifier The device wide unique identifier of the measurement to delete.

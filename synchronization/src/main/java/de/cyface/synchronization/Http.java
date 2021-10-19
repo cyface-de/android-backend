@@ -26,6 +26,7 @@ import org.json.JSONObject;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.model.RequestMetaData;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -115,8 +116,8 @@ interface Http {
      * The serialized post request which transmits a measurement through an existing http connection
      *
      * @param url the resource to upload the data to
-     * @param jwtBearer A String in the format "Bearer TOKEN".
-     * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
+     * @param jwtToken A String in the format "eyXyz123***".
+     * @param metaData The {@link RequestMetaData} required for the Multipart request.
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param file The data file to upload via this post request.
      * @throws SynchronisationException If an IOException occurred during synchronization.
@@ -137,7 +138,7 @@ interface Http {
      *         when the upload attempt should be repeated or {@code HttpConnection.Result.UPLOAD_SKIPPED} if the server
      *         is not interested in the data.
      */
-    HttpConnection.Result upload(final URL url, final String jwtBearer, final SyncAdapter.MetaData metaData,
+    HttpConnection.Result upload(final URL url, final String jwtToken, final RequestMetaData metaData,
             final File file, final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,

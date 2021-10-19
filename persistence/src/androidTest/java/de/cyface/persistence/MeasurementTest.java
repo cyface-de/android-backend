@@ -73,7 +73,8 @@ public class MeasurementTest {
         fixtureMeasurement = new ContentValues();
         fixtureMeasurement.put(MeasurementTable.COLUMN_STATUS, MeasurementStatus.SYNCED.getDatabaseIdentifier());
         fixtureMeasurement.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
-        fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, PERSISTENCE_FILE_FORMAT_VERSION);
+        fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+                PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_TIMESTAMP, 123L);
     }
@@ -144,7 +145,7 @@ public class MeasurementTest {
         ret.put(GeoLocationsTable.COLUMN_LON, 51.0);
         ret.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         ret.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
-        ret.put(GeoLocationsTable.COLUMN_ACCURACY, 300);
+        ret.put(GeoLocationsTable.COLUMN_ACCURACY, 3.0f);
         return ret;
     }
 }

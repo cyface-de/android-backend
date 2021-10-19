@@ -18,7 +18,7 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.UPLOAD_SESSION_EXPIRED;
+import static de.cyface.serializer.DataSerializable.humanReadableSize;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -32,6 +32,7 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_E
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UPLOAD_SESSION_EXPIRED;
 
 import java.io.File;
 import java.net.MalformedURLException;
@@ -43,8 +44,8 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.Constants;
-import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
@@ -101,19 +102,19 @@ class SyncPerformer {
      * @param http The {@link Http} connection to use for transmission
      * @param syncResult The {@link SyncResult} used to store sync error information.
      * @param dataServerUrl The server URL to send the data to.
-     * @param metaData The {@link SyncAdapter.MetaData} required for the Multipart request.
+     * @param metaData The {@link RequestMetaData} required for the Multipart request.
      * @param file The compressed transfer file containing the {@link Measurement} data to transmit
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
     HttpConnection.Result sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
-            @NonNull final String dataServerUrl, @NonNull final SyncAdapter.MetaData metaData,
+            @NonNull final String dataServerUrl, @NonNull final RequestMetaData metaData,
             @NonNull final File file, @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
         Log.d(Constants.TAG, String.format("Transferring compressed measurement (%s)",
-                DefaultFileAccess.humanReadableSize(file.length(), true)));
+                humanReadableSize(file.length(), true)));
 
         final HttpConnection.Result result;
         try {

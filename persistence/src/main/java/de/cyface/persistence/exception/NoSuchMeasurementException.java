@@ -1,4 +1,4 @@
-package de.cyface.persistence;
+package de.cyface.persistence.exception;
 
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Measurement;

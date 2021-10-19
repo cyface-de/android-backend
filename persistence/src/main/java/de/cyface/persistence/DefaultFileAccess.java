@@ -19,6 +19,7 @@
 package de.cyface.persistence;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.serializer.DataSerializable.humanReadableSize;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -27,7 +28,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
@@ -154,16 +154,5 @@ public final class DefaultFileAccess implements FileAccessLayer {
             // TODO [MOV-566]: Soft catch the no space left scenario
             throw new IllegalStateException("Failed to append data to file. Is there space left on the device?");
         }
-    }
-
-    // From https://stackoverflow.com/a/3758880/5815054
-    public static String humanReadableSize(final long bytes, final boolean si) {
-        final int unit = si ? 1000 : 1024;
-        if (bytes < unit)
-            return bytes + " B";
-        final int exp = (int)(Math.log(bytes) / Math.log(unit));
-        //noinspection SpellCheckingInspection
-        final String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format(Locale.GERMAN, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }

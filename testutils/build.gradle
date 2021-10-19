@@ -35,7 +35,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceBackendVersion
+        versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -59,10 +59,9 @@ dependencies {
     implementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
-    implementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
-
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    api "de.cyface:serializer:$rootProject.ext.cyfaceBackendVersion"
     // No circular dependency: persistence.dependency.testImplementation(testutils) is not imported transitively
     implementation project(':persistence')
 }

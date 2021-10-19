@@ -30,7 +30,7 @@ import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.utils.DiskConsumption;
 
 /**
@@ -46,7 +46,7 @@ class TestListener implements DataCapturingListener {
     /**
      * Geo locations captured during the test run.
      */
-    private final List<GeoLocation> capturedPositions;
+    private final List<ParcelableGeoLocation> capturedPositions;
     /**
      * Sensor data captured during the test run.
      */
@@ -72,7 +72,7 @@ class TestListener implements DataCapturingListener {
     }
 
     @Override
-    public void onNewGeoLocationAcquired(final @NonNull GeoLocation position) {
+    public void onNewGeoLocationAcquired(final @NonNull ParcelableGeoLocation position) {
         Log.d(TAG, String.format("New GNSS position (lat:%f,lon:%f)", position.getLat(), position.getLon()));
         capturedPositions.add(position);
     }
@@ -111,7 +111,7 @@ class TestListener implements DataCapturingListener {
     /**
      * @return The captured positions received during the test run.
      */
-    public List<GeoLocation> getCapturedPositions() {
+    public List<ParcelableGeoLocation> getCapturedPositions() {
         return Collections.unmodifiableList(capturedPositions);
 
     }

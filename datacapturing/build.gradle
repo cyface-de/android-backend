@@ -36,7 +36,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceBackendVersion
+        versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -107,7 +107,6 @@ dependencies {
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
-    androidTestImplementation "com.google.protobuf:protobuf-javalite:$rootProject.ext.protobufVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
