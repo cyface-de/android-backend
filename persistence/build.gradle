@@ -26,7 +26,7 @@
  */
 
 plugins {
-    id 'de.cyface.android-publish' version '1.0.0'
+    id 'de.cyface.android-publish' version '1.0.1' // Keep version in sync with other modules!
 }
 
 android {
