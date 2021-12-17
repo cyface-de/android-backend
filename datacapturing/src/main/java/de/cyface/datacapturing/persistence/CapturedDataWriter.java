@@ -3,7 +3,9 @@ package de.cyface.datacapturing.persistence;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 
 import android.util.Log;
+
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.serialization.Point3DFile;
 
@@ -55,8 +57,8 @@ public class CapturedDataWriter implements Runnable {
      * @param callback Callback which is called after writing data has finished.
      */
     CapturedDataWriter(final @NonNull CapturedData data, @NonNull final Point3DFile accelerationsFile,
-                       @NonNull final Point3DFile rotationsFile, @NonNull final Point3DFile directionsFile,
-                       final @NonNull WritingDataCompletedCallback callback) {
+            @NonNull final Point3DFile rotationsFile, @NonNull final Point3DFile directionsFile,
+            final @NonNull WritingDataCompletedCallback callback) {
         this.data = data;
         this.accelerationsFile = accelerationsFile;
         this.rotationsFile = rotationsFile;

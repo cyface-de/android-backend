@@ -30,10 +30,12 @@ import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.utils.DiskConsumption.spaceAvailable;
 
 import java.lang.ref.WeakReference;
+import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
+import java.util.stream.Collectors;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
@@ -450,7 +452,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      *
-     * @param completeList The {@link List<  ParcelablePoint3D  >} to extract a subset from
+     * @param completeList The {@link List<ParcelablePoint3D>} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */

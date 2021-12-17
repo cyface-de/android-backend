@@ -77,7 +77,7 @@ dependencies {
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
-    api "de.cyface:serializer:$rootProject.ext.cyfaceBackendVersion"
+    api "de.cyface:serializer:$rootProject.ext.cyfaceSerializationVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")

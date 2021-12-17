@@ -28,6 +28,7 @@ import com.google.protobuf.ByteString;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import de.cyface.protos.model.Accelerations;
+import de.cyface.protos.model.AccelerationsBinary;
 import de.cyface.protos.model.LocationRecords;
 import de.cyface.protos.model.Measurement;
 import de.cyface.protos.model.MeasurementBytes;
@@ -66,14 +67,21 @@ public class ProtoTest {
     @Test
     public void testMergeData() throws InvalidProtocolBufferException {
         // Arrange
-        final Accelerations accelerations = Accelerations.newBuilder()
+        final var aBatch1 = Accelerations.newBuilder()
                 .addTimestamp(12345678901234L).addTimestamp(1000L)
                 .addX(-9).addX(359)
                 .addY(-5179).addY(-100)
                 .addZ(0).addZ(10)
                 .build();
-        final byte[] accelerationBytes = accelerations.toByteArray();
-        final LocationRecords.Builder locations = LocationRecords.newBuilder()
+        final var aBatch2 = Accelerations.newBuilder()
+                .addTimestamp(12345678910234L).addTimestamp(1000L)
+                .addX(0).addX(-244)
+                .addY(+9810).addY(239)
+                .addZ(-10).addZ(-310)
+                .build();
+        final var accelerationBytes = AccelerationsBinary.newBuilder()
+                .addAccelerations(aBatch1).addAccelerations(aBatch2).build().toByteArray();
+        final var locations = LocationRecords.newBuilder()
                 .addTimestamp(1621582427000L)
                 .addLatitude(51_064590)
                 .addLongitude(13_699045)
@@ -84,7 +92,7 @@ public class ProtoTest {
         // Using the modified `MeasurementBytes` class to inject the bytes without parsing
         final MeasurementBytes transmission = MeasurementBytes.newBuilder()
                 .setFormatVersion(2)
-                .setAccelerations(ByteString.copyFrom(accelerationBytes))
+                .setAccelerationsBinary(ByteString.copyFrom(accelerationBytes))
                 .setLocationRecords(locations)
                 .build();
 
@@ -92,8 +100,8 @@ public class ProtoTest {
         final Measurement transmitted = Measurement.parseFrom(transmission.toByteArray());
         assertThat(transmitted.getFormatVersion(), is(equalTo(2)));
         assertThat(transmitted.getLocationRecords().getTimestampCount(), is(equalTo(1)));
-        assertThat(transmitted.getAccelerations().getTimestampCount(), is(equalTo(2)));
-        assertThat(transmitted.getAccelerations().getTimestamp(0), is(equalTo(12345678901234L)));
+        assertThat(transmitted.getAccelerationsBinary().getAccelerations(0).getTimestampCount(), is(equalTo(2)));
+        assertThat(transmitted.getAccelerationsBinary().getAccelerations(0).getTimestamp(0), is(equalTo(12345678901234L)));
         assertThat(transmitted.getLocationRecords().getTimestamp(0), is(equalTo(1621582427000L)));
     }
 }

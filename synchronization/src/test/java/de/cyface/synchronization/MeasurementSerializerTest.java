@@ -143,7 +143,7 @@ public class MeasurementSerializerTest {
     private final static double SAMPLE_DOUBLE_VALUE = 1.0;
     private final static long SAMPLE_LONG_VALUE = 1L;
     private final static long SAMPLE_MEASUREMENT_ID = 1L;
-    private final static long SERIALIZED_MEASUREMENT_FILE_SIZE = 285L;
+    private final static long SERIALIZED_MEASUREMENT_FILE_SIZE = 291L;
 
     @Before
     public void setUp() throws RemoteException, CursorIsNullException {
@@ -282,7 +282,7 @@ public class MeasurementSerializerTest {
     public void testSerializeCompressedMeasurement() throws CursorIsNullException {
 
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
-        final long SERIALIZED_COMPRESSED_SIZE = 89L; // When compression Deflater(level 9, true)
+        final long SERIALIZED_COMPRESSED_SIZE = 95L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
                 persistence);
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
@@ -349,16 +349,16 @@ public class MeasurementSerializerTest {
         final Measurement measurement = deserializeTransferFile(bytes);
         assertThat(measurement.getFormatVersion(), is((int)MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION));
         assertThat(measurement.getLocationRecords().getSpeedCount(), is(SAMPLE_GEO_LOCATIONS));
-        assertThat(measurement.getAccelerations().getXCount(), is(SAMPLE_ACCELERATION_POINTS));
-        assertThat(measurement.getRotations().getYCount(), is(SAMPLE_ROTATION_POINTS));
-        assertThat(measurement.getDirections().getZCount(), is(SAMPLE_DIRECTION_POINTS));
+        assertThat(measurement.getAccelerationsBinary().getAccelerations(0).getXCount(), is(SAMPLE_ACCELERATION_POINTS));
+        assertThat(measurement.getRotationsBinary().getRotations(0).getYCount(), is(SAMPLE_ROTATION_POINTS));
+        assertThat(measurement.getDirectionsBinary().getDirections(0).getZCount(), is(SAMPLE_DIRECTION_POINTS));
 
         // Convert back to the model format (from the offset/diff proto format)
         final List<GeoLocation> locations = LocationDeserializer.deserialize(measurement.getLocationRecords());
 
-        final var accelerations = Point3DDeserializer.deserialize(measurement.getAccelerations());
-        final var rotations = Point3DDeserializer.deserialize(measurement.getRotations());
-        final var directions = Point3DDeserializer.deserialize(measurement.getDirections());
+        final var accelerations = Point3DDeserializer.accelerations(measurement.getAccelerationsBinary().getAccelerationsList());
+        final var rotations = Point3DDeserializer.rotations(measurement.getRotationsBinary().getRotationsList());
+        final var directions = Point3DDeserializer.directions(measurement.getDirectionsBinary().getDirectionsList());
 
         for (int i = 0; i < SAMPLE_GEO_LOCATIONS; i++) {
             final GeoLocation entry = locations.get(i);
@@ -405,9 +405,9 @@ public class MeasurementSerializerTest {
         final Measurement deserialized = parseFrom(protoBytes);
         assertThat(deserialized.getFormatVersion(), is(equalTo(2)));
         assertThat(deserialized.getLocationRecords().getTimestampCount(), is(equalTo(SAMPLE_GEO_LOCATIONS)));
-        assertThat(deserialized.getAccelerations().getTimestampCount(), is(equalTo(SAMPLE_ACCELERATION_POINTS)));
-        assertThat(deserialized.getRotations().getTimestampCount(), is(equalTo(SAMPLE_ROTATION_POINTS)));
-        assertThat(deserialized.getDirections().getTimestampCount(), is(equalTo(SAMPLE_DIRECTION_POINTS)));
+        assertThat(deserialized.getAccelerationsBinary().getAccelerations(0).getTimestampCount(), is(equalTo(SAMPLE_ACCELERATION_POINTS)));
+        assertThat(deserialized.getRotationsBinary().getRotations(0).getTimestampCount(), is(equalTo(SAMPLE_ROTATION_POINTS)));
+        assertThat(deserialized.getDirectionsBinary().getDirections(0).getTimestampCount(), is(equalTo(SAMPLE_DIRECTION_POINTS)));
         return deserialized;
     }
 }

@@ -116,19 +116,19 @@ public class TransferFileSerializer {
             Log.v(TAG, String.format("Serializing %s accelerations for synchronization.",
                     humanReadableSize(accelerationFile.length(), true)));
             final byte[] bytes = persistence.getFileAccessLayer().loadBytes(accelerationFile);
-            builder.setAccelerations(ByteString.copyFrom(bytes));
+            builder.setAccelerationsBinary(ByteString.copyFrom(bytes));
         }
         if (rotationFile.exists()) {
             Log.v(TAG, String.format("Serializing %s rotations for synchronization.",
                     humanReadableSize(rotationFile.length(), true)));
             final byte[] bytes = persistence.getFileAccessLayer().loadBytes(rotationFile);
-            builder.setRotations(ByteString.copyFrom(bytes));
+            builder.setRotationsBinary(ByteString.copyFrom(bytes));
         }
         if (directionFile.exists()) {
             Log.v(TAG, String.format("Serializing %s directions for synchronization.",
                     humanReadableSize(directionFile.length(), true)));
             final byte[] bytes = persistence.getFileAccessLayer().loadBytes(directionFile);
-            builder.setDirections(ByteString.copyFrom(bytes));
+            builder.setDirectionsBinary(ByteString.copyFrom(bytes));
         }
 
         // Currently loading the whole measurement into memory (~ 5MB / hour serialized).
@@ -147,7 +147,6 @@ public class TransferFileSerializer {
 
         Log.d(TAG, String.format("Serialized %s",
                 humanReadableSize(transferFileHeader.length + measurementBytes.length, true)));
-
     }
 
     private static List<Event> loadEvents(MeasurementContentProviderClient loader) throws CursorIsNullException {

@@ -74,14 +74,14 @@ import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.NoSuchFileException;
@@ -272,19 +272,19 @@ public class CapturedDataWriterTest {
             final var directionsFile = Point3DFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
                     DIRECTION);
 
-            final de.cyface.protos.model.Measurement accelerations = deserialize(fileAccessLayer,
-                    accelerationsFile.getFile(), ACCELERATION);
-            final de.cyface.protos.model.Measurement rotations = deserialize(fileAccessLayer, rotationsFile.getFile(),
-                    ROTATION);
-            final de.cyface.protos.model.Measurement directions = deserialize(fileAccessLayer, directionsFile.getFile(),
-                    DIRECTION);
+            final var accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), ACCELERATION);
+            final var rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), ROTATION);
+            final var directions = deserialize(fileAccessLayer, directionsFile.getFile(), DIRECTION);
 
-            assertThat(accelerations.getAccelerations().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(accelerations.getAccelerations().getXCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(accelerations.getAccelerations().getYCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(accelerations.getAccelerations().getZCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(rotations.getRotations().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(directions.getDirections().getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+            final var accelerationBatch = accelerations.getAccelerationsBinary().getAccelerations(0);
+            assertThat(accelerationBatch.getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerationBatch.getXCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerationBatch.getYCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(accelerationBatch.getZCount(), is(equalTo(TEST_DATA_COUNT)));
+            assertThat(rotations.getRotationsBinary().getRotations(0).getTimestampCount(),
+                    is(equalTo(TEST_DATA_COUNT)));
+            assertThat(directions.getDirectionsBinary().getDirections(0).getTimestampCount(),
+                    is(equalTo(TEST_DATA_COUNT)));
         }
     }
 

@@ -212,13 +212,13 @@ public class SharedTestUtils {
 
         switch (type) {
             case ACCELERATION:
-                measurementBytes.setAccelerations(ByteString.copyFrom(bytes));
+                measurementBytes.setAccelerationsBinary(ByteString.copyFrom(bytes));
                 break;
             case ROTATION:
-                measurementBytes.setRotations(ByteString.copyFrom(bytes));
+                measurementBytes.setRotationsBinary(ByteString.copyFrom(bytes));
                 break;
             case DIRECTION:
-                measurementBytes.setDirections(ByteString.copyFrom(bytes));
+                measurementBytes.setDirectionsBinary(ByteString.copyFrom(bytes));
                 break;
             default:
                 throw new IllegalArgumentException("Unknown type: " + type);

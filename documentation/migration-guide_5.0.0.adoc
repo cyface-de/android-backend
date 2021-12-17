@@ -52,15 +52,15 @@ To use it as a dependency in your app you need to:
 ----
  dependencies {
      # To use the 'movebis' flavour, use: 'datacapturingMovebis'
-     implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
+     implementation "de.cyface:datacapturing:$cyfaceAndroidBackendVersion"
      # To use the 'movebis' flavour, use: 'synchronizationMovebis'
-     implementation "de.cyface:synchronization:$cyfaceBackendVersion"
+     implementation "de.cyface:synchronization:$cyfaceAndroidBackendVersion"
      # There is only one 'persistence' flavor
-     implementation "de.cyface:persistence:$cyfaceBackendVersion"
+     implementation "de.cyface:persistence:$cyfaceAndroidBackendVersion"
  }
 ----
 
-. Set the `$cyfaceBackendVersion` gradle variable to the https://github.com/cyface-de/android-backend/releases[latest version].
+. Set the $cyfaceAndroidBackendVersion gradle variable to the https://github.com/cyface-de/android-backend/releases[latest version].
 
 [[api-changes]]
 == API Changes
