@@ -17,7 +17,7 @@ public abstract class DataPoint implements Parcelable {
      * {@code null}, since the persistence layers assigns a unique identifier on saving a data point.
      * For AndroidDataAccessLayer.getIdOfNextUnSyncedMeasurement() to work the id must be long ASC
      */
-    private Long identifier;
+    private final Long identifier;
     /**
      * The Unix timestamp at which this {@code DataPoint} was measured in milliseconds.
      */

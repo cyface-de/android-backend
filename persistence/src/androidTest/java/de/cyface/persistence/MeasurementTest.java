@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,6 +18,7 @@
  */
 package de.cyface.persistence;
 
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.TestUtils.AUTHORITY;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
@@ -40,7 +41,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
 
 /**
@@ -48,7 +48,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.6
+ * @version 1.1.7
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -74,7 +74,7 @@ public class MeasurementTest {
         fixtureMeasurement.put(MeasurementTable.COLUMN_STATUS, MeasurementStatus.SYNCED.getDatabaseIdentifier());
         fixtureMeasurement.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+                PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
         fixtureMeasurement.put(MeasurementTable.COLUMN_TIMESTAMP, 123L);
     }
@@ -145,7 +145,7 @@ public class MeasurementTest {
         ret.put(GeoLocationsTable.COLUMN_LON, 51.0);
         ret.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
         ret.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
-        ret.put(GeoLocationsTable.COLUMN_ACCURACY, 300);
+        ret.put(GeoLocationsTable.COLUMN_ACCURACY, 3.0f);
         return ret;
     }
 }

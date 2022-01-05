@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -41,7 +41,7 @@ import de.cyface.utils.Validate;
  * A utility class with static methods for supporting tests on the persistence code.
  *
  * @author Klemens Muthmann
- * @version 2.0.3
+ * @version 2.0.4
  * @since 1.0.0
  */
 class TestUtils {
@@ -84,7 +84,7 @@ class TestUtils {
     }
 
     static void read(final ContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
-        try (Cursor cursor = mockResolver.query(contentUri, null, null, null, null);) {
+        try (Cursor cursor = mockResolver.query(contentUri, null, null, null, null)) {
             List<ContentValues> fixture = new ArrayList<>();
             fixture.add(entry);
             Validate.notNull(cursor);

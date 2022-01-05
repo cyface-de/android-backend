@@ -4,9 +4,11 @@ import java.io.BufferedOutputStream;
 import java.io.File;
 
 import android.content.Context;
+
 import androidx.annotation.NonNull;
-import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.serialization.Point3dFile;
+
+import de.cyface.persistence.model.ParcelablePoint3D;
+import de.cyface.persistence.serialization.Point3DFile;
 
 /**
  * Interface access {@link File}s. This helps to mock the file access away during testing.
@@ -38,11 +40,11 @@ public interface FileAccessLayer {
     byte[] loadBytes(final File file);
 
     /**
-     * Returns the path of the parent directory containing all {@link Point3dFile}s of a specified type.
+     * Returns the path of the parent directory containing all {@link Point3DFile}s of a specified type.
      * This directory is deleted when the app is uninstalled and can only be accessed by the app.
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
-     * @param folderName The folder name defining the type of {@link Point3d}
+     * @param folderName The folder name defining the type of {@link ParcelablePoint3D}
      */
     @NonNull
     File getFolderPath(@NonNull final Context context, @NonNull String folderName);
@@ -52,7 +54,7 @@ public interface FileAccessLayer {
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param measurementId the identifier of the measurement for which the file is to be found
-     * @param folderName The folder name defining the {@link Point3d} type of the file
+     * @param folderName The folder name defining the {@link ParcelablePoint3D} type of the file
      * @param fileExtension the extension of the file type
      * @return The {@link File}
      */
@@ -65,7 +67,7 @@ public interface FileAccessLayer {
      *
      * @param context The {@link Context} required to access the underlying persistence layer.
      * @param measurementId the identifier of the measurement for which the file is to be found
-     * @param folderName The folder name defining the {@link Point3d} type of the file
+     * @param folderName The folder name defining the {@link ParcelablePoint3D} type of the file
      * @param fileExtension the extension of the file type
      * @return The create {@code File}.
      * @throws IllegalStateException when the measurement folder does not exist.

@@ -1,6 +1,25 @@
+/*
+ * Copyright 2021 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence;
 
 import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.serializer.DataSerializable.humanReadableSize;
 
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
@@ -9,7 +28,6 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.util.Locale;
 
 import android.content.Context;
 import android.util.Log;
@@ -22,7 +40,7 @@ import de.cyface.utils.Validate;
  * Implementation of the {@link FileAccessLayer} which accesses the real file system.
  *
  * @author Armin Schnabel
- * @version 3.1.4
+ * @version 4.0.0
  * @since 3.0.0
  */
 public final class DefaultFileAccess implements FileAccessLayer {
@@ -72,7 +90,7 @@ public final class DefaultFileAccess implements FileAccessLayer {
                 try (final DataInputStream inputStream = new DataInputStream(bufferedInputStream)) {
                     try {
                         inputStream.readFully(bytes);
-                        Log.d(Constants.TAG, "Read " + humanReadableByteCount(bytes.length, true) + " (from "
+                        Log.d(Constants.TAG, "Read " + humanReadableSize(bytes.length, true) + " (from "
                                 + file.getName() + ")");
                     } finally {
                         inputStream.close();
@@ -136,15 +154,5 @@ public final class DefaultFileAccess implements FileAccessLayer {
             // TODO [MOV-566]: Soft catch the no space left scenario
             throw new IllegalStateException("Failed to append data to file. Is there space left on the device?");
         }
-    }
-
-    // From https://stackoverflow.com/a/3758880/5815054
-    public static String humanReadableByteCount(final long bytes, final boolean si) {
-        final int unit = si ? 1000 : 1024;
-        if (bytes < unit)
-            return bytes + " B";
-        final int exp = (int)(Math.log(bytes) / Math.log(unit));
-        final String pre = (si ? "kMGTPE" : "KMGTPE").charAt(exp - 1) + (si ? "" : "i");
-        return String.format(Locale.GERMAN, "%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 }

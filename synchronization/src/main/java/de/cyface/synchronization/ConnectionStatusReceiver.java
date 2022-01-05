@@ -1,3 +1,21 @@
+/*
+ * Copyright 2021 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
 
 import static de.cyface.synchronization.BundlesExtrasCodes.SYNC_PERCENTAGE_ID;
@@ -21,7 +39,7 @@ import de.cyface.utils.Validate;
  * to populate received broadcasts about synchronization events to registered {@link ConnectionStatusListener}s.
  *
  * @author Armin Schnabel
- * @version 1.1.1
+ * @version 1.1.2
  * @since 2.5.0
  */
 public class ConnectionStatusReceiver extends BroadcastReceiver {
@@ -29,7 +47,7 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
     /**
      * The interested parties for synchronization events.
      */
-    private Collection<ConnectionStatusListener> connectionStatusListener;
+    private final Collection<ConnectionStatusListener> connectionStatusListener;
 
     /**
      * Registers this {@link BroadcastReceiver} to {@link CyfaceConnectionStatusListener} events.
@@ -50,27 +68,23 @@ public class ConnectionStatusReceiver extends BroadcastReceiver {
     @Override
     public void onReceive(final Context context, final Intent intent) {
         Validate.notNull(intent.getAction());
-        switch (intent.getAction()) {
-            case SYNC_STARTED:
-                for (final ConnectionStatusListener listener : connectionStatusListener) {
-                    listener.onSyncStarted();
-                }
-                break;
-            case SYNC_FINISHED:
-                for (final ConnectionStatusListener listener : connectionStatusListener) {
-                    listener.onSyncFinished();
-                }
-                break;
-            case SYNC_PROGRESS:
-                final float percent = intent.getFloatExtra(SYNC_PERCENTAGE_ID, -1.0f);
-                final long measurementId = intent.getLongExtra(SYNC_MEASUREMENT_ID, -1L);
-                Validate.isTrue(percent > 0.0f);
-                Validate.isTrue(measurementId > 0L);
+        if (intent.getAction().equals(SYNC_STARTED)) {
+            for (final ConnectionStatusListener listener : connectionStatusListener) {
+                listener.onSyncStarted();
+            }
+        } else if (intent.getAction().equals(SYNC_FINISHED)) {
+            for (final ConnectionStatusListener listener : connectionStatusListener) {
+                listener.onSyncFinished();
+            }
+        } else if (intent.getAction().equals(SYNC_PROGRESS)) {
+            final float percent = intent.getFloatExtra(SYNC_PERCENTAGE_ID, -1.0f);
+            final long measurementId = intent.getLongExtra(SYNC_MEASUREMENT_ID, -1L);
+            Validate.isTrue(percent >= 0.0f);
+            Validate.isTrue(measurementId > 0L);
 
-                for (final ConnectionStatusListener listener : connectionStatusListener) {
-                    listener.onProgress(percent, measurementId);
-                }
-                break;
+            for (final ConnectionStatusListener listener : connectionStatusListener) {
+                listener.onProgress(percent, measurementId);
+            }
         }
     }
 

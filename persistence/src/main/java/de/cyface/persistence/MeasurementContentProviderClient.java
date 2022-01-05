@@ -11,7 +11,7 @@ import android.os.RemoteException;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.CursorIsNullException;
 
@@ -68,7 +68,7 @@ public class MeasurementContentProviderClient {
      * @param offset The start index of the first geo location to load within the measurement
      * @param limit The number of geo locations to load. A recommended upper limit is:
      *            {@link AbstractCyfaceMeasurementTable#DATABASE_QUERY_LIMIT}
-     * @return A <code>Cursor</code> on the {@link GeoLocation}s stored for the {@link Measurement}.
+     * @return A <code>Cursor</code> on the {@link ParcelableGeoLocation}s stored for the {@link Measurement}.
      * @throws RemoteException If the content provider is not accessible.
      */
     public Cursor loadGeoLocations(final int offset, final int limit) throws RemoteException {
@@ -121,7 +121,7 @@ public class MeasurementContentProviderClient {
 
     /**
      * Counts all the data elements from one table for the {@link Measurement}s. Data elements depend on the provided
-     * {@link ContentProvider} {@link Uri} and might be {@link GeoLocation}s.
+     * {@link ContentProvider} {@link Uri} and might be {@link ParcelableGeoLocation}s.
      *
      * @param tableUri The content provider Uri of the table to count.
      * @param measurementForeignKeyColumnName The column name of the column containing the reference to the measurement

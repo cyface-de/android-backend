@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -40,6 +40,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.utils.Validate;
 
 /**
@@ -48,7 +49,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.2.0
+ * @version 7.2.1
  * @since 2.0.0
  */
 public class WiFiSurveyor extends BroadcastReceiver {
@@ -85,7 +86,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
     /**
      * The current Android context (i.e. Activity or Service).
      */
-    private WeakReference<Context> context;
+    private final WeakReference<Context> context;
     /**
      * If <code>true</code> the <code>MovebisDataCapturingService</code> synchronizes data only if
      * connected to a WiFi network; if <code>false</code> it synchronizes as soon as a data connection is
@@ -190,7 +191,7 @@ public class WiFiSurveyor extends BroadcastReceiver {
             Log.v(TAG, "startSurveillance for " + (isUsingUnMeteredCheckInsteadOfWifi ? "unMetered" : "wifi")
                     + " networks only");
         }
-        networkCallback = new NetworkCallback(this, currentSynchronizationAccount);
+        networkCallback = new NetworkCallback(this);
         connectivityManager.registerNetworkCallback(requestBuilder.build(), networkCallback);
     }
 

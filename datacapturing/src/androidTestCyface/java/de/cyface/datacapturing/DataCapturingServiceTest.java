@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -76,7 +76,7 @@ import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.EventTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.persistence.NoSuchMeasurementException;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.1
+ * @version 5.7.3
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -159,15 +159,12 @@ public class DataCapturingServiceTest {
 
         // Start DataCapturingService
         testListener = new TestListener();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
-                            ACCOUNT_TYPE, "https://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
-                } catch (SetupException | CursorIsNullException e) {
-                    throw new IllegalStateException(e);
-                }
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            try {
+                oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
+                        ACCOUNT_TYPE, "https://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
+            } catch (SetupException | CursorIsNullException e) {
+                throw new IllegalStateException(e);
             }
         });
 
@@ -877,7 +874,8 @@ public class DataCapturingServiceTest {
             while (eventCursor.moveToNext()) {
                 final Event.EventType eventType = Event.EventType
                         .valueOf(eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)));
-                final long eventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
+                final long eventTime = eventCursor
+                        .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
                 final String value = eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE));
                 final long eventId = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(BaseColumns._ID));
                 events.add(new Event(eventId, eventType, eventTime, value));

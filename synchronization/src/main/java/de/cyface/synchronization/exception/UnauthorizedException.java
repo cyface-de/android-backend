@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,32 +16,30 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization;
-
-import androidx.annotation.NonNull;
+package de.cyface.synchronization.exception;
 
 /**
- * An {@code Exception} thrown when the server reports an internal server error.
+ * An {@code Exception} thrown when the credentials to log into the Cyface server are wrong.
  *
  * @author Armin Schnabel
  * @version 1.0.1
- * @since 4.0.0
+ * @since 2.1.0
  */
-public class InternalServerErrorException extends Exception {
+public class UnauthorizedException extends Exception {
 
     /**
-     * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
+     * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
      */
-    InternalServerErrorException(@NonNull final String detailedMessage) {
+    public UnauthorizedException(final String detailedMessage) {
         super(detailedMessage);
     }
 
     /**
-     * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
-     * @param cause The {@code Exception} that caused this one.
+     * @param detailedMessage A more detailed message explaining the context for this <code>Exception</code>.
+     * @param cause The <code>Exception</code> that caused this one.
      */
     @SuppressWarnings("unused") // May be used in the future
-    public InternalServerErrorException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
+    public UnauthorizedException(final String detailedMessage, final Exception cause) {
         super(detailedMessage, cause);
     }
 }

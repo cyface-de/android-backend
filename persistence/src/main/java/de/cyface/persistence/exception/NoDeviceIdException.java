@@ -16,9 +16,11 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence.exception;
 
 import androidx.annotation.NonNull;
+
+import de.cyface.persistence.PersistenceLayer;
 
 /**
  * An <code>Exception</code> which occurs every time someone wants to load the device id from the
@@ -28,7 +30,7 @@ import androidx.annotation.NonNull;
  * @version 1.0.1
  * @since 4.0.0
  */
-final class NoDeviceIdException extends Exception {
+public final class NoDeviceIdException extends Exception {
 
     /**
      * Creates a new completely initialized {@link NoDeviceIdException}, providing a detailed explanation
@@ -36,7 +38,7 @@ final class NoDeviceIdException extends Exception {
      *
      * @param message The explanation of why this error occurred.
      */
-    NoDeviceIdException(final @NonNull String message) {
+    public NoDeviceIdException(final @NonNull String message) {
         super(message);
     }
 }

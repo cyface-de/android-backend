@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -60,8 +60,8 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Track;
@@ -140,14 +140,16 @@ public final class SyncAdapterTest {
     @Test
     @Ignore("Set to ignore as this test requires an actual API even in mock flavour")
     public void testOnPerformSync() throws NoSuchMeasurementException, CursorIsNullException {
+        final var point3DCount = 1; // 100 Hz * 8 h = 2_880_000
+        final int locationCount = 1; // 1 Hz * 8 h = 28_800
 
         // Arrange
         // Insert data to be synced
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
-        final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
-                MeasurementStatus.FINISHED, persistence, 1, 1);
+        final var insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+                MeasurementStatus.FINISHED, persistence, point3DCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
@@ -190,7 +192,7 @@ public final class SyncAdapterTest {
     @Ignore("Because this is a very large test which does not need to be executed each time")
     public void testOnPerformSyncWithLargeMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
         // 3_000_000 is the minimum which reproduced MOV-515 on N5X emulator
-        final int point3dCount = 2_880_000; // 100 Hz * 8 h
+        final var point3DCount = 2_880_000; // 100 Hz * 8 h
         final int locationCount = 28_800; // 1 Hz * 8 h
 
         // Arrange
@@ -198,8 +200,8 @@ public final class SyncAdapterTest {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
-        final Measurement insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
-                MeasurementStatus.FINISHED, persistence, point3dCount, locationCount);
+        final var insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+                MeasurementStatus.FINISHED, persistence, point3DCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));

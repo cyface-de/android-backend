@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -29,6 +29,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.core.app.NotificationCompat;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.utils.Validate;
 
@@ -38,7 +39,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.3
+ * @version 2.0.4
  * @since 2.5.0
  */
 public final class IgnoreEventsStrategy implements EventHandlingStrategy {
@@ -46,6 +47,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
      */
+    @SuppressWarnings("Convert2Diamond") // `cannot use '<>' with anonymous inner classes`
     public static final Creator<IgnoreEventsStrategy> CREATOR = new Creator<IgnoreEventsStrategy>() {
         @Override
         public IgnoreEventsStrategy createFromParcel(final Parcel in) {
@@ -59,7 +61,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     };
 
     /**
-     * No arguments constructor is redeclared here, since it is overwritten by the constructor required by
+     * No arguments constructor is declared here, since it is overwritten by the constructor required by
      * <code>Parcelable</code>.
      */
     public IgnoreEventsStrategy() {
@@ -83,7 +85,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     @Override
     @NonNull
     public Notification buildCapturingNotification(@NonNull final DataCapturingBackgroundService context) {
-        Validate.notNull("No context provided!", context);
+        Validate.notNull(context, "No context provided!");
 
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
         final String channelId = context.getString(R.string.cyface_notification_channel_id);

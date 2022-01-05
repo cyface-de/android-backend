@@ -21,12 +21,12 @@ package de.cyface.persistence;
 import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 
 /**
  * Interface for strategies to respond to {@code DataCapturingBackgroundService#onLocationCaptured()} events
- * to calculate the {@link Measurement#getDistance()} from {@link GeoLocation} pairs.
+ * to calculate the {@link Measurement#getDistance()} from {@link ParcelableGeoLocation} pairs.
  * <p>
  * Must be {@code Parcelable} to be passed from the {@code DataCapturingService} via {@code Intent}.
  *
@@ -37,11 +37,11 @@ import de.cyface.persistence.model.Measurement;
 public interface DistanceCalculationStrategy extends Parcelable {
 
     /**
-     * Implements a strategy to calculate the {@link Measurement#getDistance()} based on two subsequent {@link GeoLocation}s.
+     * Implements a strategy to calculate the {@link Measurement#getDistance()} based on two subsequent {@link ParcelableGeoLocation}s.
      *
      * @param lastLocation The {@code GeoLocation} captured before {@param newLocation}
      * @param newLocation The {@code GeoLocation} captured after {@param lastLocation}
      * @return The distance which is added to the {@code Measurement} based on the provided {@code GeoLocation}s.
      */
-    double calculateDistance(@NonNull final GeoLocation lastLocation, @NonNull final GeoLocation newLocation);
+    double calculateDistance(@NonNull final ParcelableGeoLocation lastLocation, @NonNull final ParcelableGeoLocation newLocation);
 }

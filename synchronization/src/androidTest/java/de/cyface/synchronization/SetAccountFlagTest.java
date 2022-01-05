@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -188,41 +188,38 @@ public class SetAccountFlagTest {
             @NonNull final String actionName) {
 
         final CheckerParameters checkerParameters = new CheckerParameters();
-        final Runnable accountFlagChecker = new Runnable() {
-            @Override
-            public void run() {
-                final int iterations = 10; // random number of iterations
+        final Runnable accountFlagChecker = () -> {
+            final int iterations = 10; // random number of iterations
 
-                for (int checks = 0; checks < iterations; checks++) {
-                    final String tagPrefix = actionName + " (iteration " + (checks + 1) + "): ";
-                    try {
-                        Thread.sleep(TIMEOUT_TIME * 1000 / iterations);
-                    } catch (final InterruptedException e) {
-                        throw new IllegalStateException(e);
-                    }
-
-                    // Check if the account flags are in the expected state
-                    final boolean isFlagsAlreadySet = isAccountFlagsSet(account, syncAutomaticallyEnabled,
-                            periodicSyncEnabled);
-                    if (!isFlagsAlreadySet) {
-                        Log.d(TAG, tagPrefix
-                                + "Account flags changed but are still not in the expected state, continue waiting.");
-                        continue;
-                    }
-
-                    Log.d(TAG,
-                            tagPrefix + "Account flags are now in the expected state, sending signal to release lock.");
-                    checkerParameters.lock.lock();
-                    try {
-                        checkerParameters.condition.signal();
-                    } finally {
-                        checkerParameters.lock.unlock();
-                    }
-                    return;
+            for (int checks = 0; checks < iterations; checks++) {
+                final String tagPrefix = actionName + " (iteration " + (checks + 1) + "): ";
+                try {
+                    Thread.sleep(TIMEOUT_TIME * 1000 / iterations);
+                } catch (final InterruptedException e) {
+                    throw new IllegalStateException(e);
                 }
-                fail(actionName + ": Account flag did not change to the expected state within " + TIMEOUT_TIME
-                        + " seconds");
+
+                // Check if the account flags are in the expected state
+                final boolean isFlagsAlreadySet = isAccountFlagsSet(account, syncAutomaticallyEnabled,
+                        periodicSyncEnabled);
+                if (!isFlagsAlreadySet) {
+                    Log.d(TAG, tagPrefix
+                            + "Account flags changed but are still not in the expected state, continue waiting.");
+                    continue;
+                }
+
+                Log.d(TAG,
+                        tagPrefix + "Account flags are now in the expected state, sending signal to release lock.");
+                checkerParameters.lock.lock();
+                try {
+                    checkerParameters.condition.signal();
+                } finally {
+                    checkerParameters.lock.unlock();
+                }
+                return;
             }
+            fail(actionName + ": Account flag did not change to the expected state within " + TIMEOUT_TIME
+                    + " seconds");
         };
         checkerParameters.setRunnable(accountFlagChecker);
         return checkerParameters;

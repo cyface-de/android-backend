@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,24 +16,23 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization;
+package de.cyface.synchronization.exception;
 
 import androidx.annotation.NonNull;
-import de.cyface.persistence.model.Measurement;
 
 /**
- * An {@code Exception} thrown when the user is authorized but has no permissions to posts {@link Measurement}s.
+ * An {@code Exception} thrown when the synchronization is interrupted.
  *
  * @author Armin Schnabel
- * @version 1.0.1
- * @since 4.0.0
+ * @version 1.0.0
+ * @since 4.0.1
  */
-public class ForbiddenException extends Exception {
+public class SynchronizationInterruptedException extends Exception {
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      */
-    ForbiddenException(@NonNull final String detailedMessage) {
+    public SynchronizationInterruptedException(@NonNull final String detailedMessage) {
         super(detailedMessage);
     }
 
@@ -42,7 +41,7 @@ public class ForbiddenException extends Exception {
      * @param cause The {@code Exception} that caused this one.
      */
     @SuppressWarnings("unused") // May be used in the future
-    public ForbiddenException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
+    public SynchronizationInterruptedException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
         super(detailedMessage, cause);
     }
 }

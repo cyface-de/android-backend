@@ -22,7 +22,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
 import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Modality;
 import de.cyface.utils.DiskConsumption;
 
@@ -49,12 +49,12 @@ public interface DataCapturingListener {
     void onFixLost();
 
     /**
-     * This method is called each time the data capturing service receives a new {@link GeoLocation} which passes the
+     * This method is called each time the data capturing service receives a new {@link ParcelableGeoLocation} which passes the
      * {@link LocationCleaningStrategy}.
      *
      * @param position The new {@code GeoLocation}.
      */
-    void onNewGeoLocationAcquired(GeoLocation position);
+    void onNewGeoLocationAcquired(ParcelableGeoLocation position);
 
     /**
      * This method is called each time the data capturing service receives new sensor data.

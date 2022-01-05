@@ -1,17 +1,22 @@
+/*
+ * Copyright 2019-2021 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization;
-
-import java.io.IOException;
-import java.io.InputStream;
-import java.nio.ByteBuffer;
-import java.security.KeyManagementException;
-import java.security.KeyStore;
-import java.security.KeyStoreException;
-import java.security.NoSuchAlgorithmException;
-import java.security.SecureRandom;
-import java.security.cert.CertificateException;
-
-import javax.net.ssl.SSLContext;
-import javax.net.ssl.TrustManagerFactory;
 
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
@@ -36,7 +41,7 @@ import androidx.annotation.Nullable;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.3
+ * @version 2.0.0
  * @since 3.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -78,7 +83,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * For documentation see
      * {@link AbstractAccountAuthenticator#getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}
      */
-    @SuppressWarnings("RedundantThrows") // Because the cyface flavour variant throws it, too
+    @SuppressWarnings({"RedundantThrows", "RedundantSuppression"}) // Cyface flavour throws it, too
     @Override
     @Nullable
     public Bundle getAuthToken(final @Nullable AccountAuthenticatorResponse response, final @NonNull Account account,
@@ -103,53 +108,6 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type);
         result.putString(AccountManager.KEY_AUTHTOKEN, authToken);
         return result;
-    }
-
-    /**
-     * Loads the SSL certificate from the trust store and returns the {@link SSLContext}. If the trust
-     * store file is empty, the default context is used.
-     *
-     * @param context The {@link Context} to use to load the trust store file.
-     * @return the {@link SSLContext} to be used for HTTPS connections.
-     * @throws SynchronisationException when the SSLContext could not be loaded
-     * @throws IOException if the trustStoreFile failed while closing.
-     */
-    static SSLContext loadSslContext(final Context context) throws SynchronisationException, IOException {
-        final SSLContext sslContext;
-
-        InputStream trustStoreFile = null;
-        try {
-            // If no self-signed certificate is used and an empty trust store is provided:
-            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            if (trustStoreFile.read() == -1) {
-                Log.d(TAG, "Trust store is empty, loading default sslContext ...");
-                sslContext = SSLContext.getInstance("TLSv1");
-                sslContext.init(null, null, null);
-                return sslContext;
-            }
-
-            // Add trust store to sslContext
-            trustStoreFile.close();
-            trustStoreFile = context.getResources().openRawResource(R.raw.truststore);
-            final KeyStore trustStore = KeyStore.getInstance("PKCS12");
-            trustStore.load(trustStoreFile, "secret".toCharArray());
-            final TrustManagerFactory tmf = TrustManagerFactory.getInstance("X509");
-            tmf.init(trustStore);
-
-            // Create an SSLContext that uses our TrustManager
-            sslContext = SSLContext.getInstance("TLSv1");
-            final byte[] seed = ByteBuffer.allocate(8).putLong(System.currentTimeMillis()).array();
-            sslContext.init(null, tmf.getTrustManagers(), new SecureRandom(seed));
-
-        } catch (IOException | CertificateException | NoSuchAlgorithmException | KeyStoreException
-                | KeyManagementException e) {
-            throw new SynchronisationException("Unable to load SSLContext", e);
-        } finally {
-            if (trustStoreFile != null) {
-                trustStoreFile.close();
-            }
-        }
-        return sslContext;
     }
 
     @Override

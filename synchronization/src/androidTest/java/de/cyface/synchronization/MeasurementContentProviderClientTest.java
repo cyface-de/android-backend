@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,6 +19,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
+import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
@@ -52,7 +53,6 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.utils.Validate;
 
 /**
@@ -60,7 +60,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.8
+ * @version 1.1.9
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -115,10 +115,10 @@ public class MeasurementContentProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
-                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+                    PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
-            Validate.notNull("Measurement insertion failed!", result);
+            Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
             final long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
@@ -128,7 +128,7 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1.0f);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
             for (int i = 0; i < numberOftestEntries; i++) {
                 geoLocationValuesArray[i] = geoLocationValues;
@@ -183,20 +183,21 @@ public class MeasurementContentProviderClientTest {
     public void test() throws RemoteException {
 
         try (ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
-            Validate.notNull(String.format("Unable to initialize content provider client for content provider \"(%s)\"",
-                    AUTHORITY), client);
+            Validate.notNull(client,
+                    String.format("Unable to initialize content provider client for content provider \"(%s)\"",
+                            AUTHORITY));
 
             // Create test measurement data
             ContentValues measurementValues = new ContentValues();
             measurementValues.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
             measurementValues.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
-                    MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+                    PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
 
             // Insert test measurement
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
-            Validate.notNull("Measurement insertion failed!", result);
+            Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
             long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
@@ -207,7 +208,7 @@ public class MeasurementContentProviderClientTest {
             geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
             geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1L);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1);
+            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1.0f);
 
             // Insert GeoLocations
             client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);

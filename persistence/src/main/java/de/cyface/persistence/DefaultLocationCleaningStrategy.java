@@ -29,13 +29,13 @@ import android.os.Parcel;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 
 /**
  * An implementation of the {@link LocationCleaningStrategy} which uses simple lightweight filters
  * which can be applied "live".
  * <p>
- * The goal is to ignore {@link GeoLocation}s when standing still, to ignore very inaccurate locations and to avoid
+ * The goal is to ignore {@link ParcelableGeoLocation}s when standing still, to ignore very inaccurate locations and to avoid
  * large distance "jumps", e.g. when the {@code LocationManager} implementation delivers an old, cached location at the
  * beginning of the track.
  *
@@ -46,9 +46,9 @@ import de.cyface.persistence.model.GeoLocation;
 public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy {
 
     /**
-     * The lowest accuracy of {@link GeoLocation}s in centimeters which is too "bad" to be used.
+     * The lowest accuracy of {@link ParcelableGeoLocation}s in meters which is too "bad" to be used.
      */
-    public static final float UPPER_ACCURACY_THRESHOLD = 2000.0f;
+    public static final double UPPER_ACCURACY_THRESHOLD = 20.0;
     /**
      * The lower speed boundary in m/s which needs to be exceeded for the location to be "valid".
      */
@@ -61,7 +61,7 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
      */
-    public static final Creator<DefaultLocationCleaningStrategy> CREATOR = new Creator<DefaultLocationCleaningStrategy>() {
+    public static final Creator<DefaultLocationCleaningStrategy> CREATOR = new Creator<>() {
         @Override
         public DefaultLocationCleaningStrategy createFromParcel(final Parcel in) {
             return new DefaultLocationCleaningStrategy(in);
@@ -74,7 +74,7 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
     };
 
     /**
-     * No arguments constructor is redeclared here, since it is overwritten by the constructor required by
+     * No arguments constructor is re-declared here, since it is overwritten by the constructor required by
      * <code>Parcelable</code>.
      */
     public DefaultLocationCleaningStrategy() {
@@ -91,7 +91,7 @@ public class DefaultLocationCleaningStrategy implements LocationCleaningStrategy
     }
 
     @Override
-    public boolean isClean(@NonNull final GeoLocation location) {
+    public boolean isClean(@NonNull final ParcelableGeoLocation location) {
         return location.getSpeed() > LOWER_SPEED_THRESHOLD && location.getAccuracy() < UPPER_ACCURACY_THRESHOLD
                 && location.getSpeed() < UPPER_SPEED_THRESHOLD;
     }

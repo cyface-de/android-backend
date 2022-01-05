@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,6 +19,7 @@
 package de.cyface.datacapturing;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.utils.Validate;
 
@@ -28,7 +29,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.2
+ * @version 4.0.3
  * @since 2.0.0
  */
 public class MessageCodes {

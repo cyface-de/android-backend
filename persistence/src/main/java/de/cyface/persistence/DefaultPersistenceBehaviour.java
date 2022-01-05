@@ -1,6 +1,8 @@
 package de.cyface.persistence;
 
 import androidx.annotation.NonNull;
+
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.utils.CursorIsNullException;
 
@@ -14,10 +16,11 @@ import de.cyface.utils.CursorIsNullException;
  */
 public class DefaultPersistenceBehaviour implements PersistenceBehaviour {
 
+    @SuppressWarnings("rawtypes")
     private PersistenceLayer persistenceLayer;
 
     @Override
-    public void onStart(@NonNull PersistenceLayer persistenceLayer) {
+    public void onStart(@SuppressWarnings("rawtypes") @NonNull PersistenceLayer persistenceLayer) {
         this.persistenceLayer = persistenceLayer;
     }
 

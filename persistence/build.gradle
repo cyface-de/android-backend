@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,11 +21,13 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.1.0
  * @since 1.0.0
  */
 
-apply plugin: 'com.android.library'
+plugins {
+    id 'de.cyface.android-publish' version '1.0.1' // Keep version in sync with other modules!
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -34,7 +36,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceBackendVersion
+        versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -44,6 +46,12 @@ android {
             minifyEnabled false
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
+    }
+
+    // Enabling desugaring to support Java 8 and Java 11 features
+    compileOptions {
+        sourceCompatibility rootProject.ext.sourceCompatibility
+        targetCompatibility rootProject.ext.targetCompatibility
     }
 
     // To avoid having to upgrade to `androidX.appCompat:1.3.0-beta1` [CY-5525]
@@ -59,10 +67,17 @@ android {
 }
 
 dependencies {
+    // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
+
+    // Upload
+    implementation ("com.google.api-client:google-api-client:$rootProject.ext.googleApiClientVersion",{
+        exclude group:'org.apache.httpcomponents', module:'httpclient'
+    })
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    api "de.cyface:serializer:$rootProject.ext.cyfaceSerializationVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")

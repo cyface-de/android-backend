@@ -22,7 +22,7 @@ To use it as a dependency in your app you need to:
 . Make sure you are authenticated to the repository:
  ** You need a Github account with read-access to this Github repository
  ** Create a https://github.com/settings/tokens[personal access token on Github] with "read:packages" permissions
- ** Create or adjust a `local.properties` file in the project root containing:
+ ** Create or adjust a `gradle.properties` file in the project root containing:
 
 +
 ----
@@ -33,19 +33,17 @@ To use it as a dependency in your app you need to:
 
 +
 ----
- def properties = new Properties()
- properties.load(new FileInputStream("local.properties"))
-
  repositories {
      // Other maven repositories, e.g.:
-     jcenter()
      google()
+     mavenCentral()
+     gradlePluginPortal()
      // Repository for this library
      maven {
          url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
          credentials {
-             username = properties.getProperty("github.user")
-             password = properties.getProperty("github.token")
+             username = project.findProperty("github.user")
+             password = project.findProperty("github.token")
          }
      }
  }
@@ -55,22 +53,21 @@ To use it as a dependency in your app you need to:
 ----
  dependencies {
      # To use the 'movebis' flavour, use: 'datacapturingmovebis'
-     implementation "de.cyface:datacapturing:$cyfaceBackendVersion"
+     implementation "de.cyface:datacapturing:$cyfaceAndroidBackendVersion"
      # To use the 'movebis' flavour, use: 'synchronizationmovebis'
-     implementation "de.cyface:synchronization:$cyfaceBackendVersion"
+     implementation "de.cyface:synchronization:$cyfaceAndroidBackendVersion"
      # There is only one 'persistence' flavor
-     implementation "de.cyface:persistence:$cyfaceBackendVersion"
+     implementation "de.cyface:persistence:$cyfaceAndroidBackendVersion"
  }
 ----
 
-. Set the `$cyfaceBackendVersion` gradle variable to the https://github.com/cyface-de/android-backend/releases[latest version].
+. Set the `$cyfaceAndroidBackendVersion` gradle variable to the https://github.com/cyface-de/android-backend/releases[latest version].
 
 [[api-usage-guide]]
 == API Usage Guide
 
 * <<collector-compatibility,Collector Compatibility>>
 * <<resource-files,Resource Files>>
- ** <<truststore,Truststore>>
  ** <<content-provider-authority,Content Provider Authority>>
 * <<service-initialization,Service Initialization>>
  ** <<implement-ui-listener,Implement UI Listener>>
@@ -103,23 +100,6 @@ This SDK is compatible with our https://github.com/cyface-de/data-collector/rele
 === Resource Files
 
 The following steps are required before you can start coding.
-
-[[truststore]]
-==== Truststore
-
-Geo location tracks such as those captured by the Cyface Android SDK, should only be transmitted
-via a secure HTTPS connection.
-
-If you use a self-signed certificate the SDK requires a truststore containing the key of the server
-you are transmitting to.
-
-Since we can not know which public key your server uses, this must be provided by you.
-To do so place a truststore containing your key in:
-
- synchronization/src/main/res/raw/truststore.jks
-
-If this (by default empty) file is not replaced, the SDK can only communicate with
-servers which are certified by one of its trusted Certification Authorities.
 
 [[content-provider-authority]]
 ==== Content Provider Authority
@@ -674,7 +654,7 @@ The `loadTracks()` method returns a chronologically ordered list of ``Track``s.
 
 Each time a measurement is paused and resumed, a new `Track` is started for the same measurement.
 
-A `Track` contains the chronologically ordered ``GeoLocation``s captured.
+A `Track` contains the chronologically ordered ``ParcelableGeoLocation``s captured.
 
 You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaningStrategy` class for details.
 
@@ -855,11 +835,11 @@ the https://github.com/cyface-de/android-backend/packages[Github Registry]
 . Make sure you are authenticated to the repository:
 * You need a Github account with write-access to this Github repository
 * Create a https://github.com/settings/tokens[personal access token on Github] with "write:packages" permissions
-* Create or adjust a `local.properties` file in the project root containing:
+* Copy `gradle.properties.template` to `gradle.properties` and adjust:
 +
 ....
-github.user=YOUR_USERNAME
-github.token=YOUR_ACCESS_TOKEN
+githubUser=YOUR_USERNAME
+githubToken=YOUR_ACCESS_TOKEN
 ....
 . Execute the publish command `./gradlew publishAll`
 

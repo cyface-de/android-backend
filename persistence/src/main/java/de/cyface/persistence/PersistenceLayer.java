@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -27,7 +27,9 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
-import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
+import static de.cyface.serializer.model.Point3DType.ACCELERATION;
+import static de.cyface.serializer.model.Point3DType.DIRECTION;
+import static de.cyface.serializer.model.Point3DType.ROTATION;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 
 import java.io.File;
@@ -47,16 +49,17 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import de.cyface.persistence.exception.NoDeviceIdException;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
-import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.Track;
-import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
-import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -66,11 +69,17 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 17.0.3
+ * @version 18.0.0
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
 
+    /**
+     * The current version of the file format used to persist {@link ParcelablePoint3D} data.
+     * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
+     * measurements and files with different {@code #PERSISTENCE_FILE_FORMAT_VERSION} at the same time.
+     */
+    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 2;
     /**
      * The {@link Context} required to locate the app's internal storage directory.
      */
@@ -91,7 +100,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * The {@link FileAccessLayer} used to interact with files.
      */
-    private FileAccessLayer fileAccessLayer;
+    private final FileAccessLayer fileAccessLayer;
 
     /**
      * <b>This constructor is only for testing.</b>
@@ -122,9 +131,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         this.authority = authority;
         this.persistenceBehaviour = persistenceBehaviour;
         this.fileAccessLayer = new DefaultFileAccess();
-        final File accelerationsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
-        final File rotationsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
-        final File directionsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+        final File accelerationsFolder = fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME);
+        final File rotationsFolder = fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME);
+        final File directionsFolder = fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME);
         checkOrCreateFolder(accelerationsFolder);
         checkOrCreateFolder(rotationsFolder);
         checkOrCreateFolder(directionsFolder);
@@ -157,21 +166,19 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final ContentValues measurementValues = new ContentValues();
         measurementValues.put(COLUMN_MODALITY, modality.getDatabaseIdentifier());
         measurementValues.put(COLUMN_STATUS, MeasurementStatus.OPEN.getDatabaseIdentifier());
-        measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
+        measurementValues.put(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, PERSISTENCE_FILE_FORMAT_VERSION);
         measurementValues.put(COLUMN_DISTANCE, 0.0);
         measurementValues.put(COLUMN_TIMESTAMP, timestamp);
 
         // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
             Uri resultUri = resolver.insert(getMeasurementUri(), measurementValues);
-            Validate.notNull("New measurement could not be created!", resultUri);
+            Validate.notNull(resultUri, "New measurement could not be created!");
             Validate.notNull(resultUri.getLastPathSegment());
 
             final long measurementId = Long.parseLong(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
-            return new Measurement(measurementId, OPEN, modality, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                    0.0, timestamp);
+            return new Measurement(measurementId, OPEN, modality, PERSISTENCE_FILE_FORMAT_VERSION, 0.0, timestamp);
         }
     }
 
@@ -186,21 +193,16 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public boolean hasMeasurement(@NonNull MeasurementStatus status) throws CursorIsNullException {
         Log.v(TAG, "Checking if app has an " + status + " measurement.");
 
-        Cursor cursor = null;
-        try {
+        try (final var cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
+                new String[] {status.getDatabaseIdentifier()}, null)) {
+
             synchronized (this) {
-                cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
-                        new String[] {status.getDatabaseIdentifier()}, null);
                 softCatchNullCursor(cursor);
 
                 final boolean hasMeasurement = cursor.getCount() > 0;
                 Log.v(TAG, hasMeasurement ? "At least one measurement is " + status + "."
                         : "No measurement is " + status + ".");
                 return hasMeasurement;
-            }
-        } finally {
-            if (cursor != null) {
-                cursor.close();
             }
         }
     }
@@ -216,10 +218,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     @SuppressWarnings({"unused"}) // Used by cyface flavour tests and possibly by implementing apps
     public @NonNull List<Measurement> loadMeasurements() throws CursorIsNullException {
-        Cursor cursor = null;
-        try {
+
+        try (final var cursor = resolver.query(getMeasurementUri(), null, null, null, null)) {
+
             List<Measurement> ret = new ArrayList<>();
-            cursor = resolver.query(getMeasurementUri(), null, null, null, null);
             softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
@@ -228,10 +230,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
 
             return ret;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
@@ -242,11 +240,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return the {@code Measurement} of the {@code Cursor}
      */
     private Measurement loadMeasurement(@NonNull final Cursor cursor) {
+
         final long measurementIdentifier = cursor.getLong(cursor.getColumnIndexOrThrow(_ID));
         final MeasurementStatus status = MeasurementStatus
                 .valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS)));
         final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_MODALITY)));
-        final short fileFormatVersion = cursor.getShort(cursor.getColumnIndexOrThrow(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
+        final short fileFormatVersion = cursor
+                .getShort(cursor.getColumnIndexOrThrow(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndexOrThrow(COLUMN_DISTANCE));
         final long timestamp = cursor.getLong(cursor.getColumnIndexOrThrow(COLUMN_TIMESTAMP));
         return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, timestamp);
@@ -368,12 +368,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     @SuppressWarnings("unused") // Implementing apps (SR) use this api to load the finished measurements
     public List<Measurement> loadMeasurements(@NonNull final MeasurementStatus status) throws CursorIsNullException {
-        Cursor cursor = null;
 
-        try {
+        try (final var cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
+                new String[] {status.getDatabaseIdentifier()}, null)) {
             final List<Measurement> measurements = new ArrayList<>();
-            cursor = resolver.query(getMeasurementUri(), null, COLUMN_STATUS + "=?",
-                    new String[] {status.getDatabaseIdentifier()}, null);
+
             softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
@@ -382,51 +381,45 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
 
             return measurements;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
     /**
-     * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as {@link MeasurementStatus#SYNCED} and deletes
-     * the sensor data.
+     * Marks a {@link MeasurementStatus#FINISHED} {@link Measurement} as {@link MeasurementStatus#SYNCED},
+     * {@link MeasurementStatus#SKIPPED} or {@link MeasurementStatus#DEPRECATED} and deletes the sensor data.
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
-     * @param measurement The {@link Measurement} to remove.
+     * @param measurementId The id of the {@link Measurement} to remove.
      * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
      */
-    public void markAsSynchronized(final Measurement measurement)
+    public void markFinishedAs(final MeasurementStatus newStatus, final long measurementId)
             throws NoSuchMeasurementException, CursorIsNullException {
 
         // The status in the database could be different from the one in the object so load it again
-        final long measurementId = measurement.getIdentifier();
         Validate.isTrue(loadMeasurementStatus(measurementId) == FINISHED);
-        setStatus(measurementId, SYNCED, false);
+        setStatus(measurementId, newStatus, false);
 
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
 
         try {
-            final File accelerationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION).getFile();
+            final File accelerationFile = Point3DFile.loadFile(context, fileAccessLayer, measurementId, ACCELERATION)
+                    .getFile();
             Validate.isTrue(accelerationFile.delete());
         } catch (final NoSuchFileException e) {
             Log.v(TAG, "markAsSynchronized: No acceleration file found to delete, nothing to do");
         }
 
         try {
-            final File rotationFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION).getFile();
+            final File rotationFile = Point3DFile.loadFile(context, fileAccessLayer, measurementId, ROTATION).getFile();
             Validate.isTrue(rotationFile.delete());
         } catch (final NoSuchFileException e) {
             Log.v(TAG, "markAsSynchronized: No rotation file found to delete, nothing to do");
         }
 
         try {
-            final File directionFile = Point3dFile.loadFile(context, fileAccessLayer, measurementId,
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION).getFile();
+            final File directionFile = Point3DFile.loadFile(context, fileAccessLayer, measurementId, DIRECTION)
+                    .getFile();
             Validate.isTrue(directionFile.delete());
         } catch (final NoSuchFileException e) {
             Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do");
@@ -452,7 +445,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final ContentValues identifierValues = new ContentValues();
             identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
             final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
-            Validate.notNull("New device id could not be created!", resultUri);
+            Validate.notNull(resultUri, "New device id could not be created!");
             // Show info in log so that we see if this happens more than once (or on app data reset)
             Log.i(TAG, "Created new device id: " + deviceId);
             return deviceId;
@@ -471,31 +464,26 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     @NonNull
     private String loadDeviceId() throws CursorIsNullException, NoDeviceIdException {
-        Cursor deviceIdentifierQueryCursor = null;
-        try {
+
+        try (final var cursor = resolver.query(getIdentifierUri(),
+                new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null)) {
+
             synchronized (this) {
                 // Try to get device id from database
-                deviceIdentifierQueryCursor = resolver.query(getIdentifierUri(),
-                        new String[] {IdentifierTable.COLUMN_DEVICE_ID}, null, null, null);
-                softCatchNullCursor(deviceIdentifierQueryCursor);
-                if (deviceIdentifierQueryCursor.getCount() > 1) {
+                softCatchNullCursor(cursor);
+                if (cursor.getCount() > 1) {
                     throw new IllegalStateException("More entries than expected");
                 }
-                if (deviceIdentifierQueryCursor.moveToFirst()) {
-                    final int indexOfMeasurementIdentifierColumn = deviceIdentifierQueryCursor
+                if (cursor.moveToFirst()) {
+                    final int indexOfMeasurementIdentifierColumn = cursor
                             .getColumnIndexOrThrow(IdentifierTable.COLUMN_DEVICE_ID);
-                    final String did = deviceIdentifierQueryCursor.getString(indexOfMeasurementIdentifierColumn);
+                    final String did = cursor.getString(indexOfMeasurementIdentifierColumn);
                     Log.v(TAG, "Providing device identifier " + did);
                     Validate.notNull(did);
                     return did;
                 }
 
                 throw new NoDeviceIdException("No entries in IdentifierTable.");
-            }
-        } finally {
-            // This can be null, see documentation
-            if (deviceIdentifierQueryCursor != null) {
-                deviceIdentifierQueryCursor.close();
             }
         }
     }
@@ -508,7 +496,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @SuppressWarnings("unused") // Sdk implementing apps (SR) use this to delete measurements
     public void delete(final long measurementIdentifier) {
 
-        deletePoint3dData(measurementIdentifier);
+        deletePoint3DData(measurementIdentifier);
 
         // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
         resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
@@ -529,32 +517,32 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Removes the {@link Point3d}s for one {@link Measurement} from the local persistent data storage.
+     * Removes the {@link ParcelablePoint3D}s for one {@link Measurement} from the local persistent data storage.
      *
      * @param measurementIdentifier The {@code Measurement} id of the data to remove.
      */
-    private void deletePoint3dData(final long measurementIdentifier) {
-        final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
-        final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ROTATIONS_FOLDER_NAME);
-        final File directionFolder = fileAccessLayer.getFolderPath(context, Point3dFile.DIRECTIONS_FOLDER_NAME);
+    private void deletePoint3DData(final long measurementIdentifier) {
+        final File accelerationFolder = fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME);
+        final File rotationFolder = fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME);
+        final File directionFolder = fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME);
 
         if (accelerationFolder.exists()) {
             final File accelerationFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
-                    Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                    Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION);
             if (accelerationFile.exists()) {
                 Validate.isTrue(accelerationFile.delete());
             }
         }
         if (rotationFolder.exists()) {
             final File rotationFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
-                    Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                    Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION);
             if (rotationFile.exists()) {
                 Validate.isTrue(rotationFile.delete());
             }
         }
         if (directionFolder.exists()) {
             final File directionFile = fileAccessLayer.getFilePath(context, measurementIdentifier,
-                    Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+                    Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION);
             if (directionFile.exists()) {
                 Validate.isTrue(directionFile.delete());
             }
@@ -575,29 +563,18 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @SuppressWarnings("unused") // May be used by SDK implementing app
     public List<Track> loadTracks(final long measurementIdentifier) throws CursorIsNullException {
 
-        Cursor geoLocationCursor = null;
-        Cursor eventCursor = null;
-        try {
-            eventCursor = loadEventsCursor(measurementIdentifier);
-            softCatchNullCursor(eventCursor);
+        try (final var eventCursor = loadEventsCursor(measurementIdentifier);
+                final var geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
+                        GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
+                        new String[] {Long.valueOf(measurementIdentifier).toString()},
+                        GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC")) {
 
-            // Load GeoLocations
-            geoLocationCursor = resolver.query(getGeoLocationsUri(), null,
-                    GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurementIdentifier).toString()},
-                    GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
+            softCatchNullCursor(eventCursor);
             softCatchNullCursor(geoLocationCursor);
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
             return loadTracks(geoLocationCursor, eventCursor);
-        } finally {
-            if (geoLocationCursor != null) {
-                geoLocationCursor.close();
-            }
-            if (eventCursor != null) {
-                eventCursor.close();
-            }
         }
     }
 
@@ -606,7 +583,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
      * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
-     *            {@link GeoLocation}s
+     *            {@link ParcelableGeoLocation}s
      * @return The {@link Track}s associated with the {@code Measurement}. If no {@code GeoLocation}s exists, an empty
      *         list is returned.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
@@ -615,27 +592,17 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public List<Track> loadTracks(final long measurementIdentifier,
             @NonNull final LocationCleaningStrategy locationCleaningStrategy) throws CursorIsNullException {
 
-        Cursor geoLocationCursor = null;
-        Cursor eventCursor = null;
-        try {
-            eventCursor = loadEventsCursor(measurementIdentifier);
-            softCatchNullCursor(eventCursor);
+        try (final var eventCursor = loadEventsCursor(measurementIdentifier);
+                final var geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver,
+                        measurementIdentifier,
+                        getGeoLocationsUri())) {
 
-            geoLocationCursor = locationCleaningStrategy.loadCleanedLocations(resolver, measurementIdentifier,
-                    getGeoLocationsUri());
+            softCatchNullCursor(eventCursor);
             softCatchNullCursor(geoLocationCursor);
             if (geoLocationCursor.getCount() == 0) {
                 return Collections.emptyList();
             }
             return loadTracks(geoLocationCursor, eventCursor);
-
-        } finally {
-            if (eventCursor != null) {
-                eventCursor.close();
-            }
-            if (geoLocationCursor != null) {
-                geoLocationCursor.close();
-            }
         }
     }
 
@@ -697,15 +664,12 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     @SuppressWarnings("unused") // Implementing apps (CY) use this
     public List<Event> loadEvents(final long measurementId, @NonNull final Event.EventType eventType)
             throws CursorIsNullException {
-        Cursor cursor = null;
 
-        try {
+        try (final var cursor = resolver.query(getEventUri(), null,
+                EventTable.COLUMN_MEASUREMENT_FK + "=? AND " + EventTable.COLUMN_TYPE + "=?",
+                new String[] {Long.valueOf(measurementId).toString(), eventType.getDatabaseIdentifier()},
+                EventTable.COLUMN_TIMESTAMP + " ASC")) {
             final List<Event> events = new ArrayList<>();
-
-            cursor = resolver.query(getEventUri(), null,
-                    EventTable.COLUMN_MEASUREMENT_FK + "=? AND " + EventTable.COLUMN_TYPE + "=?",
-                    new String[] {Long.valueOf(measurementId).toString(), eventType.getDatabaseIdentifier()},
-                    EventTable.COLUMN_TIMESTAMP + " ASC");
             softCatchNullCursor(cursor);
 
             while (cursor.moveToNext()) {
@@ -714,15 +678,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
 
             return events;
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
         }
     }
 
     /**
-     * Loads the {@link Track}s for the provided {@link GeoLocation} cursor sliced using the provided {@link Event}
+     * Loads the {@link Track}s for the provided {@link ParcelableGeoLocation} cursor sliced using the provided {@link Event}
      * cursor.
      *
      * @param geoLocationCursor The {@code GeoLocation} cursor which points to the locations to be loaded.
@@ -748,12 +708,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Search for next resume event and capture it's previous pause event
             if (eventType != Event.EventType.LIFECYCLE_RESUME) {
                 if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
-                    pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
+                    pauseEventTime = eventCursor
+                            .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
                 }
                 continue;
             }
             Validate.notNull(pauseEventTime);
-            final long resumeEventTime = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
+            final long resumeEventTime = eventCursor
+                    .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
 
             // Collect all GeoLocations until the pause event
             final Track track = collectNextSubTrack(geoLocationCursor, pauseEventTime);
@@ -776,7 +738,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // This is ether the track between start[, pause] and stop or resume[, pause] and stop.
         final Track track = new Track();
         do {
-            final GeoLocation location = loadGeoLocation(geoLocationCursor);
+            final ParcelableGeoLocation location = loadGeoLocation(geoLocationCursor);
             if (location != null) {
                 track.add(location);
             }
@@ -800,7 +762,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     private Track collectNextSubTrack(@NonNull final Cursor geoLocationCursor, @NonNull final Long pauseEventTime) {
         final Track track = new Track();
 
-        GeoLocation location = loadGeoLocation(geoLocationCursor);
+        ParcelableGeoLocation location = loadGeoLocation(geoLocationCursor);
         while (location != null && location.getTimestamp() <= pauseEventTime) {
 
             track.add(location);
@@ -824,7 +786,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     private void moveCursorToFirstAfter(@NonNull final Cursor geoLocationCursor, final long resumeEventTime) {
 
         @Nullable
-        GeoLocation location = loadGeoLocation(geoLocationCursor);
+        ParcelableGeoLocation location = loadGeoLocation(geoLocationCursor);
         while (location != null && location.getTimestamp() < resumeEventTime && geoLocationCursor.moveToNext()) {
 
             // Load next location to check it's timestamp
@@ -833,26 +795,28 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * Loads the {@link GeoLocation} at the {@code Cursor}'s current position.
+     * Loads the {@link ParcelableGeoLocation} at the {@code Cursor}'s current position.
      *
      * @param geoLocationCursor the {@code Cursor} pointing to a {@code GeoLocation} in the database.
      * @return the {@code GeoLocation} loaded or {@code Null} if the cursor points to the entry after the last one.
      */
     @Nullable
-    private GeoLocation loadGeoLocation(@NonNull final Cursor geoLocationCursor) {
+    private ParcelableGeoLocation loadGeoLocation(@NonNull final Cursor geoLocationCursor) {
         if (geoLocationCursor.isAfterLast()) {
             return null;
         }
 
-        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT));
-        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON));
+        final double lat = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT));
+        final double lon = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON));
         final long timestamp = geoLocationCursor
                 .getLong(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME));
         final double speed = geoLocationCursor
                 .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED));
-        final float accuracy = geoLocationCursor
-                .getFloat(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY));
-        return new GeoLocation(lat, lon, timestamp, speed, accuracy);
+        final double accuracy = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY));
+        return new ParcelableGeoLocation(lat, lon, timestamp, speed, accuracy);
     }
 
     /**
@@ -899,8 +863,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
     /**
      * When pausing or stopping a {@link Measurement} we store the
-     * {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} in the {@link Measurement} to make sure we can
-     * deserialize the {@link Point3dFile}s with previous {@code PERSISTENCE_FILE_FORMAT_VERSION}s.
+     * {@link #PERSISTENCE_FILE_FORMAT_VERSION} in the {@link Measurement} to make sure we can
+     * deserialize the {@link Point3DFile}s with previous {@code PERSISTENCE_FILE_FORMAT_VERSION}s.
      * <p>
      * <b>ATTENTION:</b> This method should not be called from outside the SDK.
      *
@@ -922,11 +886,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * Loads the currently captured {@link Measurement} from the cache, if possible, or from the
      * {@link PersistenceLayer}.
      *
+     * @return the currently captured {@link Measurement}
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
      *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     * @return the currently captured {@link Measurement}
      */
     @SuppressWarnings("unused") // Implementing apps use this to get the ongoing measurement info
     public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
@@ -938,11 +902,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * <p>
      * <b>ATTENTION:</b> SDK implementing apps should use {@link #loadCurrentlyCapturedMeasurement()} instead.
      *
+     * @return the currently captured {@link Measurement}
      * @throws NoSuchMeasurementException If this method has been called while no {@code Measurement} was active. To
      *             avoid this use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is
      *             an actual {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} measurement.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
-     * @return the currently captured {@link Measurement}
      */
     public Measurement loadCurrentlyCapturedMeasurementFromPersistence()
             throws NoSuchMeasurementException, CursorIsNullException {
@@ -998,9 +962,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 }
                 break;
             case SYNCED:
+            case SKIPPED:
+            case DEPRECATED:
                 break;
             default:
-                throw new IllegalArgumentException("Not supported");
+                throw new IllegalArgumentException(String.format("Unknown status: %s", newStatus));
         }
 
         Log.d(TAG, "Set measurement " + measurementIdentifier + " to " + newStatus);
@@ -1122,7 +1088,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         }
 
         final Uri resultUri = resolver.insert(getEventUri(), contentValues);
-        Validate.notNull("New Event could not be created!", resultUri);
+        Validate.notNull(resultUri, "New Event could not be created!");
         Validate.notNull(resultUri.getLastPathSegment());
 
         return Long.parseLong(resultUri.getLastPathSegment());

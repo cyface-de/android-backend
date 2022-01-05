@@ -1,3 +1,21 @@
+/*
+ * Copyright 2021 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
@@ -23,7 +41,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  * @see DataCapturingService#pause(ShutDownFinishedHandler)
  * @see DataCapturingService#stop(ShutDownFinishedHandler)
@@ -62,7 +80,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     public void onReceive(@NonNull final Context context, @NonNull final Intent intent) {
         Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
         final String action = intent.getAction();
-        Validate.notNull("Received broadcast with null action.", action);
+        Validate.notNull(action, "Received broadcast with null action.");
         Validate.isTrue(serviceStoppedActionId.equals(intent.getAction()),
                 "Received undefined broadcast " + intent.getAction());
 

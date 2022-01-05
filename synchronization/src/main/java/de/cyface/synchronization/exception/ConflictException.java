@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,24 +16,24 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization;
+package de.cyface.synchronization.exception;
 
 import androidx.annotation.NonNull;
+import de.cyface.persistence.model.Measurement;
 
 /**
- * An {@code Exception} thrown by the server when the server thinks that this client sent too many requests in to short
- * time. This helps to prevent DDoS attacks. The client should just retry a short time later.
+ * An {@code Exception} thrown when the {@link Measurement} already exists on the server.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 4.2.2
- **/
-public class TooManyRequestsException extends Exception {
+ * @version 1.0.2
+ * @since 4.0.0
+ */
+public class ConflictException extends Exception {
 
     /**
      * @param detailedMessage A more detailed message explaining the context for this {@code Exception}.
      */
-    TooManyRequestsException(final String detailedMessage) {
+    public ConflictException(final String detailedMessage) {
         super(detailedMessage);
     }
 
@@ -42,7 +42,7 @@ public class TooManyRequestsException extends Exception {
      * @param cause The {@code Exception} that caused this one.
      */
     @SuppressWarnings("unused") // May be used in the future
-    public TooManyRequestsException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
+    public ConflictException(@NonNull final String detailedMessage, @NonNull final Exception cause) {
         super(detailedMessage, cause);
     }
 }

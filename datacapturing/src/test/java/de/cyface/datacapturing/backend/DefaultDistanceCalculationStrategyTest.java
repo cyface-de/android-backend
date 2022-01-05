@@ -31,7 +31,7 @@ import android.location.Location;
 import android.os.Build;
 
 import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 
 /**
@@ -58,15 +58,15 @@ public class DefaultDistanceCalculationStrategyTest {
     }
 
     /**
-     * Tests if the distance between two {@link GeoLocation}s is calculated as expected.
+     * Tests if the distance between two {@link ParcelableGeoLocation}s is calculated as expected.
      */
     @Test
     public void testCalculateDistance() {
         // Arrange
         final int base = 0;
         final int expectedDistance = 2;
-        final GeoLocation previousLocation = generateGeoLocation(base);
-        final GeoLocation nextLocation = generateGeoLocation(base + expectedDistance);
+        final ParcelableGeoLocation previousLocation = generateGeoLocation(base);
+        final ParcelableGeoLocation nextLocation = generateGeoLocation(base + expectedDistance);
         // Mock - nothing to do
 
         // Act

@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -42,13 +42,14 @@ import android.content.Context;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import de.cyface.persistence.NoSuchMeasurementException;
+
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
-import de.cyface.persistence.serialization.Point3dFile;
+import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -57,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.5
+ * @version 1.5.6
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -167,7 +168,7 @@ public class PersistenceLayerTest {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
-        oocut.markAsSynchronized(measurement);
+        oocut.markFinishedAs(SYNCED, measurement.getIdentifier());
 
         // Check that measurement was marked as synced
         List<Measurement> syncedMeasurements = oocut.loadMeasurements(SYNCED);
@@ -176,13 +177,13 @@ public class PersistenceLayerTest {
 
         // Check that sensor data was deleted
         final File accelerationFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
-                Point3dFile.ACCELERATIONS_FOLDER_NAME, Point3dFile.ACCELERATIONS_FILE_EXTENSION);
+                Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION);
         Validate.isTrue(!accelerationFile.exists());
         final File rotationFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
-                Point3dFile.ROTATIONS_FOLDER_NAME, Point3dFile.ROTATION_FILE_EXTENSION);
+                Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION);
         Validate.isTrue(!rotationFile.exists());
         final File directionFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
-                Point3dFile.DIRECTIONS_FOLDER_NAME, Point3dFile.DIRECTION_FILE_EXTENSION);
+                Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION);
         Validate.isTrue(!directionFile.exists());
     }
 

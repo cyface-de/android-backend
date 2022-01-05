@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -44,8 +44,8 @@ import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.utils.Validate;
 
 /**
@@ -54,7 +54,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.1.1
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -74,15 +74,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
-    private final List<Point3d> accelerations;
+    private final List<ParcelablePoint3D> accelerations;
     /**
      * Cache for captured but not yet processed points from the gyroscope.
      */
-    private final List<Point3d> rotations;
+    private final List<ParcelablePoint3D> rotations;
     /**
      * Cache for captured but not yet processed points from the compass.
      */
-    private final List<Point3d> directions;
+    private final List<ParcelablePoint3D> directions;
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -144,11 +144,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             @NonNull final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
             @NonNull final HandlerThread locationEventHandlerThread,
             @NonNull final HandlerThread sensorEventHandlerThread, final int sensorFrequency) throws SecurityException {
-        Validate.notNull("Illegal argument: locationManager was null!", locationManager);
-        Validate.notNull("Illegal argument: sensorService was null!", sensorService);
-        Validate.notNull("Illegal argument: geoLocationDeviceStatusHandler was null!", geoLocationDeviceStatusHandler);
-        Validate.notNull("Illegal argument: locationEventHandlerThread was null!", locationEventHandlerThread);
-        Validate.notNull("Illegal argument: sensorEventHandlerThread was null!", sensorEventHandlerThread);
+        Validate.notNull(locationManager, "Illegal argument: locationManager was null!");
+        Validate.notNull(sensorService, "Illegal argument: sensorService was null!");
+        Validate.notNull(geoLocationDeviceStatusHandler, "Illegal argument: geoLocationDeviceStatusHandler was null!");
+        Validate.notNull(locationEventHandlerThread, "Illegal argument: locationEventHandlerThread was null!");
+        Validate.notNull(sensorEventHandlerThread, "Illegal argument: sensorEventHandlerThread was null!");
 
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);
@@ -195,17 +195,16 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             double longitude = location.getLongitude();
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
-            float locationAccuracyMeters = location.getAccuracy();
+            double accuracy = location.getAccuracy();
             if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
-                locationAccuracyMeters = (float)Math.random() * 30.0f;
-                Log.d(TAG, "Emulator detected, Accuracy overwritten to: " + locationAccuracyMeters);
+                accuracy = Math.random() * 30.0;
+                Log.d(TAG, "Emulator detected, Accuracy overwritten to: " + accuracy);
             }
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
                     listener.onLocationCaptured(
-                            // The Android Location contains the accuracy in meters. GeoLocation uses cm.
-                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100));
+                            new ParcelableGeoLocation(latitude, longitude, locationTime, speed, accuracy));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {
@@ -381,8 +380,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
-    private void saveSensorValue(final SensorEvent event, final List<Point3d> storage) {
-        Point3d dataPoint = new Point3d(event.values[0], event.values[1], event.values[2],
+    private void saveSensorValue(final SensorEvent event, final List<ParcelablePoint3D> storage) {
+        final var dataPoint = new ParcelablePoint3D(event.values[0], event.values[1], event.values[2],
                 event.timestamp / 1_000_000L + eventTimeOffsetMillis);
         storage.add(dataPoint);
     }

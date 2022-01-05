@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2021 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,11 +20,13 @@
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @version 1.0.11
+ * @version 1.1.0
  * @since 3.0.0
  */
 
-apply plugin: 'com.android.library'
+plugins {
+    id 'com.android.library'
+}
 
 android {
     compileSdkVersion rootProject.ext.compileSdkVersion
@@ -33,7 +35,7 @@ android {
     defaultConfig {
         minSdkVersion rootProject.ext.minSdkVersion
         targetSdkVersion rootProject.ext.targetSdkVersion
-        versionName rootProject.ext.cyfaceBackendVersion
+        versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
     }
 
@@ -44,6 +46,12 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
+
+    // Enabling desugaring to support Java 8 and Java 11 features
+    compileOptions {
+        sourceCompatibility rootProject.ext.sourceCompatibility
+        targetCompatibility rootProject.ext.targetCompatibility
+    }
 }
 
 dependencies {
@@ -53,6 +61,7 @@ dependencies {
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    api "de.cyface:serializer:$rootProject.ext.cyfaceSerializationVersion"
     // No circular dependency: persistence.dependency.testImplementation(testutils) is not imported transitively
     implementation project(':persistence')
 }

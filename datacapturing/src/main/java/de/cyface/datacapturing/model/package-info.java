@@ -2,9 +2,9 @@
  * This package contains model classes required by the data capturing service to represent the captured data.
  * <p>
  * There is a {@link de.cyface.datacapturing.model.CapturedData} object, that represents the captured 3D data points
- * ({@link de.cyface.persistence.model.Point3d}).
+ * ({@link de.cyface.persistence.model.ParcelablePoint3D}).
  * <p>
- * {@link de.cyface.persistence.model.GeoLocation} is a single captured geo location with all associated data.
+ * {@link de.cyface.persistence.model.ParcelableGeoLocation} is a single captured geo location with all associated data.
  * 
  * @author Klemens Muthmann
  * @version 2.0.1
