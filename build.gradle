@@ -26,7 +26,7 @@
  */
 
 buildscript {
-    ext.gradle_version = "7.0.2"
+    ext.gradle_version = "7.0.4"
 
     repositories {
         google()
@@ -43,7 +43,7 @@ ext {
     cyfaceAndroidBackendVersion = "7.0.0"
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "3.2.1"
+    cyfaceUtilsVersion = "3.2.2"
     cyfaceSerializationVersion = "1.0.2"
 
     // Android SDK versions
@@ -53,8 +53,8 @@ ext {
     buildToolsVersion = '30.0.3'
 
     // Android dependencies
-    androidxAnnotationVersion = "1.2.0"
-    androidxAppCompatVersion = "1.3.1"
+    androidxAnnotationVersion = "1.3.0"
+    androidxAppCompatVersion = "1.3.1" // 1.4.0 leads to an error in `gradle verifyReleaseResources`
     localbroadcastmanagerVersion = "1.0.0"
 
     // Other dependencies
