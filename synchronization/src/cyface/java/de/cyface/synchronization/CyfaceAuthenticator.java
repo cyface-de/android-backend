@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.HOST_UNRESOLVABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
@@ -61,6 +62,7 @@ import de.cyface.synchronization.exception.ServerUnavailableException;
 import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UnexpectedResponseCode;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -73,7 +75,7 @@ import de.cyface.synchronization.exception.UnauthorizedException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.1.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -165,6 +167,9 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         } catch (final HostUnresolvable e) {
             sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
+        } catch (final UnexpectedResponseCode e) {
+            sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
         }
 
         // Return a bundle containing the token
@@ -236,10 +241,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      * @throws ForbiddenException E.g. when there is no actual API running at the URL
+     * @throws UnexpectedResponseCode When the server returns an unexpected response code
      */
     private String login(final @NonNull String username, final @NonNull String password)
             throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException {
+            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException, UnexpectedResponseCode {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl

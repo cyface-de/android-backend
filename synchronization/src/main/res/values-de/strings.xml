@@ -27,6 +27,7 @@
     <string name="error_message_too_many_requests">Zu viele Anfragen</string>
     <string name="error_message_host_unresolvable">Server unauffindbar. Bitte Internet-Verbindung prüfen.</string>
     <string name="error_message_upload_session_expired">Upload Sitzung abgelaufen.</string>
+    <string name="error_message_unexpected_response_code">Server Antworttyp unerwartet</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>
