@@ -3,7 +3,7 @@
 
     <!-- Login errors -->
     <string name="error_message_unknown_authentication_error">Login failed</string>
-    <string name="error_message_credentials_incorrect">Credentials incorrect</string>
+    <string name="error_message_credentials_incorrect">Credentials incorrect. Please login with different credentials.</string>
     <string name="error_message_authentication_canceled">Login canceled</string>
 
     <!-- Synchronization errors -->

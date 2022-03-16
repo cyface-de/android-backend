@@ -3,7 +3,7 @@
 
     <!-- Login errors -->
     <string name="error_message_unknown_authentication_error">Login fehlgeschlagen</string>
-    <string name="error_message_credentials_incorrect">Zugangsdaten inkorrekt</string>
+    <string name="error_message_credentials_incorrect">Zugangsdaten inkorrekt. Bitte loggen Sie sich mit anderen Zugangsdaten ein.</string>
     <string name="error_message_authentication_canceled">Login abgebrochen</string>
 
     <!-- Synchronization errors -->
