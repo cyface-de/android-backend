@@ -28,6 +28,7 @@
     <string name="error_message_host_unresolvable">Server unauffindbar. Bitte Internet-Verbindung prüfen.</string>
     <string name="error_message_upload_session_expired">Upload Sitzung abgelaufen.</string>
     <string name="error_message_unexpected_response_code">Server Antworttyp unerwartet</string>
+    <string name="error_message_account_not_activated">Nutzerkonto noch nicht aktiviert. Bitte prüfen Sie Ihre E-Mails.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

@@ -63,6 +63,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.model.RequestMetaData;
+import de.cyface.synchronization.exception.AccountNotActivated;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -98,6 +99,10 @@ public class HttpConnection implements Http {
      * syntax error.
      */
     final static int HTTP_ENTITY_NOT_PROCESSABLE = 422;
+    /**
+     * The status code returned when the server responded that the user account is not activated.
+     */
+    final static int ACCOUNT_NOT_ACTIVATED = 428;
     /**
      * The status code returned when the server thinks that this client sent too many requests in to short time.
      * This helps to prevent DDoS attacks. The client should just retry a short time later.
@@ -182,7 +187,7 @@ public class HttpConnection implements Http {
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException,
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
-            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode {
+            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode, AccountNotActivated {
 
         // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
@@ -228,7 +233,7 @@ public class HttpConnection implements Http {
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable,
-            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode {
+            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated {
 
         try {
             final String fileName = String.format(Locale.US, "%s_%s." + TRANSFER_FILE_EXTENSION,
@@ -423,12 +428,13 @@ public class HttpConnection implements Http {
      * @throws InternalServerErrorException When the server returns {@code HttpURLConnection#HTTP_INTERNAL_ERROR}
      * @throws TooManyRequestsException When the server returns {@link #HTTP_TOO_MANY_REQUESTS}
      * @throws UnexpectedResponseCode When the server returns an unexpected response code
+     * @throws AccountNotActivated When the user account is not activated
      */
     @NonNull
     private Result readResponse(@NonNull final HttpURLConnection connection)
             throws SynchronisationException, BadRequestException, UnauthorizedException, ForbiddenException,
             ConflictException, EntityNotParsableException, InternalServerErrorException, TooManyRequestsException,
-            UploadSessionExpired, UnexpectedResponseCode {
+            UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated {
 
         final int responseCode;
         final String responseMessage;
@@ -450,7 +456,7 @@ public class HttpConnection implements Http {
     private Result readResponse(com.google.api.client.http.HttpResponse response, JsonFactory jsonFactory)
             throws BadRequestException, UnauthorizedException, ForbiddenException,
             ConflictException, EntityNotParsableException, InternalServerErrorException, TooManyRequestsException,
-            SynchronisationException, UploadSessionExpired, UnexpectedResponseCode {
+            SynchronisationException, UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated {
 
         // Read response from connection
         final int responseCode = response.getStatusCode();
@@ -491,7 +497,7 @@ public class HttpConnection implements Http {
     private Result handleError(HttpResponse response)
             throws BadRequestException, UnauthorizedException, ForbiddenException, ConflictException,
             EntityNotParsableException, InternalServerErrorException, TooManyRequestsException, UploadSessionExpired,
-            UnexpectedResponseCode {
+            UnexpectedResponseCode, AccountNotActivated {
 
         // Handle known error responses
         final int responseCode = response.getResponseCode();
@@ -529,12 +535,15 @@ public class HttpConnection implements Http {
             case HTTP_ENTITY_NOT_PROCESSABLE:
                 Log.w(TAG, "422: Multipart request is erroneous.");
                 throw new EntityNotParsableException(response.getBody());
-            case HttpURLConnection.HTTP_INTERNAL_ERROR:
-                Log.w(TAG, "500: Server reported internal error.");
-                throw new InternalServerErrorException(response.getBody());
+            case ACCOUNT_NOT_ACTIVATED:
+                Log.w(TAG, "428: User account not activated.");
+                throw new AccountNotActivated(response.getBody());
             case HTTP_TOO_MANY_REQUESTS:
                 Log.w(TAG, "429: Server reported too many requests received from this client.");
                 throw new TooManyRequestsException(response.getBody());
+            case HttpURLConnection.HTTP_INTERNAL_ERROR:
+                Log.w(TAG, "500: Server reported internal error.");
+                throw new InternalServerErrorException(response.getBody());
             default:
                 Log.e(TAG, String.format("%d: Server reported with an unexpected error code.", responseCode));
                 throw new UnexpectedResponseCode(response.getBody());

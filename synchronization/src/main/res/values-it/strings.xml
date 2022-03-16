@@ -28,6 +28,7 @@
     <string name="error_message_host_unresolvable">Impossibile trovare il server. Si prega di controllare la connessione internet.</string>
     <string name="error_message_upload_session_expired">Sessione di caricamento scaduta.</string>
     <string name="error_message_unexpected_response_code">Codice di risposta inatteso</string>
+    <string name="error_message_account_not_activated">Account non attivato. Per favore controlla le tue email.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Errore imprevisto</string>

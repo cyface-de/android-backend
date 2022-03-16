@@ -19,6 +19,7 @@
 package de.cyface.synchronization;
 
 import static de.cyface.serializer.DataSerializable.humanReadableSize;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
@@ -48,6 +49,7 @@ import androidx.annotation.NonNull;
 import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.synchronization.exception.AccountNotActivated;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -179,6 +181,10 @@ class SyncPerformer {
         } catch (final UnexpectedResponseCode e) {
             syncResult.stats.numParseExceptions++; // hard error
             sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
+            return HttpConnection.Result.UPLOAD_FAILED;
+        } catch (final AccountNotActivated e) {
+            syncResult.stats.numAuthExceptions++; // hard error
+            sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
             return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final MeasurementTooLarge e) {
             syncResult.stats.numSkippedEntries++;

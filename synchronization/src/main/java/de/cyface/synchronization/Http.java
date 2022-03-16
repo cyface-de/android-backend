@@ -27,6 +27,7 @@ import org.json.JSONObject;
 import androidx.annotation.NonNull;
 
 import de.cyface.model.RequestMetaData;
+import de.cyface.synchronization.exception.AccountNotActivated;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -105,6 +106,7 @@ interface Http {
      * @throws HostUnresolvable e.g. when the phone is connected to a network which is not connected to the internet
      * @throws ServerUnavailableException When no connection could be established with the server
      * @throws UnexpectedResponseCode When the server returns an unexpected response code
+     * @throws AccountNotActivated When the user account is not activated
      * @return {@code HttpConnection.Result.LOGIN_SUCCESSFUL} if successful or else an {@code Exception}.
      */
     @NonNull
@@ -112,7 +114,7 @@ interface Http {
             final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
-            TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode;
+            TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode, AccountNotActivated;
 
     /**
      * The serialized post request which transmits a measurement through an existing http connection
@@ -137,6 +139,7 @@ interface Http {
      * @throws ServerUnavailableException When no connection could be established with the server
      * @throws MeasurementTooLarge When the transfer file is too large to be uploaded.
      * @throws UnexpectedResponseCode When the server returns an unexpected response code
+     * @throws AccountNotActivated When the user account is not activated
      * @return {@code HttpConnection.Result.UPLOAD_SUCCESSFUL} on success, {@code HttpConnection.Result.UPLOAD_FAILED}
      *         when the upload attempt should be repeated or {@code HttpConnection.Result.UPLOAD_SKIPPED} if the server
      *         is not interested in the data.
@@ -146,5 +149,5 @@ interface Http {
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             SynchronizationInterruptedException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException,
-            MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode;
+            MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated;
 }

@@ -18,6 +18,7 @@
  */
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.HOST_UNRESOLVABLE;
@@ -51,6 +52,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
+import de.cyface.synchronization.exception.AccountNotActivated;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -170,6 +172,9 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         } catch (final UnexpectedResponseCode e) {
             sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
             throw new NetworkErrorException(e);
+        } catch (final AccountNotActivated e) {
+            sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
+            throw new NetworkErrorException(e);
         }
 
         // Return a bundle containing the token
@@ -242,10 +247,11 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
      * @throws ForbiddenException E.g. when there is no actual API running at the URL
      * @throws UnexpectedResponseCode When the server returns an unexpected response code
+     * @throws AccountNotActivated When the user account is not activated
      */
     private String login(final @NonNull String username, final @NonNull String password)
             throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException, UnexpectedResponseCode {
+            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException, UnexpectedResponseCode, AccountNotActivated {
         Log.v(TAG, "Logging in to get new authToken");
 
         // Load authUrl

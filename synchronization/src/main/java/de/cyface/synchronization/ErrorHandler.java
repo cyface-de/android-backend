@@ -211,6 +211,10 @@ public class ErrorHandler extends BroadcastReceiver {
                 errorMessage = context.getString(R.string.error_message_unexpected_response_code);
                 break;
 
+            case ACCOUNT_NOT_ACTIVATED:
+                errorMessage = context.getString(R.string.error_message_account_not_activated);
+                break;
+
             default:
                 errorMessage = context.getString(de.cyface.synchronization.R.string.error_message_unknown_error);
         }
@@ -238,7 +242,7 @@ public class ErrorHandler extends BroadcastReceiver {
                                                         16), SYNCHRONIZATION_INTERRUPTED(
                                                                 17), TOO_MANY_REQUESTS(18), HOST_UNRESOLVABLE(
                                                                         19), UPLOAD_SESSION_EXPIRED(
-                                                                                20), UNEXPECTED_RESPONSE_CODE(21);
+                                                                                20), UNEXPECTED_RESPONSE_CODE(21), ACCOUNT_NOT_ACTIVATED(22);
         // MEASUREMENT_ENTRY_IS_IRRETRIEVABLE(X),
 
         private final int code;
