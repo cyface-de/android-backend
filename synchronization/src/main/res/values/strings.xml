@@ -3,7 +3,7 @@
 
     <!-- Login errors -->
     <string name="error_message_unknown_authentication_error">Login failed</string>
-    <string name="error_message_credentials_incorrect">Credentials incorrect</string>
+    <string name="error_message_credentials_incorrect">Credentials incorrect. Please login with different credentials.</string>
     <string name="error_message_authentication_canceled">Login canceled</string>
 
     <!-- Synchronization errors -->
@@ -27,6 +27,8 @@
     <string name="error_message_too_many_requests">Too many requests</string>
     <string name="error_message_host_unresolvable">Cannot find server. Please check your internet connection.</string>
     <string name="error_message_upload_session_expired">Upload session expired.</string>
+    <string name="error_message_unexpected_response_code">Unexpected response code</string>
+    <string name="error_message_account_not_activated">Account not activated. Please check your emails.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unexpected error</string>
