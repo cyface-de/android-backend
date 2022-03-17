@@ -19,6 +19,8 @@
 package de.cyface.synchronization;
 
 import static de.cyface.serializer.DataSerializable.humanReadableSize;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
@@ -47,6 +49,7 @@ import androidx.annotation.NonNull;
 import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.synchronization.exception.AccountNotActivated;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -60,6 +63,7 @@ import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UnexpectedResponseCode;
 import de.cyface.synchronization.exception.UploadSessionExpired;
 
 /**
@@ -68,7 +72,7 @@ import de.cyface.synchronization.exception.UploadSessionExpired;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.0.0
+ * @version 6.1.0
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -173,6 +177,14 @@ class SyncPerformer {
         } catch (final UploadSessionExpired e) {
             syncResult.stats.numIoExceptions++; // Try again
             sendErrorIntent(context, UPLOAD_SESSION_EXPIRED.getCode(), e.getMessage());
+            return HttpConnection.Result.UPLOAD_FAILED;
+        } catch (final UnexpectedResponseCode e) {
+            syncResult.stats.numParseExceptions++; // hard error
+            sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
+            return HttpConnection.Result.UPLOAD_FAILED;
+        } catch (final AccountNotActivated e) {
+            syncResult.stats.numAuthExceptions++; // hard error
+            sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
             return HttpConnection.Result.UPLOAD_FAILED;
         } catch (final MeasurementTooLarge e) {
             syncResult.stats.numSkippedEntries++;

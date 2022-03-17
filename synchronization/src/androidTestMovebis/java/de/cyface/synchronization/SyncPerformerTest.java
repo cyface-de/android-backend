@@ -66,6 +66,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
+import de.cyface.synchronization.exception.AccountNotActivated;
 import de.cyface.synchronization.exception.BadRequestException;
 import de.cyface.synchronization.exception.ConflictException;
 import de.cyface.synchronization.exception.EntityNotParsableException;
@@ -79,6 +80,7 @@ import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
 import de.cyface.synchronization.exception.TooManyRequestsException;
 import de.cyface.synchronization.exception.UnauthorizedException;
+import de.cyface.synchronization.exception.UnexpectedResponseCode;
 import de.cyface.synchronization.exception.UploadSessionExpired;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -136,7 +138,7 @@ public class SyncPerformerTest {
             ServerUnavailableException, ForbiddenException, BadRequestException, ConflictException,
             UnauthorizedException, InternalServerErrorException, EntityNotParsableException, SynchronisationException,
             NetworkUnavailableException, SynchronizationInterruptedException, TooManyRequestsException,
-            HostUnresolvable, MeasurementTooLarge, UploadSessionExpired {
+            HostUnresolvable, MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated {
 
         // Arrange
         // Insert data to be synced
@@ -216,7 +218,7 @@ public class SyncPerformerTest {
             BadRequestException, EntityNotParsableException, ForbiddenException, ConflictException,
             NetworkUnavailableException, SynchronizationInterruptedException, InternalServerErrorException,
             SynchronisationException, UnauthorizedException, TooManyRequestsException, HostUnresolvable,
-            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired {
+            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated {
 
         // Arrange
         // 24 hours test data ~ 108 MB which is more then the currently supported upload size (100)

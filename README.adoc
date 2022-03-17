@@ -799,54 +799,18 @@ This section is only relevant for developers of this library.
 [[release-a-new-version]]
 === Release a new version
 
-Versions of this project inside the `main` branch are always `0.0.0`.
+See https://github.com/cyface-de/data-collector#release-a-new-version[Cyface Collector Readme]
 
-==== Non-Major Release
-
-* Apply the hotfix on top of the affected `release/X` branch
-* Apply the fix to the `main` branch, if affected, create a Pull-Request and pass reviewing
-* Push the hotfix the the affected release-branch
-* Increase the version, following http://semver.org[Semantic Versioning]
-* Tag the version-bump commit and push the tag to github
-
-==== Major Release
-
-* *Create a new release branch* following the format `release/3`
-* *Increase the version* in the root `build.gradle`, following http://semver.org[Semantic Versioning]
-** If you need to version sub-projects differently, create a version attribute in the corresponding `build.gradle`
-* *Commit version bump and push release-branch* to Github
-** Wait until the continuous integration system passes
-** Do *not* merge the release-branch back to `main`
-* *Tag the new release on the release branch*
-** Ensure you are on the correct branch and commit
-** Follow the guidelines from https://keepachangelog.com["Keep a Changelog"] in your tag description
-* *Push the tag to Github*
-
-==== Publishing
-
+* Set the `cyfaceAndroidBackendVersion` in the `build.gradle`
 * The Github package is automatically published when a new version is tagged and pushed by our
 https://github.com/cyface-de/android-backend/actions[Github Actions] to
 the https://github.com/cyface-de/android-backend/packages[Github Registry]
 * The tag is automatically marked as a 'new Release' on https://github.com/cyface-de/android-backend/releases[Github]
 
-==== In case you need to publish _manually_ to the Github Registry
-
-[arabic]
-. Make sure you are authenticated to the repository:
-* You need a Github account with write-access to this Github repository
-* Create a https://github.com/settings/tokens[personal access token on Github] with "write:packages" permissions
-* Copy `gradle.properties.template` to `gradle.properties` and adjust:
-+
-....
-githubUser=YOUR_USERNAME
-githubToken=YOUR_ACCESS_TOKEN
-....
-. Execute the publish command `./gradlew publishAll`
-
 
 [[license]]
 == License
-Copyright 2017-2021 Cyface GmbH
+Copyright 2017-2022 Cyface GmbH
 
 This file is part of the Cyface SDK for Android.
 
