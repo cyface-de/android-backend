@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -106,7 +106,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.4
+ * @version 18.0.5
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -817,16 +817,15 @@ public abstract class DataCapturingService {
      * command was executed.
      *
      * @param context The {@link Context} used to send the broadcast from
-     * @param measurementIdentifier The id of the stopped measurement if {@code #stoppedSuccessfully}
+     * @param measurementIdentifier The id of the stopped measurement
      * @param stoppedSuccessfully True if the background service was still alive before stopped
      */
     private void sendServiceStoppedBroadcast(final Context context, final long measurementIdentifier,
             final boolean stoppedSuccessfully) {
         final Intent stoppedBroadcastIntent = new Intent(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED);
-        if (stoppedSuccessfully) {
-            Validate.isTrue(measurementIdentifier > 0L);
-            stoppedBroadcastIntent.putExtra(MEASUREMENT_ID, measurementIdentifier);
-        }
+        // The measurement id should always be set, also if `stoppedSuccessfully=false` [STAD-333]
+        Validate.isTrue(measurementIdentifier > 0L);
+        stoppedBroadcastIntent.putExtra(MEASUREMENT_ID, measurementIdentifier);
         stoppedBroadcastIntent.putExtra(STOPPED_SUCCESSFULLY, stoppedSuccessfully);
         LocalBroadcastManager.getInstance(context).sendBroadcast(stoppedBroadcastIntent);
     }
