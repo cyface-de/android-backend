@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.1
+ * @version 5.7.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -740,7 +740,7 @@ public class DataCapturingServiceTest {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         pauseAndCheckThatStopped(measurementIdentifier);
-        stopAndCheckThatStopped(-1); // -1 because it's already stopped
+        stopAndCheckThatStopped(measurementIdentifier); // stop paused returns mid, too [STAD-333]
     }
 
     /**
@@ -1015,7 +1015,7 @@ public class DataCapturingServiceTest {
         final long measurementIdentifier = startAndCheckThatLaunched();
         pauseAndCheckThatStopped(measurementIdentifier);
         oocut.changeModalityType(CAR);
-        stopAndCheckThatStopped(-1L); // -1 because it's already stopped
+        stopAndCheckThatStopped(measurementIdentifier); // stop paused returns mid, too [STAD-333]
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
                 Event.EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));

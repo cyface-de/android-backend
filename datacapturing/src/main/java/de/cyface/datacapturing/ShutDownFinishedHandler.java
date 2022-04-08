@@ -23,7 +23,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  * @see DataCapturingService#pause(ShutDownFinishedHandler)
  * @see DataCapturingService#stop(ShutDownFinishedHandler)
@@ -68,14 +68,11 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
 
         Log.v(TAG, "Received Service stopped broadcast!");
         receivedServiceStopped = true;
-        boolean serviceWasStoppedSuccessfully = intent.getBooleanExtra(STOPPED_SUCCESSFULLY, false);
-        long measurementIdentifier = -1;
-        if (serviceWasStoppedSuccessfully) {
-            measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
-            if (measurementIdentifier == -1) {
-                throw new IllegalStateException("No measurement identifier provided for stopped service!");
-            }
-        }
+        final long measurementIdentifier = intent.getLongExtra(MEASUREMENT_ID, -1);
+        // The measurement id should always be set, especially if `STOPPED_SUCCESSFULLY` is false,
+        // which happens when stopping a paused measurement [STAD-333].
+        // Even if the background service stopped itself (low space warning), the id is set.
+        Validate.isTrue(measurementIdentifier != -1, "No measurement identifier provided for stopped service!");
         shutDownFinished(measurementIdentifier);
 
         try {
@@ -83,7 +80,6 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
         } catch (IllegalArgumentException e) {
             Log.w(TAG, "Probably tried to deregister shut down finished broadcast receiver twice.", e);
         }
-
     }
 
     /**
