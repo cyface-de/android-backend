@@ -1274,6 +1274,7 @@ public abstract class DataCapturingService {
                             "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"));
                     break;
                 case MessageCodes.SERVICE_STOPPED:
+                case MessageCodes.SERVICE_STOPPED_ITSELF:
                     listener.onCapturingStopped();
                     break;
                 default:
