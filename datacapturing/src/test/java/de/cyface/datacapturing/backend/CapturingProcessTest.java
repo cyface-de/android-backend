@@ -147,6 +147,8 @@ public class CapturingProcessTest {
 
     /**
      * Tests that the correct `eventTimeOffset` is calculated for known `event.time` implementations.
+     * <p>
+     * Flaky: This test seems to be occasionally flaky on the Github CI (2022-03-17)
      */
     @Test
     public void testEventTimeOffset() {
