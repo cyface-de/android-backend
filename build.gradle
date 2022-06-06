@@ -40,7 +40,7 @@ buildscript {
 
 ext {
     // This libraries version
-    cyfaceAndroidBackendVersion = "7.1.1"
+    cyfaceAndroidBackendVersion = "7.2.0"
 
     // Cyface dependencies
     cyfaceUtilsVersion = "3.2.2"
