@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -69,7 +69,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.0
+ * @version 18.0.1
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -79,7 +79,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * It's stored in each {@link Measurement}'s {@link MeasurementTable} entry and allows to have stored and process
      * measurements and files with different {@code #PERSISTENCE_FILE_FORMAT_VERSION} at the same time.
      */
-    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 2;
+    public final static short PERSISTENCE_FILE_FORMAT_VERSION = 3;
     /**
      * The {@link Context} required to locate the app's internal storage directory.
      */

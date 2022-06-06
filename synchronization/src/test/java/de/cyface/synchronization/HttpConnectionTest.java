@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -36,7 +36,7 @@ import de.cyface.persistence.model.Modality;
  * Tests whether our default implementation of the {@link Http} protocol works as expected.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 4.0.0
  */
 public class HttpConnectionTest {
@@ -53,7 +53,7 @@ public class HttpConnectionTest {
         final var endLocation = generateRequestMetaDataGeoLocation(10);
         final var metaData = new RequestMetaData(id.getDeviceIdentifier(),
                 String.valueOf(id.getMeasurementIdentifier()), "test_osVersion", "test_deviceType", "test_appVersion",
-                10.0, 5, startLocation, endLocation, Modality.BICYCLE.getDatabaseIdentifier(), 2);
+                10.0, 5, startLocation, endLocation, Modality.BICYCLE.getDatabaseIdentifier(), 3);
 
         // Act
         final Map<String, String> result = HttpConnection.preRequestBody(metaData);
@@ -74,7 +74,7 @@ public class HttpConnectionTest {
         expected.put("length", "10.0");
         expected.put("locationCount", "5");
         expected.put("modality", "BICYCLE");
-        expected.put("formatVersion", "2");
+        expected.put("formatVersion", "3");
         assertThat(result, is(equalTo(expected)));
     }
 }

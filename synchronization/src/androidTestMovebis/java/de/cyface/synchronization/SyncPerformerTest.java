@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.1.1
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  * @since 2.0.0
  */
@@ -180,7 +180,7 @@ public class SyncPerformerTest {
             final var metaData = new RequestMetaData(deviceId, String.valueOf(measurementIdentifier),
                     "testOsVersion", "testDeviceType", "testAppVersion",
                     measurement.getDistance(), locationCount, startRecord, endRecord,
-                    Modality.BICYCLE.getDatabaseIdentifier(), 2);
+                    Modality.BICYCLE.getDatabaseIdentifier(), 3);
 
             // Mock the actual post request
             doThrow(new ConflictException("Test ConflictException"))
@@ -314,7 +314,7 @@ public class SyncPerformerTest {
         return new RequestMetaData(deviceId, String.valueOf(id.getMeasurementIdentifier()),
                 "testOsVersion", "testDeviceType", "testAppVersion",
                 measurement.getDistance(), locationCount, startRecord, endRecord,
-                Modality.BICYCLE.getDatabaseIdentifier(), 2);
+                Modality.BICYCLE.getDatabaseIdentifier(), 3);
     }
 
     private File loadSerializedCompressed(ContentProviderClient client, long measurementIdentifier)
