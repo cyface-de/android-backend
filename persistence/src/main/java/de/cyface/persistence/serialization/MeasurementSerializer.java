@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -53,7 +53,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.0.1
  * @since 2.0.0
  */
 public final class MeasurementSerializer {
@@ -62,7 +62,7 @@ public final class MeasurementSerializer {
      * The current version of the transferred file. This is always specified by the first two bytes of the file
      * transferred and helps compatible APIs to process data from different client versions.
      */
-    public final static short TRANSFER_FILE_FORMAT_VERSION = 2;
+    public final static short TRANSFER_FILE_FORMAT_VERSION = 3;
     /**
      * Since our current API Level does not support {@code Short.Bytes}.
      */

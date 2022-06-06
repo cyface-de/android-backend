@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.8.2
+ * @version 2.8.3
  * @since 1.0.0
  */
 
@@ -44,7 +44,7 @@ ext {
 
     // Cyface dependencies
     cyfaceUtilsVersion = "3.2.2"
-    cyfaceSerializationVersion = "1.0.2"
+    cyfaceSerializationVersion = "2.0.0"
 
     // Android SDK versions
     minSdkVersion = 21

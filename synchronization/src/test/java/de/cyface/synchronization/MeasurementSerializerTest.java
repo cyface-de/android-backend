@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -282,7 +282,7 @@ public class MeasurementSerializerTest {
     public void testSerializeCompressedMeasurement() throws CursorIsNullException {
 
         // If you need to change the sample point counts (and this) make sure the test work with the previous counts
-        final long SERIALIZED_COMPRESSED_SIZE = 95L; // When compression Deflater(level 9, true)
+        final long SERIALIZED_COMPRESSED_SIZE = 97L; // When compression Deflater(level 9, true)
         final File compressedTransferBytes = oocut.writeSerializedCompressed(loader, SAMPLE_MEASUREMENT_ID,
                 persistence);
         assertThat(compressedTransferBytes.length(), is(equalTo(SERIALIZED_COMPRESSED_SIZE)));
@@ -397,13 +397,13 @@ public class MeasurementSerializerTest {
     private Measurement deserializeTransferFile(byte[] bytes) throws InvalidProtocolBufferException {
         final ByteBuffer buffer = ByteBuffer.wrap(bytes);
         final short formatVersion = buffer.order(ByteOrder.BIG_ENDIAN).getShort(0);
-        assertThat(formatVersion, is(equalTo((short)2)));
+        assertThat(formatVersion, is(equalTo((short)3)));
 
         // slice from index 5 to index 9
         final byte[] protoBytes = Arrays.copyOfRange(bytes, BYTES_IN_HEADER, bytes.length);
 
         final Measurement deserialized = parseFrom(protoBytes);
-        assertThat(deserialized.getFormatVersion(), is(equalTo(2)));
+        assertThat(deserialized.getFormatVersion(), is(equalTo(3)));
         assertThat(deserialized.getLocationRecords().getTimestampCount(), is(equalTo(SAMPLE_GEO_LOCATIONS)));
         assertThat(deserialized.getAccelerationsBinary().getAccelerations(0).getTimestampCount(), is(equalTo(SAMPLE_ACCELERATION_POINTS)));
         assertThat(deserialized.getRotationsBinary().getRotations(0).getTimestampCount(), is(equalTo(SAMPLE_ROTATION_POINTS)));
