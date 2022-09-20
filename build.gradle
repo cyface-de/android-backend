@@ -54,7 +54,7 @@ ext {
 
     // Android dependencies
     androidxAnnotationVersion = "1.3.0"
-    androidxAppCompatVersion = "1.3.1" // 1.4.0 leads to an error in `gradle verifyReleaseResources`
+    androidxAppCompatVersion = "1.5.1"
     localbroadcastmanagerVersion = "1.0.0"
 
     // Other dependencies
