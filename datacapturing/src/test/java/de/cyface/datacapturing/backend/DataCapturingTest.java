@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,7 +18,7 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static org.mockito.Matchers.any;
+import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.Mockito.times;
 import static org.mockito.Mockito.verify;
 import static org.mockito.Mockito.when;
@@ -40,7 +40,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.5
+ * @version 2.0.6
  * @since 1.0.0
  */
 public class DataCapturingTest {
