@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,6 +18,8 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
@@ -54,7 +56,6 @@ import androidx.test.rule.ServiceTestRule;
 
 import de.cyface.datacapturing.IgnoreEventsStrategy;
 import de.cyface.datacapturing.IsRunningCallback;
-import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
@@ -71,7 +72,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.6
+ * @version 2.3.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -146,18 +147,14 @@ public class DataCapturingBackgroundServiceTest {
 
         // Arrange (which are normally done by the DataCapturingService which is not part of this test)
         // Instantiate the Messenger for the service connection [ usually in DataCapturingService() ]
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                FromServiceMessageHandler fromServiceMessageHandler = new FromServiceMessageHandler();
-                fromServiceMessenger = new Messenger(fromServiceMessageHandler);
-            }
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            FromServiceMessageHandler fromServiceMessageHandler = new FromServiceMessageHandler();
+            fromServiceMessenger = new Messenger(fromServiceMessageHandler);
         });
 
         // Instantiate ToServiceConnection [ usually in DataCapturingService: BackgroundServiceConnection ]
         final TestCallback testCallback = new TestCallback("testStartDataCapturing", lock, condition);
-        final ToServiceConnection toServiceConnection = new ToServiceConnection(fromServiceMessenger,
-                context.getPackageName());
+        final var toServiceConnection = new ToServiceConnection(fromServiceMessenger);
         toServiceConnection.context = context;
         toServiceConnection.callback = testCallback;
 
@@ -230,14 +227,10 @@ public class DataCapturingBackgroundServiceTest {
      */
     private void checkDataCapturingBackgroundServiceRunning(@NonNull final TestCallback testCallback) {
 
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                final String appId = context.getPackageName();
-                final PongReceiver isRunningChecker = new PongReceiver(context, MessageCodes.getPingActionId(appId),
-                        MessageCodes.getPongActionId(appId));
-                isRunningChecker.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
-            }
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            final var isRunningChecker = new PongReceiver(context, GLOBAL_BROADCAST_PING,
+                    GLOBAL_BROADCAST_PONG);
+            isRunningChecker.checkIsRunningAsync(TIMEOUT_TIME, TimeUnit.SECONDS, testCallback);
         });
         // This must not run on the main thread or it will produce an ANR.
         lock.lock();

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -30,7 +30,7 @@ import androidx.annotation.NonNull;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 2.0.0
  */
 public class StartSynchronizer extends StartUpFinishedHandler {
@@ -46,7 +46,7 @@ public class StartSynchronizer extends StartUpFinishedHandler {
      *
      * @param lock The lock used for synchronization. Usually a <code>ReentrantLock</code>.
      * @param condition The condition waiting for a signal from this <code>StartSynchronizer</code>.
-     * @param serviceStartedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     * @param serviceStartedActionId An app-wide unique identifier. Each service needs to use a different id
      *            so that only the service in question receives the expected ping-back.
      */
     public StartSynchronizer(final @NonNull Lock lock, final @NonNull Condition condition,

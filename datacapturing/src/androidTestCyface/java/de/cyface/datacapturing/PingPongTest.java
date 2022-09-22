@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,6 +18,9 @@
  */
 package de.cyface.datacapturing;
 
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -62,7 +65,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.9
+ * @version 1.2.10
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -105,8 +108,7 @@ public class PingPongTest {
         lock = new ReentrantLock();
         condition = lock.newCondition();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        final String appId = context.getPackageName();
-        oocut = new PongReceiver(context, MessageCodes.getPingActionId(appId), MessageCodes.getPongActionId(appId));
+        oocut = new PongReceiver(context, GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
     }
 
     @After
@@ -144,7 +146,7 @@ public class PingPongTest {
 
         // Start Capturing
         StartUpFinishedHandler finishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                MessageCodes.getServiceStartedActionId(context.getPackageName()));
+                GLOBAL_BROADCAST_SERVICE_STARTED);
         dcs.start(Modality.UNKNOWN, finishedHandler);
 
         // Give the async start some time to start the DataCapturingBackgroundService

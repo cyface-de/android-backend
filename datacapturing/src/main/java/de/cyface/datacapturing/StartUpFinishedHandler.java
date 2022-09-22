@@ -56,12 +56,16 @@ public abstract class StartUpFinishedHandler extends BroadcastReceiver {
      */
     private boolean receivedServiceStarted = false;
     /**
-     * An app and device-wide unique identifier. Each service needs to use a different id so that only the
+     * An app-wide unique identifier. Each service needs to use a different id so that only the
      * service in question receives the expected ping-back.
      */
     private final String serviceStartedActionId;
 
     /**
+     * Constructs a fully initialized instance of this class.
+     *
+     * @param serviceStartedActionId An app-wide unique identifier. Each service needs to use a different id
+     *            so that only the service in question receives the expected ping-back.
      */
     public StartUpFinishedHandler(@NonNull final String serviceStartedActionId) {
         this.serviceStartedActionId = serviceStartedActionId;

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,6 +20,8 @@ package de.cyface.datacapturing.backend;
 
 import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
@@ -30,12 +32,10 @@ import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
 import static de.cyface.utils.DiskConsumption.spaceAvailable;
 
 import java.lang.ref.WeakReference;
-import java.util.ArrayList;
 import java.util.Collections;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Set;
-import java.util.stream.Collectors;
 
 import android.annotation.SuppressLint;
 import android.app.Notification;
@@ -71,8 +71,8 @@ import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
@@ -88,7 +88,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.4
+ * @version 7.1.5
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -222,9 +222,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Allows other parties to ping this service to see if it is running
         // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
         // which we cannot pass via bind() as documented by the {@link #onBind()} method.
-        final String appId = getBaseContext().getPackageName();
-        pingReceiver = new PingReceiver(MessageCodes.getPingActionId(appId), MessageCodes.getPongActionId(appId));
-        registerReceiver(pingReceiver, new IntentFilter(MessageCodes.getPingActionId(appId)));
+        pingReceiver = new PingReceiver(GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
+        registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING));
         Log.d(TAG, "onCreate: Ping Receiver registered");
 
         startupTime = System.currentTimeMillis();
@@ -359,10 +358,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Informs about the service start
         Log.d(StartUpFinishedHandler.TAG,
                 "DataCapturingBackgroundService.onStartCommand: Sending broadcast service started.");
-        final String appId = getBaseContext().getPackageName();
-        final Intent serviceStartedIntent = new Intent(MessageCodes.getServiceStartedActionId(appId));
-        serviceStartedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
-        sendBroadcast(serviceStartedIntent);
+        final var startedIntent = new Intent(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        startedIntent.setPackage(getBaseContext().getPackageName());
+        startedIntent.putExtra(MEASUREMENT_ID, currentMeasurementIdentifier);
+        sendBroadcast(startedIntent);
 
         // NOT_STICKY to avoid recreation of the process which could mess up the life-cycle
         return Service.START_NOT_STICKY;
@@ -456,7 +456,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
-    private @NonNull List<ParcelablePoint3D> sampleSubList(final @NonNull List<ParcelablePoint3D> completeList, final int fromIndex) {
+    private @NonNull List<ParcelablePoint3D> sampleSubList(final @NonNull List<ParcelablePoint3D> completeList,
+            final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
         return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
