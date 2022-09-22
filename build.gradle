@@ -54,7 +54,7 @@ ext {
 
     // Android dependencies
     androidxAnnotationVersion = '1.4.0'
-    androidxAppCompatVersion = "1.5.1"
+    androidxAppCompatVersion = "1.6.0-rc01" // RC to fix duplicate lifecycle dependency issue in app
     localbroadcastmanagerVersion = '1.1.0'
 
     // Other dependencies
