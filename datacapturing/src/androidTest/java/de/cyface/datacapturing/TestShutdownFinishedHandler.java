@@ -52,7 +52,7 @@ final class TestShutdownFinishedHandler extends ShutDownFinishedHandler {
      *
      * @param lock The lock used to synchronize this handler with the calling test.
      * @param condition The condition used to synchronize this handler with the calling test.
-     * @param serviceStoppedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     * @param serviceStoppedActionId An app-wide unique identifier. Each service needs to use a different id
      *            so that only the service in question receives the expected ping-back.
      */
     TestShutdownFinishedHandler(@NonNull final Lock lock, @NonNull final Condition condition,

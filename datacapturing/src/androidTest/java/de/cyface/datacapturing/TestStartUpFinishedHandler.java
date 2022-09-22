@@ -53,7 +53,7 @@ final class TestStartUpFinishedHandler extends StartUpFinishedHandler {
      *
      * @param lock The lock used to synchronize this handler with the calling test.
      * @param condition The condition used to synchronize this handler with the calling test.
-     * @param serviceStartedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     * @param serviceStartedActionId An app-wide unique identifier. Each service needs to use a different id
      *            so that only the service in question receives the expected ping-back.
      */
     TestStartUpFinishedHandler(final @NonNull Lock lock, final @NonNull Condition condition,

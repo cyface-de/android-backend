@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -36,7 +36,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -46,12 +46,12 @@ public class PingReceiver extends BroadcastReceiver {
      */
     private static final String TAG = PongReceiver.TAG;
     /**
-     * An app and device-wide unique identifier. Each service of this app needs to use a different id so that only the
+     * An app-wide unique identifier. Each service of this app needs to use a different id so that only the
      * service in question "replies" to the ping request
      */
     private final String pingActionId;
     /**
-     * An app and device-wide unique identifier. Each service of this app needs to use a different id so that only the
+     * An app-wide unique identifier. Each service of this app needs to use a different id so that only the
      * service in question "replies" to the ping request
      */
     private final String pongActionId;
@@ -74,6 +74,8 @@ public class PingReceiver extends BroadcastReceiver {
 
         if (intent.getAction().equals(pingActionId)) {
             final Intent pongIntent = new Intent(pongActionId);
+            // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+            intent.setPackage(context.getPackageName());
             if (BuildConfig.DEBUG) {
                 final String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.v(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier

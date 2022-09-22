@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -46,7 +46,7 @@ import de.cyface.synchronization.BundlesExtrasCodes;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -89,12 +89,12 @@ public class PongReceiver extends BroadcastReceiver {
      */
     private final HandlerThread pongReceiverThread;
     /**
-     * An app and device-wide unique identifier. Each service of this app needs to use a different id so that only the
+     * An app-wide unique identifier. Each service of this app needs to use a different id so that only the
      * service in question "replies" to the ping request
      */
     private final String pingActionId;
     /**
-     * An app and device-wide unique identifier. Each service of this app needs to use a different id so that only the
+     * An app-wide unique identifier. Each service of this app needs to use a different id so that only the
      * service in question "replies" to the ping request
      */
     private final String pongActionId;
@@ -174,11 +174,13 @@ public class PongReceiver extends BroadcastReceiver {
             }
         }, currentUptimeInMillis + offset);
 
-        final Intent broadcastIntent = new Intent(pingActionId);
+        final var intent = new Intent(pingActionId);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        intent.setPackage(context.get().getPackageName());
         if (BuildConfig.DEBUG) {
-            broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
+            intent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
         }
-        context.get().sendBroadcast(broadcastIntent);
+        context.get().sendBroadcast(intent);
         Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 

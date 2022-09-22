@@ -19,6 +19,8 @@
 package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.Constants.TAG;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
+import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.model.MeasurementStatus.DEPRECATED;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
@@ -76,14 +78,14 @@ import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.synchronization.ConnectionStatusListener;
 import de.cyface.synchronization.ConnectionStatusReceiver;
 import de.cyface.synchronization.SyncService;
@@ -106,7 +108,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.5
+ * @version 18.0.6
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -172,13 +174,6 @@ public abstract class DataCapturingService {
      * measurements. This needs to be world wide unique.
      */
     private final String deviceIdentifier;
-    /**
-     * A device-wide unique identifier for the application containing this SDK such as
-     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     * <p>
-     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
-     */
-    private final String appId;
     /**
      * A receiver for synchronization events.
      */
@@ -256,7 +251,6 @@ public abstract class DataCapturingService {
 
         // Setup required device identifier, if not already existent
         this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
-        this.appId = context.getPackageName();
 
         // Mark deprecated measurements
         for (final var m : persistenceLayer.loadMeasurements()) {
@@ -643,8 +637,7 @@ public abstract class DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (SR)
     public void isRunning(final long timeout, final TimeUnit unit, final @NonNull IsRunningCallback callback) {
         Log.v(TAG, "Checking isRunning?");
-        final PongReceiver pongReceiver = new PongReceiver(getContext(), MessageCodes.getPingActionId(appId),
-                MessageCodes.getPongActionId(appId));
+        final var pongReceiver = new PongReceiver(getContext(), GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
         pongReceiver.checkIsRunningAsync(timeout, unit, callback);
     }
 
@@ -751,11 +744,13 @@ public abstract class DataCapturingService {
             final @NonNull StartUpFinishedHandler startUpFinishedHandler) throws DataCapturingException {
         final Context context = getContext();
         context.registerReceiver(startUpFinishedHandler,
-                new IntentFilter(MessageCodes.getServiceStartedActionId(appId)));
+                new IntentFilter(MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED));
         Log.d(StartUpFinishedHandler.TAG, "DataCapturingService: StartUpFinishedHandler registered for broadcasts.");
 
         Log.d(TAG, "Starting the background service for measurement " + measurement + "!");
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
+        // Binding the intent to the package of the app which runs this SDK [DAT-1509].
+        startIntent.setPackage(context.getPackageName());
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);

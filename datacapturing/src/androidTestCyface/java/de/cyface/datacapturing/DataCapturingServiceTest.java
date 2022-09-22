@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.4
+ * @version 5.7.5
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -134,13 +134,6 @@ public class DataCapturingServiceTest {
      * {@link PersistenceLayer} required to access stored {@link Measurement}s.
      */
     private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
-    /**
-     * A device-wide unique identifier for the application containing this SDK such as
-     * {@code Context#getPackageName()} which is required to generate unique global broadcasts for this app.
-     * <p>
-     * <b>Attention:</b> The identifier must be identical in the global broadcast sender and receiver.
-     */
-    private String appId;
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
@@ -172,7 +165,6 @@ public class DataCapturingServiceTest {
         SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
-        appId = context.getPackageName();
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning());
@@ -249,7 +241,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         oocut.start(UNKNOWN, startUpFinishedHandler);
 
         return checkThatLaunched(startUpFinishedHandler);
@@ -300,7 +292,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         oocut.resume(startUpFinishedHandler);
 
         final long resumedMeasurementId = checkThatLaunched(startUpFinishedHandler);
@@ -446,17 +438,17 @@ public class DataCapturingServiceTest {
         final Lock lock1 = new ReentrantLock();
         final Condition condition1 = lock1.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler1 = new TestStartUpFinishedHandler(lock1, condition1,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         // Do not reuse the lock/condition!
         final Lock lock2 = new ReentrantLock();
         final Condition condition2 = lock2.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler2 = new TestStartUpFinishedHandler(lock2, condition2,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         // Do not reuse the lock/condition!
         final Lock lock3 = new ReentrantLock();
         final Condition condition3 = lock3.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler3 = new TestStartUpFinishedHandler(lock3, condition3,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         // Do not reuse the lock/condition!
         final Lock lock4 = new ReentrantLock();
         final Condition condition4 = lock4.newCondition();
@@ -555,7 +547,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         oocut.start(UNKNOWN, startUpFinishedHandler);
         TestUtils.lockAndWait(2, TimeUnit.SECONDS, lock, condition);
         assertThat(startUpFinishedHandler.receivedServiceStarted(), is(equalTo(false)));
@@ -713,7 +705,7 @@ public class DataCapturingServiceTest {
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                MessageCodes.getServiceStartedActionId(appId));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         oocut.resume(startUpFinishedHandler);
         final boolean isRunning = isDataCapturingServiceRunning();
         assertThat(isRunning, is(equalTo(true)));

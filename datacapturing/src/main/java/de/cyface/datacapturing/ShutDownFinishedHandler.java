@@ -40,7 +40,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.2
+ * @version 3.0.3
  * @since 2.0.0
  * @see DataCapturingService#pause(ShutDownFinishedHandler)
  * @see DataCapturingService#stop(ShutDownFinishedHandler)
@@ -49,18 +49,19 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
 
     /**
      * This is set to <code>true</code> if either a <code>MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED</code> broadcast
-     * has
-     * been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code> otherwise.
+     * has been received or a <code>MessageCodes.SERVICE_STOPPED</code> was issued. It is <code>false</code> otherwise.
      */
     private boolean receivedServiceStopped;
     /**
-     * An app and device-wide unique identifier. Each service needs to use a different id so that only the
+     * An app-wide unique identifier. Each service needs to use a different id so that only the
      * service in question receives the expected ping-back.
      */
     private final String serviceStoppedActionId;
 
     /**
-     * @param serviceStoppedActionId An app and device-wide unique identifier. Each service needs to use a different id
+     * Constructs a fully initialized instance of this class.
+     *
+     * @param serviceStoppedActionId An app-wide unique identifier. Each service needs to use a different id
      *            so that only the service in question receives the expected ping-back.
      */
     public ShutDownFinishedHandler(@NonNull final String serviceStoppedActionId) {

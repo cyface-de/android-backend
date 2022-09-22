@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2022 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -55,7 +55,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.7
+ * @version 2.1.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -94,15 +94,12 @@ public class DataCapturingServiceTestWithoutPermission {
 
         final String dataUploadServerAddress = "https://localhost:8080";
         final DataCapturingListener listener = new TestListener();
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(new Runnable() {
-            @Override
-            public void run() {
-                try {
-                    oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
-                            dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
-                } catch (SetupException | CursorIsNullException e) {
-                    throw new IllegalStateException(e);
-                }
+        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
+            try {
+                oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
+                        dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
+            } catch (SetupException | CursorIsNullException e) {
+                throw new IllegalStateException(e);
             }
         });
         lock = new ReentrantLock();
@@ -121,7 +118,7 @@ public class DataCapturingServiceTestWithoutPermission {
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
             CursorIsNullException, CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                MessageCodes.getServiceStartedActionId(context.getPackageName()));
+                MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         oocut.start(Modality.UNKNOWN, startUpFinishedHandler);
         // if the test fails we might need to wait a bit as we're async
     }
@@ -138,7 +135,7 @@ public class DataCapturingServiceTestWithoutPermission {
         boolean exceptionCaught = false;
         try {
             final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
-                    MessageCodes.getServiceStartedActionId(context.getPackageName()));
+                    MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
             oocut.start(Modality.UNKNOWN, startUpFinishedHandler);
         } catch (DataCapturingException | MissingPermissionException e) {
             assertThat(uiListener.requiredPermission, is(equalTo(true)));
