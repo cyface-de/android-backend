@@ -51,8 +51,8 @@ import de.cyface.persistence.EventTable;
 import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.protos.model.Event;
 import de.cyface.protos.model.LocationRecords;
 import de.cyface.protos.model.MeasurementBytes;
@@ -82,7 +82,8 @@ public class TransferFileSerializer {
      * @param bufferedOutputStream The {@link OutputStream} to which the serialized data should be written. Injecting
      *            this allows us to compress the serialized data without the need to write it into a temporary file.
      *            We require a {@link BufferedOutputStream} for performance reasons.
-     * @param loader The loader providing access to the {@link ContentProvider} storing all the {@link ParcelableGeoLocation}s.
+     * @param loader The loader providing access to the {@link ContentProvider} storing all the
+     *            {@link ParcelableGeoLocation}s.
      * @param measurementIdentifier The id of the {@code Measurement} to load
      * @param persistence The {@code PersistenceLayer} to access file based data
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
