@@ -41,6 +41,10 @@ public class LocationSerializer {
      * The builder holding the serialized locations.
      */
     private final LocationRecords.Builder builder;
+    /**
+     * The offsetter to use for this measurement.
+     */
+    private final LocationOffsetter offsetter;
 
     /**
      * Fully initialized constructor of this class.
@@ -50,6 +54,8 @@ public class LocationSerializer {
      */
     public LocationSerializer() {
         this.builder = LocationRecords.newBuilder();
+        // Initialize offsetter once for each measurement not on each `readFrom` call! [RFR-104]
+        this.offsetter = new LocationOffsetter();
     }
 
     /**
@@ -58,9 +64,6 @@ public class LocationSerializer {
      * @param cursor the {@code Cursor} to load the {@code Location} data from.
      */
     public void readFrom(@NonNull final Cursor cursor) {
-
-        // The offsetter must be initialized once for each location
-        final LocationOffsetter offsetter = new LocationOffsetter();
 
         while (cursor.moveToNext()) {
             final long timestamp = cursor
@@ -86,7 +89,7 @@ public class LocationSerializer {
     }
 
     /**
-     * @return the {@code Event}s in the serialized format.
+     * @return the locations in the serialized format.
      */
     public LocationRecords result() {
         Validate.isTrue(builder.isInitialized());
