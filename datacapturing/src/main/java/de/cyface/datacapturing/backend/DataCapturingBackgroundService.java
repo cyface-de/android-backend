@@ -20,6 +20,7 @@ package de.cyface.datacapturing.backend;
 
 import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
+import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
