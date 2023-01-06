@@ -221,8 +221,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         // Allows other parties to ping this service to see if it is running
-        // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
-        // which we cannot pass via bind() as documented by the {@link #onBind()} method.
         pingReceiver = new PingReceiver(GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
         registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING));
         Log.d(TAG, "onCreate: Ping Receiver registered");
