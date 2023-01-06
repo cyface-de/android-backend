@@ -51,6 +51,7 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
+import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.Parcelable;
@@ -113,7 +114,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
      */
-    private final Messenger callerMessenger = new Messenger(new MessageHandler(this));
+    private final Messenger callerMessenger = new Messenger(new MessageHandler(getMainLooper(), this));
     /**
      * The list of clients receiving messages from this service as well as sending control messages.
      */
@@ -539,9 +540,11 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          * Creates a new completely initialized {@link MessageHandler} for messages to this
          * service.
          *
+         * @param looper The {@code Looper} to the handler should run on.
          * @param context The {@link DataCapturingBackgroundService} receiving messages via this handler.
          */
-        MessageHandler(final @NonNull DataCapturingBackgroundService context) {
+        MessageHandler(@NonNull Looper looper, final @NonNull DataCapturingBackgroundService context) {
+            super(looper);
             this.context = new WeakReference<>(context);
         }
 
