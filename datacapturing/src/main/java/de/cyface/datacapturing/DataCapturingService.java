@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -109,7 +109,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.6
+ * @version 18.0.7
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1184,7 +1184,7 @@ public abstract class DataCapturingService {
      *
      * @author Klemens Muthmann
      * @author Armin Schnabel
-     * @version 2.0.0
+     * @version 3.0.0
      * @since 2.0.0
      */
     private static class FromServiceMessageHandler extends Handler {

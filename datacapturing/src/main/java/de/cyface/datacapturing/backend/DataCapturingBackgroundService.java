@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -89,7 +89,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.5
+ * @version 7.1.6
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -522,7 +522,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * - We don't use Broadcasts here to reduce the amount of broadcasts.
      *
      * @author Klemens Muthmann
-     * @version 1.0.1
+     * @author Armin Schnabel
+     * @version 2.0.0
      * @since 1.0.0
      */
     private final static class MessageHandler extends Handler {
