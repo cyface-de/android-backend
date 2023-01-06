@@ -114,7 +114,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
      */
-    private final Messenger callerMessenger = new Messenger(new MessageHandler(getMainLooper(), this));
+    private Messenger callerMessenger;
     /**
      * The list of clients receiving messages from this service as well as sending control messages.
      */
@@ -219,6 +219,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             Log.v(TAG, "onBind: Ping Receiver was already registered");
             return;
         }
+
+        callerMessenger = new Messenger(new MessageHandler(getMainLooper(), this));
 
         // Allows other parties to ping this service to see if it is running
         pingReceiver = new PingReceiver(GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
