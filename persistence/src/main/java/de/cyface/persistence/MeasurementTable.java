@@ -68,11 +68,13 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_DISTANCE = "distance";
     /**
-     * Column name for the sum of all valid speed samples captured for this {@link Measurement} based on its {@link GeoLocation}s in meters per second.
+     * Column name for the sum of all valid speed samples captured for this {@link Measurement} based on its
+     * {@link GeoLocation}s in meters per second.
      */
     public static final String COLUMN_SPEED_SUM = "speed_sum";
     /**
-     * Column name for the number of valid speed samples captured for this {@link Measurement} based on its {@link GeoLocation}s.
+     * Column name for the number of valid speed samples captured for this {@link Measurement} based on its
+     * {@link GeoLocation}s.
      */
     public static final String COLUMN_SPEED_COUNTER = "speed_counter";
     /**
@@ -83,7 +85,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      * An array containing all columns from this table in default order.
      */
     private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_MODALITY,
-            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, COLUMN_SPEED_SUM, COLUMN_SPEED_COUNTER, COLUMN_TIMESTAMP};
+            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, COLUMN_SPEED_SUM, COLUMN_SPEED_COUNTER,
+            COLUMN_TIMESTAMP};
 
     /**
      * Creates a new completely initialized {@code MeasurementTable} using the name {@link #URI_PATH}.
@@ -205,7 +208,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 final LocationCleaningStrategy cleaner = new DefaultLocationCleaningStrategy();
                 // TODO: we could refactor average speed calculation into a strategy, is needed
                 // TODO: I think this makes sense as we would then add a filter for speed < 0
-                // final DistanceCalculationStrategy distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
+                // final DistanceCalculationStrategy distanceCalculationStrategy = new
+                // DefaultDistanceCalculationStrategy();
                 double speedSum = 0.0;
                 int speedCounter = 0;
                 while (geoLocationCursor.moveToNext()) {

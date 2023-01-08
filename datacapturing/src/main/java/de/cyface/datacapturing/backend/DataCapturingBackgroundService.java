@@ -510,7 +510,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         // Update {@code Measurement#distance), {@code #lastDistance} and {@code #lastLocation}, in this order
-        // TODO: Refactor -> DistanceCalculator.add(location);
         final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
         final double newDistance = lastDistance + distanceToAdd;
         try {
