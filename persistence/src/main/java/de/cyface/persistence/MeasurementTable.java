@@ -167,11 +167,8 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
     /**
      * Adds columns related to average speed to table and calculates the values for existing data.
      * <p>
-     * Similar to distance, the average speed is, in contrast to live-calculated, based on all
-     * locations, i.d. no location-filter is applied. The reason for this is that the location
-     * cleaning strategy is usually injected via DCS constructor which is not available here.
-     *
-     * FIXME: Wrong, we now use the `DefaultLocationCleaningStrategy` which is anyway usually used.
+     * Like for newly captured measurements, the average speed is only based on locations not filtered
+     * by the {@link DefaultLocationCleaningStrategy}.
      *
      * @param database The {@code SQLiteDatabase} to upgrade
      */
@@ -182,6 +179,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
         Cursor measurementCursor = null;
         Cursor geoLocationCursor = null;
+        LocationCleaningStrategy locationCleaningStrategy = new DefaultLocationCleaningStrategy();
         try {
             measurementCursor = database.query("measurements", new String[] {"_id"}, null, null, null, null, null,
                     null);
@@ -196,7 +194,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 final long measurementId = measurementCursor.getLong(identifierColumnIndex);
 
                 geoLocationCursor = database.query("locations",
-                        new String[] {"speed", "accuracy"}, "measurement_fk = ?",
+                        new String[] {"lat", "lon", "gps_time", "speed", "accuracy"}, "measurement_fk = ?",
                         new String[] {String.valueOf(measurementId)}, null, null, "gps_time ASC", null);
                 if (geoLocationCursor.getCount() < 1) {
                     Log.v(TAG, "Not enough geoLocations to update average speed in measurement entry:" + measurementId);
@@ -211,21 +209,33 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 double speedSum = 0.0;
                 int speedCounter = 0;
                 while (geoLocationCursor.moveToNext()) {
+                    final int latColumnIndex = geoLocationCursor.getColumnIndex("lat");
+                    final int lonColumnIndex = geoLocationCursor.getColumnIndex("lon");
+                    final int timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time");
                     final int speedColumnIndex = geoLocationCursor.getColumnIndex("speed");
                     final int accuracyColumnIndex = geoLocationCursor.getColumnIndex("accuracy");
+                    final double lat = geoLocationCursor.getDouble(latColumnIndex);
+                    final double lon = geoLocationCursor.getDouble(lonColumnIndex);
+                    final long time = geoLocationCursor.getLong(timeColumnIndex);
                     final double speed = geoLocationCursor.getDouble(speedColumnIndex);
                     final float accuracy = geoLocationCursor.getFloat(accuracyColumnIndex);
-                    //final GeoLocation geoLocation = new GeoLocation(lat, lon, time, speed, accuracy);
+                    final GeoLocation geoLocation = new GeoLocation(lat, lon, time, speed, accuracy);
 
-                    // FIXME: filter speed < 0, see above -> use strategy for average speed calculation
-                    //final double newDistance = distanceCalculationStrategy.calculateDistance(previousLocation, geoLocation);
-                    speedSum += speed;
-                    speedCounter += 1;
+                    if (locationCleaningStrategy.isClean(geoLocation)) {
+                        // final double newDistance = distanceCalculationStrategy.calculateDistance(previousLocation,
+                        // geoLocation);
+                        speedSum += speed;
+                        speedCounter += 1;
+                    }
                 }
 
-                final double averageSpeed = speedSum / (double) speedCounter;
-                Log.v(TAG, String.format("Updating average speed for measurement %d to %f (%f/%d)", measurementId, averageSpeed, speedSum, speedCounter));
-                database.execSQL("UPDATE measurements SET speed_sum = " + speedSum + ", speed_counter = " + speedCounter + " WHERE _id = " + measurementId);
+                if (speedCounter > 0) {
+                    final double averageSpeed = speedSum / (double) speedCounter;
+                    Log.v(TAG, String.format("Updating average speed for measurement %d to %f (%f/%d)", measurementId,
+                            averageSpeed, speedSum, speedCounter));
+                    database.execSQL("UPDATE measurements SET speed_sum = " + speedSum + ", speed_counter = " + speedCounter
+                            + " WHERE _id = " + measurementId);
+                }
             }
 
         } finally {

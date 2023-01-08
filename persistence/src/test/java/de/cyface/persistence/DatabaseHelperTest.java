@@ -18,6 +18,7 @@
  */
 package de.cyface.persistence;
 
+import static de.cyface.persistence.DefaultLocationCleaningStrategy.UPPER_ACCURACY_THRESHOLD;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
@@ -138,10 +139,13 @@ public class DatabaseHelperTest {
         // Arrange
         // This is simpler than copying and adjusting the code from previous versions
         createV16Database(db);
-        addDatabaseV16Measurement(db, 43L);
-        addDatabaseV16Measurement(db, 44L, 0.0);
-        addDatabaseV16Measurement(db, 45L, 0.0, 5.0, 5.0);
-        // FIXME: After adding average speed calculation strategy with location filter, add test with accuracy > threshold
+        addDatabaseV16Measurement(db, 43L, new GeoLocation(51., 13., 1551431485000L, 0.0, 800));
+        addDatabaseV16Measurement(db, 44L, new GeoLocation(51., 13., 1551431485000L, 5.0, 800));
+        addDatabaseV16Measurement(db, 45L, new GeoLocation(51., 13., 1551431485000L, 0.0, 800),
+                new GeoLocation(51., 13., 1551431485001L, 5.0, 800),
+                new GeoLocation(51., 13., 1551431485002L, 5.0, 800));
+        addDatabaseV16Measurement(db, 46L, new GeoLocation(51., 13., 1551431485000L, 5.0, UPPER_ACCURACY_THRESHOLD + 1),
+                new GeoLocation(51., 13., 1551431485001L, 5.0, 800));
 
         // Act
         oocut.onUpgrade(db, 16, 1_000_017);
@@ -149,7 +153,7 @@ public class DatabaseHelperTest {
         // Assert the speed fields are calculated correctly
         Cursor cursor = null;
         try {
-            // Measurement without GeoLocations should have 0.0 as speed sum and 0 as speed counter
+            // Measurement without "clean" GeoLocations should have 0.0 as speed sum and 0 as speed counter
             cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
@@ -157,13 +161,12 @@ public class DatabaseHelperTest {
             assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(0.0)));
             assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(0)));
 
-            // Measurements with only one GeoLocations and speed 0.0 should not crash
+            // Measurements with only one GeoLocations should not crash
             cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"44"}, null, null, null);
             assertThat(cursor.getCount(), is(equalTo(1)));
             cursor.moveToNext();
             assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(44L)));
-            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(0.0)));
-            // FIXME: should be 0 after applying the location filter
+            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(5.0)));
             assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(1)));
 
             // Measurements with GeoLocations should calculate the speed fields correctly
@@ -172,8 +175,15 @@ public class DatabaseHelperTest {
             cursor.moveToNext();
             assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(45L)));
             assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(10.0)));
-            // FIXME: After adding average speed calculation strategy with location filter, speed counter should be 2
-            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(3)));
+            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(2)));
+
+            // Measurements with GeoLocations with high accuracy should not be used in average speed calculation
+            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"46"}, null, null, null);
+            assertThat(cursor.getCount(), is(equalTo(1)));
+            cursor.moveToNext();
+            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(46L)));
+            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(5.0)));
+            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(1)));
         } finally {
             if (cursor != null) {
                 cursor.close();
@@ -481,12 +491,10 @@ public class DatabaseHelperTest {
      *
      * @param db A clean {@link SQLiteDatabase} to use for testing.
      * @param measurementId the id of the measurement to generate
-     * @param speedValues the speed values to be used when adding locations to the measurement to be generated which
-     *            also define how many locations are added
+     * @param locations the locations to add to the measurement generated
      */
-    private void addDatabaseV16Measurement(@NonNull final SQLiteDatabase db,
-            @SuppressWarnings("SameParameterValue") final long measurementId,
-            @SuppressWarnings("SameParameterValue") final double... speedValues) {
+    private void addDatabaseV16Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
+            final GeoLocation... locations) {
 
         // # Insert V16 sample data:
 
@@ -495,10 +503,12 @@ public class DatabaseHelperTest {
                 "INSERT INTO measurements (_id,status,modality,file_format_version,distance,timestamp) VALUES "
                         + " (" + measurementId + ",'FINISHED','BICYCLE',1,5396.62473698979,1551431485000);");
         // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
-        for (int i = 0; i < speedValues.length; i++) {
+        for (int i = 0; i < locations.length; i++) {
+            final GeoLocation location = locations[i];
             db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
-                    + " (" + (measurementId * 100_000 + 1 + i) + "," + (1551431485000L + i) + ",51.05210394,13.72873203," + speedValues[i]
-                    + ",1179," + measurementId + ");");
+                    + " (" + (measurementId * 100_000 + 1 + i) + "," + location.getTimestamp()
+                    + "," + location.getLat() + "," + location.getLon() + "," + location.getSpeed()
+                    + "," + location.getAccuracy() + "," + measurementId + ");");
         }
     }
 
