@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -251,8 +251,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
         final double speedSum = cursor.getDouble(cursor.getColumnIndex(COLUMN_SPEED_SUM));
-        final double speedCounter = cursor.getInt(cursor.getColumnIndex(COLUMN_SPEED_COUNTER));
-        final double averageSpeed = speedSum / (double) speedCounter;
+        final int speedCounter = cursor.getInt(cursor.getColumnIndex(COLUMN_SPEED_COUNTER));
+        final double averageSpeed = speedCounter > 0 ? speedSum / (double) speedCounter : 0.0;
         final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
         return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, averageSpeed, timestamp);
     }

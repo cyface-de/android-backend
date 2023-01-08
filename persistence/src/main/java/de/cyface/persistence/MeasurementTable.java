@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -205,11 +205,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                 }
 
                 // Calculate average speed for selected measurement
-                final LocationCleaningStrategy cleaner = new DefaultLocationCleaningStrategy();
-                // TODO: we could refactor average speed calculation into a strategy, is needed
-                // TODO: I think this makes sense as we would then add a filter for speed < 0
-                // final DistanceCalculationStrategy distanceCalculationStrategy = new
-                // DefaultDistanceCalculationStrategy();
                 double speedSum = 0.0;
                 int speedCounter = 0;
                 while (geoLocationCursor.moveToNext()) {
@@ -226,8 +221,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
                     final GeoLocation geoLocation = new GeoLocation(lat, lon, time, speed, accuracy);
 
                     if (locationCleaningStrategy.isClean(geoLocation)) {
-                        // final double newDistance = distanceCalculationStrategy.calculateDistance(previousLocation,
-                        // geoLocation);
                         speedSum += speed;
                         speedCounter += 1;
                     }
