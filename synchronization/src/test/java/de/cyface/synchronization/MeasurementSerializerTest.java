@@ -154,7 +154,7 @@ public class MeasurementSerializerTest {
 
         // Mock point counters
         final Measurement measurement = new Measurement(1L, OPEN, Modality.UNKNOWN,
-                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0, 123L);
+                MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION, 0.0, 0.0, 123L);
         when(persistence.loadMeasurement(anyLong())).thenReturn(measurement);
         when(persistence.getContext()).thenReturn(mockedContext);
         when(geoLocationsCursor.getCount()).thenReturn(SAMPLE_GEO_LOCATIONS);
