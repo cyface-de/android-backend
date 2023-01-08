@@ -162,6 +162,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The {@link Measurement#getDistance()} in meters until the last location update.
      */
     private double lastDistance;
+    private int speedSamples = 0;
+    private double speedSum = 0.0;
     /**
      * The unix timestamp in milliseconds capturing the start of this service (i.e. of the tracking)
      * to filter out cached locations from distance calculation (STAD-140).
@@ -485,6 +487,22 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Inform listeners
         informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
 
+
+        // Update {@code Measurement#averageSpeed)
+        // TODO: Refactor -> AverageSpeedCalculator.add(location);
+        final double speedToAdd = newLocation.getSpeed();
+        final double newSpeedSum = speedSum + speedToAdd;
+        final int newSpeedSamples = speedSamples + 1;
+        try {
+            capturingBehaviour.updateAverageSpeed(newSpeedSum, newSpeedSamples);
+        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+            throw new IllegalStateException(e);
+        }
+        this.speedSamples = newSpeedSamples;
+        this.speedSum = newSpeedSum;
+        Log.d(TAG, "Speed updated: " + speedToAdd);
+
+
         // Skip distance calculation when there is only one location
         if (lastLocation == null) {
             this.lastLocation = newLocation;
@@ -492,6 +510,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
 
         // Update {@code Measurement#distance), {@code #lastDistance} and {@code #lastLocation}, in this order
+        // TODO: Refactor -> DistanceCalculator.add(location);
         final double distanceToAdd = distanceCalculationStrategy.calculateDistance(lastLocation, newLocation);
         final double newDistance = lastDistance + distanceToAdd;
         try {

@@ -58,8 +58,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
     /**
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
+     * <p>
+     * <b>Attention:</b> As this is a fork of the `main`, another version range is selected as the
+     * main branch database uses another database migration "route". Their ancestor is version 16.
      */
-    private final static int DATABASE_VERSION = 16;
+    private final static int DATABASE_VERSION = 1_000_017; // FIXME: Blocked by [STAD-380]
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
@@ -153,6 +156,10 @@ class DatabaseHelper extends SQLiteOpenHelper {
             geoLocationsTable.onUpgrade(database, fromVersion, toVersion);
             identifierTable.onUpgrade(database, fromVersion, toVersion);
             eventTable.onUpgrade(database, fromVersion, toVersion);
+
+            // This is a fork of the main branch, so we use another version range. [STAD-380]
+            // This avoids 1 mio log entries "Upgrading database from version ... to ..."
+            fromVersion = fromVersion == 16 ? 1_000_016 : fromVersion;
         }
     }
 

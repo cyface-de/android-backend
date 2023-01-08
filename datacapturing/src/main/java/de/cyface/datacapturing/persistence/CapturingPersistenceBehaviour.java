@@ -242,4 +242,22 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
             persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance);
         }
     }
+
+    /**
+     * Updates the entries relevant for {@link Measurement#getAverageSpeed()} of the currently captured {@link Measurement}.
+     *
+     * @param newSpeedSum The new sum of all valid speed samples.
+     * @param newSpeedSamples The new number of valid speed samples.
+     * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
+     */
+    public void updateAverageSpeed(final double newSpeedSum, final int newSpeedSamples) throws NoSuchMeasurementException, CursorIsNullException {
+        Validate.isTrue(newSpeedSamples >= 0);
+
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
+
+        synchronized (this) {
+            persistenceLayer.setAverageSpeed(currentlyCapturedMeasurementId, newSpeedSum, newSpeedSamples);
+        }
+    }
 }
