@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -559,6 +559,38 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 Validate.isTrue(directionFile.delete());
             }
         }
+    }
+
+    /**
+     * Returns the average speed of the measurement with the provided measurement identifier.
+     * <p>
+     * Loads the {@link Track}s from the database to calculate the metric on the fly [STAD-384].
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @param locationCleaningStrategy The {@link LocationCleaningStrategy} used to filter the
+     *            {@link GeoLocation}s
+     * @return The average speed in meters per second.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    public double loadAverageSpeed(final long measurementIdentifier,
+            @NonNull final LocationCleaningStrategy locationCleaningStrategy) throws CursorIsNullException {
+
+        final List<Track> tracks = loadTracks(measurementIdentifier);
+        double speedSum = 0.0;
+        int speedCounter = 0;
+        for (final Track track : tracks) {
+            double sum = 0.0;
+            int counter = 0;
+            for (final GeoLocation location : track.getGeoLocations()) {
+                if (locationCleaningStrategy.isClean(location)) {
+                    sum += location.getSpeed();
+                    counter += 1;
+                }
+            }
+            speedSum += sum;
+            speedCounter += counter;
+        }
+        return speedCounter > 0 ? speedSum / (double)speedCounter : 0.0;
     }
 
     /**
