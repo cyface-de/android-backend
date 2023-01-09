@@ -25,6 +25,10 @@ import static de.cyface.persistence.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
+import static de.cyface.persistence.model.Event.EventType.LIFECYCLE_PAUSE;
+import static de.cyface.persistence.model.Event.EventType.LIFECYCLE_RESUME;
+import static de.cyface.persistence.model.Event.EventType.LIFECYCLE_START;
+import static de.cyface.persistence.model.Event.EventType.LIFECYCLE_STOP;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.SYNCED;
@@ -591,6 +595,64 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             speedCounter += counter;
         }
         return speedCounter > 0 ? speedSum / (double)speedCounter : 0.0;
+    }
+
+    /**
+     * Returns the duration of the measurement with the provided measurement identifier without the time between pause
+     * and resume. [STAD-367]
+     * <p>
+     * Loads the {@link Event}s from the database to remove the time between pause and resume.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @return The average speed in meters per second.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     * @throws NoSuchMeasurementException If the {@link Measurement} does not exist.
+     */
+    public long loadDuration(final long measurementIdentifier)
+            throws CursorIsNullException, NoSuchMeasurementException {
+
+        // Extract lifecycle events only
+        final List<Event> lifecycleEvents = new ArrayList<>();
+        for (final Event event : loadEvents(measurementIdentifier)) {
+            final Event.EventType type = event.getType();
+            if (type.equals(LIFECYCLE_START) || type.equals(LIFECYCLE_PAUSE) || type.equals(LIFECYCLE_RESUME)
+                    || type.equals(LIFECYCLE_STOP)) {
+                lifecycleEvents.add(event);
+            }
+        }
+
+        // Add duration for each lifecycle event pair which fits:
+        // - START-STOP, START-PAUSE, RESUME-PAUSE, RESUME-STOP
+        // - for ongoing measurements when the last event is START or RESUME (for live duration)
+        long duration = 0L;
+        Event previousEvent = null;
+        for (int i = 0; i < lifecycleEvents.size(); i++) {
+            final Event event = lifecycleEvents.get(i);
+            final boolean isLast = i == lifecycleEvents.size() - 1;
+            final boolean isOngoing = loadMeasurementStatus(measurementIdentifier).equals(OPEN);
+            if (isLast && isOngoing && (event.getType() == LIFECYCLE_START || event.getType() == LIFECYCLE_RESUME)) {
+                final long newDuration = System.currentTimeMillis() - event.getTimestamp();
+                Validate.isTrue(newDuration >= 0, "Invalid duration: " + newDuration);
+                duration += newDuration;
+                Log.e(TAG, "ongoing measurement with last event " + event.getType() + ": +" + newDuration);
+            } else if (previousEvent != null) {
+                final Event.EventType previousType = previousEvent.getType();
+                final Event.EventType type = event.getType();
+                final boolean startStop = previousType == LIFECYCLE_START && type == LIFECYCLE_STOP;
+                final boolean startPause = previousType == LIFECYCLE_START && type == LIFECYCLE_PAUSE;
+                final boolean resumePause = previousType == LIFECYCLE_RESUME && type == LIFECYCLE_PAUSE;
+                final boolean resumeStop = previousType == LIFECYCLE_RESUME && type == LIFECYCLE_STOP;
+                if (startStop || startPause || resumePause || resumeStop) {
+                    final long newDuration = event.getTimestamp() - previousEvent.getTimestamp();
+                    Validate.isTrue(newDuration >= 0, "Invalid duration: " + newDuration);
+                    duration += newDuration;
+                    Log.e(TAG, "event pair " + previousType + " -> " + event.getType() + ": +" + newDuration);
+                }
+            }
+            previousEvent = event;
+        }
+        Log.i(TAG, "DURATION: " + duration);
+        return duration;
     }
 
     /**
