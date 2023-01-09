@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -162,14 +162,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The {@link Measurement#getDistance()} in meters until the last location update.
      */
     private double lastDistance;
-    /**
-     * The number of speed samples captured for the ongoing measurement, to calculate the average speed.
-     */
-    private int speedSamples = 0;
-    /**
-     * The sum of the speed values captured for the ongoing measurement, to calculate the average speed.
-     */
-    private double speedSum = 0.0;
     /**
      * The unix timestamp in milliseconds capturing the start of this service (i.e. of the tracking)
      * to filter out cached locations from distance calculation (STAD-140).
@@ -492,12 +484,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Inform listeners
         informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
-
-        // Update {@code Measurement#averageSpeed)
-        final double speedToAdd = newLocation.getSpeed();
-        this.speedSamples = speedSamples + 1;
-        this.speedSum = speedSum + speedToAdd;
-        Log.d(TAG, "Speed updated: " + speedToAdd);
 
         // Skip distance calculation when there is only one location
         if (lastLocation == null) {
