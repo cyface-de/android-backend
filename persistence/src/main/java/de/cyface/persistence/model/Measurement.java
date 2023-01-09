@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -59,10 +59,6 @@ public final class Measurement {
      */
     private double distance;
     /**
-     * The average speed of this {@link Measurement} based on its {@link GeoLocation}s in meters per second.
-     */
-    private double averageSpeed;
-    /**
      * The Unix timestamp in milliseconds indicating the start time of the measurement.
      */
     private long timestamp;
@@ -79,17 +75,15 @@ public final class Measurement {
      * @param fileFormatVersion The {@link MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION} used to serialize the
      *            data in the file persistence layer of for this {@link Measurement}.
      * @param distance The distance of this {@link Measurement} based on its {@link GeoLocation}s in meters.
-     * @param averageSpeed The average speed of this {@link Measurement} based on its {@link GeoLocation}s in meters per second.
      * @param timestamp The Unix timestamp in milliseconds indicating the start time of the measurement.
      */
     public Measurement(final long id, @NonNull final MeasurementStatus status, @NonNull final Modality modality,
-            final short fileFormatVersion, final double distance, final double averageSpeed, final long timestamp) {
+            final short fileFormatVersion, final double distance, final long timestamp) {
         this.id = id;
         this.status = status;
         this.modality = modality;
         this.fileFormatVersion = fileFormatVersion;
         this.distance = distance;
-        this.averageSpeed = averageSpeed;
         this.timestamp = timestamp;
     }
 
@@ -102,7 +96,7 @@ public final class Measurement {
         Measurement that = (Measurement)o;
         return fileFormatVersion == that.fileFormatVersion && Double.compare(that.distance, distance) == 0
                 && timestamp == that.timestamp && id.equals(that.id) && status == that.status
-                && modality == that.modality && Double.compare(that.averageSpeed, averageSpeed) == 0;
+                && modality == that.modality;
     }
 
     @Override
@@ -130,10 +124,6 @@ public final class Measurement {
         return distance;
     }
 
-    public double getAverageSpeed() {
-        return averageSpeed;
-    }
-
     public long getTimestamp() {
         return timestamp;
     }
@@ -146,7 +136,6 @@ public final class Measurement {
                 ", modality=" + modality +
                 ", fileFormatVersion=" + fileFormatVersion +
                 ", distance=" + distance +
-                ", averageSpeed=" + averageSpeed +
                 ", timestamp=" + timestamp +
                 '}';
     }

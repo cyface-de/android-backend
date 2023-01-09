@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2023 Cyface GmbH
+ * Copyright 2019 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,7 +18,6 @@
  */
 package de.cyface.persistence;
 
-import static de.cyface.persistence.DefaultLocationCleaningStrategy.UPPER_ACCURACY_THRESHOLD;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
@@ -129,72 +128,9 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Test upgrading the {@link MeasurementTable} to Database V1000017.
-     * <p>
-     * We test the speed fields are calculated correctly, with and without locations.
-     */
-    @Test
-    public void testMigrationV16ToV1000017() {
-
-        // Arrange
-        // This is simpler than copying and adjusting the code from previous versions
-        createV16Database(db);
-        addDatabaseV16Measurement(db, 43L, new GeoLocation(51., 13., 1551431485000L, 0.0, 800));
-        addDatabaseV16Measurement(db, 44L, new GeoLocation(51., 13., 1551431485000L, 5.0, 800));
-        addDatabaseV16Measurement(db, 45L, new GeoLocation(51., 13., 1551431485000L, 0.0, 800),
-                new GeoLocation(51., 13., 1551431485001L, 5.0, 800),
-                new GeoLocation(51., 13., 1551431485002L, 5.0, 800));
-        addDatabaseV16Measurement(db, 46L, new GeoLocation(51., 13., 1551431485000L, 5.0, UPPER_ACCURACY_THRESHOLD + 1),
-                new GeoLocation(51., 13., 1551431485001L, 5.0, 800));
-
-        // Act
-        oocut.onUpgrade(db, 16, 1_000_017);
-
-        // Assert the speed fields are calculated correctly
-        Cursor cursor = null;
-        try {
-            // Measurement without "clean" GeoLocations should have 0.0 as speed sum and 0 as speed counter
-            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"43"}, null, null, null);
-            assertThat(cursor.getCount(), is(equalTo(1)));
-            cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(43L)));
-            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(0.0)));
-            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(0)));
-
-            // Measurements with only one GeoLocations should not crash
-            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"44"}, null, null, null);
-            assertThat(cursor.getCount(), is(equalTo(1)));
-            cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(44L)));
-            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(5.0)));
-            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(1)));
-
-            // Measurements with GeoLocations should calculate the speed fields correctly
-            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"45"}, null, null, null);
-            assertThat(cursor.getCount(), is(equalTo(1)));
-            cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(45L)));
-            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(10.0)));
-            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(2)));
-
-            // Measurements with GeoLocations with high accuracy should not be used in average speed calculation
-            cursor = db.query("measurements", null, BaseColumns._ID + " = ?", new String[] {"46"}, null, null, null);
-            assertThat(cursor.getCount(), is(equalTo(1)));
-            cursor.moveToNext();
-            assertThat(cursor.getLong(cursor.getColumnIndex("_id")), is(equalTo(46L)));
-            assertThat(cursor.getDouble(cursor.getColumnIndex("speed_sum")), is(equalTo(5.0)));
-            assertThat(cursor.getInt(cursor.getColumnIndex("speed_counter")), is(equalTo(1)));
-        } finally {
-            if (cursor != null) {
-                cursor.close();
-            }
-        }
-    }
-
-    /**
      * Test upgrading the {@link MeasurementTable} to Database V16.
      * <p>
-     * We test that the there are no Exceptions when renaming the former `vehicle` column to `modality`.
+     * We test that the there are now Exceptions when renaming the former `vehicle` column to `modality`.
      */
     @Test
     public void testMigrationV15ToV16() {
@@ -381,39 +317,6 @@ public class DatabaseHelperTest {
     }
 
     /**
-     * Creates a database as it would have been created with {@code DatabaseHelper#DATABASE_VERSION} 16.
-     * <p>
-     * <b>Attention:</b>
-     * It's important that the create statements only contains hardcoded Strings as the table and column names
-     * should be the same as they were in that version to really test the migration as it would happen in real.
-     *
-     * @param db A clean {@link SQLiteDatabase} to use for testing.
-     */
-    private void createV16Database(@NonNull final SQLiteDatabase db) {
-
-        // # Create V16 Tables:
-
-        // Create android_metadata table (exists in SQLite export)
-        db.execSQL("DROP TABLE IF EXISTS android_metadata");
-        db.execSQL("CREATE TABLE android_metadata (locale TEXT);");
-        // Create IdentifierTable
-        db.execSQL("CREATE TABLE identifiers (_id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL);");
-        // Create MeasurementTable
-        db.execSQL("CREATE TABLE measurements (_id INTEGER PRIMARY KEY AUTOINCREMENT, status TEXT NOT NULL, "
-                + "modality TEXT NOT NULL, file_format_version INTEGER NOT NULL, distance REAL NOT NULL, timestamp INTEGER NOT NULL);");
-        // Create GeoLocationsTable
-        db.execSQL("CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
-                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
-                + "measurement_fk INTEGER NOT NULL);");
-
-        // Insert sample android_metadata table entry (exists in SQLite export)
-        db.execSQL("INSERT INTO android_metadata (locale) VALUES ('de_DE');");
-
-        // Insert sample IdentifierTable entry
-        db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
-    }
-
-    /**
      * Creates a database as it would have been created with {@code DatabaseHelper#DATABASE_VERSION} 15.
      * <p>
      * <b>Attention:</b>
@@ -479,37 +382,6 @@ public class DatabaseHelperTest {
         db.execSQL("INSERT INTO android_metadata (locale) VALUES ('de_DE');");
         // Insert sample IdentifierTable entry
         db.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b');");
-    }
-
-    /**
-     * Adds a {@link Measurement} with {@param locations} {@link GeoLocation}s to a test database of
-     * {@code DatabaseHelper#DATABASE_VERSION} 16 as created by {@link #createV16Database(SQLiteDatabase)}.
-     * <p>
-     * <b>Attention:</b>
-     * It's important that the create statements only contains hardcoded Strings as the table and column names
-     * should be the same as they were in that version to really test the migration as it would happen in real.
-     *
-     * @param db A clean {@link SQLiteDatabase} to use for testing.
-     * @param measurementId the id of the measurement to generate
-     * @param locations the locations to add to the measurement generated
-     */
-    private void addDatabaseV16Measurement(@NonNull final SQLiteDatabase db, final long measurementId,
-            final GeoLocation... locations) {
-
-        // # Insert V16 sample data:
-
-        // Insert sample MeasurementTable entries - execSQL only supports one insert per commend
-        db.execSQL(
-                "INSERT INTO measurements (_id,status,modality,file_format_version,distance,timestamp) VALUES "
-                        + " (" + measurementId + ",'FINISHED','BICYCLE',1,5396.62473698979,1551431485000);");
-        // Insert sample GeoLocationsTable entries - execSQL only supports one insert per commend
-        for (int i = 0; i < locations.length; i++) {
-            final GeoLocation location = locations[i];
-            db.execSQL("INSERT INTO locations (_id,gps_time,lat,lon,speed,accuracy,measurement_fk) VALUES "
-                    + " (" + (measurementId * 100_000 + 1 + i) + "," + location.getTimestamp()
-                    + "," + location.getLat() + "," + location.getLon() + "," + location.getSpeed()
-                    + "," + location.getAccuracy() + "," + measurementId + ");");
-        }
     }
 
     /**

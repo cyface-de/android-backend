@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -68,16 +68,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      */
     public static final String COLUMN_DISTANCE = "distance";
     /**
-     * Column name for the sum of all valid speed samples captured for this {@link Measurement} based on its
-     * {@link GeoLocation}s in meters per second.
-     */
-    public static final String COLUMN_SPEED_SUM = "speed_sum";
-    /**
-     * Column name for the number of valid speed samples captured for this {@link Measurement} based on its
-     * {@link GeoLocation}s.
-     */
-    public static final String COLUMN_SPEED_COUNTER = "speed_counter";
-    /**
      * Column name for the Unix timestamp in milliseconds of this {@link Measurement}.
      */
     public static final String COLUMN_TIMESTAMP = "timestamp";
@@ -85,8 +75,7 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
      * An array containing all columns from this table in default order.
      */
     private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_STATUS, COLUMN_MODALITY,
-            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, COLUMN_SPEED_SUM, COLUMN_SPEED_COUNTER,
-            COLUMN_TIMESTAMP};
+            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, COLUMN_TIMESTAMP};
 
     /**
      * Creates a new completely initialized {@code MeasurementTable} using the name {@link #URI_PATH}.
@@ -100,7 +89,6 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_STATUS + " TEXT NOT NULL, " + COLUMN_MODALITY + " TEXT NOT NULL, "
                 + COLUMN_PERSISTENCE_FILE_FORMAT_VERSION + " INTEGER NOT NULL, " + COLUMN_DISTANCE + " REAL NOT NULL, "
-                + COLUMN_SPEED_SUM + " REAL NOT NULL, " + COLUMN_SPEED_COUNTER + " INTEGER NOT NULL, "
                 + COLUMN_TIMESTAMP + " INTEGER NOT NULL);";
     }
 
@@ -152,97 +140,12 @@ public class MeasurementTable extends AbstractCyfaceMeasurementTable {
 
             case 15:
                 // This column was added in version 16
-                Log.d(TAG, "Upgrading measurement table from V15");
+                Log.d(TAG, "Upgrading event table from V15");
                 migrateDatabaseFromV15(database);
 
                 break; // onUpgrade is called incrementally by DatabaseHelper
-
-            case 16:
-                // These columns were added in version 17
-                Log.d(TAG, "Upgrading measurement table from V16");
-                migrateDatabaseFromV16(database);
-
-                break;
         }
 
-    }
-
-    /**
-     * Adds columns related to average speed to table and calculates the values for existing data.
-     * <p>
-     * Like for newly captured measurements, the average speed is only based on locations not filtered
-     * by the {@link DefaultLocationCleaningStrategy}.
-     *
-     * @param database The {@code SQLiteDatabase} to upgrade
-     */
-    private void migrateDatabaseFromV16(@NonNull final SQLiteDatabase database) {
-
-        database.execSQL("ALTER TABLE measurements ADD COLUMN speed_sum REAL NOT NULL DEFAULT 0.0");
-        database.execSQL("ALTER TABLE measurements ADD COLUMN speed_counter INTEGER NOT NULL DEFAULT 0");
-
-        Cursor measurementCursor = null;
-        Cursor geoLocationCursor = null;
-        LocationCleaningStrategy locationCleaningStrategy = new DefaultLocationCleaningStrategy();
-        try {
-            measurementCursor = database.query("measurements", new String[] {"_id"}, null, null, null, null, null,
-                    null);
-            if (measurementCursor.getCount() == 0) {
-                Log.v(TAG, "No measurements for migration found");
-                return;
-            }
-
-            // Check all measurements
-            while (measurementCursor.moveToNext()) {
-                final int identifierColumnIndex = measurementCursor.getColumnIndex("_id");
-                final long measurementId = measurementCursor.getLong(identifierColumnIndex);
-
-                geoLocationCursor = database.query("locations",
-                        new String[] {"lat", "lon", "gps_time", "speed", "accuracy"}, "measurement_fk = ?",
-                        new String[] {String.valueOf(measurementId)}, null, null, "gps_time ASC", null);
-                if (geoLocationCursor.getCount() < 1) {
-                    Log.v(TAG, "Not enough geoLocations to update average speed in measurement entry:" + measurementId);
-                    continue;
-                }
-
-                // Calculate average speed for selected measurement
-                double speedSum = 0.0;
-                int speedCounter = 0;
-                while (geoLocationCursor.moveToNext()) {
-                    final int latColumnIndex = geoLocationCursor.getColumnIndex("lat");
-                    final int lonColumnIndex = geoLocationCursor.getColumnIndex("lon");
-                    final int timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time");
-                    final int speedColumnIndex = geoLocationCursor.getColumnIndex("speed");
-                    final int accuracyColumnIndex = geoLocationCursor.getColumnIndex("accuracy");
-                    final double lat = geoLocationCursor.getDouble(latColumnIndex);
-                    final double lon = geoLocationCursor.getDouble(lonColumnIndex);
-                    final long time = geoLocationCursor.getLong(timeColumnIndex);
-                    final double speed = geoLocationCursor.getDouble(speedColumnIndex);
-                    final float accuracy = geoLocationCursor.getFloat(accuracyColumnIndex);
-                    final GeoLocation geoLocation = new GeoLocation(lat, lon, time, speed, accuracy);
-
-                    if (locationCleaningStrategy.isClean(geoLocation)) {
-                        speedSum += speed;
-                        speedCounter += 1;
-                    }
-                }
-
-                if (speedCounter > 0) {
-                    final double averageSpeed = speedSum / (double) speedCounter;
-                    Log.v(TAG, String.format("Updating average speed for measurement %d to %f (%f/%d)", measurementId,
-                            averageSpeed, speedSum, speedCounter));
-                    database.execSQL("UPDATE measurements SET speed_sum = " + speedSum + ", speed_counter = " + speedCounter
-                            + " WHERE _id = " + measurementId);
-                }
-            }
-
-        } finally {
-            if (measurementCursor != null) {
-                measurementCursor.close();
-            }
-            if (geoLocationCursor != null) {
-                geoLocationCursor.close();
-            }
-        }
     }
 
     /**

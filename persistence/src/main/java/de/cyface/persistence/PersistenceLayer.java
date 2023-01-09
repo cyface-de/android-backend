@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2023 Cyface GmbH
+ * Copyright 2017 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -23,8 +23,6 @@ import static de.cyface.persistence.Constants.TAG;
 import static de.cyface.persistence.MeasurementTable.COLUMN_DISTANCE;
 import static de.cyface.persistence.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
-import static de.cyface.persistence.MeasurementTable.COLUMN_SPEED_COUNTER;
-import static de.cyface.persistence.MeasurementTable.COLUMN_SPEED_SUM;
 import static de.cyface.persistence.MeasurementTable.COLUMN_STATUS;
 import static de.cyface.persistence.MeasurementTable.COLUMN_TIMESTAMP;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
@@ -173,7 +171,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final long measurementId = Long.parseLong(resultUri.getLastPathSegment());
             persistenceBehaviour.onNewMeasurement(measurementId);
             return new Measurement(measurementId, OPEN, modality, MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION,
-                    0.0, 0.0, timestamp);
+                    0.0, timestamp);
         }
     }
 
@@ -250,11 +248,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         final Modality modality = Modality.valueOf(cursor.getString(cursor.getColumnIndex(COLUMN_MODALITY)));
         final short fileFormatVersion = cursor.getShort(cursor.getColumnIndex(COLUMN_PERSISTENCE_FILE_FORMAT_VERSION));
         final double distance = cursor.getDouble(cursor.getColumnIndex(COLUMN_DISTANCE));
-        final double speedSum = cursor.getDouble(cursor.getColumnIndex(COLUMN_SPEED_SUM));
-        final int speedCounter = cursor.getInt(cursor.getColumnIndex(COLUMN_SPEED_COUNTER));
-        final double averageSpeed = speedCounter > 0 ? speedSum / (double) speedCounter : 0.0;
         final long timestamp = cursor.getLong(cursor.getColumnIndex(COLUMN_TIMESTAMP));
-        return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, averageSpeed, timestamp);
+        return new Measurement(measurementIdentifier, status, modality, fileFormatVersion, distance, timestamp);
     }
 
     /**
@@ -1025,25 +1020,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             throws NoSuchMeasurementException {
         final ContentValues values = new ContentValues();
         values.put(COLUMN_DISTANCE, newDistance);
-        updateMeasurement(measurementIdentifier, values);
-    }
-
-    /**
-     * Updates the entries relevant for {@link Measurement#getAverageSpeed()} of the currently captured {@link Measurement}.
-     * <p>
-     * <b>ATTENTION:</b> This should not be used by SDK implementing apps.
-     *
-     * @param measurementIdentifier The id of the {@link Measurement} to be updated
-     * @param newSpeedSum The new sum of all valid speed samples.
-     * @param newSpeedSamples The new number of valid speed samples.
-     * @throws NoSuchMeasurementException if there was no {@code Measurement} with the id
-     *             {@param measurementIdentifier}.
-     */
-    public void setAverageSpeed(final long measurementIdentifier, final double newSpeedSum, final int newSpeedSamples)
-            throws NoSuchMeasurementException {
-        final ContentValues values = new ContentValues();
-        values.put(COLUMN_SPEED_SUM, newSpeedSum);
-        values.put(COLUMN_SPEED_COUNTER, newSpeedSamples);
         updateMeasurement(measurementIdentifier, values);
     }
 

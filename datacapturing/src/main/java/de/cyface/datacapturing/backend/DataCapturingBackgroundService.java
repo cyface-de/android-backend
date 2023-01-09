@@ -495,15 +495,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
         // Update {@code Measurement#averageSpeed)
         final double speedToAdd = newLocation.getSpeed();
-        final double newSpeedSum = speedSum + speedToAdd;
-        final int newSpeedSamples = speedSamples + 1;
-        try {
-            capturingBehaviour.updateAverageSpeed(newSpeedSum, newSpeedSamples);
-        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
-            throw new IllegalStateException(e);
-        }
-        this.speedSamples = newSpeedSamples;
-        this.speedSum = newSpeedSum;
+        this.speedSamples = speedSamples + 1;
+        this.speedSum = speedSum + speedToAdd;
         Log.d(TAG, "Speed updated: " + speedToAdd);
 
         // Skip distance calculation when there is only one location
