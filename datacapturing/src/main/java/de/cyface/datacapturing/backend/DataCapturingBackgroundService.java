@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -88,7 +88,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.5
+ * @version 7.1.6
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -113,7 +113,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * The Android <code>Messenger</code> used to send IPC messages, informing the caller about the current status of
      * data capturing.
      */
-    private final Messenger callerMessenger = new Messenger(new MessageHandler(this));
+    private Messenger callerMessenger;
     /**
      * The list of clients receiving messages from this service as well as sending control messages.
      */
@@ -219,9 +219,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             return;
         }
 
+        callerMessenger = new Messenger(new MessageHandler(this));
+
         // Allows other parties to ping this service to see if it is running
-        // We cannot use the deviceId as device-unique app identifier as we need the authority (persistence) for this
-        // which we cannot pass via bind() as documented by the {@link #onBind()} method.
         pingReceiver = new PingReceiver(GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
         registerReceiver(pingReceiver, new IntentFilter(GLOBAL_BROADCAST_PING));
         Log.d(TAG, "onCreate: Ping Receiver registered");
@@ -521,7 +521,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * - We don't use Broadcasts here to reduce the amount of broadcasts.
      *
      * @author Klemens Muthmann
-     * @version 1.0.1
+     * @author Armin Schnabel
+     * @version 2.0.0
      * @since 1.0.0
      */
     private final static class MessageHandler extends Handler {
@@ -542,6 +543,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          * @param context The {@link DataCapturingBackgroundService} receiving messages via this handler.
          */
         MessageHandler(final @NonNull DataCapturingBackgroundService context) {
+            super(context.getMainLooper());
             this.context = new WeakReference<>(context);
         }
 

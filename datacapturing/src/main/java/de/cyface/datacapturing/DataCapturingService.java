@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -108,7 +108,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.0.6
+ * @version 18.0.7
  * @since 1.0.0
  */
 public abstract class DataCapturingService {
@@ -1183,7 +1183,7 @@ public abstract class DataCapturingService {
      *
      * @author Klemens Muthmann
      * @author Armin Schnabel
-     * @version 2.0.0
+     * @version 2.0.1
      * @since 2.0.0
      */
     private static class FromServiceMessageHandler extends Handler {
@@ -1203,9 +1203,12 @@ public abstract class DataCapturingService {
 
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
+         *
+         * @param context The Android context this handler is running under.
+         * @param dataCapturingService The service which calls this handler.
          */
-        FromServiceMessageHandler(@NonNull final Context context,
-                @NonNull final DataCapturingService dataCapturingService) {
+        FromServiceMessageHandler(@NonNull final Context context, @NonNull final DataCapturingService dataCapturingService) {
+            super(context.getMainLooper());
             this.context = context;
             this.listener = new HashSet<>();
             this.dataCapturingService = dataCapturingService;
