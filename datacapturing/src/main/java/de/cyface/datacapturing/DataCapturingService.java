@@ -1207,7 +1207,7 @@ public abstract class DataCapturingService {
          * @param context The Android context this handler is running under.
          * @param dataCapturingService The service which calls this handler.
          */
-        public FromServiceMessageHandler(final Context context, final DataCapturingService dataCapturingService) {
+        FromServiceMessageHandler(@NonNull final Context context, @NonNull final DataCapturingService dataCapturingService) {
             super(context.getMainLooper());
             this.context = context;
             this.listener = new HashSet<>();

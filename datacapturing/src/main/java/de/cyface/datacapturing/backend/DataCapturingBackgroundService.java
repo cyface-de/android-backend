@@ -51,7 +51,6 @@ import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.Parcelable;
@@ -220,7 +219,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             return;
         }
 
-        callerMessenger = new Messenger(new MessageHandler(getMainLooper(), this));
+        callerMessenger = new Messenger(new MessageHandler(this));
 
         // Allows other parties to ping this service to see if it is running
         pingReceiver = new PingReceiver(GLOBAL_BROADCAST_PING, GLOBAL_BROADCAST_PONG);
@@ -541,11 +540,10 @@ public class DataCapturingBackgroundService extends Service implements Capturing
          * Creates a new completely initialized {@link MessageHandler} for messages to this
          * service.
          *
-         * @param looper The {@code Looper} to the handler should run on.
          * @param context The {@link DataCapturingBackgroundService} receiving messages via this handler.
          */
-        MessageHandler(@NonNull Looper looper, final @NonNull DataCapturingBackgroundService context) {
-            super(looper);
+        MessageHandler(final @NonNull DataCapturingBackgroundService context) {
+            super(context.getMainLooper());
             this.context = new WeakReference<>(context);
         }
 
