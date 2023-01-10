@@ -56,7 +56,6 @@ import android.net.ConnectivityManager;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.IBinder;
-import android.os.Looper;
 import android.os.Message;
 import android.os.Messenger;
 import android.os.RemoteException;
@@ -279,7 +278,7 @@ public abstract class DataCapturingService {
             throw new SetupException("Android connectivity manager is not available!");
         }
         surveyor = new WiFiSurveyor(context, connectivityManager, authority, accountType);
-        fromServiceMessageHandler = new FromServiceMessageHandler(context.getMainLooper(), context, this);
+        fromServiceMessageHandler = new FromServiceMessageHandler(context, this);
         // The listeners are automatically removed when the service is destroyed (e.g. app kill)
         fromServiceMessageHandler.addListener(capturingListener);
         this.fromServiceMessenger = new Messenger(fromServiceMessageHandler);
@@ -1184,7 +1183,7 @@ public abstract class DataCapturingService {
      *
      * @author Klemens Muthmann
      * @author Armin Schnabel
-     * @version 3.0.0
+     * @version 2.0.1
      * @since 2.0.0
      */
     private static class FromServiceMessageHandler extends Handler {
@@ -1205,13 +1204,11 @@ public abstract class DataCapturingService {
         /**
          * Creates a new completely initialized <code>FromServiceMessageHandler</code>.
          *
-         * @param looper The {@code Looper} to the handler should run on.
          * @param context The Android context this handler is running under.
          * @param dataCapturingService The service which calls this handler.
          */
-        public FromServiceMessageHandler(@NonNull Looper looper, final Context context,
-                final DataCapturingService dataCapturingService) {
-            super(looper);
+        public FromServiceMessageHandler(final Context context, final DataCapturingService dataCapturingService) {
+            super(context.getMainLooper());
             this.context = context;
             this.listener = new HashSet<>();
             this.dataCapturingService = dataCapturingService;
