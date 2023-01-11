@@ -1,6 +1,5 @@
 package de.cyface.persistence;
 
-import static de.cyface.persistence.TestUtils.AUTHORITY;
 import static de.cyface.persistence.TestUtils.AUTHORITY_V6;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.persistence.Utils.getGeoLocationsV6Uri;
@@ -21,8 +20,10 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.provider.ProviderTestRule;
+
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -118,7 +119,8 @@ public final class GeoLocationV6Test {
         String createdId = createdRowUri.getLastPathSegment();
 
         assertThat(
-                mockResolver.delete(getGeoLocationsV6Uri(AUTHORITY_V6), BaseColumns._ID + "= ?", new String[] {createdId}),
+                mockResolver.delete(getGeoLocationsV6Uri(AUTHORITY_V6), BaseColumns._ID + "= ?",
+                        new String[] {createdId}),
                 is(1));
     }
 
@@ -131,8 +133,10 @@ public final class GeoLocationV6Test {
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertThat(mockResolver.delete(getGeoLocationsV6Uri(AUTHORITY_V6).buildUpon().appendPath(createdId).build(), null,
-                null), is(1));
+        assertThat(
+                mockResolver.delete(getGeoLocationsV6Uri(AUTHORITY_V6).buildUpon().appendPath(createdId).build(), null,
+                        null),
+                is(1));
     }
 
     /**
@@ -160,8 +164,10 @@ public final class GeoLocationV6Test {
         String lastPathSegment = insert.getLastPathSegment();
 
         try (Cursor urlQuery = mockResolver.query(
-                getGeoLocationsV6Uri(AUTHORITY_V6).buildUpon().appendPath(lastPathSegment).build(), null, null, null, null);
-                Cursor selectionQuery = mockResolver.query(getGeoLocationsV6Uri(AUTHORITY_V6), null, BaseColumns._ID + "=?",
+                getGeoLocationsV6Uri(AUTHORITY_V6).buildUpon().appendPath(lastPathSegment).build(), null, null, null,
+                null);
+                Cursor selectionQuery = mockResolver.query(getGeoLocationsV6Uri(AUTHORITY_V6), null,
+                        BaseColumns._ID + "=?",
                         new String[] {lastPathSegment}, null);
                 Cursor allQuery = mockResolver.query(getGeoLocationsV6Uri(AUTHORITY_V6), null, null, null, null)) {
             // Select

@@ -85,10 +85,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     private final ContentResolver resolver;
     /**
-     * <code>ContentResolver</code> that provides access to the {@link V6ContentProvider}.
-     */
-    private final ContentResolver resolverV6;
-    /**
      * The authority used to identify the Android content provider to persist data to or load it from.
      */
     private final String authority;
@@ -114,7 +110,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public PersistenceLayer() {
         this.context = null;
         this.resolver = null;
-        this.resolverV6 = null;
         this.authority = null;
         this.authorityV6 = null;
         this.fileAccessLayer = new DefaultFileAccess();
@@ -126,18 +121,15 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param context The {@link Context} required to locate the app's internal storage directory.
      * @param resolver {@link ContentResolver} that provides access to the {@link MeasuringPointsContentProvider}. This
      *            is required as an explicit parameter to allow test to inject a mocked {@code ContentResolver}.
-     * @param resolverV6 {@link ContentResolver} that provides access to the {@link V6ContentProvider}. This
-     *            is required as an explicit parameter to allow test to inject a mocked {@code ContentResolver}.
      * @param authority The authority used to identify the Android content provider.
      * @param authorityV6 The authority used to identify the Android content provider V6.
      * @param persistenceBehaviour A {@link PersistenceBehaviour} which tells if this {@link PersistenceLayer} is used
      *            to capture live data.
      */
-    public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver, @NonNull final ContentResolver resolverV6,
+    public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String authorityV6, @NonNull final B persistenceBehaviour) {
         this.context = context;
         this.resolver = resolver;
-        this.resolverV6 = resolverV6;
         this.authority = authority;
         this.authorityV6 = authorityV6;
         this.persistenceBehaviour = persistenceBehaviour;
@@ -654,7 +646,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 final long newDuration = System.currentTimeMillis() - event.getTimestamp();
                 Validate.isTrue(newDuration >= 0, "Invalid duration: " + newDuration);
                 duration += newDuration;
-                Log.e(TAG, "ongoing measurement with last event " + event.getType() + ": +" + newDuration);
             } else if (previousEvent != null) {
                 final Event.EventType previousType = previousEvent.getType();
                 final Event.EventType type = event.getType();
@@ -671,7 +662,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
             previousEvent = event;
         }
-        Log.i(TAG, "DURATION: " + duration);
         return duration;
     }
 
@@ -1209,13 +1199,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public ContentResolver getResolver() {
         return resolver;
-    }
-
-    /**
-     * @return the {@link #resolverV6}
-     */
-    public ContentResolver getResolverV6() {
-        return resolverV6;
     }
 
     /**

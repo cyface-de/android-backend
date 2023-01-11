@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  * @version 1.0.0
  * @since 6.3.0
  */
-class DatabaseHelperV6 extends SQLiteOpenHelper {
+class DatabaseHelperV6 extends SQLiteOpenHelper implements DatabaseHelperInterface {
 
     /**
      * Name of the database used by the content provider to store data.
@@ -139,7 +139,7 @@ class DatabaseHelperV6 extends SQLiteOpenHelper {
      * @param selectionArgs The arguments to place inside the '?' placeholder from <code>selection</code>.
      * @return The number of rows deleted.
      */
-    int deleteRow(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
+    public int deleteRow(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
         List<String> pathSegments = uri.getPathSegments();
         SQLiteDatabase database = getWritableDatabase();
 
@@ -226,7 +226,7 @@ class DatabaseHelperV6 extends SQLiteOpenHelper {
      * @param values The values to insert in the new table row.
      * @return The identifier of the new row.
      */
-    long insertRow(final @NonNull Uri uri, final @NonNull ContentValues values) {
+    public long insertRow(final @NonNull Uri uri, final @NonNull ContentValues values) {
         final CyfaceMeasurementTable table = matchTable(uri);
         return table.insertRow(getWritableDatabase(), values);
     }
@@ -238,7 +238,7 @@ class DatabaseHelperV6 extends SQLiteOpenHelper {
      * @param values The values to insert.
      * @return An array of identifiers for the newly created table rows.
      */
-    long[] bulkInsert(final @NonNull Uri uri, final @NonNull List<ContentValues> values) {
+    public long[] bulkInsert(final @NonNull Uri uri, final @NonNull List<ContentValues> values) {
         CyfaceMeasurementTable table = matchTable(uri);
         return table.insertBatch(getWritableDatabase(), values);
     }
@@ -304,7 +304,7 @@ class DatabaseHelperV6 extends SQLiteOpenHelper {
      * @param uri The URI to provide the MIME type for.
      * @return The MIME type corresponding to that URI.
      */
-    String getType(final @NonNull Uri uri) {
+    public String getType(final @NonNull Uri uri) {
         if (uri.getPathSegments().size() == 1) {
             return "vnd.android.cursor.item/de.cyface.data";
         } else if (uri.getPathSegments().size() == 2) {

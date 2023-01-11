@@ -98,7 +98,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
+                // FIXME: authorityV6
+                new PersistenceLayer<>(context, resolver, authority, authority + ".v6", new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");

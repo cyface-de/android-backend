@@ -1,5 +1,8 @@
 package de.cyface.persistence;
 
+import static de.cyface.persistence.Utils.getGeoLocationsV6Uri;
+import static de.cyface.persistence.Utils.getPressuresUri;
+
 import java.util.Arrays;
 
 import android.content.ContentProvider;
@@ -26,6 +29,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      * A representation of the database manged by this <code>ContentProvider</code>.
      */
     private DatabaseHelper database;
+    private DatabaseHelperV6 databaseV6;
     /**
      * The Android context used by this <code>ContentProvider</code>.
      */
@@ -36,6 +40,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         context = getContext();
         Validate.notNull(context);
         database = new DatabaseHelper(context);
+        databaseV6 = new DatabaseHelperV6(context);
         return true;
     }
 
@@ -49,6 +54,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      */
     @Override
     public int delete(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
+        DatabaseHelperInterface database = getDatabase(uri);
         Uri uriWithPotentialSelection = uri;
         if (selectionArgs != null && (BaseColumns._ID + "=?").equals(selection) && selectionArgs.length == 1) {
             uriWithPotentialSelection = ContentUris.withAppendedId(uri, Long.parseLong(selectionArgs[0]));
@@ -59,27 +65,37 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         return rowsDeleted;
     }
 
+    private DatabaseHelperInterface getDatabase(final @NonNull Uri uri) {
+        // FIXME: This information is only available after `CyfaceDataCapturingService` is called, not in here
+        if (uri.equals(getGeoLocationsV6Uri("de.cyface.app.provider.v6")) ||
+                uri.equals(getPressuresUri("de.cyface.app.provider.v6"))) {
+            return this.databaseV6;
+        } else {
+            return this.database;
+        }
+    }
+
     @Override
     public String getType(@NonNull final Uri uri) {
-        return database.getType(uri);
+        return getDatabase(uri).getType(uri);
     }
 
     @Override
     public Uri insert(@NonNull final Uri uri, final ContentValues values) {
-        long newRowIdentifier = database.insertRow(uri, values);
+        long newRowIdentifier = getDatabase(uri).insertRow(uri, values);
         context.getContentResolver().notifyChange(uri, null);
         return Uri.parse(uri.getLastPathSegment() + "/" + newRowIdentifier);
     }
 
     @Override
     public int bulkInsert(@NonNull final Uri uri, @NonNull final ContentValues[] values) {
-        return database.bulkInsert(uri, Arrays.asList(values)).length;
+        return getDatabase(uri).bulkInsert(uri, Arrays.asList(values)).length;
     }
 
     @Override
     public Cursor query(@NonNull final Uri uri, final String[] projection, final String selection,
             final String[] selectionArgs, final String sortOrder) {
-        final Cursor cursor = database.query(uri, projection, selection, selectionArgs, sortOrder);
+        final Cursor cursor = getDatabase(uri).query(uri, projection, selection, selectionArgs, sortOrder);
         cursor.setNotificationUri(context.getContentResolver(), uri);
         return cursor;
     }
@@ -87,7 +103,7 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
     @Override
     public int update(@NonNull final Uri uri, final ContentValues values, final String selection,
             final String[] selectionArgs) {
-        int rowsUpdated = database.update(uri, values, selection, selectionArgs);
+        int rowsUpdated = getDatabase(uri).update(uri, values, selection, selectionArgs);
         context.getContentResolver().notifyChange(uri, null);
         return rowsUpdated;
     }

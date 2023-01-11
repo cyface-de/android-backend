@@ -133,11 +133,12 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             return;
         }
 
-        Log.d(TAG, "Sync started");
+        Log.e(TAG, "Sync started with AUTHORITY: " + authority); // FIXME: revert to Log.d
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer();
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
+                // FIXME: SyncAdapter only gets one authority
+                context.getContentResolver(), authority, authority + ".v6", new DefaultPersistenceBehaviour());
         final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
         final SyncPerformer syncPerformer = new SyncPerformer(context);
 

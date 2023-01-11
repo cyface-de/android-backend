@@ -44,6 +44,12 @@ public class BundlesExtrasCodes {
      */
     public final static String AUTHORITY_ID = "de.cyface.authority.id";
     /**
+     * Code that identifies the authority id if transmitted via an Android bundle for V6 data.
+     *
+     * FIXME: ensure the correct authority is used everywhere.
+     */
+    public final static String AUTHORITY_ID_V6 = "de.cyface.authority.id.v6";
+    /**
      * Code that identifies the status information in the message send when the data capturing service has been stopped.
      * This should be a boolean extra that is <code>false</code> if the service was not actually stopped (if stop is
      * called twice in succession) or <code>true</code> is stopping was successful. In the first case the intent should
