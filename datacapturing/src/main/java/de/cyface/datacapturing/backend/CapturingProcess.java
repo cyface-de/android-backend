@@ -47,6 +47,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.utils.Validate;
 
 /**
@@ -215,11 +216,21 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
+                    final GeoLocationV6 locationV6 = new GeoLocationV6();
+                    locationV6.timestamp = locationTime;
+                    locationV6.lat = latitude;
+                    locationV6.lon = longitude;
+                    locationV6.altitude = altitude;
+                    locationV6.speed = speed;
+                    locationV6.accuracy = locationAccuracyMeters; // FIXME: agree upon type and unit
+                    locationV6.verticalAccuracy = verticalAccuracyMeters; // FIXME see above
+                    // FIXME: this information is not available here, setting this later. locationV6.measurementId =
                     listener.onLocationCaptured(
                             // The Android Location contains the accuracy in meters. GeoLocation uses cm.
                             new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100),
-                            new GeoLocationV6(latitude, longitude, altitude, locationTime, speed,
-                                    locationAccuracyMeters * 100, verticalAccuracyMeters * 100));
+                            locationV6
+                            /*new GeoLocationV6(latitude, longitude, altitude, locationTime, speed,
+                                    locationAccuracyMeters * 100, verticalAccuracyMeters * 100)*/);
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {

@@ -43,9 +43,9 @@ ext {
     cyfaceUtilsVersion = "2.0.1"
 
     minSdkVersion = 21
-    targetSdkVersion = 30
-    compileSdkVersion = 30
-    buildToolsVersion = '30.0.3'
+    targetSdkVersion = 31 // 30 FIXME - 31 required for Room, follow migration guide / commit from main branch
+    compileSdkVersion = 33 // 30 FIXME - 31 required for Room, follow migration guide / commit from main branch
+    buildToolsVersion = '30.0.3' //'30.0.3' FIXME - 31 required for Room, follow migration guide / commit from main branch
 
     androidxAnnotationVersion = "1.0.0"
     androidxAppCompatVersion = "1.2.0"

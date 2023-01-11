@@ -13,6 +13,8 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.provider.BaseColumns;
 import androidx.annotation.NonNull;
+import androidx.room.Room;
+
 import de.cyface.utils.Validate;
 
 /**
@@ -29,7 +31,8 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
      * A representation of the database manged by this <code>ContentProvider</code>.
      */
     private DatabaseHelper database;
-    private DatabaseHelperV6 databaseV6;
+    //private DatabaseHelperV6 databaseV6;
+    //private DatabaseV6 databaseV6;
     /**
      * The Android context used by this <code>ContentProvider</code>.
      */
@@ -40,7 +43,8 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
         context = getContext();
         Validate.notNull(context);
         database = new DatabaseHelper(context);
-        databaseV6 = new DatabaseHelperV6(context);
+        //databaseV6 = new DatabaseHelperV6(context);
+        //databaseV6 = Room.databaseBuilder(context.getApplicationContext(), DatabaseV6.class, "v6").build();
         return true;
     }
 
@@ -67,12 +71,12 @@ public final class MeasuringPointsContentProvider extends ContentProvider {
 
     private DatabaseHelperInterface getDatabase(final @NonNull Uri uri) {
         // FIXME: This information is only available after `CyfaceDataCapturingService` is called, not in here
-        if (uri.equals(getGeoLocationsV6Uri("de.cyface.app.provider.v6")) ||
+        /*if (uri.equals(getGeoLocationsV6Uri("de.cyface.app.provider.v6")) ||
                 uri.equals(getPressuresUri("de.cyface.app.provider.v6"))) {
             return this.databaseV6;
-        } else {
+        } else {*/
             return this.database;
-        }
+        //}
     }
 
     @Override

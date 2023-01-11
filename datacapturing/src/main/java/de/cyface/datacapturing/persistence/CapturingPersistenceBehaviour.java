@@ -16,12 +16,17 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.GeoLocationsTable;
+import de.cyface.persistence.GeoLocationsTableV6;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.dao.GeoLocationDao;
+import de.cyface.persistence.dao.PressureDao;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -133,6 +138,31 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
 
         persistenceLayer.getResolver().insert(persistenceLayer.getGeoLocationsUri(), values);
+    }
+
+    /**
+     * Stores the provided geo location with altitude data under the currently active captured measurement.
+     *
+     * @param location The geo location to store.
+     * @param measurementIdentifier The identifier of the measurement to store the data to.
+     */
+    public void storeLocationV6(final @NonNull GeoLocationV6 location, final long measurementIdentifier) {
+
+        /*final ContentValues values = new ContentValues();
+        values.put(GeoLocationsTableV6.COLUMN_ACCURACY, Math.round(location.getAccuracy()));
+        values.put(GeoLocationsTableV6.COLUMN_VERTICAL_ACCURACY, Math.round(location.getVerticalAccuracy()));
+        values.put(GeoLocationsTableV6.COLUMN_GEOLOCATION_TIME, location.getTimestamp());
+        values.put(GeoLocationsTableV6.COLUMN_LAT, location.getLat());
+        values.put(GeoLocationsTableV6.COLUMN_LON, location.getLon());
+        values.put(GeoLocationsTableV6.COLUMN_ALTITUDE, location.getAltitude());
+        values.put(GeoLocationsTableV6.COLUMN_SPEED, location.getSpeed());
+        values.put(GeoLocationsTableV6.COLUMN_MEASUREMENT_FK, measurementIdentifier);
+
+        persistenceLayer.getResolver().insert(persistenceLayer.getGeoLocationsV6Uri(), values);*/
+
+        location.measurementId = measurementIdentifier; // FIXME make sure this cannot be forgotten
+        GeoLocationDao dao = persistenceLayer.getDatabaseV6().geoLocationDao();
+        dao.insertAll(location);
     }
 
     /**

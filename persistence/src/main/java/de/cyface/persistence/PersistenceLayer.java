@@ -50,6 +50,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
+import androidx.room.Room;
 
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
@@ -101,6 +102,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * The {@link FileAccessLayer} used to interact with files.
      */
     private FileAccessLayer fileAccessLayer;
+    private final DatabaseV6 databaseV6;
 
     /**
      * <b>This constructor is only for testing.</b>
@@ -112,6 +114,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         this.resolver = null;
         this.authority = null;
         this.authorityV6 = null;
+        this.databaseV6 = null;
         this.fileAccessLayer = new DefaultFileAccess();
     }
 
@@ -132,6 +135,17 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         this.resolver = resolver;
         this.authority = authority;
         this.authorityV6 = authorityV6;
+        /**
+         * FIXME
+         * Note: If your app runs in a single process, you should follow the singleton design pattern when instantiating
+         * an AppDatabase object. Each RoomDatabase instance is fairly expensive, and you rarely need access to multiple
+         * instances within a single process.
+         * If your app runs in multiple processes, include enableMultiInstanceInvalidation() in your database builder
+         * invocation. That way, when you have an instance of AppDatabase in each process, you can invalidate the shared
+         * database file in one process, and this invalidation automatically propagates to the instances of AppDatabase
+         * within other processes.
+         */
+        this.databaseV6 = Room.databaseBuilder(context.getApplicationContext(), DatabaseV6.class, "v6").build();
         this.persistenceBehaviour = persistenceBehaviour;
         this.fileAccessLayer = new DefaultFileAccess();
         final File accelerationsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
@@ -985,7 +999,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 .getFloat(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_ACCURACY));
         final float verticalAccuracy = geoLocationCursor
                 .getFloat(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_VERTICAL_ACCURACY));
-        return new GeoLocationV6(lat, lon, altitude, timestamp, speed, accuracy, verticalAccuracy);
+        return new GeoLocationV6(/*lat, lon, altitude, timestamp, speed, accuracy, verticalAccuracy*/); // FIXME
     }
 
     /**
@@ -1202,6 +1216,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public ContentResolver getResolver() {
         return resolver;
+    }
+
+    /**
+     * @return
+     */
+    public DatabaseV6 getDatabaseV6() {
+        return databaseV6;
     }
 
     /**

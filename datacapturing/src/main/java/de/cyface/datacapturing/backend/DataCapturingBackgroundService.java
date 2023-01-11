@@ -476,7 +476,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
-        capturingBehaviour.storeLocation(newLocationV6, currentMeasurementIdentifier);
+        capturingBehaviour.storeLocationV6(newLocationV6, currentMeasurementIdentifier);
 
         // Check available space
         if (!spaceAvailable()) {
@@ -487,7 +487,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
             newLocation.setValid(false);
-            newLocationV6.setValid(false);
+            // FIXME: newLocationV6.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }
