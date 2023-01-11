@@ -18,15 +18,11 @@
  */
 package de.cyface.persistence;
 
-import static de.cyface.persistence.Constants.TAG;
-
 import android.database.sqlite.SQLiteDatabase;
 import android.provider.BaseColumns;
-import android.util.Log;
-
-import androidx.annotation.NonNull;
 
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 
 /**
@@ -47,35 +43,44 @@ public class GeoLocationsTableV6 extends AbstractCyfaceMeasurementTable {
      */
     final static String URI_PATH = "locations";
     /**
-     * Column name for the column storing the {@link GeoLocation} timestamp.
+     * Column name for the column storing the {@link GeoLocationV6} timestamp.
      */
     public static final String COLUMN_GEOLOCATION_TIME = "gps_time";
     /**
-     * Column name for the column storing the {@link GeoLocation} latitude.
+     * Column name for the column storing the {@link GeoLocationV6} latitude.
      */
     public static final String COLUMN_LAT = "lat";
     /**
-     * Column name for the column storing the {@link GeoLocation} longitude.
+     * Column name for the column storing the {@link GeoLocationV6} longitude.
      */
     public static final String COLUMN_LON = "lon";
     /**
-     * Column name for the column storing the {@link GeoLocation} speed in meters per second.
+     * Column name for the column storing the {@link GeoLocationV6} altitude.
+     */
+    public static final String COLUMN_ALTITUDE = "altitude";
+    /**
+     * Column name for the column storing the {@link GeoLocationV6} speed in meters per second.
      */
     public static final String COLUMN_SPEED = "speed";
     /**
-     * Column name for the column storing the {@link GeoLocation} accuracy in centimeters.
+     * Column name for the column storing the {@link GeoLocationV6} accuracy in centimeters.
      */
     public static final String COLUMN_ACCURACY = "accuracy";
     /**
+     * Column name for the column storing the {@link GeoLocationV6} vertical accuracy in centimeters.
+     */
+    public static final String COLUMN_VERTICAL_ACCURACY = "vertical_accuracy";
+    /**
      * Column name for the column storing the foreign key referencing the {@link Measurement} for this
-     * {@link GeoLocation}.
+     * {@link GeoLocationV6}.
      */
     public static final String COLUMN_MEASUREMENT_FK = "measurement_fk";
     /**
      * An array containing all the column names used by a geo location table.
      */
     private static final String[] COLUMNS = {BaseColumns._ID, COLUMN_GEOLOCATION_TIME, COLUMN_LAT, COLUMN_LON,
-            COLUMN_SPEED, COLUMN_ACCURACY, COLUMN_MEASUREMENT_FK};
+            COLUMN_ALTITUDE,
+            COLUMN_SPEED, COLUMN_ACCURACY, COLUMN_VERTICAL_ACCURACY, COLUMN_MEASUREMENT_FK};
 
     /**
      * Provides a completely initialized object as a representation of a table containing geo locations in the database.
@@ -88,54 +93,24 @@ public class GeoLocationsTableV6 extends AbstractCyfaceMeasurementTable {
     protected String getCreateStatement() {
         return "CREATE TABLE " + getName() + " (" + BaseColumns._ID + " INTEGER PRIMARY KEY AUTOINCREMENT, "
                 + COLUMN_GEOLOCATION_TIME + " INTEGER NOT NULL, " + COLUMN_LAT + " REAL NOT NULL, " + COLUMN_LON
-                + " REAL NOT NULL, " + COLUMN_SPEED + " REAL NOT NULL, " + COLUMN_ACCURACY + " INTEGER NOT NULL, "
+                + " REAL NOT NULL, " + COLUMN_ALTITUDE + " REAL NOT NULL, " + COLUMN_SPEED + " REAL NOT NULL, "
+                + COLUMN_ACCURACY + " INTEGER NOT NULL, " + COLUMN_VERTICAL_ACCURACY + " INTEGER NOT NULL, "
                 + COLUMN_MEASUREMENT_FK + " INTEGER NOT NULL);";
     }
 
     /**
-     * Don't forget to update the {@link DatabaseHelper}'s {@code DATABASE_VERSION} if you upgrade this table.
+     * Don't forget to update the {@link DatabaseHelperV6}'s {@code DATABASE_VERSION} if you upgrade this table.
      * <p>
      * The Upgrade is automatically executed in a transaction, do not wrap the code in another transaction!
      * <p>
-     * This upgrades are called incrementally by {@link DatabaseHelper#onUpgrade(SQLiteDatabase, int, int)}.
+     * This upgrades are called incrementally by {@link DatabaseHelperV6#onUpgrade(SQLiteDatabase, int, int)}.
      * <p>
      * Remaining documentation: {@link CyfaceMeasurementTable#onUpgrade}
      */
     @Override
     public void onUpgrade(final SQLiteDatabase database, final int fromVersion, final int toVersion) {
 
-        //noinspection SwitchStatementWithTooFewBranches - for readability
-        switch (fromVersion) {
-
-            case 8:
-                Log.d(TAG, "Upgrading geoLocation table from V8");
-                migrateDatabaseFromV8(database);
-
-                break; // onUpgrade is called incrementally by DatabaseHelper
-        }
-
-    }
-
-    /**
-     * Renames table, updates the table structure and copies the data.
-     *
-     * @param database The {@code SQLiteDatabase} to upgrade
-     */
-    private void migrateDatabaseFromV8(@NonNull final SQLiteDatabase database) {
-        // To drop columns we need to copy the table. We anyway renamed the table to locations.
-        database.execSQL("ALTER TABLE gps_points RENAME TO _locations_old;");
-
-        // To drop columns "is_synced" we need to create a new table
-        database.execSQL("CREATE TABLE locations (_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, "
-                + "lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, "
-                + "measurement_fk INTEGER NOT NULL);");
-        // and insert the old data accordingly. This is anyway cleaner (no defaults)
-        // We ignore the value as we upload to a new API.
-        database.execSQL("INSERT INTO locations " + "(_id,gps_time,lat,lon,speed,accuracy,measurement_fk) "
-                + "SELECT _id,gps_time,lat,lon,speed,accuracy,measurement_fk " + "FROM _locations_old");
-
-        // Remove temp table
-        database.execSQL("DROP TABLE _locations_old;");
+        // switch (fromVersion) {} - no upgrades, yet
     }
 
     @Override

@@ -58,6 +58,7 @@ import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.utils.CursorIsNullException;
 
@@ -103,6 +104,7 @@ public class DataCapturingLocalTest {
     EventHandlingStrategy mockEventHandlingStrategy;
     private final int base = 0;
     private final GeoLocation location1 = generateGeoLocation(base);
+    private final GeoLocationV6 location1V6 = new GeoLocationV6(location1, 400., 19.99f);
 
     @Before
     public void setUp() {
@@ -128,6 +130,8 @@ public class DataCapturingLocalTest {
         final int expectedDistance = 2;
         GeoLocation location2 = generateGeoLocation(base + expectedDistance);
         GeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+        GeoLocationV6 location2V6 = new GeoLocationV6(location2, 400.234, 21_00);
+        GeoLocationV6 location3V6 = new GeoLocationV6(location3, 400.345, 22_00);
 
         // Mock
         when(distanceCalculationStrategy.calculateDistance(location1, location2))
@@ -138,9 +142,9 @@ public class DataCapturingLocalTest {
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act
-        oocut.onLocationCaptured(location1);
-        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3); // Now the two distances should be added
+        oocut.onLocationCaptured(location1, location1V6);
+        oocut.onLocationCaptured(location2, location2V6); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3, location3V6); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
@@ -163,6 +167,9 @@ public class DataCapturingLocalTest {
         GeoLocation cachedLocation = generateGeoLocation(base - expectedDistance);
         GeoLocation location2 = generateGeoLocation(base + expectedDistance);
         GeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+        GeoLocationV6 cachedLocationV6 = new GeoLocationV6(cachedLocation, 400.123, 20_00);
+        GeoLocationV6 location2V6 = new GeoLocationV6(location2, 400.234, 21_00);
+        GeoLocationV6 location3V6 = new GeoLocationV6(location3, 400.345, 22_00);
 
         // Mock
         // When the onLocationCaptured implementation is correct, this method is never called.
@@ -177,10 +184,10 @@ public class DataCapturingLocalTest {
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act
-        oocut.onLocationCaptured(cachedLocation);
-        oocut.onLocationCaptured(location1);
-        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3); // Now the two distances should be added
+        oocut.onLocationCaptured(cachedLocation, cachedLocationV6);
+        oocut.onLocationCaptured(location1, location1V6);
+        oocut.onLocationCaptured(location2, location2V6); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3, location3V6); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);

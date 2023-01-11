@@ -71,6 +71,7 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -470,11 +471,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     }
 
     @Override
-    public void onLocationCaptured(@NonNull final GeoLocation newLocation) {
+    public void onLocationCaptured(@NonNull final GeoLocation newLocation, @NonNull GeoLocationV6 newLocationV6) {
 
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
+        capturingBehaviour.storeLocation(newLocationV6, currentMeasurementIdentifier);
 
         // Check available space
         if (!spaceAvailable()) {
@@ -485,6 +487,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
             newLocation.setValid(false);
+            newLocationV6.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }

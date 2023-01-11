@@ -6,6 +6,7 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 
 /**
  * Interface for all classes that need to listen to events sent by a <code>CapturingProcess</code>.
@@ -20,8 +21,9 @@ public interface CapturingProcessListener {
      * Called every time a new data point with a valid geo location coordinate has been captured.
      *
      * @param location Captured data wrapper object.
+     * @param locationV6 Captured location with altitude data.
      */
-    void onLocationCaptured(@NonNull GeoLocation location);
+    void onLocationCaptured(@NonNull GeoLocation location, @NonNull GeoLocationV6 locationV6);
 
     /**
      * Transmits the accelerations, rotations and directions captured in intervals of approximately one geo

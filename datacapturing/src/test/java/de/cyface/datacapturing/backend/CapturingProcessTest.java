@@ -51,6 +51,7 @@ import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.utils.Validate;
 
 /**
@@ -241,8 +242,9 @@ public class CapturingProcessTest {
         private List<CapturedData> capturedData = new ArrayList<>();
 
         @Override
-        public void onLocationCaptured(@NonNull GeoLocation location) {
+        public void onLocationCaptured(@NonNull GeoLocation location, @NonNull GeoLocationV6 locationV6) {
             capturedLocations.add(location);
+            capturedLocations.add(locationV6);
         }
 
         @Override

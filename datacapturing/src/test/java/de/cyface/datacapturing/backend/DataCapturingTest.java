@@ -34,6 +34,7 @@ import android.location.LocationManager;
 import android.os.HandlerThread;
 
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 
 /**
  * Tests the correct workings of the data capturing functionality.
@@ -109,7 +110,8 @@ public class DataCapturingTest {
             dataCapturing.addCapturingProcessListener(listener);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
-            verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f));
+            verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f),
+                    new GeoLocationV6(51.03624633, 13.78828128, 400.123, 0L, 0.0, 0.0f, 0.0f));
         }
     }
 
@@ -132,7 +134,7 @@ public class DataCapturingTest {
             dataCapturing.onLocationChanged(location);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
-            verify(listener, times(1)).onLocationCaptured(any(GeoLocation.class));
+            verify(listener, times(1)).onLocationCaptured(any(GeoLocation.class), any(GeoLocationV6.class));
         }
     }
 }

@@ -78,6 +78,17 @@ public class GeoLocationV6 extends GeoLocation implements Parcelable {
     }
 
     /**
+     * Creates a new completely initialized <code>GeoLocationV6</code>.
+     *
+     * @param location The {@link GeoLocation} this {@link GeoLocationV6} is based on.
+     * @param altitude The captured altitude of this {@code GeoLocationV6} in meters above WGS 84.
+     * @param verticalAccuracy The current vertical accuracy of the measuring device in centimeters.
+     */
+    public GeoLocationV6(final GeoLocation location, final double altitude, final float verticalAccuracy) {
+        this(location.getLat(), location.getLon(), altitude, location.getTimestamp(), location.getSpeed(), location.getAccuracy(), verticalAccuracy);
+    }
+
+    /**
      * @return The captured altitude of this {@code GeoLocationV6} in meters above WGS 84.
      */
     public double getAltitude() {

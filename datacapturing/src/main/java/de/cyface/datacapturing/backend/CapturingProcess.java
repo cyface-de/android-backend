@@ -45,6 +45,7 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.utils.Validate;
 
@@ -193,19 +194,32 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (locationStatusHandler.hasLocationFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
+            double altitude = location.getAltitude(); // Locations without altitude return 0.0
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
             float locationAccuracyMeters = location.getAccuracy();
+            // FIXME: vAccuracy = diff(vertical_accuracy, accuracy) => do we store abs. or rel. value?
+            float verticalAccuracyMeters;
+            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
+                verticalAccuracyMeters = location.getVerticalAccuracyMeters();
+            } else {
+                verticalAccuracyMeters = 0.0f; // default value of `getVerticalAccuracyMeters()`
+            }
             if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
                 locationAccuracyMeters = (float)Math.random() * 30.0f;
-                Log.d(TAG, "Emulator detected, Accuracy overwritten to: " + locationAccuracyMeters);
+                verticalAccuracyMeters = locationAccuracyMeters * 2.5f;
+                Log.d(TAG,
+                        String.format("Emulator detected, Accuracy overwritten with %f and vertical accuracy with %f",
+                                locationAccuracyMeters, verticalAccuracyMeters));
             }
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
                     listener.onLocationCaptured(
                             // The Android Location contains the accuracy in meters. GeoLocation uses cm.
-                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100));
+                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100),
+                            new GeoLocationV6(latitude, longitude, altitude, locationTime, speed,
+                                    locationAccuracyMeters * 100, verticalAccuracyMeters * 100));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {

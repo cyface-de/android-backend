@@ -971,9 +971,12 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             return null;
         }
 
-        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_LAT));
-        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_LON));
-        final double altitude = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_ALTITUDE));
+        final double lat = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_LAT));
+        final double lon = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_LON));
+        final double altitude = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_ALTITUDE));
         final long timestamp = geoLocationCursor
                 .getLong(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_GEOLOCATION_TIME));
         final double speed = geoLocationCursor
