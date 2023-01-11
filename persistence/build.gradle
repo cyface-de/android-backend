@@ -46,6 +46,7 @@ android {
         }
     }
 
+    // Attention: Don't merge this into `main` (PR #257)
     lintOptions {
         abortOnError false
     }

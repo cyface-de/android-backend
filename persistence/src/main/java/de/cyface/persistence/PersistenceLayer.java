@@ -53,6 +53,7 @@ import androidx.annotation.Nullable;
 
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -84,9 +85,17 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     private final ContentResolver resolver;
     /**
+     * <code>ContentResolver</code> that provides access to the {@link V6ContentProvider}.
+     */
+    private final ContentResolver resolverV6;
+    /**
      * The authority used to identify the Android content provider to persist data to or load it from.
      */
     private final String authority;
+    /**
+     * The authority used to identify the Android content provider to persist V6 data to or load it from.
+     */
+    private final String authorityV6;
     /**
      * The {@link PersistenceBehaviour} defines how the {@code Persistence} layer is works. We need this behaviour to
      * differentiate if the {@link PersistenceLayer} is used for live capturing and or to load existing data.
@@ -105,7 +114,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     public PersistenceLayer() {
         this.context = null;
         this.resolver = null;
+        this.resolverV6 = null;
         this.authority = null;
+        this.authorityV6 = null;
         this.fileAccessLayer = new DefaultFileAccess();
     }
 
@@ -115,15 +126,20 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param context The {@link Context} required to locate the app's internal storage directory.
      * @param resolver {@link ContentResolver} that provides access to the {@link MeasuringPointsContentProvider}. This
      *            is required as an explicit parameter to allow test to inject a mocked {@code ContentResolver}.
+     * @param resolverV6 {@link ContentResolver} that provides access to the {@link V6ContentProvider}. This
+     *            is required as an explicit parameter to allow test to inject a mocked {@code ContentResolver}.
      * @param authority The authority used to identify the Android content provider.
+     * @param authorityV6 The authority used to identify the Android content provider V6.
      * @param persistenceBehaviour A {@link PersistenceBehaviour} which tells if this {@link PersistenceLayer} is used
      *            to capture live data.
      */
-    public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver,
-            @NonNull final String authority, @NonNull final B persistenceBehaviour) {
+    public PersistenceLayer(@NonNull final Context context, @NonNull final ContentResolver resolver, @NonNull final ContentResolver resolverV6,
+            @NonNull final String authority, @NonNull final String authorityV6, @NonNull final B persistenceBehaviour) {
         this.context = context;
         this.resolver = resolver;
+        this.resolverV6 = resolverV6;
         this.authority = authority;
+        this.authorityV6 = authorityV6;
         this.persistenceBehaviour = persistenceBehaviour;
         this.fileAccessLayer = new DefaultFileAccess();
         final File accelerationsFolder = fileAccessLayer.getFolderPath(context, Point3dFile.ACCELERATIONS_FOLDER_NAME);
@@ -517,7 +533,11 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
         resolver.delete(getGeoLocationsUri(), GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getGeoLocationsV6Uri(), GeoLocationsTableV6.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
         resolver.delete(getEventUri(), EventTable.COLUMN_MEASUREMENT_FK + "=?",
+                new String[] {Long.valueOf(measurementIdentifier).toString()});
+        resolver.delete(getPressuresUri(), PressuresTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()});
         resolver.delete(getMeasurementUri(), _ID + "=?", new String[] {Long.valueOf(measurementIdentifier).toString()});
     }
@@ -950,6 +970,32 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
+     * Loads the {@link GeoLocationV6} at the {@code Cursor}'s current position.
+     *
+     * @param geoLocationCursor the {@code Cursor} pointing to a {@code GeoLocationV6} in the database.
+     * @return the {@code GeoLocationV6} loaded or {@code Null} if the cursor points to the entry after the last one.
+     */
+    @Nullable
+    private GeoLocationV6 loadGeoLocationV6(@NonNull final Cursor geoLocationCursor) {
+        if (geoLocationCursor.isAfterLast()) {
+            return null;
+        }
+
+        final double lat = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_LAT));
+        final double lon = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_LON));
+        final double altitude = geoLocationCursor.getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_ALTITUDE));
+        final long timestamp = geoLocationCursor
+                .getLong(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_GEOLOCATION_TIME));
+        final double speed = geoLocationCursor
+                .getDouble(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_SPEED));
+        final float accuracy = geoLocationCursor
+                .getFloat(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_ACCURACY));
+        final float verticalAccuracy = geoLocationCursor
+                .getFloat(geoLocationCursor.getColumnIndex(GeoLocationsTableV6.COLUMN_VERTICAL_ACCURACY));
+        return new GeoLocationV6(lat, lon, altitude, timestamp, speed, accuracy, verticalAccuracy);
+    }
+
+    /**
      * This method cleans up when the persistence layer is no longer needed by the caller.
      * <p>
      * <b>ATTENTION:</b> This method is called automatically and should not be called from outside the SDK.
@@ -978,10 +1024,26 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
+     * @return The content provider {@link Uri} for the {@link GeoLocationsTableV6}.
+     *         <p>
+     *         <b>ATTENTION:</b> This method should not be needed from outside the SDK.
+     */
+    public Uri getGeoLocationsV6Uri() {
+        return Utils.getGeoLocationsV6Uri(authorityV6);
+    }
+
+    /**
      * @return The content provider {@link Uri} for the {@link EventTable}.
      */
     public Uri getEventUri() {
         return Utils.getEventUri(authority);
+    }
+
+    /**
+     * @return The content provider {@link Uri} for the {@link PressuresTable}.
+     */
+    public Uri getPressuresUri() {
+        return Utils.getPressuresUri(authorityV6);
     }
 
     /**
@@ -1147,6 +1209,13 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     public ContentResolver getResolver() {
         return resolver;
+    }
+
+    /**
+     * @return the {@link #resolverV6}
+     */
+    public ContentResolver getResolverV6() {
+        return resolverV6;
     }
 
     /**

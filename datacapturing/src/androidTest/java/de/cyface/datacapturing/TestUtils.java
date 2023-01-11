@@ -43,6 +43,10 @@ public class TestUtils {
      */
     public static final String AUTHORITY = "de.cyface.datacapturing.test.provider";
     /**
+     * FIXME: Ensure this authority is used everywhere when accessing the v6 database.
+     */
+    public static final String AUTHORITY_V6 = "de.cyface.datacapturing.test.provider.v6";
+    /**
      * Account type used by all accounts created during testing.
      */
     static final String ACCOUNT_TYPE = "de.cyface.datacapturing.test";

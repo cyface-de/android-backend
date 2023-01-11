@@ -148,6 +148,14 @@ application separately.
             android:process=":persistence_process"
             android:syncable="true"
             tools:replace="android:authorities" />
+        <!-- FIXME: ensure a unique authority is used everywhere -->
+        <provider
+            android:name="de.cyface.persistence.V6ContentProvider"
+            android:authorities="your.domain.app.provider.v6"
+            android:exported="false"
+            android:process=":persistence_process_v6"
+            android:syncable="true"
+            tools:replace="android:authorities" />
     </application>
 
 </manifest>
