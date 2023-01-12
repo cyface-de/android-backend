@@ -47,7 +47,6 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Point3d;
-import de.cyface.persistence.model.Pressure;
 import de.cyface.utils.Validate;
 
 /**
@@ -195,20 +194,20 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (locationStatusHandler.hasLocationFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
-            double altitude = location.getAltitude(); // Locations without altitude return 0.0
+            // Don't write default value `0.0` when no value is available
+            Double altitude = location.hasAltitude() ? location.getAltitude() : null;
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
             float locationAccuracyMeters = location.getAccuracy();
-            // FIXME: vAccuracy = diff(vertical_accuracy, accuracy) => do we store abs. or rel. value?
-            float verticalAccuracyMeters;
+            // Don't write default value `0.0` when no value is available
+            Double verticalAccuracyMeters = null;
             if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                verticalAccuracyMeters = location.getVerticalAccuracyMeters();
-            } else {
-                verticalAccuracyMeters = 0.0f; // default value of `getVerticalAccuracyMeters()`
+                verticalAccuracyMeters = location.hasVerticalAccuracy() ? (double)location.getVerticalAccuracyMeters()
+                        : null;
             }
             if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
                 locationAccuracyMeters = (float)Math.random() * 30.0f;
-                verticalAccuracyMeters = locationAccuracyMeters * 2.5f;
+                verticalAccuracyMeters = locationAccuracyMeters * 2.5;
                 Log.d(TAG,
                         String.format("Emulator detected, Accuracy overwritten with %f and vertical accuracy with %f",
                                 locationAccuracyMeters, verticalAccuracyMeters));
@@ -216,21 +215,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
-                    final GeoLocationV6 locationV6 = new GeoLocationV6();
-                    locationV6.timestamp = locationTime;
-                    locationV6.lat = latitude;
-                    locationV6.lon = longitude;
-                    locationV6.altitude = altitude;
-                    locationV6.speed = speed;
-                    locationV6.accuracy = locationAccuracyMeters; // FIXME: agree upon type and unit
-                    locationV6.verticalAccuracy = verticalAccuracyMeters; // FIXME see above
-                    // FIXME: this information is not available here, setting this later. locationV6.measurementId =
                     listener.onLocationCaptured(
-                            // The Android Location contains the accuracy in meters. GeoLocation uses cm.
+                            // The Android Location contains the accuracy in meters. `GeoLocation` uses cm
                             new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100),
-                            locationV6
-                            /*new GeoLocationV6(latitude, longitude, altitude, locationTime, speed,
-                                    locationAccuracyMeters * 100, verticalAccuracyMeters * 100)*/);
+                            // accuracy is still in the old format (cm), vertical in the new (m)
+                            // This is fixed after merging `measures` and `v6` databases (both in m)
+                            new GeoLocationV6(locationTime, latitude, longitude, altitude, speed,
+                                    locationAccuracyMeters * 100, verticalAccuracyMeters));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
                     } catch (DataCapturingException e) {

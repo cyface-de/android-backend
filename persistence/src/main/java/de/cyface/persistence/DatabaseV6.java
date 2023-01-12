@@ -20,6 +20,13 @@ import de.cyface.persistence.model.Pressure;
 @Database(entities = {Pressure.class, GeoLocationV6.class}, version = 1)
 public abstract class DatabaseV6 extends RoomDatabase {
 
+    /**
+     * @return Data access object which provides the API to interact with the {@link Pressure} database table.
+     */
     public abstract PressureDao pressureDao();
+
+    /**
+     * @return Data access object which provides the API to interact with the {@link GeoLocationV6} database table.
+     */
     public abstract GeoLocationDao geoLocationDao();
 }

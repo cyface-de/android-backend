@@ -1,5 +1,30 @@
+/*
+ * Copyright 2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence.model;
 
+import java.util.Locale;
+import java.util.Objects;
+
+import android.os.Parcel;
+import android.os.Parcelable;
+
+import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.PrimaryKey;
@@ -13,20 +38,167 @@ import androidx.room.PrimaryKey;
  * @version 1.0.0
  * @since 6.3.0
  */
-// foreignKeys not linked as `Measurement` is not stored with `Room`
-@Entity(/* foreignKeys = {@ForeignKey(entity = Measurement.class, ..., ..., onDelete = ForeignKey.CASCADE)} */)
-public class Pressure {
+@Entity()
+public class Pressure implements Parcelable {
 
+    /**
+     * The database identifier of this data point.
+     */
     @PrimaryKey(autoGenerate = true)
-    public long uid;
+    private int uid;
 
+    /**
+     * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
+     */
     @ColumnInfo(name = "timestamp")
-    public long timestamp;
+    private final long timestamp;
 
+    /**
+     * The atmospheric pressure of this data point in hPa (millibar).
+     */
     @ColumnInfo(name = "pressure")
-    public float pressure;
+    private final double pressure;
 
-    // foreignKeys not linked as `Measurement` is not stored with `Room`
+    /**
+     * The device-unique id of the measurement this data point belongs to.
+     * <p>
+     * TODO: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
+     */
     @ColumnInfo(name = "measurement_fk")
-    public long measurementId;
+    private long measurementId;
+
+    /**
+     * Creates a new completely initialized instance of this class.
+     *
+     * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
+     * @param pressure The atmospheric pressure of this data point in hPa (millibar).
+     */
+    public Pressure(long timestamp, double pressure) {
+
+        if (timestamp < 0L) {
+            throw new IllegalArgumentException(String.format(Locale.US,
+                    "Illegal value for timestamp. Is required to be greater then 0L but was %d.", timestamp));
+        }
+        // lowest and highest pressure on earth with a few meters added because of inaccuracy
+        if (pressure < 300. || pressure > 1_100.) {
+            throw new IllegalArgumentException(String.format(Locale.US,
+                    "Illegal value for pressure. Is required to be between 300.0 and 1_100.0 but was %f.", pressure));
+        }
+
+        this.timestamp = timestamp;
+        this.pressure = pressure;
+    }
+
+    /**
+     * @return The database identifier of this data point.
+     */
+    public int getUid() {
+        return uid;
+    }
+
+    /**
+     * @return The timestamp at which this data point was captured in milliseconds since 1.1.1970.
+     */
+    public long getTimestamp() {
+        return timestamp;
+    }
+
+    /**
+     * @return The atmospheric pressure of this data point in hPa (millibar).
+     */
+    public double getPressure() {
+        return pressure;
+    }
+
+    /**
+     * @return The device-unique id of the measurement this data point belongs to.
+     */
+    public long getMeasurementId() {
+        return measurementId;
+    }
+
+    /**
+     * @param uid The database identifier of this data point.
+     */
+    public void setUid(int uid) {
+        this.uid = uid;
+    }
+
+    /**
+     * @param measurementId The device-unique id of the measurement this data point belongs to.
+     */
+    public void setMeasurementId(long measurementId) {
+        this.measurementId = measurementId;
+    }
+
+    /*
+     * MARK: Parcelable Interface
+     */
+
+    /**
+     * Constructor as required by {@code Parcelable} implementation.
+     *
+     * @param in A {@code Parcel} that is a serialized version of a data point.
+     */
+    protected Pressure(final @NonNull Parcel in) {
+        uid = in.readInt(); // FIXME: Added, but DataPoint also encodes identifier
+        timestamp = in.readLong();
+        pressure = in.readDouble();
+        measurementId = in.readLong(); // FIXME: Added, DataPoint has no such field
+    }
+
+    /**
+     * The {@code Parcelable} creator as required by the Android Parcelable specification.
+     */
+    public static final Creator<Pressure> CREATOR = new Creator<Pressure>() {
+        @Override
+        public Pressure createFromParcel(Parcel in) {
+            return new Pressure(in);
+        }
+
+        @Override
+        public Pressure[] newArray(int size) {
+            return new Pressure[size];
+        }
+    };
+
+    @Override
+    public int describeContents() {
+        return 0;
+    }
+
+    @Override
+    public void writeToParcel(@NonNull Parcel dest, int flags) {
+        dest.writeInt(uid); // FIXME: Added, but DataPoint also encodes identifier
+        dest.writeLong(timestamp);
+        dest.writeDouble(pressure);
+        dest.writeLong(measurementId); // FIXME: Added, DataPoint has no such field
+    }
+
+    @NonNull
+    @Override
+    public String toString() {
+        return "Pressure{" +
+                "uid=" + uid +
+                ", timestamp=" + timestamp +
+                ", pressure=" + pressure +
+                ", measurementId=" + measurementId +
+                '}';
+    }
+
+    @Override
+    public boolean equals(Object o) {
+        if (this == o)
+            return true;
+        if (o == null || getClass() != o.getClass())
+            return false;
+        Pressure pressure1 = (Pressure)o;
+        return uid == pressure1.uid && timestamp == pressure1.timestamp
+                && Double.compare(pressure1.pressure, pressure) == 0 && measurementId == pressure1.measurementId;
+    }
+
+    @Override
+    public int hashCode() { // FIXME: w/ or w/o uid, measurement_fk?
+        return Objects.hash(timestamp, pressure);
+    }
 }

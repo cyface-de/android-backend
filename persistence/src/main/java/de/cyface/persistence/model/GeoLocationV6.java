@@ -18,7 +18,7 @@
  */
 package de.cyface.persistence.model;
 
-import static android.content.ContentValues.TAG;
+import static de.cyface.persistence.Constants.TAG;
 
 import java.util.Locale;
 import java.util.Objects;
@@ -44,94 +44,99 @@ import de.cyface.persistence.LocationCleaningStrategy;
  * @version 1.0.0
  * @since 6.3.0
  */
-// foreignKeys not linked as `Measurement` is not stored with `Room`
-// FIXME: agree upon table names. In Room documentation it's singular, we used plural in SQLite API
-@Entity(tableName = "location" /* foreignKeys = {@ForeignKey(entity = Measurement.class, ..., ..., onDelete = ForeignKey.CASCADE)} */)
-// TODO: We should try to avoid using Parcelable on an @Entity object:
-// https://stackoverflow.com/a/56058763/5815054
+@Entity(tableName = "Location")
 public class GeoLocationV6 implements Parcelable {
 
-    // FIXME agree upon name of id column. Room documentation uses `int uid`.
+    /**
+     * The database identifier of this data point.
+     */
     @PrimaryKey(autoGenerate = true)
-    public long uid;
+    private int uid;
 
     /**
-     * The timestamp at which this {@link GeoLocationV6} was captured in milliseconds since 1.1.1970.
+     * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
      */
     @ColumnInfo(name = "timestamp")
-    public long timestamp;
+    private final long timestamp;
 
     /**
-     * The captured latitude of this {@link GeoLocationV6} in decimal coordinates as a value between -90.0 (south pole)
+     * The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
      */
     @ColumnInfo(name = "lat")
-    public double lat;
+    private final double lat;
 
     /**
-     * The captured longitude of this {@link GeoLocationV6} in decimal coordinates as a value between -180.0 and 180.0.
+     * The captured longitude of this data point in decimal coordinates as a value between -180.0 and 180.0.
      */
     @ColumnInfo(name = "lon")
-    public double lon;
+    private final double lon;
 
     /**
-     * The captured altitude of this {@link GeoLocationV6} in meters above WGS 84.
+     * The captured altitude of this data point in meters above WGS 84 if available.
      */
     @ColumnInfo(name = "altitude")
-    public double altitude;
+    private final Double altitude;
 
     /**
      * The current speed of the measuring device according to its location sensor in meters per second.
      */
     @ColumnInfo(name = "speed")
-    public double speed;
+    private final double speed;
 
     /**
-     * The current accuracy of the measuring device in meters.
-     *
-     * FIXME: the format and unit is still in discussion.
+     * The current accuracy of the measuring device in centimeters.
+     * <p>
+     * TODO: Use same unit as {@link #verticalAccuracy} when migration completely to Room
+     * TODO: Consider making accuracy `Double` and write `null` when `Location.hasAccuracy()` is false,
+     * but only after migrating to Room. The transfer file format might need adjustment for that.
      */
     @ColumnInfo(name = "accuracy")
-    public double accuracy;
+    private final double accuracy;
 
     /**
-     * The current vertical accuracy of the measuring device in meters.
-     *
-     * FIXME: the format and unit is still in discussion.
+     * The current vertical accuracy of the measuring device in meters if available.
      */
     @ColumnInfo(name = "vertical_accuracy")
-    public double verticalAccuracy;
+    private final Double verticalAccuracy;
 
     /**
      * {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
-     *
-     * FIXME: Discuss if is this actually needs to be persisted. We did not do persist before.
+     * <p>
+     * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
-    @ColumnInfo(name = "is_valid")
-    public boolean isValid;
-
-    // foreignKeys not linked as `Measurement` is not stored with `Room`
-    @ColumnInfo(name = "measurement_fk")
-    public long measurementId;
+    @Ignore
+    private Boolean isValid;
 
     /**
-     * Creates a new completely initialized <code>GeoLocationV6</code>.
+     * The device-unique id of the measurement this data point belongs to.
+     * <p>
+     * TODO: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
+     */
+    @ColumnInfo(name = "measurement_fk")
+    private long measurementId;
+
+    /**
+     * Creates a new completely initialized instance of this class.
      *
-     * @param lat The captured latitude of this GeoLocationV6 in decimal coordinates as a value between -90.0 (south
-     *            pole)
-     *            and 90.0 (north pole).
-     * @param lon The captured longitude of this {@code GeoLocationV6} in decimal coordinates as a value between -180.0
-     *            and 180.0.
-     * @param altitude The captured altitude of this {@code GeoLocationV6} in meters above WGS 84.
-     * @param timestamp The timestamp at which this <code>GeoLocationV6</code> was captured in milliseconds since
+     * @param timestamp The timestamp at which this data point was captured in milliseconds since
      *            1.1.1970.
+     * @param lat The captured latitude of this data point in decimal coordinates as a value between -90.0 (south
+     *            pole) and 90.0 (north pole).
+     * @param lon The captured longitude of this data point in decimal coordinates as a value between -180.0
+     *            and 180.0.
+     * @param altitude The captured altitude of this data point in meters above WGS 84.
      * @param speed The current speed of the measuring device according to its location sensor in meters per second.
      * @param accuracy The current accuracy of the measuring device in centimeters.
-     * @param verticalAccuracy The current vertical accuracy of the measuring device in centimeters.
-     * /
-    public GeoLocationV6(final double lat, final double lon, final double altitude, final long timestamp,
-            final double speed,
-            final float accuracy, final float verticalAccuracy) {
+     * @param verticalAccuracy The current vertical accuracy of the measuring device in meters.
+     */
+    public GeoLocationV6(final long timestamp, final double lat, final double lon, final Double altitude,
+            final double speed, final double accuracy, final Double verticalAccuracy) {
+
+        if (timestamp < 0L) {
+            throw new IllegalArgumentException(String.format(Locale.US,
+                    "Illegal value for timestamp. Is required to be greater then 0L but was %d.", timestamp));
+        }
         if (lat < -90. || lat > 90.) {
             throw new IllegalArgumentException(String.format(Locale.US,
                     "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %f.", lat));
@@ -140,8 +145,13 @@ public class GeoLocationV6 implements Parcelable {
             throw new IllegalArgumentException(String.format(Locale.US,
                     "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %f.", lon));
         }
+        // lowest and highest point on earth with a few meters added because of inaccuracy
+        if (altitude != null && (altitude < -500. || altitude > 10_000.)) {
+            throw new IllegalArgumentException(String.format(Locale.US,
+                    "Illegal value for altitude. Is required to be between -500.0 and 10_000.0 but was %f.", altitude));
+        }
         if (speed < 0.) {
-            // Occurred on Huawai 10 Mate Pro (RAD-51)
+            // Occurred on Huawei 10 Mate Pro (RAD-51)
             Log.w(TAG,
                     String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
         }
@@ -149,136 +159,140 @@ public class GeoLocationV6 implements Parcelable {
             throw new IllegalArgumentException(String.format(Locale.US,
                     "Illegal value for accuracy. Is required to be positive but was %f.", accuracy));
         }
-        if (timestamp < 0L) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for timestamp. Is required to be greater then 0L but was %d.", timestamp));
-        }
-        if (altitude < -500. || altitude > 10_000.) { // lowest and highest point on earth with a few meters added
-                                                      // because of inaccuracy
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for altitude. Is required to be between -500.0 and 10_000.0 but was %f.", altitude));
-        }
-        if (verticalAccuracy < 0.) {
+        if (verticalAccuracy != null && (verticalAccuracy < 0.)) {
             throw new IllegalArgumentException(String.format(Locale.US,
                     "Illegal value for verticalAccuracy. Is required to be positive but was %f.", verticalAccuracy));
         }
 
+        this.timestamp = timestamp;
         this.lat = lat;
         this.lon = lon;
-        this.timestamp = timestamp;
+        this.altitude = altitude;
         this.speed = speed;
         this.accuracy = accuracy;
-        this.isValid = true;
-        this.altitude = altitude;
         this.verticalAccuracy = verticalAccuracy;
-    }*/
-
-    /**
-     * Creates a new completely initialized <code>GeoLocationV6</code>.
-     *
-     * @param location The {@link GeoLocation} this {@link GeoLocationV6} is based on.
-     * @param altitude The captured altitude of this {@code GeoLocationV6} in meters above WGS 84.
-     * @param verticalAccuracy The current vertical accuracy of the measuring device in centimeters.
-     * /
-    public GeoLocationV6(final GeoLocation location, final double altitude, final float verticalAccuracy) {
-        this(location.getLat(), location.getLon(), altitude, location.getTimestamp(), location.getSpeed(),
-                location.getAccuracy(), verticalAccuracy);
-    }*/
-
-    /**
-     * @return The captured latitude of this GeoLocation in decimal coordinates as a value between -90.0 (south pole)
-     *         and 90.0 (north pole).
-     * /
-    public double getLat() {
-        return lat;
     }
 
     /**
-     * @return The captured longitude of this {@code GeoLocation} in decimal coordinates as a value between -180.0 and
-     *         180.0.
-     * /
-    public double getLon() {
-        return lon;
+     * @return The database identifier of this data point.
+     */
+    public int getUid() {
+        return uid;
     }
 
     /**
-     * @return The timestamp at which this <code>GeoLocation</code> was captured in milliseconds since 1.1.1970.
-     * /
+     * @return The timestamp at which this data point was captured in milliseconds since 1.1.1970.
+     */
     public long getTimestamp() {
         return timestamp;
     }
 
     /**
+     * @return The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
+     *         and 90.0 (north pole).
+     */
+    public double getLat() {
+        return lat;
+    }
+
+    /**
+     * @return The captured longitude of this data point in decimal coordinates as a value between -180.0 and
+     *         180.0.
+     */
+    public double getLon() {
+        return lon;
+    }
+
+    /**
+     * @return The captured altitude of this data point in meters above WGS 84 of available.
+     */
+    public Double getAltitude() {
+        return altitude;
+    }
+
+    /**
      * @return The current speed of the measuring device according to its location sensor in meters per second.
-     * /
+     */
     public double getSpeed() {
         return speed;
     }
 
     /**
-     * @return FIXME
-     * /
+     * @return The current accuracy of the measuring device in centimeters.
+     */
     public double getAccuracy() {
         return accuracy;
     }
 
     /**
+     * @return The current vertical accuracy of the measuring device in meters if available.
+     */
+    public Double getVerticalAccuracy() {
+        return verticalAccuracy;
+    }
+
+    /**
+     * @return {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     */
+    @SuppressWarnings("unused") // Part of the API
+    public Boolean isValid() {
+        return isValid;
+    }
+
+    /**
+     * @return The device-unique id of the measurement this data point belongs to.
+     */
+    public long getMeasurementId() {
+        return measurementId;
+    }
+
+    /**
      * @param valid {@code True} if this location is considered "clean" by the provided
      *            {@link LocationCleaningStrategy}.
-     * /
+     */
     public void setValid(boolean valid) {
         isValid = valid;
     }
 
     /**
-     * @return {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
-     * /
-    public boolean isValid() {
-        return isValid;
-    }*/
+     * @param uid The database identifier of this data point.
+     */
+    public void setUid(int uid) {
+        this.uid = uid;
+    }
 
     /**
-     * @return The captured altitude of this {@code GeoLocationV6} in meters above WGS 84.
-     * /
-    public double getAltitude() {
-        return altitude;
-    }*/
-
-    /**
-     * @return The current vertical accuracy of the measuring device in centimeters.
-     * /
-    public float getVerticalAccuracy() {
-        return verticalAccuracy;
-    }*/
+     * @param measurementId The device-unique id of the measurement this data point belongs to.
+     */
+    public void setMeasurementId(long measurementId) {
+        this.measurementId = measurementId;
+    }
 
     /*
      * MARK: Parcelable Interface
      */
 
-    public GeoLocationV6() {
-        // Nothing to do
-    }
-
     /**
-     * Constructor as required by <code>Parcelable</code> implementation.
+     * Constructor as required by {@code Parcelable} implementation.
      *
-     * @param in A <code>Parcel</code> that is a serialized version of a <code>GeoLocationV6</code>.
+     * @param in A {@code Parcel} that is a serialized version of a data point.
      */
-    // Parcelable interface requires this constructor, make {@code Room} ignore this constructor.
-    @Ignore
+    @Ignore // Parcelable requires this constructor, make {@code Room} ignore this constructor.
     protected GeoLocationV6(final @NonNull Parcel in) {
+        uid = in.readInt(); // FIXME: Added, DataPoint encodes identifier but GeoLocation has no id
+        timestamp = in.readLong();
         lat = in.readDouble();
         lon = in.readDouble();
-        timestamp = in.readLong();
-        speed = in.readDouble();
-        accuracy = in.readFloat();
-        isValid = in.readByte() != 0;
         altitude = in.readDouble();
-        verticalAccuracy = in.readFloat();
+        speed = in.readDouble();
+        accuracy = in.readDouble();
+        verticalAccuracy = in.readDouble();
+        isValid = in.readByte() != 0;
+        measurementId = in.readLong(); // FIXME: Added, do we need this? GeoLocation has no such field
     }
 
     /**
-     * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
+     * The {@code Parcelable} creator as required by the Android Parcelable specification.
      */
     public static final Creator<GeoLocationV6> CREATOR = new Creator<GeoLocationV6>() {
         @Override
@@ -299,32 +313,51 @@ public class GeoLocationV6 implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
+        dest.writeLong(uid); // FIXME: Added, DataPoint encodes identifier but GeoLocation has no id
+        dest.writeLong(timestamp);
         dest.writeDouble(lat);
         dest.writeDouble(lon);
-        dest.writeLong(timestamp);
+        dest.writeDouble(altitude);
         dest.writeDouble(speed);
         dest.writeDouble(accuracy);
-        dest.writeByte((byte)(isValid ? 1 : 0));
-        dest.writeDouble(altitude);
         dest.writeDouble(verticalAccuracy);
+        dest.writeByte((byte)(isValid ? 1 : 0));
+        dest.writeLong(measurementId); // FIXME: Added, do we need this? GeoLocation has no such field
     }
 
-    /*
+    @NonNull
+    @Override
+    public String toString() {
+        return "GeoLocationV6{" +
+                "uid=" + uid +
+                ", timestamp=" + timestamp +
+                ", lat=" + lat +
+                ", lon=" + lon +
+                ", altitude=" + altitude +
+                ", speed=" + speed +
+                ", accuracy=" + accuracy +
+                ", verticalAccuracy=" + verticalAccuracy +
+                ", isValid=" + isValid +
+                ", measurementId=" + measurementId +
+                '}';
+    }
+
     @Override
     public boolean equals(Object o) {
         if (this == o)
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        if (!super.equals(o))
-            return false;
         GeoLocationV6 that = (GeoLocationV6)o;
-        return Double.compare(that.altitude, altitude) == 0
-                && Float.compare(that.verticalAccuracy, verticalAccuracy) == 0;
+        return uid == that.uid && timestamp == that.timestamp && Double.compare(that.lat, lat) == 0
+                && Double.compare(that.lon, lon) == 0 && Double.compare(that.speed, speed) == 0
+                && Double.compare(that.accuracy, accuracy) == 0 && measurementId == that.measurementId
+                && Objects.equals(altitude, that.altitude) && Objects.equals(verticalAccuracy, that.verticalAccuracy)
+                && Objects.equals(isValid, that.isValid);
     }
 
     @Override
-    public int hashCode() {
-        return Objects.hash(super.hashCode(), altitude, verticalAccuracy);
-    }*/
+    public int hashCode() { // FIXME: w/ or w/o uid, measurement_fk? (definitely w/o isValid)
+        return Objects.hash(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy);
+    }
 }

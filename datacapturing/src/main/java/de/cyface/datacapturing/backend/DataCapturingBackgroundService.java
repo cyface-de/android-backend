@@ -21,7 +21,6 @@ package de.cyface.datacapturing.backend;
 import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID_V6;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
@@ -304,15 +303,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
                             + AUTHORITY_ID);
         }
-        if (!intent.hasExtra(AUTHORITY_ID_V6)) {
-            throw new IllegalStateException(
-                    "Unable to start data capturing service without a valid content provider authority V6. Please provide one as extra to the starting intent using the extra identifier: "
-                            + AUTHORITY_ID_V6);
-        }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
-        final String authorityV6 = intent.getCharSequenceExtra(AUTHORITY_ID_V6).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, authorityV6, capturingBehaviour);
+        persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
@@ -487,7 +480,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
             newLocation.setValid(false);
-            // FIXME: newLocationV6.setValid(false);
+            newLocationV6.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }

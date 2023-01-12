@@ -49,7 +49,7 @@ import de.cyface.utils.Validate;
  * @version 4.5.1
  * @since 1.0.0
  */
-class DatabaseHelper extends SQLiteOpenHelper implements DatabaseHelperInterface{
+class DatabaseHelper extends SQLiteOpenHelper {
 
     /**
      * Name of the database used by the content provider to store data.

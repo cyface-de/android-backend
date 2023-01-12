@@ -39,26 +39,6 @@ public class Utils {
      *
      * @param authority The authority to access the database
      */
-    public static Uri getGeoLocationsV6Uri(@NonNull final String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(GeoLocationsTableV6.URI_PATH).build();
-    }
-
-    /**
-     * (!) It's important to provide the authority string as parameter because depending on from where you call this
-     * you want to access your own authorities database.
-     *
-     * @param authority The authority to access the database
-     */
-    public static Uri getPressuresUri(@NonNull final String authority) {
-        return new Uri.Builder().scheme("content").authority(authority).appendPath(PressuresTable.URI_PATH).build();
-    }
-
-    /**
-     * (!) It's important to provide the authority string as parameter because depending on from where you call this
-     * you want to access your own authorities database.
-     *
-     * @param authority The authority to access the database
-     */
     public static Uri getIdentifierUri(@NonNull final String authority) {
         return new Uri.Builder().scheme("content").authority(authority).appendPath(IdentifierTable.URI_PATH).build();
     }
