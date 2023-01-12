@@ -37,7 +37,7 @@ buildscript {
 
 ext {
     // This libraries version
-    cyfaceBackendVersion = "6.2.1" // Only increase in release branch. Not merged back to `main`
+    cyfaceBackendVersion = "6.3.0-beta1" // Only increase in release branch. Not merged back to `main`
 
     // Cyface dependencies
     cyfaceUtilsVersion = "2.0.1"
