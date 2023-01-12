@@ -69,10 +69,12 @@ import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.DataPoint;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
@@ -435,11 +437,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final List<Point3d> accelerations = data.getAccelerations();
         final List<Point3d> rotations = data.getRotations();
         final List<Point3d> directions = data.getDirections();
-        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
+        final List<Pressure> pressures = data.getPressures();
+        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
         for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
-                    sampleSubList(rotations, i), sampleSubList(directions, i));
+                    sampleSubList(rotations, i), sampleSubList(directions, i), pressureSubList(pressures, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
             capturingBehaviour.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
                 @Override
@@ -461,6 +464,21 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
         return (fromIndex >= toIndex) ? Collections.<Point3d> emptyList() : completeList.subList(fromIndex, toIndex);
+    }
+
+    /**
+     * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
+     * <p>
+     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} migrates to {@code Room}.
+     *
+     * @param completeList The {@link List<Pressure>} to extract a subset from
+     * @param fromIndex The low endpoint (inclusive) of the subList
+     * @return The extracted sublist
+     */
+    private @NonNull List<Pressure> pressureSubList(final @NonNull List<Pressure> completeList, final int fromIndex) {
+        final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+        final int toIndex = Math.min(endIndex, completeList.size());
+        return (fromIndex >= toIndex) ? Collections.<Pressure> emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override

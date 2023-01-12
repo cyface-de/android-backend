@@ -3,6 +3,7 @@ package de.cyface.datacapturing.persistence;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -20,10 +21,12 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.dao.GeoLocationDao;
+import de.cyface.persistence.dao.PressureDao;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -116,6 +119,15 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                 callback);
 
         threadPool.submit(writer);
+
+        // Store pressure data into database instead of binary file
+        final List<Pressure> pressures = data.getPressures();
+        Log.d(TAG, String.format("Storing %d pressure points", pressures.size()));
+        for (Pressure pressure : pressures) {
+            pressure.setMeasurementId(measurementIdentifier); // FIXME make sure this cannot be forgotten
+        }
+        PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
+        dao.insertAll(pressures.toArray(new Pressure[0]));
     }
 
     /**

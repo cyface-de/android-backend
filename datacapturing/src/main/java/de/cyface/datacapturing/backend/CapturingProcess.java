@@ -47,6 +47,7 @@ import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.utils.Validate;
 
 /**
@@ -55,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.2.0
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -84,6 +85,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Cache for captured but not yet processed points from the compass.
      */
     private final List<Point3d> directions;
+    /**
+     * Cache for captured but not yet processed points from the barometer.
+     */
+    private final List<Pressure> pressures;
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -154,6 +159,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);
         this.directions = new Vector<>(30);
+        this.pressures = new Vector<>(30);
         this.listener = new HashSet<>();
         this.locationManager = locationManager;
         this.sensorService = sensorService;
@@ -170,11 +176,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         Sensor gyroscope = sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        Sensor barometer = sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
         registerSensor(accelerometer, sensorEventHandler);
         registerSensor(gyroscope, sensorEventHandler);
         registerSensor(magnetometer, sensorEventHandler);
+        registerSensor(barometer, sensorEventHandler);
     }
 
     /**
@@ -223,7 +231,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                             new GeoLocationV6(locationTime, latitude, longitude, altitude, speed,
                                     locationAccuracyMeters * 100, verticalAccuracyMeters));
                     try {
-                        listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
+                        listener.onDataCaptured(new CapturedData(accelerations, rotations, directions, pressures));
                     } catch (DataCapturingException e) {
                         throw new IllegalStateException(e);
                     }
@@ -231,6 +239,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 accelerations.clear();
                 rotations.clear();
                 directions.clear();
+                pressures.clear();
             }
         }
     }
@@ -269,13 +278,14 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1_000))) {
             try {
                 for (CapturingProcessListener listener : this.listener) {
-                    CapturedData capturedData = new CapturedData(accelerations, rotations, directions);
+                    CapturedData capturedData = new CapturedData(accelerations, rotations, directions, pressures);
                     listener.onDataCaptured(capturedData);
                 }
 
                 accelerations.clear();
                 rotations.clear();
                 directions.clear();
+                pressures.clear();
                 lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
             } catch (SecurityException | DataCapturingException e) {
                 throw new IllegalStateException(e);
@@ -291,6 +301,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             saveSensorValue(event, rotations);
         } else if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD))) {
             saveSensorValue(event, directions);
+        } else if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE))) {
+            savePressureValue(event, pressures);
         }
     }
 
@@ -391,16 +403,40 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
     /**
      * Saves a captured {@code SensorEvent} to the local in memory storage for that point.
-     * as different vendors and Android versions store different timestamps in the event.ts
-     * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same timestamp format.
      *
      * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
     private void saveSensorValue(final SensorEvent event, final List<Point3d> storage) {
         Point3d dataPoint = new Point3d(event.values[0], event.values[1], event.values[2],
-                event.timestamp / 1_000_000L + eventTimeOffsetMillis);
+                timestampMillis(event.timestamp));
         storage.add(dataPoint);
+    }
+
+    /**
+     * Saves a captured {@code SensorEvent} to the local in memory storage for that point.
+     *
+     * @param event The Android {@code SensorEvent} to store.
+     * @param storage The storage to store the {@code SensorEvent} to.
+     */
+    private void savePressureValue(final SensorEvent event, final List<Pressure> storage) {
+        Validate.isTrue(event.values.length == 1, "Unexpected number of values");
+        Pressure dataPoint = new Pressure(timestampMillis(event.timestamp), event.values[0]);
+        storage.add(dataPoint);
+    }
+
+    /**
+     * Converts the event time a supported format.
+     * <p>
+     * As different vendors and Android versions store different timestamps in the {@code event.ts}
+     * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same
+     * timestamp format.
+     *
+     * @param eventTimestamp The {@code SensorEvent#timestamp} to convert.
+     * @return The converted timestamp in milliseconds.
+     */
+    private long timestampMillis(final long eventTimestamp) {
+        return eventTimestamp / 1_000_000L + eventTimeOffsetMillis;
     }
 
     /**

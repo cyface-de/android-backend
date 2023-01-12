@@ -33,6 +33,8 @@ import androidx.room.PrimaryKey;
  * An {@code @Entity} which represents the data type of a pressure point, usually captured by a barometer.
  * <p>
  * An instance of this class represents one row in a database table containing the pressure data.
+ * <p>
+ * TODO: class should extend {@link DataPoint} after fully migrating to {@code Room}.
  *
  * @author Armin Schnabel
  * @version 1.0.0

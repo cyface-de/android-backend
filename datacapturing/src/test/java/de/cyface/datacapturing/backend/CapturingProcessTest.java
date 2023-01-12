@@ -235,7 +235,10 @@ public class CapturingProcessTest {
          * <code>GeoLocation</code> instances this listener was informed about.
          */
         private List<GeoLocation> capturedLocations = new ArrayList<>();
-
+        /**
+         * <code>GeoLocationV6</code> instances this listener was informed about.
+         */
+        private List<GeoLocationV6> capturedLocationsV6 = new ArrayList<>();
         /**
          * Captured sensor data this listener was informed about.
          */
@@ -244,7 +247,7 @@ public class CapturingProcessTest {
         @Override
         public void onLocationCaptured(@NonNull GeoLocation location, @NonNull GeoLocationV6 locationV6) {
             capturedLocations.add(location);
-            capturedLocations.add(locationV6);
+            capturedLocationsV6.add(locationV6);
         }
 
         @Override
