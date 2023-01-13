@@ -120,14 +120,16 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
 
         threadPool.submit(writer);
 
-        // Store pressure data into database instead of binary file
+        // Only store latest pressure point into the database, as the minimum frequency is > 10 HZ
         final List<Pressure> pressures = data.getPressures();
-        Log.d(TAG, String.format("Storing %d pressure points", pressures.size()));
-        for (Pressure pressure : pressures) {
-            pressure.setMeasurementId(measurementIdentifier); // FIXME make sure this cannot be forgotten
+        Log.d(TAG, String.format("Captured %d pressure points, storing 1 point", pressures.size()));
+        // for (Pressure pressure : pressures) pressure.setMeasurementId(measurementIdentifier);
+        if (pressures.size() > 0) {
+            final Pressure pressure = pressures.get(pressures.size() - 1);
+            pressure.setMeasurementId(measurementIdentifier);
+            PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
+            dao.insertAll(pressure);
         }
-        PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
-        dao.insertAll(pressures.toArray(new Pressure[0]));
     }
 
     /**

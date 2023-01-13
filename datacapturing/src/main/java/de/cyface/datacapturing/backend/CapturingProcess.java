@@ -18,6 +18,7 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static android.hardware.SensorManager.SENSOR_DELAY_NORMAL;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.utils.TestEnvironment.isEmulator;
 
@@ -179,10 +180,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor barometer = sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
-        registerSensor(accelerometer, sensorEventHandler);
-        registerSensor(gyroscope, sensorEventHandler);
-        registerSensor(magnetometer, sensorEventHandler);
-        registerSensor(barometer, sensorEventHandler);
+        registerSensor(accelerometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
+        registerSensor(gyroscope, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
+        registerSensor(magnetometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
+        registerSensor(barometer, sensorEventHandler, 1_000_000);
     }
 
     /**
@@ -445,10 +446,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      *
      * @param sensor The Android <code>Sensor</code> to register.
      * @param sensorEventHandler The <code>Handler</code> to run the <code>onSensorEvent</code> method on.
+     * @param delayMicros The desired delay between two consecutive events in microseconds. This is
+     *            only a hint to the system. Events may be received faster or slower than the
+     *            specified rate. Usually events are received faster. Can be one of {@code SENSOR_DELAY_NORMAL},
+     *            {@code SENSOR_DELAY_UI}, {@code SENSOR_DELAY_GAME}, {@code SENSOR_DELAY_FASTEST} or the delay in
+     *            microseconds.
      */
-    private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
+    private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler, final int delayMicros) {
         if (sensor != null) {
-            sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
+            sensorService.registerListener(this, sensor, delayMicros,
                     SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
         }
     }
