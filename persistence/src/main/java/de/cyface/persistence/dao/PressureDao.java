@@ -30,6 +30,10 @@ import de.cyface.persistence.model.Pressure;
 /**
  * Data access object which provides the API to interact with the {@link Pressure} database table.
  *
+ * TODO: when fully migrating to Room, check if we need to use pagination like in our SQLite implementation
+ * where we used a database limit of 10k because of performance issues. [MOV-248]
+ * Maybe library androidx.room:room-paging can be used for this.
+ *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 6.3.0
@@ -40,11 +44,11 @@ public interface PressureDao {
     @Query("SELECT * FROM pressure")
     List<Pressure> getAll();
 
-    // TODO: when fully migrating to Room, check if we need to use pagination like in our SQLite implementation
-    // where we used a database limit of 10k because of performance issues. [MOV-248]
-    // Maybe library androidx.room:room-paging can be used for this.
     @Query("SELECT * FROM pressure WHERE uid IN (:pressureIds)")
     List<Pressure> loadAllByIds(int[] pressureIds);
+
+    @Query("SELECT * FROM pressure WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
+    List<Pressure> loadAllByMeasurementId(long measurementId);
 
     @Insert
     void insertAll(Pressure... pressures);
@@ -53,6 +57,6 @@ public interface PressureDao {
     void delete(Pressure pressure);
 
     @SuppressWarnings("UnusedReturnValue")
-    @Query("DELETE FROM pressure WHERE measurement_fk = (:measurementId)")
+    @Query("DELETE FROM pressure WHERE measurement_fk = :measurementId")
     int deleteItemByMeasurementId(long measurementId);
 }

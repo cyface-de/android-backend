@@ -53,6 +53,7 @@ public abstract class DataPoint implements Parcelable {
         return timestamp;
     }
 
+    // FIXME: Should also check timestamp
     @Override
     public boolean equals(Object o) {
         if (this == o) {

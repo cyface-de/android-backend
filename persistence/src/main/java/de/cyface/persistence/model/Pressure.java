@@ -22,38 +22,22 @@ import java.util.Locale;
 import java.util.Objects;
 
 import android.os.Parcel;
-import android.os.Parcelable;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
-import androidx.room.PrimaryKey;
 
 /**
- * An {@code @Entity} which represents the data type of a pressure point, usually captured by a barometer.
+ * An {@code @Entity} which represents the data type of a pressure {@link DataPointV6}, usually captured by a barometer.
  * <p>
  * An instance of this class represents one row in a database table containing the pressure data.
- * <p>
- * TODO: class should extend {@link DataPoint} after fully migrating to {@code Room}.
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 6.3.0
  */
 @Entity()
-public class Pressure implements Parcelable {
-
-    /**
-     * The database identifier of this data point.
-     */
-    @PrimaryKey(autoGenerate = true)
-    private int uid;
-
-    /**
-     * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     */
-    @ColumnInfo(name = "timestamp")
-    private final long timestamp;
+public class Pressure extends DataPointV6 {
 
     /**
      * The atmospheric pressure of this data point in hPa (millibar).
@@ -67,7 +51,7 @@ public class Pressure implements Parcelable {
      * TODO: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
      */
     @ColumnInfo(name = "measurement_fk")
-    private long measurementId;
+    private Long measurementId;
 
     /**
      * Creates a new completely initialized instance of this class.
@@ -75,34 +59,16 @@ public class Pressure implements Parcelable {
      * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
      * @param pressure The atmospheric pressure of this data point in hPa (millibar).
      */
-    public Pressure(long timestamp, double pressure) {
+    public Pressure(final long timestamp, final double pressure) {
+        super(timestamp);
 
-        if (timestamp < 0L) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for timestamp. Is required to be greater then 0L but was %d.", timestamp));
-        }
         // lowest and highest pressure on earth with a few meters added because of inaccuracy
         if (pressure < 300. || pressure > 1_100.) {
             throw new IllegalArgumentException(String.format(Locale.US,
                     "Illegal value for pressure. Is required to be between 300.0 and 1_100.0 but was %f.", pressure));
         }
 
-        this.timestamp = timestamp;
         this.pressure = pressure;
-    }
-
-    /**
-     * @return The database identifier of this data point.
-     */
-    public int getUid() {
-        return uid;
-    }
-
-    /**
-     * @return The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     */
-    public long getTimestamp() {
-        return timestamp;
     }
 
     /**
@@ -117,13 +83,6 @@ public class Pressure implements Parcelable {
      */
     public long getMeasurementId() {
         return measurementId;
-    }
-
-    /**
-     * @param uid The database identifier of this data point.
-     */
-    public void setUid(int uid) {
-        this.uid = uid;
     }
 
     /**
@@ -143,10 +102,8 @@ public class Pressure implements Parcelable {
      * @param in A {@code Parcel} that is a serialized version of a data point.
      */
     protected Pressure(final @NonNull Parcel in) {
-        uid = in.readInt(); // FIXME: Added, but DataPoint also encodes identifier
-        timestamp = in.readLong();
+        super(in);
         pressure = in.readDouble();
-        measurementId = in.readLong(); // FIXME: Added, DataPoint has no such field
     }
 
     /**
@@ -171,19 +128,15 @@ public class Pressure implements Parcelable {
 
     @Override
     public void writeToParcel(@NonNull Parcel dest, int flags) {
-        dest.writeInt(uid); // FIXME: Added, but DataPoint also encodes identifier
-        dest.writeLong(timestamp);
+        super.writeToParcel(dest, flags);
         dest.writeDouble(pressure);
-        dest.writeLong(measurementId); // FIXME: Added, DataPoint has no such field
     }
 
     @NonNull
     @Override
     public String toString() {
         return "Pressure{" +
-                "uid=" + uid +
-                ", timestamp=" + timestamp +
-                ", pressure=" + pressure +
+                "pressure=" + pressure +
                 ", measurementId=" + measurementId +
                 '}';
     }
@@ -194,13 +147,14 @@ public class Pressure implements Parcelable {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
+        if (!super.equals(o))
+            return false;
         Pressure pressure1 = (Pressure)o;
-        return uid == pressure1.uid && timestamp == pressure1.timestamp
-                && Double.compare(pressure1.pressure, pressure) == 0 && measurementId == pressure1.measurementId;
+        return Double.compare(pressure1.pressure, pressure) == 0 && measurementId == pressure1.measurementId;
     }
 
     @Override
-    public int hashCode() { // FIXME: w/ or w/o uid, measurement_fk?
-        return Objects.hash(timestamp, pressure);
+    public int hashCode() {
+        return Objects.hash(super.hashCode(), pressure, measurementId);
     }
 }

@@ -24,14 +24,12 @@ import java.util.Locale;
 import java.util.Objects;
 
 import android.os.Parcel;
-import android.os.Parcelable;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
-import androidx.room.PrimaryKey;
 
 import de.cyface.persistence.LocationCleaningStrategy;
 
@@ -45,19 +43,7 @@ import de.cyface.persistence.LocationCleaningStrategy;
  * @since 6.3.0
  */
 @Entity(tableName = "Location")
-public class GeoLocationV6 implements Parcelable {
-
-    /**
-     * The database identifier of this data point.
-     */
-    @PrimaryKey(autoGenerate = true)
-    private int uid;
-
-    /**
-     * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     */
-    @ColumnInfo(name = "timestamp")
-    private final long timestamp;
+public class GeoLocationV6 extends DataPointV6 {
 
     /**
      * The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
@@ -132,11 +118,8 @@ public class GeoLocationV6 implements Parcelable {
      */
     public GeoLocationV6(final long timestamp, final double lat, final double lon, final Double altitude,
             final double speed, final double accuracy, final Double verticalAccuracy) {
+        super(timestamp);
 
-        if (timestamp < 0L) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for timestamp. Is required to be greater then 0L but was %d.", timestamp));
-        }
         if (lat < -90. || lat > 90.) {
             throw new IllegalArgumentException(String.format(Locale.US,
                     "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %f.", lat));
@@ -164,27 +147,12 @@ public class GeoLocationV6 implements Parcelable {
                     "Illegal value for verticalAccuracy. Is required to be positive but was %f.", verticalAccuracy));
         }
 
-        this.timestamp = timestamp;
         this.lat = lat;
         this.lon = lon;
         this.altitude = altitude;
         this.speed = speed;
         this.accuracy = accuracy;
         this.verticalAccuracy = verticalAccuracy;
-    }
-
-    /**
-     * @return The database identifier of this data point.
-     */
-    public int getUid() {
-        return uid;
-    }
-
-    /**
-     * @return The timestamp at which this data point was captured in milliseconds since 1.1.1970.
-     */
-    public long getTimestamp() {
-        return timestamp;
     }
 
     /**
@@ -255,13 +223,6 @@ public class GeoLocationV6 implements Parcelable {
     }
 
     /**
-     * @param uid The database identifier of this data point.
-     */
-    public void setUid(int uid) {
-        this.uid = uid;
-    }
-
-    /**
      * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
     public void setMeasurementId(long measurementId) {
@@ -279,8 +240,7 @@ public class GeoLocationV6 implements Parcelable {
      */
     @Ignore // Parcelable requires this constructor, make {@code Room} ignore this constructor.
     protected GeoLocationV6(final @NonNull Parcel in) {
-        uid = in.readInt(); // FIXME: Added, DataPoint encodes identifier but GeoLocation has no id
-        timestamp = in.readLong();
+        super(in);
         lat = in.readDouble();
         lon = in.readDouble();
         altitude = in.readDouble();
@@ -313,8 +273,7 @@ public class GeoLocationV6 implements Parcelable {
 
     @Override
     public void writeToParcel(Parcel dest, int flags) {
-        dest.writeLong(uid); // FIXME: Added, DataPoint encodes identifier but GeoLocation has no id
-        dest.writeLong(timestamp);
+        super.writeToParcel(dest, flags);
         dest.writeDouble(lat);
         dest.writeDouble(lon);
         dest.writeDouble(altitude);
@@ -329,9 +288,7 @@ public class GeoLocationV6 implements Parcelable {
     @Override
     public String toString() {
         return "GeoLocationV6{" +
-                "uid=" + uid +
-                ", timestamp=" + timestamp +
-                ", lat=" + lat +
+                "lat=" + lat +
                 ", lon=" + lon +
                 ", altitude=" + altitude +
                 ", speed=" + speed +
@@ -349,7 +306,7 @@ public class GeoLocationV6 implements Parcelable {
         if (o == null || getClass() != o.getClass())
             return false;
         GeoLocationV6 that = (GeoLocationV6)o;
-        return uid == that.uid && timestamp == that.timestamp && Double.compare(that.lat, lat) == 0
+        return Double.compare(that.lat, lat) == 0
                 && Double.compare(that.lon, lon) == 0 && Double.compare(that.speed, speed) == 0
                 && Double.compare(that.accuracy, accuracy) == 0 && measurementId == that.measurementId
                 && Objects.equals(altitude, that.altitude) && Objects.equals(verticalAccuracy, that.verticalAccuracy)
@@ -358,6 +315,6 @@ public class GeoLocationV6 implements Parcelable {
 
     @Override
     public int hashCode() { // FIXME: w/ or w/o uid, measurement_fk? (definitely w/o isValid)
-        return Objects.hash(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy);
+        return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy);
     }
 }

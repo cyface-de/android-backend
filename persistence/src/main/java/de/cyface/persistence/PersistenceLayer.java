@@ -38,6 +38,7 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Locale;
 import java.util.UUID;
 
 import android.content.ContentProvider;
@@ -45,6 +46,7 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.content.Context;
 import android.database.Cursor;
+import android.hardware.SensorManager;
 import android.net.Uri;
 import android.util.Log;
 
@@ -52,6 +54,7 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.Room;
 
+import de.cyface.persistence.model.DataPointV6;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
@@ -59,7 +62,9 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.model.Track;
+import de.cyface.persistence.model.TrackV6;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3dFile;
@@ -618,6 +623,140 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
+     * Returns the sum of the positive altitude changes of the measurement with the provided measurement identifier.
+     * <p>
+     * To calculate the ascend, the {@link Pressure} values are loaded from the database if such values are
+     * available, otherwise the the {@link Track}s with the {@link GeoLocationV6} are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, {@code null} is
+     * returned.
+     * <p>
+     * TODO: Agree upon filtering strategies [STAD-392]
+     * <p>
+     * <b>Attention:</b> This method executes blocking code (database access) and cannot be executed on the main thread.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @return The ascend in meters.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    public Double loadAscend(final long measurementIdentifier) throws CursorIsNullException {
+        return loadAscend(measurementIdentifier, false);
+    }
+
+    /**
+     * Returns the sum of the positive altitude changes of the measurement with the provided measurement identifier.
+     * <p>
+     * To calculate the ascend, the {@link Pressure} values are loaded from the database if such values are
+     * available, otherwise the the {@link Track}s with the {@link GeoLocationV6} are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, {@code null} is
+     * returned.
+     * <p>
+     * TODO: Agree upon filtering strategies [STAD-392]
+     * <p>
+     * <b>Attention:</b> This method executes blocking code (database access) and cannot be executed on the main thread.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @param forceGnssAscend {@code true} if the ascend calculated based on GNSS data should be returned regardless if
+     *            barometer data is available.
+     * @return The ascend in meters.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    public Double loadAscend(final long measurementIdentifier, final boolean forceGnssAscend)
+            throws CursorIsNullException {
+
+        // Check if locations with altitude values are available
+        final List<TrackV6> tracks = loadTracksV6(measurementIdentifier);
+        if (tracks.size() > 0) {
+
+            boolean hasPressures = false;
+            for (final TrackV6 track : tracks) {
+                if (!track.getPressures().isEmpty()) {
+                    hasPressures = true;
+                    break;
+                }
+            }
+            if (hasPressures && !forceGnssAscend) {
+                return ascendFromPressures(tracks);
+            } else {
+                return ascendFromGNSS(tracks);
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Calculate based on atmospheric pressure.
+     *
+     * @param tracks The track to calculate the ascend for.
+     * @return The ascend in meters.
+     */
+    private Double ascendFromPressures(final List<TrackV6> tracks) {
+        Double totalAscend = null;
+        for (final TrackV6 track : tracks) {
+            Double ascend = null;
+            Double lastAltitude = null;
+            for (final Pressure pressure : track.getPressures()) {
+                // FIXME: if (locationCleaningStrategy.isClean(location)) {
+
+                // As we're only interested in ascend and elevation profile, using a static reference pressure is
+                // sufficient [STAD-385] [STAD-391]
+                final double altitude = SensorManager.getAltitude((float)pressure.getPressure(),
+                        SensorManager.PRESSURE_STANDARD_ATMOSPHERE);
+                if (lastAltitude == null) {
+                    lastAltitude = altitude;
+                } else {
+                    if (altitude > lastAltitude) { // ascend
+                        final double newAscend = altitude - lastAltitude;
+                        Validate.isTrue(newAscend > 0,
+                                String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
+                        ascend = ascend != null ? ascend + newAscend : newAscend;
+                        lastAltitude = altitude;
+                    }
+                }
+            }
+            if (ascend != null) {
+                totalAscend = totalAscend != null ? totalAscend + ascend : ascend;
+            }
+        }
+        return totalAscend;
+    }
+
+    /**
+     * Calculate based on GNSS.altitude.
+     *
+     * @param tracks The track to calculate the ascend for.
+     * @return The ascend in meters.
+     */
+    private Double ascendFromGNSS(final List<TrackV6> tracks) {
+        Double totalAscend = null;
+        for (final TrackV6 track : tracks) {
+            Double ascend = null;
+            Double lastAltitude = null;
+            for (final GeoLocationV6 location : track.getGeoLocations()) {
+                // FIXME: if (locationCleaningStrategy.isClean(location)) {
+
+                final Double altitude = location.getAltitude();
+                if (altitude != null) {
+                    if (lastAltitude == null) {
+                        lastAltitude = altitude;
+                    } else {
+                        if (altitude > lastAltitude) { // ascend
+                            final double newAscend = altitude - lastAltitude;
+                            Validate.isTrue(newAscend > 0,
+                                    String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
+                            ascend = ascend != null ? ascend + newAscend : newAscend;
+                            lastAltitude = altitude;
+                        }
+                    }
+                }
+            }
+            if (ascend != null) {
+                totalAscend = totalAscend != null ? totalAscend + ascend : ascend;
+            }
+        }
+        return totalAscend;
+    }
+
+    /**
      * Returns the duration of the measurement with the provided measurement identifier without the time between pause
      * and resume. [STAD-367]
      * <p>
@@ -710,6 +849,81 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             if (eventCursor != null) {
                 eventCursor.close();
             }
+        }
+    }
+
+    /**
+     * Loads the {@link TrackV6}s for the provided {@link Measurement}.
+     *
+     * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
+     * @return The {@link TrackV6}s associated with the {@code Measurement}. If no {@link GeoLocationV6}s exists, an
+     *         empty
+     *         list is returned.
+     * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
+     */
+    @SuppressWarnings("unused") // May be used by SDK implementing app
+    public List<TrackV6> loadTracksV6(final long measurementIdentifier) throws CursorIsNullException {
+
+        try (Cursor eventCursor = loadEventsCursor(measurementIdentifier)) {
+            softCatchNullCursor(eventCursor);
+
+            // Load GeoLocationV6 and Pressure
+            // TODO: Consider using Kotlin Coroutines for async code when upgrading to main branch
+            // Or re-implement the UI with LiveData which handles data binding with Room for us.
+            List<GeoLocationV6> locations = databaseV6.geoLocationDao().loadAllByMeasurementId(measurementIdentifier);
+            List<Pressure> pressures = databaseV6.pressureDao().loadAllByMeasurementId(measurementIdentifier);
+            if (locations.size() == 0) {
+                return Collections.emptyList();
+            }
+
+            final List<TrackV6> tracks = new ArrayList<>();
+            // The geoLocationCursor always needs to point to the first GeoLocationV6 of the next sub track
+            int i = 0;
+
+            // Slice Tracks before resume events
+            Long pauseEventTime = null;
+            while (eventCursor.moveToNext() && i < locations.size()) {
+                final Event.EventType eventType = Event.EventType
+                        .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+
+                // Search for next resume event and capture it's previous pause event
+                if (eventType != Event.EventType.LIFECYCLE_RESUME) {
+                    if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
+                        pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                    }
+                    continue;
+                }
+                Validate.notNull(pauseEventTime);
+                final long resumeEventTime = eventCursor
+                        .getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+
+                // Collect all GeoLocationsV6 and Pressure points until the pause event
+                final TrackV6 track = collectNextSubTrackV6(locations, pressures, pauseEventTime);
+                // FIXME {@param locations} and {@param pressures} are expected to start with the first data point which
+                // is later in time than {@param pauseEventTime} or to the last data point if the earlier doesn't exist.
+
+                // Add sub-track to track
+                if (track.getGeoLocations().size() > 0) {
+                    tracks.add(track);
+                }
+
+                // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
+                // We do this to ignore data points between pause and resume event (STAD-140)
+                locations = (List<GeoLocationV6>)continueWithFirstAfter(locations, resumeEventTime);
+                pressures = (List<Pressure>)continueWithFirstAfter(pressures, resumeEventTime);
+            }
+
+            // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
+            if (locations.size() == 0) {
+                return tracks;
+            }
+
+            // Collect tail sub track
+            // This is ether the track between start[, pause] and stop or resume[, pause] and stop.
+            final TrackV6 track = new TrackV6(locations, pressures);
+            Validate.isTrue(track.getGeoLocations().size() > 0);
+            tracks.add(track);
+            return tracks;
         }
     }
 
@@ -926,6 +1140,40 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
+     * Collects a sub {@link TrackV6} of a {@code Measurement}.
+     *
+     * @param locations The ordered list of {@code GeoLocationV6}s which starts at the first {@link GeoLocationV6} of
+     *            the sub track to be collected.
+     * @param pressures The ordered list of {@code Pressure}s which starts at the first {@link Pressure} of the
+     *            sub track to be collected.
+     * @param pauseEventTime the Unix timestamp of the {@link Event.EventType#LIFECYCLE_PAUSE} which defines the end of
+     *            this sub Track.
+     * @return The sub {@code TrackV6}.
+     */
+    private TrackV6 collectNextSubTrackV6(final List<GeoLocationV6> locations, final List<Pressure> pressures,
+            final Long pauseEventTime) {
+        final TrackV6 track = new TrackV6();
+
+        GeoLocationV6 location = locations.get(0);
+        while (location != null && location.getTimestamp() <= pauseEventTime) {
+            track.addLocation(location);
+            // Load next data point to check it's timestamp in next iteration
+            locations.remove(0);
+            location = locations.get(0);
+        }
+
+        Pressure pressure = pressures.get(0);
+        while (pressure != null && pressure.getTimestamp() <= pauseEventTime) {
+            track.addPressure(pressure);
+            // Load next data point to check it's timestamp in next iteration
+            pressures.remove(0);
+            pressure = pressures.get(0);
+        }
+
+        return track;
+    }
+
+    /**
      * Moves the {@param geoLocationCursor} to the first GeoLocation starting at {@param resumeEventTime}.
      * <p>
      * If there is no such {@code GeoLocation} then the cursor points to {@link Cursor#isAfterLast()}.
@@ -942,6 +1190,32 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Load next location to check it's timestamp
             location = loadGeoLocation(geoLocationCursor);
         }
+    }
+
+    /**
+     * Removes all data points at the beginning of the {@param dataPoints} list until it starts with the first
+     * {@link DataPointV6} starting at {@param resumeEventTime}.
+     * <p>
+     * If there is no such {@code DataPointV6} then the returned list is empty.
+     * <p>
+     * Like {@link #moveCursorToFirstAfter(Cursor, long)} but for {@link DatabaseV6}.
+     *
+     * @param dataPoints The original list of data points.
+     * @param resumeEventTime the Unix timestamp, e.g. of {@link Event.EventType#LIFECYCLE_RESUME}
+     * @return The sublist.
+     */
+    private List<? extends DataPointV6> continueWithFirstAfter(final List<? extends DataPointV6> dataPoints,
+            final long resumeEventTime) {
+
+        @Nullable
+        DataPointV6 point = dataPoints.get(0);
+        while (point != null && point.getTimestamp() < resumeEventTime && dataPoints.size() > 0) {
+
+            // Load next location to check it's timestamp
+            dataPoints.remove(0);
+            point = dataPoints.get(0);
+        }
+        return dataPoints;
     }
 
     /**

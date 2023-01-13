@@ -30,6 +30,10 @@ import de.cyface.persistence.model.GeoLocationV6;
 /**
  * Data access object which provides the API to interact with the {@link GeoLocationV6} database table.
  *
+ * TODO: when fully migrating to Room, check if we need to use pagination like in our SQLite implementation
+ * where we used a database limit of 10k because of performance issues. [MOV-248]
+ * Maybe library androidx.room:room-paging can be used for this.
+ *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 6.3.0
@@ -40,11 +44,11 @@ public interface GeoLocationDao {
     @Query("SELECT * FROM location")
     List<GeoLocationV6> getAll();
 
-    // TODO: when fully migrating to Room, check if we need to use pagination like in our SQLite implementation
-    // where we used a database limit of 10k because of performance issues. [MOV-248]
-    // Maybe library androidx.room:room-paging can be used for this.
     @Query("SELECT * FROM location WHERE uid IN (:locationIds)")
     List<GeoLocationV6> loadAllByIds(int[] locationIds);
+
+    @Query("SELECT * FROM location WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
+    List<GeoLocationV6> loadAllByMeasurementId(long measurementId);
 
     @Insert
     void insertAll(GeoLocationV6... locations);
@@ -53,6 +57,6 @@ public interface GeoLocationDao {
     void delete(GeoLocationV6 location);
 
     @SuppressWarnings("UnusedReturnValue")
-    @Query("DELETE FROM pressure WHERE measurement_fk = (:measurementId)")
+    @Query("DELETE FROM pressure WHERE measurement_fk = :measurementId")
     int deleteItemByMeasurementId(long measurementId);
 }
