@@ -35,6 +35,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -214,7 +215,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 verticalAccuracyMeters = location.hasVerticalAccuracy() ? (double)location.getVerticalAccuracyMeters()
                         : null;
             }
-            if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
+            if (de.cyface.datacapturing.BuildConfig.DEBUG
+                    && (isEmulator() || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith("google/sdk_")))) {
                 locationAccuracyMeters = (float)Math.random() * 30.0f;
                 verticalAccuracyMeters = locationAccuracyMeters * 2.5;
                 Log.d(TAG,
