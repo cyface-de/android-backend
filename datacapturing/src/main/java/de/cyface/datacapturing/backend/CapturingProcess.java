@@ -18,11 +18,11 @@
  */
 package de.cyface.datacapturing.backend;
 
-import static android.hardware.SensorManager.SENSOR_DELAY_NORMAL;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.utils.TestEnvironment.isEmulator;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -219,6 +219,14 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                     && (isEmulator() || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith("google/sdk_")))) {
                 locationAccuracyMeters = (float)Math.random() * 30.0f;
                 verticalAccuracyMeters = locationAccuracyMeters * 2.5;
+                altitude = 400. + Math.random() * 2 - Math.random();
+                final List<Pressure> emulatedPressure = new ArrayList<>();
+                for (final Pressure p : pressures) {
+                    emulatedPressure
+                            .add(new Pressure(p.getTimestamp(), p.getPressure() + Math.random() * 2 - Math.random()));
+                }
+                pressures.clear();
+                pressures.addAll(emulatedPressure);
                 Log.d(TAG,
                         String.format("Emulator detected, Accuracy overwritten with %f and vertical accuracy with %f",
                                 locationAccuracyMeters, verticalAccuracyMeters));

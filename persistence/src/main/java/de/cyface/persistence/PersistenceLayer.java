@@ -804,7 +804,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                     final long newDuration = event.getTimestamp() - previousEvent.getTimestamp();
                     Validate.isTrue(newDuration >= 0, "Invalid duration: " + newDuration);
                     duration += newDuration;
-                    Log.e(TAG, "event pair " + previousType + " -> " + event.getType() + ": +" + newDuration);
                 }
             }
             previousEvent = event;
