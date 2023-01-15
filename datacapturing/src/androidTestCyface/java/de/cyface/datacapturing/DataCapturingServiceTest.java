@@ -163,7 +163,7 @@ public class DataCapturingServiceTest {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, providerRule.getResolver(), AUTHORITY,
+                    oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                             ACCOUNT_TYPE, "https://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
@@ -172,8 +172,8 @@ public class DataCapturingServiceTest {
         });
 
         // Prepare
-        SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), AUTHORITY);
-        persistenceLayer = new PersistenceLayer<>(context, providerRule.getResolver(), AUTHORITY,
+        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
         appId = context.getPackageName();
 
@@ -213,7 +213,7 @@ public class DataCapturingServiceTest {
             assertThat(isRunning, is(equalTo(false)));
         }
 
-        SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), AUTHORITY);
+        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
     }
 
     /**
@@ -711,7 +711,7 @@ public class DataCapturingServiceTest {
 
         // Resume 2: must be ignored by resumeAsync
         PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                providerRule.getResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
+                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -846,7 +846,7 @@ public class DataCapturingServiceTest {
             startPauseResumeStop();
 
             // For for-i-loops within this test
-            SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), AUTHORITY);
+            SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         }
     }
 
@@ -866,7 +866,7 @@ public class DataCapturingServiceTest {
         stopAndCheckThatStopped(measurementIdentifier);
 
         // Check Events
-        ContentResolver contentResolver = providerRule.getResolver();
+        ContentResolver contentResolver = context.getContentResolver();
         try (final Cursor eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
                 EventTable.COLUMN_MEASUREMENT_FK + "=?",
                 new String[] {Long.valueOf(measurementIdentifier).toString()},
@@ -948,7 +948,7 @@ public class DataCapturingServiceTest {
     public void testDataCapturingService_doesNotAcceptUrlWithoutProtocol()
             throws CursorIsNullException, SetupException {
 
-        new CyfaceDataCapturingService(context, providerRule.getResolver(), AUTHORITY,
+        new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                 ACCOUNT_TYPE, "localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
     }
 

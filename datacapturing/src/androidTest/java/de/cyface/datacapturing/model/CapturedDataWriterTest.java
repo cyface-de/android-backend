@@ -136,7 +136,7 @@ public class CapturedDataWriterTest {
         mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        SharedTestUtils.clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
         oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
@@ -352,15 +352,12 @@ public class CapturedDataWriterTest {
         Cursor geoLocationsCursor = null;
         Cursor measurementsCursor = null;
         Cursor identifierCursor = null;
-        Cursor geoLocationsV6Cursor = null;
-        Cursor pressuresCursor = null;
         try {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
             identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null);
-
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",

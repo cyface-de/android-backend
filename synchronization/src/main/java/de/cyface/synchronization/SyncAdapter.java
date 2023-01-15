@@ -133,6 +133,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             return;
         }
 
+        Log.d(TAG, "Sync started");
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer();
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,

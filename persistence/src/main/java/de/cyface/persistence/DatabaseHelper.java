@@ -168,7 +168,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * @param selectionArgs The arguments to place inside the '?' placeholder from <code>selection</code>.
      * @return The number of rows deleted.
      */
-    public int deleteRow(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
+    int deleteRow(final @NonNull Uri uri, final String selection, final String[] selectionArgs) {
         List<String> pathSegments = uri.getPathSegments();
         SQLiteDatabase database = getWritableDatabase();
 
@@ -258,7 +258,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * @param values The values to insert in the new table row.
      * @return The identifier of the new row.
      */
-    public long insertRow(final @NonNull Uri uri, final @NonNull ContentValues values) {
+    long insertRow(final @NonNull Uri uri, final @NonNull ContentValues values) {
         final CyfaceMeasurementTable table = matchTable(uri);
         return table.insertRow(getWritableDatabase(), values);
     }
@@ -270,7 +270,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * @param values The values to insert.
      * @return An array of identifiers for the newly created table rows.
      */
-    public long[] bulkInsert(final @NonNull Uri uri, final @NonNull List<ContentValues> values) {
+    long[] bulkInsert(final @NonNull Uri uri, final @NonNull List<ContentValues> values) {
         CyfaceMeasurementTable table = matchTable(uri);
         return table.insertBatch(getWritableDatabase(), values);
     }
@@ -336,7 +336,7 @@ class DatabaseHelper extends SQLiteOpenHelper {
      * @param uri The URI to provide the MIME type for.
      * @return The MIME type corresponding to that URI.
      */
-    public String getType(final @NonNull Uri uri) {
+    String getType(final @NonNull Uri uri) {
         if (uri.getPathSegments().size() == 1) {
             return "vnd.android.cursor.item/de.cyface.data";
         } else if (uri.getPathSegments().size() == 2) {

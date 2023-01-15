@@ -62,10 +62,11 @@ public class Pressure extends DataPointV6 {
     public Pressure(final long timestamp, final double pressure) {
         super(timestamp);
 
-        // lowest and highest pressure on earth with a few meters added because of inaccuracy
-        if (pressure < 300. || pressure > 1_100.) {
+        // Lowest/highest pressure on earth with a bounding box because of inaccuracy and weather. We only support
+        // measuring between death see and mt. everest, no flying, diving and caves are supported.
+        if (pressure < 250. || pressure > 1_100.) {
             throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for pressure. Is required to be between 300.0 and 1_100.0 but was %f.", pressure));
+                    "Illegal value for pressure. Is required to be between 250.0 and 1_100.0 but was %f.", pressure));
         }
 
         this.pressure = pressure;
@@ -150,7 +151,8 @@ public class Pressure extends DataPointV6 {
         if (!super.equals(o))
             return false;
         Pressure pressure1 = (Pressure)o;
-        return Double.compare(pressure1.pressure, pressure) == 0 && measurementId == pressure1.measurementId;
+        return Double.compare(pressure1.pressure, pressure) == 0
+                && Objects.equals(measurementId, pressure1.measurementId);
     }
 
     @Override

@@ -35,7 +35,7 @@ import de.cyface.utils.Validate;
  * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is used to capture a {@link Measurement}s.
  *
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.1.0
  * @since 3.0.0
  */
 public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
@@ -123,7 +123,6 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         // Only store latest pressure point into the database, as the minimum frequency is > 10 HZ
         final List<Pressure> pressures = data.getPressures();
         Log.d(TAG, String.format("Captured %d pressure points, storing 1 point", pressures.size()));
-        // for (Pressure pressure : pressures) pressure.setMeasurementId(measurementIdentifier);
         if (pressures.size() > 0) {
             final Pressure pressure = pressures.get(pressures.size() - 1);
             pressure.setMeasurementId(measurementIdentifier);
@@ -159,7 +158,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      */
     public void storeLocationV6(final @NonNull GeoLocationV6 location, final long measurementIdentifier) {
 
-        location.setMeasurementId(measurementIdentifier); // FIXME make sure this cannot be forgotten
+        location.setMeasurementId(measurementIdentifier);
         GeoLocationDao dao = persistenceLayer.getDatabaseV6().geoLocationDao();
         dao.insertAll(location);
     }

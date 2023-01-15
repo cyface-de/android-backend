@@ -200,8 +200,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                // FIXME: authorityV6
-                new PersistenceLayer<>(context, context.getContentResolver(), authority, authority + ".v6",
+                new PersistenceLayer<>(context, context.getContentResolver(), authority,
                         new CapturingPersistenceBehaviour()),
                 new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
                 sensorFrequency);

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -70,6 +70,7 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.DataPoint;
+import de.cyface.persistence.model.DataPointV6;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
@@ -90,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.3
+ * @version 8.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -469,7 +470,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      * <p>
-     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} migrates to {@code Room}.
+     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPointV6}.
      *
      * @param completeList The {@link List<Pressure>} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList

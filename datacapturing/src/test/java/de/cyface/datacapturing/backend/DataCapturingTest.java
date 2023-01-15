@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -41,7 +41,7 @@ import de.cyface.persistence.model.GeoLocationV6;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.5
+ * @version 2.0.6
  * @since 1.0.0
  */
 public class DataCapturingTest {
@@ -111,7 +111,7 @@ public class DataCapturingTest {
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
             verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f),
-                    new GeoLocationV6(51.03624633, 13.78828128, 400.123, 0L, 0.0, 0.0f, 0.0f));
+                    new GeoLocationV6(0L, 51.03624633, 13.78828128, 400.123, 0.0, 0.0f, 0.0));
         }
     }
 

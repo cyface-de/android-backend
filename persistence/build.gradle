@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.0
+ * @version 3.1.0
  * @since 1.0.0
  */
 
@@ -55,20 +55,10 @@ android {
 dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
-    // FIXME: Attempt to use abstract `Room` layer for second database
-    def room_version = "2.4.3"
-    implementation "androidx.room:room-runtime:$room_version"
-    annotationProcessor "androidx.room:room-compiler:$room_version"
-    // To use Kotlin annotation processing tool (kapt)
-    //kapt "androidx.room:room-compiler:$room_version"
-    // To use Kotlin Symbol Processing (KSP)
-    //ksp "androidx.room:room-compiler:$room_version"
-    // optional - Guava support for Room, including Optional and ListenableFuture
-    //implementation "androidx.room:room-guava:$room_version"
-    // optional - Test helpers
-    //testImplementation "androidx.room:room-testing:$room_version"
-    // optional - Paging 3 Integration
-    //implementation "androidx.room:room-paging:$room_version"
+    // `Room` API used for second database (V6 specific features)
+    // Further room libraries and Kotlin support see Room guide.
+    implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
+    annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

@@ -30,10 +30,6 @@ import de.cyface.persistence.model.GeoLocationV6;
 /**
  * Data access object which provides the API to interact with the {@link GeoLocationV6} database table.
  *
- * TODO: when fully migrating to Room, check if we need to use pagination like in our SQLite implementation
- * where we used a database limit of 10k because of performance issues. [MOV-248]
- * Maybe library androidx.room:room-paging can be used for this.
- *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 6.3.0
