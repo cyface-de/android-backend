@@ -1,0 +1,152 @@
+/*
+ * Copyright 2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
+package de.cyface.persistence;
+
+import static de.cyface.persistence.TestUtils.AUTHORITY;
+import static org.hamcrest.CoreMatchers.equalTo;
+import static org.hamcrest.CoreMatchers.is;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.closeTo;
+
+import java.util.Collections;
+
+import org.junit.After;
+import org.junit.Before;
+import org.junit.Test;
+import org.junit.runner.RunWith;
+import org.mockito.Mock;
+
+import android.content.ContentResolver;
+import android.content.Context;
+import android.hardware.SensorManager;
+
+import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.platform.app.InstrumentationRegistry;
+
+import de.cyface.persistence.model.GeoLocationV6;
+import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.TrackV6;
+
+/**
+ * Tests the inner workings of the {@link PersistenceLayer}.
+ *
+ * FIXME: Add tests with multiple sub-tracks
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 6.3.0
+ */
+@RunWith(AndroidJUnit4.class)
+public class PersistenceLayerTest {
+
+    /**
+     * An object of the class under test. It is setup prior to each test execution.
+     */
+    private PersistenceLayer<DefaultPersistenceBehaviour> oocut;
+    /**
+     * A mock content resolver provided by the Android test environment to work on a simulated content provider.
+     */
+    @Mock
+    private ContentResolver mockResolver;
+
+    @Before
+    public void setUp() {
+        final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+    }
+
+    @After
+    public void tearDown() {
+        oocut.shutdown();
+    }
+
+    /**
+     * Tests the formula to calculate pressure at a specific altitude used in this test.
+     */
+    @Test
+    public void testPressure() {
+        // Arrange
+        final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
+        // Act
+        final float pressureAtSeaLevel = pressure(0., p0);
+        final float pressureAboveSeaLevel = pressure(10_000., p0);
+        final float pressureBelowSeaLevel = pressure(-500., p0);
+        // Assert
+        assertThat(pressureAtSeaLevel, is(equalTo(p0)));
+        assertThat(pressureAboveSeaLevel, is(equalTo(264.41486f)));
+        assertThat(pressureBelowSeaLevel, is(equalTo(1074.7656f)));
+    }
+
+    @Test
+    public void testLoadAscendFromPressures() {
+
+        // Arrange
+        final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
+        final TrackV6 trackV6 = new TrackV6();
+        trackV6.addPressure(new Pressure(1L, pressure(0., p0)));
+        trackV6.addPressure(new Pressure(2L, pressure(1., p0)));
+        trackV6.addPressure(new Pressure(3L, pressure(-1., p0)));
+        trackV6.addPressure(new Pressure(4L, pressure(0., p0)));
+        trackV6.addPressure(new Pressure(5L, pressure(1., p0)));
+        trackV6.addPressure(new Pressure(6L, pressure(3., p0)));
+        trackV6.addPressure(new Pressure(7L, pressure(1., p0)));
+        trackV6.addPressure(new Pressure(8L, pressure(2., p0)));
+
+        // Act
+        final Double ascend = oocut.ascendFromPressures(Collections.singletonList(trackV6));
+
+        // Assert
+        assertThat(ascend, is(closeTo(6., 0.01)));
+    }
+
+    @Test
+    public void testLoadAscendFromGnss() {
+
+        // Arrange
+        final TrackV6 trackV6 = new TrackV6();
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., -1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 3., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 2., 1., 5., 5.));
+
+        // Act
+        final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(trackV6));
+
+        // Assert
+        assertThat(ascend, is(closeTo(6., 0.01)));
+    }
+
+    /**
+     * Calculates the pressure expected for a specific altitude and weather condition.
+     * <p>
+     * Based on the formula from {@code android.hardware.SensorManager#getAltitude(float, float)}.
+     *
+     * @param altitude The altitude to calculate the pressure for in meters above sea level.
+     * @param p0 The pressure at sea level for the specific weather condition.
+     * @return The atmospheric pressure in hPa.
+     */
+    @SuppressWarnings("SameParameterValue")
+    private float pressure(double altitude, float p0) {
+        return p0 * (float)Math.pow(1.0f - altitude / 44330.0f, 5.255f);
+    }
+}

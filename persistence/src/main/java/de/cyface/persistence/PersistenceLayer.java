@@ -689,7 +689,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param tracks The track to calculate the ascend for.
      * @return The ascend in meters.
      */
-    private Double ascendFromPressures(final List<TrackV6> tracks) {
+    Double ascendFromPressures(final List<TrackV6> tracks) {
         Double totalAscend = null;
         for (final TrackV6 track : tracks) {
             Double ascend = null;
@@ -699,18 +699,18 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
                 // As we're only interested in ascend and elevation profile, using a static reference pressure is
                 // sufficient [STAD-385] [STAD-391]
-                final double altitude = SensorManager.getAltitude((float)pressure.getPressure(),
-                        SensorManager.PRESSURE_STANDARD_ATMOSPHERE);
+                final double altitude = SensorManager.getAltitude(SensorManager.PRESSURE_STANDARD_ATMOSPHERE,
+                        (float)pressure.getPressure());
                 if (lastAltitude == null) {
                     lastAltitude = altitude;
-                } else {
-                    if (altitude > lastAltitude) { // ascend
-                        final double newAscend = altitude - lastAltitude;
-                        Validate.isTrue(newAscend > 0,
-                                String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
-                        ascend = ascend != null ? ascend + newAscend : newAscend;
-                        lastAltitude = altitude;
-                    }
+                }
+                // FIXME: STAD-392 - discuss
+                else if (altitude - lastAltitude >= 2.) {
+                    final double newAscend = altitude - lastAltitude;
+                    Validate.isTrue(newAscend > 0,
+                            String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
+                    ascend = ascend != null ? ascend + newAscend : newAscend;
+                    lastAltitude = altitude;
                 }
             }
             if (ascend != null) {
@@ -726,26 +726,29 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @param tracks The track to calculate the ascend for.
      * @return The ascend in meters.
      */
-    private Double ascendFromGNSS(final List<TrackV6> tracks) {
+    Double ascendFromGNSS(final List<TrackV6> tracks) {
         Double totalAscend = null;
         for (final TrackV6 track : tracks) {
             Double ascend = null;
             Double lastAltitude = null;
             for (final GeoLocationV6 location : track.getGeoLocations()) {
                 // FIXME: if (locationCleaningStrategy.isClean(location)) {
+                final Double verticalAccuracy = location.getVerticalAccuracy();
+                if (verticalAccuracy == null || verticalAccuracy <= 20.) { // FIXME: STAD-392 - discuss
 
-                final Double altitude = location.getAltitude();
-                if (altitude != null) {
-                    if (lastAltitude == null) {
+                    final Double altitude = location.getAltitude();
+                    if (altitude == null) {
+                        continue;
+                    } else if (lastAltitude == null) {
                         lastAltitude = altitude;
-                    } else {
-                        if (altitude > lastAltitude) { // ascend
-                            final double newAscend = altitude - lastAltitude;
-                            Validate.isTrue(newAscend > 0,
-                                    String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
-                            ascend = ascend != null ? ascend + newAscend : newAscend;
-                            lastAltitude = altitude;
-                        }
+                    }
+                    // FIXME: STAD-392 - discuss
+                    else if (altitude - lastAltitude >= 2.) {
+                        final double newAscend = altitude - lastAltitude;
+                        Validate.isTrue(newAscend > 0,
+                                String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
+                        ascend = ascend != null ? ascend + newAscend : newAscend;
+                        lastAltitude = altitude;
                     }
                 }
             }
