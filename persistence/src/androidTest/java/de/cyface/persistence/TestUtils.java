@@ -47,10 +47,6 @@ import de.cyface.utils.Validate;
 class TestUtils {
 
     static final String AUTHORITY = "de.cyface.persistence.test.provider";
-    /**
-     * FIXME: Ensure this authority is used everywhere when accessing the v6 database.
-     */
-    public static final String AUTHORITY_V6 = "de.cyface.persistence.test.provider.v6";
 
     private static void compareCursorWithValues(final Cursor cursor, final List<ContentValues> contentValues) {
         assertThat(contentValues.size() <= cursor.getCount(), is(equalTo(true)));

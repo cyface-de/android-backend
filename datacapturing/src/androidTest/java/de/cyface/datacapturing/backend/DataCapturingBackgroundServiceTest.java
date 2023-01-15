@@ -19,7 +19,6 @@
 package de.cyface.datacapturing.backend;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.datacapturing.TestUtils.AUTHORITY_V6;
 import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -124,7 +123,7 @@ public class DataCapturingBackgroundServiceTest {
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, AUTHORITY_V6, new CapturingPersistenceBehaviour());
+                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         testMeasurement = persistenceLayer.newMeasurement(Modality.BICYCLE);
@@ -166,7 +165,6 @@ public class DataCapturingBackgroundServiceTest {
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID_V6, AUTHORITY_V6);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaningStrategy());
@@ -203,7 +201,6 @@ public class DataCapturingBackgroundServiceTest {
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID_V6, AUTHORITY_V6);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
         startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaningStrategy());

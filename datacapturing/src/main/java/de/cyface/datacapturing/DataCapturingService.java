@@ -23,7 +23,6 @@ import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.MeasurementStatus.PAUSED;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
-import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID_V6;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
@@ -161,7 +160,6 @@ public abstract class DataCapturingService {
      * the Cyface SDK.
      */
     private String authority;
-    private String authorityV6;
     /**
      * Lock used to protect lifecycle events from each other. This for example prevents a reconnect to disturb a running
      * stop.
@@ -246,8 +244,6 @@ public abstract class DataCapturingService {
         }
         this.context = new WeakReference<>(context);
         this.authority = authority;
-        // FIXME: authorityV6
-        this.authorityV6 = authority + ".v6";
         this.persistenceLayer = persistenceLayer;
         this.serviceConnection = new BackgroundServiceConnection();
         this.connectionStatusReceiver = new ConnectionStatusReceiver(context);
@@ -744,7 +740,6 @@ public abstract class DataCapturingService {
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
         startIntent.putExtra(AUTHORITY_ID, authority);
-        startIntent.putExtra(AUTHORITY_ID_V6, authorityV6);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
         startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, locationCleaningStrategy);

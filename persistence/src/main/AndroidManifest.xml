@@ -9,12 +9,5 @@
             android:exported="false"
             android:process=":persistence_process"
             android:syncable="true" />
-        <!-- FIXME: ensure a unique authority is used everywhere -->
-        <provider
-          android:name="de.cyface.persistence.V6ContentProvider"
-          android:authorities="de.cyface.provider.v6"
-          android:exported="false"
-          android:process=":persistence_process_v6"
-          android:syncable="true" />
     </application>
 </manifest>

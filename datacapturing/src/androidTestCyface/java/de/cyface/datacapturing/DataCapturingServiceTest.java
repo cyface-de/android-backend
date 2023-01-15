@@ -20,7 +20,6 @@ package de.cyface.datacapturing;
 
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.datacapturing.TestUtils.AUTHORITY_V6;
 import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
@@ -79,7 +78,6 @@ import de.cyface.persistence.EventTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.V6ContentProvider;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -108,9 +106,6 @@ public class DataCapturingServiceTest {
      */
     @Rule
     public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
-            .build();
-    @Rule
-    public ProviderTestRule providerV6Rule = new ProviderTestRule.Builder(V6ContentProvider.class, AUTHORITY_V6)
             .build();
     /**
      * Rule used to run
@@ -168,7 +163,7 @@ public class DataCapturingServiceTest {
             @Override
             public void run() {
                 try {
-                    oocut = new CyfaceDataCapturingService(context, providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6,
+                    oocut = new CyfaceDataCapturingService(context, providerRule.getResolver(), AUTHORITY,
                             ACCOUNT_TYPE, "https://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
                 } catch (SetupException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
@@ -177,8 +172,8 @@ public class DataCapturingServiceTest {
         });
 
         // Prepare
-        SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6);
-        persistenceLayer = new PersistenceLayer<>(context, providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6,
+        SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), AUTHORITY);
+        persistenceLayer = new PersistenceLayer<>(context, providerRule.getResolver(), AUTHORITY,
                 new DefaultPersistenceBehaviour());
         appId = context.getPackageName();
 
@@ -218,7 +213,7 @@ public class DataCapturingServiceTest {
             assertThat(isRunning, is(equalTo(false)));
         }
 
-        SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6);
+        SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), AUTHORITY);
     }
 
     /**
@@ -716,7 +711,7 @@ public class DataCapturingServiceTest {
 
         // Resume 2: must be ignored by resumeAsync
         PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6, new CapturingPersistenceBehaviour());
+                providerRule.getResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -851,7 +846,7 @@ public class DataCapturingServiceTest {
             startPauseResumeStop();
 
             // For for-i-loops within this test
-            SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6, AUTHORITY);
+            SharedTestUtils.clearPersistenceLayer(context, providerRule.getResolver(), AUTHORITY);
         }
     }
 
@@ -953,7 +948,7 @@ public class DataCapturingServiceTest {
     public void testDataCapturingService_doesNotAcceptUrlWithoutProtocol()
             throws CursorIsNullException, SetupException {
 
-        new CyfaceDataCapturingService(context, providerRule.getResolver(), providerV6Rule.getResolver(), AUTHORITY, AUTHORITY_V6,
+        new CyfaceDataCapturingService(context, providerRule.getResolver(), AUTHORITY,
                 ACCOUNT_TYPE, "localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
     }
 

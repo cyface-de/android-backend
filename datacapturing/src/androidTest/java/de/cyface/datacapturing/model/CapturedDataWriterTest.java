@@ -19,14 +19,11 @@
 package de.cyface.datacapturing.model;
 
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.datacapturing.TestUtils.AUTHORITY_V6;
 import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getGeoLocationsV6Uri;
 import static de.cyface.persistence.Utils.getIdentifierUri;
 import static de.cyface.persistence.Utils.getMeasurementUri;
-import static de.cyface.persistence.Utils.getPressuresUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
@@ -68,14 +65,11 @@ import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.EventTable;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.GeoLocationsTableV6;
 import de.cyface.persistence.MeasurementTable;
 import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.PressuresTable;
-import de.cyface.persistence.V6ContentProvider;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -111,9 +105,6 @@ public class CapturedDataWriterTest {
     @Rule
     public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
             .build();
-    @Rule
-    public ProviderTestRule providerV6Rule = new ProviderTestRule.Builder(V6ContentProvider.class, AUTHORITY_V6)
-            .build();
     /**
      * The object of the class under test.
      */
@@ -122,7 +113,6 @@ public class CapturedDataWriterTest {
      * An Android <code>ContentResolver</code> provided for executing tests.
      */
     private ContentResolver mockResolver;
-    private ContentResolver mockResolverV6;
     /**
      * The {@link Context} required to access the persistence layer.
      */
@@ -144,10 +134,9 @@ public class CapturedDataWriterTest {
     @Before
     public void setUp() throws CursorIsNullException {
         mockResolver = providerRule.getResolver();
-        mockResolverV6 = providerV6Rule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        SharedTestUtils.clearPersistenceLayer(context, mockResolver, mockResolverV6, AUTHORITY, AUTHORITY_V6);
+        SharedTestUtils.clearPersistenceLayer(context, mockResolver, AUTHORITY);
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
         oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
@@ -159,7 +148,7 @@ public class CapturedDataWriterTest {
      */
     @After
     public void tearDown() {
-        clearPersistenceLayer(context, mockResolver, mockResolverV6, AUTHORITY, AUTHORITY_V6);
+        clearPersistenceLayer(context, mockResolver, AUTHORITY);
     }
 
     /**
@@ -353,7 +342,7 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedEntries = clearPersistenceLayer(context, mockResolver, mockResolverV6, AUTHORITY, AUTHORITY_V6);
+        int removedEntries = clearPersistenceLayer(context, mockResolver, AUTHORITY);
         // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
         // the life-cycle DataCapturingServiceTests
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3dFiles * point3dFilesPerMeasurement
@@ -371,10 +360,6 @@ public class CapturedDataWriterTest {
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
             identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null);
-            geoLocationsV6Cursor = mockResolverV6.query(getGeoLocationsV6Uri(AUTHORITY_V6), null,
-                    GeoLocationsTableV6.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.toString(measurement.getIdentifier())}, null);
-            pressuresCursor = mockResolverV6.query(getPressuresUri(AUTHORITY_V6), null, null, null, null);
 
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     geoLocationsCursor);
@@ -382,16 +367,10 @@ public class CapturedDataWriterTest {
                     measurementsCursor);
             Validate.notNull("Test failed because it was unable to load data from the content provider.",
                     identifierCursor);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsV6Cursor);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    pressuresCursor);
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
             assertThat(measurementsCursor.getCount(), is(equalTo(0)));
             assertThat(identifierCursor.getCount(), is(equalTo(1))); // because we don't clean it up currently
-            assertThat(geoLocationsV6Cursor.getCount(), is(equalTo(0)));
-            assertThat(pressuresCursor.getCount(), is(equalTo(0)));
         } finally {
             if (geoLocationsCursor != null) {
                 geoLocationsCursor.close();
@@ -401,12 +380,6 @@ public class CapturedDataWriterTest {
             }
             if (identifierCursor != null) {
                 identifierCursor.close();
-            }
-            if (geoLocationsV6Cursor != null) {
-                geoLocationsV6Cursor.close();
-            }
-            if (pressuresCursor != null) {
-                pressuresCursor.close();
             }
         }
 
@@ -505,21 +478,6 @@ public class CapturedDataWriterTest {
             }
         }
 
-        Cursor geoLocationsV6Cursor = null;
-        try {
-            geoLocationsV6Cursor = mockResolverV6.query(getGeoLocationsV6Uri(AUTHORITY_V6), null,
-                    GeoLocationsTableV6.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsV6Cursor);
-
-            assertThat(geoLocationsV6Cursor.getCount(), is(equalTo(0)));
-        } finally {
-            if (geoLocationsV6Cursor != null) {
-                geoLocationsV6Cursor.close();
-            }
-        }
-
         Cursor eventsCursor = null;
         try {
             eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
@@ -530,21 +488,6 @@ public class CapturedDataWriterTest {
         } finally {
             if (eventsCursor != null) {
                 eventsCursor.close();
-            }
-        }
-
-        Cursor pressuresCursor = null;
-        try {
-            pressuresCursor = mockResolverV6.query(getEventUri(AUTHORITY_V6), null,
-                    PressuresTable.COLUMN_MEASUREMENT_FK + "=?",
-                    new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    pressuresCursor);
-
-            assertThat(pressuresCursor.getCount(), is(equalTo(0)));
-        } finally {
-            if (pressuresCursor != null) {
-                pressuresCursor.close();
             }
         }
 
