@@ -82,14 +82,14 @@ public class Pressure extends DataPointV6 {
     /**
      * @return The device-unique id of the measurement this data point belongs to.
      */
-    public long getMeasurementId() {
+    public Long getMeasurementId() {
         return measurementId;
     }
 
     /**
      * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
-    public void setMeasurementId(long measurementId) {
+    public void setMeasurementId(Long measurementId) {
         this.measurementId = measurementId;
     }
 

@@ -24,7 +24,9 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 
+import java.util.Arrays;
 import java.util.Collections;
+import java.util.List;
 
 import org.junit.After;
 import org.junit.Before;
@@ -94,25 +96,41 @@ public class PersistenceLayerTest {
     }
 
     @Test
+    public void testAverages() {
+        // Arrange
+        final List<Double> values = Arrays.asList(0., 1., 0., 0., 0., 4., 1.);
+        // Act
+        final List<Double> averages = oocut.averages(values, 5);
+        // Assert
+        assertThat(averages, is(equalTo(Arrays.asList(.2, 1., 1.))));
+    }
+
+    @Test
     public void testLoadAscendFromPressures() {
 
         // Arrange
         final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
         final TrackV6 trackV6 = new TrackV6();
+        // noise around 0 (+-1)
         trackV6.addPressure(new Pressure(1L, pressure(0., p0)));
         trackV6.addPressure(new Pressure(2L, pressure(1., p0)));
         trackV6.addPressure(new Pressure(3L, pressure(-1., p0)));
         trackV6.addPressure(new Pressure(4L, pressure(0., p0)));
         trackV6.addPressure(new Pressure(5L, pressure(1., p0)));
-        trackV6.addPressure(new Pressure(6L, pressure(3., p0)));
+        // ascend 1 => +3
+        // 3.03 as pressure to altitude calculation is not 100% accurate and would
+        // fail because the ascend would be slightly below the threshold
+        trackV6.addPressure(new Pressure(6L, pressure(3.01, p0)));
+        // descend => lastAltitude -= 2
         trackV6.addPressure(new Pressure(7L, pressure(1., p0)));
-        trackV6.addPressure(new Pressure(8L, pressure(2., p0)));
+        // ascend 2 => +2
+        trackV6.addPressure(new Pressure(8L, pressure(3.01, p0)));
 
         // Act
         final Double ascend = oocut.ascendFromPressures(Collections.singletonList(trackV6));
 
         // Assert
-        assertThat(ascend, is(closeTo(6., 0.01)));
+        assertThat(ascend, is(closeTo(5., 0.02)));
     }
 
     @Test
@@ -120,20 +138,24 @@ public class PersistenceLayerTest {
 
         // Arrange
         final TrackV6 trackV6 = new TrackV6();
+        // noise around 0 (+-1)
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., -1., 1., 5., 5.));
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
+        // ascend 1 => +3
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 3., 1., 5., 5.));
+        // descend => lastAltitude -= 2
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 2., 1., 5., 5.));
+        // ascend 2 => +2
+        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 3., 1., 5., 5.));
 
         // Act
         final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(trackV6));
 
         // Assert
-        assertThat(ascend, is(closeTo(6., 0.01)));
+        assertThat(ascend, is(closeTo(5., 0.01)));
     }
 
     /**

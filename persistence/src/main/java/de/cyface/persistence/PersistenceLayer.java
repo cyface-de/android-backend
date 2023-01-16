@@ -38,7 +38,6 @@ import java.io.File;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
-import java.util.Locale;
 import java.util.UUID;
 
 import android.content.ContentProvider;
@@ -82,6 +81,14 @@ import de.cyface.utils.Validate;
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
 
+    /**
+     * The minimum number of meters before the ascend is increased, to filter sensor noise.
+     */
+    private static final double ASCEND_THRESHOLD_METERS = 2.;
+    /**
+     * The minimum accuracy in meters for GNSS altitudes to be used in ascend calculation.
+     */
+    private static final double VERTICAL_ACCURACY_THRESHOLD_METERS = 12.;
     /**
      * The {@link Context} required to locate the app's internal storage directory.
      */
@@ -634,8 +641,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * calculate the metric on the fly [STAD-384]. In case no altitude information is available, {@code null} is
      * returned.
      * <p>
-     * TODO: Agree upon filtering strategies [STAD-392]
-     * <p>
      * <b>Attention:</b> This method executes blocking code (database access) and cannot be executed on the main thread.
      *
      * @param measurementIdentifier The id of the {@code Measurement} to load the track for.
@@ -653,8 +658,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * available, otherwise the the {@link Track}s with the {@link GeoLocationV6} are loaded from the database to
      * calculate the metric on the fly [STAD-384]. In case no altitude information is available, {@code null} is
      * returned.
-     * <p>
-     * TODO: Agree upon filtering strategies [STAD-392]
      * <p>
      * <b>Attention:</b> This method executes blocking code (database access) and cannot be executed on the main thread.
      *
@@ -699,7 +702,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             Double ascend = null;
             Double lastAltitude = null;
             for (final Pressure pressure : track.getPressures()) {
-                // FIXME: if (locationCleaningStrategy.isClean(location)) {
 
                 // As we're only interested in ascend and elevation profile, using a static reference pressure is
                 // sufficient [STAD-385] [STAD-391]
@@ -707,15 +709,16 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                         (float)pressure.getPressure());
                 if (lastAltitude == null) {
                     lastAltitude = altitude;
+                    continue;
                 }
-                // FIXME: STAD-392 - discuss
-                else if (altitude - lastAltitude >= 2.) {
-                    final double newAscend = altitude - lastAltitude;
-                    Validate.isTrue(newAscend > 0,
-                            String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
+                if (Math.abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
+                    continue;
+                }
+                final double newAscend = altitude - lastAltitude;
+                if (newAscend > 0) {
                     ascend = ascend != null ? ascend + newAscend : newAscend;
-                    lastAltitude = altitude;
                 }
+                lastAltitude = altitude;
             }
             if (ascend != null) {
                 totalAscend = totalAscend != null ? totalAscend + ascend : ascend;
@@ -736,24 +739,25 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             Double ascend = null;
             Double lastAltitude = null;
             for (final GeoLocationV6 location : track.getGeoLocations()) {
-                // FIXME: if (locationCleaningStrategy.isClean(location)) {
                 final Double verticalAccuracy = location.getVerticalAccuracy();
-                if (verticalAccuracy == null || verticalAccuracy <= 20.) { // FIXME: STAD-392 - discuss
+                if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
 
                     final Double altitude = location.getAltitude();
                     if (altitude == null) {
                         continue;
-                    } else if (lastAltitude == null) {
-                        lastAltitude = altitude;
                     }
-                    // FIXME: STAD-392 - discuss
-                    else if (altitude - lastAltitude >= 2.) {
-                        final double newAscend = altitude - lastAltitude;
-                        Validate.isTrue(newAscend > 0,
-                                String.format(Locale.GERMANY, "Invalid ascend %f", newAscend));
+                    if (lastAltitude == null) {
+                        lastAltitude = altitude;
+                        continue;
+                    }
+                    if (Math.abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
+                        continue;
+                    }
+                    final double newAscend = altitude - lastAltitude;
+                    if (newAscend > 0) {
                         ascend = ascend != null ? ascend + newAscend : newAscend;
-                        lastAltitude = altitude;
                     }
+                    lastAltitude = altitude;
                 }
             }
             if (ascend != null) {
