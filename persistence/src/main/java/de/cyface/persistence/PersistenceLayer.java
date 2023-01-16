@@ -60,6 +60,8 @@ import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.model.PersistedGeoLocation;
+import de.cyface.persistence.model.PersistedPressure;
 import de.cyface.persistence.model.Point3d;
 import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.model.Track;
@@ -931,8 +933,9 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Load GeoLocationV6 and Pressure
             // TODO: Consider using Kotlin Coroutines for async code when upgrading to main branch
             // Or re-implement the UI with LiveData which handles data binding with Room for us.
-            List<GeoLocationV6> locations = databaseV6.geoLocationDao().loadAllByMeasurementId(measurementIdentifier);
-            List<Pressure> pressures = databaseV6.pressureDao().loadAllByMeasurementId(measurementIdentifier);
+            List<PersistedGeoLocation> locations = databaseV6.geoLocationDao()
+                    .loadAllByMeasurementId(measurementIdentifier);
+            List<PersistedPressure> pressures = databaseV6.pressureDao().loadAllByMeasurementId(measurementIdentifier);
             if (locations.size() == 0) {
                 return Collections.emptyList();
             }
@@ -970,8 +973,8 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
                 // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
                 // We do this to ignore data points between pause and resume event (STAD-140)
-                locations = (List<GeoLocationV6>)continueWithFirstAfter(locations, resumeEventTime);
-                pressures = (List<Pressure>)continueWithFirstAfter(pressures, resumeEventTime);
+                locations = (List<PersistedGeoLocation>)continueWithFirstAfter(locations, resumeEventTime);
+                pressures = (List<PersistedPressure>)continueWithFirstAfter(pressures, resumeEventTime);
             }
 
             // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -1203,19 +1206,21 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     /**
      * Collects a sub {@link TrackV6} of a {@code Measurement}.
      *
-     * @param locations The ordered list of {@code GeoLocationV6}s which starts at the first {@link GeoLocationV6} of
+     * @param locations The ordered list of {@code PersistedGeoLocation}s which starts at the first
+     *            {@link PersistedGeoLocation} of
      *            the sub track to be collected.
-     * @param pressures The ordered list of {@code Pressure}s which starts at the first {@link Pressure} of the
+     * @param pressures The ordered list of {@code PersistedPressure}s which starts at the first
+     *            {@link PersistedPressure} of the
      *            sub track to be collected.
      * @param pauseEventTime the Unix timestamp of the {@link Event.EventType#LIFECYCLE_PAUSE} which defines the end of
      *            this sub Track.
      * @return The sub {@code TrackV6}.
      */
-    private TrackV6 collectNextSubTrackV6(final List<GeoLocationV6> locations, final List<Pressure> pressures,
-            final Long pauseEventTime) {
+    private TrackV6 collectNextSubTrackV6(final List<PersistedGeoLocation> locations,
+            final List<PersistedPressure> pressures, final Long pauseEventTime) {
         final TrackV6 track = new TrackV6();
 
-        GeoLocationV6 location = locations.get(0);
+        PersistedGeoLocation location = locations.get(0);
         while (location != null && location.getTimestamp() <= pauseEventTime) {
             track.addLocation(location);
             // Load next data point to check it's timestamp in next iteration
@@ -1223,7 +1228,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             location = locations.get(0);
         }
 
-        Pressure pressure = pressures.get(0);
+        PersistedPressure pressure = pressures.get(0);
         while (pressure != null && pressure.getTimestamp() <= pauseEventTime) {
             track.addPressure(pressure);
             // Load next data point to check it's timestamp in next iteration

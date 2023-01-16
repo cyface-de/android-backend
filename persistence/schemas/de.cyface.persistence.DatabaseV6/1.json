@@ -2,11 +2,11 @@
   "formatVersion": 1,
   "database": {
     "version": 1,
-    "identityHash": "3eb7e837bc4566d37226a2d7ca965876",
+    "identityHash": "c3ec4780488bc825ddc6571e20a59607",
     "entities": [
       {
         "tableName": "Pressure",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pressure` REAL NOT NULL, `measurement_fk` INTEGER, `uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`pressure` REAL NOT NULL, `measurement_fk` INTEGER NOT NULL, `uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL)",
         "fields": [
           {
             "fieldPath": "pressure",
@@ -18,7 +18,7 @@
             "fieldPath": "measurementId",
             "columnName": "measurement_fk",
             "affinity": "INTEGER",
-            "notNull": false
+            "notNull": true
           },
           {
             "fieldPath": "uid",
@@ -114,7 +114,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '3eb7e837bc4566d37226a2d7ca965876')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'c3ec4780488bc825ddc6571e20a59607')"
     ]
   }
 }

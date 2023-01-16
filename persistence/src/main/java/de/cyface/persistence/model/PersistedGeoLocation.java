@@ -18,50 +18,50 @@
  */
 package de.cyface.persistence.model;
 
-import static de.cyface.persistence.Constants.TAG;
-
-import java.util.Locale;
 import java.util.Objects;
 
-import android.os.Parcel;
-import android.util.Log;
-
 import androidx.annotation.NonNull;
+import androidx.room.ColumnInfo;
+import androidx.room.Entity;
 import androidx.room.Ignore;
 
 import de.cyface.persistence.LocationCleaningStrategy;
 
 /**
- * This class represents a geographical location, usually captured by a GNSS.
+ * An {@code @Entity} which represents a persisted {@link GeoLocationV6}, usually captured by a GNSS.
  * <p>
- * An instance of this class represents a data point captured and cached but not yet persisted. Such an
- * {@link PersistedGeoLocation} requires the measurement id to be set.
+ * An instance of this class represents one row in a database table containing the location data.
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 6.3.0
  */
-public class GeoLocationV6 extends DataPointV6 {
+@Entity(tableName = "Location")
+public class PersistedGeoLocation extends GeoLocationV6 {
 
     /**
      * The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
      */
+    @ColumnInfo(name = "lat")
     private final double lat;
 
     /**
      * The captured longitude of this data point in decimal coordinates as a value between -180.0 and 180.0.
      */
+    @ColumnInfo(name = "lon")
     private final double lon;
 
     /**
      * The captured altitude of this data point in meters above WGS 84 if available.
      */
+    @ColumnInfo(name = "altitude")
     private final Double altitude;
 
     /**
      * The current speed of the measuring device according to its location sensor in meters per second.
      */
+    @ColumnInfo(name = "speed")
     private final double speed;
 
     /**
@@ -71,11 +71,13 @@ public class GeoLocationV6 extends DataPointV6 {
      * TODO: Consider making accuracy `Double` and write `null` when `Location.hasAccuracy()` is false,
      * but only after migrating to Room. The transfer file format might need adjustment for that.
      */
+    @ColumnInfo(name = "accuracy")
     private final double accuracy;
 
     /**
      * The current vertical accuracy of the measuring device in meters if available.
      */
+    @ColumnInfo(name = "vertical_accuracy")
     private final Double verticalAccuracy;
 
     /**
@@ -83,7 +85,16 @@ public class GeoLocationV6 extends DataPointV6 {
      * <p>
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
+    @Ignore
     private Boolean isValid;
+
+    /**
+     * The device-unique id of the measurement this data point belongs to.
+     * <p>
+     * TODO: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
+     */
+    @ColumnInfo(name = "measurement_fk")
+    private final long measurementId;
 
     /**
      * Creates a new completely initialized instance of this class.
@@ -98,44 +109,36 @@ public class GeoLocationV6 extends DataPointV6 {
      * @param speed The current speed of the measuring device according to its location sensor in meters per second.
      * @param accuracy The current accuracy of the measuring device in centimeters.
      * @param verticalAccuracy The current vertical accuracy of the measuring device in meters.
+     * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
-    public GeoLocationV6(final long timestamp, final double lat, final double lon, final Double altitude,
-            final double speed, final double accuracy, final Double verticalAccuracy) {
-        super(timestamp);
-
-        if (lat < -90. || lat > 90.) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for latitude. Is required to be between -90.0 and 90.0 but was %f.", lat));
-        }
-        if (lon < -180. || lon > 180.) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was %f.", lon));
-        }
-        // lowest and highest point on earth with a few meters added because of inaccuracy
-        if (altitude != null && (altitude < -500. || altitude > 10_000.)) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for altitude. Is required to be between -500.0 and 10_000.0 but was %f.", altitude));
-        }
-        if (speed < 0.) {
-            // Occurred on Huawei 10 Mate Pro (RAD-51)
-            Log.w(TAG,
-                    String.format(Locale.US, "Illegal value for speed. Is required to be positive but was %f.", speed));
-        }
-        if (accuracy < 0.) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for accuracy. Is required to be positive but was %f.", accuracy));
-        }
-        if (verticalAccuracy != null && (verticalAccuracy < 0.)) {
-            throw new IllegalArgumentException(String.format(Locale.US,
-                    "Illegal value for verticalAccuracy. Is required to be positive but was %f.", verticalAccuracy));
-        }
-
+    public PersistedGeoLocation(final long timestamp, final double lat, final double lon, final Double altitude,
+            final double speed, final double accuracy, final Double verticalAccuracy, final long measurementId) {
+        super(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy);
         this.lat = lat;
         this.lon = lon;
         this.altitude = altitude;
         this.speed = speed;
         this.accuracy = accuracy;
         this.verticalAccuracy = verticalAccuracy;
+        this.measurementId = measurementId;
+    }
+
+    /**
+     * Creates a new completely initialized instance of this class.
+     *
+     * @param location The cached {@link GeoLocationV6} to create the {@link PersistedGeoLocation} from.
+     * @param measurementId The device-unique id of the measurement this data point belongs to.
+     */
+    public PersistedGeoLocation(final GeoLocationV6 location, final long measurementId) {
+        super(location.getTimestamp(), location.getLat(), location.getLon(), location.getAltitude(),
+                location.getSpeed(), location.getAccuracy(), location.getVerticalAccuracy());
+        this.lat = location.getLat();
+        this.lon = location.getLon();
+        this.altitude = location.getAltitude();
+        this.speed = location.getSpeed();
+        this.accuracy = location.getAccuracy();
+        this.verticalAccuracy = location.getVerticalAccuracy();
+        this.measurementId = measurementId;
     }
 
     /**
@@ -191,6 +194,13 @@ public class GeoLocationV6 extends DataPointV6 {
     }
 
     /**
+     * @return The device-unique id of the measurement this data point belongs to.
+     */
+    public long getMeasurementId() {
+        return measurementId;
+    }
+
+    /**
      * @param valid {@code True} if this location is considered "clean" by the provided
      *            {@link LocationCleaningStrategy}.
      */
@@ -198,63 +208,10 @@ public class GeoLocationV6 extends DataPointV6 {
         isValid = valid;
     }
 
-    /*
-     * MARK: Parcelable Interface
-     */
-
-    /**
-     * Constructor as required by {@code Parcelable} implementation.
-     *
-     * @param in A {@code Parcel} that is a serialized version of a data point.
-     */
-    @Ignore // Parcelable requires this constructor, make {@code Room} ignore this constructor.
-    protected GeoLocationV6(final @NonNull Parcel in) {
-        super(in);
-        lat = in.readDouble();
-        lon = in.readDouble();
-        altitude = in.readDouble();
-        speed = in.readDouble();
-        accuracy = in.readDouble();
-        verticalAccuracy = in.readDouble();
-        isValid = in.readByte() != 0;
-    }
-
-    /**
-     * The {@code Parcelable} creator as required by the Android Parcelable specification.
-     */
-    public static final Creator<GeoLocationV6> CREATOR = new Creator<GeoLocationV6>() {
-        @Override
-        public GeoLocationV6 createFromParcel(Parcel in) {
-            return new GeoLocationV6(in);
-        }
-
-        @Override
-        public GeoLocationV6[] newArray(int size) {
-            return new GeoLocationV6[size];
-        }
-    };
-
-    @Override
-    public int describeContents() {
-        return 0;
-    }
-
-    @Override
-    public void writeToParcel(Parcel dest, int flags) {
-        super.writeToParcel(dest, flags);
-        dest.writeDouble(lat);
-        dest.writeDouble(lon);
-        dest.writeDouble(altitude);
-        dest.writeDouble(speed);
-        dest.writeDouble(accuracy);
-        dest.writeDouble(verticalAccuracy);
-        dest.writeByte((byte)(isValid ? 1 : 0));
-    }
-
     @NonNull
     @Override
     public String toString() {
-        return "GeoLocationV6{" +
+        return "PersistedGeoLocation{" +
                 "lat=" + lat +
                 ", lon=" + lon +
                 ", altitude=" + altitude +
@@ -262,6 +219,7 @@ public class GeoLocationV6 extends DataPointV6 {
                 ", accuracy=" + accuracy +
                 ", verticalAccuracy=" + verticalAccuracy +
                 ", isValid=" + isValid +
+                ", measurementId=" + measurementId +
                 '}';
     }
 
@@ -271,17 +229,18 @@ public class GeoLocationV6 extends DataPointV6 {
             return true;
         if (o == null || getClass() != o.getClass())
             return false;
-        GeoLocationV6 that = (GeoLocationV6)o;
+        PersistedGeoLocation that = (PersistedGeoLocation)o;
         return Double.compare(that.lat, lat) == 0
                 && Double.compare(that.lon, lon) == 0 && Double.compare(that.speed, speed) == 0
-                && Double.compare(that.accuracy, accuracy) == 0 && Objects.equals(altitude, that.altitude)
-                && Objects.equals(verticalAccuracy, that.verticalAccuracy) && Objects.equals(isValid, that.isValid);
+                && Double.compare(that.accuracy, accuracy) == 0 && measurementId == that.measurementId
+                && Objects.equals(altitude, that.altitude) && Objects.equals(verticalAccuracy, that.verticalAccuracy)
+                && Objects.equals(isValid, that.isValid);
     }
 
     // To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
     // in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1071077508
     @Override
     public int hashCode() {
-        return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy);
+        return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy, measurementId);
     }
 }

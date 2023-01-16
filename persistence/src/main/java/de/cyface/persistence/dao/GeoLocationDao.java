@@ -25,9 +25,10 @@ import androidx.room.Insert;
 import androidx.room.Query;
 
 import de.cyface.persistence.model.GeoLocationV6;
+import de.cyface.persistence.model.PersistedGeoLocation;
 
 /**
- * Data access object which provides the API to interact with the {@link GeoLocationV6} database table.
+ * Data access object which provides the API to interact with the {@link PersistedGeoLocation} database table.
  *
  * @author Armin Schnabel
  * @version 1.0.0
@@ -37,10 +38,10 @@ import de.cyface.persistence.model.GeoLocationV6;
 public interface GeoLocationDao {
 
     @Query("SELECT * FROM location WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
-    List<GeoLocationV6> loadAllByMeasurementId(long measurementId);
+    List<PersistedGeoLocation> loadAllByMeasurementId(long measurementId);
 
     @Insert
-    void insertAll(GeoLocationV6... locations);
+    void insertAll(PersistedGeoLocation... locations);
 
     @SuppressWarnings("UnusedReturnValue")
     @Query("DELETE FROM pressure WHERE measurement_fk = :measurementId")

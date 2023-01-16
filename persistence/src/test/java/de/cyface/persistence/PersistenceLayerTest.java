@@ -41,8 +41,8 @@ import android.hardware.SensorManager;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import de.cyface.persistence.model.GeoLocationV6;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.PersistedGeoLocation;
+import de.cyface.persistence.model.PersistedPressure;
 import de.cyface.persistence.model.TrackV6;
 
 /**
@@ -112,24 +112,24 @@ public class PersistenceLayerTest {
         final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
         final TrackV6 trackV6 = new TrackV6();
         // noise around 0 (+-1)
-        trackV6.addPressure(new Pressure(1L, pressure(0., p0)));
-        trackV6.addPressure(new Pressure(2L, pressure(1., p0)));
-        trackV6.addPressure(new Pressure(3L, pressure(-1., p0)));
-        trackV6.addPressure(new Pressure(4L, pressure(0., p0)));
-        trackV6.addPressure(new Pressure(5L, pressure(1., p0)));
+        trackV6.addPressure(new PersistedPressure(1L, pressure(0., p0), 1L));
+        trackV6.addPressure(new PersistedPressure(2L, pressure(1., p0), 1L));
+        trackV6.addPressure(new PersistedPressure(3L, pressure(-1., p0), 1L));
+        trackV6.addPressure(new PersistedPressure(4L, pressure(0., p0), 1L));
+        trackV6.addPressure(new PersistedPressure(5L, pressure(1., p0), 1L));
         // ascend 1 => +3
         // 3.03 as pressure to altitude calculation is not 100% accurate and would
         // fail because the ascend would be slightly below the threshold
-        trackV6.addPressure(new Pressure(6L, pressure(3.01, p0)));
+        trackV6.addPressure(new PersistedPressure(6L, pressure(3.01, p0), 1L));
         // descend => lastAltitude -= 2
-        trackV6.addPressure(new Pressure(7L, pressure(1., p0)));
+        trackV6.addPressure(new PersistedPressure(7L, pressure(1., p0), 1L));
         // ascend 2 => +2
-        trackV6.addPressure(new Pressure(8L, pressure(3.01, p0)));
+        trackV6.addPressure(new PersistedPressure(8L, pressure(3.01, p0), 1L));
         // Track without ascend but with data should return 0.0 not null
         final TrackV6 track2 = new TrackV6();
-        track2.addPressure(new Pressure(1L, pressure(0., p0)));
-        track2.addPressure(new Pressure(2L, pressure(1., p0)));
-        track2.addPressure(new Pressure(3L, pressure(-1., p0)));
+        track2.addPressure(new PersistedPressure(1L, pressure(0., p0), 1L));
+        track2.addPressure(new PersistedPressure(2L, pressure(1., p0), 1L));
+        track2.addPressure(new PersistedPressure(3L, pressure(-1., p0), 1L));
 
         // Act
         final Double ascend = oocut.ascendFromPressures(Collections.singletonList(trackV6));
@@ -146,22 +146,22 @@ public class PersistenceLayerTest {
         // Arrange
         final TrackV6 trackV6 = new TrackV6();
         // noise around 0 (+-1)
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(2L, 0., 0., 1., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(3L, 0., 0., -1., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(4L, 0., 0., 0., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(5L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new PersistedGeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
+        trackV6.addLocation(new PersistedGeoLocation(2L, 0., 0., 1., 1., 5., 5., 1L));
+        trackV6.addLocation(new PersistedGeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
+        trackV6.addLocation(new PersistedGeoLocation(4L, 0., 0., 0., 1., 5., 5., 1L));
+        trackV6.addLocation(new PersistedGeoLocation(5L, 0., 0., 1., 1., 5., 5., 1L));
         // ascend 1 => +3
-        trackV6.addLocation(new GeoLocationV6(6L, 0., 0., 3., 1., 5., 5.));
+        trackV6.addLocation(new PersistedGeoLocation(6L, 0., 0., 3., 1., 5., 5., 1L));
         // descend => lastAltitude -= 2
-        trackV6.addLocation(new GeoLocationV6(7L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new PersistedGeoLocation(7L, 0., 0., 1., 1., 5., 5., 1L));
         // ascend 2 => +2
-        trackV6.addLocation(new GeoLocationV6(8L, 0., 0., 3., 1., 5., 5.));
+        trackV6.addLocation(new PersistedGeoLocation(8L, 0., 0., 3., 1., 5., 5., 1L));
         // Track without ascend but with data should return 0.0 not null
         final TrackV6 track2 = new TrackV6();
-        track2.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
-        track2.addLocation(new GeoLocationV6(2L, 0., 0., 1., 1., 5., 5.));
-        track2.addLocation(new GeoLocationV6(3L, 0., 0., -1., 1., 5., 5.));
+        track2.addLocation(new PersistedGeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
+        track2.addLocation(new PersistedGeoLocation(2L, 0., 0., 1., 1., 5., 5., 1L));
+        track2.addLocation(new PersistedGeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
 
         // Act
         final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(trackV6));

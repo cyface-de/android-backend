@@ -24,34 +24,23 @@ import java.util.Objects;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
-import androidx.room.ColumnInfo;
-import androidx.room.Entity;
 
 /**
- * An {@code @Entity} which represents the data type of a pressure {@link DataPointV6}, usually captured by a barometer.
+ * This class represents a pressure {@link DataPointV6}, usually captured by a barometer.
  * <p>
- * An instance of this class represents one row in a database table containing the pressure data.
+ * An instance of this class represents a data point captured and cached but not yet persisted. Such an
+ * {@link PersistedPressure} requires the measurement id to be set.
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 6.3.0
  */
-@Entity()
 public class Pressure extends DataPointV6 {
 
     /**
      * The atmospheric pressure of this data point in hPa (millibar).
      */
-    @ColumnInfo(name = "pressure")
     private final double pressure;
-
-    /**
-     * The device-unique id of the measurement this data point belongs to.
-     * <p>
-     * TODO: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
-     */
-    @ColumnInfo(name = "measurement_fk")
-    private Long measurementId;
 
     /**
      * Creates a new completely initialized instance of this class.
@@ -77,20 +66,6 @@ public class Pressure extends DataPointV6 {
      */
     public double getPressure() {
         return pressure;
-    }
-
-    /**
-     * @return The device-unique id of the measurement this data point belongs to.
-     */
-    public Long getMeasurementId() {
-        return measurementId;
-    }
-
-    /**
-     * @param measurementId The device-unique id of the measurement this data point belongs to.
-     */
-    public void setMeasurementId(Long measurementId) {
-        this.measurementId = measurementId;
     }
 
     /*
@@ -138,7 +113,6 @@ public class Pressure extends DataPointV6 {
     public String toString() {
         return "Pressure{" +
                 "pressure=" + pressure +
-                ", measurementId=" + measurementId +
                 '}';
     }
 
@@ -151,12 +125,11 @@ public class Pressure extends DataPointV6 {
         if (!super.equals(o))
             return false;
         Pressure pressure1 = (Pressure)o;
-        return Double.compare(pressure1.pressure, pressure) == 0
-                && Objects.equals(measurementId, pressure1.measurementId);
+        return Double.compare(pressure1.pressure, pressure) == 0;
     }
 
     @Override
     public int hashCode() {
-        return Objects.hash(super.hashCode(), pressure, measurementId);
+        return Objects.hash(super.hashCode(), pressure);
     }
 }

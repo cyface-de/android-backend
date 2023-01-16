@@ -25,7 +25,8 @@ import java.util.Objects;
 import androidx.annotation.NonNull;
 
 /**
- * A {@link TrackV6} consists of {@link GeoLocationV6}s and {@link Pressure}s (data points) collected for a
+ * A {@link TrackV6} consists of {@link PersistedGeoLocation}s and {@link PersistedPressure}s (data points) collected
+ * for a
  * {@link Measurement}. Its data points are ordered by time.
  * <p>
  * A {@code TrackV6} begins with the first data point of each type collected after start or resume was triggered
@@ -39,14 +40,14 @@ import androidx.annotation.NonNull;
 public class TrackV6 {
 
     /**
-     * The {@link GeoLocationV6}s collected for this {@link TrackV6}.
+     * The {@link PersistedGeoLocation}s collected for this {@link TrackV6}.
      */
-    private final List<GeoLocationV6> geoLocations;
+    private final List<PersistedGeoLocation> geoLocations;
 
     /**
-     * The {@link Pressure}s collected for this {@link TrackV6}.
+     * The {@link PersistedPressure}s collected for this {@link TrackV6}.
      */
-    private final List<Pressure> pressures;
+    private final List<PersistedPressure> pressures;
 
     /**
      * Creates a completely initialized instance of this class.
@@ -62,36 +63,36 @@ public class TrackV6 {
      * @param locations The locations to add to the track.
      * @param pressures The pressures to add to the track.
      */
-    public TrackV6(final List<GeoLocationV6> locations, final List<Pressure> pressures) {
+    public TrackV6(final List<PersistedGeoLocation> locations, final List<PersistedPressure> pressures) {
         this.geoLocations = new ArrayList<>(locations);
         this.pressures = new ArrayList<>(pressures);
     }
 
     /**
-     * @param location The {@link GeoLocationV6} to be added at the end of the {@link TrackV6}.
+     * @param location The {@link PersistedGeoLocation} to be added at the end of the {@link TrackV6}.
      */
-    public void addLocation(@NonNull final GeoLocationV6 location) {
+    public void addLocation(@NonNull final PersistedGeoLocation location) {
         geoLocations.add(location);
     }
 
     /**
-     * @param pressure The {@link Pressure} to be added at the end of the {@link TrackV6}.
+     * @param pressure The {@link PersistedPressure} to be added at the end of the {@link TrackV6}.
      */
-    public void addPressure(@NonNull final Pressure pressure) {
+    public void addPressure(@NonNull final PersistedPressure pressure) {
         pressures.add(pressure);
     }
 
     /**
-     * @return The {@link GeoLocationV6}s collected for this {@link TrackV6}.
+     * @return The {@link PersistedGeoLocation}s collected for this {@link TrackV6}.
      */
-    public List<GeoLocationV6> getGeoLocations() {
+    public List<PersistedGeoLocation> getGeoLocations() {
         return new ArrayList<>(geoLocations);
     }
 
     /**
-     * @return The {@link Pressure}s collected for this {@link TrackV6}.
+     * @return The {@link PersistedPressure}s collected for this {@link TrackV6}.
      */
-    public List<Pressure> getPressures() {
+    public List<PersistedPressure> getPressures() {
         return pressures;
     }
 

@@ -24,10 +24,11 @@ import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
 
+import de.cyface.persistence.model.PersistedPressure;
 import de.cyface.persistence.model.Pressure;
 
 /**
- * Data access object which provides the API to interact with the {@link Pressure} database table.
+ * Data access object which provides the API to interact with the {@link PersistedPressure} database table.
  *
  * @author Armin Schnabel
  * @version 1.0.0
@@ -37,10 +38,10 @@ import de.cyface.persistence.model.Pressure;
 public interface PressureDao {
 
     @Query("SELECT * FROM pressure WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
-    List<Pressure> loadAllByMeasurementId(long measurementId);
+    List<PersistedPressure> loadAllByMeasurementId(long measurementId);
 
     @Insert
-    void insertAll(Pressure... pressures);
+    void insertAll(PersistedPressure... pressures);
 
     @SuppressWarnings("UnusedReturnValue")
     @Query("DELETE FROM pressure WHERE measurement_fk = :measurementId")

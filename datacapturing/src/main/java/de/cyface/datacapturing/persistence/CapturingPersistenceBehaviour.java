@@ -26,6 +26,8 @@ import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.PersistedGeoLocation;
+import de.cyface.persistence.model.PersistedPressure;
 import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
@@ -132,8 +134,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
             final double averagePressure = sum / pressures.size();
             // Using the timestamp of the latest pressure sample
             final long timestamp = pressures.get(pressures.size() - 1).getTimestamp();
-            final Pressure pressure = new Pressure(timestamp, averagePressure);
-            pressure.setMeasurementId(measurementIdentifier);
+            final PersistedPressure pressure = new PersistedPressure(timestamp, averagePressure, measurementIdentifier);
             PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
             dao.insertAll(pressure);
         }
@@ -166,9 +167,8 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      */
     public void storeLocationV6(final @NonNull GeoLocationV6 location, final long measurementIdentifier) {
 
-        location.setMeasurementId(measurementIdentifier);
         GeoLocationDao dao = persistenceLayer.getDatabaseV6().geoLocationDao();
-        dao.insertAll(location);
+        dao.insertAll(new PersistedGeoLocation(location, measurementIdentifier));
     }
 
     /**
