@@ -53,7 +53,6 @@ public abstract class DataPoint implements Parcelable {
         return timestamp;
     }
 
-    // FIXME: Should also check timestamp
     @Override
     public boolean equals(Object o) {
         if (this == o) {
@@ -64,7 +63,8 @@ public abstract class DataPoint implements Parcelable {
         }
 
         DataPoint dataPoint = (DataPoint)o;
-
+        // According to documentation id is system wide unique, so it should be enough to compare ids
+        // https://github.com/cyface-de/android-backend/pull/258#discussion_r1071067733
         return identifier.equals(dataPoint.identifier);
 
     }

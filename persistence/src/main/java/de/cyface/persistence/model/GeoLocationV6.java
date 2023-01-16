@@ -248,7 +248,10 @@ public class GeoLocationV6 extends DataPointV6 {
         accuracy = in.readDouble();
         verticalAccuracy = in.readDouble();
         isValid = in.readByte() != 0;
-        measurementId = in.readLong(); // FIXME: Added, do we need this? GeoLocation has no such field
+        // Even though the `measurementId` is currently always null when passed through a parcel this may change
+        // in the future, so we encode it to avoid future bugs.
+        // https://github.com/cyface-de/android-backend/pull/258#discussion_r1071074380
+        measurementId = in.readLong();
     }
 
     /**
@@ -281,7 +284,7 @@ public class GeoLocationV6 extends DataPointV6 {
         dest.writeDouble(accuracy);
         dest.writeDouble(verticalAccuracy);
         dest.writeByte((byte)(isValid ? 1 : 0));
-        dest.writeLong(measurementId); // FIXME: Added, do we need this? GeoLocation has no such field
+        dest.writeLong(measurementId);
     }
 
     @NonNull
@@ -313,8 +316,10 @@ public class GeoLocationV6 extends DataPointV6 {
                 && Objects.equals(isValid, that.isValid);
     }
 
+    // To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
+    // in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1071077508
     @Override
-    public int hashCode() { // FIXME: w/ or w/o uid, measurement_fk? (definitely w/o isValid)
+    public int hashCode() {
         return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy);
     }
 }

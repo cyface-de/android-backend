@@ -125,7 +125,9 @@ public abstract class DataPointV6 implements Parcelable {
         return uid == that.uid && timestamp == that.timestamp;
     }
 
-    @Override // FIXME: w/ or w/o uid, timestamp?
+    @Override
+    // To ease migration with `main` we keep the `hashCode()` similar to `DataPoint`:
+    // https://github.com/cyface-de/android-backend/pull/258#discussion_r1071071508
     public int hashCode() {
         return Objects.hash(uid);
     }

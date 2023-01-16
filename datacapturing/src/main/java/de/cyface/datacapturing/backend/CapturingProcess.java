@@ -18,6 +18,7 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static android.hardware.SensorManager.SENSOR_DELAY_NORMAL;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.utils.TestEnvironment.isEmulator;
 
@@ -71,10 +72,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * A delay used to bundle capturing of sensor events, to reduce power consumption.
      */
     private static final int SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000;
-    /**
-     * A delay used to reduce capturing of sensor events, to reduce data size. E.g.: 10 k = 100 Hz
-     */
-    private final int delayBetweenSensorEventsInMicroseconds;
     /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
@@ -168,7 +165,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.locationStatusHandler = geoLocationDeviceStatusHandler;
         this.locationEventHandlerThread = locationEventHandlerThread;
         this.sensorEventHandlerThread = sensorEventHandlerThread;
-        this.delayBetweenSensorEventsInMicroseconds = 1_000_000 / sensorFrequency;
 
         locationEventHandlerThread.start();
         this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,
@@ -181,11 +177,13 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor barometer = sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
+        // A delay used to reduce capturing of sensor events, to reduce data size. E.g.: 10 k = 100 Hz
+        final int delayBetweenSensorEventsInMicroseconds = 1_000_000 / sensorFrequency;
         registerSensor(accelerometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
         registerSensor(gyroscope, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
         registerSensor(magnetometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
-        // The lowest possible frequency is ~10-12 Hz on a Pixel 6. We request the normal frequency which is also
-        // ~10-12 Hz to ensure we can build the average over multiple sensor points [STAD-400].
+        // The lowest possible frequency is ~5-10 Hz, which is also the normal frequency. We average the
+        // data to 1 Hz to decrease database usage and to support barometers like in the Pixel 6 [STAD-400].
         registerSensor(barometer, sensorEventHandler, SENSOR_DELAY_NORMAL);
     }
 
