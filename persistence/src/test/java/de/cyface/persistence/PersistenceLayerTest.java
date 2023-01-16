@@ -125,12 +125,19 @@ public class PersistenceLayerTest {
         trackV6.addPressure(new Pressure(7L, pressure(1., p0)));
         // ascend 2 => +2
         trackV6.addPressure(new Pressure(8L, pressure(3.01, p0)));
+        // Track without ascend but with data should return 0.0 not null
+        final TrackV6 track2 = new TrackV6();
+        track2.addPressure(new Pressure(1L, pressure(0., p0)));
+        track2.addPressure(new Pressure(2L, pressure(1., p0)));
+        track2.addPressure(new Pressure(3L, pressure(-1., p0)));
 
         // Act
         final Double ascend = oocut.ascendFromPressures(Collections.singletonList(trackV6));
+        final Double ascend2 = oocut.ascendFromPressures(Collections.singletonList(track2));
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.02)));
+        assertThat(ascend2, is(closeTo(0., 0.02)));
     }
 
     @Test
@@ -140,22 +147,29 @@ public class PersistenceLayerTest {
         final TrackV6 trackV6 = new TrackV6();
         // noise around 0 (+-1)
         trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., -1., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(2L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(3L, 0., 0., -1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(4L, 0., 0., 0., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(5L, 0., 0., 1., 1., 5., 5.));
         // ascend 1 => +3
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 3., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(6L, 0., 0., 3., 1., 5., 5.));
         // descend => lastAltitude -= 2
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 1., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(7L, 0., 0., 1., 1., 5., 5.));
         // ascend 2 => +2
-        trackV6.addLocation(new GeoLocationV6(1L, 0., 0., 3., 1., 5., 5.));
+        trackV6.addLocation(new GeoLocationV6(8L, 0., 0., 3., 1., 5., 5.));
+        // Track without ascend but with data should return 0.0 not null
+        final TrackV6 track2 = new TrackV6();
+        track2.addLocation(new GeoLocationV6(1L, 0., 0., 0., 1., 5., 5.));
+        track2.addLocation(new GeoLocationV6(2L, 0., 0., 1., 1., 5., 5.));
+        track2.addLocation(new GeoLocationV6(3L, 0., 0., -1., 1., 5., 5.));
 
         // Act
         final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(trackV6));
+        final Double ascend2 = oocut.ascendFromGNSS(Collections.singletonList(track2));
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.01)));
+        assertThat(ascend2, is(closeTo(0., 0.01)));
     }
 
     /**

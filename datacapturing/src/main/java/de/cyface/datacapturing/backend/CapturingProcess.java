@@ -184,7 +184,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         registerSensor(accelerometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
         registerSensor(gyroscope, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
         registerSensor(magnetometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
-        registerSensor(barometer, sensorEventHandler, 1_000_000);
+        // The lowest possible frequency is ~10-12 Hz on a Pixel 6. We request the normal frequency which is also
+        // ~10-12 Hz to ensure we can build the average over multiple sensor points [STAD-400].
+        registerSensor(barometer, sensorEventHandler, SENSOR_DELAY_NORMAL);
     }
 
     /**

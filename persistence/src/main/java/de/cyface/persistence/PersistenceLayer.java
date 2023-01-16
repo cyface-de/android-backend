@@ -90,6 +90,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      */
     private static final double VERTICAL_ACCURACY_THRESHOLD_METERS = 12.;
     /**
+     * The size of the sliding window to be used to average the pressure data to filter outliers [STAD-400].
+     */
+    private static final int PRESSURE_SLIDING_WINDOW_SIZE = 20;
+    /**
      * The {@link Context} required to locate the app's internal storage directory.
      */
     private final Context context;
@@ -699,24 +703,41 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     Double ascendFromPressures(final List<TrackV6> tracks) {
         Double totalAscend = null;
         for (final TrackV6 track : tracks) {
-            Double ascend = null;
-            Double lastAltitude = null;
-            for (final Pressure pressure : track.getPressures()) {
 
+            // Calculate average pressure because some devices measure large pressure differences when
+            // the display-fingerprint is used and pressure is applied to the display: Pixel 6 [STAD-400]
+            // This filter did not affect ascend calculation of devices without the bug: Pixel 3a
+            List<Double> pressures = new ArrayList<>();
+            for (final Pressure pressure : track.getPressures()) {
+                pressures.add(pressure.getPressure());
+            }
+            final List<Double> averagePressures = averages(pressures, PRESSURE_SLIDING_WINDOW_SIZE);
+            if (averagePressures == null) {
+                continue;
+            }
+            List<Double> altitudes = new ArrayList<>();
+            for (final Double pressure : averagePressures) {
                 // As we're only interested in ascend and elevation profile, using a static reference pressure is
                 // sufficient [STAD-385] [STAD-391]
                 final double altitude = SensorManager.getAltitude(SensorManager.PRESSURE_STANDARD_ATMOSPHERE,
-                        (float)pressure.getPressure());
+                        (float)pressure.doubleValue());
+                altitudes.add(altitude);
+            }
+
+            // Tracks without much altitude should return 0 not null
+            Double ascend = altitudes.isEmpty() ? null : 0.;
+            Double lastAltitude = null;
+            for (final Double altitude : altitudes) {
                 if (lastAltitude == null) {
                     lastAltitude = altitude;
                     continue;
                 }
-                if (Math.abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
+                final double newAscend = altitude - lastAltitude;
+                if (Math.abs(newAscend) < ASCEND_THRESHOLD_METERS) {
                     continue;
                 }
-                final double newAscend = altitude - lastAltitude;
                 if (newAscend > 0) {
-                    ascend = ascend != null ? ascend + newAscend : newAscend;
+                    ascend += newAscend;
                 }
                 lastAltitude = altitude;
             }
@@ -739,10 +760,14 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             Double ascend = null;
             Double lastAltitude = null;
             for (final GeoLocationV6 location : track.getGeoLocations()) {
+                final Double altitude = location.getAltitude();
+                if (ascend == null && altitude != null) {
+                    // Tracks without much altitude should return 0 not null
+                    ascend = 0.;
+                }
                 final Double verticalAccuracy = location.getVerticalAccuracy();
                 if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
 
-                    final Double altitude = location.getAltitude();
                     if (altitude == null) {
                         continue;
                     }
@@ -755,7 +780,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                     }
                     final double newAscend = altitude - lastAltitude;
                     if (newAscend > 0) {
-                        ascend = ascend != null ? ascend + newAscend : newAscend;
+                        ascend += newAscend;
                     }
                     lastAltitude = altitude;
                 }
@@ -765,6 +790,32 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             }
         }
         return totalAscend;
+    }
+
+    /**
+     * Calculates the average value of a sliding window over a list of values.
+     * <p>
+     * E.g. for window size 3: [3, 0, 0, 6] => [1, 2]
+     *
+     * @param values The values to calculate the averages for.
+     * @param windowSize The size of the window to calculate each average on.
+     * @return The calculated averages.
+     */
+    List<Double> averages(List<Double> values, final int windowSize) {
+        if (values.size() <= windowSize) {
+            return null;
+        }
+        List<Double> averages = new ArrayList<>();
+        for (int i = windowSize - 1; i < values.size(); i++) {
+            double sum = 0.;
+            final List<Double> window = values.subList(i - windowSize + 1, i + 1);
+            Validate.isTrue(window.size() == windowSize);
+            for (Double value : window) {
+                sum += value;
+            }
+            averages.add(sum / window.size());
+        }
+        return averages;
     }
 
     /**

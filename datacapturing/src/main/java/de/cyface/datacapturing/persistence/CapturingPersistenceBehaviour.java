@@ -122,9 +122,17 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
 
         // Only store latest pressure point into the database, as the minimum frequency is > 10 HZ
         final List<Pressure> pressures = data.getPressures();
-        Log.d(TAG, String.format("Captured %d pressure points, storing 1 point", pressures.size()));
+        Log.d(TAG, String.format("Captured %d pressure points, storing 1 average", pressures.size()));
         if (pressures.size() > 0) {
-            final Pressure pressure = pressures.get(pressures.size() - 1);
+            // Calculating the average pressure to be less dependent on random outliers
+            double sum = 0.;
+            for (Pressure p : pressures) {
+                sum += p.getPressure();
+            }
+            final double averagePressure = sum / pressures.size();
+            // Using the timestamp of the latest pressure sample
+            final long timestamp = pressures.get(pressures.size() - 1).getTimestamp();
+            final Pressure pressure = new Pressure(timestamp, averagePressure);
             pressure.setMeasurementId(measurementIdentifier);
             PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
             dao.insertAll(pressure);
