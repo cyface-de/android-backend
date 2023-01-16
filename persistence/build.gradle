@@ -36,6 +36,13 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionName rootProject.ext.cyfaceBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+
+        // Write Room database schema to file to record database schema changes in version control
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
     }
 
     buildTypes {
