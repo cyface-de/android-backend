@@ -26,13 +26,15 @@
  */
 
 buildscript {
+    ext.gradle_version = "7.0.2"
+
     repositories {
         google()
         mavenCentral()
         gradlePluginPortal()
     }
     dependencies {
-        classpath 'com.android.tools.build:gradle:4.1.1'
+        classpath "com.android.tools.build:gradle:$gradle_version"
     }
 }
 
