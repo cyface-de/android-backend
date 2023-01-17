@@ -28,11 +28,12 @@ jobs:
         mkdir -p synchronization/src/main/res/raw
         touch synchronization/src/main/res/raw/truststore.jks
 
-    - name: Create local.properties with a repository token
+    - name: Add gradle.properties
       run: |
         # Use the repository's automatically set up token to pushlish to the registry
-        echo "github.user=cyface-de" > local.properties
-        echo "github.token=${{ secrets.GITHUB_TOKEN }}" >> local.properties
+        cp gradle.properties.template gradle.properties
+        echo "githubUser=${{ github.actor }}" >> gradle.properties
+        echo "githubToken=${{ secrets.GITHUB_TOKEN }}" >> gradle.properties
     - name: Publish with Gradle
       run: ./gradlew publishAll
 

@@ -33,10 +33,11 @@ jobs:
           mkdir -p synchronization/src/main/res/raw
           touch synchronization/src/main/res/raw/truststore.jks
 
-      - name: Create local.properties with a read token
+      - name: Add gradle.properties
         run: |
           # Use a personal read token to install the Cyface Utils package
-          echo "github.user=${{ secrets.GITHUB_READ_ACCOUNT }}" > local.properties
-          echo "github.token=${{ secrets.GITHUB_READ_TOKEN }}" >> local.properties
+          cp gradle.properties.template gradle.properties
+          echo "githubUser=${{ secrets.GH_READ_ACCOUNT }}" >> gradle.properties
+          echo "githubToken=${{ secrets.GH_READ_TOKEN }}" >> gradle.properties
       - name: Build with Gradle
         run: ./gradlew build

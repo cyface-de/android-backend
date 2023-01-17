@@ -67,10 +67,6 @@ ext {
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 }
 
-// Load credentials
-def properties = new Properties()
-properties.load(new FileInputStream("local.properties"))
-
 allprojects {
     repositories {
         // Needed to resolve newest support libraries with IntelliJ / Gradle
@@ -81,8 +77,8 @@ allprojects {
             url = uri("https://maven.pkg.github.com/cyface-de/android-utils")
             // Needed even for public projects: https://github.community/t5/GitHub-API-Development-and/Download-from-Github-Package-Registry-without-authentication/m-p/35255
             credentials {
-                username = properties.getProperty("github.user")
-                password = properties.getProperty("github.token")
+                username = project.findProperty("githubUser")
+                password = project.findProperty("githubToken")
             }
         }
     }
@@ -112,6 +108,3 @@ publishAll.outputs.upToDateWhen { false }
 task clean(type: Delete) {
     delete rootProject.buildDir
 }
-
-// The gradle publish tasks is defined in a separate file:
-apply from: 'publish.gradle'
