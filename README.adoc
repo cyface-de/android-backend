@@ -38,8 +38,9 @@ To use it as a dependency in your app you need to:
 
  repositories {
      // Other maven repositories, e.g.:
-     jcenter()
      google()
+     mavenCentral()
+     gradlePluginPortal()
      // Repository for this library
      maven {
          url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
