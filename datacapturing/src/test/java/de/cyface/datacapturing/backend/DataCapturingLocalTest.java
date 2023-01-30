@@ -230,7 +230,8 @@ public class DataCapturingLocalTest {
                     Math.abs(random.nextLong())));
         }
         for (int i = 0; i < pressuresSize; i++) {
-            pressures.add(new Pressure(Math.abs(random.nextLong()), random.nextFloat()));
+            final double validPressure = 250L + (long) (Math.random() * 850);
+            pressures.add(new Pressure(Math.abs(random.nextLong()), validPressure));
         }
         CapturedData data = new CapturedData(accelerations, rotations, directions, pressures);
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);
