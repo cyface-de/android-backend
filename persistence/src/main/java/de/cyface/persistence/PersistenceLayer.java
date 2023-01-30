@@ -688,7 +688,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
                 }
             }
             if (hasPressures && !forceGnssAscend) {
-                return ascendFromPressures(tracks);
+                return ascendFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE);
             } else {
                 return ascendFromGNSS(tracks);
             }
@@ -700,9 +700,10 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * Calculate based on atmospheric pressure.
      *
      * @param tracks The track to calculate the ascend for.
+     * @param slidingWindowSize The window size to use to average the pressure values.
      * @return The ascend in meters.
      */
-    Double ascendFromPressures(final List<TrackV6> tracks) {
+    Double ascendFromPressures(final List<TrackV6> tracks, final int slidingWindowSize) {
         Double totalAscend = null;
         for (final TrackV6 track : tracks) {
 
@@ -713,7 +714,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             for (final Pressure pressure : track.getPressures()) {
                 pressures.add(pressure.getPressure());
             }
-            final List<Double> averagePressures = averages(pressures, PRESSURE_SLIDING_WINDOW_SIZE);
+            final List<Double> averagePressures = averages(pressures, slidingWindowSize);
             if (averagePressures == null) {
                 continue;
             }
