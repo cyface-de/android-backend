@@ -125,6 +125,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     private final HandlerThread sensorEventHandlerThread;
     private final HandlerThread locationEventHandlerThread;
+    /**
+     * The provider to use to check the build version of the system.
+     */
+    private BuildVersionProvider buildVersionProvider;
 
     /**
      * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided
@@ -165,6 +169,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.locationStatusHandler = geoLocationDeviceStatusHandler;
         this.locationEventHandlerThread = locationEventHandlerThread;
         this.sensorEventHandlerThread = sensorEventHandlerThread;
+        this.buildVersionProvider = new BuildVersionProviderImpl();
 
         locationEventHandlerThread.start();
         this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,
@@ -211,9 +216,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             float locationAccuracyMeters = location.getAccuracy();
             // Don't write default value `0.0` when no value is available
             Double verticalAccuracyMeters = null;
-            if (android.os.Build.VERSION.SDK_INT >= android.os.Build.VERSION_CODES.O) {
-                verticalAccuracyMeters = location.hasVerticalAccuracy() ? (double)location.getVerticalAccuracyMeters()
-                        : null;
+            if (buildVersionProvider.isOreoAndAbove()) {
+                verticalAccuracyMeters = location.hasVerticalAccuracy() ? (double)location.getVerticalAccuracyMeters() : null;
             }
             if (de.cyface.datacapturing.BuildConfig.DEBUG
                     && (isEmulator() || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith("google/sdk_")))) {
@@ -476,4 +480,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @return The speed in m/s.
      */
     protected abstract double getCurrentSpeed(final Location location);
+
+    /**
+     * @param buildVersionProvider The provider to be used to check the build version.
+     */
+    public void setBuildVersionProvider(BuildVersionProvider buildVersionProvider) {
+        this.buildVersionProvider = buildVersionProvider;
+    }
 }

@@ -77,6 +77,11 @@ public class DataCapturingTest {
     @Mock
     private HandlerThread sensorEventHandler;
     /**
+     * A mocked {@link BuildVersionProvider} for version check in {@link CapturingProcess}.
+     */
+    @Mock
+    private BuildVersionProvider mockedBuildVersionProvider;
+    /**
      * The status handler for the geo location device.
      */
     private GeoLocationDeviceStatusHandler locationStatusHandler;
@@ -100,13 +105,19 @@ public class DataCapturingTest {
      */
     @Test
     public void testSuccessfulDataCapturing() {
+        when(mockedBuildVersionProvider.isOreoAndAbove()).thenReturn(true);
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(51.03624633);
         when(location.getLongitude()).thenReturn(13.78828128);
+        when(location.hasAltitude()).thenReturn(true);
+        when(location.getAltitude()).thenReturn(400.123);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
+        when(location.hasVerticalAccuracy()).thenReturn(true);
+        when(location.getVerticalAccuracyMeters()).thenReturn(0.0f);
         try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager,
                 mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100);) {
+            dataCapturing.setBuildVersionProvider(mockedBuildVersionProvider);
             dataCapturing.addCapturingProcessListener(listener);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);

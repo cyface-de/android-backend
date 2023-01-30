@@ -50,7 +50,7 @@ ext {
     compileSdkVersion = 33
     buildToolsVersion = '30.0.3'
 
-    androidxAnnotationVersion = "1.0.0"
+    androidxAnnotationVersion = "1.5.0"
     androidxAppCompatVersion = "1.2.0"
     localbroadcastmanagerVersion = "1.0.0"
     roomVersion = "2.4.3"
