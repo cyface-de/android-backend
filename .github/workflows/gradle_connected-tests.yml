@@ -1,4 +1,4 @@
-# This workflow runs the connected tests
+# This workflow ensures the connected tests keep working
 #
 # @author Armin Schnabel
 # @version 1.0.0
@@ -17,7 +17,8 @@ jobs:
   build:
     # Faster, but MacOS costs 8 ct/min instead of 0.8 ct/min of on Linux.
     # Unfortunately, `DataCapturingServiceTest.testDisconnectReconnect` fails on linux stack.
-    runs-on: macos-latest # See `actions/android-emulator-runner`
+    # But as this is a public repository, Github Actions are currently free of charge.
+    runs-on: macos-latest # as recommended in `actions/android-emulator-runner`
 
     # To test against multiple APIs
     strategy:
@@ -44,7 +45,7 @@ jobs:
           echo "githubUser=${{ secrets.GH_READ_ACCOUNT }}" >> gradle.properties
           echo "githubToken=${{ secrets.GH_READ_TOKEN }}" >> gradle.properties
 
-      # Not executing build here (10 minutes) on MacOS stack (10x costs)
+      # Not executing build here on MacOS stack (10x costs)
       #- name: Build with Gradle
       #  run: ./gradlew build
 
