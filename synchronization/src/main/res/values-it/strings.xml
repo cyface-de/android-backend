@@ -6,13 +6,13 @@
     <string name="error_message_credentials_incorrect">Credenziali di accesso errate</string>
     <string name="error_message_authentication_canceled">Login annullato</string>
 
-    <!-- Synchronization errors -->
+    <!-- Synchronization errors. Keep <= 60 characters as Toasts are limited on Andorid 12+. -->
     <string name="error_message_url_unreadable">Indirizzo server illeggibile</string>
     <string name="error_message_http_response_unreadable">Risposta del server illeggibile</string>
     <string name="error_message_server_unavailable">Server non disponibile</string>
     <string name="error_message_data_access_error">Dati non accessibili</string>
     <string name="error_message_no_un_synchronized_data">Non sono disponibili dati non sincronizzati</string>
-    <string name="error_message_logged_out_no_account">Nessun account trovato per la sincronizzazione. Effettua di nuovo il login.</string>
+    <string name="error_message_logged_out_no_account">Nessun conto trovato. Effettua di nuovo il login.</string>
     <string name="error_message_unknown_sync_error">Errore di sincronizzazione</string>
     <string name="error_message_sync_error_with_error_code">Errore di sincronizzazione (%1$d)</string>
     <string name="error_message_ssl_certificate">certificato SSL sconosciuto</string>
@@ -25,7 +25,7 @@
     <string name="error_message_network_unavailable">Connessione interrotta</string>
     <string name="error_message_synchronization_interrupted">Sincronizzazione interrotta</string>
     <string name="error_message_too_many_requests">Troppe richieste</string>
-    <string name="error_message_host_unresolvable">Impossibile trovare il server. Si prega di controllare la connessione internet.</string>
+    <string name="error_message_host_unresolvable">Impossibile trovare il server. Controllare la connessione a Internet.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Errore imprevisto</string>

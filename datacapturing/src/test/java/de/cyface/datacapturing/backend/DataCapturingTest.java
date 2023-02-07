@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -34,13 +34,14 @@ import android.location.LocationManager;
 import android.os.HandlerThread;
 
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 
 /**
  * Tests the correct workings of the data capturing functionality.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.5
+ * @version 2.0.6
  * @since 1.0.0
  */
 public class DataCapturingTest {
@@ -76,6 +77,11 @@ public class DataCapturingTest {
     @Mock
     private HandlerThread sensorEventHandler;
     /**
+     * A mocked {@link BuildVersionProvider} for version check in {@link CapturingProcess}.
+     */
+    @Mock
+    private BuildVersionProvider mockedBuildVersionProvider;
+    /**
      * The status handler for the geo location device.
      */
     private GeoLocationDeviceStatusHandler locationStatusHandler;
@@ -99,17 +105,24 @@ public class DataCapturingTest {
      */
     @Test
     public void testSuccessfulDataCapturing() {
+        when(mockedBuildVersionProvider.isOreoAndAbove()).thenReturn(true);
         when(location.getTime()).thenReturn(0L);
         when(location.getLatitude()).thenReturn(51.03624633);
         when(location.getLongitude()).thenReturn(13.78828128);
+        when(location.hasAltitude()).thenReturn(true);
+        when(location.getAltitude()).thenReturn(400.123);
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
+        when(location.hasVerticalAccuracy()).thenReturn(true);
+        when(location.getVerticalAccuracyMeters()).thenReturn(0.0f);
         try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager,
                 mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100);) {
+            dataCapturing.setBuildVersionProvider(mockedBuildVersionProvider);
             dataCapturing.addCapturingProcessListener(listener);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
-            verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f));
+            verify(listener).onLocationCaptured(new GeoLocation(51.03624633, 13.78828128, 0L, 0.0, 0.0f),
+                    new GeoLocationV6(0L, 51.03624633, 13.78828128, 400.123, 0.0, 0.0f, 0.0));
         }
     }
 
@@ -132,7 +145,7 @@ public class DataCapturingTest {
             dataCapturing.onLocationChanged(location);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
-            verify(listener, times(1)).onLocationCaptured(any(GeoLocation.class));
+            verify(listener, times(1)).onLocationCaptured(any(GeoLocation.class), any(GeoLocationV6.class));
         }
     }
 }

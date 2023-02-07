@@ -8,12 +8,14 @@ import android.os.Parcel;
 import android.os.Parcelable;
 import androidx.annotation.NonNull;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 
 /**
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.3
+ * @author Armin Schnabel
+ * @version 3.1.0
  * @since 1.0.0
  */
 public final class CapturedData implements Parcelable {
@@ -29,6 +31,10 @@ public final class CapturedData implements Parcelable {
      * All directions captured since the last position was captured.
      */
     private final List<Point3d> directions;
+    /**
+     * All pressures captured since the last position was captured.
+     */
+    private final List<Pressure> pressures;
 
     /**
      * Creates a new captured data object from the provided data. The lists are copied and thus may be changed after
@@ -44,12 +50,15 @@ public final class CapturedData implements Parcelable {
      *            - * The list contains all captured values since the last GNSS fix.
      * @param directions The intensity of the earth's magnetic field on each of the three axis in space.
      *            The list contains all captured values since the last GNSS fix.
+     * @param pressures The atmospheric pressure as returned by the barometer.
+     *            The list contains all captured values since the last GNSS fix.
      */
     public CapturedData(final @NonNull List<Point3d> accelerations, final @NonNull List<Point3d> rotations,
-                        final @NonNull List<Point3d> directions) {
+            final @NonNull List<Point3d> directions, final @NonNull List<Pressure> pressures) {
         this.accelerations = new LinkedList<>(accelerations);
         this.rotations = new LinkedList<>(rotations);
         this.directions = new LinkedList<>(directions);
+        this.pressures = new LinkedList<>(pressures);
     }
 
     /**
@@ -73,6 +82,13 @@ public final class CapturedData implements Parcelable {
         return Collections.unmodifiableList(directions);
     }
 
+    /**
+     * @return All pressures captured since the last position was captured.
+     */
+    public List<Pressure> getPressures() {
+        return Collections.unmodifiableList(pressures);
+    }
+
     /*
      * MARK: Code for parcelable interface
      */
@@ -86,6 +102,7 @@ public final class CapturedData implements Parcelable {
         accelerations = in.createTypedArrayList(Point3d.CREATOR);
         rotations = in.createTypedArrayList(Point3d.CREATOR);
         directions = in.createTypedArrayList(Point3d.CREATOR);
+        pressures = in.createTypedArrayList(Pressure.CREATOR);
     }
 
     /**
@@ -113,6 +130,7 @@ public final class CapturedData implements Parcelable {
         dest.writeTypedList(accelerations);
         dest.writeTypedList(rotations);
         dest.writeTypedList(directions);
+        dest.writeTypedList(pressures);
     }
 
     /*
@@ -132,7 +150,9 @@ public final class CapturedData implements Parcelable {
             return false;
         if (!rotations.equals(that.rotations))
             return false;
-        return directions.equals(that.directions);
+        if (!directions.equals(that.directions))
+            return false;
+        return pressures.equals(that.pressures);
 
     }
 
@@ -141,12 +161,13 @@ public final class CapturedData implements Parcelable {
         int result = accelerations.hashCode();
         result = 31 * result + rotations.hashCode();
         result = 31 * result + directions.hashCode();
+        result = 31 * result + pressures.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
         return "CapturedData{" + "accelerations=" + accelerations + ", rotations=" + rotations + ", directions="
-                + directions + '}';
+                + directions + ", pressures=" + pressures + '}';
     }
 }

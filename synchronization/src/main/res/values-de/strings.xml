@@ -6,13 +6,13 @@
     <string name="error_message_credentials_incorrect">Zugangsdaten inkorrekt</string>
     <string name="error_message_authentication_canceled">Login abgebrochen</string>
 
-    <!-- Synchronization errors -->
+    <!-- Synchronization errors. Keep <= 60 characters as Toasts are limited on Andorid 12+. -->
     <string name="error_message_url_unreadable">Server Adresse unleserlich</string>
     <string name="error_message_http_response_unreadable">Server Antwort unleserlich</string>
     <string name="error_message_server_unavailable">Server nicht erreichbar</string>
     <string name="error_message_data_access_error">Datenzugriff fehlgeschlagen</string>
     <string name="error_message_no_un_synchronized_data">Keine unsynchronisierten Daten vorhanden</string>
-    <string name="error_message_logged_out_no_account">Kein Account zum Synchronisieren gefunden. Bitte erneut einloggen.</string>
+    <string name="error_message_logged_out_no_account">Kein Account gefunden. Bitte erneut einloggen.</string>
     <string name="error_message_unknown_sync_error">Synchronisationsfehler</string>
     <string name="error_message_sync_error_with_error_code">Synchronisationsfehler (%1$d)</string>
     <string name="error_message_ssl_certificate">SSL Zertifikat unbekannt</string>
@@ -25,7 +25,7 @@
     <string name="error_message_network_unavailable">Verbindungsabbruch</string>
     <string name="error_message_synchronization_interrupted">Synchronisierung unterbrochen</string>
     <string name="error_message_too_many_requests">Zu viele Anfragen</string>
-    <string name="error_message_host_unresolvable">Server unauffindbar. Bitte Internet-Verbindung prüfen.</string>
+    <string name="error_message_host_unresolvable">Server unauffindbar. Internet-Verbindung prüfen.</string>
 
     <!-- Other errors -->
     <string name="error_message_unknown_error">Unerwarteter Fehler</string>

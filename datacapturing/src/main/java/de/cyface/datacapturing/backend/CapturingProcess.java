@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,10 +18,12 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static android.hardware.SensorManager.SENSOR_DELAY_NORMAL;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.utils.TestEnvironment.isEmulator;
 
 import java.io.Closeable;
+import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
@@ -34,6 +36,7 @@ import android.hardware.SensorManager;
 import android.location.Location;
 import android.location.LocationListener;
 import android.location.LocationManager;
+import android.os.Build;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.HandlerThread;
@@ -45,7 +48,9 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.utils.Validate;
 
 /**
@@ -54,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 3.2.0
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -68,10 +73,6 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     private static final int SENSOR_VALUE_DELAY_IN_MICROSECONDS = 500_000;
     /**
-     * A delay used to reduce capturing of sensor events, to reduce data size. E.g.: 10 k = 100 Hz
-     */
-    private final int delayBetweenSensorEventsInMicroseconds;
-    /**
      * Cache for captured but not yet processed points from the accelerometer.
      */
     private final List<Point3d> accelerations;
@@ -83,6 +84,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * Cache for captured but not yet processed points from the compass.
      */
     private final List<Point3d> directions;
+    /**
+     * Cache for captured but not yet processed points from the barometer.
+     */
+    private final List<Pressure> pressures;
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -120,6 +125,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      */
     private final HandlerThread sensorEventHandlerThread;
     private final HandlerThread locationEventHandlerThread;
+    /**
+     * The provider to use to check the build version of the system.
+     */
+    private BuildVersionProvider buildVersionProvider;
 
     /**
      * Creates a new completely initialized {@code DataCapturing} object receiving updates from the provided
@@ -153,13 +162,14 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);
         this.directions = new Vector<>(30);
+        this.pressures = new Vector<>(30);
         this.listener = new HashSet<>();
         this.locationManager = locationManager;
         this.sensorService = sensorService;
         this.locationStatusHandler = geoLocationDeviceStatusHandler;
         this.locationEventHandlerThread = locationEventHandlerThread;
         this.sensorEventHandlerThread = sensorEventHandlerThread;
-        this.delayBetweenSensorEventsInMicroseconds = 1_000_000 / sensorFrequency;
+        this.buildVersionProvider = new BuildVersionProviderImpl();
 
         locationEventHandlerThread.start();
         this.locationManager.requestLocationUpdates(LocationManager.GPS_PROVIDER, 0L, 0f, this,
@@ -169,11 +179,17 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         Sensor accelerometer = sensorService.getDefaultSensor(Sensor.TYPE_ACCELEROMETER);
         Sensor gyroscope = sensorService.getDefaultSensor(Sensor.TYPE_GYROSCOPE);
         Sensor magnetometer = sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD);
+        Sensor barometer = sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE);
         sensorEventHandlerThread.start();
         Handler sensorEventHandler = new Handler(sensorEventHandlerThread.getLooper());
-        registerSensor(accelerometer, sensorEventHandler);
-        registerSensor(gyroscope, sensorEventHandler);
-        registerSensor(magnetometer, sensorEventHandler);
+        // A delay used to reduce capturing of sensor events, to reduce data size. E.g.: 10 k = 100 Hz
+        final int delayBetweenSensorEventsInMicroseconds = 1_000_000 / sensorFrequency;
+        registerSensor(accelerometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
+        registerSensor(gyroscope, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
+        registerSensor(magnetometer, sensorEventHandler, delayBetweenSensorEventsInMicroseconds);
+        // The lowest possible frequency is ~5-10 Hz, which is also the normal frequency. We average the
+        // data to 1 Hz to decrease database usage and to support barometers like in the Pixel 6 [STAD-400].
+        registerSensor(barometer, sensorEventHandler, SENSOR_DELAY_NORMAL);
     }
 
     /**
@@ -193,21 +209,44 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
         if (locationStatusHandler.hasLocationFix()) {
             double latitude = location.getLatitude();
             double longitude = location.getLongitude();
+            // Don't write default value `0.0` when no value is available
+            Double altitude = location.hasAltitude() ? location.getAltitude() : null;
             long locationTime = location.getTime();
             double speed = getCurrentSpeed(location);
             float locationAccuracyMeters = location.getAccuracy();
-            if (de.cyface.datacapturing.BuildConfig.DEBUG && isEmulator()) {
+            // Don't write default value `0.0` when no value is available
+            Double verticalAccuracyMeters = null;
+            if (buildVersionProvider.isOreoAndAbove()) {
+                verticalAccuracyMeters = location.hasVerticalAccuracy() ? (double)location.getVerticalAccuracyMeters() : null;
+            }
+            if (de.cyface.datacapturing.BuildConfig.DEBUG
+                    && (isEmulator() || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith("google/sdk_")))) {
                 locationAccuracyMeters = (float)Math.random() * 30.0f;
-                Log.d(TAG, "Emulator detected, Accuracy overwritten to: " + locationAccuracyMeters);
+                verticalAccuracyMeters = locationAccuracyMeters * 2.5;
+                altitude = 400. + Math.random() * 2 - Math.random();
+                final List<Pressure> emulatedPressure = new ArrayList<>();
+                for (final Pressure p : pressures) {
+                    emulatedPressure
+                            .add(new Pressure(p.getTimestamp(), p.getPressure() + Math.random() * 2 - Math.random()));
+                }
+                pressures.clear();
+                pressures.addAll(emulatedPressure);
+                Log.d(TAG,
+                        String.format("Emulator detected, Accuracy overwritten with %f and vertical accuracy with %f",
+                                locationAccuracyMeters, verticalAccuracyMeters));
             }
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
                     listener.onLocationCaptured(
-                            // The Android Location contains the accuracy in meters. GeoLocation uses cm.
-                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100));
+                            // The Android Location contains the accuracy in meters. `GeoLocation` uses cm
+                            new GeoLocation(latitude, longitude, locationTime, speed, locationAccuracyMeters * 100),
+                            // accuracy is still in the old format (cm), vertical in the new (m)
+                            // This is fixed after merging `measures` and `v6` databases (both in m)
+                            new GeoLocationV6(locationTime, latitude, longitude, altitude, speed,
+                                    locationAccuracyMeters * 100, verticalAccuracyMeters));
                     try {
-                        listener.onDataCaptured(new CapturedData(accelerations, rotations, directions));
+                        listener.onDataCaptured(new CapturedData(accelerations, rotations, directions, pressures));
                     } catch (DataCapturingException e) {
                         throw new IllegalStateException(e);
                     }
@@ -215,6 +254,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 accelerations.clear();
                 rotations.clear();
                 directions.clear();
+                pressures.clear();
             }
         }
     }
@@ -253,13 +293,14 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 || (thisSensorEventTime - lastNoGeoLocationFixUpdateTime > 1_000))) {
             try {
                 for (CapturingProcessListener listener : this.listener) {
-                    CapturedData capturedData = new CapturedData(accelerations, rotations, directions);
+                    CapturedData capturedData = new CapturedData(accelerations, rotations, directions, pressures);
                     listener.onDataCaptured(capturedData);
                 }
 
                 accelerations.clear();
                 rotations.clear();
                 directions.clear();
+                pressures.clear();
                 lastNoGeoLocationFixUpdateTime = thisSensorEventTime;
             } catch (SecurityException | DataCapturingException e) {
                 throw new IllegalStateException(e);
@@ -275,6 +316,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             saveSensorValue(event, rotations);
         } else if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_MAGNETIC_FIELD))) {
             saveSensorValue(event, directions);
+        } else if (event.sensor.equals(sensorService.getDefaultSensor(Sensor.TYPE_PRESSURE))) {
+            savePressureValue(event, pressures);
         }
     }
 
@@ -375,16 +418,40 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
     /**
      * Saves a captured {@code SensorEvent} to the local in memory storage for that point.
-     * as different vendors and Android versions store different timestamps in the event.ts
-     * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same timestamp format.
      *
      * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
     private void saveSensorValue(final SensorEvent event, final List<Point3d> storage) {
         Point3d dataPoint = new Point3d(event.values[0], event.values[1], event.values[2],
-                event.timestamp / 1_000_000L + eventTimeOffsetMillis);
+                timestampMillis(event.timestamp));
         storage.add(dataPoint);
+    }
+
+    /**
+     * Saves a captured {@code SensorEvent} to the local in memory storage for that point.
+     *
+     * @param event The Android {@code SensorEvent} to store.
+     * @param storage The storage to store the {@code SensorEvent} to.
+     */
+    private void savePressureValue(final SensorEvent event, final List<Pressure> storage) {
+        Validate.isTrue(event.values.length == 1, "Unexpected number of values");
+        Pressure dataPoint = new Pressure(timestampMillis(event.timestamp), event.values[0]);
+        storage.add(dataPoint);
+    }
+
+    /**
+     * Converts the event time a supported format.
+     * <p>
+     * As different vendors and Android versions store different timestamps in the {@code event.ts}
+     * (e.g. uptimeNano, sysTimeNano) we use an offset from the first sample captures to get the same
+     * timestamp format.
+     *
+     * @param eventTimestamp The {@code SensorEvent#timestamp} to convert.
+     * @return The converted timestamp in milliseconds.
+     */
+    private long timestampMillis(final long eventTimestamp) {
+        return eventTimestamp / 1_000_000L + eventTimeOffsetMillis;
     }
 
     /**
@@ -393,10 +460,15 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      *
      * @param sensor The Android <code>Sensor</code> to register.
      * @param sensorEventHandler The <code>Handler</code> to run the <code>onSensorEvent</code> method on.
+     * @param delayMicros The desired delay between two consecutive events in microseconds. This is
+     *            only a hint to the system. Events may be received faster or slower than the
+     *            specified rate. Usually events are received faster. Can be one of {@code SENSOR_DELAY_NORMAL},
+     *            {@code SENSOR_DELAY_UI}, {@code SENSOR_DELAY_GAME}, {@code SENSOR_DELAY_FASTEST} or the delay in
+     *            microseconds.
      */
-    private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler) {
+    private void registerSensor(final Sensor sensor, final @NonNull Handler sensorEventHandler, final int delayMicros) {
         if (sensor != null) {
-            sensorService.registerListener(this, sensor, delayBetweenSensorEventsInMicroseconds,
+            sensorService.registerListener(this, sensor, delayMicros,
                     SENSOR_VALUE_DELAY_IN_MICROSECONDS, sensorEventHandler);
         }
     }
@@ -408,4 +480,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @return The speed in m/s.
      */
     protected abstract double getCurrentSpeed(final Location location);
+
+    /**
+     * @param buildVersionProvider The provider to be used to check the build version.
+     */
+    public void setBuildVersionProvider(BuildVersionProvider buildVersionProvider) {
+        this.buildVersionProvider = buildVersionProvider;
+    }
 }

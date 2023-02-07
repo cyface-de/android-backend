@@ -76,6 +76,7 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.persistence.serialization.NoSuchFileException;
@@ -824,6 +825,10 @@ public class CapturedDataWriterTest {
         rotations.add(new Point3d(7.0f, 7.0f, 7.0f, 7L));
         rotations.add(new Point3d(8.0f, 8.0f, 8.0f, 8L));
         rotations.add(new Point3d(9.0f, 9.0f, 9.0f, 9L));
-        return new CapturedData(accelerations, rotations, directions);
+        List<Pressure> pressures = new ArrayList<>();
+        pressures.add(new Pressure(10L, 1013.10f));
+        pressures.add(new Pressure(11L, 1013.11f));
+        pressures.add(new Pressure(12L, 1013.12f));
+        return new CapturedData(accelerations, rotations, directions, pressures);
     }
 }

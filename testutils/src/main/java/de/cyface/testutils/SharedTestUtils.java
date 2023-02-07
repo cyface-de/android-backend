@@ -56,6 +56,7 @@ import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -137,6 +138,19 @@ public class SharedTestUtils {
                 Math.max(DefaultLocationCleaningStrategy.LOWER_SPEED_THRESHOLD,
                         salt * DefaultLocationCleaningStrategy.UPPER_SPEED_THRESHOLD),
                 (float)salt * (DefaultLocationCleaningStrategy.UPPER_ACCURACY_THRESHOLD - 1));
+    }
+
+    /**
+     * Generates a {@link GeoLocationV6} from a {@link GeoLocation}, adding altitude information.
+     *
+     * @param location The {@code GeoLocation} to generate the {@code GeoLocationV6} from.
+     * @param altitude The altitude in meters above WGS 64 to add.
+     * @param verticalAccuracy The vertical accuracy in meters to add.
+     * @return The generated location with altitude data.
+     */
+    public static GeoLocationV6 geoLocationV6(final GeoLocation location, final double altitude, double verticalAccuracy) {
+        return new GeoLocationV6(location.getTimestamp(), location.getLat(), location.getLon(), altitude, location.getSpeed(), location.getAccuracy(),
+                verticalAccuracy);
     }
 
     /**

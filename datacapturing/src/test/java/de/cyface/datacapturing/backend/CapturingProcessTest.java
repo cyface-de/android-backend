@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -51,6 +51,7 @@ import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.utils.Validate;
 
 /**
@@ -58,7 +59,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.4
+ * @version 1.0.5
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -234,15 +235,19 @@ public class CapturingProcessTest {
          * <code>GeoLocation</code> instances this listener was informed about.
          */
         private List<GeoLocation> capturedLocations = new ArrayList<>();
-
+        /**
+         * <code>GeoLocationV6</code> instances this listener was informed about.
+         */
+        private List<GeoLocationV6> capturedLocationsV6 = new ArrayList<>();
         /**
          * Captured sensor data this listener was informed about.
          */
         private List<CapturedData> capturedData = new ArrayList<>();
 
         @Override
-        public void onLocationCaptured(@NonNull GeoLocation location) {
+        public void onLocationCaptured(@NonNull GeoLocation location, @NonNull GeoLocationV6 locationV6) {
             capturedLocations.add(location);
+            capturedLocationsV6.add(locationV6);
         }
 
         @Override

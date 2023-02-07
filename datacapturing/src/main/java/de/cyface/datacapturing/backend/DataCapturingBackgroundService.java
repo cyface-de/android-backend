@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -69,9 +69,13 @@ import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.model.DataPoint;
+import de.cyface.persistence.model.DataPointV6;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Point3d;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
@@ -87,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.1.3
+ * @version 8.0.0
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -434,11 +438,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final List<Point3d> accelerations = data.getAccelerations();
         final List<Point3d> rotations = data.getRotations();
         final List<Point3d> directions = data.getDirections();
-        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), rotations.size()));
+        final List<Pressure> pressures = data.getPressures();
+        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
         for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
-                    sampleSubList(rotations, i), sampleSubList(directions, i));
+                    sampleSubList(rotations, i), sampleSubList(directions, i), pressureSubList(pressures, i));
             informCaller(MessageCodes.DATA_CAPTURED, dataSublist);
             capturingBehaviour.storeData(dataSublist, currentMeasurementIdentifier, new WritingDataCompletedCallback() {
                 @Override
@@ -462,12 +467,28 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         return (fromIndex >= toIndex) ? Collections.<Point3d> emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
+    /**
+     * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
+     * <p>
+     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPointV6}.
+     *
+     * @param completeList The {@link List<Pressure>} to extract a subset from
+     * @param fromIndex The low endpoint (inclusive) of the subList
+     * @return The extracted sublist
+     */
+    private @NonNull List<Pressure> pressureSubList(final @NonNull List<Pressure> completeList, final int fromIndex) {
+        final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
+        final int toIndex = Math.min(endIndex, completeList.size());
+        return (fromIndex >= toIndex) ? Collections.<Pressure> emptyList() : completeList.subList(fromIndex, toIndex);
+    }
+
     @Override
-    public void onLocationCaptured(@NonNull final GeoLocation newLocation) {
+    public void onLocationCaptured(@NonNull final GeoLocation newLocation, @NonNull GeoLocationV6 newLocationV6) {
 
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
+        capturingBehaviour.storeLocationV6(newLocationV6, currentMeasurementIdentifier);
 
         // Check available space
         if (!spaceAvailable()) {
@@ -478,6 +499,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
             newLocation.setValid(false);
+            newLocationV6.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }

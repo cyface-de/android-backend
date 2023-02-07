@@ -6,6 +6,8 @@
     <!-- Required to access GNSS location providers -->
     <!-- (!) We do *not* need ACCESS_BACKGROUND_LOCATION as we only need location in Foreground Service-->
     <uses-permission android:name="android.permission.ACCESS_FINE_LOCATION" />
+    <!-- On Android 12+ we must request both FINE and COARSE, but add a handle to explicitly request FINE -->
+    <uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION" />
     <!-- Required to change periodic synchronisation intervals in the background -->
     <uses-permission android:name="android.permission.WRITE_SYNC_SETTINGS" />
     <!-- Required to read current background synchronisation settings -->

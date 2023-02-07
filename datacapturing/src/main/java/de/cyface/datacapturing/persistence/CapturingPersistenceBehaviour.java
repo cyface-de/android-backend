@@ -3,6 +3,7 @@ package de.cyface.datacapturing.persistence;
 import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 
+import java.util.List;
 import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
@@ -19,9 +20,15 @@ import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.dao.GeoLocationDao;
+import de.cyface.persistence.dao.PressureDao;
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.PersistedGeoLocation;
+import de.cyface.persistence.model.PersistedPressure;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.Point3dFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -30,7 +37,7 @@ import de.cyface.utils.Validate;
  * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is used to capture a {@link Measurement}s.
  *
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.1.0
  * @since 3.0.0
  */
 public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
@@ -114,6 +121,23 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                 callback);
 
         threadPool.submit(writer);
+
+        // Only store latest pressure point into the database, as the minimum frequency is > 10 HZ
+        final List<Pressure> pressures = data.getPressures();
+        Log.d(TAG, String.format("Captured %d pressure points, storing 1 average", pressures.size()));
+        if (pressures.size() > 0) {
+            // Calculating the average pressure to be less dependent on random outliers
+            double sum = 0.;
+            for (Pressure p : pressures) {
+                sum += p.getPressure();
+            }
+            final double averagePressure = sum / pressures.size();
+            // Using the timestamp of the latest pressure sample
+            final long timestamp = pressures.get(pressures.size() - 1).getTimestamp();
+            final PersistedPressure pressure = new PersistedPressure(timestamp, averagePressure, measurementIdentifier);
+            PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
+            dao.insertAll(pressure);
+        }
     }
 
     /**
@@ -133,6 +157,18 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
 
         persistenceLayer.getResolver().insert(persistenceLayer.getGeoLocationsUri(), values);
+    }
+
+    /**
+     * Stores the provided geo location with altitude data under the currently active captured measurement.
+     *
+     * @param location The geo location to store.
+     * @param measurementIdentifier The identifier of the measurement to store the data to.
+     */
+    public void storeLocationV6(final @NonNull GeoLocationV6 location, final long measurementIdentifier) {
+
+        GeoLocationDao dao = persistenceLayer.getDatabaseV6().geoLocationDao();
+        dao.insertAll(new PersistedGeoLocation(location, measurementIdentifier));
     }
 
     /**
