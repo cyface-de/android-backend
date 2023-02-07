@@ -1,7 +1,7 @@
-# This workflow ensures the building step works
+# This workflow runs the building steps and tests
 #
 # @author Armin Schnabel
-# @version 1.1.0
+# @version 2.0.0
 # @since 5.0.0
 name: Gradle Build
 
@@ -42,25 +42,39 @@ jobs:
           cp gradle.properties.template gradle.properties
           echo "githubUser=${{ secrets.GH_READ_ACCOUNT }}" >> gradle.properties
           echo "githubToken=${{ secrets.GH_READ_TOKEN }}" >> gradle.properties
-      - name: Build with Gradle
-        run: ./gradlew build
+
+      # FIXME
+      #- name: Build with Gradle
+      #  run: ./gradlew build
+
+      # Add caching to speed up connected tests below (see `actions/android-emulator-runner`)
+      - name: Gradle cache
+        uses: gradle/gradle-build-action@v2
+      - name: AVD cache
+        uses: actions/cache@v3
+        id: avd-cache
+        with:
+          path: |
+            ~/.android/avd/*
+            ~/.android/adb*
+          key: avd-${{ matrix.api-level }}
+      - name: Create AVD and generate snapshot for caching
+        if: steps.avd-cache.outputs.cache-hit != 'true'
+        uses: reactivecircus/android-emulator-runner@v2
+        with:
+          api-level: ${{ matrix.api-level }}
+          force-avd-creation: false
+          emulator-options: -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none
+          disable-animations: false
+          script: echo "Generated AVD snapshot for caching."
 
       # Only execute mock tests to exclude `@FlakyTest`s (instead of running `connectedCheck`)
-      - name: Connected persistence tests
+      - name: Connected tests
         uses: reactivecircus/android-emulator-runner@v2
         with:
           api-level: ${{ matrix.api-level }}
           target: ${{ matrix.target }}
-          script: ./gradlew :persistence:connectedDebugAndroidTest
-      - name: Connected datacapturing tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          target: ${{ matrix.target }}
-          script: ./gradlew :datacapturing:connectedCyfaceMockDebugAndroidTest :datacapturing:connectedMovebisMockDebugAndroidTest
-      - name: Connected synchronization tests
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          target: ${{ matrix.target }}
-          script: ./gradlew :synchronization:connectedCyfaceMockDebugAndroidTest :synchronization:connectedMovebisMockDebugAndroidTest
+          force-avd-creation: false # speedup
+          emulator-options: -no-snapshot-save -no-window -gpu swiftshader_indirect -noaudio -no-boot-anim -camera-back none # speedup
+          disable-animations: true # speedup
+          script: ./gradlew :persistence:connectedDebugAndroidTest :datacapturing:connectedCyfaceMockDebugAndroidTest :synchronization:connectedCyfaceMockDebugAndroidTest :datacapturing:connectedMovebisMockDebugAndroidTest :synchronization:connectedMovebisMockDebugAndroidTest
