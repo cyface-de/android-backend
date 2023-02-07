@@ -24,6 +24,7 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 
+import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
 import java.util.List;
@@ -43,12 +44,11 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.model.PersistedGeoLocation;
 import de.cyface.persistence.model.PersistedPressure;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.model.TrackV6;
 
 /**
  * Tests the inner workings of the {@link PersistenceLayer}.
- *
- * FIXME: Add tests with multiple sub-tracks
  *
  * @author Armin Schnabel
  * @version 1.0.0
@@ -170,6 +170,33 @@ public class PersistenceLayerTest {
         // Assert
         assertThat(ascend, is(closeTo(5., 0.01)));
         assertThat(ascend2, is(closeTo(0., 0.01)));
+    }
+
+    @Test
+    public void testCollectNextSubTrackV6() {
+
+        // Arrange
+        final List<PersistedGeoLocation> locations = new ArrayList<>();
+        locations.add(new PersistedGeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
+        locations.add(new PersistedGeoLocation(2L, 0., 0., 0., 1., 5., 5., 1L));
+        locations.add(new PersistedGeoLocation(10L, 0., 0., 0., 1., 5., 5., 1L));
+        locations.add(new PersistedGeoLocation(11L, 0., 0., 0., 1., 5., 5., 1L));
+        final List<PersistedPressure> pressures = new ArrayList<>();
+        final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
+        pressures.add(new PersistedPressure(1L, pressure(0., p0), 1L));
+        pressures.add(new PersistedPressure(2L, pressure(0., p0), 1L));
+        pressures.add(new PersistedPressure(10L, pressure(0., p0), 1L));
+        pressures.add(new PersistedPressure(11L, pressure(0., p0), 1L));
+        final long pauseEventTime = 3L;
+
+        // Act
+        final TrackV6 subTrack = oocut.collectNextSubTrackV6(locations, pressures, pauseEventTime);
+
+        // Assert
+        assertThat(subTrack.getGeoLocations().size(), is(equalTo(2)));
+        assertThat(subTrack.getPressures().size(), is(equalTo(2)));
+        assertThat(locations.size(), is(equalTo(2)));
+        assertThat(pressures.size(), is(equalTo(2)));
     }
 
     /**

@@ -964,8 +964,6 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
 
                 // Collect all GeoLocationsV6 and Pressure points until the pause event
                 final TrackV6 track = collectNextSubTrackV6(locations, pressures, pauseEventTime);
-                // FIXME {@param locations} and {@param pressures} are expected to start with the first data point which
-                // is later in time than {@param pauseEventTime} or to the last data point if the earlier doesn't exist.
 
                 // Add sub-track to track
                 if (track.getGeoLocations().size() > 0) {
@@ -1217,7 +1215,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      *            this sub Track.
      * @return The sub {@code TrackV6}.
      */
-    private TrackV6 collectNextSubTrackV6(final List<PersistedGeoLocation> locations,
+    TrackV6 collectNextSubTrackV6(final List<PersistedGeoLocation> locations,
             final List<PersistedPressure> pressures, final Long pauseEventTime) {
         final TrackV6 track = new TrackV6();
 
