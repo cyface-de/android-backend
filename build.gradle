@@ -43,8 +43,8 @@ ext {
     cyfaceAndroidBackendVersion = "7.3.4"
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "3.3.0"
-    cyfaceSerializationVersion = "2.3.1"
+    cyfaceUtilsVersion = "3.3.1"
+    cyfaceSerializationVersion = "2.3.2"
 
     // Android SDK versions
     minSdkVersion = 21 // device support
