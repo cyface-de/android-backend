@@ -3,7 +3,7 @@
 # @author Armin Schnabel
 # @version 1.0.0
 # @since 6.3.0
-name: Gradle Build
+name: Gradle Connected Tests
 
 on:
   push:
