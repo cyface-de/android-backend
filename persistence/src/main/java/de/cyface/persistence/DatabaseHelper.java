@@ -43,6 +43,9 @@ import de.cyface.utils.Validate;
 /**
  * The <code>DatabaseHelper</code> class is the part of the content provider where the hard part takes place. It
  * distributes queries from the <code>MeasuringPointsContentProvider</code> to the correct tables.
+ * <p>
+ * <b>Attention:</b>
+ * Keep this class unchanged until SDK 6 apps (databases) are migrated to SDK 7.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel

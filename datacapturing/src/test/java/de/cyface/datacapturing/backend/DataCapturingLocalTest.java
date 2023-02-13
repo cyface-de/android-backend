@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,6 +21,7 @@ package de.cyface.datacapturing.backend;
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
 import static de.cyface.datacapturing.backend.DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
+import static de.cyface.testutils.SharedTestUtils.geoLocationV6;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
 import static org.junit.Assert.assertThat;
@@ -58,8 +59,10 @@ import de.cyface.persistence.DefaultDistanceCalculationStrategy;
 import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -68,7 +71,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.2
+ * @version 2.3.3
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -104,6 +107,7 @@ public class DataCapturingLocalTest {
     EventHandlingStrategy mockEventHandlingStrategy;
     private final int base = 0;
     private final ParcelableGeoLocation location1 = generateGeoLocation(base);
+    private final GeoLocationV6 location1V6 = geoLocationV6(location1, 400., 19.99);
 
     @Before
     public void setUp() {
@@ -129,6 +133,8 @@ public class DataCapturingLocalTest {
         final int expectedDistance = 2;
         ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance);
         ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+        GeoLocationV6 location2V6 = geoLocationV6(location2, 400.234, 21_00);
+        GeoLocationV6 location3V6 = geoLocationV6(location3, 400.345, 22_00);
 
         // Mock
         when(distanceCalculationStrategy.calculateDistance(location1, location2))
@@ -139,9 +145,9 @@ public class DataCapturingLocalTest {
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act
-        oocut.onLocationCaptured(location1);
-        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3); // Now the two distances should be added
+        oocut.onLocationCaptured(location1, location1V6);
+        oocut.onLocationCaptured(location2, location2V6); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3, location3V6); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
@@ -165,6 +171,9 @@ public class DataCapturingLocalTest {
         ParcelableGeoLocation cachedLocation = generateGeoLocation(base - expectedDistance);
         ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance);
         ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+        GeoLocationV6 cachedLocationV6 = geoLocationV6(cachedLocation, 400.123, 20_00);
+        GeoLocationV6 location2V6 = geoLocationV6(location2, 400.234, 21_00);
+        GeoLocationV6 location3V6 = geoLocationV6(location3, 400.345, 22_00);
 
         // Mock
         // When the onLocationCaptured implementation is correct, this method is never called.
@@ -179,10 +188,10 @@ public class DataCapturingLocalTest {
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act
-        oocut.onLocationCaptured(cachedLocation);
-        oocut.onLocationCaptured(location1);
-        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3); // Now the two distances should be added
+        oocut.onLocationCaptured(cachedLocation, cachedLocationV6);
+        oocut.onLocationCaptured(location1, location1V6);
+        oocut.onLocationCaptured(location2, location2V6); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3, location3V6); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
@@ -202,9 +211,11 @@ public class DataCapturingLocalTest {
         // noinspection UnnecessaryLocalVariable - because this is better readable
         int rotationsSize = someLargeOddNumber;
         int directionsSize = someLargeOddNumber / 2;
+        int pressuresSize = someLargeOddNumber / 2;
         List<ParcelablePoint3D> accelerations = new ArrayList<>(accelerationsSize);
         List<ParcelablePoint3D> rotations = new ArrayList<>(rotationsSize);
         List<ParcelablePoint3D> directions = new ArrayList<>(directionsSize);
+        List<Pressure> pressures = new ArrayList<>(pressuresSize);
 
         // Create some random test data.
         for (int i = 0; i < accelerationsSize; i++) {
@@ -219,7 +230,11 @@ public class DataCapturingLocalTest {
             directions.add(new ParcelablePoint3D(random.nextFloat(), random.nextFloat(), random.nextFloat(),
                     Math.abs(random.nextLong())));
         }
-        CapturedData data = new CapturedData(accelerations, rotations, directions);
+        for (int i = 0; i < pressuresSize; i++) {
+            final double validPressure = 250L + (long) (Math.random() * 850);
+            pressures.add(new Pressure(Math.abs(random.nextLong()), validPressure));
+        }
+        CapturedData data = new CapturedData(accelerations, rotations, directions, pressures);
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);
 
         // Hide call to actual Android message service methods.
@@ -230,7 +245,7 @@ public class DataCapturingLocalTest {
 
         // 1247*2 / 800 = 3,1 --> 4
         // noinspection ConstantConditions
-        final var maxSensorSize = Math.max(accelerationsSize, Math.max(rotationsSize, directionsSize));
+        final var maxSensorSize = Math.max(accelerationsSize, Math.max(rotationsSize, Math.max(directionsSize, pressuresSize)));
         int times = maxSensorSize / MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         int remainder = maxSensorSize % MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         // noinspection ConstantConditions
@@ -240,13 +255,16 @@ public class DataCapturingLocalTest {
         int receivedAccelerations = 0;
         int receivedRotations = 0;
         int receivedDirections = 0;
+        int receivedPressures = 0;
         for (CapturedData dataFromCall : captor.getAllValues()) {
             receivedAccelerations += dataFromCall.getAccelerations().size();
             receivedRotations += dataFromCall.getRotations().size();
             receivedDirections += dataFromCall.getDirections().size();
+            receivedPressures += dataFromCall.getPressures().size();
         }
         assertThat(receivedAccelerations, is(equalTo(accelerationsSize)));
         assertThat(receivedRotations, is(equalTo(rotationsSize)));
         assertThat(receivedDirections, is(equalTo(directionsSize)));
+        assertThat(receivedPressures, is(equalTo(pressuresSize)));
     }
 }

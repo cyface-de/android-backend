@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017-2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.model;
 
 import java.util.Collections;
@@ -9,12 +27,14 @@ import android.os.Parcelable;
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.model.ParcelablePoint3D;
+import de.cyface.persistence.model.Pressure;
 
 /**
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
- * @version 3.0.3
+ * @author Armin Schnabel
+ * @version 3.1.0
  * @since 1.0.0
  */
 public final class CapturedData implements Parcelable {
@@ -30,6 +50,10 @@ public final class CapturedData implements Parcelable {
      * All directions captured since the last position was captured.
      */
     private final List<ParcelablePoint3D> directions;
+    /**
+     * All pressures captured since the last position was captured.
+     */
+    private final List<Pressure> pressures;
 
     /**
      * Creates a new captured data object from the provided data. The lists are copied and thus may be changed after
@@ -45,12 +69,15 @@ public final class CapturedData implements Parcelable {
      *            - * The list contains all captured values since the last GNSS fix.
      * @param directions The intensity of the earth's magnetic field on each of the three axis in space.
      *            The list contains all captured values since the last GNSS fix.
+     * @param pressures The atmospheric pressure as returned by the barometer.
+     *            The list contains all captured values since the last GNSS fix.
      */
     public CapturedData(final @NonNull List<ParcelablePoint3D> accelerations, final @NonNull List<ParcelablePoint3D> rotations,
-                        final @NonNull List<ParcelablePoint3D> directions) {
+                        final @NonNull List<ParcelablePoint3D> directions, final @NonNull List<Pressure> pressures) {
         this.accelerations = new LinkedList<>(accelerations);
         this.rotations = new LinkedList<>(rotations);
         this.directions = new LinkedList<>(directions);
+        this.pressures = new LinkedList<>(pressures);
     }
 
     /**
@@ -74,6 +101,13 @@ public final class CapturedData implements Parcelable {
         return Collections.unmodifiableList(directions);
     }
 
+    /**
+     * @return All pressures captured since the last position was captured.
+     */
+    public List<Pressure> getPressures() {
+        return Collections.unmodifiableList(pressures);
+    }
+
     /*
      * MARK: Code for parcelable interface
      */
@@ -87,6 +121,7 @@ public final class CapturedData implements Parcelable {
         accelerations = in.createTypedArrayList(ParcelablePoint3D.CREATOR);
         rotations = in.createTypedArrayList(ParcelablePoint3D.CREATOR);
         directions = in.createTypedArrayList(ParcelablePoint3D.CREATOR);
+        pressures = in.createTypedArrayList(Pressure.CREATOR);
     }
 
     /**
@@ -114,6 +149,7 @@ public final class CapturedData implements Parcelable {
         dest.writeTypedList(accelerations);
         dest.writeTypedList(rotations);
         dest.writeTypedList(directions);
+        dest.writeTypedList(pressures);
     }
 
     /*
@@ -133,7 +169,9 @@ public final class CapturedData implements Parcelable {
             return false;
         if (!rotations.equals(that.rotations))
             return false;
-        return directions.equals(that.directions);
+        if (!directions.equals(that.directions))
+            return false;
+        return pressures.equals(that.pressures);
 
     }
 
@@ -142,12 +180,13 @@ public final class CapturedData implements Parcelable {
         int result = accelerations.hashCode();
         result = 31 * result + rotations.hashCode();
         result = 31 * result + directions.hashCode();
+        result = 31 * result + pressures.hashCode();
         return result;
     }
 
     @Override
     public String toString() {
         return "CapturedData{" + "accelerations=" + accelerations + ", rotations=" + rotations + ", directions="
-                + directions + '}';
+                + directions + ", pressures=" + pressures + '}';
     }
 }

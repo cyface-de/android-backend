@@ -29,10 +29,20 @@ import de.cyface.persistence.LocationCleaningStrategy;
 
 /**
  * A position captured by the {@code DataCapturingService}.
+ * <p>
+ * <b>Attention:</b>
+ * {@link ParcelableGeoLocation} DB Version 17 now contains accuracy in meters.
+ * {@link GeoLocationV6} accuracy is still in the old format (cm), vertical in the new (m)
+ * This is fixed after merging `measures` and `v6` databases (both in m)
+ * <p>
+ * This is fixed automatically in `measures` V16-V17 upgrade
+ * which is already implemented in the SDK 7 branch.
+ * <p>
+ * <b>DO NOT CHANGE THIS</b> until we migrate the SDK 6 apps/dbs to SDK 7.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 1.0.0
  */
 public class ParcelableGeoLocation extends de.cyface.serializer.GeoLocation implements Parcelable {

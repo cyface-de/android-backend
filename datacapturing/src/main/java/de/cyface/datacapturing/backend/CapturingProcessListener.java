@@ -5,6 +5,7 @@ import android.location.LocationManager;
 import androidx.annotation.NonNull;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
+import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 
 /**
@@ -12,7 +13,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.3
+ * @version 6.0.0
  * @since 1.0.0
  */
 public interface CapturingProcessListener {
@@ -20,8 +21,9 @@ public interface CapturingProcessListener {
      * Called every time a new data point with a valid geo location coordinate has been captured.
      *
      * @param location Captured data wrapper object.
+     * @param locationV6 Captured location with altitude data.
      */
-    void onLocationCaptured(@NonNull ParcelableGeoLocation location);
+    void onLocationCaptured(@NonNull ParcelableGeoLocation location, @NonNull GeoLocationV6 locationV6);
 
     /**
      * Transmits the accelerations, rotations and directions captured in intervals of approximately one geo
