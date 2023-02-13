@@ -642,6 +642,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
      * @return The ascend in meters.
      * @throws CursorIsNullException when accessing the {@code ContentProvider} failed
      */
+    @SuppressWarnings("unused") // Part of the API
     public Double loadAscend(final long measurementIdentifier) throws CursorIsNullException {
         return loadAscend(measurementIdentifier, false);
     }
@@ -927,19 +928,22 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             // Slice Tracks before resume events
             Long pauseEventTime = null;
             while (eventCursor.moveToNext() && i < locations.size()) {
-                final Event.EventType eventType = Event.EventType
-                        .valueOf(eventCursor.getString(eventCursor.getColumnIndex(EventTable.COLUMN_TYPE)));
+                final var typeColumnIndex = eventCursor.getColumnIndex(EventTable.COLUMN_TYPE);
+                final var timestampColumnIndex = eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP);
+                Validate.isTrue(typeColumnIndex >= 0);
+                Validate.isTrue(timestampColumnIndex >= 0);
+
+                final var eventType = Event.EventType.valueOf(eventCursor.getString(typeColumnIndex));
 
                 // Search for next resume event and capture it's previous pause event
                 if (eventType != Event.EventType.LIFECYCLE_RESUME) {
                     if (eventType == Event.EventType.LIFECYCLE_PAUSE) {
-                        pauseEventTime = eventCursor.getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                        pauseEventTime = eventCursor.getLong(timestampColumnIndex);
                     }
                     continue;
                 }
                 Validate.notNull(pauseEventTime);
-                final long resumeEventTime = eventCursor
-                        .getLong(eventCursor.getColumnIndex(EventTable.COLUMN_TIMESTAMP));
+                final long resumeEventTime = eventCursor.getLong(timestampColumnIndex);
 
                 // Collect all GeoLocationsV6 and Pressure points until the pause event
                 final TrackV6 track = collectNextSubTrackV6(locations, pressures, pauseEventTime);
@@ -1476,7 +1480,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
     }
 
     /**
-     * @return
+     * @return The database for V6 specific data.
      */
     public DatabaseV6 getDatabaseV6() {
         return databaseV6;

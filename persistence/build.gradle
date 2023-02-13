@@ -64,8 +64,6 @@ android {
     lintOptions {
         // To avoid having to upgrade to `androidX.appCompat:1.3.0-beta1` [CY-5525]
         disable 'ObsoleteLintCustomCheck'
-        // Attention: Don't merge this into `main` (PR #257) <<<<<<<<<< FIXME
-        abortOnError false
     }
 
     // Uncomment to show more lint warnings
