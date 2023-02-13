@@ -1,8 +1,8 @@
 = Cyface Android SDK
 
-image:https://github.com/cyface-de/android-backend/workflows/Gradle%20Build/badge.svg[link="https://github.com/cyface-de/android-backend/actions"]
-image:https://github.com/cyface-de/android-backend/workflows/Gradle%20Publish/badge.svg[link="https://github.com/cyface-de/android-backend/actions"]
-image:https://app.bitrise.io/app/3f7da1f067e2d183/status.svg?token=Ggdr1abrQO7N_Pm1uI4kjg&branch=main[Build Status,link="https://app.bitrise.io/app/3f7da1f067e2d183"]
+image:https://github.com/cyface-de/android-backend/actions/workflows/gradle_build.yml/badge.svg?branch=release-6[link="https://github.com/cyface-de/android-backend/actions/workflows/gradle_build.yml"]
+image:https://github.com/cyface-de/android-backend/actions/workflows/gradle_connected-tests.yml/badge.svg?branch=release-6?branch=release-6[link="https://github.com/cyface-de/android-backend/actions/workflows/gradle_connected-tests.yml"]
+image:https://github.com/cyface-de/android-backend/actions/workflows/gradle_publish.yml/badge.svg?branch=release-6[link="https://github.com/cyface-de/android-backend/actions/workflows/gradle_publish.yml"]
 
 This project contains the Cyface Android SDK which is used by Cyface applications to capture data on Android devices.
 
