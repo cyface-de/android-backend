@@ -47,6 +47,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
+import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
@@ -134,8 +135,11 @@ public class SetAccountFlagTest {
      * This bug was only reproducible in integration environment (device and emulator) but not as robolectric test.
      * <p>
      * This test may be flaky on a <b>real</b> device when the network changes during the test.
+     * <p>
+     * This test is flaky on the Github CI emulator, but work on local emulators [STAD-425].
      */
     @Test
+    @FlakyTest
     public void testSetConnected() throws InterruptedException {
 
         // Arrange - nothing to do
