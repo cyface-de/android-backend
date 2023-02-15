@@ -842,7 +842,6 @@ This documentation still lacks of samples for the following features:
 [[migration-guide]]
 == Migration Guide
 
-* xref:documentation/migration-guide_5.0.0.adoc[Migrate to 5.0.0]
 * xref:documentation/migration-guide_6.0.0.adoc[Migrate to 6.0.0]
 
 [[developer-guide]]
@@ -855,7 +854,8 @@ This section is only relevant for developers of this library.
 
 See https://github.com/cyface-de/data-collector#release-a-new-version[Cyface Collector Readme]
 
-* Set the `cyfaceAndroidBackendVersion` in the `build.gradle`
+* `cyfaceAndroidBackendVersion` in root `build.gradle` is automatically set by the CI
+* Just tag the release and push the tag to Github
 * The Github package is automatically published when a new version is tagged and pushed by our
 https://github.com/cyface-de/android-backend/actions[Github Actions] to
 the https://github.com/cyface-de/android-backend/packages[Github Registry]
