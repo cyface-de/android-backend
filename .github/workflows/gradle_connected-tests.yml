@@ -26,7 +26,8 @@ jobs:
         api-level: [ 28 ]
 
     steps:
-      - uses: actions/checkout@v3
+      - name: Checkout commit
+        uses: actions/checkout@v3
       - uses: actions/setup-java@v3
         with:
           distribution: 'zulu'
