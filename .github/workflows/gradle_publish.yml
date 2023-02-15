@@ -1,7 +1,7 @@
 # This workflow publishes a new version to the Github Registry.
 #
 # @author Armin Schnabel
-# @version 1.0.2
+# @version 1.1.0
 # @since 5.0.0
 name: Gradle Publish
 
@@ -28,6 +28,11 @@ jobs:
           cp gradle.properties.template gradle.properties
           echo "githubUser=${{ github.actor }}" >> gradle.properties
           echo "githubToken=${{ secrets.GITHUB_TOKEN }}" >> gradle.properties
+
+      # versionName is required to publish artifacts to Github Registry
+      - name: Set versionName
+        run: |
+          sed -i "s/cyfaceAndroidBackendVersion = \"0.0.0\"/cyfaceAndroidBackendVersion = \"${{ github.ref }}\"/g" build.gradle
 
       - name: Publish with Gradle
         run: ./gradlew publishAll
