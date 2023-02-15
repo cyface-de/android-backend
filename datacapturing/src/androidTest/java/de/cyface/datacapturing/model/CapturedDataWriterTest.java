@@ -83,6 +83,7 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3DFile;
@@ -783,6 +784,10 @@ public class CapturedDataWriterTest {
         rotations.add(new ParcelablePoint3D(7.0f, 7.0f, 7.0f, 7L));
         rotations.add(new ParcelablePoint3D(8.0f, 8.0f, 8.0f, 8L));
         rotations.add(new ParcelablePoint3D(9.0f, 9.0f, 9.0f, 9L));
-        return new CapturedData(accelerations, rotations, directions);
+        List<Pressure> pressures = new ArrayList<>();
+        pressures.add(new Pressure(10L, 1013.10f));
+        pressures.add(new Pressure(11L, 1013.11f));
+        pressures.add(new Pressure(12L, 1013.12f));
+        return new CapturedData(accelerations, rotations, directions, pressures);
     }
 }

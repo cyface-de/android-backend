@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.1.0
+ * @version 3.2.0
  * @since 1.0.0
  */
 
@@ -38,6 +38,13 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+
+        // Write Room database schema to file to record database schema changes in version control
+        javaCompileOptions {
+            annotationProcessorOptions {
+                arguments += ["room.schemaLocation": "$projectDir/schemas".toString()]
+            }
+        }
     }
 
     buildTypes {
@@ -52,11 +59,6 @@ android {
     compileOptions {
         sourceCompatibility rootProject.ext.sourceCompatibility
         targetCompatibility rootProject.ext.targetCompatibility
-    }
-
-    // To avoid having to upgrade to `androidX.appCompat:1.3.0-beta1` [CY-5525]
-    lintOptions {
-        disable 'ObsoleteLintCustomCheck'
     }
 
     // Uncomment to show more lint warnings
@@ -74,6 +76,11 @@ dependencies {
     implementation ("com.google.api-client:google-api-client:$rootProject.ext.googleApiClientVersion",{
         exclude group:'org.apache.httpcomponents', module:'httpclient'
     })
+
+    // `Room` API used for second database (V6 specific features)
+    // Further room libraries and Kotlin support see Room guide.
+    implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
+    annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

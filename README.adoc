@@ -26,8 +26,8 @@ To use it as a dependency in your app you need to:
 
 +
 ----
- github.user=YOUR_USERNAME
- github.token=YOUR_ACCESS_TOKEN
+ githubUser=YOUR_USERNAME
+ githubUser=YOUR_ACCESS_TOKEN
 ----
  ** Add the custom repository to your app's `build.gradle`:
 
@@ -42,8 +42,8 @@ To use it as a dependency in your app you need to:
      maven {
          url = uri("https://maven.pkg.github.com/cyface-de/android-backend")
          credentials {
-             username = project.findProperty("github.user")
-             password = project.findProperty("github.token")
+             username = project.findProperty("githubUser")
+             password = project.findProperty("githubToken")
          }
      }
  }
@@ -864,7 +864,7 @@ the https://github.com/cyface-de/android-backend/packages[Github Registry]
 
 [[license]]
 == License
-Copyright 2017-2022 Cyface GmbH
+Copyright 2017-2023 Cyface GmbH
 
 This file is part of the Cyface SDK for Android.
 

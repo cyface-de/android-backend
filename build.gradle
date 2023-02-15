@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -56,6 +56,7 @@ ext {
     androidxAnnotationVersion = '1.5.0'
     androidxAppCompatVersion = "1.6.1"
     localbroadcastmanagerVersion = '1.1.0'
+    roomVersion = "2.4.3"
 
     // Other dependencies
     googleApiClientVersion = '1.31.5' // transmission protocol
