@@ -47,22 +47,22 @@ jobs:
       # Add caching to speed up connected tests below (see `actions/android-emulator-runner`)
       - name: Gradle cache
         uses: gradle/gradle-build-action@v2
-      - name: AVD cache
-        uses: actions/cache@v3
-        id: avd-cache
-        with:
-          path: |
-            ~/.android/avd/*
-            ~/.android/adb*
-          key: avd-${{ matrix.api-level }}
-      - name: Create AVD and generate snapshot for caching
-        if: steps.avd-cache.outputs.cache-hit != 'true'
-        uses: reactivecircus/android-emulator-runner@v2
-        with:
-          api-level: ${{ matrix.api-level }}
-          force-avd-creation: false
-          disable-animations: true
-          script: echo "Generated AVD snapshot for caching."
+      #- name: AVD cache
+      #  uses: actions/cache@v3
+      #  id: avd-cache
+      #  with:
+      #    path: |
+      #      ~/.android/avd/*
+      #      ~/.android/adb*
+      #    key: avd-${{ matrix.api-level }}
+      #- name: Create AVD and generate snapshot for caching
+      #  if: steps.avd-cache.outputs.cache-hit != 'true'
+      #  uses: reactivecircus/android-emulator-runner@v2
+      #  with:
+      #    api-level: ${{ matrix.api-level }}
+      #    force-avd-creation: false
+      #    disable-animations: true
+      #    script: echo "Generated AVD snapshot for caching."
 
       # Only execute mock tests to exclude `@FlakyTest`s (instead of running `connectedCheck`)
       - name: Connected tests
