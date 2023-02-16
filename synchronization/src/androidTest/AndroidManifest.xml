@@ -8,7 +8,7 @@
     <application
         android:usesCleartextTraffic="true">
         <provider
-            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:name="de.cyface.persistence.v1.MeasuringPointsContentProvider"
             android:authorities="de.cyface.synchronization.test.provider"
             android:exported="false"
             android:process=":persistence_process"

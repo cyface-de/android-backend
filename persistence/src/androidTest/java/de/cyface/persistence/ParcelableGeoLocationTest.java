@@ -39,6 +39,7 @@ import android.net.Uri;
 import android.provider.BaseColumns;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.provider.ProviderTestRule;
+
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 

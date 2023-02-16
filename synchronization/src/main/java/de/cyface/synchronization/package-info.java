@@ -1,6 +1,6 @@
 /**
  * This package contains all classes and code used to synchronize data provided by a
- * <code>de.cyface.persistence.MeasuringPointsContentProvider</code> with a <strong>Movebis</strong> server.
+ * <code>de.cyface.persistence.v1.MeasuringPointsContentProvider</code> with a <strong>Movebis</strong> server.
  * <p>
  * It provides a stub authenticator for default account realised as described in the
  * <a href="https://developer.android.com/training/sync-adapters/creating-authenticator.html">Android documentation</a>

@@ -6,7 +6,7 @@
     <!-- The integration test uses a different authority to be executed next to the default app (same device) -->
     <application>
         <provider
-            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:name="de.cyface.persistence.v1.MeasuringPointsContentProvider"
             android:authorities="de.cyface.persistence.test.provider"
             android:exported="false"
             android:process=":persistence_process"

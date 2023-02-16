@@ -18,9 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
-import static de.cyface.persistence.Constants.TRANSFER_FILE_EXTENSION;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -94,6 +91,15 @@ public class HttpConnection implements Http {
      * A String to filter log output from {@link HttpConnection} logs.
      */
     final static String TAG = "de.cyface.sync.http";
+    /**
+     * The file extension of the measurement file which is transmitted on synchronization.
+     */
+    @SuppressWarnings("SpellCheckingInspection")
+    private static final String TRANSFER_FILE_EXTENSION = "ccyf";
+    /**
+     * The charset used to parse Strings (e.g. for JSON data)
+     */
+    private final static String DEFAULT_CHARSET = "UTF-8";
     /**
      * The status code returned when the MultiPart request is erroneous, e.g. when there is not exactly onf file or a
      * syntax error.

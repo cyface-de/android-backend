@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Cyface GmbH
+ * Copyright 2018 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,23 +16,29 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence.v1.exception;
+
+import androidx.annotation.NonNull;
+
+import de.cyface.persistence.v1.PersistenceLayer;
 
 /**
- * Final static constants used by multiple classes.
+ * An <code>Exception</code> which occurs every time someone wants to load the device id from the
+ * {@link PersistenceLayer} when there is no such entry in the database.
  *
  * @author Armin Schnabel
- * @version 1.4.0
- * @since 2.5.0
+ * @version 1.0.1
+ * @since 4.0.0
  */
-public final class Constants {
+public final class NoDeviceIdException extends Exception {
 
     /**
-     * Tag used to identify Logcat messages issued by instances of this package.
+     * Creates a new completely initialized {@link NoDeviceIdException}, providing a detailed explanation
+     * about the error to the caller.
+     *
+     * @param message The explanation of why this error occurred.
      */
-    public final static String TAG = "de.cyface.persistence";
-
-    private Constants() {
-        // Nothing to do here.
+    public NoDeviceIdException(final @NonNull String message) {
+        super(message);
     }
 }

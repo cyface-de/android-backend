@@ -1,5 +1,5 @@
 /*
- * Copyright 2021-2023 Cyface GmbH
+ * Copyright 2019 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -16,23 +16,27 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence.v1.model;
 
 /**
- * Final static constants used by multiple classes.
+ * The {@link Modality} types to choose from when starting a {@link Measurement}.
  *
  * @author Armin Schnabel
- * @version 1.4.0
- * @since 2.5.0
+ * @author Klemens Muthmann
+ * @version 2.0.0
+ * @since 1.0.0
  */
-public final class Constants {
+public enum Modality {
+    BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), BUS("BUS"), TRAIN("TRAIN"), WALKING("WALKING"), UNKNOWN(
+            "UNKNOWN");
 
-    /**
-     * Tag used to identify Logcat messages issued by instances of this package.
-     */
-    public final static String TAG = "de.cyface.persistence";
+    private String databaseIdentifier;
 
-    private Constants() {
-        // Nothing to do here.
+    Modality(final String databaseIdentifier) {
+        this.databaseIdentifier = databaseIdentifier;
+    }
+
+    public String getDatabaseIdentifier() {
+        return databaseIdentifier;
     }
 }
