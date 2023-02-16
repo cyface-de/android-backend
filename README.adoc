@@ -862,6 +862,16 @@ the https://github.com/cyface-de/android-backend/packages[Github Registry]
 * The tag is automatically marked as a 'new Release' on https://github.com/cyface-de/android-backend/releases[Github]
 
 
+[[known-issues]]]
+== Known Issues
+
+The AVD Cache leads to `Install_failed_Update_Incompatible` after a few builds.
+- we opened an issue here: https://github.com/ReactiveCircus/android-emulator-runner/issues/319
+- we could try to make the AVD cache only be used on main branch like
+- see https://github.com/ankidroid/Anki-Android/pull/11032/files?diff=split&w=0
+- but for now, we just disabled the AVD cache for the CI to be usable
+
+
 [[license]]
 == License
 Copyright 2017-2023 Cyface GmbH
