@@ -62,7 +62,7 @@ import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -215,7 +215,7 @@ public class DataCapturingLocalTest {
         List<ParcelablePoint3D> accelerations = new ArrayList<>(accelerationsSize);
         List<ParcelablePoint3D> rotations = new ArrayList<>(rotationsSize);
         List<ParcelablePoint3D> directions = new ArrayList<>(directionsSize);
-        List<Pressure> pressures = new ArrayList<>(pressuresSize);
+        List<ParcelablePressure> pressures = new ArrayList<>(pressuresSize);
 
         // Create some random test data.
         for (int i = 0; i < accelerationsSize; i++) {
@@ -232,7 +232,7 @@ public class DataCapturingLocalTest {
         }
         for (int i = 0; i < pressuresSize; i++) {
             final double validPressure = 250L + (long) (Math.random() * 850);
-            pressures.add(new Pressure(Math.abs(random.nextLong()), validPressure));
+            pressures.add(new ParcelablePressure(Math.abs(random.nextLong()), validPressure));
         }
         CapturedData data = new CapturedData(accelerations, rotations, directions, pressures);
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);

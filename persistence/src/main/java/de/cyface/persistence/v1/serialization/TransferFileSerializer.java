@@ -18,7 +18,7 @@
  */
 package de.cyface.persistence.v1.serialization;
 
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v1.Constants.TAG;
 import static de.cyface.persistence.v1.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.v1.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.v1.serialization.MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION;

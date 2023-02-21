@@ -98,7 +98,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
+                new PersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
@@ -227,10 +227,10 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             corruptedMeasurements.addAll(pausedMeasurements);
 
             for (final Measurement measurement : corruptedMeasurements) {
-                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getUid() + ").");
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
+                    this.persistenceLayer.setStatus(measurement.getUid(), MeasurementStatus.FINISHED, true);
                 } catch (NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }

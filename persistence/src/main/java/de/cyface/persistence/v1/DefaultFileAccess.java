@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence.v1;
 
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v1.Constants.TAG;
 import static de.cyface.serializer.DataSerializable.humanReadableSize;
 
 import java.io.BufferedInputStream;
@@ -47,7 +47,7 @@ public final class DefaultFileAccess implements FileAccessLayer {
 
     @Override
     public void writeToOutputStream(@NonNull final File file,
-            @NonNull final BufferedOutputStream bufferedOutputStream) {
+                                    @NonNull final BufferedOutputStream bufferedOutputStream) {
 
         final FileInputStream fileInputStream;
         int bytesRead, bytesAvailable, bufferSize;

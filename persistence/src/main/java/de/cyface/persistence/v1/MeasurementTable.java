@@ -18,7 +18,7 @@
  */
 package de.cyface.persistence.v1;
 
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v1.Constants.TAG;
 
 import android.database.Cursor;
 import android.database.sqlite.SQLiteDatabase;

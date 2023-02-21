@@ -72,12 +72,10 @@ import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.DataPoint;
-import de.cyface.persistence.model.DataPointV6;
-import de.cyface.persistence.model.GeoLocationV6;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.PlaceholderNotificationBuilder;
@@ -92,7 +90,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.0.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -306,9 +304,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
                             + AUTHORITY_ID);
         }
-        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
+        persistenceLayer = new PersistenceLayer<>(this, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
@@ -438,12 +435,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        final List<ParcelablePoint3D> accelerations = data.getAccelerations();
-        final List<ParcelablePoint3D> rotations = data.getRotations();
-        final List<ParcelablePoint3D> directions = data.getDirections();
-        final List<Pressure> pressures = data.getPressures();
-        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
-        for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
+        final var accelerations = data.getAccelerations();
+        final var rotations = data.getRotations();
+        final var directions = data.getDirections();
+        final var pressures = data.getPressures();
+        final var iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
+        for (var i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
                     sampleSubList(rotations, i), sampleSubList(directions, i), pressureSubList(pressures, i));
@@ -457,12 +454,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      *
-     * @param completeList The {@link List<ParcelablePoint3D>} to extract a subset from
+     * @param completeList The {@link List<  ParcelablePoint3D  >} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
     private @NonNull List<ParcelablePoint3D> sampleSubList(final @NonNull List<ParcelablePoint3D> completeList,
-            final int fromIndex) {
+                                                           final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
         return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
@@ -471,25 +468,24 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      * <p>
-     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPointV6}.
+     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPoint}.
      *
-     * @param completeList The {@link List<Pressure>} to extract a subset from
+     * @param completeList The {@link List< ParcelablePressure >} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
-    private @NonNull List<Pressure> pressureSubList(final @NonNull List<Pressure> completeList, final int fromIndex) {
+    private @NonNull List<ParcelablePressure> pressureSubList(final @NonNull List<ParcelablePressure> completeList, final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
-        return (fromIndex >= toIndex) ? Collections.<Pressure> emptyList() : completeList.subList(fromIndex, toIndex);
+        return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override
-    public void onLocationCaptured(@NonNull final ParcelableGeoLocation newLocation, @NonNull GeoLocationV6 newLocationV6) {
+    public void onLocationCaptured(@NonNull final ParcelableGeoLocation newLocation) {
 
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
-        capturingBehaviour.storeLocationV6(newLocationV6, currentMeasurementIdentifier);
 
         // Check available space
         if (!spaceAvailable()) {
@@ -500,7 +496,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
             newLocation.setValid(false);
-            newLocationV6.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }

@@ -26,8 +26,8 @@ import android.content.Context;
 import androidx.annotation.NonNull;
 
 import de.cyface.model.Point3D;
-import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.FileAccessLayer;
+import de.cyface.persistence.v1.DefaultFileAccess;
+import de.cyface.persistence.v1.FileAccessLayer;
 import de.cyface.persistence.v1.model.Measurement;
 import de.cyface.serializer.Point3DSerializer;
 import de.cyface.serializer.model.Point3DType;

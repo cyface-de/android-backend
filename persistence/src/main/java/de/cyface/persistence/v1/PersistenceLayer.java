@@ -19,7 +19,7 @@
 package de.cyface.persistence.v1;
 
 import static android.provider.BaseColumns._ID;
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v1.Constants.TAG;
 import static de.cyface.persistence.v1.MeasurementTable.COLUMN_DISTANCE;
 import static de.cyface.persistence.v1.MeasurementTable.COLUMN_MODALITY;
 import static de.cyface.persistence.v1.MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION;
@@ -55,9 +55,8 @@ import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 import androidx.room.Room;
 
-import de.cyface.persistence.Constants;
-import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.FileAccessLayer;
+import de.cyface.persistence.v1.DefaultFileAccess;
+import de.cyface.persistence.v1.FileAccessLayer;
 import de.cyface.persistence.v1.exception.NoDeviceIdException;
 import de.cyface.persistence.v1.exception.NoSuchMeasurementException;
 import de.cyface.persistence.v1.model.Event;

@@ -18,7 +18,7 @@
  */
 package de.cyface.persistence.v6.model;
 
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v6.Constants.TAG;
 
 import java.util.Locale;
 import java.util.Objects;

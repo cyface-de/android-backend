@@ -18,7 +18,7 @@
  */
 package de.cyface.persistence.v1.serialization;
 
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v1.Constants.TAG;
 
 import java.io.BufferedOutputStream;
 import java.io.File;
@@ -75,7 +75,7 @@ public final class MeasurementSerializer {
      * In iOS there are no parameters to set nowrap to false as it is default in Android.
      * In order for the iOS and Android Cyface SDK to be compatible we set nowrap explicitly to true
      * <p>
-     * <b>ATTENTION:</b> When decompressing in Android you need to pass this parameter to the {@link Inflater}'s
+     * <b>ATTENTION:</b> When decompressing in Android you need to pass this parameter to the {@code Inflater}'s
      * constructor.
      */
     public static final boolean COMPRESSION_NOWRAP = true;

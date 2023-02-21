@@ -30,26 +30,22 @@ import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
 import android.content.ContentProvider;
-import android.content.ContentValues;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
-import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.dao.GeoLocationDao;
 import de.cyface.persistence.dao.PressureDao;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.PersistedGeoLocation;
-import de.cyface.persistence.model.PersistedPressure;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
@@ -141,19 +137,19 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         threadPool.submit(writer);
 
         // Only store latest pressure point into the database, as the minimum frequency is > 10 HZ
-        final List<Pressure> pressures = data.getPressures();
+        final List<ParcelablePressure> pressures = data.getPressures();
         Log.d(TAG, String.format("Captured %d pressure points, storing 1 average", pressures.size()));
         if (pressures.size() > 0) {
             // Calculating the average pressure to be less dependent on random outliers
             double sum = 0.;
-            for (Pressure p : pressures) {
+            for (ParcelablePressure p : pressures) {
                 sum += p.getPressure();
             }
             final double averagePressure = sum / pressures.size();
             // Using the timestamp of the latest pressure sample
             final long timestamp = pressures.get(pressures.size() - 1).getTimestamp();
-            final PersistedPressure pressure = new PersistedPressure(timestamp, averagePressure, measurementIdentifier);
-            PressureDao dao = persistenceLayer.getDatabaseV6().pressureDao();
+            final Pressure pressure = new Pressure(timestamp, averagePressure, measurementIdentifier);
+            PressureDao dao = persistenceLayer.getDatabase().pressureDao();
             dao.insertAll(pressure);
         }
     }
@@ -166,27 +162,8 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      */
     public void storeLocation(final @NonNull ParcelableGeoLocation location, final long measurementIdentifier) {
 
-        final ContentValues values = new ContentValues();
-        values.put(GeoLocationsTable.COLUMN_ACCURACY, location.getAccuracy());
-        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, location.getTimestamp());
-        values.put(GeoLocationsTable.COLUMN_LAT, location.getLat());
-        values.put(GeoLocationsTable.COLUMN_LON, location.getLon());
-        values.put(GeoLocationsTable.COLUMN_SPEED, location.getSpeed());
-        values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-
-        persistenceLayer.getResolver().insert(persistenceLayer.getGeoLocationsUri(), values);
-    }
-
-    /**
-     * Stores the provided geo location with altitude data under the currently active captured measurement.
-     *
-     * @param location The geo location to store.
-     * @param measurementIdentifier The identifier of the measurement to store the data to.
-     */
-    public void storeLocationV6(final @NonNull GeoLocationV6 location, final long measurementIdentifier) {
-
-        GeoLocationDao dao = persistenceLayer.getDatabaseV6().geoLocationDao();
-        dao.insertAll(new PersistedGeoLocation(location, measurementIdentifier));
+        persistenceLayer.getDatabase().geoLocationDao()
+                .insertAll(new GeoLocation(location, measurementIdentifier));
     }
 
     /**
@@ -201,8 +178,8 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     private void refreshIdentifierOfCurrentlyCapturedMeasurement()
             throws NoSuchMeasurementException, CursorIsNullException {
 
-        final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurementFromPersistence();
-        currentMeasurementIdentifier = measurement.getIdentifier();
+        final var measurement = persistenceLayer.loadCurrentlyCapturedMeasurementFromPersistence();
+        currentMeasurementIdentifier = measurement.getUid();
         Log.d(Constants.TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
     }
 
@@ -248,7 +225,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         Validate.isTrue(
                 newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
 
-        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getUid();
         switch (newStatus) {
             case OPEN:
                 Validate.isTrue(persistenceLayer
@@ -290,7 +267,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     public void updateDistance(final double newDistance) throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(newDistance >= 0.0);
 
-        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getIdentifier();
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getUid();
 
         synchronized (this) {
             persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance);

@@ -72,6 +72,7 @@ public class CapturedDataWriter implements Runnable {
      * - It's essential to create a new client for each thread and to close the client after usage,
      * as the client is not thread safe, see:
      * https://developer.android.com/reference/android/content/ContentProviderClient
+     * FIXME docu
      */
     private void writeCapturedData() {
 

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,10 +21,7 @@ package de.cyface.datacapturing.model;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
-import static de.cyface.persistence.Utils.getEventUri;
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getIdentifierUri;
-import static de.cyface.persistence.Utils.getMeasurementUri;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_STOP;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
 import static de.cyface.serializer.model.Point3DType.ACCELERATION;
@@ -47,7 +44,6 @@ import java.util.concurrent.locks.ReentrantLock;
 import org.junit.After;
 import org.junit.Before;
 import org.junit.Ignore;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
@@ -63,27 +59,21 @@ import android.util.Log;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
-import androidx.test.rule.provider.ProviderTestRule;
 
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.DefaultLocationCleaningStrategy;
-import de.cyface.persistence.EventTable;
 import de.cyface.persistence.FileAccessLayer;
-import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.MeasurementTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3DFile;
@@ -99,7 +89,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.6.1
+ * @version 5.6.2
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -109,9 +99,9 @@ public class CapturedDataWriterTest {
     /**
      * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
      */
-    @Rule
+    /*@Rule
     public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
-            .build();
+            .build();*/
     /**
      * The object of the class under test.
      */
@@ -140,12 +130,12 @@ public class CapturedDataWriterTest {
      */
     @Before
     public void setUp() throws CursorIsNullException {
-        mockResolver = providerRule.getResolver();
+        //mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, capturingBehaviour);
+        oocut = new PersistenceLayer<>(context, capturingBehaviour);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
     }
@@ -169,10 +159,10 @@ public class CapturedDataWriterTest {
 
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(UNKNOWN);
-        assertThat(measurement.getIdentifier() > 0L, is(equalTo(true)));
+        assertThat(measurement.getUid() > 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
-        String identifierString = Long.valueOf(measurement.getIdentifier()).toString();
+        String identifierString = Long.valueOf(measurement.getUid()).toString();
         Log.d(TAG, identifierString);
         try (Cursor result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
                 new String[] {identifierString}, null)) {
@@ -315,13 +305,13 @@ public class CapturedDataWriterTest {
         final int testMeasurementsWithPoint3DFiles = 1;
         final int point3DFilesPerMeasurement = 3;
         final int testEvents = 2;
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
 
         oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
 
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
 
         lock.lock();
         try {
@@ -407,7 +397,7 @@ public class CapturedDataWriterTest {
             }
         };
 
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeData(testData(), measurementId, callback);
         lock.lock();
         try {
@@ -418,7 +408,7 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
 
         // Act
         oocut.delete(measurement.getIdentifier());
@@ -469,21 +459,21 @@ public class CapturedDataWriterTest {
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and 2 locations
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
+        oocut.logEvent(LIFECYCLE_START, measurement, 1L);
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
 
         // Pause event and a slightly late 3rd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
         capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
 
         // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
         capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 6L);
+        oocut.logEvent(LIFECYCLE_RESUME, measurement, 6L);
         capturingBehaviour.storeLocation(testLocation(6L), measurement.getIdentifier());
 
         // Stop event and a lightly late 2nd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 7L);
+        oocut.logEvent(LIFECYCLE_STOP, measurement, 7L);
         capturingBehaviour.storeLocation(testLocation(8L), measurement.getIdentifier());
 
         // Act
@@ -519,20 +509,20 @@ public class CapturedDataWriterTest {
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and 2 locations
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
+        oocut.logEvent(LIFECYCLE_START, measurement, 1L);
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
 
         // Pause event and a slightly late 3rd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
         capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
 
         // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
         capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 6L);
+        oocut.logEvent(LIFECYCLE_RESUME, measurement, 6L);
 
         // Stop event and a lightly late 2nd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 7L);
+        oocut.logEvent(LIFECYCLE_STOP, measurement, 7L);
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -565,11 +555,11 @@ public class CapturedDataWriterTest {
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and at least one location between start and pause
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
+        oocut.logEvent(LIFECYCLE_START, measurement, 1L);
         capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 4L);
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 5L);
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
+        oocut.logEvent(LIFECYCLE_RESUME, measurement, 4L);
+        oocut.logEvent(LIFECYCLE_STOP, measurement, 5L);
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -597,26 +587,26 @@ public class CapturedDataWriterTest {
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         // Start event and 2 locations
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, 1L);
+        oocut.logEvent(LIFECYCLE_START, measurement, 1L);
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
         capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
 
         // Pause event and a slightly late 3rd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 3L);
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
         capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
 
         // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
         capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, 6L);
+        oocut.logEvent(LIFECYCLE_RESUME, measurement, 6L);
         // The first location may be capturing at the same millisecond (tried to reproduce MOV-676)
         capturingBehaviour.storeLocation(testLocation(6L), measurement.getIdentifier());
 
         // Pause event and a slightly late 2nd location
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, 7L);
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, 7L);
         capturingBehaviour.storeLocation(testLocation(8L), measurement.getIdentifier());
 
         // Stop event and a lightly late location
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, 9L);
+        oocut.logEvent(LIFECYCLE_STOP, measurement, 9L);
         capturingBehaviour.storeLocation(testLocation(10L), measurement.getIdentifier());
 
         // Act
@@ -644,15 +634,15 @@ public class CapturedDataWriterTest {
         // Arrange
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
         capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, System.currentTimeMillis());
         // It's possible that GeoLocations arrive just after capturing was paused
         final long timestamp = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getIdentifier());
 
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -676,9 +666,9 @@ public class CapturedDataWriterTest {
         // Arrange
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
         capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, System.currentTimeMillis());
+        oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
         // It's possible that GeoLocations arrive just after stop method was triggered
         final long timestamp = System.currentTimeMillis();
         capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getIdentifier());
@@ -716,15 +706,15 @@ public class CapturedDataWriterTest {
         final ParcelableGeoLocation locationWithJustTooHighSpeed = new ParcelableGeoLocation(51.1, 13.1,
                 startTime + 11, 100.0, 5);
 
-        oocut.logEvent(Event.EventType.LIFECYCLE_START, measurement, startTime);
+        oocut.logEvent(LIFECYCLE_START, measurement, startTime);
         capturingBehaviour.storeLocation(locationWithJustTooBadAccuracy, measurement.getIdentifier());
         capturingBehaviour.storeLocation(locationWithJustTooLowSpeed, measurement.getIdentifier());
         capturingBehaviour.storeLocation(locationWithHighEnoughSpeed, measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_PAUSE, measurement, startTime + 4);
-        oocut.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement, startTime + 9);
+        oocut.logEvent(LIFECYCLE_PAUSE, measurement, startTime + 4);
+        oocut.logEvent(LIFECYCLE_RESUME, measurement, startTime + 9);
         capturingBehaviour.storeLocation(locationWithGoodEnoughAccuracy, measurement.getIdentifier());
         capturingBehaviour.storeLocation(locationWithJustTooHighSpeed, measurement.getIdentifier());
-        oocut.logEvent(Event.EventType.LIFECYCLE_STOP, measurement, startTime + 12);
+        oocut.logEvent(LIFECYCLE_STOP, measurement, startTime + 12);
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
@@ -765,29 +755,29 @@ public class CapturedDataWriterTest {
      * @return An initialized {@code GeoLocation} object with garbage data for testing.
      */
     private ParcelableGeoLocation testLocation(final long timestamp) {
-        return new ParcelableGeoLocation(1.0, 1.0, timestamp, 1.0, 1.0f);
+        return new ParcelableGeoLocation(timestamp, 1.0, 1.0, 1.0, 1.0, 5.0, 13.0);
     }
 
     /**
      * @return An initialized {@link CapturedData} object with garbage data for testing.
      */
     private CapturedData testData() {
-        List<ParcelablePoint3D> accelerations = new ArrayList<>();
-        accelerations.add(new ParcelablePoint3D(1.0f, 1.0f, 1.0f, 1L));
-        accelerations.add(new ParcelablePoint3D(2.0f, 2.0f, 2.0f, 2L));
-        accelerations.add(new ParcelablePoint3D(3.0f, 3.0f, 3.0f, 3L));
-        List<ParcelablePoint3D> directions = new ArrayList<>();
-        directions.add(new ParcelablePoint3D(4.0f, 4.0f, 4.0f, 4L));
-        directions.add(new ParcelablePoint3D(5.0f, 5.0f, 5.0f, 5L));
-        directions.add(new ParcelablePoint3D(6.0f, 6.0f, 6.0f, 6L));
-        List<ParcelablePoint3D> rotations = new ArrayList<>();
-        rotations.add(new ParcelablePoint3D(7.0f, 7.0f, 7.0f, 7L));
-        rotations.add(new ParcelablePoint3D(8.0f, 8.0f, 8.0f, 8L));
-        rotations.add(new ParcelablePoint3D(9.0f, 9.0f, 9.0f, 9L));
-        List<Pressure> pressures = new ArrayList<>();
-        pressures.add(new Pressure(10L, 1013.10f));
-        pressures.add(new Pressure(11L, 1013.11f));
-        pressures.add(new Pressure(12L, 1013.12f));
+        var accelerations = new ArrayList<ParcelablePoint3D>();
+        accelerations.add(new ParcelablePoint3D(1L, 1.0f, 1.0f, 1.0f));
+        accelerations.add(new ParcelablePoint3D(2L, 2.0f, 2.0f, 2.0f));
+        accelerations.add(new ParcelablePoint3D(3L, 3.0f, 3.0f, 3.0f));
+        var directions = new ArrayList<ParcelablePoint3D>();
+        directions.add(new ParcelablePoint3D(4L, 4.0f, 4.0f, 4.0f));
+        directions.add(new ParcelablePoint3D(5L, 5.0f, 5.0f, 5.0f));
+        directions.add(new ParcelablePoint3D(6L, 6.0f, 6.0f, 6.0f));
+        var rotations = new ArrayList<ParcelablePoint3D>();
+        rotations.add(new ParcelablePoint3D(7L, 7.0f, 7.0f, 7.0f));
+        rotations.add(new ParcelablePoint3D(8L, 8.0f, 8.0f, 8.0f));
+        rotations.add(new ParcelablePoint3D(9L, 9.0f, 9.0f, 9.0f));
+        var pressures = new ArrayList<ParcelablePressure>();
+        pressures.add(new ParcelablePressure(10L, 1013.10f));
+        pressures.add(new ParcelablePressure(11L, 1013.11f));
+        pressures.add(new ParcelablePressure(12L, 1013.12f));
         return new CapturedData(accelerations, rotations, directions, pressures);
     }
 }

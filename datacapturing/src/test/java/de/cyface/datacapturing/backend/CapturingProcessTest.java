@@ -50,7 +50,6 @@ import android.os.SystemClock;
 import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.utils.Validate;
 
@@ -59,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.6
+ * @version 1.0.7
  * @since 2.0.0
  */
 public class CapturingProcessTest {
@@ -237,10 +236,6 @@ public class CapturingProcessTest {
          * <code>GeoLocation</code> instances this listener was informed about.
          */
         private final List<ParcelableGeoLocation> capturedLocations = new ArrayList<>();
-        /**
-         * <code>GeoLocationV6</code> instances this listener was informed about.
-         */
-        private List<GeoLocationV6> capturedLocationsV6 = new ArrayList<>();
 
         /**
          * Captured sensor data this listener was informed about.
@@ -248,9 +243,8 @@ public class CapturingProcessTest {
         private final List<CapturedData> capturedData = new ArrayList<>();
 
         @Override
-        public void onLocationCaptured(@NonNull ParcelableGeoLocation location, @NonNull GeoLocationV6 locationV6) {
+        public void onLocationCaptured(@NonNull ParcelableGeoLocation location) {
             capturedLocations.add(location);
-            capturedLocationsV6.add(locationV6);
         }
 
         @Override

@@ -7,7 +7,7 @@ import android.util.Log;
 import de.cyface.persistence.v1.model.Event;
 import de.cyface.persistence.v1.model.Measurement;
 
-import static de.cyface.persistence.Constants.TAG;
+import static de.cyface.persistence.v1.Constants.TAG;
 
 /**
  * Table for storing {@link Event}s.

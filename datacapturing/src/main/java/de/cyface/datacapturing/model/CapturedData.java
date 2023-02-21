@@ -24,17 +24,18 @@ import java.util.List;
 
 import android.os.Parcel;
 import android.os.Parcelable;
+
 import androidx.annotation.NonNull;
 
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelablePressure;
 
 /**
  * Immutable data handling object for captured data.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 4.0.0
  * @since 1.0.0
  */
 public final class CapturedData implements Parcelable {
@@ -53,7 +54,7 @@ public final class CapturedData implements Parcelable {
     /**
      * All pressures captured since the last position was captured.
      */
-    private final List<Pressure> pressures;
+    private final List<ParcelablePressure> pressures;
 
     /**
      * Creates a new captured data object from the provided data. The lists are copied and thus may be changed after
@@ -73,7 +74,7 @@ public final class CapturedData implements Parcelable {
      *            The list contains all captured values since the last GNSS fix.
      */
     public CapturedData(final @NonNull List<ParcelablePoint3D> accelerations, final @NonNull List<ParcelablePoint3D> rotations,
-                        final @NonNull List<ParcelablePoint3D> directions, final @NonNull List<Pressure> pressures) {
+                        final @NonNull List<ParcelablePoint3D> directions, final @NonNull List<ParcelablePressure> pressures) {
         this.accelerations = new LinkedList<>(accelerations);
         this.rotations = new LinkedList<>(rotations);
         this.directions = new LinkedList<>(directions);
@@ -104,7 +105,7 @@ public final class CapturedData implements Parcelable {
     /**
      * @return All pressures captured since the last position was captured.
      */
-    public List<Pressure> getPressures() {
+    public List<ParcelablePressure> getPressures() {
         return Collections.unmodifiableList(pressures);
     }
 
@@ -121,7 +122,7 @@ public final class CapturedData implements Parcelable {
         accelerations = in.createTypedArrayList(ParcelablePoint3D.CREATOR);
         rotations = in.createTypedArrayList(ParcelablePoint3D.CREATOR);
         directions = in.createTypedArrayList(ParcelablePoint3D.CREATOR);
-        pressures = in.createTypedArrayList(Pressure.CREATOR);
+        pressures = in.createTypedArrayList(ParcelablePressure.CREATOR);
     }
 
     /**

@@ -53,15 +53,13 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.model.MeasurementIdentifier;
 import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.MeasurementSerializer;
 import de.cyface.synchronization.exception.SynchronizationInterruptedException;
@@ -145,8 +143,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
         Log.d(TAG, "Sync started");
         final Context context = getContext();
         final MeasurementSerializer serializer = new MeasurementSerializer();
-        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                context.getContentResolver(), authority, new DefaultPersistenceBehaviour());
+        final var persistence = new PersistenceLayer<>(context, new DefaultPersistenceBehaviour());
         final CyfaceAuthenticator authenticator = new CyfaceAuthenticator(context);
         final SyncPerformer syncPerformer = new SyncPerformer(context);
 
@@ -171,22 +168,20 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                 final Measurement measurement = syncableMeasurements.get(index);
                 Log.d(Constants.TAG,
                         String.format("Measurement with identifier %d is about to be loaded for transmission.",
-                                measurement.getIdentifier()));
+                                measurement.getUid()));
 
                 // Ensure the measurement is supported
                 final short format = measurement.getFileFormatVersion();
                 Validate.isTrue(format == PERSISTENCE_FILE_FORMAT_VERSION);
 
                 // Load measurement data
-                final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(
-                        measurement.getIdentifier(), provider, authority);
                 final RequestMetaData metaData = loadMetaData(measurement, persistence, deviceId, context);
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 File compressedTransferTempFile = null;
                 try {
-                    compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                            measurement.getIdentifier(), persistence);
+                    compressedTransferTempFile = serializer.writeSerializedCompressed(persistence.getDatabase(),
+                            measurement.getUid(), persistence);
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     final String jwtAuthToken = getAuthToken(authenticator, account);
@@ -208,7 +203,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                                 final double total = lastMeasurement && percent == 1.0 ? 100.0
                                         : progressBeforeThis + percent * progressPerMeasurement;
                                 for (final ConnectionStatusListener listener : progressListener) {
-                                    listener.onProgress((float)total, measurement.getIdentifier());
+                                    listener.onProgress((float)total, measurement.getUid());
                                 }
                             }, jwtAuthToken);
                     if (result.equals(HttpConnection.Result.UPLOAD_FAILED)) {
@@ -218,11 +213,11 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
                     // Mark successfully transmitted measurement as synced
                     try {
                         if (result.equals(HttpConnection.Result.UPLOAD_SKIPPED)) {
-                            persistence.markFinishedAs(SKIPPED, measurement.getIdentifier());
+                            persistence.markFinishedAs(SKIPPED, measurement.getUid());
                         } else if (result.equals(HttpConnection.Result.UPLOAD_SUCCESSFUL)) {
-                            persistence.markFinishedAs(SYNCED, measurement.getIdentifier());
+                            persistence.markFinishedAs(SYNCED, measurement.getUid());
                         } else {
-                            throw new IllegalArgumentException(String.format("Unknown result: %s", result.toString()));
+                            throw new IllegalArgumentException(String.format("Unknown result: %s", result));
                         }
                         Log.d(Constants.TAG,
                                 String.format("Measurement marked as %s.",
@@ -349,15 +344,16 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             @NonNull final Context context) throws CursorIsNullException {
 
         // If there is only one location captured, start and end locations are identical
-        final List<Track> tracks = persistence.loadTracks(measurement.getIdentifier());
+        final List<Track> tracks = persistence.loadTracks(measurement.getUid());
         int locationCount = 0;
         for (final Track track : tracks) {
             locationCount += track.getGeoLocations().size();
         }
         Validate.isTrue(tracks.size() == 0 || (tracks.get(0).getGeoLocations().size() > 0
                 && tracks.get(tracks.size() - 1).getGeoLocations().size() > 0));
-        final List<ParcelableGeoLocation> lastTrack = tracks.size() > 0 ? tracks.get(tracks.size() - 1).getGeoLocations() : null;
-        final var id = new MeasurementIdentifier(deviceId, measurement.getIdentifier());
+        final List<ParcelableGeoLocation> lastTrack = tracks.size() > 0
+                ? tracks.get(tracks.size() - 1).getGeoLocations()
+                : null;
         @Nullable
         RequestMetaData.GeoLocation startLocation = null;
         if (tracks.size() > 0) {
@@ -382,7 +378,7 @@ public final class SyncAdapter extends AbstractThreadedSyncAdapter {
             throw new IllegalStateException(e);
         }
 
-        return new RequestMetaData(deviceId, String.valueOf(measurement.getIdentifier()), osVersion,
+        return new RequestMetaData(deviceId, String.valueOf(measurement.getUid()), osVersion,
                 deviceType, appVersion, measurement.getDistance(), locationCount, startLocation, endLocation,
                 measurement.getModality().getDatabaseIdentifier(),
                 RequestMetaData.CURRENT_TRANSFER_FILE_FORMAT_VERSION);

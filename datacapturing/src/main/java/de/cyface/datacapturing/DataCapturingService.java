@@ -22,6 +22,11 @@ import static de.cyface.datacapturing.Constants.TAG;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_PAUSE;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_RESUME;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_START;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_STOP;
+import static de.cyface.persistence.model.EventType.MODALITY_TYPE_CHANGE;
 import static de.cyface.persistence.model.MeasurementStatus.DEPRECATED;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
@@ -33,11 +38,15 @@ import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STR
 import static de.cyface.synchronization.BundlesExtrasCodes.MEASUREMENT_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.synchronization.BundlesExtrasCodes.STOPPED_SUCCESSFULLY;
+import static kotlinx.coroutines.BuildersKt.async;
+import static kotlinx.coroutines.BuildersKt.launch;
+import static kotlinx.coroutines.BuildersKt.runBlocking;
+import static kotlinx.coroutines.CoroutineScopeKt.coroutineScope;
+import static kotlinx.coroutines.SupervisorKt.SupervisorJob;
 
 import java.lang.ref.WeakReference;
 import java.util.Collection;
 import java.util.HashSet;
-import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -92,6 +101,9 @@ import de.cyface.synchronization.SyncService;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
+import kotlinx.coroutines.CoroutineScope;
+import kotlinx.coroutines.Dispatchers;
+import kotlinx.coroutines.SupervisorKt;
 
 /**
  * An object of this class handles the lifecycle of starting and stopping data capturing as well as transmitting results
@@ -249,14 +261,28 @@ public abstract class DataCapturingService {
         this.locationCleaningStrategy = locationCleaningStrategy;
         this.sensorFrequency = sensorFrequency;
 
+        this.deviceIdentifier = "ASD"; // FIXME
+        // The scope keeps track of coroutines, can cancel them and is notified about failures
+        // No need to cancel this scope as it'll be torn down with the process
+        //var scope = new CoroutineScope(Dispatchers.getIO());
         // Setup required device identifier, if not already existent
-        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId();
+        //scope.async { // may silently drop exceptions! https://medium.com/androiddevelopers/cancellation-in-coroutines-aa6b90163629
+        //async(scope -> {
+        /*coroutineScope(scope -> {
+            final var deferredDeviceId = async(scope, persistenceLayer.restoreOrCreateDeviceId())
+            this.deviceIdentifier = deferred.await();
+        })
+        //});
+        final var scope = new CoroutineScope(Dispatchers.getIO())
+        runBlocking(Dispatchers.getIO(),
+            this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()//.await();
+        );*/
 
         // Mark deprecated measurements
         for (final var m : persistenceLayer.loadMeasurements()) {
             if (m.getFileFormatVersion() < PERSISTENCE_FILE_FORMAT_VERSION && !m.getStatus().equals(DEPRECATED)) {
                 try {
-                    markDeprecated(m.getIdentifier(), m.getStatus());
+                    markDeprecated(m.getUid(), m.getStatus());
                 } catch (NoSuchMeasurementException e) {
                     throw new IllegalStateException(e); // Should not happen
                 }
@@ -340,8 +366,8 @@ public abstract class DataCapturingService {
             // Start new measurement
             final Measurement measurement = prepareStart(modality);
             final long timestamp = System.currentTimeMillis();
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_START, measurement, timestamp);
-            persistenceLayer.logEvent(Event.EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
+            persistenceLayer.logEvent(LIFECYCLE_START, measurement, timestamp);
+            persistenceLayer.logEvent(MODALITY_TYPE_CHANGE, measurement, timestamp,
                     modality.getDatabaseIdentifier());
             runService(measurement, finishedHandler);
         } finally {
@@ -384,7 +410,7 @@ public abstract class DataCapturingService {
         try {
             setIsStoppingOrHasStopped(true);
             final Measurement currentlyCapturedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_STOP, currentlyCapturedMeasurement);
+            persistenceLayer.logEvent(LIFECYCLE_STOP, currentlyCapturedMeasurement);
 
             if (stopService(finishedHandler)) {
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(FINISHED);
@@ -427,7 +453,7 @@ public abstract class DataCapturingService {
         try {
             setIsStoppingOrHasStopped(true);
             final Measurement currentlyCapturedMeasurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_PAUSE, currentlyCapturedMeasurement);
+            persistenceLayer.logEvent(LIFECYCLE_PAUSE, currentlyCapturedMeasurement);
 
             if (stopService(finishedHandler)) {
                 persistenceLayer.getPersistenceBehaviour().updateRecentMeasurement(PAUSED);
@@ -498,7 +524,7 @@ public abstract class DataCapturingService {
             // Resume paused measurement
             final Measurement measurement = persistenceLayer.loadCurrentlyCapturedMeasurement();
             Validate.isTrue(measurement.getFileFormatVersion() == PERSISTENCE_FILE_FORMAT_VERSION);
-            persistenceLayer.logEvent(Event.EventType.LIFECYCLE_RESUME, measurement);
+            persistenceLayer.logEvent(LIFECYCLE_RESUME, measurement);
             runService(measurement, finishedHandler);
 
             // We only update the {@link MeasurementStatus} if {@link #runService()} was successful
@@ -547,7 +573,7 @@ public abstract class DataCapturingService {
 
                     // The background service was not active. This is normal when we stop a paused measurement.
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
-                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getIdentifier(), false);
+                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getUid(), false);
 
                 } catch (final NoSuchMeasurementException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
@@ -595,7 +621,7 @@ public abstract class DataCapturingService {
 
                     // The background service was not active and, thus, could not be stopped.
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
-                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getIdentifier(), false);
+                    sendServiceStoppedBroadcast(getContext(), currentlyCapturedMeasurement.getUid(), false);
 
                 } catch (final NoSuchMeasurementException | CursorIsNullException e) {
                     throw new IllegalStateException(e);
@@ -751,7 +777,7 @@ public abstract class DataCapturingService {
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
         // Binding the intent to the package of the app which runs this SDK [DAT-1509].
         startIntent.setPackage(context.getPackageName());
-        startIntent.putExtra(MEASUREMENT_ID, measurement.getIdentifier());
+        startIntent.putExtra(MEASUREMENT_ID, measurement.getUid());
         startIntent.putExtra(AUTHORITY_ID, authority);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy);
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, distanceCalculationStrategy);
@@ -1126,8 +1152,7 @@ public abstract class DataCapturingService {
             measurement = loadCurrentlyCapturedMeasurement();
 
             // Ensure the newModality is actually different to the current Modality
-            final List<Event> modalityChanges = persistenceLayer.loadEvents(measurement.getIdentifier(),
-                    Event.EventType.MODALITY_TYPE_CHANGE);
+            final var modalityChanges = persistenceLayer.loadEvents(measurement.getUid(), MODALITY_TYPE_CHANGE);
             if (modalityChanges.size() > 0) {
                 final Event lastModalityChangeEvent = modalityChanges.get(modalityChanges.size() - 1);
                 final String lastChangeValue = lastModalityChangeEvent.getValue();
@@ -1138,7 +1163,7 @@ public abstract class DataCapturingService {
                 }
             }
 
-            persistenceLayer.logEvent(Event.EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
+            persistenceLayer.logEvent(MODALITY_TYPE_CHANGE, measurement, timestamp,
                     newModality.getDatabaseIdentifier());
         } catch (final CursorIsNullException | NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
@@ -1207,7 +1232,8 @@ public abstract class DataCapturingService {
          * @param context The Android context this handler is running under.
          * @param dataCapturingService The service which calls this handler.
          */
-        FromServiceMessageHandler(@NonNull final Context context, @NonNull final DataCapturingService dataCapturingService) {
+        FromServiceMessageHandler(@NonNull final Context context,
+                @NonNull final DataCapturingService dataCapturingService) {
             super(context.getMainLooper());
             this.context = context;
             this.listener = new HashSet<>();

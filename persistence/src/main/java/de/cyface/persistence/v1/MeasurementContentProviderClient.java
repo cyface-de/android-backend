@@ -22,6 +22,9 @@ import de.cyface.utils.CursorIsNullException;
  * will not do that for you. This has the benefit, that you may call multiple of its methods without requiring a new
  * <code>ContentProvider</code>.
  *
+ * FIXME: The methods of this class have to be re-implemented for Room.
+ * Check the previous usage of the methods in de.cyface.persistence.v1.MeasurementContentProviderClient
+ *
  * @author Klemens Muthmann
  * @author Armin Schnabel
  * @version 2.2.0

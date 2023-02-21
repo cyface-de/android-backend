@@ -28,6 +28,7 @@
 plugins {
     id 'de.cyface.android-publish' version '1.0.1' // Keep version in sync with other modules!
     id 'kotlin-android'
+    id 'kotlin-kapt'
 }
 
 android {
@@ -104,6 +105,14 @@ dependencies {
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
     annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
+
+    // lifecycleScope:
+    //implementation 'androidx.lifecycle:lifecycle-runtime-ktx:2.2.0-alpha04'
+
+    // Kotlin components
+    //implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-core:$rootProject.ext.coroutinesVersion"
+    api "org.jetbrains.kotlinx:kotlinx-coroutines-android:$rootProject.ext.coroutinesVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
