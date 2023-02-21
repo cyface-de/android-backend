@@ -27,6 +27,7 @@
 
 buildscript {
     ext.gradle_version = "7.3.0"
+    ext.kotlin_version = "1.7.10"
 
     repositories {
         google()
@@ -35,6 +36,7 @@ buildscript {
     }
     dependencies {
         classpath "com.android.tools.build:gradle:$gradle_version"
+        classpath "org.jetbrains.kotlin:kotlin-gradle-plugin:$kotlin_version"
     }
 }
 
@@ -71,6 +73,7 @@ ext {
 
     sourceCompatibility = JavaVersion.VERSION_11
     targetCompatibility = JavaVersion.VERSION_11
+    kotlinTargetJavaVersion = "11"
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
 }

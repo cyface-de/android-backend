@@ -30,6 +30,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
 
 plugins {
     id 'de.cyface.android-publish' version '1.0.1' // Keep version in sync with other modules!
+    id 'kotlin-android'
 }
 
 android {
@@ -95,6 +96,10 @@ android {
     compileOptions {
         sourceCompatibility rootProject.ext.sourceCompatibility
         targetCompatibility rootProject.ext.targetCompatibility
+    }
+
+    kotlinOptions {
+        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
     }
 
     packagingOptions {

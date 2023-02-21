@@ -26,6 +26,7 @@
 
 plugins {
     id 'com.android.library'
+    id 'kotlin-android'
 }
 
 android {
@@ -51,6 +52,10 @@ android {
     compileOptions {
         sourceCompatibility rootProject.ext.sourceCompatibility
         targetCompatibility rootProject.ext.targetCompatibility
+    }
+
+    kotlinOptions {
+        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
     }
 }
 
