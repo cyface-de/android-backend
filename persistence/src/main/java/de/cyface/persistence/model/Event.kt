@@ -59,7 +59,7 @@ class /*Persisted*/ Event(
      * @param measurementId The device-unique id of the measurement this [Event] belongs to.
      */
     constructor(
-        timestamp: Long, type: EventType, value: String, measurementId: Long
+        timestamp: Long, type: EventType, value: String?, measurementId: Long
     ) : this(0, timestamp, type, value, measurementId)
 
     override fun equals(other: Any?): Boolean {

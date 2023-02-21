@@ -21,7 +21,6 @@ package de.cyface.persistence
 import android.content.Context
 import android.hardware.SensorManager
 import android.util.Log
-import androidx.room.Room
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -44,10 +43,13 @@ import de.cyface.serializer.model.Point3DType
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
-import kotlinx.coroutines.coroutineScope
+import kotlinx.coroutines.runBlocking
+import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
+import kotlin.math.abs
 
 /**
  * This class wraps the Cyface Android persistence API as required by the `DataCapturingListener` and its delegate
@@ -63,6 +65,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      * The [Context] required to locate the app's internal storage directory.
      */
     val context: Context?
+
     /**
      * The [PersistenceBehaviour] defines how the `Persistence` layer works. We need this behaviour to
      * differentiate if the [PersistenceLayer] is used for live capturing and or to load existing data.
@@ -71,17 +74,27 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     var persistenceBehaviour: B? = null
         private set
+
     /**
      * The [FileAccessLayer] used to interact with files.
      *
      * **ATTENTION:** This should not be used by SDK implementing apps.
      */
     val fileAccessLayer: FileAccessLayer
+
     /**
      * The database which contains all persisted data which is not written to binary files.
      */
     val database: DatabaseV7?
     private val identifierRepository: IdentifierRepository?
+
+    // FIXME: use this when one async task failure should not cancel all others
+    // FIXME: onDestroy() => job.cancel()
+    private val job = SupervisorJob()
+
+    // The scope keeps track of coroutines, can cancel them and is notified about failures
+    // No need to cancel this scope as it'll be torn down with the process
+    private val scope = CoroutineScope(Dispatchers.IO + job)
 
     /**
      * **This constructor is only for testing.**
@@ -170,8 +183,14 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             0.0,
             timestamp
         )
-        val measurementId = database!!.measurementDao()!!.insert(measurement)
-        measurement.uid = measurementId
+        runBlocking {
+            val measurementId = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.insert(measurement)
+            }
+            measurement.uid = measurementId
+        }
+        // To ensure this works, i.e. blocking code alters the object
+        Validate.notNull(measurement.uid)
         return measurement
     }
 
@@ -185,9 +204,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     @Throws(CursorIsNullException::class)
     fun hasMeasurement(status: MeasurementStatus): Boolean {
         Log.v(TAG, "Checking if app has an $status measurement.")
-        val measurements = database!!.measurementDao()!!
-            .loadAllByStatus(status)
-        val hasMeasurement = measurements!!.size > 0
+        var measurements: List<Measurement?>?
+        runBlocking {
+            measurements = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.loadAllByStatus(status)
+            }
+        }
+        val hasMeasurement = measurements!!.isNotEmpty()
         Log.v(
             TAG,
             if (hasMeasurement) "At least one measurement is $status." else "No measurement is $status."
@@ -205,7 +228,12 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)  // Used by cyface flavour tests and possibly by implementing apps
     fun loadMeasurements(): List<Measurement?> {
-        return database!!.measurementDao()!!.getAll()!!
+        var measurements: List<Measurement?>
+        runBlocking {
+            measurements =
+                withContext(scope.coroutineContext) { database!!.measurementDao()!!.getAll()!! }
+        }
+        return measurements
     }
 
     /**
@@ -220,7 +248,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)  // Sdk implementing apps (SR) use this to load single measurements
     fun loadMeasurement(measurementIdentifier: Long): Measurement? {
-        return database!!.measurementDao()!!.loadByUid(measurementIdentifier)
+        var measurement: Measurement?
+        runBlocking {
+            measurement = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.loadByUid(measurementIdentifier)
+            }
+        }
+        return measurement
     }
 
     /**
@@ -235,7 +269,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)  // Sdk implementing apps (CY)
     fun loadEvent(eventId: Long): Event? {
-        return database!!.eventDao()!!.loadByUid(eventId)
+        var event: Event?
+        runBlocking {
+            event = withContext(scope.coroutineContext) {
+                database!!.eventDao()!!.loadByUid(eventId)
+            }
+        }
+        return event
     }
 
     /**
@@ -268,7 +308,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)  // Implementing apps (SR) use this api to load the finished measurements
     fun loadMeasurements(status: MeasurementStatus): List<Measurement?>? {
-        return database!!.measurementDao()!!.loadAllByStatus(status)
+        var measurements: List<Measurement?>?
+        runBlocking {
+            measurements = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.loadAllByStatus(status)
+            }
+        }
+        return measurements
     }
 
     /**
@@ -329,7 +375,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      * @return The device identifier
      */
     @Throws(CursorIsNullException::class) // FIXME remove all CursorNotFoundExceptions
-    suspend fun restoreOrCreateDeviceId(): String {
+    fun restoreOrCreateDeviceId(): String {
         return try {
             loadDeviceId().deviceId
         } catch (e: NoDeviceIdException) {
@@ -344,16 +390,23 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      * @throws NoDeviceIdException when there are no [Identifier]s found
      */
     @Throws(NoDeviceIdException::class)
-    private suspend fun loadDeviceId(): Identifier {
-        val identifiers = identifierRepository!!.getAll()
-        Validate.isTrue(identifiers!!.size <= 1, "More entries than expected")
-        if (identifiers.isEmpty()) {
-            throw NoDeviceIdException("No entries in IdentifierTable.")
-        } else {
-            val did = identifiers[0]
-            Log.v(TAG, "Providing device identifier $did")
-            return did!!
+    private fun loadDeviceId(): Identifier {
+        var identifier: Identifier?
+        runBlocking {
+            val identifiers: List<Identifier?>? = withContext(scope.coroutineContext) {
+                identifierRepository!!.getAll()
+            }
+
+            Validate.isTrue(identifiers!!.size <= 1, "More entries than expected")
+            if (identifiers.isEmpty()) {
+                throw NoDeviceIdException("No entries in IdentifierTable.")
+            } else {
+                val did = identifiers[0]
+                Log.v(TAG, "Providing device identifier $did")
+                identifier = did!!
+            }
         }
+        return identifier!!
     }
 
     /**
@@ -361,13 +414,15 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      *
      * @return The created device identifier.
      */
-    private suspend fun createDeviceId(): String = coroutineScope {
+    private fun createDeviceId(): String {
         val deviceId = UUID.randomUUID().toString()
-        identifierRepository!!.insert(Identifier(deviceId))
+        runBlocking {
+            identifierRepository!!.insert(Identifier(deviceId))
+        }
 
         // Show info in log so that we see if this happens more than once (or on app data reset)
         Log.i(TAG, "Created new device id: $deviceId")
-        deviceId
+        return deviceId
     }
 
     /**
@@ -381,10 +436,12 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
 
         // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
         // FIXME: See if this could also be done via ForeignKey and CASCADING
-        database!!.geoLocationDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-        database.eventDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-        database.pressureDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-        database.measurementDao()!!.deleteItemByUid(measurementIdentifier)
+        runBlocking {
+            database!!.geoLocationDao()!!.deleteItemByMeasurementId(measurementIdentifier)
+            database.eventDao()!!.deleteItemByMeasurementId(measurementIdentifier)
+            database.pressureDao()!!.deleteItemByMeasurementId(measurementIdentifier)
+            database.measurementDao()!!.deleteItemByUid(measurementIdentifier)
+        }
     }
 
     /**
@@ -394,7 +451,9 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     // Sdk implementing apps (CY) use this
     fun deleteEvent(eventId: Long) {
-        database!!.eventDao()!!.deleteItemByUid(eventId)
+        runBlocking {
+            database!!.eventDao()!!.deleteItemByUid(eventId)
+        }
     }
 
     /**
@@ -498,10 +557,10 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
 
         // Check if locations with altitude values are available
         val tracks = loadTracks(measurementIdentifier)
-        if (tracks.size > 0) {
+        if (tracks.isNotEmpty()) {
             var hasPressures = false
             for (track in tracks) {
-                if (!track.getPressures().isEmpty()) {
+                if (track.getPressures().isNotEmpty()) {
                     hasPressures = true
                     break
                 }
@@ -595,7 +654,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
                         lastAltitude = altitude
                         continue
                     }
-                    if (Math.abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
+                    if (abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
                         continue
                     }
                     val newAscend = altitude - lastAltitude
@@ -710,16 +769,25 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)  // May be used by SDK implementing app
     fun loadTracks(measurementIdentifier: Long): List<Track> {
-        val events = database!!.eventDao()!!
-            .loadAllByMeasurementId(measurementIdentifier)
 
-        // Load GeoLocation and Pressure
-        // FIXME: Consider using Kotlin Coroutines for async code when upgrading to main branch
-        // Or re-implement the UI with LiveData which handles data binding with Room for us.
-        val locations = database.geoLocationDao()!!
-            .loadAllByMeasurementId(measurementIdentifier)
-        val pressures = database.pressureDao()!!
-            .loadAllByMeasurementId(measurementIdentifier)
+        var events: List<Event?>?
+        var locations: List<GeoLocation?>?
+        var pressures: List<Pressure?>?
+        runBlocking {
+            events = withContext(scope.coroutineContext) {
+                database!!.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)
+            }
+
+            // Load GeoLocation and Pressure
+            // FIXME: Consider using Kotlin Coroutines for async code when upgrading to main branch
+            // Or re-implement the UI with LiveData which handles data binding with Room for us.
+            locations = withContext(scope.coroutineContext) {
+                database!!.geoLocationDao()!!.loadAllByMeasurementId(measurementIdentifier)
+            }
+            pressures = withContext(scope.coroutineContext) {
+                database!!.pressureDao()!!.loadAllByMeasurementId(measurementIdentifier)
+            }
+        }
         return loadTracks(locations, events, pressures)
     }
 
@@ -776,9 +844,15 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
             // We do this to ignore data points between pause and resume event (STAD-140)
             mutableLocations =
-                continueWithFirstAfter(mutableLocations, resumeEventTime) as MutableList<ParcelableGeoLocation?>
+                continueWithFirstAfter(
+                    mutableLocations,
+                    resumeEventTime
+                ) as MutableList<ParcelableGeoLocation?>
             mutablePressures =
-                continueWithFirstAfter(mutablePressures, resumeEventTime) as MutableList<ParcelablePressure?>
+                continueWithFirstAfter(
+                    mutablePressures,
+                    resumeEventTime
+                ) as MutableList<ParcelablePressure?>
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -809,17 +883,22 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): List<Track> {
-        val locations = locationCleaningStrategy.loadCleanedLocations(
-            database!!.geoLocationDao()!!,
-            measurementIdentifier
-        )
-        if (locations!!.size == 0) {
-            return emptyList()
-        }
+
+        var locations: List<GeoLocation?>?
+        var pressures: List<Pressure?>?
         val events = loadEvents(measurementIdentifier)
-        val pressures = database.pressureDao()!!
-            .loadAllByMeasurementId(measurementIdentifier)
-        return loadTracks(locations, events, pressures)
+        runBlocking {
+            locations = withContext(scope.coroutineContext) {
+                locationCleaningStrategy.loadCleanedLocations(
+                    database!!.geoLocationDao()!!,
+                    measurementIdentifier
+                )
+            }
+            pressures = withContext(scope.coroutineContext) {
+                database!!.pressureDao()!!.loadAllByMeasurementId(measurementIdentifier)
+            }
+        }
+        return if (locations!!.isEmpty()) emptyList() else loadTracks(locations, events, pressures)
     }
 
     /**
@@ -836,7 +915,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)
     fun loadEvents(measurementIdentifier: Long): List<Event?> {
-        return database!!.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)!!
+        var events: List<Event?>
+        runBlocking {
+            events = withContext(scope.coroutineContext) {
+                database!!.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)!!
+            }
+        }
+        return events
     }
 
     /**
@@ -850,7 +935,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(CursorIsNullException::class)  // Implementing apps (CY) use this
     fun loadEvents(measurementId: Long, eventType: EventType): List<Event?>? {
-        return database!!.eventDao()!!.loadAllByMeasurementIdAndType(measurementId, eventType)
+        var events: List<Event?>?
+        runBlocking {
+            events = withContext(scope.coroutineContext) {
+                database!!.eventDao()!!.loadAllByMeasurementIdAndType(measurementId, eventType)
+            }
+        }
+        return events
     }
 
     /**
@@ -938,10 +1029,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         measurementId: Long
     ) {
         Log.d(TAG, "Storing persistenceFileFormatVersion.")
-        val updates = database!!.measurementDao()!!.updateFileFormatVersion(
-            measurementId,
-            persistenceFileFormatVersion
-        )
+        var updates: Int?
+        runBlocking {
+            updates = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!
+                    .updateFileFormatVersion(measurementId, persistenceFileFormatVersion)
+            }
+        }
         Validate.isTrue(updates == 1)
     }
 
@@ -978,7 +1072,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         Log.v(TAG, "Trying to load currently captured measurement from PersistenceLayer!")
         val openMeasurements = loadMeasurements(MeasurementStatus.OPEN)
         val pausedMeasurements = loadMeasurements(MeasurementStatus.PAUSED)
-        if (openMeasurements!!.size == 0 && pausedMeasurements!!.size == 0) {
+        if (openMeasurements!!.isEmpty() && pausedMeasurements!!.isEmpty()) {
             throw NoSuchMeasurementException("No currently captured measurement found!")
         }
         check(openMeasurements.size + pausedMeasurements!!.size <= 1) { "More than one currently captured measurement found!" }
@@ -1005,7 +1099,12 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         newStatus: MeasurementStatus,
         allowCorruptedState: Boolean
     ) {
-        val updates = database!!.measurementDao()!!.update(measurementIdentifier, newStatus)
+        var updates: Int?
+        runBlocking {
+            updates = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.update(measurementIdentifier, newStatus)
+            }
+        }
         Validate.isTrue(updates == 1)
         @Suppress("REDUNDANT_ELSE_IN_WHEN")
         when (newStatus) {
@@ -1035,8 +1134,12 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     @Throws(NoSuchMeasurementException::class)
     fun setDistance(measurementIdentifier: Long, newDistance: Double) {
-        val updates = database!!.measurementDao()!!
-            .updateDistance(measurementIdentifier, newDistance)
+        var updates: Int?
+        runBlocking {
+            updates = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.updateDistance(measurementIdentifier, newDistance)
+            }
+        }
         Validate.isTrue(updates == 1)
     }
 
@@ -1075,8 +1178,14 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         )
 
         // value may be null when the type does not require a value, e.g. LIFECYCLE_START
-        return database!!.eventDao()!!
-            .insert(Event(timestamp, eventType, value!!, measurement.uid))
+        var uid: Long?
+        runBlocking {
+            uid = withContext(scope.coroutineContext) {
+                database!!.eventDao()!!
+                    .insert(Event(timestamp, eventType, value, measurement.uid))
+            }
+        }
+        return uid!!
     }
 
     /**

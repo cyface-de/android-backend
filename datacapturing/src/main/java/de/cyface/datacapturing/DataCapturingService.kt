@@ -19,48 +19,33 @@
 package de.cyface.datacapturing
 
 import android.Manifest
-import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
-import de.cyface.datacapturing.DataCapturingListener
-import android.content.ServiceConnection
-import android.os.Messenger
-import de.cyface.synchronization.WiFiSurveyor
-import de.cyface.synchronization.ConnectionStatusReceiver
-import de.cyface.datacapturing.exception.SetupException
-import android.content.SharedPreferences
-import de.cyface.synchronization.SyncService
-import android.net.ConnectivityManager
-import kotlin.Throws
-import de.cyface.datacapturing.exception.DataCapturingException
-import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.utils.CursorIsNullException
-import de.cyface.datacapturing.exception.CorruptedMeasurementException
-import de.cyface.datacapturing.StartUpFinishedHandler
-import de.cyface.datacapturing.ShutDownFinishedHandler
-import de.cyface.utils.Validate
-import de.cyface.datacapturing.DataCapturingService
-import de.cyface.datacapturing.IsRunningCallback
-import de.cyface.datacapturing.PongReceiver
-import de.cyface.datacapturing.ReconnectCallback
-import android.content.IntentFilter
-import android.content.Intent
-import de.cyface.datacapturing.backend.DataCapturingBackgroundService
 import android.content.ComponentName
 import android.content.Context
-import androidx.core.app.ActivityCompat
+import android.content.Intent
+import android.content.IntentFilter
+import android.content.ServiceConnection
 import android.content.pm.PackageManager
+import android.net.ConnectivityManager
 import android.os.Build
-import de.cyface.synchronization.ConnectionStatusListener
-import android.os.IBinder
 import android.os.Bundle
 import android.os.Handler
+import android.os.IBinder
 import android.os.Message
+import android.os.Messenger
 import android.os.RemoteException
 import android.preference.PreferenceManager
 import android.util.Log
+import androidx.core.app.ActivityCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import de.cyface.datacapturing.R
+import de.cyface.datacapturing.DataCapturingListener
+import de.cyface.datacapturing.DataCapturingService
+import de.cyface.datacapturing.backend.DataCapturingBackgroundService
+import de.cyface.datacapturing.exception.CorruptedMeasurementException
+import de.cyface.datacapturing.exception.DataCapturingException
+import de.cyface.datacapturing.exception.MissingPermissionException
+import de.cyface.datacapturing.exception.SetupException
 import de.cyface.datacapturing.model.CapturedData
-import de.cyface.datacapturing.StopSynchronizer
+import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.ui.Reason
 import de.cyface.datacapturing.ui.UIListener
 import de.cyface.persistence.DistanceCalculationStrategy
@@ -73,10 +58,13 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.synchronization.BundlesExtrasCodes
-import java.lang.IllegalArgumentException
-import java.lang.IllegalStateException
+import de.cyface.synchronization.ConnectionStatusListener
+import de.cyface.synchronization.ConnectionStatusReceiver
+import de.cyface.synchronization.SyncService
+import de.cyface.synchronization.WiFiSurveyor
+import de.cyface.utils.CursorIsNullException
+import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
-import java.util.HashSet
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
 import java.util.concurrent.locks.ReentrantLock
@@ -120,6 +108,7 @@ abstract class DataCapturingService(
             Log.v(Constants.TAG, "Setting isRunning to $isRunning")
             field = isRunning
         }
+
     /**
      * A flag indicating whether the background service is currently stopped or in the process of stopping. This flag is
      * used to prevent multiple lifecycle methods from interrupting a stop process or being called, while no service is
@@ -166,6 +155,7 @@ abstract class DataCapturingService(
      * Messenger used to send messages from this class to the `DataCapturingBackgroundService`.
      */
     private var toServiceMessenger: Messenger? = null
+
     /**
      * Provides the `WiFiSurveyor` responsible for switching data synchronization on and off, based on WiFi
      * state.
@@ -175,6 +165,7 @@ abstract class DataCapturingService(
      * synchronization.
      */
     val wiFiSurveyor: WiFiSurveyor
+
     /**
      * A listener for events which the UI might be interested in. This might be `null` if there has
      * been no previous call to [.setUiListener].
@@ -194,6 +185,7 @@ abstract class DataCapturingService(
      * stop.
      */
     private val lifecycleLock: Lock
+
     /**
      * The identifier used to qualify [Measurement]s from this capturing service with the server receiving
      * the `Measurement`s. This needs to be world wide unique.
@@ -265,22 +257,7 @@ abstract class DataCapturingService(
         this.distanceCalculationStrategy = distanceCalculationStrategy
         this.locationCleaningStrategy = locationCleaningStrategy
         this.sensorFrequency = sensorFrequency
-        deviceIdentifier = "ASD" // FIXME
-        // The scope keeps track of coroutines, can cancel them and is notified about failures
-        // No need to cancel this scope as it'll be torn down with the process
-        //var scope = new CoroutineScope(Dispatchers.getIO());
-        // Setup required device identifier, if not already existent
-        //scope.async { // may silently drop exceptions! https://medium.com/androiddevelopers/cancellation-in-coroutines-aa6b90163629
-        //async(scope -> {
-        /*coroutineScope(scope -> {
-            final var deferredDeviceId = async(scope, persistenceLayer.restoreOrCreateDeviceId())
-            this.deviceIdentifier = deferred.await();
-        })
-        //});
-        final var scope = new CoroutineScope(Dispatchers.getIO())
-        runBlocking(Dispatchers.getIO(),
-            this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()//.await();
-        );*/
+        this.deviceIdentifier = persistenceLayer.restoreOrCreateDeviceId()
 
         // Mark deprecated measurements
         for (m in persistenceLayer.loadMeasurements()) {
