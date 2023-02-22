@@ -18,8 +18,9 @@
  */
 package de.cyface.persistence.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
-import java.util.Objects
+import androidx.room.ForeignKey
 
 /**
  * An `@Entity` which represents a persisted [ParcelablePressure], usually captured by a barometer.
@@ -27,8 +28,8 @@ import java.util.Objects
  * An instance of this class represents one row in a database table containing the pressure data.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.5.0
+ * @version 2.0.0
+ * @since 6.3.0
  * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
  * @param pressure The atmospheric pressure of this data point in hPa (millibar).
  * @param measurementId The device-unique id of the measurement this data point belongs to.
@@ -50,14 +51,20 @@ data class Pressure(
 
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null || javaClass != other.javaClass) return false
+        if (javaClass != other?.javaClass) return false
         if (!super.equals(other)) return false
-        val pressure1 = other as Pressure
-        return (pressure1.pressure.compareTo(pressure) == 0
-                && measurementId == pressure1.measurementId)
+
+        other as Pressure
+
+        if (timestamp != other.timestamp) return false
+        if (pressure != other.pressure) return false
+        if (measurementId != other.measurementId) return false
+
+        return true
     }
 
+    // FIXME: See [GeoLocation.hashCode]
     override fun hashCode(): Int {
-        return Objects.hash(super.hashCode(), pressure, measurementId)
+        return uid.hashCode()
     }
 }

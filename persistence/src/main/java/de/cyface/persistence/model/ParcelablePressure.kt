@@ -30,8 +30,8 @@ import java.util.Objects
  * [Pressure] requires the measurement id to be set.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.5.0
+ * @version 2.0.0
+ * @since 6.3.0
  */
 open class ParcelablePressure : DataPoint {
     /**

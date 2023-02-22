@@ -40,8 +40,8 @@ import java.util.Objects
  * FIXME: but as we'll use the `GeoLocationsV6` which contain elevation data, we need to convert the accuracy there!
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.5.0
+ * @version 3.0.0
+ * @since 1.0.0
  */
 open class ParcelableGeoLocation : DataPoint {
     /**

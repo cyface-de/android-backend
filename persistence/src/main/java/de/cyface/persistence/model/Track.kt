@@ -18,8 +18,6 @@
  */
 package de.cyface.persistence.model
 
-import java.util.Objects
-
 /**
  * A [Track] consists of [ParcelableGeoLocation]s and [ParcelablePressure]s (data points) collected
  * for a [Measurement]. Its data points are ordered by time.
@@ -29,41 +27,19 @@ import java.util.Objects
  * very last location is reached.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.5.0
+ * @version 2.0.0
+ * @since 4.0.0
+ * @property geoLocations The [ParcelableGeoLocation]s collected for this [Track].
+ * @property pressures The [ParcelablePressure]s collected for this [Track].
  */
-class Track {
-    /**
-     * The [ParcelableGeoLocation]s collected for this [Track].
-     */
-    private val geoLocations: MutableList<ParcelableGeoLocation?>
-
-    /**
-     * The [ParcelablePressure]s collected for this [Track].
-     */
-    private val pressures: MutableList<ParcelablePressure?>
-
+data class Track(
+    val geoLocations: MutableList<ParcelableGeoLocation?>,
+    val pressures: MutableList<ParcelablePressure?>
+) {
     /**
      * Creates a completely initialized instance of this class.
      */
-    constructor() {
-        geoLocations = ArrayList()
-        pressures = ArrayList()
-    }
-
-    /**
-     * Creates a completely initialized instance of this class.
-     *
-     * @param locations The locations to add to the track.
-     * @param pressures The pressures to add to the track.
-     */
-    constructor(
-        locations: MutableList<ParcelableGeoLocation?>,
-        pressures: MutableList<ParcelablePressure?>
-    ) {
-        this.geoLocations = ArrayList(locations)
-        this.pressures = ArrayList(pressures)
-    }
+    constructor() : this(ArrayList(), ArrayList())
 
     /**
      * @param location The [ParcelableGeoLocation] to be added at the end of the [Track].
@@ -77,37 +53,5 @@ class Track {
      */
     fun addPressure(pressure: ParcelablePressure) {
         pressures.add(pressure)
-    }
-
-    /**
-     * @return The [ParcelableGeoLocation]s collected for this [Track].
-     */
-    fun getGeoLocations(): List<ParcelableGeoLocation?> {
-        return ArrayList(geoLocations)
-    }
-
-    /**
-     * @return The [ParcelablePressure]s collected for this [Track].
-     */
-    fun getPressures(): List<ParcelablePressure?> {
-        return pressures
-    }
-
-    override fun toString(): String {
-        return "Track{" +
-                "geoLocations=" + geoLocations +
-                ", pressures=" + pressures +
-                '}'
-    }
-
-    override fun equals(other: Any?): Boolean {
-        if (this === other) return true
-        if (other == null || javaClass != other.javaClass) return false
-        val track = other as Track
-        return geoLocations == track.geoLocations && pressures == track.pressures
-    }
-
-    override fun hashCode(): Int {
-        return Objects.hash(geoLocations, pressures)
     }
 }

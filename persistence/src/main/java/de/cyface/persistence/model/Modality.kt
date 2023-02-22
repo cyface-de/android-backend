@@ -27,7 +27,11 @@ package de.cyface.persistence.model
  * @since 1.0.0
  */
 enum class Modality(val databaseIdentifier: String) {
-    BICYCLE("BICYCLE"), CAR("CAR"), MOTORBIKE("MOTORBIKE"), BUS("BUS"), TRAIN("TRAIN"), WALKING("WALKING"), UNKNOWN(
-        "UNKNOWN"
-    );
+    BICYCLE("BICYCLE"),
+    CAR("CAR"),
+    MOTORBIKE("MOTORBIKE"),
+    BUS("BUS"),
+    TRAIN("TRAIN"),
+    WALKING("WALKING"),
+    UNKNOWN("UNKNOWN")
 }

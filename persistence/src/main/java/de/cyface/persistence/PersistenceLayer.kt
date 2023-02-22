@@ -24,7 +24,6 @@ import android.util.Log
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
-import de.cyface.persistence.model.DataPoint
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.GeoLocation
@@ -117,27 +116,14 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     constructor(context: Context, persistenceBehaviour: B) {
         this.context = context
-        // From Room guide: https://developer.android.com/training/data-storage/room
-        // If the app runs in multiple processes, include enableMultiInstanceInvalidation() in the builder.
-        // That way, when when you have an instance of AppDatabase in each process, you can invalidate the shared
-        // database file in one process, and this invalidation automatically propagates to the instances of AppDatabase
-        // within other processes.
-        // Additional notes: Room itself (like SQLite, Room is thread-safe) and only uses one connection for writing.
-        // I.e. we only need to worry about deadlocks when running manual transactions (`db.beginTransaction` or
-        // `roomDb.runInTransaction`. See
-        // https://www.reddit.com/r/androiddev/comments/9s2m4x/comment/e8nklbg/?utm_source=share&utm_medium=web2x&context=3
-        // The PersistenceLayer constructor is called from main UI and non-UI threads, e.g.:
-        // - main UI thread: CyfaceDataCapturingService, DataCapturingBackgroundService/DataCapturingService,
-        // DataCapturingButton, MeasurementOverviewFragment
-        // - other threads: SyncAdapter, Event-/MeasurementDeleteController
-        /*database = Room.databaseBuilder(context.applicationContext, DatabaseV7::class.java, "v7")
-            .enableMultiInstanceInvalidation()/*.addMigrations(MIGRATION_1_2)*/.build()*/
 
         // The scope keeps track of coroutines, can cancel them and is notified about failures
         // No need to cancel this scope as it'll be torn down with the process
         val applicationScope = CoroutineScope(SupervisorJob())
         // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#12
         database = DatabaseV7.getDatabase(context.applicationContext, applicationScope)
+        /*database = Room.databaseBuilder(context.applicationContext, DatabaseV7::class.java, "v7")
+         * .enableMultiInstanceInvalidation()/*.addMigrations(MIGRATION_1_2)*/.build()*/
         identifierRepository = IdentifierRepository(database.identifierDao()!!)
 
         this.persistenceBehaviour = persistenceBehaviour
@@ -167,7 +153,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
 
     /**
      * Creates a new, [MeasurementStatus.OPEN] [Measurement] for the provided [Modality].
-     *
      *
      * **ATTENTION:** This method should not be called from outside the SDK.
      *
@@ -230,8 +215,9 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     fun loadMeasurements(): List<Measurement?> {
         var measurements: List<Measurement?>
         runBlocking {
-            measurements =
-                withContext(scope.coroutineContext) { database!!.measurementDao()!!.getAll()!! }
+            measurements = withContext(scope.coroutineContext) {
+                database!!.measurementDao()!!.getAll()!!
+            }
         }
         return measurements
     }
@@ -281,7 +267,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Provide the [MeasurementStatus] of one specific [Measurement] from the data storage.
      *
-     *
      * **ATTENTION:** Please be aware that the returned status is only valid at the time this
      * method is called. Changes of the `MeasurementStatus` in the persistence layer are not pushed
      * to the `MeasurementStatus` returned by this method.
@@ -320,7 +305,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Marks a [MeasurementStatus.FINISHED] [Measurement] as [MeasurementStatus.SYNCED],
      * [MeasurementStatus.SKIPPED] or [MeasurementStatus.DEPRECATED] and deletes the sensor data.
-     *
      *
      * **ATTENTION:** This method should not be called from outside the SDK.
      *
@@ -417,7 +401,9 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     private fun createDeviceId(): String {
         val deviceId = UUID.randomUUID().toString()
         runBlocking {
-            identifierRepository!!.insert(Identifier(deviceId))
+            withContext(scope.coroutineContext) {
+                identifierRepository!!.insert(Identifier(deviceId))
+            }
         }
 
         // Show info in log so that we see if this happens more than once (or on app data reset)
@@ -435,12 +421,14 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         deletePoint3DData(measurementIdentifier)
 
         // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
-        // FIXME: See if this could also be done via ForeignKey and CASCADING
+        // FIXME: See if this is still necessary as we now added ForeignKey and onDelete = CASCADING
         runBlocking {
-            database!!.geoLocationDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-            database.eventDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-            database.pressureDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-            database.measurementDao()!!.deleteItemByUid(measurementIdentifier)
+            withContext(scope.coroutineContext) {
+                database!!.geoLocationDao()!!.deleteItemByMeasurementId(measurementIdentifier)
+                database.eventDao()!!.deleteItemByMeasurementId(measurementIdentifier)
+                database.pressureDao()!!.deleteItemByMeasurementId(measurementIdentifier)
+                database.measurementDao()!!.deleteItemByUid(measurementIdentifier)
+            }
         }
     }
 
@@ -452,7 +440,9 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     // Sdk implementing apps (CY) use this
     fun deleteEvent(eventId: Long) {
         runBlocking {
-            database!!.eventDao()!!.deleteItemByUid(eventId)
+            withContext(scope.coroutineContext) {
+                database!!.eventDao()!!.deleteItemByUid(eventId)
+            }
         }
     }
 
@@ -462,7 +452,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      * @param measurementIdentifier The `Measurement` id of the data to remove.
      */
     private fun deletePoint3DData(measurementIdentifier: Long) {
-        // FIXME: replace all Types with `var`, but convert to Kotlin first maybe this is done automatically
         val accelerationFolder =
             fileAccessLayer.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationFolder =
@@ -501,7 +490,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Returns the average speed of the measurement with the provided measurement identifier.
      *
-     *
      * Loads the [Track]s from the database to calculate the metric on the fly [STAD-384].
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
@@ -522,7 +510,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         for (track in tracks) {
             var sum = 0.0
             var counter = 0
-            for (location in track.getGeoLocations()) {
+            for (location in track.geoLocations) {
                 if (locationCleaningStrategy.isClean(location)) {
                     sum += location!!.speed
                     counter += 1
@@ -560,7 +548,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         if (tracks.isNotEmpty()) {
             var hasPressures = false
             for (track in tracks) {
-                if (track.getPressures().isNotEmpty()) {
+                if (track.pressures.isNotEmpty()) {
                     hasPressures = true
                     break
                 }
@@ -589,7 +577,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             // the display-fingerprint is used and pressure is applied to the display: Pixel 6 [STAD-400]
             // This filter did not affect ascend calculation of devices without the bug: Pixel 3a
             val pressures: MutableList<Double> = ArrayList()
-            for (pressure in track.getPressures()) {
+            for (pressure in track.pressures) {
                 pressures.add(pressure!!.pressure)
             }
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
@@ -613,7 +601,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
                     continue
                 }
                 val newAscend = altitude - lastAltitude
-                if (Math.abs(newAscend) < ASCEND_THRESHOLD_METERS) {
+                if (abs(newAscend) < ASCEND_THRESHOLD_METERS) {
                     continue
                 }
                 if (newAscend > 0) {
@@ -639,7 +627,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         for (track in tracks) {
             var ascend: Double? = null
             var lastAltitude: Double? = null
-            for (location in track.getGeoLocations()) {
+            for (location in track.geoLocations) {
                 val altitude = location!!.altitude
                 if (ascend == null && altitude != null) {
                     // Tracks without much altitude should return 0 not null
@@ -674,7 +662,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Calculates the average value of a sliding window over a list of values.
      *
-     *
      * E.g. for window size 3: [3, 0, 0, 6] => [1, 2]
      *
      * @param values The values to calculate the averages for.
@@ -701,7 +688,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Returns the duration of the measurement with the provided measurement identifier without the time between pause
      * and resume. [STAD-367]
-     *
      *
      * Loads the [Event]s from the database to remove the time between pause and resume.
      *
@@ -837,22 +823,16 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             val track = collectNextSubTrack(mutableLocations, mutablePressures, pauseEventTime)
 
             // Add sub-track to track
-            if (track.getGeoLocations().isNotEmpty()) {
+            if (track.geoLocations.isNotEmpty()) {
                 tracks.add(track)
             }
 
             // Pause reached: Move geoLocationCursor to the first data point of the next sub-track
             // We do this to ignore data points between pause and resume event (STAD-140)
             mutableLocations =
-                continueWithFirstAfter(
-                    mutableLocations,
-                    resumeEventTime
-                ) as MutableList<ParcelableGeoLocation?>
+                mutableLocations.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelableGeoLocation?>
             mutablePressures =
-                continueWithFirstAfter(
-                    mutablePressures,
-                    resumeEventTime
-                ) as MutableList<ParcelablePressure?>
+                mutablePressures.filter { p -> p!!.timestamp >= resumeEventTime } as MutableList<ParcelablePressure?>
         }
 
         // Return if there is no tail (sub track ending at LIFECYCLE_STOP instead of LIFECYCLE_PAUSE)
@@ -863,7 +843,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         // Collect tail sub track
         // This is ether the track between start[, pause] and stop or resume[, pause] and stop.
         val track = Track(mutableLocations, mutablePressures)
-        Validate.isTrue(track.getGeoLocations().isNotEmpty())
+        Validate.isTrue(track.geoLocations.isNotEmpty())
         tracks.add(track)
         return tracks
     }
@@ -903,7 +883,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
 
     /**
      * Loads the [Event]s for the provided [Measurement].
-     *
      *
      * **Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
      * `Cursor` is always closed after use.**
@@ -978,33 +957,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     }
 
     /**
-     * Removes all data points at the beginning of the {@param dataPoints} list until it starts with the first
-     * [DataPoint] starting at {@param resumeEventTime}.
-     *
-     *
-     * If there is no such `DataPoint` then the returned list is empty.
-     *
-     * @param dataPoints The original list of data points.
-     * @param resumeEventTime the Unix timestamp, e.g. of [EventType.LIFECYCLE_RESUME]
-     * @return The sublist.
-     */
-    private fun continueWithFirstAfter(
-        dataPoints: MutableList<out DataPoint?>,
-        resumeEventTime: Long
-    ): MutableList<out DataPoint?> {
-        var point = dataPoints[0]
-        while (point != null && point.timestamp < resumeEventTime && dataPoints.size > 0) {
-
-            // Load next location to check it's timestamp
-            dataPoints.removeAt(0)
-            point = dataPoints[0]
-        }
-        return dataPoints
-    }
-
-    /**
      * This method cleans up when the persistence layer is no longer needed by the caller.
-     *
      *
      * **ATTENTION:** This method is called automatically and should not be called from outside the SDK.
      */
@@ -1016,7 +969,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      * When pausing or stopping a [Measurement] we store the
      * [.PERSISTENCE_FILE_FORMAT_VERSION] in the [Measurement] to make sure we can
      * deserialize the [Point3DFile]s with previous `PERSISTENCE_FILE_FORMAT_VERSION`s.
-     *
      *
      * **ATTENTION:** This method should not be called from outside the SDK.
      *
@@ -1059,7 +1011,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * Loads the currently captured [Measurement] explicitly from the [PersistenceLayer].
      *
-     *
      * **ATTENTION:** SDK implementing apps should use [.loadCurrentlyCapturedMeasurement] instead.
      *
      * @return the currently captured [Measurement]
@@ -1081,7 +1032,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
 
     /**
      * Updates the [MeasurementStatus] in the data persistence layer.
-     *
      *
      * **ATTENTION:** This should not be used by SDK implementing apps.
      *
@@ -1123,7 +1073,6 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
 
     /**
      * Updates the [de.cyface.persistence.model.Measurement.distance] entry of the currently captured [Measurement].
-     *
      *
      * **ATTENTION:** This should not be used by SDK implementing apps.
      *

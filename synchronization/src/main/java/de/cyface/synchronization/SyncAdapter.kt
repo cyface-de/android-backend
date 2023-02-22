@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -53,11 +53,15 @@ import java.io.File
  * @author Klemens Muthmann
  * @version 3.0.0
  * @since 2.0.0
+ * @property http The http connection to use for synchronization.
  */
 class SyncAdapter private constructor(
-    context: Context, autoInitialize: Boolean, allowParallelSyncs: Boolean,
+    context: Context,
+    autoInitialize: Boolean,
+    allowParallelSyncs: Boolean,
     private val http: Http
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
+
     private val progressListener: MutableCollection<ConnectionStatusListener>
 
     /**
@@ -70,8 +74,8 @@ class SyncAdapter private constructor(
      * `AbstractThreadedSyncAdapter` from the Android framework for further information.
      *
      * @param context The context this adapter is active under.
-     * @param autoInitialize More details are available at
-     * [AbstractThreadedSyncAdapter.AbstractThreadedSyncAdapter].
+     * @param autoInitialize More details are available at `AbstractThreadedSyncAdapter`.
+     * @param http The http connection to use for synchronization.
      */
     internal constructor(context: Context, autoInitialize: Boolean, http: Http) : this(
         context,
@@ -80,15 +84,6 @@ class SyncAdapter private constructor(
         http
     )
 
-    /**
-     * Creates a new completely initialized `SyncAdapter`. See the documentation of
-     * `AbstractThreadedSyncAdapter` from the Android framework for further information.
-     *
-     * @param context The current context this adapter is running under.
-     * @param autoInitialize For details have a look at `AbstractThreadedSyncAdapter`.
-     * @param allowParallelSyncs For details have a look at `AbstractThreadedSyncAdapter`.
-     * @see AbstractThreadedSyncAdapter.AbstractThreadedSyncAdapter
-     */
     init {
         progressListener = HashSet()
         addConnectionListener(CyfaceConnectionStatusListener(context))
@@ -124,7 +119,7 @@ class SyncAdapter private constructor(
 
             // Load all Measurements ready for synchronization
             val syncableMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED)
-            if (syncableMeasurements!!.size == 0) {
+            if (syncableMeasurements!!.isEmpty()) {
                 return  // nothing to sync
             }
             val measurementCount = syncableMeasurements.size
@@ -270,6 +265,7 @@ class SyncAdapter private constructor(
             Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.")
             throw e
         }
+        @Suppress("FoldInitializerAndIfToElvis") // For readability
         if (bundle == null) {
             // Because of Movebis we don't throw an IllegalStateException if there is no auth token
             throw AuthenticatorException("No valid auth token supplied. Aborting data synchronization!")
@@ -340,17 +336,17 @@ class SyncAdapter private constructor(
         val tracks = persistence.loadTracks(measurement.uid)
         var locationCount = 0
         for (track in tracks) {
-            locationCount += track.getGeoLocations().size
+            locationCount += track.geoLocations.size
         }
         Validate.isTrue(
-            tracks.size == 0 || (tracks[0].getGeoLocations().size > 0
-                    && tracks[tracks.size - 1].getGeoLocations().size > 0)
+            tracks.isEmpty() || (tracks[0].geoLocations.size > 0
+                    && tracks[tracks.size - 1].geoLocations.size > 0)
         )
         val lastTrack: List<ParcelableGeoLocation?>? =
-            if (tracks.size > 0) tracks[tracks.size - 1].getGeoLocations() else null
+            if (tracks.isNotEmpty()) tracks[tracks.size - 1].geoLocations else null
         var startLocation: RequestMetaData.GeoLocation? = null
-        if (tracks.size > 0) {
-            val l = tracks[0].getGeoLocations()[0]!!
+        if (tracks.isNotEmpty()) {
+            val l = tracks[0].geoLocations[0]!!
             startLocation = RequestMetaData.GeoLocation(l.timestamp, l.lat, l.lon)
         }
         var endLocation: RequestMetaData.GeoLocation? = null
@@ -388,7 +384,6 @@ class SyncAdapter private constructor(
      * We need to check if the syncable network is still syncable:
      * - this is only possible indirectly: we check if the surveyor disabled auto sync for the account
      * - the network settings could have changed between sync initial call and "now"
-     *
      *
      * The implementation of this method must be identical to [WiFiSurveyor.isConnected].
      *

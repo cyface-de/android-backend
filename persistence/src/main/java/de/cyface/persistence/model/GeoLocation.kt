@@ -29,8 +29,8 @@ import androidx.room.Ignore
  * An instance of this class represents one row in a database table containing the location data.
  *
  * @author Armin Schnabel
- * @version 1.0.0
- * @since 7.5.0
+ * @version 2.0.0
+ * @since 6.3.0
  */
 @Entity(
     tableName = "Location",
@@ -50,43 +50,36 @@ data class GeoLocation(
      * The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
      */
-    override val lat: Double
-
+    override val lat: Double,
     /**
      * The captured longitude of this data point in decimal coordinates as a value between -180.0 and 180.0.
      */
-    override val lon: Double
-
+    override val lon: Double,
     /**
      * The captured altitude of this data point in meters above WGS 84 if available.
      */
-    override val altitude: Double?
-
+    override val altitude: Double?,
     /**
      * The current speed of the measuring device according to its location sensor in meters per second.
      */
-    override val speed: Double
-
+    override val speed: Double,
     /**
      * The current accuracy of the measuring device in meters if available.
      *
      * FIXME: Write `null` when `Location.hasAccuracy()` is false. The transfer file format might need adjustment for that.
      */
-    override val accuracy: Double?
-
+    override val accuracy: Double?,
     /**
      * The current vertical accuracy of the measuring device in meters if available.
      */
-    override val verticalAccuracy: Double?
-
+    override val verticalAccuracy: Double?,
     /**
      * `True` if this location is considered "clean" by the provided [de.cyface.persistence.LocationCleaningStrategy].
      *
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
     @Ignore
-    override var isValid: Boolean? = null
-
+    override var isValid: Boolean? = null,
     /**
      * The device-unique id of the measurement this data point belongs to.
      *
@@ -94,6 +87,7 @@ data class GeoLocation(
      */
     @field:ColumnInfo(index = true)
     val measurementId: Long
+) : ParcelableGeoLocation(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy) {
 
     /**
      * Creates a new completely initialized instance of this class.
@@ -112,16 +106,8 @@ data class GeoLocation(
      */
     constructor(
         timestamp: Long, lat: Double, lon: Double, altitude: Double?,
-        speed: Double, accuracy: Double, verticalAccuracy: Double?, measurementId: Long
-    ) : super(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy) {
-        this.lat = lat
-        this.lon = lon
-        this.altitude = altitude
-        this.speed = speed
-        this.accuracy = accuracy
-        this.verticalAccuracy = verticalAccuracy
-        this.measurementId = measurementId
-    }
+        speed: Double, accuracy: Double?, verticalAccuracy: Double?, measurementId: Long
+    ) : this(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy, null, measurementId)
 
     /**
      * Creates a new completely initialized instance of this class.
@@ -129,26 +115,10 @@ data class GeoLocation(
      * @param location The cached [ParcelableGeoLocation] to create the [GeoLocation] from.
      * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
-    constructor(location: ParcelableGeoLocation, measurementId: Long) : super(
+    constructor(location: ParcelableGeoLocation, measurementId: Long) : this(
         location.timestamp, location.lat, location.lon, location.altitude,
-        location.speed, location.accuracy, location.verticalAccuracy
-    ) {
-        lat = location.lat
-        lon = location.lon
-        altitude = location.altitude
-        speed = location.speed
-        accuracy = location.accuracy!!
-        verticalAccuracy = location.verticalAccuracy
-        this.measurementId = measurementId
-    }
-
-    /**
-     * @param valid `True` if this location is considered "clean" by the provided
-     * [de.cyface.persistence.LocationCleaningStrategy].
-     */
-    override fun setValid(valid: Boolean) {
-        isValid = valid
-    }
+        location.speed, location.accuracy, location.verticalAccuracy, measurementId
+    )
 
     // is timestamp checked?
     override fun equals(other: Any?): Boolean {
@@ -161,15 +131,21 @@ data class GeoLocation(
                 && verticalAccuracy == that.verticalAccuracy && isValid == that.isValid)
     }
 
-    // To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
-    // in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1070618174
+    // FIXME: I changed the hashCode to `uid` only like in all other @Entity classes,
+    // as the constructor which has `uid` set to `0` is usually only used to insert an entry into the db.
+    // The only issue which could occur would be if we want to insert a set or new points into the database,
+    // as the set would then just have one of these points as entry, as `uid` is `0`.
+    // But for Measurement, GeoLocation, Event and Pressure we usually insert one point at a time.
+    // DEPRECATED: To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
+    // DEPRECATED: in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1070618174
     override fun hashCode(): Int {
-        return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy, measurementId)
+        return uid.hashCode()
         // FIXME: In `Track` v1 `ParcelableGeoLocation` is used, which has the following hashCode:
         // GeoLocation.hashCode(): lat, lon, timestamp, speed, accuracy
         // ParcelableGeoLocation.hashCode: geolocation.hashCode + isValid
         // In this class it should probably be: uid
         // In the child class GeoLocation: super.timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy
         // or simply: timestamp, as we only expect one gnss point per timestamp
+        //return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy, measurementId)
     }
 }
