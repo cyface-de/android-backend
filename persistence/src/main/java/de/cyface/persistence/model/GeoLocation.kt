@@ -18,9 +18,10 @@
  */
 package de.cyface.persistence.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
 import androidx.room.Ignore
-import java.util.Objects
 
 /**
  * An `@Entity` which represents a persisted [ParcelableGeoLocation], usually captured by a GNSS.
@@ -31,8 +32,20 @@ import java.util.Objects
  * @version 1.0.0
  * @since 7.5.0
  */
-@Entity(tableName = "Location")
-class GeoLocation : ParcelableGeoLocation {
+@Entity(
+    tableName = "Location",
+    foreignKeys = [ForeignKey(
+        entity = Measurement::class,
+        parentColumns = arrayOf("uid"),
+        childColumns = arrayOf("measurementId"),
+        onDelete = ForeignKey.CASCADE
+    )]
+)
+data class GeoLocation(
+    /**
+     * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
+     */
+    override val timestamp: Long,
     /**
      * The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
      * and 90.0 (north pole).
@@ -77,8 +90,9 @@ class GeoLocation : ParcelableGeoLocation {
     /**
      * The device-unique id of the measurement this data point belongs to.
      *
-     * FIXME: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
+     * This foreign key points to [Measurement.uid] and is indexed to avoid full table scan on parent update.
      */
+    @field:ColumnInfo(index = true)
     val measurementId: Long
 
     /**

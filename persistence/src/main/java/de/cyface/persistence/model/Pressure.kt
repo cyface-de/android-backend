@@ -32,13 +32,20 @@ import java.util.Objects
  * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
  * @param pressure The atmospheric pressure of this data point in hPa (millibar).
  * @param measurementId The device-unique id of the measurement this data point belongs to.
+ * This foreign key points to [Measurement.uid] and is indexed to avoid full table scan on parent update.
  */
-@Entity//(tableName = "Pressure")
-class Pressure(
-    timestamp: Long,
+@Entity(
+    foreignKeys = [ForeignKey(
+        entity = Measurement::class,
+        parentColumns = arrayOf("uid"),
+        childColumns = arrayOf("measurementId"),
+        onDelete = ForeignKey.CASCADE
+    )]
+)
+data class Pressure(
+    override val timestamp: Long,
     override val pressure: Double,
-    // FIXME: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
-    /*@field:ColumnInfo(name = "measurement_fk")*/ val measurementId: Long
+    @field:ColumnInfo(index = true) val measurementId: Long
 ) : ParcelablePressure(timestamp, pressure) {
 
     override fun equals(other: Any?): Boolean {

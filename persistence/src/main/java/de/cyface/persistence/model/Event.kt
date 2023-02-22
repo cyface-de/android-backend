@@ -18,7 +18,10 @@
  */
 package de.cyface.persistence.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
+import androidx.room.ForeignKey
+import androidx.room.ForeignKey.CASCADE
 import androidx.room.PrimaryKey
 import java.util.Objects
 
@@ -37,16 +40,23 @@ import java.util.Objects
  * the [type], e.g.: [EventType.MODALITY_TYPE_CHANGE] requires a [value], e.g. [Modality.CAR] which
  * defines the new [Modality]. Or `Null` if the [type] does not require this a [value].
  * @property measurementId The device-unique id of the measurement this [Event] belongs to.
- *           FIXME: Link `ForeignKey` when `Measurement` is migrated to `Room` (w/onDelete = CASCADE)
+ * This foreign key points to [Measurement.uid] and is indexed to avoid full table scan on parent update.
  */
-@Entity//(tableName = "Event")
-class /*Persisted*/ Event(
+@Entity(
+    foreignKeys = [ForeignKey(
+        entity = Measurement::class,
+        parentColumns = arrayOf("uid"),
+        childColumns = arrayOf("measurementId"),
+        onDelete = CASCADE
+    )]
+)
+data class Event(
     @field:PrimaryKey(autoGenerate = true) var uid: Long = 0,
     val timestamp: Long,
     val type: EventType,
     val value: String?,
-    val measurementId: Long
-) /*: Event*/ {
+    @field:ColumnInfo(index = true) val measurementId: Long
+) {
 
     /**
      * Creates a new instance of this class which was not yet persisted and has [uid] set to null. // FIXME: can this also be null?
