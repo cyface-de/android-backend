@@ -19,9 +19,9 @@
 package de.cyface.persistence
 
 import android.content.Context
-import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
+import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
 import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.GeoLocationDao
@@ -37,6 +37,7 @@ import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.launch
 
 /**
+ * FIXME: documentation
  * This class holds the database added in SDK 7, which is why the database file is called `v7`.
  *
  * It defines the database configuration and serves as the main access point to the persisted data.
@@ -55,7 +56,7 @@ import kotlinx.coroutines.launch
  * @version 1.0.0
  * @since 7.5.0
  */
-@Database(
+@androidx.room.Database(
     entities = [
         Identifier::class,
         Measurement::class,
@@ -63,12 +64,13 @@ import kotlinx.coroutines.launch
         Pressure::class,
         GeoLocation::class
     ],
-    version = 1,
+    // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
+    version = 18,
     autoMigrations = [
         //AutoMigration (from = 5, to = 6)
     ]
 )
-abstract class DatabaseV7 : RoomDatabase() {
+abstract class Database : RoomDatabase() {
     /**
      * @return Data access object which provides the API to interact with the [Identifier] database table.
      */
@@ -96,9 +98,9 @@ abstract class DatabaseV7 : RoomDatabase() {
     abstract fun geoLocationDao(): GeoLocationDao?
 
     // See https://developer.android.com/codelabs/android-room-with-a-view-kotlin#13
-    private class DatabaseV7Callback(
+    private class DatabaseCallback(
         private val scope: CoroutineScope
-    ) : RoomDatabase.Callback() {
+    ) : Callback() {
 
         override fun onCreate(db: SupportSQLiteDatabase) {
             super.onCreate(db)
@@ -124,16 +126,24 @@ abstract class DatabaseV7 : RoomDatabase() {
     // See https://developer.android.com/codelabs/android-room-with-a-view-kotlin#7
     companion object {
         @Volatile // Singleton to prevent multiple open database-instances at the same time
-        private var INSTANCE: DatabaseV7? = null
+        private var INSTANCE: Database? = null
 
-        private const val DATABASE_NAME = "v7" // FIXME "measures"
+        private const val DATABASE_NAME = "measures"
 
-        /*private val MIGRATION_1_2 = object : Migration(1, 2) {
+        private val MIGRATION_17_18 = object : Migration(17, 18) {
             override fun migrate(database: SupportSQLiteDatabase) {
-                // create comic bookmark table
-                database.execSQL("CREATE TABLE `Measurement` (`id` INTEGER NOT NULL, `dateOfCreate` TEXT, PRIMARY KEY(`id`))")
+                // Migrate Identifier data
+
+                // Migrate Measurement data
+
+                // Migrate Event data
+
+                // Migrate GeoLocation data (from v6.1 if it exists, else from measures.17)
+
+                // Migrate Pressure data (from v6.1 if it exists, else create a new table)
+                database.execSQL("CREATE TABLE `Pressure` (`id` INTEGER NOT NULL, `dateOfCreate` TEXT, PRIMARY KEY(`id`))")
             }
-        }*/
+        }
 
         /**
          * Returns the singleton instance of this class
@@ -153,16 +163,16 @@ abstract class DatabaseV7 : RoomDatabase() {
          * DataCapturingButton, MeasurementOverviewFragment
          * - other threads: SyncAdapter, Event-/MeasurementDeleteController
          */
-        fun getDatabase(context: Context, scope: CoroutineScope): DatabaseV7 {
+        fun getDatabase(context: Context, scope: CoroutineScope): Database {
             return INSTANCE ?: synchronized(this) {
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
-                    DatabaseV7::class.java,
+                    Database::class.java,
                     DATABASE_NAME
                 )
-                    .addCallback(DatabaseV7Callback(scope))
+                    .addCallback(DatabaseCallback(scope))
                     .enableMultiInstanceInvalidation()
-                    //.addMigrations(MIGRATION_1_2)
+                    .addMigrations(MIGRATION_17_18)
                     .build()
                 INSTANCE = instance
                 return instance

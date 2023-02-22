@@ -21,7 +21,7 @@ package de.cyface.persistence.serialization
 import android.util.Log
 import com.google.protobuf.ByteString
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.DatabaseV7
+import de.cyface.persistence.Database
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
@@ -63,7 +63,7 @@ object TransferFileSerializer {
     @Throws(CursorIsNullException::class)
     fun loadSerialized(
         bufferedOutputStream: BufferedOutputStream,
-        database: DatabaseV7,
+        database: Database,
         measurementIdentifier: Long,
         persistence: PersistenceLayer<*>
     ) {
@@ -158,7 +158,7 @@ object TransferFileSerializer {
 
     // FIXME: see if AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT is necessary
     @Throws(CursorIsNullException::class)
-    private fun loadEvents(database: DatabaseV7, measurementIdentifier: Long): List<Event> {
+    private fun loadEvents(database: Database, measurementIdentifier: Long): List<Event> {
         val serializer = EventSerializer()
         val events = database.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)
         for (event in events!!) {
@@ -169,7 +169,7 @@ object TransferFileSerializer {
 
     // FIXME: see if AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT is necessary
     @Throws(CursorIsNullException::class)
-    private fun loadLocations(database: DatabaseV7, measurementIdentifier: Long): LocationRecords {
+    private fun loadLocations(database: Database, measurementIdentifier: Long): LocationRecords {
         val serializer = LocationSerializer()
         val locations = database.geoLocationDao()!!.loadAllByMeasurementId(measurementIdentifier)
         for (location in locations!!) {

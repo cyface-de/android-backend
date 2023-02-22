@@ -84,7 +84,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     /**
      * The database which contains all persisted data which is not written to binary files.
      */
-    val database: DatabaseV7?
+    val database: Database?
     private val identifierRepository: IdentifierRepository?
 
     // FIXME: use this when one async task failure should not cancel all others
@@ -121,7 +121,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         // No need to cancel this scope as it'll be torn down with the process
         val applicationScope = CoroutineScope(SupervisorJob())
         // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#12
-        database = DatabaseV7.getDatabase(context.applicationContext, applicationScope)
+        database = Database.getDatabase(context.applicationContext, applicationScope)
         /*database = Room.databaseBuilder(context.applicationContext, DatabaseV7::class.java, "v7")
          * .enableMultiInstanceInvalidation()/*.addMigrations(MIGRATION_1_2)*/.build()*/
         identifierRepository = IdentifierRepository(database.identifierDao()!!)
