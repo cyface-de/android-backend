@@ -128,7 +128,7 @@ class SyncAdapter private constructor(
                 Log.d(
                     Constants.TAG, String.format(
                         "Measurement with identifier %d is about to be loaded for transmission.",
-                        measurement!!.uid
+                        measurement!!.id
                     )
                 )
 
@@ -144,7 +144,7 @@ class SyncAdapter private constructor(
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(
                         persistence.database!!,
-                        measurement.uid, persistence
+                        measurement.id, persistence
                     )
 
                     // Acquire new auth token before each synchronization (old one could be expired)
@@ -169,7 +169,7 @@ class SyncAdapter private constructor(
                             val total =
                                 if (lastMeasurement && percent.toDouble() == 1.0) 100.0 else progressBeforeThis + percent * progressPerMeasurement
                             for (listener in progressListener) {
-                                listener.onProgress(total.toFloat(), measurement.uid)
+                                listener.onProgress(total.toFloat(), measurement.id)
                             }
                         }, jwtAuthToken
                     )
@@ -180,9 +180,9 @@ class SyncAdapter private constructor(
                     // Mark successfully transmitted measurement as synced
                     try {
                         if (result == HttpConnection.Result.UPLOAD_SKIPPED) {
-                            persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.uid)
+                            persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
                         } else if (result == HttpConnection.Result.UPLOAD_SUCCESSFUL) {
-                            persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.uid)
+                            persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
                         } else {
                             throw IllegalArgumentException(
                                 String.format(
@@ -333,7 +333,7 @@ class SyncAdapter private constructor(
     ): RequestMetaData {
 
         // If there is only one location captured, start and end locations are identical
-        val tracks = persistence.loadTracks(measurement.uid)
+        val tracks = persistence.loadTracks(measurement.id)
         var locationCount = 0
         for (track in tracks) {
             locationCount += track.geoLocations.size
@@ -367,7 +367,7 @@ class SyncAdapter private constructor(
         }
         return RequestMetaData(
             deviceId,
-            measurement.uid.toString(),
+            measurement.id.toString(),
             osVersion,
             deviceType,
             appVersion,

@@ -227,10 +227,10 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             corruptedMeasurements.addAll(pausedMeasurements);
 
             for (final Measurement measurement : corruptedMeasurements) {
-                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getUid() + ").");
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getId() + ").");
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
-                    this.persistenceLayer.setStatus(measurement.getUid(), MeasurementStatus.FINISHED, true);
+                    this.persistenceLayer.setStatus(measurement.getId(), MeasurementStatus.FINISHED, true);
                 } catch (NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }

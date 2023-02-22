@@ -172,10 +172,10 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             val measurementId = withContext(scope.coroutineContext) {
                 database!!.measurementDao()!!.insert(measurement)
             }
-            measurement.uid = measurementId
+            measurement.id = measurementId
         }
         // To ensure this works, i.e. blocking code alters the object
-        Validate.notNull(measurement.uid)
+        Validate.notNull(measurement.id)
         return measurement
     }
 
@@ -237,7 +237,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         var measurement: Measurement?
         runBlocking {
             measurement = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.loadByUid(measurementIdentifier)
+                database!!.measurementDao()!!.loadById(measurementIdentifier)
             }
         }
         return measurement
@@ -258,7 +258,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         var event: Event?
         runBlocking {
             event = withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.loadByUid(eventId)
+                database!!.eventDao()!!.loadById(eventId)
             }
         }
         return event
@@ -427,7 +427,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
                 database!!.geoLocationDao()!!.deleteItemByMeasurementId(measurementIdentifier)
                 database.eventDao()!!.deleteItemByMeasurementId(measurementIdentifier)
                 database.pressureDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-                database.measurementDao()!!.deleteItemByUid(measurementIdentifier)
+                database.measurementDao()!!.deleteItemById(measurementIdentifier)
             }
         }
     }
@@ -441,7 +441,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
     fun deleteEvent(eventId: Long) {
         runBlocking {
             withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.deleteItemByUid(eventId)
+                database!!.eventDao()!!.deleteItemById(eventId)
             }
         }
     }
@@ -1123,18 +1123,18 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         Log.v(
             TAG,
             "Storing Event:" + eventType + (if (value == null) "" else " ($value)") + " for Measurement "
-                    + measurement.uid + " at " + timestamp
+                    + measurement.id + " at " + timestamp
         )
 
         // value may be null when the type does not require a value, e.g. LIFECYCLE_START
-        var uid: Long?
+        var id: Long?
         runBlocking {
-            uid = withContext(scope.coroutineContext) {
+            id = withContext(scope.coroutineContext) {
                 database!!.eventDao()!!
-                    .insert(Event(timestamp, eventType, value, measurement.uid))
+                    .insert(Event(timestamp, eventType, value, measurement.id))
             }
         }
-        return uid!!
+        return id!!
     }
 
     /**

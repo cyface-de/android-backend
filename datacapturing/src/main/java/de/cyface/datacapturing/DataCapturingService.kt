@@ -263,7 +263,7 @@ abstract class DataCapturingService(
         for (m in persistenceLayer.loadMeasurements()) {
             if (m!!.fileFormatVersion < PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
                 try {
-                    markDeprecated(m.uid, m.status)
+                    markDeprecated(m.id, m.status)
                 } catch (e: NoSuchMeasurementException) {
                     throw IllegalStateException(e) // Should not happen
                 }
@@ -579,7 +579,7 @@ abstract class DataCapturingService(
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
                     sendServiceStoppedBroadcast(
                         getContext(),
-                        currentlyCapturedMeasurement.uid,
+                        currentlyCapturedMeasurement.id,
                         false
                     )
                 } catch (e: NoSuchMeasurementException) {
@@ -636,7 +636,7 @@ abstract class DataCapturingService(
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler so we do this here:
                     sendServiceStoppedBroadcast(
                         getContext(),
-                        currentlyCapturedMeasurement.uid,
+                        currentlyCapturedMeasurement.id,
                         false
                     )
                 } catch (e: NoSuchMeasurementException) {
@@ -796,7 +796,7 @@ abstract class DataCapturingService(
         val startIntent = Intent(context, DataCapturingBackgroundService::class.java)
         // Binding the intent to the package of the app which runs this SDK [DAT-1509].
         startIntent.setPackage(context.packageName)
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurement.uid)
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurement.id)
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority)
         startIntent.putExtra(BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy)
         startIntent.putExtra(
@@ -1145,7 +1145,7 @@ abstract class DataCapturingService(
 
             // Ensure the newModality is actually different to the current Modality
             val modalityChanges =
-                persistenceLayer.loadEvents(measurement.uid, EventType.MODALITY_TYPE_CHANGE)
+                persistenceLayer.loadEvents(measurement.id, EventType.MODALITY_TYPE_CHANGE)
             if (modalityChanges!!.size > 0) {
                 val lastModalityChangeEvent = modalityChanges[modalityChanges.size - 1]
                 val lastChangeValue = lastModalityChangeEvent!!.value

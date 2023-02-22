@@ -37,7 +37,7 @@ import androidx.room.PrimaryKey
     tableName = "Location",
     foreignKeys = [ForeignKey(
         entity = Measurement::class,
-        parentColumns = arrayOf("uid"),
+        parentColumns = arrayOf("id"),
         childColumns = arrayOf("measurementId"),
         onDelete = ForeignKey.CASCADE
     )]
@@ -48,7 +48,7 @@ data class GeoLocation(
      * It's `0`, which equals `null` in the non-nullable column `Long` when the entry is not yet persisted.
      */
     @PrimaryKey(autoGenerate = true)
-    var uid: Int = 0,
+    var id: Int = 0,
     /**
      * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
      */
@@ -90,14 +90,14 @@ data class GeoLocation(
     /**
      * The device-unique id of the measurement this data point belongs to.
      *
-     * This foreign key points to [Measurement.uid] and is indexed to avoid full table scan on parent update.
+     * This foreign key points to [Measurement.id] and is indexed to avoid full table scan on parent update.
      */
     @field:ColumnInfo(index = true)
     val measurementId: Long
 ) : ParcelableGeoLocation(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy) {
 
     /**
-     * Creates a new instance of this class which was not yet persisted and has [uid] set to `0`.
+     * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
      *
      * @param timestamp The timestamp at which this data point was captured in milliseconds since
      * 1.1.1970.
@@ -128,7 +128,7 @@ data class GeoLocation(
     )
 
     /**
-     * Creates a new instance of this class which was not yet persisted and has [uid] set to `0`.
+     * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
      *
      * @param location The cached [ParcelableGeoLocation] to create the [GeoLocation] from.
      * @param measurementId The device-unique id of the measurement this data point belongs to.
@@ -149,19 +149,19 @@ data class GeoLocation(
                 && verticalAccuracy == that.verticalAccuracy && isValid == that.isValid)
     }
 
-    // FIXME: I changed the hashCode to `uid` only like in all other @Entity classes,
-    // as the constructor which has `uid` set to `0` is usually only used to insert an entry into the db.
+    // FIXME: I changed the hashCode to `id` only like in all other @Entity classes,
+    // as the constructor which has `id` set to `0` is usually only used to insert an entry into the db.
     // The only issue which could occur would be if we want to insert a set or new points into the database,
-    // as the set would then just have one of these points as entry, as `uid` is `0`.
+    // as the set would then just have one of these points as entry, as `id` is `0`.
     // But for Measurement, GeoLocation, Event and Pressure we usually insert one point at a time.
     // DEPRECATED: To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
     // DEPRECATED: in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1070618174
     override fun hashCode(): Int {
-        return uid.hashCode()
+        return id.hashCode()
         // FIXME: In `Track` v1 `ParcelableGeoLocation` is used, which has the following hashCode:
         // GeoLocation.hashCode(): lat, lon, timestamp, speed, accuracy
         // ParcelableGeoLocation.hashCode: geolocation.hashCode + isValid
-        // In this class it should probably be: uid
+        // In this class it should probably be: id
         // In the child class GeoLocation: super.timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy
         // or simply: timestamp, as we only expect one gnss point per timestamp
         //return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy, measurementId)

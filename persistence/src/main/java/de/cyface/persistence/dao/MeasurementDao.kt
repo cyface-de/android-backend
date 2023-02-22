@@ -36,8 +36,8 @@ interface MeasurementDao {
     @Query("SELECT * FROM Measurement")
     fun getAll(): List<Measurement?>?
 
-    @Query("SELECT * FROM Measurement WHERE uid = :uid")
-    fun loadByUid(uid: Long): Measurement?
+    @Query("SELECT * FROM Measurement WHERE id = :id")
+    fun loadById(id: Long): Measurement?
 
     @Query("SELECT * FROM Measurement WHERE status = :status")
     fun loadAllByStatus(status: MeasurementStatus): List<Measurement?>?
@@ -45,15 +45,15 @@ interface MeasurementDao {
     @Insert
     fun insert(measurement: Measurement?) : Long
 
-    @Query("DELETE FROM Measurement WHERE uid = :uid")
-    fun deleteItemByUid(uid: Long): Int
+    @Query("DELETE FROM Measurement WHERE id = :id")
+    fun deleteItemById(id: Long): Int
 
-    @Query("UPDATE Measurement SET fileFormatVersion = :fileFormatVersion WHERE uid = :uid")
-    fun updateFileFormatVersion(uid: Long, fileFormatVersion: Short): Int
+    @Query("UPDATE Measurement SET fileFormatVersion = :fileFormatVersion WHERE id = :id")
+    fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
 
-    @Query("UPDATE Measurement SET status = :status WHERE uid = :uid")
-    fun update(uid: Long, status: MeasurementStatus): Int
+    @Query("UPDATE Measurement SET status = :status WHERE id = :id")
+    fun update(id: Long, status: MeasurementStatus): Int
 
-    @Query("UPDATE Measurement SET distance = :distance WHERE uid = :uid")
-    fun updateDistance(uid: Long, distance: Double): Int
+    @Query("UPDATE Measurement SET distance = :distance WHERE id = :id")
+    fun updateDistance(id: Long, distance: Double): Int
 }

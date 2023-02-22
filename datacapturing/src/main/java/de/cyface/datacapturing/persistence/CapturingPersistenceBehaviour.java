@@ -179,7 +179,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
             throws NoSuchMeasurementException, CursorIsNullException {
 
         final var measurement = persistenceLayer.loadCurrentlyCapturedMeasurementFromPersistence();
-        currentMeasurementIdentifier = measurement.getUid();
+        currentMeasurementIdentifier = measurement.getId();
         Log.d(Constants.TAG, "Refreshed currentMeasurementIdentifier to: " + currentMeasurementIdentifier);
     }
 
@@ -225,7 +225,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
         Validate.isTrue(
                 newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
 
-        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getUid();
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getId();
         switch (newStatus) {
             case OPEN:
                 Validate.isTrue(persistenceLayer
@@ -267,7 +267,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     public void updateDistance(final double newDistance) throws NoSuchMeasurementException, CursorIsNullException {
         Validate.isTrue(newDistance >= 0.0);
 
-        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getUid();
+        final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getId();
 
         synchronized (this) {
             persistenceLayer.setDistance(currentlyCapturedMeasurementId, newDistance);

@@ -159,10 +159,10 @@ public class CapturedDataWriterTest {
 
         // Create a measurement
         Measurement measurement = oocut.newMeasurement(UNKNOWN);
-        assertThat(measurement.getUid() > 0L, is(equalTo(true)));
+        assertThat(measurement.getId() > 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
-        String identifierString = Long.valueOf(measurement.getUid()).toString();
+        String identifierString = Long.valueOf(measurement.getId()).toString();
         Log.d(TAG, identifierString);
         try (Cursor result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
                 new String[] {identifierString}, null)) {
