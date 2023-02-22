@@ -36,7 +36,7 @@ import androidx.room.PrimaryKey
  */
 @Entity(tableName = "Identifier")
 class Identifier(
-    @field:PrimaryKey(autoGenerate = true) var id: Long = 0,
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val deviceId: String
 ) {
     /**

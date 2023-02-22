@@ -52,11 +52,11 @@ import java.util.Objects
     )]
 )
 data class Event(
-    @field:PrimaryKey(autoGenerate = true) var id: Long = 0,
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val timestamp: Long,
     val type: EventType,
     val value: String?,
-    @field:ColumnInfo(index = true) val measurementId: Long
+    @ColumnInfo(index = true) val measurementId: Long
 ) {
 
     /**

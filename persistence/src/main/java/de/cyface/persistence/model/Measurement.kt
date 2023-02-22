@@ -41,7 +41,7 @@ import androidx.room.PrimaryKey
  */
 @Entity
 data class Measurement(
-    @field:PrimaryKey(autoGenerate = true) var id: Long = 0,
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val status: MeasurementStatus,
     val modality: Modality,
     val fileFormatVersion: Short,

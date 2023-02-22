@@ -50,7 +50,7 @@ data class Pressure(
     @PrimaryKey(autoGenerate = true) var id: Int = 0,
     override val timestamp: Long,
     override val pressure: Double,
-    @field:ColumnInfo(index = true) val measurementId: Long
+    @ColumnInfo(index = true) val measurementId: Long
 ) : ParcelablePressure(timestamp, pressure) {
 
     /**

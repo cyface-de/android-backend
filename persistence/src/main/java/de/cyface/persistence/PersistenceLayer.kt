@@ -116,16 +116,9 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     constructor(context: Context, persistenceBehaviour: B) {
         this.context = context
-
-        // The scope keeps track of coroutines, can cancel them and is notified about failures
-        // No need to cancel this scope as it'll be torn down with the process
-        val applicationScope = CoroutineScope(SupervisorJob())
         // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#12
-        database = Database.getDatabase(context.applicationContext, applicationScope)
-        /*database = Room.databaseBuilder(context.applicationContext, DatabaseV7::class.java, "v7")
-         * .enableMultiInstanceInvalidation()/*.addMigrations(MIGRATION_1_2)*/.build()*/
-        identifierRepository = IdentifierRepository(database.identifierDao()!!)
-
+        this.database = Database.getDatabase(context.applicationContext)
+        this.identifierRepository = IdentifierRepository(database.identifierDao()!!)
         this.persistenceBehaviour = persistenceBehaviour
         fileAccessLayer = DefaultFileAccess()
         val accelerationsFolder =

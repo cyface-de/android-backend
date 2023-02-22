@@ -92,7 +92,7 @@ data class GeoLocation(
      *
      * This foreign key points to [Measurement.id] and is indexed to avoid full table scan on parent update.
      */
-    @field:ColumnInfo(index = true)
+    @ColumnInfo(index = true)
     val measurementId: Long
 ) : ParcelableGeoLocation(timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy) {
 
