@@ -56,7 +56,13 @@ import kotlinx.coroutines.launch
  * @since 7.5.0
  */
 @Database(
-    entities = [Identifier::class, Measurement::class, Event::class, Pressure::class, GeoLocation::class],
+    entities = [
+        Identifier::class,
+        Measurement::class,
+        Event::class,
+        Pressure::class,
+        GeoLocation::class
+    ],
     version = 1,
     autoMigrations = [
         //AutoMigration (from = 5, to = 6)
@@ -120,7 +126,7 @@ abstract class DatabaseV7 : RoomDatabase() {
         @Volatile // Singleton to prevent multiple open database-instances at the same time
         private var INSTANCE: DatabaseV7? = null
 
-        private const val DATABASE_NAME = "v7"
+        private const val DATABASE_NAME = "v7" // FIXME "measures"
 
         /*private val MIGRATION_1_2 = object : Migration(1, 2) {
             override fun migrate(database: SupportSQLiteDatabase) {

@@ -148,8 +148,14 @@
       },
       {
         "tableName": "Pressure",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, `uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`uid`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`uid`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
           {
             "fieldPath": "timestamp",
             "columnName": "timestamp",
@@ -165,12 +171,6 @@
           {
             "fieldPath": "measurementId",
             "columnName": "measurementId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "uid",
-            "columnName": "uid",
             "affinity": "INTEGER",
             "notNull": true
           }
@@ -208,8 +208,14 @@
       },
       {
         "tableName": "Location",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, `uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`uid`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`uid` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`uid`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
+          {
+            "fieldPath": "uid",
+            "columnName": "uid",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
           {
             "fieldPath": "timestamp",
             "columnName": "timestamp",
@@ -255,12 +261,6 @@
           {
             "fieldPath": "measurementId",
             "columnName": "measurementId",
-            "affinity": "INTEGER",
-            "notNull": true
-          },
-          {
-            "fieldPath": "uid",
-            "columnName": "uid",
             "affinity": "INTEGER",
             "notNull": true
           }
