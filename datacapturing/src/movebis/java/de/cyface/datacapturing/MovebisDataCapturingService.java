@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -76,7 +76,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.1
+ * @version 11.0.2
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess"}) // Used by SDK implementing apps (SR)
@@ -200,8 +200,7 @@ public class MovebisDataCapturingService extends DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new PersistenceLayer<>(context, context.getContentResolver(), authority,
-                        new CapturingPersistenceBehaviour()),
+                new PersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
                 sensorFrequency);
         this.locationUpdateRate = locationUpdateRate;
@@ -365,10 +364,10 @@ public class MovebisDataCapturingService extends DataCapturingService {
             corruptedMeasurements.addAll(pausedMeasurements);
 
             for (final Measurement measurement : corruptedMeasurements) {
-                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getId() + ").");
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
+                    this.persistenceLayer.setStatus(measurement.getId(), MeasurementStatus.FINISHED, true);
                 } catch (final NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e1);
                 }
