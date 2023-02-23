@@ -274,6 +274,7 @@ abstract class DataCapturingService(
                 )
             }
         }
+        // FIXME: maybe use DataStore instead, see https://developer.android.com/topic/libraries/architecture/datastore
         val preferences = PreferenceManager.getDefaultSharedPreferences(context)
         val sharedPreferencesEditor = preferences.edit()
         sharedPreferencesEditor.putString(
