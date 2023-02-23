@@ -31,7 +31,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * @version 2.0.2
  * @since 3.2.0
  */
-class DefaultDistanceCalculationStrategy : DistanceCalculationStrategy {
+class DefaultDistanceCalculation : DistanceCalculationStrategy {
     /**
      * No arguments constructor is re-declared here, since it is overwritten by the constructor required by
      * `Parcelable`.
@@ -81,13 +81,13 @@ class DefaultDistanceCalculationStrategy : DistanceCalculationStrategy {
          * The `Parcelable` creator as required by the Android Parcelable specification.
          */
         @JvmField
-        val CREATOR: Creator<DefaultDistanceCalculationStrategy?> =
-            object : Creator<DefaultDistanceCalculationStrategy?> {
-                override fun createFromParcel(`in`: Parcel): DefaultDistanceCalculationStrategy {
-                    return DefaultDistanceCalculationStrategy(`in`)
+        val CREATOR: Creator<DefaultDistanceCalculation?> =
+            object : Creator<DefaultDistanceCalculation?> {
+                override fun createFromParcel(`in`: Parcel): DefaultDistanceCalculation {
+                    return DefaultDistanceCalculation(`in`)
                 }
 
-                override fun newArray(size: Int): Array<DefaultDistanceCalculationStrategy?> {
+                override fun newArray(size: Int): Array<DefaultDistanceCalculation?> {
                     return arrayOfNulls(size)
                 }
             }

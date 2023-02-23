@@ -38,7 +38,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * @version 1.1.0
  * @since 4.1.0
  */
-class DefaultLocationCleaningStrategy : LocationCleaningStrategy {
+class DefaultLocationCleaning : LocationCleaningStrategy {
     /**
      * No arguments constructor is re-declared here, since it is overwritten by the constructor required by
      * `Parcelable`.
@@ -99,13 +99,13 @@ class DefaultLocationCleaningStrategy : LocationCleaningStrategy {
          * The `Parcelable` creator as required by the Android Parcelable specification.
          */
         @JvmField
-        val CREATOR: Creator<DefaultLocationCleaningStrategy?> =
-            object : Creator<DefaultLocationCleaningStrategy?> {
-                override fun createFromParcel(`in`: Parcel): DefaultLocationCleaningStrategy {
-                    return DefaultLocationCleaningStrategy(`in`)
+        val CREATOR: Creator<DefaultLocationCleaning?> =
+            object : Creator<DefaultLocationCleaning?> {
+                override fun createFromParcel(`in`: Parcel): DefaultLocationCleaning {
+                    return DefaultLocationCleaning(`in`)
                 }
 
-                override fun newArray(size: Int): Array<DefaultLocationCleaningStrategy?> {
+                override fun newArray(size: Int): Array<DefaultLocationCleaning?> {
                     return arrayOfNulls(size)
                 }
             }

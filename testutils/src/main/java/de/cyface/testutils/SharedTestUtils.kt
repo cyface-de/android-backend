@@ -31,7 +31,7 @@ import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultFileAccess
-import de.cyface.persistence.DefaultLocationCleaningStrategy
+import de.cyface.persistence.DefaultLocationCleaning
 import de.cyface.persistence.FileAccessLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -127,10 +127,10 @@ object SharedTestUtils {
             BASE_LON + distanceFromBase * LON_CONSTANT,
             400.0,
             Math.max(
-                DefaultLocationCleaningStrategy.LOWER_SPEED_THRESHOLD,
-                salt * DefaultLocationCleaningStrategy.UPPER_SPEED_THRESHOLD
+                DefaultLocationCleaning.LOWER_SPEED_THRESHOLD,
+                salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD
             ),
-            salt * (DefaultLocationCleaningStrategy.UPPER_ACCURACY_THRESHOLD - 1),
+            salt * (DefaultLocationCleaning.UPPER_ACCURACY_THRESHOLD - 1),
             19.99
         )
     }

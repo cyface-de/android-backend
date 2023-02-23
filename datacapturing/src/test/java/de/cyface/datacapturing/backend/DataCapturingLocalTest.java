@@ -54,8 +54,8 @@ import android.os.Parcelable;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
+import de.cyface.persistence.DefaultDistanceCalculation;
+import de.cyface.persistence.DefaultLocationCleaning;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.ParcelableGeoLocation;
@@ -98,9 +98,9 @@ public class DataCapturingLocalTest {
     @Mock
     CapturingPersistenceBehaviour mockBehaviour;
     @Mock
-    DefaultDistanceCalculationStrategy distanceCalculationStrategy;
+    DefaultDistanceCalculation distanceCalculationStrategy;
     @Mock
-    DefaultLocationCleaningStrategy locationCleaningStrategy;
+    DefaultLocationCleaning locationCleaningStrategy;
     @Mock
     EventHandlingStrategy mockEventHandlingStrategy;
     private final int base = 0;

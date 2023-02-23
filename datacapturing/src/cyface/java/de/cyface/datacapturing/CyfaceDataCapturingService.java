@@ -39,8 +39,8 @@ import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
+import de.cyface.persistence.DefaultDistanceCalculation;
+import de.cyface.persistence.DefaultLocationCleaning;
 import de.cyface.persistence.DistanceCalculationStrategy;
 import de.cyface.persistence.LocationCleaningStrategy;
 import de.cyface.persistence.PersistenceLayer;
@@ -133,7 +133,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
+                new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
                 sensorFrequency);
     }
 

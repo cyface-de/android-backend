@@ -63,7 +63,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
+import de.cyface.persistence.DefaultLocationCleaning;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
@@ -720,7 +720,7 @@ public class CapturedDataWriterTest {
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
         List<Track> cleanedTracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier(),
-                new DefaultLocationCleaningStrategy());
+                new DefaultLocationCleaning());
 
         // Assert
         assertThat(cleanedTracks.size(), is(equalTo(2)));

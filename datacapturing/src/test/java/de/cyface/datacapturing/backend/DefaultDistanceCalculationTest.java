@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config;
 import android.location.Location;
 import android.os.Build;
 
-import de.cyface.persistence.DefaultDistanceCalculationStrategy;
+import de.cyface.persistence.DefaultDistanceCalculation;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 
@@ -45,16 +45,16 @@ import de.cyface.persistence.model.Measurement;
  */
 @RunWith(RobolectricTestRunner.class)
 @Config(sdk = Build.VERSION_CODES.O_MR1) // To be able to execute tests with Java 8 (instead of 9)
-public class DefaultDistanceCalculationStrategyTest {
+public class DefaultDistanceCalculationTest {
 
     /**
      * The object of the class under test
      */
-    private DefaultDistanceCalculationStrategy distanceCalculationStrategy;
+    private DefaultDistanceCalculation distanceCalculationStrategy;
 
     @Before
     public void setUp() {
-        distanceCalculationStrategy = new DefaultDistanceCalculationStrategy();
+        distanceCalculationStrategy = new DefaultDistanceCalculation();
     }
 
     /**

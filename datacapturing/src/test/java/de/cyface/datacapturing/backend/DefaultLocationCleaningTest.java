@@ -25,7 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
+import de.cyface.persistence.DefaultLocationCleaning;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 
 /**
@@ -35,16 +35,16 @@ import de.cyface.persistence.model.ParcelableGeoLocation;
  * @version 1.0.2
  * @since 4.0.0
  */
-public class DefaultLocationCleaningStrategyTest {
+public class DefaultLocationCleaningTest {
 
     /**
      * The object of the class under test
      */
-    private DefaultLocationCleaningStrategy locationCleaningStrategy;
+    private DefaultLocationCleaning locationCleaningStrategy;
 
     @Before
     public void setUp() {
-        locationCleaningStrategy = new DefaultLocationCleaningStrategy();
+        locationCleaningStrategy = new DefaultLocationCleaning();
     }
 
     /**
