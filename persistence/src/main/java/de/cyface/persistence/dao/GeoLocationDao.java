@@ -31,11 +31,13 @@ import de.cyface.persistence.model.PersistedGeoLocation;
  * Data access object which provides the API to interact with the {@link PersistedGeoLocation} database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 6.3.0
  */
 @Dao
 public interface GeoLocationDao {
+    @Query("SELECT * FROM location")
+    List<PersistedGeoLocation> getAll();
 
     @Query("SELECT * FROM location WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
     List<PersistedGeoLocation> loadAllByMeasurementId(long measurementId);

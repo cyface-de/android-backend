@@ -31,11 +31,13 @@ import de.cyface.persistence.model.Pressure;
  * Data access object which provides the API to interact with the {@link PersistedPressure} database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 6.3.0
  */
 @Dao
 public interface PressureDao {
+    @Query("SELECT * FROM pressure")
+    List<PersistedPressure> getAll();
 
     @Query("SELECT * FROM pressure WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
     List<PersistedPressure> loadAllByMeasurementId(long measurementId);
