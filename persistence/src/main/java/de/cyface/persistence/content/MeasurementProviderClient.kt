@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence
+package de.cyface.persistence.content
 
 import android.content.ContentProviderClient
 import android.database.Cursor
@@ -27,7 +27,9 @@ import de.cyface.utils.CursorIsNullException
 /**
  * A wrapper for a `ContentProviderClient` used to provide access to one specific measurement.
  *
- * ATTENTION: If you use this class you must still close the provided `ContentProviderClient`. This class
+ * See [MeasurementProvider] for why a `ContentProvider` is required.
+ *
+ * *ATTENTION:* If you use this class you must still close the provided `ContentProviderClient`. This class
  * will not do that for you. This has the benefit, that you may call multiple of its methods without requiring a new
  * `ContentProvider`.
  *
@@ -41,7 +43,7 @@ import de.cyface.utils.CursorIsNullException
  * not possible to retrieve this from the `client` itself. To communicate with the client this
  * information is required and so needs to be injected explicitly.
  */
-class MeasurementContentProviderClient(
+class MeasurementProviderClient(
     private val measurementIdentifier: Long,
     private val client: ContentProviderClient,
     private val authority: String

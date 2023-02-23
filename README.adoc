@@ -104,7 +104,10 @@ The following steps are required before you can start coding.
 [[content-provider-authority]]
 ==== Content Provider Authority
 
-You need to set a provider and to make sure you use the same provider everywhere:
+This SDK uses Android's `SyncAdapter` to sync data. The `MeasurementProvider` is a `ContentProvider`
+implementation which allows `SyncAdapter` to access the data of this SDK.
+
+Therefor, you need to set a provider and to make sure you use the same provider everywhere:
 
 * The `AndroidManifest.xml` is required to override the default content provider as
 declared by the persistence project. This needs to be done by each SDK integrating
@@ -118,9 +121,8 @@ application separately.
     package="your.domain.app"> <!-- replace this! -->
 
     <application>
-        <!-- This overwrites the provider in the SDK. This way the app can
-        be installed next to other SDK using apps.
-        The "authorities" must match the one in your AndroidManifest.xml! -->
+        <!-- This overwrites the provider in the SDK. This way the app can be installed next to other
+        SDK using apps. The "authorities" must match the one in your AndroidManifest.xml! -->
         <provider
             android:name="de.cyface.persistence.MeasurementProvider"
             android:authorities="your.domain.app.provider"
@@ -133,8 +135,8 @@ application separately.
 </manifest>
 ----
 
-* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below).
-This must be the same as defined in the `AndroidManifest.xml` above.
+* Define your authority which you must use as parameter in `new Cyface-/MovebisDataCapturingService()`
+(see sample below). This must be the same as defined in the `AndroidManifest.xml` above.
 
 [source,java]
 ----

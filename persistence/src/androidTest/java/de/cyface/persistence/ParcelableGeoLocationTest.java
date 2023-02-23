@@ -57,7 +57,7 @@ public final class ParcelableGeoLocationTest {
      * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
      */
     @Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
+    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasurementProvider.class, AUTHORITY)
             .build();
     /**
      * A mock content resolver provided by the Android test environment to work on a simulated content provider.

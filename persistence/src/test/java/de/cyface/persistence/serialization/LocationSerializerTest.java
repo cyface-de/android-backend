@@ -43,7 +43,7 @@ import android.database.Cursor;
 import android.net.Uri;
 import android.os.RemoteException;
 
-import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.content.MeasurementProviderClient;
 import de.cyface.persistence.Utils;
 import de.cyface.serializer.LocationOffsetter;
 
@@ -67,7 +67,7 @@ public class LocationSerializerTest {
      * A mock loader, not accessing any database
      */
     @Mock
-    private MeasurementContentProviderClient loader;
+    private MeasurementProviderClient loader;
     /**
      * A mocked cursor for the first call.
      */

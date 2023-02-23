@@ -75,7 +75,7 @@ import de.cyface.model.Point3DImpl;
 import de.cyface.persistence.DefaultFileAccess;
 import de.cyface.persistence.FileAccessLayer;
 import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.MeasurementContentProviderClient;
+import de.cyface.persistence.content.MeasurementProviderClient;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.Modality;
@@ -110,7 +110,7 @@ public class MeasurementSerializerTest {
      * A mock loader, not accessing any database
      */
     @Mock
-    private MeasurementContentProviderClient loader;
+    private MeasurementProviderClient loader;
     /**
      * A mock persistence layer, not accessing any files.
      */

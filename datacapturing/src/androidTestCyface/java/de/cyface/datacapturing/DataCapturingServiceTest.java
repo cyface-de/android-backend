@@ -75,7 +75,7 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.EventTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
+import de.cyface.persistence.MeasurementProvider;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Event;
@@ -105,7 +105,7 @@ public class DataCapturingServiceTest {
      * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
      */
     @Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
+    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasurementProvider.class, AUTHORITY)
             .build();
     /**
      * Rule used to run
