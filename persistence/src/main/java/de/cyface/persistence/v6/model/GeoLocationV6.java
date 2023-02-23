@@ -29,9 +29,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.room.Ignore;
 
-import de.cyface.persistence.v1.LocationCleaningStrategy;
-import de.cyface.persistence.v1.model.ParcelableGeoLocation;
-
 /**
  * This class represents a geographical location, usually captured by a GNSS.
  * <p>
@@ -41,7 +38,7 @@ import de.cyface.persistence.v1.model.ParcelableGeoLocation;
  * <b>Attention:</b>
  * Keep this class unchanged until SDK 6 apps (databases) are migrated to SDK 7.
  * <p>
- * {@link ParcelableGeoLocation} DB Version 17 now contains accuracy in meters.
+ * {@code ParcelableGeoLocation} DB Version 17 now contains accuracy in meters.
  * {@link GeoLocationV6} accuracy is still in the old format (cm), vertical in the new (m)
  * This is fixed after merging `measures` and `v6` databases (both in m)
  * <p>
@@ -92,7 +89,7 @@ public class GeoLocationV6 extends DataPointV6 {
     private final Double verticalAccuracy;
 
     /**
-     * {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     * {@code True} if this location is considered "clean" by the provided {@code LocationCleaningStrategy}.
      * <p>
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
@@ -196,7 +193,7 @@ public class GeoLocationV6 extends DataPointV6 {
     }
 
     /**
-     * @return {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     * @return {@code True} if this location is considered "clean" by the provided {@code LocationCleaningStrategy}.
      */
     @SuppressWarnings("unused") // Part of the API
     public Boolean isValid() {
@@ -205,7 +202,7 @@ public class GeoLocationV6 extends DataPointV6 {
 
     /**
      * @param valid {@code True} if this location is considered "clean" by the provided
-     *            {@link LocationCleaningStrategy}.
+     *            {@code LocationCleaningStrategy}.
      */
     public void setValid(boolean valid) {
         isValid = valid;

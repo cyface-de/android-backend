@@ -24,12 +24,10 @@ import java.util.Objects;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.persistence.v1.model.Measurement;
-
 /**
  * A {@link TrackV6} consists of {@link PersistedGeoLocation}s and {@link PersistedPressure}s (data points) collected
  * for a
- * {@link Measurement}. Its data points are ordered by time.
+ * {@code Measurement}. Its data points are ordered by time.
  * <p>
  * A {@code TrackV6} begins with the first data point of each type collected after start or resume was triggered
  * and stops with the last collected data point of each type before the next resume command is triggered or when the

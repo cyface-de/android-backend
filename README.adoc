@@ -122,7 +122,7 @@ application separately.
         be installed next to other SDK using apps.
         The "authorities" must match the one in your AndroidManifest.xml! -->
         <provider
-            android:name="de.cyface.persistence.v1.MeasuringPointsContentProvider"
+            android:name="de.cyface.persistence.MeasurementProvider"
             android:authorities="your.domain.app.provider"
             android:exported="false"
             android:process=":persistence_process"

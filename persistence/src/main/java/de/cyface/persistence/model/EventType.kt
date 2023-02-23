@@ -18,9 +18,6 @@
  */
 package de.cyface.persistence.model
 
-import de.cyface.persistence.v1.model.Measurement
-import de.cyface.persistence.v1.model.Track
-
 /**
  * Defines the types of [Event]s which may be collected.
  *

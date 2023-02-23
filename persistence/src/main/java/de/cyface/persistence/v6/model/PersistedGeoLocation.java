@@ -25,8 +25,6 @@ import androidx.room.ColumnInfo;
 import androidx.room.Entity;
 import androidx.room.Ignore;
 
-import de.cyface.persistence.v1.LocationCleaningStrategy;
-
 /**
  * An {@code @Entity} which represents a persisted {@link GeoLocationV6}, usually captured by a GNSS.
  * <p>
@@ -84,7 +82,7 @@ public class PersistedGeoLocation extends GeoLocationV6 {
     private final Double verticalAccuracy;
 
     /**
-     * {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     * {@code True} if this location is considered "clean" by the provided {@code LocationCleaningStrategy}.
      * <p>
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
@@ -189,7 +187,7 @@ public class PersistedGeoLocation extends GeoLocationV6 {
     }
 
     /**
-     * @return {@code True} if this location is considered "clean" by the provided {@link LocationCleaningStrategy}.
+     * @return {@code True} if this location is considered "clean" by the provided {@code LocationCleaningStrategy}.
      */
     @SuppressWarnings("unused") // Part of the API
     public Boolean isValid() {
@@ -205,7 +203,7 @@ public class PersistedGeoLocation extends GeoLocationV6 {
 
     /**
      * @param valid {@code True} if this location is considered "clean" by the provided
-     *            {@link LocationCleaningStrategy}.
+     *            {@code LocationCleaningStrategy}.
      */
     public void setValid(boolean valid) {
         isValid = valid;
