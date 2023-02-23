@@ -56,4 +56,7 @@ interface EventDao {
 
     @Query("DELETE FROM Event WHERE id = :id")
     fun deleteItemById(id: Long)
+
+    @Query("DELETE FROM Event")
+    fun deleteAll() : Int
 }

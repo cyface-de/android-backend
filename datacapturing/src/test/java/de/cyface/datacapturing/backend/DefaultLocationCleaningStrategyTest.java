@@ -54,10 +54,10 @@ public class DefaultLocationCleaningStrategyTest {
     public void testIsClean_accuracyFilter() {
 
         // Arrange
-        final ParcelableGeoLocation locationWithGoodEnoughAccuracy = new ParcelableGeoLocation(51.1, 13.1,
-                1000000000L, 5.0, 19.99);
-        final ParcelableGeoLocation locationWithJustTooBadAccuracy = new ParcelableGeoLocation(51.1, 13.1,
-                1000000000L, 5.0, 20);
+        final ParcelableGeoLocation locationWithGoodEnoughAccuracy = new ParcelableGeoLocation(1000000000L, 51.1, 13.1,
+                400., 2., 19.99, 20.123);
+        final ParcelableGeoLocation locationWithJustTooBadAccuracy = new ParcelableGeoLocation(1000000000L, 51.1, 13.1,
+                400., 2., 20., 20.123);
         // Mock - nothing to do
 
         // Act
@@ -76,12 +76,12 @@ public class DefaultLocationCleaningStrategyTest {
     public void testIsClean_speedFilter() {
 
         // Arrange
-        final ParcelableGeoLocation locationWithHighEnoughSpeed = new ParcelableGeoLocation(51.1, 13.1,
-                1000000000L, 1.01, 5f);
-        final ParcelableGeoLocation locationWithJustTooLowSpeed = new ParcelableGeoLocation(51.1, 13.1,
-                1000000000L, 1.0, 5f);
-        final ParcelableGeoLocation locationWithJustTooHighSpeed = new ParcelableGeoLocation(51.1, 13.1,
-                1000000000L, 100.0, 5f);
+        final var locationWithHighEnoughSpeed = new ParcelableGeoLocation(1000000000L, 51.1, 13.1,
+                400., 1.01, 5., 20.);
+        final var locationWithJustTooLowSpeed = new ParcelableGeoLocation(1000000000L, 51.1, 13.1,
+                400., 1., 5., 20.);
+        final var locationWithJustTooHighSpeed = new ParcelableGeoLocation(1000000000L, 51.1, 13.1,
+                400., 100., 5., 20.);
         // Mock - nothing to do
 
         // Act

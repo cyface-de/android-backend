@@ -54,4 +54,7 @@ interface GeoLocationDao {
 
     @Query("DELETE FROM Location WHERE measurementId = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
+
+    @Query("DELETE FROM Location")
+    fun deleteAll() : Int
 }

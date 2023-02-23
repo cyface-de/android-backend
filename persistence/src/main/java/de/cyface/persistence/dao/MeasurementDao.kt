@@ -48,6 +48,9 @@ interface MeasurementDao {
     @Query("DELETE FROM Measurement WHERE id = :id")
     fun deleteItemById(id: Long): Int
 
+    @Query("DELETE FROM Measurement")
+    fun deleteAll() : Int
+
     @Query("UPDATE Measurement SET fileFormatVersion = :fileFormatVersion WHERE id = :id")
     fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
 

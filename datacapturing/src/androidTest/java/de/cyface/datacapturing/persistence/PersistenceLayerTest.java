@@ -197,14 +197,14 @@ public class PersistenceLayerTest {
     public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
 
         // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, oocut, 1, 1);
+        insertSampleMeasurementWithData(context, SYNCED, oocut, 1, 1);
 
         // Create a finished measurement
-        final Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED, oocut, 1,
+        final Measurement finishedMeasurement = insertSampleMeasurementWithData(context, FINISHED, oocut, 1,
                 1);
 
         // Create an open measurement - must be created at last (life-cycle checks in PersistenceLayer.setStatus)
-        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, oocut, 1, 1);
+        insertSampleMeasurementWithData(context, OPEN, oocut, 1, 1);
 
         // Check that syncable measurements = finishedMeasurement
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements(FINISHED);

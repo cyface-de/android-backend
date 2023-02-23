@@ -43,4 +43,7 @@ interface PressureDao {
 
     @Query("DELETE FROM Pressure WHERE measurementId = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
+
+    @Query("DELETE FROM Pressure")
+    fun deleteAll() : Int
 }

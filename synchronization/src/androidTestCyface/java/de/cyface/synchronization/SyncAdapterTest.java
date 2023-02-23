@@ -148,7 +148,7 @@ public final class SyncAdapterTest {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
-        final var insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+        final var insertedMeasurement = insertSampleMeasurementWithData(context,
                 MeasurementStatus.FINISHED, persistence, point3DCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
@@ -200,7 +200,7 @@ public final class SyncAdapterTest {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
-        final var insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+        final var insertedMeasurement = insertSampleMeasurementWithData(context,
                 MeasurementStatus.FINISHED, persistence, point3DCount, locationCount);
         final long measurementIdentifier = insertedMeasurement.getIdentifier();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
