@@ -45,6 +45,7 @@ import de.cyface.persistence.model.PersistedPressure;
  * @version 1.0.0
  * @since 6.3.0
  */
+// (!) If `version` is increased, ensure migration to `measures` Version 18 is still possible.
 @Database(entities = {PersistedPressure.class, PersistedGeoLocation.class}, version = 1)
 public abstract class DatabaseV6 extends RoomDatabase {
 

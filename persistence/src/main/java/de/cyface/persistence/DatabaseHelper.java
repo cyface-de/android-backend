@@ -58,8 +58,11 @@ class DatabaseHelper extends SQLiteOpenHelper {
     /**
      * Increase the DATABASE_VERSION if the database structure changes with a new update
      * but don't forget to adjust onCreate and onUpgrade accordingly for the new structure and incremental upgrade
+     *
+     * <b>ATTENTION</b>: DO NOT INCREASE THIS VERSION, to keep this branch upgradable to V17/V18.
+     * There is already migration code to 17 (accuracy [m]) and 18 (migrate to Room and merge v6.1 database).
      */
-    private final static int DATABASE_VERSION = 16;
+    private final static int DATABASE_VERSION = 16; // (!) Don't increase this version on this branch!
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
