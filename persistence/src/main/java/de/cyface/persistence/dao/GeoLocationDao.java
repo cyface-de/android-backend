@@ -18,13 +18,12 @@
  */
 package de.cyface.persistence.dao;
 
-import java.util.List;
-
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
 
-import de.cyface.persistence.model.GeoLocationV6;
+import java.util.List;
+
 import de.cyface.persistence.model.PersistedGeoLocation;
 
 /**
@@ -36,7 +35,6 @@ import de.cyface.persistence.model.PersistedGeoLocation;
  */
 @Dao
 public interface GeoLocationDao {
-
     @Query("SELECT * FROM location WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
     List<PersistedGeoLocation> loadAllByMeasurementId(long measurementId);
 

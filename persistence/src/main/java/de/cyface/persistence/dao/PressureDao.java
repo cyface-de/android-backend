@@ -18,14 +18,13 @@
  */
 package de.cyface.persistence.dao;
 
-import java.util.List;
-
 import androidx.room.Dao;
 import androidx.room.Insert;
 import androidx.room.Query;
 
+import java.util.List;
+
 import de.cyface.persistence.model.PersistedPressure;
-import de.cyface.persistence.model.Pressure;
 
 /**
  * Data access object which provides the API to interact with the {@link PersistedPressure} database table.
@@ -36,7 +35,6 @@ import de.cyface.persistence.model.Pressure;
  */
 @Dao
 public interface PressureDao {
-
     @Query("SELECT * FROM pressure WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
     List<PersistedPressure> loadAllByMeasurementId(long measurementId);
 
