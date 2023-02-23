@@ -712,7 +712,7 @@ Each time a measurement is paused and resumed, a new `Track` is started for the 
 
 A `Track` contains the chronologically ordered ``ParcelableGeoLocation``s captured.
 
-You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaningStrategy` class for details.
+You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaning` class for details.
 
 [source,java]
 ----
