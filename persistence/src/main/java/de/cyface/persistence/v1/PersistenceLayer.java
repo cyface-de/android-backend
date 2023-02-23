@@ -53,10 +53,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
-import androidx.room.Room;
 
-import de.cyface.persistence.v1.DefaultFileAccess;
-import de.cyface.persistence.v1.FileAccessLayer;
 import de.cyface.persistence.v1.exception.NoDeviceIdException;
 import de.cyface.persistence.v1.exception.NoSuchMeasurementException;
 import de.cyface.persistence.v1.model.Event;
@@ -84,7 +81,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.2.0
+ * @version 18.2.1 // SDK 7 was is already on binary V3, even before migrating to Room
  * @since 2.0.0
  */
 public class PersistenceLayer<B extends PersistenceBehaviour> {
@@ -161,21 +158,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         this.context = context;
         this.resolver = resolver;
         this.authority = authority;
-        // From Room guide: https://developer.android.com/training/data-storage/room
-        // If the app runs in multiple processes, include enableMultiInstanceInvalidation() in the builder.
-        // That way, when when you have an instance of AppDatabase in each process, you can invalidate the shared
-        // database file in one process, and this invalidation automatically propagates to the instances of AppDatabase
-        // within other processes.
-        // Additional notes: Room itself (like SQLite, Room is thread-safe) and only uses one connection for writing.
-        // I.e. we only need to worry about deadlocks when running manual transactions (`db.beginTransaction` or
-        // `roomDb.runInTransaction`. See
-        // https://www.reddit.com/r/androiddev/comments/9s2m4x/comment/e8nklbg/?utm_source=share&utm_medium=web2x&context=3
-        // The PersistenceLayer constructor is called from main UI and non-UI threads, e.g.:
-        // - main UI thread: CyfaceDataCapturingService, DataCapturingBackgroundService/DataCapturingService,
-        // DataCapturingButton, MeasurementOverviewFragment
-        // - other threads: SyncAdapter, Event-/MeasurementDeleteController
-        this.databaseV6 = Room.databaseBuilder(context.getApplicationContext(), DatabaseV6.class, "v6")
-                .enableMultiInstanceInvalidation().build();
+        this.databaseV6 = DatabaseV6.Companion.getDatabase(context.getApplicationContext());
         this.persistenceBehaviour = persistenceBehaviour;
         this.fileAccessLayer = new DefaultFileAccess();
         final File accelerationsFolder = fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME);

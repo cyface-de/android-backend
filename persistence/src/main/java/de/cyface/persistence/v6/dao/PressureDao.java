@@ -33,15 +33,18 @@ import de.cyface.persistence.v6.model.PersistedPressure;
  * Keep this class unchanged until SDK 6 apps (databases) are migrated to SDK 7.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 6.3.0
  */
 @Dao
 public interface PressureDao {
+    @Query("SELECT * FROM pressure")
+    List<PersistedPressure> getAll();
 
     @Query("SELECT * FROM pressure WHERE measurement_fk = :measurementId ORDER BY timestamp ASC")
     List<PersistedPressure> loadAllByMeasurementId(long measurementId);
 
+    @SuppressWarnings("unused") // Used in SDK 6, kept for compatibility reasons
     @Insert
     void insertAll(PersistedPressure... pressures);
 
