@@ -176,13 +176,13 @@ public class PersistenceLayerTest {
         assertThat(syncedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
 
         // Check that sensor data was deleted
-        final File accelerationFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
+        final File accelerationFile = oocut.getFileDao().getFilePath(context, measurement.getIdentifier(),
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION);
         Validate.isTrue(!accelerationFile.exists());
-        final File rotationFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
+        final File rotationFile = oocut.getFileDao().getFilePath(context, measurement.getIdentifier(),
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION);
         Validate.isTrue(!rotationFile.exists());
-        final File directionFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
+        final File directionFile = oocut.getFileDao().getFilePath(context, measurement.getIdentifier(),
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION);
         Validate.isTrue(!directionFile.exists());
     }

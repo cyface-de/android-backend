@@ -30,9 +30,9 @@ import de.cyface.model.Point3DImpl
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
-import de.cyface.persistence.DefaultFileAccess
+import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.DefaultLocationCleaning
-import de.cyface.persistence.FileAccessLayer
+import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.GeoLocation
@@ -189,7 +189,7 @@ object SharedTestUtils {
     /**
      * This deserializes a [Point3DFile] for testing.
      *
-     * @param fileAccessLayer The [FileAccessLayer] used to access the files.
+     * @param fileDao The [FileDao] used to access the files.
      * @param file The `Point3DFile` to access
      * @param type The [Point3DType] for the `file` passed as parameter
      * @return the data restored from the `Point3DFile`
@@ -198,10 +198,10 @@ object SharedTestUtils {
     @JvmStatic
     @Throws(InvalidProtocolBufferException::class)
     fun deserialize(
-        fileAccessLayer: FileAccessLayer, file: File?,
+        fileDao: FileDao, file: File?,
         type: Point3DType
     ): Measurement {
-        val bytes = fileAccessLayer.loadBytes(file)
+        val bytes = fileDao.loadBytes(file)
         val measurementBytes = MeasurementBytes.newBuilder()
             .setFormatVersion(PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION.toInt())
         when (type) {
@@ -231,12 +231,12 @@ object SharedTestUtils {
      */
     @JvmStatic
     fun clearPersistenceLayer(context: Context, database: Database): Int {
-        val fileAccessLayer: FileAccessLayer = DefaultFileAccess()
+        val fileDao: FileDao = DefaultFileDao()
 
         // Remove {@code Point3DFile}s and their parent folders
         var removedFiles = 0
         val accelerationFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
             Validate.isTrue(accelerationFolder.isDirectory)
             val accelerationFiles = accelerationFolder.listFiles()
@@ -249,7 +249,7 @@ object SharedTestUtils {
             Validate.isTrue(accelerationFolder.delete())
         }
         val rotationFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         if (rotationFolder.exists()) {
             Validate.isTrue(rotationFolder.isDirectory)
             val rotationFiles = rotationFolder.listFiles()
@@ -262,7 +262,7 @@ object SharedTestUtils {
             Validate.isTrue(rotationFolder.delete())
         }
         val directionFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (directionFolder.exists()) {
             Validate.isTrue(directionFolder.isDirectory)
             val directionFiles = directionFolder.listFiles()

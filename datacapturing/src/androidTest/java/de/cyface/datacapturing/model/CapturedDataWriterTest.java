@@ -62,9 +62,9 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.persistence.DefaultFileAccess;
+import de.cyface.persistence.dao.DefaultFileDao;
 import de.cyface.persistence.DefaultLocationCleaning;
-import de.cyface.persistence.FileAccessLayer;
+import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
@@ -248,7 +248,7 @@ public class CapturedDataWriterTest {
         capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
 
         // Check if the captured data was persisted
-        FileAccessLayer fileAccessLayer = new DefaultFileAccess();
+        FileDao fileDao = new DefaultFileDao();
         try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null)) {
             // GeoLocations
             Validate.notNull(geoLocationsCursor,
@@ -256,16 +256,16 @@ public class CapturedDataWriterTest {
             assertThat(geoLocationsCursor.getCount(), is(equalTo(TEST_LOCATION_COUNT)));
 
             // Point3Ds
-            final var accelerationsFile = Point3DFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+            final var accelerationsFile = Point3DFile.loadFile(context, fileDao, measurement.getIdentifier(),
                     ACCELERATION);
-            final var rotationsFile = Point3DFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+            final var rotationsFile = Point3DFile.loadFile(context, fileDao, measurement.getIdentifier(),
                     ROTATION);
-            final var directionsFile = Point3DFile.loadFile(context, fileAccessLayer, measurement.getIdentifier(),
+            final var directionsFile = Point3DFile.loadFile(context, fileDao, measurement.getIdentifier(),
                     DIRECTION);
 
-            final var accelerations = deserialize(fileAccessLayer, accelerationsFile.getFile(), ACCELERATION);
-            final var rotations = deserialize(fileAccessLayer, rotationsFile.getFile(), ROTATION);
-            final var directions = deserialize(fileAccessLayer, directionsFile.getFile(), DIRECTION);
+            final var accelerations = deserialize(fileDao, accelerationsFile.getFile(), ACCELERATION);
+            final var rotations = deserialize(fileDao, rotationsFile.getFile(), ROTATION);
+            final var directions = deserialize(fileDao, directionsFile.getFile(), DIRECTION);
 
             final var accelerationBatch = accelerations.getAccelerationsBinary().getAccelerations(0);
             assertThat(accelerationBatch.getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
@@ -348,11 +348,11 @@ public class CapturedDataWriterTest {
         }
 
         // Make sure nothing is left of the Point3DFiles
-        final File accelerationsFolder = oocut.getFileAccessLayer().getFolderPath(context,
+        final File accelerationsFolder = oocut.getFileDao().getFolderPath(context,
                 Point3DFile.ACCELERATIONS_FOLDER_NAME);
-        final File rotationsFolder = oocut.getFileAccessLayer().getFolderPath(context,
+        final File rotationsFolder = oocut.getFileDao().getFolderPath(context,
                 Point3DFile.ROTATIONS_FOLDER_NAME);
-        final File directionsFolder = oocut.getFileAccessLayer().getFolderPath(context,
+        final File directionsFolder = oocut.getFileDao().getFolderPath(context,
                 Point3DFile.DIRECTIONS_FOLDER_NAME);
         assertThat(accelerationsFolder.exists(), is(equalTo(false)));
         assertThat(rotationsFolder.exists(), is(equalTo(false)));
@@ -414,11 +414,11 @@ public class CapturedDataWriterTest {
         oocut.delete(measurement.getIdentifier());
 
         // Assert
-        final File accelerationFile = oocut.getFileAccessLayer().getFilePath(context, measurementId,
+        final File accelerationFile = oocut.getFileDao().getFilePath(context, measurementId,
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION);
-        final File rotationFile = oocut.getFileAccessLayer().getFilePath(context, measurementId,
+        final File rotationFile = oocut.getFileDao().getFilePath(context, measurementId,
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION);
-        final File directionFile = oocut.getFileAccessLayer().getFilePath(context, measurementId,
+        final File directionFile = oocut.getFileDao().getFilePath(context, measurementId,
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION);
         assertThat(!accelerationFile.exists(), is(true));
         assertThat(!rotationFile.exists(), is(true));

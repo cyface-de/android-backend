@@ -20,8 +20,8 @@ package de.cyface.persistence.serialization
 
 import android.content.Context
 import de.cyface.model.Point3D
-import de.cyface.persistence.DefaultFileAccess
-import de.cyface.persistence.FileAccessLayer
+import de.cyface.persistence.dao.DefaultFileDao
+import de.cyface.persistence.dao.FileDao
 import de.cyface.serializer.Point3DSerializer
 import de.cyface.serializer.model.Point3DType
 import java.io.File
@@ -40,9 +40,9 @@ class Point3DFile {
     val file: File
 
     /**
-     * The [FileAccessLayer] used to interact with files.
+     * The [FileDao] used to interact with files.
      */
-    private var fileAccessLayer: FileAccessLayer? = null
+    private var fileDao: FileDao? = null
 
     /**
      * The sensor data type of the [Point3D] data.
@@ -58,8 +58,8 @@ class Point3DFile {
      */
     constructor(context: Context, measurementId: Long, type: Point3DType) {
         this.type = type
-        fileAccessLayer = DefaultFileAccess()
-        file = (fileAccessLayer as DefaultFileAccess).createFile(
+        fileDao = DefaultFileDao()
+        file = (fileDao as DefaultFileDao).createFile(
             context,
             measurementId,
             folderName(type),
@@ -85,7 +85,7 @@ class Point3DFile {
      */
     fun append(dataPoints: List<Point3D?>?) {
         val data = serialize(dataPoints)
-        fileAccessLayer!!.write(file, data, true)
+        fileDao!!.write(file, data, true)
     }
 
     /**
@@ -139,7 +139,7 @@ class Point3DFile {
          * Loads an existing [Point3DFile] for a specified [de.cyface.persistence.model.Measurement] if it exists.
          *
          * @param context The [Context] required to access the underlying persistence layer.
-         * @param fileAccessLayer The [FileAccessLayer] used to access the file;
+         * @param fileDao The [FileDao] used to access the file;
          * @param measurementId the identifier of the measurement for which the file is to be found
          * @param type The sensor data type of the [Point3D] data.
          * @return the [Point3DFile] link to the file
@@ -148,10 +148,10 @@ class Point3DFile {
         @JvmStatic
         @Throws(NoSuchFileException::class)
         fun loadFile(
-            context: Context, fileAccessLayer: FileAccessLayer,
+            context: Context, fileDao: FileDao,
             measurementId: Long, type: Point3DType
         ): Point3DFile {
-            val file = fileAccessLayer.getFilePath(
+            val file = fileDao.getFilePath(
                 context,
                 measurementId,
                 folderName(type),

@@ -79,19 +79,19 @@ object TransferFileSerializer {
             .setLocationRecords(locationRecords)
 
         // Get already serialized Point3DFiles
-        val accelerationFile = persistence.fileAccessLayer.getFilePath(
+        val accelerationFile = persistence.fileDao.getFilePath(
             persistence.context!!,
             measurementIdentifier,
             Point3DFile.ACCELERATIONS_FOLDER_NAME,
             Point3DFile.ACCELERATIONS_FILE_EXTENSION
         )
-        val rotationFile = persistence.fileAccessLayer.getFilePath(
+        val rotationFile = persistence.fileDao.getFilePath(
             persistence.context,
             measurementIdentifier,
             Point3DFile.ROTATIONS_FOLDER_NAME,
             Point3DFile.ROTATION_FILE_EXTENSION
         )
-        val directionFile = persistence.fileAccessLayer.getFilePath(
+        val directionFile = persistence.fileDao.getFilePath(
             persistence.context,
             measurementIdentifier,
             Point3DFile.DIRECTIONS_FOLDER_NAME,
@@ -108,7 +108,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(accelerationFile.length(), true)
                 )
             )
-            val bytes = persistence.fileAccessLayer.loadBytes(accelerationFile)
+            val bytes = persistence.fileDao.loadBytes(accelerationFile)
             builder.accelerationsBinary = ByteString.copyFrom(bytes)
         }
         if (rotationFile.exists()) {
@@ -118,7 +118,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(rotationFile.length(), true)
                 )
             )
-            val bytes = persistence.fileAccessLayer.loadBytes(rotationFile)
+            val bytes = persistence.fileDao.loadBytes(rotationFile)
             builder.rotationsBinary = ByteString.copyFrom(bytes)
         }
         if (directionFile.exists()) {
@@ -128,7 +128,7 @@ object TransferFileSerializer {
                     DataSerializable.humanReadableSize(directionFile.length(), true)
                 )
             )
-            val bytes = persistence.fileAccessLayer.loadBytes(directionFile)
+            val bytes = persistence.fileDao.loadBytes(directionFile)
             builder.directionsBinary = ByteString.copyFrom(bytes)
         }
 

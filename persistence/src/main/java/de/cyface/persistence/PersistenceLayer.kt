@@ -22,6 +22,8 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
+import de.cyface.persistence.dao.DefaultFileDao
+import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Event
@@ -76,11 +78,11 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         private set
 
     /**
-     * The [FileAccessLayer] used to interact with files.
+     * The [FileDao] used to interact with files.
      *
      * **ATTENTION:** This should not be used by SDK implementing apps.
      */
-    val fileAccessLayer: FileAccessLayer
+    val fileDao: FileDao
 
     /**
      * The database which contains all persisted data which is not written to binary files.
@@ -105,7 +107,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         context = null
         database = null
         identifierRepository = null
-        fileAccessLayer = DefaultFileAccess()
+        fileDao = DefaultFileDao()
     }
 
     /**
@@ -121,13 +123,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         this.database = Database.getDatabase(context.applicationContext)
         this.identifierRepository = IdentifierRepository(database.identifierDao()!!)
         this.persistenceBehaviour = persistenceBehaviour
-        fileAccessLayer = DefaultFileAccess()
+        fileDao = DefaultFileDao()
         val accelerationsFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationsFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         val directionsFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         checkOrCreateFolder(accelerationsFolder)
         checkOrCreateFolder(rotationsFolder)
         checkOrCreateFolder(directionsFolder)
@@ -315,7 +317,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
         try {
             val accelerationFile = Point3DFile.loadFile(
-                context!!, fileAccessLayer, measurementId, Point3DType.ACCELERATION
+                context!!, fileDao, measurementId, Point3DType.ACCELERATION
             )
                 .file
             Validate.isTrue(accelerationFile.delete())
@@ -324,7 +326,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         }
         try {
             val rotationFile = Point3DFile.loadFile(
-                context!!, fileAccessLayer, measurementId, Point3DType.ROTATION
+                context!!, fileDao, measurementId, Point3DType.ROTATION
             ).file
             Validate.isTrue(rotationFile.delete())
         } catch (e: NoSuchFileException) {
@@ -332,7 +334,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
         }
         try {
             val directionFile = Point3DFile.loadFile(
-                context!!, fileAccessLayer, measurementId, Point3DType.DIRECTION
+                context!!, fileDao, measurementId, Point3DType.DIRECTION
             )
                 .file
             Validate.isTrue(directionFile.delete())
@@ -447,13 +449,13 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      */
     private fun deletePoint3DData(measurementIdentifier: Long) {
         val accelerationFolder =
-            fileAccessLayer.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         val directionFolder =
-            fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
-            val accelerationFile = fileAccessLayer.getFilePath(
+            val accelerationFile = fileDao.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
             )
@@ -462,7 +464,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             }
         }
         if (rotationFolder.exists()) {
-            val rotationFile = fileAccessLayer.getFilePath(
+            val rotationFile = fileDao.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
             )
@@ -471,7 +473,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
             }
         }
         if (directionFolder.exists()) {
-            val directionFile = fileAccessLayer.getFilePath(
+            val directionFile = fileDao.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
             )

@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence
+package de.cyface.persistence.dao
 
 import android.content.Context
 import android.util.Log
@@ -33,13 +33,13 @@ import java.io.IOException
 import kotlin.math.min
 
 /**
- * Implementation of the [FileAccessLayer] which accesses the real file system.
+ * Implementation of the [FileDao] which accesses the real file system.
  *
  * @author Armin Schnabel
  * @version 4.0.0
  * @since 3.0.0
  */
-class DefaultFileAccess : FileAccessLayer {
+class DefaultFileDao : FileDao {
     override fun writeToOutputStream(
         file: File,
         bufferedOutputStream: BufferedOutputStream
