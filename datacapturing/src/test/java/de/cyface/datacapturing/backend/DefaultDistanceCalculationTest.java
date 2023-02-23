@@ -30,7 +30,7 @@ import org.robolectric.annotation.Config;
 import android.location.Location;
 import android.os.Build;
 
-import de.cyface.persistence.strategies.DefaultDistanceCalculation;
+import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 

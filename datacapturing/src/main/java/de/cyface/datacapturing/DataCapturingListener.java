@@ -21,7 +21,7 @@ package de.cyface.datacapturing;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
-import de.cyface.persistence.strategies.LocationCleaningStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Modality;
 import de.cyface.utils.DiskConsumption;

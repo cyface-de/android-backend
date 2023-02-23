@@ -48,8 +48,8 @@ import de.cyface.datacapturing.model.CapturedData
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.ui.Reason
 import de.cyface.datacapturing.ui.UIListener
-import de.cyface.persistence.strategies.DistanceCalculationStrategy
-import de.cyface.persistence.strategies.LocationCleaningStrategy
+import de.cyface.persistence.strategy.DistanceCalculationStrategy
+import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.EventType

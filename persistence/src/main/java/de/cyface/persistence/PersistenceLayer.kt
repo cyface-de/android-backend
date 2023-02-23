@@ -40,7 +40,7 @@ import de.cyface.persistence.model.Track
 import de.cyface.persistence.repository.IdentifierRepository
 import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
-import de.cyface.persistence.strategies.LocationCleaningStrategy
+import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.serializer.model.Point3DType
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate

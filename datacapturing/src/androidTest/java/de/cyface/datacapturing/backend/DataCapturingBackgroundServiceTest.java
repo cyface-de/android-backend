@@ -59,7 +59,7 @@ import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.strategies.DefaultDistanceCalculation;
+import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.DefaultLocationCleaning;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Measurement;

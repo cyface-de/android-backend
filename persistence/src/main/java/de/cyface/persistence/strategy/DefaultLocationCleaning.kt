@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.strategies
+package de.cyface.persistence.strategy
 
 import android.os.Parcel
 import android.os.Parcelable.Creator
