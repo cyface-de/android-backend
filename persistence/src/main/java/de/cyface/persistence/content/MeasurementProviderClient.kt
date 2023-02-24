@@ -23,7 +23,6 @@ import android.database.Cursor
 import android.net.Uri
 import android.os.RemoteException
 import de.cyface.persistence.model.Event
-import de.cyface.persistence.model.GeoLocation
 import de.cyface.utils.CursorIsNullException
 
 /**
@@ -61,16 +60,16 @@ class MeasurementProviderClient(
      */
     @Throws(RemoteException::class)
     fun loadGeoLocations(offset: Int, limit: Int): Cursor? {
-        val uri = GeoLocation.getUri(authority)
+        val uri = LocationTable.getUri(authority)
         val projection = arrayOf(
-            GeoLocationTable.COLUMN_GEOLOCATION_TIME,
-            GeoLocationTable.COLUMN_LAT,
-            GeoLocationTable.COLUMN_LON,
-            GeoLocationTable.COLUMN_SPEED,
-            GeoLocationTable.COLUMN_ACCURACY
+            LocationTable.COLUMN_GEOLOCATION_TIME,
+            LocationTable.COLUMN_LAT,
+            LocationTable.COLUMN_LON,
+            LocationTable.COLUMN_SPEED,
+            LocationTable.COLUMN_ACCURACY
         )
         // Constructing selection clause with replaceable parameter `?` avoids SQL injection
-        val selection = GeoLocationTable.COLUMN_MEASUREMENT_FK + "=?"
+        val selection = LocationTable.COLUMN_MEASUREMENT_FK + "=?"
         val selectionArgs = arrayOf(
             java.lang.Long.valueOf(
                 measurementIdentifier
@@ -93,7 +92,7 @@ class MeasurementProviderClient(
         // the arguments limit and offset are only available starting with API 26 ("O")
         return client.query(
             uri, projection, selection, selectionArgs,
-            GeoLocationTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset
+            LocationTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset
         )
     }
 
@@ -160,10 +159,10 @@ class MeasurementProviderClient(
     }
 
     fun createGeoLocationTableUri(): Uri {
-        return GeoLocationTable.getUri(authority)
+        return LocationTable.getUri(authority)
     }
 
     fun createEventTableUri(): Uri {
-        return Event.getUri(authority)
+        return EventTable.getUri(authority)
     }
 }

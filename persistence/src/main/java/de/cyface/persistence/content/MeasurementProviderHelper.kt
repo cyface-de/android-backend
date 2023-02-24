@@ -52,7 +52,7 @@ internal class MeasurementProviderHelper(
     /**
      * The table to store all the geo locations captured on the device.
      */
-    private val geoLocationTable: GeoLocationTable = GeoLocationTable()
+    private val locationTable: LocationTable = LocationTable()
 
     /**
      * The table to store all the pressures captured on the device.
@@ -104,7 +104,7 @@ internal class MeasurementProviderHelper(
                     val rowIdentifier = pathSegments[1]
                     when (pathSegments[0]) {
                         // FIXME: ensure the measurement-related data is deleted automatically cascadingly (write/execute test)
-                        MeasurementTable.URI_PATH, GeoLocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH -> {
+                        MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH -> {
                             val adaptedSelection = (BaseColumns._ID + "=" + rowIdentifier
                                     + if (selection == null) "" else " AND $selection")
                             ret += table.deleteRow(
@@ -121,7 +121,7 @@ internal class MeasurementProviderHelper(
                 1 -> {
                     when (pathSegments[0]) {
                         // FIXME: ensure the measurement-related data is deleted automatically cascadingly (write/execute test)
-                        MeasurementTable.URI_PATH, GeoLocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH, IdentifierTable.URI_PATH -> {
+                        MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH, IdentifierTable.URI_PATH -> {
                             ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs)
                             database.setTransactionSuccessful()
                             ret
@@ -277,7 +277,7 @@ internal class MeasurementProviderHelper(
         val firstPathSegment = uri.pathSegments[0]
         return when (firstPathSegment) {
             MeasurementTable.URI_PATH -> measurementTable
-            GeoLocationTable.URI_PATH -> geoLocationTable
+            LocationTable.URI_PATH -> locationTable
             PressureTable.URI_PATH -> pressureTable
             IdentifierTable.URI_PATH -> identifierTable
             EventTable.URI_PATH -> eventTable

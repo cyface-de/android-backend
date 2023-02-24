@@ -33,7 +33,7 @@ import de.cyface.persistence.Constants
  * @version 2.4.4
  * @since 1.0.0
  */
-class GeoLocationTable
+class LocationTable
 /**
  * Provides a completely initialized object as a representation of a table containing geo locations in the database.
  */
@@ -92,7 +92,7 @@ protected constructor(
 
     companion object {
         /**
-         * The path segment in the table URI identifying the [GeoLocationTable].
+         * The path segment in the table URI identifying the [LocationTable].
          */
         const val URI_PATH = "locations"
 

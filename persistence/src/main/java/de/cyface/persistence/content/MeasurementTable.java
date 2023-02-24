@@ -321,7 +321,7 @@ public class MeasurementTable extends AbstractCyfaceTable {
      * Renames table, updates the table structure and copies the data.
      * <p>
      * The distance column is set to 0.0 as it's calculated in the next migration to ensure both
-     * {@link GeoLocationTable} and {@link MeasurementTable} is already upgraded.
+     * {@link LocationTable} and {@link MeasurementTable} is already upgraded.
      *
      * @param database The {@code SQLiteDatabase} to upgrade
      */
