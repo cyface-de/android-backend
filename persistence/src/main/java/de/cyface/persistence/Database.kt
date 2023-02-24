@@ -124,116 +124,19 @@ abstract class Database : RoomDatabase() {
         fun getDatabase(context: Context): Database {
             return INSTANCE ?: synchronized(this) {
 
-                // This needs to be here as it requires a context to load database `v6`
-                @Suppress("LocalVariableName")
-                val MIGRATION_17_18 = object : Migration(17, 18) {
-                    override fun migrate(database: SupportSQLiteDatabase) {
-                        // Migrate Identifier data
-                        // Create table with Room generated name and new schema
-                        database.execSQL("CREATE TABLE IF NOT EXISTS `Identifier` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `deviceId` TEXT NOT NULL)")
-                        // Insert the data from old table
-                        database.execSQL("INSERT INTO `Identifier` (`id`, `deviceId`) SELECT `_id`, `device_id` FROM `identifiers`")
-                        // Drop the old table
-                        database.execSQL("DROP TABLE `identifiers`")
+                // This needs to be here as it requires a context to load database `v6` (17->18)
+                val migrator = DatabaseMigrator(context)
 
-                        // Migrate Measurement data
-                        // Create table with Room generated name and new schema
-                        database.execSQL("CREATE TABLE IF NOT EXISTS `Measurement` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, `modality` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `distance` REAL NOT NULL, `timestamp` INTEGER NOT NULL)")
-                        // Insert the data from old table
-                        database.execSQL(
-                            "INSERT INTO `Measurement` (`id`, `status`, `modality`, `fileFormatVersion`, `distance`, `timestamp`)"
-                                    + " SELECT `_id`, `status`, `modality`, `file_format_version`, `distance`, `timestamp` FROM `measurements`"
-                        )
-                        // Drop the old table
-                        database.execSQL("DROP TABLE `measurements`")
-
-                        // Migrate Event data
-                        // Create table with Room generated name and new schema
-                        database.execSQL("CREATE TABLE IF NOT EXISTS `Event` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `value` TEXT, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
-                        // Insert the data from old table
-                        database.execSQL(
-                            "INSERT INTO `Event` (`id`, `timestamp`, `type`, `value`, `measurementId`)"
-                                    + " SELECT `_id`, `timestamp`, `type`, `value`, `measurement_fk` FROM `events`"
-                        )
-                        // Create index
-                        database.execSQL("CREATE INDEX IF NOT EXISTS `index_Event_measurementId` ON `Event` (`measurementId`)")
-                        // Drop the old table
-                        database.execSQL("DROP TABLE `events`")
-
-                        // Check if database `v6` exists
-                        val v6File = context.getDatabasePath(DatabaseV6.DATABASE_NAME)
-                        if (v6File.exists()) {
-                            val v6Database = DatabaseV6.getDatabase(context)
-                            // FIXME: ensure version is 1 as this only migrates from version 1
-
-                            // Migrate GeoLocation data
-                            // Create table with Room generated name and new schema
-                            database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
-                            // Insert the data from the `v6` database version `1`
-                            v6Database.geoLocationDao()!!.all.forEach {
-                                // Set 0 `accuracy` to null and convert accuracy from cm to m
-                                val accuracy = if (it.accuracy == 0.0) null else it.accuracy / 100.0
-                                // v6.1 `altitude` and `verticalAccuracy` are already in the same format
-                                database.execSQL(
-                                    "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
-                                            + " VALUES ('" + it.uid + "', '" + it.timestamp + "', '" + it.lat + "', '" + it.lon + "', '" + it.altitude + "', '" + it.speed + "', '" + accuracy + "', '" + it.verticalAccuracy + "', '" + it.measurementId + "')"
-                                )
-                            }
-                            // Create index
-                            database.execSQL("CREATE INDEX IF NOT EXISTS `index_Location_measurementId` ON `Location` (`measurementId`)")
-                            // Drop the old table for locations, as we already imported `v6.Location`
-                            database.execSQL("DROP TABLE `locations`")
-
-                            // Migrate Pressure data
-                            // Create table with Room generated name and new schema
-                            database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
-                            // Insert the data from the `v6` database version `1`
-                            v6Database.pressureDao()!!.all.forEach {
-                                database.execSQL(
-                                    "INSERT INTO `Pressure` (`id`, `timestamp`, `pressure`, `measurementId`)"
-                                            + " VALUES ('" + it.uid + "', '" + it.timestamp + "', '" + it.pressure + "', '" + it.measurementId + "')"
-                                )
-                            }
-                            // Create index
-                            database.execSQL("CREATE INDEX IF NOT EXISTS `index_Pressure_measurementId` ON `Pressure` (`measurementId`)")
-
-                            // Drop the old database `v6`
-                            context.deleteDatabase(DatabaseV6.DATABASE_NAME)
-                        }
-                        // If `v6` db doesn't exist, migrate the `locations` from `measures` version `17`:
-                        else {
-                            // Migrate GeoLocation data
-                            // Create table with Room generated name and new schema
-                            database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
-                            // Insert the data from old table
-                            /// `accuracy` in `measures` version `17` is already in meters
-                            database.execSQL(
-                                "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
-                                        + " SELECT `_id`, `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`"
-                            )
-                            /// Set `accuracy` values with `0` m to `null` FIXME: check if this would happen automatically anyways
-                            database.execSQL("UPDATE `Location` SET `accuracy` = null WHERE `accuracy` = 0")
-                            // Create index
-                            database.execSQL("CREATE INDEX IF NOT EXISTS `index_Location_measurementId` ON `Location` (`measurementId`)")
-                            // Drop the old table
-                            database.execSQL("DROP TABLE `locations`")
-
-                            // Migrate Pressure data
-                            // Create table with Room generated name and new schema
-                            database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE )")
-                            // Create index
-                            database.execSQL("CREATE INDEX IF NOT EXISTS `index_Pressure_measurementId` ON `Pressure` (`measurementId`)")
-                        }
-                    }
-                }
-
+                // FIXME: Add other migrations from before
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     Database::class.java,
                     DATABASE_NAME
                 )
                     .enableMultiInstanceInvalidation()
-                    .addMigrations(MIGRATION_17_18)
+                    .addMigrations(
+                        DatabaseMigrator.MIGRATION_8_9,
+                        migrator.MIGRATION_17_18)
                     .build()
                 INSTANCE = instance
                 return instance
