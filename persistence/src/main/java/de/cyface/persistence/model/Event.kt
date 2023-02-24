@@ -91,4 +91,29 @@ data class Event(
     override fun hashCode(): Int {
         return Objects.hash(id)
     }
+
+    /*companion object {
+        /**
+         * The table's URI's path for the table which contains the data represented by this class.
+         *
+         * FIXME: Maybe move this to the `content.MeasurementProvider` class, as only used there.
+         * But on the other hand, the Table name is defined in this class.
+         */
+        private const val URI_PATH = "Event"
+
+        /**
+         * Returns the URI which identifies the table represented by this class.
+         *
+         * It's important to provide the authority string as parameter because depending on from where
+         * you call this you want to access your own authorities database.
+         *
+         * FIXME: Maybe move this to the `content.MeasurementProvider` class, as only used there.
+         * But on the other hand, the Table name is defined in this class.
+         *
+         * @param authority The authority to access the database
+         */
+        fun getUri(authority: String): Uri {
+            return Uri.Builder().scheme("content").authority(authority).appendPath(URI_PATH).build()
+        }
+    }*/
 }

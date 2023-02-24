@@ -33,7 +33,6 @@ import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.Pressure
-import de.cyface.persistence.v6.DatabaseV6
 
 /**
  * FIXME: documentation

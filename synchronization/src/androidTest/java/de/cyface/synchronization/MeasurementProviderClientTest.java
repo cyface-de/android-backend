@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,10 +18,8 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getMeasurementUri;
+import static de.cyface.persistence.content.AbstractCyfaceTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static de.cyface.synchronization.TestUtils.TAG;
@@ -50,9 +48,7 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.content.MeasurementProviderClient;
-import de.cyface.persistence.MeasurementTable;
 import de.cyface.utils.Validate;
 
 /**
@@ -60,7 +56,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.9
+ * @version 1.1.10
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

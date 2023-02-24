@@ -354,7 +354,7 @@ class PersistenceLayer<B : PersistenceBehaviour?> {
      *
      * @return The device identifier
      */
-    @Throws(CursorIsNullException::class) // FIXME remove all CursorNotFoundExceptions
+    @Throws(CursorIsNullException::class)
     fun restoreOrCreateDeviceId(): String {
         return try {
             loadDeviceId().deviceId

@@ -21,12 +21,12 @@ package de.cyface.persistence.content
 import android.content.ContentProvider
 import android.content.ContentUris
 import android.content.ContentValues
+import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import android.provider.BaseColumns
 import de.cyface.persistence.Database
 import de.cyface.persistence.dao.IdentifierDao
-import java.util.Arrays
 
 /**
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to
@@ -43,9 +43,14 @@ import java.util.Arrays
  */
 class MeasurementProvider : ContentProvider() {
     /**
-     * The database to load data from.
+     * A representation of the database managed by this [MeasurementProvider].
      */
-    private lateinit var database: Database
+    private lateinit var helper: MeasurementProviderHelper
+
+    /**
+     * The Android context used by this `ContentProvider`.
+     */
+    private var myContext: Context? = null
 
     /**
      * The object to access [de.cyface.persistence.model.Identifier] data from.
@@ -53,9 +58,15 @@ class MeasurementProvider : ContentProvider() {
     private var identifierDao: IdentifierDao? = null
 
     override fun onCreate(): Boolean {
-        database = Database.getDatabase(context!!.applicationContext)
+        myContext = context
+        val database = Database.getDatabase(context!!.applicationContext)
         identifierDao = database.identifierDao()
+        helper = MeasurementProviderHelper(context!!, database)
         return true
+    }
+
+    override fun getType(uri: Uri): String {
+        return helper.getType(uri)
     }
 
     /**
@@ -71,58 +82,41 @@ class MeasurementProvider : ContentProvider() {
         if (selectionArgs != null && BaseColumns._ID + "=?" == selection && selectionArgs.size == 1) {
             uriWithPotentialSelection = ContentUris.withAppendedId(uri, selectionArgs[0].toLong())
         }
-        val rowsDeleted: Int =
-            database.openHelper.writableDatabase.delete(
-                uriWithPotentialSelection,
-                selection,
-                selectionArgs
-            )
-        localContext!!.contentResolver.notifyChange(uriWithPotentialSelection, null)
+        val rowsDeleted = helper.deleteRow(uriWithPotentialSelection, selection, selectionArgs)
+        myContext!!.contentResolver.notifyChange(uriWithPotentialSelection, null)
         return rowsDeleted
     }
 
-    /**
-     * Provides the MIME type for the provided URI. This is either `vnd.android.cursor.item/de.cyface.data`
-     * for an URI identifying a single item, or `vnd.android.cursor.dir/de.cyface.data` for an URI
-     * identifying a collection of items.
-     *
-     * @param uri The URI to provide the MIME type for.
-     * @return The MIME type corresponding to that URI.
-     */
-    override fun getType(uri: Uri): String {
-        return when (uri.pathSegments.size) {
-            1 -> "vnd.android.cursor.item/de.cyface.data"
-            2 -> "vnd.android.cursor.dir/de.cyface.data"
-            else -> throw IllegalStateException("Invalid content provider URI: $uri")
-        }
-    }
-
     override fun insert(uri: Uri, values: ContentValues?): Uri? {
-        // FIXME: Insert code here to determine which DAO to use when inserting data, handle error conditions, etc.
-        val newRowIdentifier: Long = database.insertRow(uri, values)
-        localContext!!.contentResolver.notifyChange(uri, null)
+        val newRowIdentifier = helper.insertRow(uri, values!!)
+        myContext!!.contentResolver.notifyChange(uri, null)
         return Uri.parse(uri.lastPathSegment + "/" + newRowIdentifier)
     }
 
     override fun bulkInsert(uri: Uri, values: Array<ContentValues>): Int {
-        return database.bulkInsert(uri, Arrays.asList(*values)).length
+        return helper.bulkInsert(uri, values.toList()).size
     }
 
     override fun query(
-        uri: Uri, projection: Array<String>?, selection: String?,
-        selectionArgs: Array<String>?, sortOrder: String?
-    ): Cursor? {
-        val cursor: Cursor = database.query(uri, projection, selection, selectionArgs, sortOrder)
-        cursor.setNotificationUri(localContext!!.contentResolver, uri)
+        uri: Uri,
+        projection: Array<String>?,
+        selection: String?,
+        selectionArgs: Array<String>?,
+        sortOrder: String?
+    ): Cursor {
+        val cursor: Cursor = helper.query(uri, projection, selection, selectionArgs, sortOrder)
+        cursor.setNotificationUri(myContext!!.contentResolver, uri)
         return cursor
     }
 
     override fun update(
-        uri: Uri, values: ContentValues?, selection: String?,
+        uri: Uri,
+        values: ContentValues?,
+        selection: String?,
         selectionArgs: Array<String>?
     ): Int {
-        val rowsUpdated: Int = database.update(uri, values, selection, selectionArgs)
-        localContext!!.contentResolver.notifyChange(uri, null)
+        val rowsUpdated = helper.update(uri, values, selection, selectionArgs)
+        myContext!!.contentResolver.notifyChange(uri, null)
         return rowsUpdated
     }
 }

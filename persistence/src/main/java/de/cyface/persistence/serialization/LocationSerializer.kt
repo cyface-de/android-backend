@@ -18,7 +18,8 @@
  */
 package de.cyface.persistence.serialization
 
-import de.cyface.persistence.model.GeoLocation
+import android.database.Cursor
+import de.cyface.persistence.content.GeoLocationTable
 import de.cyface.protos.model.LocationRecords
 import de.cyface.serializer.Formatter
 import de.cyface.serializer.LocationOffsetter
@@ -46,22 +47,36 @@ class LocationSerializer {
     private val offsetter: LocationOffsetter = LocationOffsetter()
 
     /**
-     * Reads a [GeoLocation] in the database format, to be exported in the binary format in [result].
+     * Loads and parses `Location`s from a database `Cursor`.
      *
-     * @param location the [GeoLocation] to read.
+     * @param cursor the `Cursor` to load the `Location` data from.
      */
-    fun readFrom(location: GeoLocation) {
-        // The proto serializer expects some fields in a different format and in offset-format
-        val formatted = Formatter.Location(
-            location.timestamp, location.lat, location.lon, location.speed,
-            location.accuracy!! // FIXME when we want to change the binary format to support null accuracy
-        )
-        val offsets = offsetter.offset(formatted)
-        builder.addTimestamp(offsets.timestamp)
-            .addLatitude(offsets.latitude)
-            .addLongitude(offsets.longitude)
-            .addAccuracy(offsets.accuracy)
-            .addSpeed(offsets.speed)
+    fun readFrom(cursor: Cursor) {
+        while (cursor.moveToNext()) {
+            val timestamp =
+                cursor.getLong(cursor.getColumnIndexOrThrow(GeoLocationTable.COLUMN_GEOLOCATION_TIME))
+            val latitude =
+                cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationTable.COLUMN_LAT))
+            val longitude =
+                cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationTable.COLUMN_LON))
+            val speedMeterPerSecond = cursor
+                .getDouble(cursor.getColumnIndexOrThrow(GeoLocationTable.COLUMN_SPEED))
+            val accuracy =
+                cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationTable.COLUMN_ACCURACY))
+
+            // The proto serializer expects some fields in a different format and in offset-format
+            val formatted = Formatter.Location(
+                timestamp, latitude, longitude,
+                speedMeterPerSecond,
+                accuracy
+            )
+            val offsets = offsetter.offset(formatted)
+            builder.addTimestamp(offsets.timestamp)
+                .addLatitude(offsets.latitude)
+                .addLongitude(offsets.longitude)
+                .addAccuracy(offsets.accuracy)
+                .addSpeed(offsets.speed)
+        }
     }
 
     /**

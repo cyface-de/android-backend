@@ -18,16 +18,18 @@
  */
 package de.cyface.persistence.serialization
 
+import android.database.Cursor
+import androidx.annotation.Nullable
+import de.cyface.persistence.content.EventTable
 import de.cyface.protos.model.Event
 import de.cyface.utils.Validate
 import kotlin.math.pow
-
 
 /**
  * Serializes [Event]s in the [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION].
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 1.0.1
  * @since 7.0.0
  */
 class EventSerializer {
@@ -48,25 +50,29 @@ class EventSerializer {
     }
 
     /**
-     * Reads an [Event] in the database format, to be exported in the binary format in [result].
+     * Loads and parses [de.cyface.persistence.model.Event]s from a database `Cursor`.
      *
-     * @param event the [Event] to read.
+     * @param cursor the `Cursor` to load the `Event` data from.
      */
-    fun readFrom(event: de.cyface.persistence.model.Event) {
+    fun readFrom(cursor: Cursor) {
         // The ProtoBuf `events` field is `repeated`, i.e. build one Event per entry.
-        val builder = Event.newBuilder()
-        builder.timestamp = event.timestamp
+        while (cursor.moveToNext()) {
+            val builder = Event.newBuilder()
+            val timestamp =
+                cursor.getLong(cursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP))
+            val typeString = cursor.getString(cursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE))
 
-        val typeString: String = event.type.databaseIdentifier
-        val type = Event.EventType.valueOf(typeString)
-        builder.type = type
-
-        if (event.value != null) {
-            // ProtoBuf `string` must contain UTF-8 encoded text and cannot be longer than 2^32.
-            Validate.isTrue(event.value.length <= 2.0.pow(32.0))
-            builder.value = event.value
+            @Nullable // Because not all EventTypes use this field
+            val value = cursor.getString(cursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE))
+            val type = Event.EventType.valueOf(typeString)
+            builder.setTimestamp(timestamp).type = type
+            if (value != null) {
+                // ProtoBuf `string` must contain UTF-8 encoded text and cannot be longer than 2^32.
+                Validate.isTrue(value.length <= 2.0.pow(32.0))
+                builder.value = value
+            }
+            events.add(builder.build())
         }
-        events.add(builder.build())
     }
 
     /**

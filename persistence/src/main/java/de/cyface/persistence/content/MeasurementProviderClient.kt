@@ -22,6 +22,8 @@ import android.content.ContentProviderClient
 import android.database.Cursor
 import android.net.Uri
 import android.os.RemoteException
+import de.cyface.persistence.model.Event
+import de.cyface.persistence.model.GeoLocation
 import de.cyface.utils.CursorIsNullException
 
 /**
@@ -53,21 +55,22 @@ class MeasurementProviderClient(
      *
      * @param offset The start index of the first geo location to load within the measurement
      * @param limit The number of geo locations to load. A recommended upper limit is:
-     * [AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT]
+     * [AbstractCyfaceTable.DATABASE_QUERY_LIMIT]
      * @return A `Cursor` on the [ParcelableGeoLocation]s stored for the [Measurement].
      * @throws RemoteException If the content provider is not accessible.
      */
     @Throws(RemoteException::class)
     fun loadGeoLocations(offset: Int, limit: Int): Cursor? {
-        val uri = Utils.getGeoLocationsUri(authority)
+        val uri = GeoLocation.getUri(authority)
         val projection = arrayOf(
-            GeoLocationsTable.COLUMN_GEOLOCATION_TIME,
-            GeoLocationsTable.COLUMN_LAT,
-            GeoLocationsTable.COLUMN_LON,
-            GeoLocationsTable.COLUMN_SPEED,
-            GeoLocationsTable.COLUMN_ACCURACY
+            GeoLocationTable.COLUMN_GEOLOCATION_TIME,
+            GeoLocationTable.COLUMN_LAT,
+            GeoLocationTable.COLUMN_LON,
+            GeoLocationTable.COLUMN_SPEED,
+            GeoLocationTable.COLUMN_ACCURACY
         )
-        val selection = GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?"
+        // Constructing selection clause with replaceable parameter `?` avoids SQL injection
+        val selection = GeoLocationTable.COLUMN_MEASUREMENT_FK + "=?"
         val selectionArgs = arrayOf(
             java.lang.Long.valueOf(
                 measurementIdentifier
@@ -90,7 +93,7 @@ class MeasurementProviderClient(
         // the arguments limit and offset are only available starting with API 26 ("O")
         return client.query(
             uri, projection, selection, selectionArgs,
-            GeoLocationsTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset
+            GeoLocationTable.COLUMN_MEASUREMENT_FK + " ASC limit " + limit + " offset " + offset
         )
     }
 
@@ -99,17 +102,18 @@ class MeasurementProviderClient(
      *
      * @param offset The start index of the first `Event` to load within the Measurement
      * @param limit The number of Events to load. A recommended upper limit is:
-     * [AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT]
+     * [AbstractCyfaceTable.DATABASE_QUERY_LIMIT]
      * @return A `Cursor` on the [Event]s stored for the [Measurement].
      * @throws RemoteException If the content provider is not accessible.
      */
     @Throws(RemoteException::class)
     fun loadEvents(offset: Int, limit: Int): Cursor? {
-        val uri = Utils.getEventUri(authority)
+        val uri = EventTable.getUri(authority)
         val projection = arrayOf(
             EventTable.COLUMN_TYPE, EventTable.COLUMN_VALUE,
             EventTable.COLUMN_TIMESTAMP
         )
+        // Constructing selection clause with replaceable parameter `?` avoids SQL injection
         val selection = EventTable.COLUMN_MEASUREMENT_FK + "=?"
         val selectionArgs = arrayOf(
             java.lang.Long.valueOf(
@@ -140,6 +144,7 @@ class MeasurementProviderClient(
     fun countData(tableUri: Uri, measurementForeignKeyColumnName: String): Int {
         var cursor: Cursor? = null
         return try {
+            // Constructing selection clause with replaceable parameter `?` avoids SQL injection
             val selection = "$measurementForeignKeyColumnName=?"
             val selectionArgs = arrayOf(
                 java.lang.Long.valueOf(
@@ -152,5 +157,13 @@ class MeasurementProviderClient(
         } finally {
             cursor?.close()
         }
+    }
+
+    fun createGeoLocationTableUri(): Uri {
+        return GeoLocationTable.getUri(authority)
+    }
+
+    fun createEventTableUri(): Uri {
+        return Event.getUri(authority)
     }
 }

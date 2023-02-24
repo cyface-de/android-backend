@@ -18,11 +18,18 @@
  */
 package de.cyface.persistence.serialization
 
+import android.database.Cursor
+import android.net.Uri
+import android.os.RemoteException
 import android.util.Log
 import com.google.protobuf.ByteString
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.Database
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
+import de.cyface.persistence.content.EventTable
+import de.cyface.persistence.content.GeoLocationTable
+import de.cyface.persistence.content.MeasurementProviderClient
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
 import de.cyface.protos.model.LocationRecords
@@ -32,6 +39,7 @@ import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import java.io.BufferedOutputStream
 import java.io.IOException
+
 
 /**
  * Serializes [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] files.
@@ -55,22 +63,23 @@ object TransferFileSerializer {
      * @param bufferedOutputStream The `OutputStream` to which the serialized data should be written. Injecting
      * this allows us to compress the serialized data without the need to write it into a temporary file.
      * We require a [BufferedOutputStream] for performance reasons.
-     * @param database The source to load the `Measurement` data from
+     * @param loader The loader providing access to the {@link ContentProvider} storing all the
+     *            {@link ParcelableGeoLocation}s.
      * @param measurementIdentifier The id of the `Measurement` to load
      * @param persistence The `PersistenceLayer` to access file based data
+     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @JvmStatic
     @Throws(CursorIsNullException::class)
     fun loadSerialized(
         bufferedOutputStream: BufferedOutputStream,
-        database: Database,
+        loader: MeasurementProviderClient,
         measurementIdentifier: Long,
         persistence: PersistenceLayer<*>
     ) {
-
         // Load data from ContentProvider
-        val events = loadEvents(database, measurementIdentifier)
-        val locationRecords = loadLocations(database, measurementIdentifier)
+        val events = loadEvents(loader)
+        val locationRecords = loadLocations(loader)
 
         // Using the modified `MeasurementBytes` class to inject the sensor bytes without parsing
         val builder = MeasurementBytes.newBuilder()
@@ -156,25 +165,64 @@ object TransferFileSerializer {
         )
     }
 
-    // FIXME: see if AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT is necessary
+    /**
+     * Loads and serializes [Event]s from the persistence layer.
+     *
+     * The `ContentProvider` interface of the persistence layer is used instead of accessing [Database]
+     * directly, as this class is accessed by the `SyncAdapter` which is started by the system and is
+     * like a 3rd party app, accessing our database. In such a scenario a `ContentProvider` is required.
+     *
+     * @param loader The `ContentProviderClient` wrapper to load the data from.
+     */
     @Throws(CursorIsNullException::class)
-    private fun loadEvents(database: Database, measurementIdentifier: Long): List<Event> {
-        val serializer = EventSerializer()
-        val events = database.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)
-        for (event in events!!) {
-            serializer.readFrom(event!!)
+    private fun loadEvents(loader: MeasurementProviderClient): List<Event?> {
+        val eventSerializer = EventSerializer()
+        try {
+            val eventTableUri: Uri = loader.createEventTableUri()
+            val eventCount: Int = loader.countData(eventTableUri, EventTable.COLUMN_MEASUREMENT_FK)
+            var startIndex = 0
+            while (startIndex < eventCount) {
+                loader.loadEvents(startIndex, DATABASE_QUERY_LIMIT).use { eventsCursor ->
+                    if (eventsCursor == null) throw CursorIsNullException()
+                    eventSerializer.readFrom(eventsCursor)
+                }
+                startIndex += DATABASE_QUERY_LIMIT
+            }
+        } catch (e: RemoteException) {
+            throw java.lang.IllegalStateException(e)
         }
-        return serializer.result()
+        return eventSerializer.result()
     }
 
-    // FIXME: see if AbstractCyfaceMeasurementTable.DATABASE_QUERY_LIMIT is necessary
+    /**
+     * Loads and serializes [LocationRecords] from the persistence layer.
+     *
+     * The `ContentProvider` interface of the persistence layer is used instead of accessing [Database]
+     * directly, as this class is accessed by the `SyncAdapter` which is started by the system and is
+     * like a 3rd party app, accessing our database. In such a scenario a `ContentProvider` is required.
+     *
+     * @param loader The `ContentProviderClient` wrapper to load the data from.
+     */
     @Throws(CursorIsNullException::class)
-    private fun loadLocations(database: Database, measurementIdentifier: Long): LocationRecords {
-        val serializer = LocationSerializer()
-        val locations = database.geoLocationDao()!!.loadAllByMeasurementId(measurementIdentifier)
-        for (location in locations!!) {
-            serializer.readFrom(location!!)
+    private fun loadLocations(loader: MeasurementProviderClient): LocationRecords {
+        val locationSerializer = LocationSerializer()
+        var geoLocationsCursor: Cursor? = null
+        try {
+            val geoLocationTableUri: Uri = loader.createGeoLocationTableUri()
+            val geoLocationCount: Int =
+                loader.countData(geoLocationTableUri, GeoLocationTable.COLUMN_MEASUREMENT_FK)
+            var startIndex = 0
+            while (startIndex < geoLocationCount) {
+                geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT)
+                if (geoLocationsCursor == null) throw CursorIsNullException()
+                locationSerializer.readFrom(geoLocationsCursor)
+                startIndex += DATABASE_QUERY_LIMIT
+            }
+        } catch (e: RemoteException) {
+            throw java.lang.IllegalStateException(e)
+        } finally {
+            geoLocationsCursor?.close()
         }
-        return serializer.result()
+        return locationSerializer.result()
     }
 }

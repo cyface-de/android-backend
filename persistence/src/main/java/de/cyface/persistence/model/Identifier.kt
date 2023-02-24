@@ -34,7 +34,7 @@ import androidx.room.PrimaryKey
  * The database identifier can be used to identify the latest entry in this table, if this happens.
  * @property deviceId A String value which contains an identifier for this device.
  */
-@Entity(tableName = "Identifier")
+@Entity
 class Identifier(
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val deviceId: String
