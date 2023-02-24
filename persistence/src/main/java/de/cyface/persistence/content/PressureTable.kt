@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,37 +21,29 @@ package de.cyface.persistence.content
 import android.net.Uri
 
 /**
- * Table for storing [de.cyface.persistence.model.Event]s.
+ * Table for storing [de.cyface.persistence.model.GeoLocation]s. The data in this table is intended for
+ * storage prior to processing it by either transfer to a server or export to some external file or device.
  *
  * @author Armin Schnabel
- * @version 2.0.0
- * @since 4.0.0
+ * @version 3.0.0
+ * @since 1.0.0
  */
-class EventTable
-internal constructor(
+class PressureTable
+private constructor(
     override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID,
-        BaseColumns.TIMESTAMP,
-        COLUMN_TYPE,
-        BaseColumns.MEASUREMENT_ID,
-        COLUMN_VALUE
-    )
+        BaseColumns.ID, BaseColumns.TIMESTAMP, COLUMN_PRESSURE, BaseColumns.MEASUREMENT_ID
+    ),
 ) : AbstractCyfaceTable(URI_PATH) {
     companion object {
         /**
-         * The path segment in the table URI identifying the [EventTable].
+         * The path segment in the table URI identifying the [PressureTable].
          */
-        const val URI_PATH = "Event"
+        const val URI_PATH = "Pressure"
 
         /**
-         * Column name for the column storing the [de.cyface.persistence.model.EventType].
+         * Column name for the column storing the atmospheric pressure in hPa.
          */
-        const val COLUMN_TYPE = "type"
-
-        /**
-         * Column name for the column storing the optional value required for some [COLUMN_TYPE]s.
-         */
-        const val COLUMN_VALUE = "value"
+        const val COLUMN_PRESSURE = "pressure"
 
         /**
          * Returns the URI which identifies the table represented by this class.

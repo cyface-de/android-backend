@@ -34,7 +34,8 @@ import androidx.room.PrimaryKey
  * @since 6.3.0
  */
 @Entity(
-    tableName = "Location", // Keep in sync with [GeoLocationTable.URI_PATH]
+    // Keep the table schema in sync with `ContentProvider`'s [LocationTable]
+    tableName = "Location",
     foreignKeys = [ForeignKey(
         entity = Measurement::class,
         parentColumns = arrayOf("id"),

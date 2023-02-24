@@ -45,6 +45,7 @@ class DefaultDistanceCalculation : DistanceCalculationStrategy {
      *
      * @param in A `Parcel` that is a serialized version of a `IgnoreEventsStrategy`.
      */
+    @Suppress("UNUSED_PARAMETER")
     private constructor(`in`: Parcel) {
         // Nothing to do here.
     }

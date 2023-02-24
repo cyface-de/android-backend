@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2023 Cyface GmbH
+ * Copyright 2019-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,40 +18,37 @@
  */
 package de.cyface.persistence.content
 
+import android.content.Context
 import android.net.Uri
 
 /**
- * Table for storing [de.cyface.persistence.model.Event]s.
+ * This class represents the table containing the measurement-independent identifiers stored on this device.
  *
  * @author Armin Schnabel
- * @version 2.0.0
- * @since 4.0.0
+ * @version 4.0.0
+ * @since 3.0.0
+ * @property context The `Context` required to load the old device id from the `SharedPreferences` when
+ * upgrading from [de.cyface.persistence.Database] 8.
  */
-class EventTable
+class IdentifierTable
 internal constructor(
     override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID,
-        BaseColumns.TIMESTAMP,
-        COLUMN_TYPE,
-        BaseColumns.MEASUREMENT_ID,
-        COLUMN_VALUE
-    )
-) : AbstractCyfaceTable(URI_PATH) {
+        BaseColumns.ID, COLUMN_DEVICE_ID
+    ),
+    private val context: Context
+) : AbstractCyfaceTable(
+    URI_PATH
+) {
     companion object {
         /**
-         * The path segment in the table URI identifying the [EventTable].
+         * The path segment in the table URI identifying the identifier table.
          */
-        const val URI_PATH = "Event"
+        const val URI_PATH = "Identifier"
 
         /**
-         * Column name for the column storing the [de.cyface.persistence.model.EventType].
+         * A String value which contains an identifier for this device.
          */
-        const val COLUMN_TYPE = "type"
-
-        /**
-         * Column name for the column storing the optional value required for some [COLUMN_TYPE]s.
-         */
-        const val COLUMN_VALUE = "value"
+        const val COLUMN_DEVICE_ID = "deviceId"
 
         /**
          * Returns the URI which identifies the table represented by this class.

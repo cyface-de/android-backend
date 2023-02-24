@@ -41,6 +41,7 @@ import androidx.room.PrimaryKey
  */
 @Entity
 data class Measurement(
+    // Keep the table schema in sync with `ContentProvider`'s [MeasurementTable]
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val status: MeasurementStatus,
     val modality: Modality,

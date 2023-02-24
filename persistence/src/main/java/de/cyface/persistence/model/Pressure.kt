@@ -39,6 +39,7 @@ import androidx.room.PrimaryKey
  * This foreign key points to [Measurement.id] and is indexed to avoid full table scan on parent update.
  */
 @Entity(
+    // Keep the table schema in sync with `ContentProvider`'s [PressureTable]
     foreignKeys = [ForeignKey(
         entity = Measurement::class,
         parentColumns = arrayOf("id"),

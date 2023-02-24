@@ -21,8 +21,6 @@ package de.cyface.persistence
 import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.room.migration.Migration
-import androidx.sqlite.db.SupportSQLiteDatabase
 import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.GeoLocationDao
 import de.cyface.persistence.dao.IdentifierDao
@@ -127,7 +125,6 @@ abstract class Database : RoomDatabase() {
                 // This needs to be here as it requires a context to load database `v6` (17->18)
                 val migrator = DatabaseMigrator(context)
 
-                // FIXME: Add other migrations from before
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     Database::class.java,
@@ -136,7 +133,16 @@ abstract class Database : RoomDatabase() {
                     .enableMultiInstanceInvalidation()
                     .addMigrations(
                         DatabaseMigrator.MIGRATION_8_9,
-                        migrator.MIGRATION_17_18)
+                        migrator.MIGRATION_9_10,
+                        DatabaseMigrator.MIGRATION_10_11,
+                        DatabaseMigrator.MIGRATION_11_12,
+                        DatabaseMigrator.MIGRATION_12_13,
+                        DatabaseMigrator.MIGRATION_13_14,
+                        DatabaseMigrator.MIGRATION_14_15,
+                        DatabaseMigrator.MIGRATION_15_16,
+                        DatabaseMigrator.MIGRATION_16_17,
+                        migrator.MIGRATION_17_18
+                    )
                     .build()
                 INSTANCE = instance
                 return instance

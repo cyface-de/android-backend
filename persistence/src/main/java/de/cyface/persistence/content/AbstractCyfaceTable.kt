@@ -22,7 +22,6 @@ import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase.CONFLICT_NONE
 import android.database.sqlite.SQLiteQueryBuilder
-import android.net.Uri
 import androidx.sqlite.db.SupportSQLiteDatabase
 
 
@@ -40,6 +39,9 @@ abstract class AbstractCyfaceTable internal constructor(name: String) : CyfaceTa
      */
     final override val name: String
 
+    /**
+     * An array containing all the column names used by this table.
+     */
     protected abstract val databaseTableColumns: Array<String>
 
     init {

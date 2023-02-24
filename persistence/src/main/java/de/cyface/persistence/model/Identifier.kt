@@ -36,6 +36,7 @@ import androidx.room.PrimaryKey
  */
 @Entity
 class Identifier(
+    // Keep the table schema in sync with `ContentProvider`'s [IdentifierTable]
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val deviceId: String
 ) {
