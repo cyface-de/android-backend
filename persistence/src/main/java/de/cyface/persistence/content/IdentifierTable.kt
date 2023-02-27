@@ -32,9 +32,6 @@ import android.net.Uri
  */
 class IdentifierTable
 internal constructor(
-    override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID, COLUMN_DEVICE_ID
-    ),
     private val context: Context
 ) : AbstractCyfaceTable(
     URI_PATH
@@ -62,4 +59,7 @@ internal constructor(
             return Uri.Builder().scheme("content").authority(authority).appendPath(URI_PATH).build()
         }
     }
+
+    override val databaseTableColumns: Array<String>
+        get() = arrayOf(BaseColumns.ID, COLUMN_DEVICE_ID)
 }

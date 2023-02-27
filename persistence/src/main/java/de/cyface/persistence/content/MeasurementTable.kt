@@ -29,13 +29,7 @@ import de.cyface.persistence.model.GeoLocation
  * @version 5.0.0
  * @since 1.0.0
  */
-class MeasurementTable
-internal constructor(
-    override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID, COLUMN_STATUS, COLUMN_MODALITY,
-        COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, BaseColumns.TIMESTAMP
-    )
-) : AbstractCyfaceTable(URI_PATH) {
+class MeasurementTable : AbstractCyfaceTable(URI_PATH) {
     companion object {
         /**
          * The path segment in the table URI identifying the [MeasurementTable].
@@ -78,4 +72,10 @@ internal constructor(
             return Uri.Builder().scheme("content").authority(authority).appendPath(URI_PATH).build()
         }
     }
+
+    override val databaseTableColumns: Array<String>
+        get() = arrayOf(
+            BaseColumns.ID, COLUMN_STATUS, COLUMN_MODALITY,
+            COLUMN_PERSISTENCE_FILE_FORMAT_VERSION, COLUMN_DISTANCE, BaseColumns.TIMESTAMP
+        )
 }

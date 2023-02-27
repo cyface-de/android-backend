@@ -27,16 +27,7 @@ import android.net.Uri
  * @version 2.0.0
  * @since 4.0.0
  */
-class EventTable
-internal constructor(
-    override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID,
-        BaseColumns.TIMESTAMP,
-        COLUMN_TYPE,
-        BaseColumns.MEASUREMENT_ID,
-        COLUMN_VALUE
-    )
-) : AbstractCyfaceTable(URI_PATH) {
+class EventTable : AbstractCyfaceTable(URI_PATH) {
     companion object {
         /**
          * The path segment in the table URI identifying the [EventTable].
@@ -65,4 +56,13 @@ internal constructor(
             return Uri.Builder().scheme("content").authority(authority).appendPath(URI_PATH).build()
         }
     }
+
+    override val databaseTableColumns: Array<String>
+        get() = arrayOf(
+            BaseColumns.ID,
+            BaseColumns.TIMESTAMP,
+            COLUMN_TYPE,
+            BaseColumns.MEASUREMENT_ID,
+            COLUMN_VALUE
+        )
 }

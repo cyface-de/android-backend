@@ -28,13 +28,7 @@ import android.net.Uri
  * @version 3.0.0
  * @since 1.0.0
  */
-class LocationTable
-private constructor(
-    override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID, BaseColumns.TIMESTAMP, COLUMN_LAT, COLUMN_LON, COLUMN_ALTITUDE,
-        COLUMN_SPEED, COLUMN_ACCURACY, COLUMN_VERTICAL_ACCURACY, BaseColumns.MEASUREMENT_ID
-    )
-) : AbstractCyfaceTable(URI_PATH) {
+class LocationTable : AbstractCyfaceTable(URI_PATH) {
     companion object {
         /**
          * The path segment in the table URI identifying the [LocationTable].
@@ -83,4 +77,10 @@ private constructor(
             return Uri.Builder().scheme("content").authority(authority).appendPath(URI_PATH).build()
         }
     }
+
+    override val databaseTableColumns: Array<String>
+        get() = arrayOf(
+            BaseColumns.ID, BaseColumns.TIMESTAMP, COLUMN_LAT, COLUMN_LON, COLUMN_ALTITUDE,
+            COLUMN_SPEED, COLUMN_ACCURACY, COLUMN_VERTICAL_ACCURACY, BaseColumns.MEASUREMENT_ID
+        )
 }

@@ -20,6 +20,7 @@ package de.cyface.persistence.serialization
 
 import android.database.Cursor
 import androidx.annotation.Nullable
+import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.EventTable
 import de.cyface.protos.model.Event
 import de.cyface.utils.Validate
@@ -59,7 +60,7 @@ class EventSerializer {
         while (cursor.moveToNext()) {
             val builder = Event.newBuilder()
             val timestamp =
-                cursor.getLong(cursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP))
+                cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns.TIMESTAMP))
             val typeString = cursor.getString(cursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE))
 
             @Nullable // Because not all EventTypes use this field

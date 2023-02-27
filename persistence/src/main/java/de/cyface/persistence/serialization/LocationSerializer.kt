@@ -19,6 +19,7 @@
 package de.cyface.persistence.serialization
 
 import android.database.Cursor
+import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.LocationTable
 import de.cyface.protos.model.LocationRecords
 import de.cyface.serializer.Formatter
@@ -54,7 +55,7 @@ class LocationSerializer {
     fun readFrom(cursor: Cursor) {
         while (cursor.moveToNext()) {
             val timestamp =
-                cursor.getLong(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_GEOLOCATION_TIME))
+                cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns.TIMESTAMP))
             val latitude =
                 cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LAT))
             val longitude =

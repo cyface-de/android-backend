@@ -28,12 +28,7 @@ import android.net.Uri
  * @version 3.0.0
  * @since 1.0.0
  */
-class PressureTable
-private constructor(
-    override val databaseTableColumns: Array<String> = arrayOf(
-        BaseColumns.ID, BaseColumns.TIMESTAMP, COLUMN_PRESSURE, BaseColumns.MEASUREMENT_ID
-    ),
-) : AbstractCyfaceTable(URI_PATH) {
+class PressureTable : AbstractCyfaceTable(URI_PATH) {
     companion object {
         /**
          * The path segment in the table URI identifying the [PressureTable].
@@ -57,4 +52,12 @@ private constructor(
             return Uri.Builder().scheme("content").authority(authority).appendPath(URI_PATH).build()
         }
     }
+
+    override val databaseTableColumns: Array<String>
+        get() = arrayOf(
+            BaseColumns.ID,
+            BaseColumns.TIMESTAMP,
+            COLUMN_PRESSURE,
+            BaseColumns.MEASUREMENT_ID
+        )
 }

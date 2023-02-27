@@ -27,8 +27,7 @@ import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.Database
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
-import de.cyface.persistence.content.EventTable
-import de.cyface.persistence.content.LocationTable
+import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.MeasurementProviderClient
 import de.cyface.persistence.model.Measurement
 import de.cyface.protos.model.Event
@@ -179,7 +178,7 @@ object TransferFileSerializer {
         val eventSerializer = EventSerializer()
         try {
             val eventTableUri: Uri = loader.createEventTableUri()
-            val eventCount: Int = loader.countData(eventTableUri, EventTable.COLUMN_MEASUREMENT_FK)
+            val eventCount: Int = loader.countData(eventTableUri, BaseColumns.MEASUREMENT_ID)
             var startIndex = 0
             while (startIndex < eventCount) {
                 loader.loadEvents(startIndex, DATABASE_QUERY_LIMIT).use { eventsCursor ->
@@ -210,7 +209,7 @@ object TransferFileSerializer {
         try {
             val geoLocationTableUri: Uri = loader.createGeoLocationTableUri()
             val geoLocationCount: Int =
-                loader.countData(geoLocationTableUri, LocationTable.COLUMN_MEASUREMENT_FK)
+                loader.countData(geoLocationTableUri, BaseColumns.MEASUREMENT_ID)
             var startIndex = 0
             while (startIndex < geoLocationCount) {
                 geoLocationsCursor = loader.loadGeoLocations(startIndex, DATABASE_QUERY_LIMIT)

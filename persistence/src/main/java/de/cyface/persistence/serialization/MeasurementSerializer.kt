@@ -20,8 +20,8 @@ package de.cyface.persistence.serialization
 
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.Database
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.content.MeasurementProviderClient
 import de.cyface.persistence.serialization.TransferFileSerializer.loadSerialized
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
@@ -65,7 +65,7 @@ class MeasurementSerializer {
      */
     @Throws(CursorIsNullException::class)
     fun writeSerializedCompressed(
-        database: Database,
+        database: MeasurementProviderClient,
         measurementId: Long,
         persistenceLayer: PersistenceLayer<*>
     ): File? {
@@ -109,7 +109,7 @@ class MeasurementSerializer {
     @Throws(IOException::class)
     private fun loadSerializedCompressed(
         fileOutputStream: OutputStream,
-        database: Database,
+        database: MeasurementProviderClient,
         measurementId: Long,
         persistenceLayer: PersistenceLayer<*>
     ) {
