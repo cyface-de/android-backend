@@ -18,7 +18,6 @@
  */
 package de.cyface.persistence;
 
-import static de.cyface.persistence.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -33,9 +32,7 @@ import org.junit.After;
 import org.junit.Before;
 import org.junit.Test;
 import org.junit.runner.RunWith;
-import org.mockito.Mock;
 
-import android.content.ContentResolver;
 import android.content.Context;
 import android.hardware.SensorManager;
 
@@ -43,14 +40,16 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.model.GeoLocation;
+import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.model.Pressure;
-import de.cyface.persistence.model.TrackV6;
+import de.cyface.persistence.model.Track;
 
 /**
- * Tests the inner workings of the {@link PersistenceLayer}.
+ * Tests the inner workings of the {@link DefaultPersistenceLayer}.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 6.3.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -59,17 +58,12 @@ public class PersistenceLayerTest {
     /**
      * An object of the class under test. It is setup prior to each test execution.
      */
-    private PersistenceLayer<DefaultPersistenceBehaviour> oocut;
-    /**
-     * A mock content resolver provided by the Android test environment to work on a simulated content provider.
-     */
-    @Mock
-    private ContentResolver mockResolver;
+    private DefaultPersistenceLayer<DefaultPersistenceBehaviour> oocut;
 
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        oocut = new PersistenceLayer<>(context, mockResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        oocut = new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
     }
 
     @After
@@ -108,30 +102,30 @@ public class PersistenceLayerTest {
     public void testLoadAscendFromPressures() {
 
         // Arrange
-        final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
-        final TrackV6 trackV6 = new TrackV6();
+        final var p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
+        final var track = new Track();
         // noise around 0 (+-1)
-        trackV6.addPressure(new Pressure(1L, pressure(0., p0), 1L));
-        trackV6.addPressure(new Pressure(2L, pressure(1., p0), 1L));
-        trackV6.addPressure(new Pressure(3L, pressure(-1., p0), 1L));
-        trackV6.addPressure(new Pressure(4L, pressure(0., p0), 1L));
-        trackV6.addPressure(new Pressure(5L, pressure(1., p0), 1L));
+        track.addPressure(new Pressure(1L, pressure(0., p0), 1L));
+        track.addPressure(new Pressure(2L, pressure(1., p0), 1L));
+        track.addPressure(new Pressure(3L, pressure(-1., p0), 1L));
+        track.addPressure(new Pressure(4L, pressure(0., p0), 1L));
+        track.addPressure(new Pressure(5L, pressure(1., p0), 1L));
         // ascend 1 => +3
         // 3.03 as pressure to altitude calculation is not 100% accurate and would
         // fail because the ascend would be slightly below the threshold
-        trackV6.addPressure(new Pressure(6L, pressure(3.01, p0), 1L));
+        track.addPressure(new Pressure(6L, pressure(3.01, p0), 1L));
         // descend => lastAltitude -= 2
-        trackV6.addPressure(new Pressure(7L, pressure(1., p0), 1L));
+        track.addPressure(new Pressure(7L, pressure(1., p0), 1L));
         // ascend 2 => +2
-        trackV6.addPressure(new Pressure(8L, pressure(3.01, p0), 1L));
+        track.addPressure(new Pressure(8L, pressure(3.01, p0), 1L));
         // Track without ascend but with data should return 0.0 not null
-        final TrackV6 track2 = new TrackV6();
+        final var track2 = new Track();
         track2.addPressure(new Pressure(1L, pressure(0., p0), 1L));
         track2.addPressure(new Pressure(2L, pressure(1., p0), 1L));
         track2.addPressure(new Pressure(3L, pressure(-1., p0), 1L));
 
         // Act
-        final Double ascend = oocut.ascendFromPressures(Collections.singletonList(trackV6), 1);
+        final Double ascend = oocut.ascendFromPressures(Collections.singletonList(track), 1);
         final Double ascend2 = oocut.ascendFromPressures(Collections.singletonList(track2), 1);
 
         // Assert
@@ -143,27 +137,27 @@ public class PersistenceLayerTest {
     public void testLoadAscendFromGnss() {
 
         // Arrange
-        final TrackV6 trackV6 = new TrackV6();
+        final var track = new Track();
         // noise around 0 (+-1)
-        trackV6.addLocation(new GeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
-        trackV6.addLocation(new GeoLocation(2L, 0., 0., 1., 1., 5., 5., 1L));
-        trackV6.addLocation(new GeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
-        trackV6.addLocation(new GeoLocation(4L, 0., 0., 0., 1., 5., 5., 1L));
-        trackV6.addLocation(new GeoLocation(5L, 0., 0., 1., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(2L, 0., 0., 1., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(4L, 0., 0., 0., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(5L, 0., 0., 1., 1., 5., 5., 1L));
         // ascend 1 => +3
-        trackV6.addLocation(new GeoLocation(6L, 0., 0., 3., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(6L, 0., 0., 3., 1., 5., 5., 1L));
         // descend => lastAltitude -= 2
-        trackV6.addLocation(new GeoLocation(7L, 0., 0., 1., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(7L, 0., 0., 1., 1., 5., 5., 1L));
         // ascend 2 => +2
-        trackV6.addLocation(new GeoLocation(8L, 0., 0., 3., 1., 5., 5., 1L));
+        track.addLocation(new GeoLocation(8L, 0., 0., 3., 1., 5., 5., 1L));
         // Track without ascend but with data should return 0.0 not null
-        final TrackV6 track2 = new TrackV6();
+        final var track2 = new Track();
         track2.addLocation(new GeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
         track2.addLocation(new GeoLocation(2L, 0., 0., 1., 1., 5., 5., 1L));
         track2.addLocation(new GeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
 
         // Act
-        final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(trackV6));
+        final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(track));
         final Double ascend2 = oocut.ascendFromGNSS(Collections.singletonList(track2));
 
         // Assert
@@ -172,24 +166,24 @@ public class PersistenceLayerTest {
     }
 
     @Test
-    public void testCollectNextSubTrackV6() {
+    public void testCollectNextSubTrack() {
 
         // Arrange
-        final List<GeoLocation> locations = new ArrayList<>();
-        locations.add(new GeoLocation(1L, 0., 0., 0., 1., 5., 5., 1L));
-        locations.add(new GeoLocation(2L, 0., 0., 0., 1., 5., 5., 1L));
-        locations.add(new GeoLocation(10L, 0., 0., 0., 1., 5., 5., 1L));
-        locations.add(new GeoLocation(11L, 0., 0., 0., 1., 5., 5., 1L));
-        final List<Pressure> pressures = new ArrayList<>();
-        final float p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
-        pressures.add(new Pressure(1L, pressure(0., p0), 1L));
-        pressures.add(new Pressure(2L, pressure(0., p0), 1L));
-        pressures.add(new Pressure(10L, pressure(0., p0), 1L));
-        pressures.add(new Pressure(11L, pressure(0., p0), 1L));
-        final long pauseEventTime = 3L;
+        final var locations = new ArrayList<ParcelableGeoLocation>();
+        locations.add(new ParcelableGeoLocation(1L, 0., 0., 0., 1., 5., 5.));
+        locations.add(new ParcelableGeoLocation(2L, 0., 0., 0., 1., 5., 5.));
+        locations.add(new ParcelableGeoLocation(10L, 0., 0., 0., 1., 5., 5.));
+        locations.add(new ParcelableGeoLocation(11L, 0., 0., 0., 1., 5., 5.));
+        final var pressures = new ArrayList<ParcelablePressure>();
+        final var p0 = SensorManager.PRESSURE_STANDARD_ATMOSPHERE;
+        pressures.add(new ParcelablePressure(1L, pressure(0., p0)));
+        pressures.add(new ParcelablePressure(2L, pressure(0., p0)));
+        pressures.add(new ParcelablePressure(10L, pressure(0., p0)));
+        pressures.add(new ParcelablePressure(11L, pressure(0., p0)));
+        final var pauseEventTime = 3L;
 
         // Act
-        final TrackV6 subTrack = oocut.collectNextSubTrackV6(locations, pressures, pauseEventTime);
+        final var subTrack = oocut.collectNextSubTrack(locations, pressures, pauseEventTime);
 
         // Assert
         assertThat(subTrack.getGeoLocations().size(), is(equalTo(2)));

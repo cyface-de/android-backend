@@ -5,7 +5,7 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.utils.CursorIsNullException
 
 /**
- * This [PersistenceBehaviour] is used when a [PersistenceLayer] is only used to access existing
+ * This [PersistenceBehaviour] is used when a [DefaultPersistenceLayer] is only used to access existing
  * [Measurement]s and does not want to capture new `Measurements`.
  *
  * @author Armin Schnabel
@@ -13,8 +13,8 @@ import de.cyface.utils.CursorIsNullException
  * @since 3.0.0
  */
 class DefaultPersistenceBehaviour : PersistenceBehaviour {
-    private var persistenceLayer: PersistenceLayer<*>? = null
-    override fun onStart(persistenceLayer: PersistenceLayer<*>) {
+    private var persistenceLayer: DefaultPersistenceLayer<*>? = null
+    override fun onStart(persistenceLayer: DefaultPersistenceLayer<*>) {
         this.persistenceLayer = persistenceLayer
     }
 

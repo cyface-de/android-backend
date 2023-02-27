@@ -34,8 +34,8 @@ import android.preference.PreferenceManager
 import android.util.Log
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
-import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.content.MeasurementProviderClient
+import de.cyface.persistence.DefaultPersistenceLayer
+import de.cyface.persistence.content.DefaultProviderClient
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
@@ -105,7 +105,7 @@ class SyncAdapter private constructor(
         val context = context
         val serializer = MeasurementSerializer()
         val persistence =
-            PersistenceLayer<DefaultPersistenceBehaviour?>(context, DefaultPersistenceBehaviour())
+            DefaultPersistenceLayer<DefaultPersistenceBehaviour?>(context, DefaultPersistenceBehaviour())
         val authenticator = CyfaceAuthenticator(context)
         val syncPerformer = SyncPerformer(context)
         try {
@@ -135,10 +135,10 @@ class SyncAdapter private constructor(
 
                 // Ensure the measurement is supported
                 val format = measurement.fileFormatVersion
-                Validate.isTrue(format == PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+                Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
 
                 // Load measurement data
-                val loader = MeasurementProviderClient(measurement.id, provider, authority)
+                val loader = DefaultProviderClient(measurement.id, provider, authority)
                 val metaData = loadMetaData(measurement, persistence, deviceId, context)
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
@@ -320,7 +320,7 @@ class SyncAdapter private constructor(
      * Loads meta data required in the Multipart header to transfer files to the API.
      *
      * @param measurement The [Measurement] to load the meta data for
-     * @param persistence The [PersistenceLayer] to load track data required
+     * @param persistence The [DefaultPersistenceLayer] to load track data required
      * @param deviceId The device identifier generated for this device
      * @param context The `Context` to load the version name of this SDK
      * @return The [RequestMetaData] loaded
@@ -329,7 +329,7 @@ class SyncAdapter private constructor(
     @Throws(CursorIsNullException::class)
     private fun loadMetaData(
         measurement: Measurement,
-        persistence: PersistenceLayer<DefaultPersistenceBehaviour?>, deviceId: String,
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>, deviceId: String,
         context: Context
     ): RequestMetaData {
 

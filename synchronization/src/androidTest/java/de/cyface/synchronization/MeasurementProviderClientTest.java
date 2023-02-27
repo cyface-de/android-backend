@@ -18,7 +18,7 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.content.AbstractCyfaceTable.DATABASE_QUERY_LIMIT;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
@@ -50,12 +50,12 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.content.BaseColumns;
 import de.cyface.persistence.content.LocationTable;
-import de.cyface.persistence.content.MeasurementProviderClient;
+import de.cyface.persistence.content.DefaultProviderClient;
 import de.cyface.persistence.content.MeasurementTable;
 import de.cyface.utils.Validate;
 
 /**
- * Tests that instances of the {@link MeasurementProviderClient} do work correctly.
+ * Tests that instances of the {@link DefaultProviderClient} do work correctly.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -148,7 +148,7 @@ public class MeasurementProviderClientTest {
                     + (System.currentTimeMillis() - startTime) + " ms");
 
             // Load entries again
-            var oocut = new MeasurementProviderClient(measurementIdentifier, client, AUTHORITY);
+            var oocut = new DefaultProviderClient(measurementIdentifier, client, AUTHORITY);
             startTime = System.currentTimeMillis();
 
             for (int i = 0; i < geoLocationValuesArray.length; i += DATABASE_QUERY_LIMIT) {
@@ -175,7 +175,7 @@ public class MeasurementProviderClientTest {
     }
 
     /**
-     * Tests the basic {@link MeasurementProviderClient} methods.
+     * Tests the basic {@link DefaultProviderClient} methods.
      */
     @Test
     public void test() throws RemoteException {
@@ -213,7 +213,7 @@ public class MeasurementProviderClientTest {
             client.insert(LocationTable.Companion.getUri(AUTHORITY), geoLocationValues);
 
             // Check loadGeoLocations()
-            MeasurementProviderClient oocut = new MeasurementProviderClient(measurementIdentifier, client,
+            DefaultProviderClient oocut = new DefaultProviderClient(measurementIdentifier, client,
                     AUTHORITY);
             Cursor geoLocationCursor = oocut.loadGeoLocations(0, DATABASE_QUERY_LIMIT);
             assertThat(geoLocationCursor.getCount(), is(equalTo(2)));

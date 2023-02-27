@@ -25,6 +25,7 @@ import android.util.Log
 import com.google.protobuf.ByteString
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.Database
+import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.AbstractCyfaceTable.Companion.DATABASE_QUERY_LIMIT
 import de.cyface.persistence.content.BaseColumns
@@ -94,13 +95,13 @@ object TransferFileSerializer {
             Point3DFile.ACCELERATIONS_FILE_EXTENSION
         )
         val rotationFile = persistence.fileDao.getFilePath(
-            persistence.context,
+            persistence.context!!,
             measurementIdentifier,
             Point3DFile.ROTATIONS_FOLDER_NAME,
             Point3DFile.ROTATION_FILE_EXTENSION
         )
         val directionFile = persistence.fileDao.getFilePath(
-            persistence.context,
+            persistence.context!!,
             measurementIdentifier,
             Point3DFile.DIRECTIONS_FOLDER_NAME,
             Point3DFile.DIRECTION_FILE_EXTENSION
@@ -108,7 +109,7 @@ object TransferFileSerializer {
 
         // Ensure we only inject bytes from the correct persistence format version
         val measurement: Measurement? = persistence.loadMeasurement(measurementIdentifier)
-        Validate.isTrue(measurement!!.fileFormatVersion == PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+        Validate.isTrue(measurement!!.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
         if (accelerationFile.exists()) {
             Log.v(
                 TAG, String.format(

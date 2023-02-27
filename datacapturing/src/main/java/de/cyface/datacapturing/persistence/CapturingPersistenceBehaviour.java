@@ -37,7 +37,7 @@ import androidx.annotation.NonNull;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.PersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.dao.PressureDao;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.ParcelableGeoLocation;
@@ -51,7 +51,7 @@ import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
- * This {@link PersistenceBehaviour} is used when a {@link PersistenceLayer} is used to capture a {@link Measurement}s.
+ * This {@link PersistenceBehaviour} is used when a {@link DefaultPersistenceLayer} is used to capture a {@link Measurement}s.
  *
  * @author Armin Schnabel
  * @version 2.1.0
@@ -82,12 +82,12 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      */
     private Point3DFile directionsFile;
     /**
-     * A reference to the {@link PersistenceLayer} which implements this behaviour to access it's methods.
+     * A reference to the {@link DefaultPersistenceLayer} which implements this behaviour to access it's methods.
      */
-    private PersistenceLayer persistenceLayer;
+    private DefaultPersistenceLayer persistenceLayer;
 
     @Override
-    public void onStart(@NonNull final PersistenceLayer persistenceLayer) {
+    public void onStart(@NonNull final DefaultPersistenceLayer persistenceLayer) {
         this.persistenceLayer = persistenceLayer;
         this.threadPool = Executors.newCachedThreadPool();
     }
@@ -171,7 +171,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * method should only be called if capturing is active. It throws an error otherwise.
      *
      * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
-     *             use {@link PersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an actual
+     *             use {@link DefaultPersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an actual
      *             {@link MeasurementStatus#OPEN} measurement.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */

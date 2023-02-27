@@ -20,6 +20,7 @@ package de.cyface.persistence.serialization
 
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
+import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.MeasurementProviderClient
 import de.cyface.persistence.serialization.TransferFileSerializer.loadSerialized
@@ -35,7 +36,7 @@ import java.util.zip.DeflaterOutputStream
 
 /**
  * This class implements the serialization from data stored in a `MeasuringPointContentProvider` and
- * Cyface [PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION] binary format into the Cyface
+ * Cyface [DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION] binary format into the Cyface
  * [.TRANSFER_FILE_FORMAT_VERSION]
  * binary format. The later consists of a header with the following information:
  *

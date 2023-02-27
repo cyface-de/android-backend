@@ -50,7 +50,7 @@ import de.cyface.datacapturing.ui.Reason
 import de.cyface.datacapturing.ui.UIListener
 import de.cyface.persistence.strategy.DistanceCalculationStrategy
 import de.cyface.persistence.strategy.LocationCleaningStrategy
-import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.Measurement
@@ -91,7 +91,7 @@ abstract class DataCapturingService(
     context: Context, authority: String,
     accountType: String, dataUploadServerAddress: String,
     eventHandlingStrategy: EventHandlingStrategy,
-    persistenceLayer: PersistenceLayer<CapturingPersistenceBehaviour>,
+    persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
     capturingListener: DataCapturingListener, sensorFrequency: Int
@@ -139,7 +139,7 @@ abstract class DataCapturingService(
      * A facade object providing access to the data stored by this `DataCapturingService`.
      */
     @JvmField
-    val persistenceLayer: PersistenceLayer<CapturingPersistenceBehaviour>
+    val persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>
 
     /**
      * Messenger that handles messages arriving from the `DataCapturingBackgroundService`.
@@ -261,13 +261,13 @@ abstract class DataCapturingService(
 
         // Mark deprecated measurements
         for (m in persistenceLayer.loadMeasurements()) {
-            if (m!!.fileFormatVersion < PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
+            if (m!!.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
                 try {
                     markDeprecated(m.id, m.status)
                 } catch (e: NoSuchMeasurementException) {
                     throw IllegalStateException(e) // Should not happen
                 }
-            } else require(m.fileFormatVersion <= PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
+            } else require(m.fileFormatVersion <= DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION) {
                 String.format(
                     "Invalid format version: %d",
                     m.fileFormatVersion
@@ -523,7 +523,7 @@ abstract class DataCapturingService(
 
             // Resume paused measurement
             val measurement = persistenceLayer.loadCurrentlyCapturedMeasurement()
-            Validate.isTrue(measurement.fileFormatVersion == PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
+            Validate.isTrue(measurement.fileFormatVersion == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
             persistenceLayer.logEvent(EventType.LIFECYCLE_RESUME, measurement)
             runService(measurement, finishedHandler)
 
@@ -955,7 +955,7 @@ abstract class DataCapturingService(
 
     /**
      * Loads the currently captured [Measurement] from the cache, if possible, or from the
-     * [PersistenceLayer].
+     * [DefaultPersistenceLayer].
      *
      * We offer this API through the [DataCapturingService] to allow the SDK implementor to load the
      * currentlyCapturedMeasurement from the cache as the [DefaultPersistenceBehaviour] does not have a cache
@@ -963,7 +963,7 @@ abstract class DataCapturingService(
      *
      * @return the currently captured [Measurement]
      * @throws NoSuchMeasurementException If this method has been called while no `Measurement` was active. To
-     * avoid this use [PersistenceLayer.hasMeasurement] to check whether there is
+     * avoid this use [DefaultPersistenceLayer.hasMeasurement] to check whether there is
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */

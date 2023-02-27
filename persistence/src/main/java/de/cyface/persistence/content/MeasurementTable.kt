@@ -50,7 +50,7 @@ class MeasurementTable : AbstractCyfaceTable(URI_PATH) {
         const val COLUMN_MODALITY = "modality"
 
         /**
-         * Column name for the [de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
+         * Column name for the [de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
          * for the data persisted with the [de.cyface.persistence.dao.FileDao] of for this measurement.
          */
         const val COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "fileFormatVersion"

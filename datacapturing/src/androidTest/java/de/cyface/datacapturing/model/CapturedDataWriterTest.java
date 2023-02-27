@@ -18,7 +18,7 @@
  */
 package de.cyface.datacapturing.model;
 
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.model.EventType.LIFECYCLE_PAUSE;
 import static de.cyface.persistence.model.EventType.LIFECYCLE_RESUME;
 import static de.cyface.persistence.model.EventType.LIFECYCLE_START;
@@ -60,7 +60,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.PersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.dao.DefaultFileDao;
 import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
@@ -95,13 +95,13 @@ public class CapturedDataWriterTest {
     /**
      * The object of the class under test.
      */
-    private PersistenceLayer<CapturingPersistenceBehaviour> oocut;
+    private DefaultPersistenceLayer<CapturingPersistenceBehaviour> oocut;
     /**
      * The {@link Context} required to access the persistence layer.
      */
     private Context context;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link DefaultPersistenceLayer}.
      */
     private CapturingPersistenceBehaviour capturingBehaviour;
     private final static int TEST_LOCATION_COUNT = 1;
@@ -119,7 +119,7 @@ public class CapturedDataWriterTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new PersistenceLayer<>(context, capturingBehaviour);
+        oocut = new DefaultPersistenceLayer<>(context, capturingBehaviour);
         // FIXME: we not use a real database, which might be okay as this is an androidTest
         SharedTestUtils.clearPersistenceLayer(context, oocut.getDatabase());
         // This is normally called in the <code>DataCapturingService#Constructor</code>
@@ -378,7 +378,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * Tests whether loading a track of geo locations is possible via the {@link DefaultPersistenceLayer} object.
      * <p>
      * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
      * storing an event when the test assumes otherwise.
@@ -424,7 +424,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * Tests whether loading a track of geo locations is possible via the {@link DefaultPersistenceLayer} object.
      * <p>
      * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
      * storing an event when the test assumes otherwise.
@@ -469,7 +469,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * Tests whether loading a track of geo locations is possible via the {@link DefaultPersistenceLayer} object.
      * <p>
      * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
      * storing an event when the test assumes otherwise.
@@ -506,7 +506,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * Tests whether loading a track of geo locations is possible via the {@link DefaultPersistenceLayer} object.
      * <p>
      * This test uses predefined timestamps or else it will be flaky, e.g. when storing a location is faster than
      * storing an event when the test assumes otherwise.
@@ -557,7 +557,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * Tests whether loading a track of geo locations is possible via the {@link DefaultPersistenceLayer} object.
      *
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
@@ -589,7 +589,7 @@ public class CapturedDataWriterTest {
     }
 
     /**
-     * Tests whether loading a track of geo locations is possible via the {@link PersistenceLayer} object.
+     * Tests whether loading a track of geo locations is possible via the {@link DefaultPersistenceLayer} object.
      *
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */

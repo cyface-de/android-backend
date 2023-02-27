@@ -36,13 +36,13 @@ interface GeoLocationDao {
     fun getAll(): List<GeoLocation>
 
     /**
-     * Ordered by timestamp for [de.cyface.persistence.PersistenceLayer.loadTracks] to work.
+     * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Location WHERE measurementId = :measurementId ORDER BY timestamp ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation?>?
 
     /**
-     * Ordered by timestamp for [de.cyface.persistence.PersistenceLayer.loadTracks] to work.
+     * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Location WHERE measurementId = :measurementId AND speed > :lowerSpeedThreshold AND accuracy > :accuracyThreshold AND speed < :upperSpeedThreshold ORDER BY timestamp ASC")
     fun loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(

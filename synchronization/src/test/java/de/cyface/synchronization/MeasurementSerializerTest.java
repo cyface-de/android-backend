@@ -19,7 +19,7 @@
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.P;
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSION_NOWRAP;
@@ -72,12 +72,12 @@ import android.os.RemoteException;
 import de.cyface.deserializer.LocationDeserializer;
 import de.cyface.deserializer.Point3DDeserializer;
 import de.cyface.model.Point3DImpl;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.content.BaseColumns;
 import de.cyface.persistence.content.LocationTable;
+import de.cyface.persistence.content.MeasurementProviderClient;
 import de.cyface.persistence.dao.DefaultFileDao;
 import de.cyface.persistence.dao.FileDao;
-import de.cyface.persistence.content.MeasurementProviderClient;
-import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.serialization.MeasurementSerializer;

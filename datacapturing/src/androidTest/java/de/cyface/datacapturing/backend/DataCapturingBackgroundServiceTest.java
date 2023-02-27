@@ -61,7 +61,7 @@ import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.DefaultLocationCleaning;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.BundlesExtrasCodes;
@@ -123,7 +123,7 @@ public class DataCapturingBackgroundServiceTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
+        final DefaultPersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new DefaultPersistenceLayer<>(context,
                 context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 

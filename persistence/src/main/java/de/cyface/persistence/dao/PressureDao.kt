@@ -33,7 +33,7 @@ import de.cyface.persistence.model.Pressure
 @Dao
 interface PressureDao {
     /**
-     * Ordered by timestamp for [de.cyface.persistence.PersistenceLayer.loadTracks] to work.
+     * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Pressure WHERE measurementId = :measurementId ORDER BY timestamp ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<Pressure?>?

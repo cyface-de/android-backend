@@ -34,7 +34,7 @@ import androidx.room.PrimaryKey
  * For AndroidDataAccessLayer.getIdOfNextUnSyncedMeasurement() to work the id must be long ASC.
  * @property status The capturing status of the measurement, i.e. whether the capturing is still ongoing.
  * @property modality The modality selected when starting this measurement.
- * @property fileFormatVersion The [de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
+ * @property fileFormatVersion The [de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
  *           used to serialize the data in the file-based persistence layer of this measurement.
  * @property distance The distance this measurement has captured in meters.
  * @property timestamp The Unix timestamp in milliseconds indicating the start time of the measurement.
@@ -55,7 +55,7 @@ data class Measurement(
      *
      * @param status The capturing status of the measurement, i.e. whether the capturing is still ongoing.
      * @param modality The modality selected when starting this measurement.
-     * @param fileFormatVersion The [de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
+     * @param fileFormatVersion The [de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
      *           used to serialize the data in the file-based persistence layer of this measurement.
      * @param distance The distance this measurement has captured in meters.
      * @param timestamp The Unix timestamp in milliseconds indicating the start time of the measurement.

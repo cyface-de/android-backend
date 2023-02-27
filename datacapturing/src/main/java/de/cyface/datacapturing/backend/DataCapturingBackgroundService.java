@@ -22,7 +22,7 @@ import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -66,10 +66,11 @@ import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.persistence.PersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.DataPoint;
 import de.cyface.persistence.model.ParcelableGeoLocation;
@@ -154,7 +155,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     LocationCleaningStrategy locationCleaningStrategy;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link DefaultPersistenceLayer}.
      */
     CapturingPersistenceBehaviour capturingBehaviour;
     /**
@@ -305,7 +306,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                             + AUTHORITY_ID);
         }
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer<>(this, capturingBehaviour);
+        persistenceLayer = new DefaultPersistenceLayer<>(this, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);

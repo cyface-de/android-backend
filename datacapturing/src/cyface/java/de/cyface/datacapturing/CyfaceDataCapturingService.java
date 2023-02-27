@@ -43,7 +43,7 @@ import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
@@ -98,7 +98,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException, CursorIsNullException {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new PersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
+                new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");

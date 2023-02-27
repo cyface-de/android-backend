@@ -54,13 +54,13 @@ import android.os.Parcelable;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.strategy.DefaultDistanceCalculation;
-import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.ParcelablePressure;
+import de.cyface.persistence.strategy.DistanceCalculationStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.utils.CursorIsNullException;
 
 /**
@@ -91,20 +91,20 @@ public class DataCapturingLocalTest {
      * Mocking the persistence layer to avoid calling Android system functions.
      */
     @Spy
-    PersistenceLayer<CapturingPersistenceBehaviour> mockPersistence;
+    PersistenceLayer mockPersistence;
     /**
      * Mocking the persistence behaviour to avoid calling Android system functions.
      */
     @Mock
     CapturingPersistenceBehaviour mockBehaviour;
     @Mock
-    DefaultDistanceCalculation distanceCalculationStrategy;
+    DistanceCalculationStrategy distanceCalculationStrategy;
     @Mock
-    DefaultLocationCleaning locationCleaningStrategy;
+    LocationCleaningStrategy locationCleaningStrategy;
     @Mock
     EventHandlingStrategy mockEventHandlingStrategy;
     private final int base = 0;
-    private final ParcelableGeoLocation location1 = generateGeoLocation(base);
+    private final ParcelableGeoLocation location1 = generateGeoLocation(base, 1L);
 
     @Before
     public void setUp() {
@@ -152,7 +152,7 @@ public class DataCapturingLocalTest {
     /**
      * This test case checks the internal workings of the onLocationCaptured method in the special case
      * where a cached location with a timestamp smaller than the start time of the background service is returned.
-     * <p>
+     *
      * Those "cached" locations are filtered by the background service (STAD-140).
      *
      * @throws CursorIsNullException when the content provider is not accessible
@@ -163,9 +163,9 @@ public class DataCapturingLocalTest {
 
         // Arrange
         final int expectedDistance = 2;
-        ParcelableGeoLocation cachedLocation = generateGeoLocation(base - expectedDistance);
-        ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance);
-        ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
+        ParcelableGeoLocation cachedLocation = generateGeoLocation(base - expectedDistance, 0L);
+        ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance, 1L);
+        ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance, 2L);
 
         // Mock
         // When the onLocationCaptured implementation is correct, this method is never called.

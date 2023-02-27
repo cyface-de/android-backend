@@ -309,7 +309,7 @@ This way we can use the `isRunning()` result from within `reconnect()` and avoid
 public class DataCapturingButton implements DataCapturingListener {
 
     PersistenceLayer<DefaultPersistenceBehaviour> persistence =
-        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
 
     public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
         this.dataCapturingService = dataCapturingService;
@@ -665,14 +665,14 @@ public class DataCapturingButton implements DataCapturingListener {
 [[access-measurements]]
 === Access Measurements
 
-You now need to use the `PersistenceLayer` to access and control captured _measurement data_.
+You now need to use the `DefaultPersistenceLayer` to access and control captured _measurement data_.
 
 [source,java]
 ----
 class measurementControlOrAccessClass {
 
     PersistenceLayer<DefaultPersistenceBehaviour> persistence =
-        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
 }
 ----
 
@@ -773,7 +773,7 @@ class measurementControlOrAccessClass {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
         final long measurementId;
 
-        DeleteFromDBTaskParams(final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer,
+        DeleteFromDBTaskParams(final DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer,
                 final long measurementId) {
             this.persistenceLayer = persistenceLayer;
             this.measurementId = measurementId;

@@ -68,7 +68,7 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -92,7 +92,7 @@ public class UploadProgressTest {
 
     private Context context;
     private ContentResolver contentResolver;
-    private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+    private DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
     private AccountManager accountManager;
     private SyncAdapter oocut;
     private Account account;
@@ -106,7 +106,7 @@ public class UploadProgressTest {
         contentResolver = context.getContentResolver();
 
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
-        persistenceLayer = new PersistenceLayer<>(context, contentResolver, AUTHORITY,
+        persistenceLayer = new DefaultPersistenceLayer<>(context, contentResolver, AUTHORITY,
                 new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 

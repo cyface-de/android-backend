@@ -45,7 +45,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -68,7 +68,7 @@ public class PersistenceLayerTest {
     /**
      * An object of the class under test. It is setup prior to each test execution.
      */
-    private PersistenceLayer<CapturingPersistenceBehaviour> oocut;
+    private DefaultPersistenceLayer<CapturingPersistenceBehaviour> oocut;
     /**
      * {@link Context} used to access the persistence layer
      */
@@ -78,7 +78,7 @@ public class PersistenceLayerTest {
      */
     private ContentResolver resolver;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link DefaultPersistenceLayer}.
      */
     private CapturingPersistenceBehaviour capturingBehaviour;
 
@@ -90,7 +90,7 @@ public class PersistenceLayerTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         resolver = context.getContentResolver();
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new PersistenceLayer<>(context, resolver, AUTHORITY, capturingBehaviour);
+        oocut = new DefaultPersistenceLayer<>(context, resolver, AUTHORITY, capturingBehaviour);
     }
 
     /**
@@ -123,7 +123,7 @@ public class PersistenceLayerTest {
     }
 
     /**
-     * Checks that calling {@link PersistenceLayer#loadMeasurements(MeasurementStatus)} on an empty database
+     * Checks that calling {@link DefaultPersistenceLayer#loadMeasurements(MeasurementStatus)} on an empty database
      * returns an empty list.
      *
      * @throws CursorIsNullException – If ContentProvider was inaccessible
@@ -213,7 +213,7 @@ public class PersistenceLayerTest {
     }
 
     /**
-     * Test that updating the distance in the {@link PersistenceLayer} during capturing works as expected.
+     * Test that updating the distance in the {@link DefaultPersistenceLayer} during capturing works as expected.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
      * @throws CursorIsNullException – If ContentProvider was inaccessible

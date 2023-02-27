@@ -57,7 +57,7 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -142,7 +142,7 @@ public final class SyncAdapterTest {
 
         // Arrange
         // Insert data to be synced
-        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+        final DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistence = new DefaultPersistenceLayer<>(context,
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
         final var insertedMeasurement = insertSampleMeasurementWithData(context,
@@ -194,7 +194,7 @@ public final class SyncAdapterTest {
 
         // Arrange
         // Insert data to be synced
-        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
+        final DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistence = new DefaultPersistenceLayer<>(context,
                 contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
         final var insertedMeasurement = insertSampleMeasurementWithData(context,

@@ -22,7 +22,7 @@ import java.lang.Exception
 
 /**
  * An `Exception` which occurs every time someone wants to load the device id from the
- * [de.cyface.persistence.PersistenceLayer] when there is no such entry in the database.
+ * [de.cyface.persistence.DefaultPersistenceLayer] when there is no such entry in the database.
  *
  * @author Armin Schnabel
  * @version 1.0.1

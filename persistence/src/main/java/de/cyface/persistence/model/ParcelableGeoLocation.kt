@@ -200,15 +200,7 @@ open class ParcelableGeoLocation : DataPoint {
     }
 
     override fun toString(): String {
-        return "GeoLocationV6{" +
-                "lat=" + lat +
-                ", lon=" + lon +
-                ", altitude=" + altitude +
-                ", speed=" + speed +
-                ", accuracy=" + accuracy +
-                ", verticalAccuracy=" + verticalAccuracy +
-                ", isValid=" + isValid +
-                '}'
+        return "ParcelableGeoLocation(lat=$lat, lon=$lon, altitude=$altitude, speed=$speed, accuracy=$accuracy, verticalAccuracy=$verticalAccuracy, isValid=$isValid)"
     }
 
     override fun equals(other: Any?): Boolean {

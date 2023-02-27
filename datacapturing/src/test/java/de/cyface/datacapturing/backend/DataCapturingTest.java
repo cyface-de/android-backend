@@ -111,17 +111,17 @@ public class DataCapturingTest {
         when(location.hasAltitude()).thenReturn(true);
         when(location.getAltitude()).thenReturn(400.123);
         when(location.getSpeed()).thenReturn(0.0f);
-        when(location.getAccuracy()).thenReturn(0.0f);
+        when(location.getAccuracy()).thenReturn(5.f);
         when(location.hasVerticalAccuracy()).thenReturn(true);
-        when(location.getVerticalAccuracyMeters()).thenReturn(0.0f);
+        when(location.getVerticalAccuracyMeters()).thenReturn(20.f);
         try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager,
-                mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100);) {
+                mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100)) {
             dataCapturing.setBuildVersionProvider(mockedBuildVersionProvider);
             dataCapturing.addCapturingProcessListener(listener);
             locationStatusHandler.handleFirstFix();
             dataCapturing.onLocationChanged(location);
             verify(listener).onLocationCaptured(
-                    new ParcelableGeoLocation(0L, 51.03624633, 13.78828128, 400.123, 0.0, 5.0, 19.99));
+                    new ParcelableGeoLocation(0L, 51.03624633, 13.78828128, 400.123, 0.0, 5., 20.));
         }
     }
 
@@ -138,7 +138,7 @@ public class DataCapturingTest {
         when(location.getSpeed()).thenReturn(0.0f);
         when(location.getAccuracy()).thenReturn(0.0f);
         try (CapturingProcess dataCapturing = new GeoLocationCapturingProcess(mockedLocationManager,
-                mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100);) {
+                mockedSensorService, locationStatusHandler, locationEventHandler, sensorEventHandler, 100)) {
             dataCapturing.addCapturingProcessListener(listener);
             dataCapturing.onLocationChanged(location);
             dataCapturing.onLocationChanged(location);

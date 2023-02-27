@@ -37,7 +37,7 @@ interface EventDao {
     fun loadById(id: Long): Event?
 
     /**
-     * Ordered by timestamp for [de.cyface.persistence.PersistenceLayer.loadTracks] to work.
+     * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Event WHERE measurementId = :measurementId ORDER BY timestamp ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<Event?>?

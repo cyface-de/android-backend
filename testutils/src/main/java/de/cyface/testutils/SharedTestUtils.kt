@@ -30,7 +30,7 @@ import de.cyface.model.Point3DImpl
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
-import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.content.MeasurementTable
@@ -114,7 +114,6 @@ object SharedTestUtils {
     /**
      * Generates [ParcelableGeoLocation]s with coordinates for testing.
      *
-     *
      * See {@param relativeDistance} if you need locations with a specific distance from each other.
      *
      * @param distanceFromBase an integer which defines how much the generated `GeoLocation`s are away from each
@@ -125,23 +124,38 @@ object SharedTestUtils {
      */
     @JvmStatic
     fun generateGeoLocation(distanceFromBase: Int): ParcelableGeoLocation {
+        return generateGeoLocation(distanceFromBase, 1000000000L)
+    }
+
+
+    /**
+     * Generates [ParcelableGeoLocation]s with coordinates for testing.
+     *
+     * See {@param relativeDistance} if you need locations with a specific distance from each other.
+     *
+     * @param distanceFromBase an integer which defines how much the generated `GeoLocation`s are away from each
+     * other. E.g.: If you generate `GeoLocation`s using {@param relativeDistance} 1, 3, 5 the
+     * generated locations will be approximately 1 meter per {@param relativeDistance}-difference away from
+     * each other. In this case (1, 5) = 4m distance and (1, 3) or (3, 5) = 2m distance.
+     * @return the generated `GeoLocation`
+     */
+    @JvmStatic
+    fun generateGeoLocation(distanceFromBase: Int, timestamp: Long): ParcelableGeoLocation {
         val salt = Math.random()
         return ParcelableGeoLocation(
-            1000000000L, BASE_LAT + distanceFromBase * LAT_CONSTANT,
+            timestamp,
+            BASE_LAT + distanceFromBase * LAT_CONSTANT,
             BASE_LON + distanceFromBase * LON_CONSTANT,
             400.0,
-            Math.max(
-                DefaultLocationCleaning.LOWER_SPEED_THRESHOLD,
-                salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD
-            ),
+            DefaultLocationCleaning.LOWER_SPEED_THRESHOLD.coerceAtLeast(salt * DefaultLocationCleaning.UPPER_SPEED_THRESHOLD),
             salt * (DefaultLocationCleaning.UPPER_ACCURACY_THRESHOLD - 1),
-            19.99
+            20.0
         )
     }
 
     @JvmStatic
-    fun generateRequestMetaDataGeoLocation(distanceFromBase: Int): RequestMetaData.GeoLocation {
-        val location = generateGeoLocation(distanceFromBase)
+    fun generateRequestMetaDataGeoLocation(distanceFromBase: Int, timestamp: Long): RequestMetaData.GeoLocation {
+        val location = generateGeoLocation(distanceFromBase, timestamp)
         return RequestMetaData.GeoLocation(location.timestamp, location.lat, location.lon)
     }
 
@@ -207,7 +221,7 @@ object SharedTestUtils {
     ): Measurement {
         val bytes = fileDao.loadBytes(file)
         val measurementBytes = MeasurementBytes.newBuilder()
-            .setFormatVersion(PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION.toInt())
+            .setFormatVersion(DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION.toInt())
         when (type) {
             Point3DType.ACCELERATION -> measurementBytes.accelerationsBinary =
                 ByteString.copyFrom(bytes)
@@ -377,7 +391,7 @@ object SharedTestUtils {
     fun insertSampleMeasurementWithData(
         context: Context,
         status: MeasurementStatus,
-        persistence: PersistenceLayer<*>,
+        persistence: DefaultPersistenceLayer<*>,
         point3DCount: Int,
         locationCount: Int
     ): de.cyface.persistence.model.Measurement {
@@ -451,7 +465,7 @@ object SharedTestUtils {
         insertPoint3Ds(directionsFile, dPoints)
         if (status === MeasurementStatus.FINISHED || status === MeasurementStatus.SYNCED || status === MeasurementStatus.SKIPPED) {
             persistence.storePersistenceFileFormatVersion(
-                PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
+                DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
                 measurementIdentifier
             )
             persistence.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false)
@@ -473,7 +487,7 @@ object SharedTestUtils {
         Assert.assertThat(
             loadedMeasurement!!.fileFormatVersion, CoreMatchers.`is`(
                 CoreMatchers.equalTo(
-                    PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION
+                    DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION
                 )
             )
         )
@@ -500,7 +514,7 @@ object SharedTestUtils {
     @JvmStatic
     @Throws(CursorIsNullException::class)
     fun insertMeasurementEntry(
-        persistence: PersistenceLayer<*>,
+        persistence: DefaultPersistenceLayer<*>,
         modality: Modality
     ): de.cyface.persistence.model.Measurement {
 

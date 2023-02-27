@@ -49,8 +49,8 @@ public class HttpConnectionTest {
 
         final var deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
         final var id = new MeasurementIdentifier(deviceId, 78);
-        final var startLocation = generateRequestMetaDataGeoLocation(0);
-        final var endLocation = generateRequestMetaDataGeoLocation(10);
+        final var startLocation = generateRequestMetaDataGeoLocation(0, 1000000000L);
+        final var endLocation = generateRequestMetaDataGeoLocation(10, 1000010000L);
         final var metaData = new RequestMetaData(id.getDeviceIdentifier(),
                 String.valueOf(id.getMeasurementIdentifier()), "test_osVersion", "test_deviceType", "test_appVersion",
                 10.0, 5, startLocation, endLocation, Modality.BICYCLE.getDatabaseIdentifier(), 3);

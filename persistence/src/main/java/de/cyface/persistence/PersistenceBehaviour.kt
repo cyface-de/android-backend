@@ -23,7 +23,7 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.utils.CursorIsNullException
 
 /**
- * The [PersistenceBehaviour] defines how the [PersistenceLayer] works. Select a behaviour depending on
+ * The [PersistenceBehaviour] defines how the [DefaultPersistenceLayer] works. Select a behaviour depending on
  * if you want to use the `PersistenceLayer` to capture a new [Measurement] or to load existing data.
  *
  * @author Armin Schnabel
@@ -34,17 +34,17 @@ interface PersistenceBehaviour {
     /**
      * This is called in the `Persistence`'s constructor.
      */
-    fun onStart(persistenceLayer: PersistenceLayer<*>)
+    fun onStart(persistenceLayer: DefaultPersistenceLayer<*>)
 
     /**
-     * This is called after a [PersistenceLayer.newMeasurement] was created.
+     * This is called after a [DefaultPersistenceLayer.newMeasurement] was created.
      *
      * @param measurementId The id of the recently created [Measurement]
      */
     fun onNewMeasurement(measurementId: Long)
 
     /**
-     * This is called when the [PersistenceLayer] is no longer needed by [PersistenceLayer.shutdown].
+     * This is called when the [DefaultPersistenceLayer] is no longer needed by [DefaultPersistenceLayer.shutdown].
      */
     fun shutdown()
 
