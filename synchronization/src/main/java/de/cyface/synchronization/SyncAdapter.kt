@@ -35,6 +35,7 @@ import android.util.Log
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.content.MeasurementProviderClient
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
@@ -137,14 +138,14 @@ class SyncAdapter private constructor(
                 Validate.isTrue(format == PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
 
                 // Load measurement data
+                val loader = MeasurementProviderClient(measurement.id, provider, authority)
                 val metaData = loadMetaData(measurement, persistence, deviceId, context)
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 var compressedTransferTempFile: File? = null
                 try {
                     compressedTransferTempFile = serializer.writeSerializedCompressed(
-                        persistence.database!!,
-                        measurement.id, persistence
+                        loader, measurement.id, persistence
                     )
 
                     // Acquire new auth token before each synchronization (old one could be expired)
