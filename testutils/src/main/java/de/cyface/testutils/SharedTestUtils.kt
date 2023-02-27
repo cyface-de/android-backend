@@ -30,16 +30,19 @@ import de.cyface.model.Point3DImpl
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.DefaultLocationCleaning
-import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.content.EventTable
+import de.cyface.persistence.content.LocationTable
+import de.cyface.persistence.content.MeasurementTable
+import de.cyface.persistence.dao.DefaultFileDao
+import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.Point3DFile
+import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
@@ -49,12 +52,13 @@ import org.hamcrest.CoreMatchers
 import org.junit.Assert
 import java.io.File
 
+
 /**
  * This class (and the module test-utils) exist to be able to share test code between modules.
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 6.2.0
+ * @version 7.0.0
  * @since 3.0.0
  */
 object SharedTestUtils {
@@ -286,6 +290,77 @@ object SharedTestUtils {
         // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
         return (removedFiles +  /* removedIdentifierRows + */removedGeoLocations + removedPressures + removedEvents
                 + removedMeasurements)
+    }
+
+    /**
+     * Removes everything from the local persistent data storage to allow reproducible test results.
+     *
+     * (!) This removes both the data from file persistence and the database which will also reset the device id.
+     * This is not part of the persistence layer as we want to avoid that this is used outside the test code.
+     *
+     * This method mut be in the [SharedTestUtils] to ensure multiple modules can access it in androidTests!
+     *
+     * @param context The [Context] required to access the file persistence layer
+     * @param resolver The [ContentResolver] required to access the database
+     * @return number of rows removed from the database and number of **FILES** (not points) deleted. The earlier
+     * includes [Measurement]s, [ParcelableGeoLocation]s and [de.cyface.persistence.model.Event]s.
+     * The later includes the [Point3DFile]s.
+     */
+    @JvmStatic
+    fun clearPersistenceLayer(context: Context, resolver: ContentResolver, authority: String): Int {
+        val fileAccessLayer: FileDao = DefaultFileDao()
+
+        // Remove {@code Point3DFile}s and their parent folders
+        var removedFiles = 0
+        val accelerationFolder: File =
+            fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+        if (accelerationFolder.exists()) {
+            Validate.isTrue(accelerationFolder.isDirectory)
+            val accelerationFiles = accelerationFolder.listFiles()
+            if (accelerationFiles != null) {
+                for (file in accelerationFiles) {
+                    Validate.isTrue(file.delete())
+                }
+                removedFiles += accelerationFiles.size
+            }
+            Validate.isTrue(accelerationFolder.delete())
+        }
+        val rotationFolder: File =
+            fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+        if (rotationFolder.exists()) {
+            Validate.isTrue(rotationFolder.isDirectory)
+            val rotationFiles = rotationFolder.listFiles()
+            if (rotationFiles != null) {
+                for (file in rotationFiles) {
+                    Validate.isTrue(file.delete())
+                }
+                removedFiles += rotationFiles.size
+            }
+            Validate.isTrue(rotationFolder.delete())
+        }
+        val directionFolder: File =
+            fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+        if (directionFolder.exists()) {
+            Validate.isTrue(directionFolder.isDirectory)
+            val directionFiles = directionFolder.listFiles()
+            if (directionFiles != null) {
+                for (file in directionFiles) {
+                    Validate.isTrue(file.delete())
+                }
+                removedFiles += directionFiles.size
+            }
+            Validate.isTrue(directionFolder.delete())
+        }
+
+        // Remove database entries
+        val removedGeoLocations = resolver.delete(LocationTable.getUri(authority), null, null)
+        val removedEvents = resolver.delete(EventTable.getUri(authority), null, null)
+        val removedMeasurements = resolver.delete(MeasurementTable.getUri(authority), null, null)
+        // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
+        // However this should be okay to ignore for now as the identifier table should never be reset unless the
+        // database itself is removed when the app is uninstalled or the app data is deleted.
+        // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
+        return removedFiles +  /* removedIdentifierRows + */removedGeoLocations + removedEvents + removedMeasurements
     }
 
     /**

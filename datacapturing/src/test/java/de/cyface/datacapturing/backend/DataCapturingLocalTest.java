@@ -55,7 +55,7 @@ import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.persistence.strategy.DefaultDistanceCalculation;
-import de.cyface.persistence.DefaultLocationCleaning;
+import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.ParcelableGeoLocation;

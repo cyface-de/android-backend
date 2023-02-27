@@ -25,7 +25,7 @@ import org.junit.Assert;
 import org.junit.Before;
 import org.junit.Test;
 
-import de.cyface.persistence.DefaultLocationCleaning;
+import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 
 /**

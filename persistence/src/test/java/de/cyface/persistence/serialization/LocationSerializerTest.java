@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Cyface GmbH
+ * Copyright 2022-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -40,18 +40,17 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.RemoteException;
 
+import de.cyface.persistence.content.LocationTable;
 import de.cyface.persistence.content.MeasurementProviderClient;
-import de.cyface.persistence.Utils;
 import de.cyface.serializer.LocationOffsetter;
 
 /**
  * Tests the inner workings of {@link LocationSerializer}.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.3.3
  */
 @RunWith(RobolectricTestRunner.class)
@@ -86,7 +85,7 @@ public class LocationSerializerTest {
     public void setUp() throws RemoteException {
 
         // Mock GeoLocation database access
-        Uri geoLocationUri = Utils.getGeoLocationsUri(AUTHORITY);
+        var geoLocationUri = LocationTable.Companion.getUri(AUTHORITY);
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor1)
                 .thenReturn(geoLocationsCursor2);

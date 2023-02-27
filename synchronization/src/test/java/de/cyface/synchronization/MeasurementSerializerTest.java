@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -72,12 +72,12 @@ import android.os.RemoteException;
 import de.cyface.deserializer.LocationDeserializer;
 import de.cyface.deserializer.Point3DDeserializer;
 import de.cyface.model.Point3DImpl;
+import de.cyface.persistence.content.BaseColumns;
+import de.cyface.persistence.content.LocationTable;
 import de.cyface.persistence.dao.DefaultFileDao;
 import de.cyface.persistence.dao.FileDao;
-import de.cyface.persistence.GeoLocationsTable;
 import de.cyface.persistence.content.MeasurementProviderClient;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.Utils;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.0.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -149,9 +149,9 @@ public class MeasurementSerializerTest {
     public void setUp() throws RemoteException, CursorIsNullException {
 
         // Mock GeoLocation database access
-        Uri geoLocationUri = Utils.getGeoLocationsUri(AUTHORITY);
+        Uri geoLocationUri = LocationTable.Companion.getUri(AUTHORITY);
         when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
-        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK))
+        when(loader.countData(geoLocationUri, BaseColumns.MEASUREMENT_ID))
                 .thenReturn(SAMPLE_GEO_LOCATIONS);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 

@@ -124,7 +124,7 @@ application separately.
         <!-- This overwrites the provider in the SDK. This way the app can be installed next to other
         SDK using apps. The "authorities" must match the one in your AndroidManifest.xml! -->
         <provider
-            android:name="de.cyface.persistence.MeasurementProvider"
+            android:name="de.cyface.persistence.content.MeasurementProvider"
             android:authorities="your.domain.app.provider"
             android:exported="false"
             android:process=":persistence_process"

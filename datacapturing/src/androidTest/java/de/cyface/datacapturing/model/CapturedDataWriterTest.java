@@ -18,9 +18,10 @@
  */
 package de.cyface.datacapturing.model;
 
-import static de.cyface.datacapturing.TestUtils.AUTHORITY;
-import static de.cyface.datacapturing.TestUtils.TAG;
 import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_PAUSE;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_RESUME;
+import static de.cyface.persistence.model.EventType.LIFECYCLE_START;
 import static de.cyface.persistence.model.EventType.LIFECYCLE_STOP;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
@@ -50,11 +51,7 @@ import org.junit.runner.RunWith;
 import com.google.protobuf.InvalidProtocolBufferException;
 
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
-import android.provider.BaseColumns;
-import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
@@ -62,24 +59,23 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
-import de.cyface.persistence.dao.DefaultFileDao;
-import de.cyface.persistence.DefaultLocationCleaning;
-import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.dao.DefaultFileDao;
+import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.ParcelableGeoLocation;
-import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.model.ParcelablePoint3D;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.model.Track;
 import de.cyface.persistence.serialization.NoSuchFileException;
 import de.cyface.persistence.serialization.Point3DFile;
+import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
-import de.cyface.utils.Validate;
 
 /**
  * Tests whether captured data is correctly saved to the underlying content provider. This test uses
@@ -97,19 +93,9 @@ import de.cyface.utils.Validate;
 public class CapturedDataWriterTest {
 
     /**
-     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
-     */
-    /*@Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
-            .build();*/
-    /**
      * The object of the class under test.
      */
     private PersistenceLayer<CapturingPersistenceBehaviour> oocut;
-    /**
-     * An Android <code>ContentResolver</code> provided for executing tests.
-     */
-    private ContentResolver mockResolver;
     /**
      * The {@link Context} required to access the persistence layer.
      */
@@ -130,12 +116,12 @@ public class CapturedDataWriterTest {
      */
     @Before
     public void setUp() throws CursorIsNullException {
-        //mockResolver = providerRule.getResolver();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
-        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
         oocut = new PersistenceLayer<>(context, capturingBehaviour);
+        // FIXME: we not use a real database, which might be okay as this is an androidTest
+        SharedTestUtils.clearPersistenceLayer(context, oocut.getDatabase());
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
     }
@@ -145,7 +131,7 @@ public class CapturedDataWriterTest {
      */
     @After
     public void tearDown() {
-        clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        clearPersistenceLayer(context, oocut.getDatabase());
     }
 
     /**
@@ -162,54 +148,23 @@ public class CapturedDataWriterTest {
         assertThat(measurement.getId() > 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
-        String identifierString = Long.valueOf(measurement.getId()).toString();
-        Log.d(TAG, identifierString);
-        try (Cursor result = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
-                new String[] {identifierString}, null)) {
-            if (result == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from content provider.");
-            }
-
-            assertThat(result.getCount(), is(equalTo(1)));
-            assertThat(result.moveToFirst(), is(equalTo(true)));
-
-            assertThat(result.getString(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_MODALITY)),
-                    is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-            assertThat(result.getString(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_STATUS)),
-                    is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
-            assertThat(
-                    result.getShort(
-                            result.getColumnIndexOrThrow(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION)),
-                    is(equalTo(PERSISTENCE_FILE_FORMAT_VERSION)));
-            assertThat(result.getDouble(result.getColumnIndexOrThrow(MeasurementTable.COLUMN_DISTANCE)),
-                    is(equalTo(0.0)));
-
-        }
+        final var measurementDao = oocut.getDatabase().measurementDao();
+        final var created = measurementDao.loadById(measurement.getId());
+        assertThat(created.getModality(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(created.getStatus(), is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
+        assertThat(created.getFileFormatVersion(), is(equalTo(PERSISTENCE_FILE_FORMAT_VERSION)));
+        assertThat(created.getDistance(), is(equalTo(0.0)));
 
         // Store persistenceFileFormatVersion
-        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getId());
 
         // Finish the measurement
         capturingBehaviour.updateRecentMeasurement(FINISHED);
 
         // Load the finished measurement
-        try (Cursor finishingResult = mockResolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
-                new String[] {identifierString}, null)) {
-            if (finishingResult == null) {
-                throw new IllegalStateException(
-                        "Test failed because it was unable to load data from content provider.");
-            }
-
-            assertThat(finishingResult.getCount(), is(equalTo(1)));
-            assertThat(finishingResult.moveToFirst(), is(equalTo(true)));
-
-            assertThat(
-                    finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_MODALITY)),
-                    is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-            assertThat(finishingResult.getString(finishingResult.getColumnIndexOrThrow(MeasurementTable.COLUMN_STATUS)),
-                    is(equalTo(FINISHED.getDatabaseIdentifier())));
-        }
+        final var finished = measurementDao.loadById(measurement.getId());
+        assertThat(finished.getModality(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(finished.getStatus(), is(equalTo(FINISHED.getDatabaseIdentifier())));
     }
 
     /**
@@ -231,10 +186,10 @@ public class CapturedDataWriterTest {
             }
         };
 
-        capturingBehaviour.storeData(testData(), measurement.getIdentifier(), callback);
+        capturingBehaviour.storeData(testData(), measurement.getId(), callback);
 
         // Store persistenceFileFormatVersion
-        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getId());
 
         lock.lock();
         try {
@@ -245,38 +200,32 @@ public class CapturedDataWriterTest {
             lock.unlock();
         }
 
-        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getId());
 
         // Check if the captured data was persisted
         FileDao fileDao = new DefaultFileDao();
-        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null)) {
-            // GeoLocations
-            Validate.notNull(geoLocationsCursor,
-                    "Test failed because it was unable to load data from the content provider.");
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(TEST_LOCATION_COUNT)));
+        final var locationDao = oocut.getDatabase().geoLocationDao();
+        final var locations = locationDao.getAll();
+        assertThat(locations.size(), is(equalTo(TEST_LOCATION_COUNT)));
 
-            // Point3Ds
-            final var accelerationsFile = Point3DFile.loadFile(context, fileDao, measurement.getIdentifier(),
-                    ACCELERATION);
-            final var rotationsFile = Point3DFile.loadFile(context, fileDao, measurement.getIdentifier(),
-                    ROTATION);
-            final var directionsFile = Point3DFile.loadFile(context, fileDao, measurement.getIdentifier(),
-                    DIRECTION);
+        // Point3Ds
+        final var accelerationsFile = Point3DFile.loadFile(context, fileDao, measurement.getId(), ACCELERATION);
+        final var rotationsFile = Point3DFile.loadFile(context, fileDao, measurement.getId(), ROTATION);
+        final var directionsFile = Point3DFile.loadFile(context, fileDao, measurement.getId(), DIRECTION);
 
-            final var accelerations = deserialize(fileDao, accelerationsFile.getFile(), ACCELERATION);
-            final var rotations = deserialize(fileDao, rotationsFile.getFile(), ROTATION);
-            final var directions = deserialize(fileDao, directionsFile.getFile(), DIRECTION);
+        final var accelerations = deserialize(fileDao, accelerationsFile.getFile(), ACCELERATION);
+        final var rotations = deserialize(fileDao, rotationsFile.getFile(), ROTATION);
+        final var directions = deserialize(fileDao, directionsFile.getFile(), DIRECTION);
 
-            final var accelerationBatch = accelerations.getAccelerationsBinary().getAccelerations(0);
-            assertThat(accelerationBatch.getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(accelerationBatch.getXCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(accelerationBatch.getYCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(accelerationBatch.getZCount(), is(equalTo(TEST_DATA_COUNT)));
-            assertThat(rotations.getRotationsBinary().getRotations(0).getTimestampCount(),
-                    is(equalTo(TEST_DATA_COUNT)));
-            assertThat(directions.getDirectionsBinary().getDirections(0).getTimestampCount(),
-                    is(equalTo(TEST_DATA_COUNT)));
-        }
+        final var accelerationBatch = accelerations.getAccelerationsBinary().getAccelerations(0);
+        assertThat(accelerationBatch.getTimestampCount(), is(equalTo(TEST_DATA_COUNT)));
+        assertThat(accelerationBatch.getXCount(), is(equalTo(TEST_DATA_COUNT)));
+        assertThat(accelerationBatch.getYCount(), is(equalTo(TEST_DATA_COUNT)));
+        assertThat(accelerationBatch.getZCount(), is(equalTo(TEST_DATA_COUNT)));
+        assertThat(rotations.getRotationsBinary().getRotations(0).getTimestampCount(),
+                is(equalTo(TEST_DATA_COUNT)));
+        assertThat(directions.getDirectionsBinary().getDirections(0).getTimestampCount(),
+                is(equalTo(TEST_DATA_COUNT)));
     }
 
     /**
@@ -306,11 +255,11 @@ public class CapturedDataWriterTest {
         final int point3DFilesPerMeasurement = 3;
         final int testEvents = 2;
         oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
-        capturingBehaviour.storeData(testData(), measurement.getIdentifier(), finishedCallback);
+        capturingBehaviour.storeData(testData(), measurement.getId(), finishedCallback);
 
-        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getIdentifier());
+        oocut.storePersistenceFileFormatVersion(PERSISTENCE_FILE_FORMAT_VERSION, measurement.getId());
 
-        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getId());
         oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
 
         lock.lock();
@@ -323,29 +272,22 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedEntries = clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        int removedEntries = clearPersistenceLayer(context, oocut.getDatabase());
         // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
         // the life-cycle DataCapturingServiceTests
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3DFiles * point3DFilesPerMeasurement
                 + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents)));
 
         // make sure nothing is left in the database
-        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
-                GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.toString(measurement.getIdentifier())}, null);
-                Cursor measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
-                Cursor identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null)) {
-            Validate.notNull(geoLocationsCursor,
-                    "Test failed because it was unable to load data from the content provider.");
-            Validate.notNull(measurementsCursor,
-                    "Test failed because it was unable to load data from the content provider.");
-            Validate.notNull(identifierCursor,
-                    "Test failed because it was unable to load data from the content provider.");
-
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-            assertThat(measurementsCursor.getCount(), is(equalTo(0)));
-            assertThat(identifierCursor.getCount(), is(equalTo(1))); // because we don't clean it up currently
-        }
+        final var locationsDao = oocut.getDatabase().geoLocationDao();
+        final var measurementsDao = oocut.getDatabase().measurementDao();
+        final var identifierDao = oocut.getDatabase().identifierDao();
+        final var locations = locationsDao.loadAllByMeasurementId(measurement.getId());
+        final var measurements = measurementsDao.getAll();
+        final var identifiers = identifierDao.getAll();
+        assertThat(locations.size(), is(equalTo(0)));
+        assertThat(measurements.size(), is(equalTo(0)));
+        assertThat(identifiers.size(), is(equalTo(1))); // because we don't clean it up currently
 
         // Make sure nothing is left of the Point3DFiles
         final File accelerationsFolder = oocut.getFileDao().getFolderPath(context,
@@ -372,7 +314,7 @@ public class CapturedDataWriterTest {
         assertThat(loadedMeasurements.size(), is(equalTo(2)));
 
         for (Measurement measurement : loadedMeasurements) {
-            oocut.delete(measurement.getIdentifier());
+            oocut.delete(measurement.getId());
         }
     }
 
@@ -384,7 +326,7 @@ public class CapturedDataWriterTest {
 
         // Arrange
         Measurement measurement = oocut.newMeasurement(UNKNOWN);
-        final long measurementId = measurement.getIdentifier();
+        final long measurementId = measurement.getId();
 
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -407,11 +349,11 @@ public class CapturedDataWriterTest {
         } finally {
             lock.unlock();
         }
-        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getId());
         oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
 
         // Act
-        oocut.delete(measurement.getIdentifier());
+        oocut.delete(measurement.getId());
 
         // Assert
         final File accelerationFile = oocut.getFileDao().getFilePath(context, measurementId,
@@ -424,22 +366,13 @@ public class CapturedDataWriterTest {
         assertThat(!rotationFile.exists(), is(true));
         assertThat(!directionFile.exists(), is(true));
 
-        try (Cursor geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
-                GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null)) {
-            Validate.notNull(geoLocationsCursor,
-                    "Test failed because it was unable to load data from the content provider.");
+        final var locationsDao = oocut.getDatabase().geoLocationDao();
+        final var locations = locationsDao.loadAllByMeasurementId(measurementId);
+        assertThat(locations.size(), is(equalTo(0)));
 
-            assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
-        }
-
-        try (Cursor eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null,
-                EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null)) {
-            Validate.notNull(eventsCursor, "Test failed because it was unable to load data from the content provider.");
-
-            assertThat(eventsCursor.getCount(), is(equalTo(0)));
-        }
+        final var eventsDao = oocut.getDatabase().eventDao();
+        final var events = eventsDao.loadAllByMeasurementId(measurementId);
+        assertThat(events.size(), is(equalTo(0)));
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
     }
@@ -460,26 +393,26 @@ public class CapturedDataWriterTest {
 
         // Start event and 2 locations
         oocut.logEvent(LIFECYCLE_START, measurement, 1L);
-        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
-        capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getId());
+        capturingBehaviour.storeLocation(testLocation(2L), measurement.getId());
 
         // Pause event and a slightly late 3rd location
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
-        capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(4L), measurement.getId());
 
         // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
-        capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(5L), measurement.getId());
         oocut.logEvent(LIFECYCLE_RESUME, measurement, 6L);
-        capturingBehaviour.storeLocation(testLocation(6L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(6L), measurement.getId());
 
         // Stop event and a lightly late 2nd location
         oocut.logEvent(LIFECYCLE_STOP, measurement, 7L);
-        capturingBehaviour.storeLocation(testLocation(8L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(8L), measurement.getId());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getId());
 
         // Assert
         assertThat(tracks.size(), is(equalTo(2)));
@@ -510,15 +443,15 @@ public class CapturedDataWriterTest {
 
         // Start event and 2 locations
         oocut.logEvent(LIFECYCLE_START, measurement, 1L);
-        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
-        capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getId());
+        capturingBehaviour.storeLocation(testLocation(2L), measurement.getId());
 
         // Pause event and a slightly late 3rd location
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
-        capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(4L), measurement.getId());
 
         // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
-        capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(5L), measurement.getId());
         oocut.logEvent(LIFECYCLE_RESUME, measurement, 6L);
 
         // Stop event and a lightly late 2nd location
@@ -527,7 +460,7 @@ public class CapturedDataWriterTest {
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getId());
 
         // Assert
         assertThat(tracks.size(), is(equalTo(1)));
@@ -556,7 +489,7 @@ public class CapturedDataWriterTest {
 
         // Start event and at least one location between start and pause
         oocut.logEvent(LIFECYCLE_START, measurement, 1L);
-        capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(2L), measurement.getId());
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
         oocut.logEvent(LIFECYCLE_RESUME, measurement, 4L);
         oocut.logEvent(LIFECYCLE_STOP, measurement, 5L);
@@ -564,7 +497,7 @@ public class CapturedDataWriterTest {
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getId());
 
         // Assert
         assertThat(tracks.size(), is(equalTo(1)));
@@ -588,31 +521,31 @@ public class CapturedDataWriterTest {
 
         // Start event and 2 locations
         oocut.logEvent(LIFECYCLE_START, measurement, 1L);
-        capturingBehaviour.storeLocation(testLocation(1L), measurement.getIdentifier());
-        capturingBehaviour.storeLocation(testLocation(2L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(1L), measurement.getId());
+        capturingBehaviour.storeLocation(testLocation(2L), measurement.getId());
 
         // Pause event and a slightly late 3rd location
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, 3L);
-        capturingBehaviour.storeLocation(testLocation(4L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(4L), measurement.getId());
 
         // Resume event with a cached, older location (STAD-140) and a location with the same timestamp
-        capturingBehaviour.storeLocation(testLocation(5L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(5L), measurement.getId());
         oocut.logEvent(LIFECYCLE_RESUME, measurement, 6L);
         // The first location may be capturing at the same millisecond (tried to reproduce MOV-676)
-        capturingBehaviour.storeLocation(testLocation(6L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(6L), measurement.getId());
 
         // Pause event and a slightly late 2nd location
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, 7L);
-        capturingBehaviour.storeLocation(testLocation(8L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(8L), measurement.getId());
 
         // Stop event and a lightly late location
         oocut.logEvent(LIFECYCLE_STOP, measurement, 9L);
-        capturingBehaviour.storeLocation(testLocation(10L), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(10L), measurement.getId());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getId());
 
         // Assert
         assertThat(tracks.size(), is(equalTo(2)));
@@ -635,19 +568,19 @@ public class CapturedDataWriterTest {
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
-        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
-        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getId());
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getId());
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, System.currentTimeMillis());
         // It's possible that GeoLocations arrive just after capturing was paused
         final long timestamp = System.currentTimeMillis();
-        capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getId());
 
         oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getId());
 
         // Assert
         assertThat(tracks.size(), is(equalTo(1)));
@@ -667,16 +600,16 @@ public class CapturedDataWriterTest {
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
 
         oocut.logEvent(LIFECYCLE_START, measurement, System.currentTimeMillis());
-        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(System.currentTimeMillis()), measurement.getId());
         oocut.logEvent(LIFECYCLE_STOP, measurement, System.currentTimeMillis());
         // It's possible that GeoLocations arrive just after stop method was triggered
         final long timestamp = System.currentTimeMillis();
-        capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getIdentifier());
+        capturingBehaviour.storeLocation(testLocation(timestamp), measurement.getId());
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier());
+        List<Track> tracks = oocut.loadTracks(loadedMeasurements.get(0).getId());
 
         // Assert
         assertThat(tracks.size(), is(equalTo(1)));
@@ -695,31 +628,36 @@ public class CapturedDataWriterTest {
         // Arrange
         final Measurement measurement = oocut.newMeasurement(UNKNOWN);
         final long startTime = 1000000000L;
-        final ParcelableGeoLocation locationWithJustTooBadAccuracy = new ParcelableGeoLocation(51.1, 13.1,
-                startTime + 1, 5.0, 20.0);
-        final ParcelableGeoLocation locationWithJustTooLowSpeed = new ParcelableGeoLocation(51.1, 13.1,
-                startTime + 2, 1.0, 5);
-        final ParcelableGeoLocation locationWithHighEnoughSpeed = new ParcelableGeoLocation(51.1, 13.1,
-                startTime + 3, 1.01, 5);
-        final ParcelableGeoLocation locationWithGoodEnoughAccuracy = new ParcelableGeoLocation(51.1, 13.1,
-                startTime + 10, 5.0, 19.99);
-        final ParcelableGeoLocation locationWithJustTooHighSpeed = new ParcelableGeoLocation(51.1, 13.1,
-                startTime + 11, 100.0, 5);
+        final ParcelableGeoLocation locationWithJustTooBadAccuracy = new ParcelableGeoLocation(startTime + 1, 51.1,
+                13.1, 400.,
+                5.0, 20.0, 20.);
+        final ParcelableGeoLocation locationWithJustTooLowSpeed = new ParcelableGeoLocation(startTime + 2, 51.1, 13.1,
+                400.,
+                1.0, 5., 20.);
+        final ParcelableGeoLocation locationWithHighEnoughSpeed = new ParcelableGeoLocation(startTime + 3, 51.1, 13.1,
+                400.,
+                1.01, 5., 20.);
+        final ParcelableGeoLocation locationWithGoodEnoughAccuracy = new ParcelableGeoLocation(startTime + 10, 51.1,
+                13.1, 400.,
+                5.0, 19.99, 20.);
+        final ParcelableGeoLocation locationWithJustTooHighSpeed = new ParcelableGeoLocation(startTime + 11, 51.1, 13.1,
+                400.,
+                100.0, 5., 20.);
 
         oocut.logEvent(LIFECYCLE_START, measurement, startTime);
-        capturingBehaviour.storeLocation(locationWithJustTooBadAccuracy, measurement.getIdentifier());
-        capturingBehaviour.storeLocation(locationWithJustTooLowSpeed, measurement.getIdentifier());
-        capturingBehaviour.storeLocation(locationWithHighEnoughSpeed, measurement.getIdentifier());
+        capturingBehaviour.storeLocation(locationWithJustTooBadAccuracy, measurement.getId());
+        capturingBehaviour.storeLocation(locationWithJustTooLowSpeed, measurement.getId());
+        capturingBehaviour.storeLocation(locationWithHighEnoughSpeed, measurement.getId());
         oocut.logEvent(LIFECYCLE_PAUSE, measurement, startTime + 4);
         oocut.logEvent(LIFECYCLE_RESUME, measurement, startTime + 9);
-        capturingBehaviour.storeLocation(locationWithGoodEnoughAccuracy, measurement.getIdentifier());
-        capturingBehaviour.storeLocation(locationWithJustTooHighSpeed, measurement.getIdentifier());
+        capturingBehaviour.storeLocation(locationWithGoodEnoughAccuracy, measurement.getId());
+        capturingBehaviour.storeLocation(locationWithJustTooHighSpeed, measurement.getId());
         oocut.logEvent(LIFECYCLE_STOP, measurement, startTime + 12);
 
         // Act
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements();
         assertThat(loadedMeasurements.size(), is(equalTo(1)));
-        List<Track> cleanedTracks = oocut.loadTracks(loadedMeasurements.get(0).getIdentifier(),
+        List<Track> cleanedTracks = oocut.loadTracks(loadedMeasurements.get(0).getId(),
                 new DefaultLocationCleaning());
 
         // Assert

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,19 +21,16 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
-import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.Modality.CAR;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
-import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.junit.Assert.assertThat;
 import static org.junit.Assert.assertTrue;
 
-import java.util.ArrayList;
 import java.util.List;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -51,10 +48,7 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
-import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -74,11 +68,11 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.EventTable;
-import de.cyface.persistence.MeasurementProvider;
-import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.content.MeasurementProvider;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
+import de.cyface.persistence.model.EventType;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -162,9 +156,9 @@ public class DataCapturingServiceTest {
         });
 
         // Prepare
-        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
-        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        // FIXME: we not use a real database, which might be okay as this is an androidTest
+        persistenceLayer = new PersistenceLayer<>(context, new DefaultPersistenceBehaviour());
+        SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning());
@@ -202,7 +196,7 @@ public class DataCapturingServiceTest {
             assertThat(isRunning, is(equalTo(false)));
         }
 
-        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+        SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
     }
 
     /**
@@ -493,11 +487,11 @@ public class DataCapturingServiceTest {
         assertThat(measurements.size(), is(equalTo(3)));
 
         final long measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier;
-        assertThat(measurements.get(0).getIdentifier(), is(equalTo(measurementId1)));
+        assertThat(measurements.get(0).getId(), is(equalTo(measurementId1)));
         final long measurementId2 = startUpFinishedHandler2.receivedMeasurementIdentifier;
-        assertThat(measurements.get(1).getIdentifier(), is(equalTo(measurementId2)));
+        assertThat(measurements.get(1).getId(), is(equalTo(measurementId2)));
         final long measurementId3 = startUpFinishedHandler3.receivedMeasurementIdentifier;
-        assertThat(measurements.get(2).getIdentifier(), is(equalTo(measurementId3)));
+        assertThat(measurements.get(2).getId(), is(equalTo(measurementId3)));
 
         assertThat(measurementId1, is(not(equalTo(-1L))));
         assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
@@ -699,8 +693,7 @@ public class DataCapturingServiceTest {
         resumeAndCheckThatLaunched(measurementIdentifier);
 
         // Resume 2: must be ignored by resumeAsync
-        PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
+        var persistence = new PersistenceLayer<>(context, new CapturingPersistenceBehaviour());
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -804,11 +797,11 @@ public class DataCapturingServiceTest {
         final List<Event> events = oocut.persistenceLayer.loadEvents(measurementIdentifier);
         // start, pause, resume, stop and initial MODALITY_TYPE_CHANGE event
         assertThat(events.size(), is(equalTo(5)));
-        assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-        assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
-        assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-        assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-        assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+        assertThat(events.get(0).getType(), is(equalTo(EventType.LIFECYCLE_START)));
+        assertThat(events.get(1).getType(), is(equalTo(EventType.MODALITY_TYPE_CHANGE)));
+        assertThat(events.get(2).getType(), is(equalTo(EventType.LIFECYCLE_PAUSE)));
+        assertThat(events.get(3).getType(), is(equalTo(EventType.LIFECYCLE_RESUME)));
+        assertThat(events.get(4).getType(), is(equalTo(EventType.LIFECYCLE_STOP)));
     }
 
     /**
@@ -835,7 +828,7 @@ public class DataCapturingServiceTest {
             startPauseResumeStop();
 
             // For for-i-loops within this test
-            SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+            SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
         }
     }
 
@@ -855,34 +848,18 @@ public class DataCapturingServiceTest {
         stopAndCheckThatStopped(measurementIdentifier);
 
         // Check Events
-        ContentResolver contentResolver = context.getContentResolver();
-        try (final Cursor eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
-                EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()},
-                EventTable.COLUMN_TIMESTAMP + " ASC")) {
-            softCatchNullCursor(eventCursor);
+        final var eventDao = persistenceLayer.getDatabase().eventDao();
+        final var events = eventDao.loadAllByMeasurementId(measurementIdentifier);
 
-            final List<Event> events = new ArrayList<>();
-            while (eventCursor.moveToNext()) {
-                final Event.EventType eventType = Event.EventType
-                        .valueOf(eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)));
-                final long eventTime = eventCursor
-                        .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
-                final String value = eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE));
-                final long eventId = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(BaseColumns._ID));
-                events.add(new Event(eventId, eventType, eventTime, value));
-            }
+        assertThat(events.size(), is(equalTo(5)));
+        assertThat(events.get(0).getType(), is(equalTo(EventType.LIFECYCLE_START)));
+        assertThat(events.get(1).getType(), is(equalTo(EventType.MODALITY_TYPE_CHANGE)));
+        assertThat(events.get(1).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(events.get(2).getType(), is(equalTo(EventType.LIFECYCLE_PAUSE)));
+        assertThat(events.get(3).getType(), is(equalTo(EventType.LIFECYCLE_RESUME)));
+        assertThat(events.get(4).getType(), is(equalTo(EventType.LIFECYCLE_STOP)));
 
-            assertThat(events.size(), is(equalTo(5)));
-            assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
-            assertThat(events.get(1).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-            assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
-
-            return measurementIdentifier;
-        }
+        return measurementIdentifier;
     }
 
     /**
@@ -924,7 +901,7 @@ public class DataCapturingServiceTest {
     @Test
     public void testReconnectOnNonRunningServer() {
         assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(false));
-        assertThat(oocut.getIsRunning(), is(equalTo(false)));
+        assertThat(oocut.isRunning(), is(equalTo(false)));
     }
 
     /**
@@ -944,7 +921,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests that starting a new {@code Measurement} and changing the {@code Modality} during runtime creates two
-     * {@link Event.EventType#MODALITY_TYPE_CHANGE} entries.
+     * {@link EventType#MODALITY_TYPE_CHANGE} entries.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
@@ -960,7 +937,7 @@ public class DataCapturingServiceTest {
         oocut.changeModalityType(CAR);
         stopAndCheckThatStopped(measurementIdentifier);
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
-                Event.EventType.MODALITY_TYPE_CHANGE);
+                EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));
         assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
         assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));
@@ -968,7 +945,7 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests that changing to the same {@code Modality} twice does not produce a new
-     * {@link Event.EventType#MODALITY_TYPE_CHANGE} {@code Event}.
+     * {@link EventType#MODALITY_TYPE_CHANGE} {@code Event}.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
@@ -985,12 +962,12 @@ public class DataCapturingServiceTest {
         oocut.changeModalityType(CAR);
         stopAndCheckThatStopped(measurementIdentifier);
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
-                Event.EventType.MODALITY_TYPE_CHANGE);
+                EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));
     }
 
     /**
-     * Tests that changing {@code Modality} during a {@link Event.EventType#LIFECYCLE_PAUSE} works as expected.
+     * Tests that changing {@code Modality} during a {@link EventType#LIFECYCLE_PAUSE} works as expected.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
@@ -1007,7 +984,7 @@ public class DataCapturingServiceTest {
         oocut.changeModalityType(CAR);
         stopAndCheckThatStopped(measurementIdentifier); // stop paused returns mid, too [STAD-333]
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
-                Event.EventType.MODALITY_TYPE_CHANGE);
+                EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));
         assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
         assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));

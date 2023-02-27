@@ -6,7 +6,7 @@
     <application>
         <!-- Content provider used for storing and retrieving test data.-->
         <provider
-            android:name="de.cyface.persistence.MeasurementProvider"
+            android:name="de.cyface.persistence.content.MeasurementProvider"
             android:authorities="de.cyface.datacapturing.test.provider"
             android:exported="false"
             android:process=":persistence_process"

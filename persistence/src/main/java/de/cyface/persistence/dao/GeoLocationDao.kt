@@ -32,6 +32,9 @@ import de.cyface.persistence.model.GeoLocation
  */
 @Dao
 interface GeoLocationDao {
+    @Query("SELECT * FROM Location")
+    fun getAll(): List<GeoLocation>
+
     /**
      * Ordered by timestamp for [de.cyface.persistence.PersistenceLayer.loadTracks] to work.
      */

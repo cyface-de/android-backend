@@ -48,7 +48,10 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import de.cyface.persistence.content.BaseColumns;
+import de.cyface.persistence.content.LocationTable;
 import de.cyface.persistence.content.MeasurementProviderClient;
+import de.cyface.persistence.content.MeasurementTable;
 import de.cyface.utils.Validate;
 
 /**
@@ -113,18 +116,18 @@ public class MeasurementProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
-            Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
+            Uri result = client.insert(MeasurementTable.Companion.getUri(AUTHORITY), measurementValues);
             Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
             final long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
             ContentValues geoLocationValues = new ContentValues();
-            geoLocationValues.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1.0f);
+            geoLocationValues.put(LocationTable.COLUMN_SPEED, 1.0);
+            geoLocationValues.put(BaseColumns.MEASUREMENT_ID, measurementIdentifier);
+            geoLocationValues.put(LocationTable.COLUMN_LON, 1.0);
+            geoLocationValues.put(LocationTable.COLUMN_LAT, 1.0);
+            geoLocationValues.put(BaseColumns.TIMESTAMP, 1);
+            geoLocationValues.put(LocationTable.COLUMN_ACCURACY, 1.0f);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
             for (int i = 0; i < numberOftestEntries; i++) {
                 geoLocationValuesArray[i] = geoLocationValues;
@@ -135,7 +138,7 @@ public class MeasurementProviderClientTest {
             for (int startIndex = 0; startIndex < geoLocationValuesArray.length; startIndex += MAX_SIMULTANEOUS_OPERATIONS) {
                 int endIndex = Math.min(geoLocationValuesArray.length, startIndex + MAX_SIMULTANEOUS_OPERATIONS);
                 // BulkInsert is about 80 times faster than insertBatch
-                client.bulkInsert(getGeoLocationsUri(AUTHORITY),
+                client.bulkInsert(LocationTable.Companion.getUri(AUTHORITY),
                         Arrays.copyOfRange(geoLocationValuesArray, startIndex, endIndex));
                 if (startIndex % MAX_SIMULTANEOUS_OPERATIONS * 100 == 0)
                     Log.i(TAG, "Inserting " + startIndex + " entries took: " + (System.currentTimeMillis() - startTime)
@@ -145,8 +148,7 @@ public class MeasurementProviderClientTest {
                     + (System.currentTimeMillis() - startTime) + " ms");
 
             // Load entries again
-            MeasurementProviderClient oocut = new MeasurementProviderClient(measurementIdentifier, client,
-                    AUTHORITY);
+            var oocut = new MeasurementProviderClient(measurementIdentifier, client, AUTHORITY);
             startTime = System.currentTimeMillis();
 
             for (int i = 0; i < geoLocationValuesArray.length; i += DATABASE_QUERY_LIMIT) {
@@ -192,23 +194,23 @@ public class MeasurementProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
 
             // Insert test measurement
-            Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
+            Uri result = client.insert(MeasurementTable.Companion.getUri(AUTHORITY), measurementValues);
             Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
             long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
             // Create GeoLocation data
             ContentValues geoLocationValues = new ContentValues();
-            geoLocationValues.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_LON, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_LAT, 1.0);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1L);
-            geoLocationValues.put(GeoLocationsTable.COLUMN_ACCURACY, 1.0f);
+            geoLocationValues.put(LocationTable.COLUMN_SPEED, 1.0);
+            geoLocationValues.put(BaseColumns.MEASUREMENT_ID, measurementIdentifier);
+            geoLocationValues.put(LocationTable.COLUMN_LON, 1.0);
+            geoLocationValues.put(LocationTable.COLUMN_LAT, 1.0);
+            geoLocationValues.put(BaseColumns.TIMESTAMP, 1L);
+            geoLocationValues.put(LocationTable.COLUMN_ACCURACY, 1.0f);
 
             // Insert GeoLocations
-            client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);
-            client.insert(getGeoLocationsUri(AUTHORITY), geoLocationValues);
+            client.insert(LocationTable.Companion.getUri(AUTHORITY), geoLocationValues);
+            client.insert(LocationTable.Companion.getUri(AUTHORITY), geoLocationValues);
 
             // Check loadGeoLocations()
             MeasurementProviderClient oocut = new MeasurementProviderClient(measurementIdentifier, client,
