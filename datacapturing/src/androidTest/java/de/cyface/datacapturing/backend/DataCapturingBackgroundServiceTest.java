@@ -59,11 +59,11 @@ import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.strategy.DefaultDistanceCalculation;
-import de.cyface.persistence.DefaultLocationCleaning;
 import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.strategy.DefaultDistanceCalculation;
+import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.CursorIsNullException;
 
@@ -123,8 +123,7 @@ public class DataCapturingBackgroundServiceTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        final DefaultPersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new DefaultPersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
+        final var persistenceLayer = new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         testMeasurement = persistenceLayer.newMeasurement(Modality.BICYCLE);
@@ -160,7 +159,7 @@ public class DataCapturingBackgroundServiceTest {
 
         // Start and bind DataCapturingBackgroundService [ usually in DCS.runService() ]
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getId());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculation());
@@ -196,7 +195,7 @@ public class DataCapturingBackgroundServiceTest {
 
         // Start background service twice
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getId());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
         startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculation());

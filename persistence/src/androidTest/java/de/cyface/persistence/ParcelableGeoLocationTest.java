@@ -1,5 +1,5 @@
 /*
- * Copyright 2021 Cyface GmbH
+ * Copyright 2021-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,7 +19,7 @@
 package de.cyface.persistence;
 
 import static de.cyface.persistence.TestUtils.AUTHORITY;
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
+import static de.cyface.persistence.content.LocationTable.Companion;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -36,10 +36,13 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import android.provider.BaseColumns;
+
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.provider.ProviderTestRule;
 
+import de.cyface.persistence.content.BaseColumns;
+import de.cyface.persistence.content.LocationTable;
+import de.cyface.persistence.content.MeasurementProvider;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
@@ -75,18 +78,18 @@ public final class ParcelableGeoLocationTest {
         assertThat(message, 1, is(cursor.getCount()));
         cursor.moveToFirst();
 
-        assertThat(values.getAsLong(GeoLocationsTable.COLUMN_GEOLOCATION_TIME),
-                is(cursor.getLong(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_GEOLOCATION_TIME))));
-        assertThat(values.getAsDouble(GeoLocationsTable.COLUMN_LAT),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT))));
-        assertThat(values.getAsDouble(GeoLocationsTable.COLUMN_LON),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LON))));
-        assertThat(values.getAsInteger(GeoLocationsTable.COLUMN_MEASUREMENT_FK),
-                is(cursor.getInt(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_MEASUREMENT_FK))));
-        assertThat(values.getAsDouble(GeoLocationsTable.COLUMN_SPEED),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_SPEED))));
-        assertThat(values.getAsDouble(GeoLocationsTable.COLUMN_ACCURACY),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_ACCURACY))));
+        assertThat(values.getAsLong(BaseColumns.TIMESTAMP),
+                is(cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns.TIMESTAMP))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_LAT),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LAT))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_LON),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LON))));
+        assertThat(values.getAsInteger(BaseColumns.MEASUREMENT_ID),
+                is(cursor.getInt(cursor.getColumnIndexOrThrow(BaseColumns.MEASUREMENT_ID))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_SPEED),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_SPEED))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_ACCURACY),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY))));
     }
 
     @Before
@@ -101,12 +104,12 @@ public final class ParcelableGeoLocationTest {
      */
     private ContentValues getTestFixture() {
         ContentValues values = new ContentValues();
-        values.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 1234567890L);
-        values.put(GeoLocationsTable.COLUMN_LAT, 51.03624633f);
-        values.put(GeoLocationsTable.COLUMN_LON, 13.78828128f);
-        values.put(GeoLocationsTable.COLUMN_SPEED, 2.0f);
-        values.put(GeoLocationsTable.COLUMN_ACCURACY, 3.0f);
-        values.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, 2);
+        values.put(BaseColumns.TIMESTAMP, 1234567890L);
+        values.put(LocationTable.COLUMN_LAT, 51.03624633f);
+        values.put(LocationTable.COLUMN_LON, 13.78828128f);
+        values.put(LocationTable.COLUMN_SPEED, 2.0f);
+        values.put(LocationTable.COLUMN_ACCURACY, 3.0f);
+        values.put(BaseColumns.MEASUREMENT_ID, 2);
         return values;
     }
 
@@ -115,9 +118,9 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testDeleteAllMeasuringPoints() {
-        mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
+        mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
 
-        assertThat(mockResolver.delete(getGeoLocationsUri(AUTHORITY), null, null) > 0, is(equalTo(true)));
+        assertThat(mockResolver.delete(Companion.getUri(AUTHORITY), null, null) > 0, is(equalTo(true)));
     }
 
     /**
@@ -125,12 +128,12 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testDeleteMeasuringPointViaSelection() {
-        Uri createdRowUri = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
+        Uri createdRowUri = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
         assertThat(
-                mockResolver.delete(getGeoLocationsUri(AUTHORITY), BaseColumns._ID + "= ?", new String[] {createdId}),
+                mockResolver.delete(Companion.getUri(AUTHORITY), BaseColumns.ID + "= ?", new String[] {createdId}),
                 is(1));
     }
 
@@ -139,11 +142,11 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testDeleteMeasuringPointViaURL() {
-        Uri createdRowUri = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
+        Uri createdRowUri = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertThat(mockResolver.delete(getGeoLocationsUri(AUTHORITY).buildUpon().appendPath(createdId).build(), null,
+        assertThat(mockResolver.delete(Companion.getUri(AUTHORITY).buildUpon().appendPath(createdId).build(), null,
                 null), is(1));
     }
 
@@ -153,7 +156,7 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testCreateMeasuringPoint() {
-        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
+        Uri insert = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
         assertThat(lastPathSegment, not(equalTo("-1")));
@@ -167,15 +170,15 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testReadMeasuringPoint() {
-        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
+        Uri insert = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
 
         try (Cursor urlQuery = mockResolver.query(
-                getGeoLocationsUri(AUTHORITY).buildUpon().appendPath(lastPathSegment).build(), null, null, null, null);
-                Cursor selectionQuery = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, BaseColumns._ID + "=?",
+                Companion.getUri(AUTHORITY).buildUpon().appendPath(lastPathSegment).build(), null, null, null, null);
+                Cursor selectionQuery = mockResolver.query(Companion.getUri(AUTHORITY), null, BaseColumns.ID + "=?",
                         new String[] {lastPathSegment}, null);
-                Cursor allQuery = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null)) {
+                Cursor allQuery = mockResolver.query(Companion.getUri(AUTHORITY), null, null, null, null)) {
             // Select
             Validate.notNull(urlQuery);
             Validate.notNull(selectionQuery);
@@ -191,21 +194,21 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testUpdateMeasuringPoint() throws CursorIsNullException {
-        Uri insert = mockResolver.insert(getGeoLocationsUri(AUTHORITY), getTestFixture());
+        Uri insert = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
 
         ContentValues newValues = new ContentValues();
-        newValues.put(GeoLocationsTable.COLUMN_LAT, 10.34);
+        newValues.put(LocationTable.COLUMN_LAT, 10.34);
 
-        Uri dataPointUri = getGeoLocationsUri(AUTHORITY).buildUpon().appendPath(lastPathSegment).build();
+        Uri dataPointUri = Companion.getUri(AUTHORITY).buildUpon().appendPath(lastPathSegment).build();
         assertThat(mockResolver.update(dataPointUri, newValues, null, null), is(1));
 
         try (Cursor cursor = mockResolver.query(dataPointUri, null, null, null, null)) {
             softCatchNullCursor(cursor);
             assertThat(cursor.getCount(), is(1));
             cursor.moveToFirst();
-            int columnIndex = cursor.getColumnIndexOrThrow(GeoLocationsTable.COLUMN_LAT);
+            int columnIndex = cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LAT);
             assertThat(cursor.getDouble(columnIndex), is(10.34));
         }
     }
@@ -215,7 +218,7 @@ public final class ParcelableGeoLocationTest {
      */
     @After
     public void tearDown() {
-        mockResolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
+        mockResolver.delete(Companion.getUri(AUTHORITY), null, null);
     }
 
 }

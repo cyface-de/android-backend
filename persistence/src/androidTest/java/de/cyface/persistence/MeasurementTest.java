@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,9 +20,6 @@ package de.cyface.persistence;
 
 import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.TestUtils.AUTHORITY;
-import static de.cyface.persistence.Utils.getEventUri;
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getMeasurementUri;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.junit.Assert.assertThat;
@@ -40,6 +37,10 @@ import android.database.Cursor;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import de.cyface.persistence.content.BaseColumns;
+import de.cyface.persistence.content.EventTable;
+import de.cyface.persistence.content.LocationTable;
+import de.cyface.persistence.content.MeasurementTable;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.utils.Validate;
 
@@ -76,7 +77,7 @@ public class MeasurementTest {
         fixtureMeasurement.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                 PERSISTENCE_FILE_FORMAT_VERSION);
         fixtureMeasurement.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
-        fixtureMeasurement.put(MeasurementTable.COLUMN_TIMESTAMP, 123L);
+        fixtureMeasurement.put(BaseColumns.TIMESTAMP, 123L);
     }
 
     /**
@@ -84,9 +85,9 @@ public class MeasurementTest {
      */
     @After
     public void tearDown() {
-        resolver.delete(getGeoLocationsUri(AUTHORITY), null, null);
-        resolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        resolver.delete(getEventUri(AUTHORITY), null, null);
+        resolver.delete(LocationTable.Companion.getUri(AUTHORITY), null, null);
+        resolver.delete(MeasurementTable.Companion.getUri(AUTHORITY), null, null);
+        resolver.delete(EventTable.Companion.getUri(AUTHORITY), null, null);
     }
 
     /**
@@ -96,12 +97,13 @@ public class MeasurementTest {
     public void testCascadingDeleteOneMeasurement() {
 
         // Create measurement with data
-        final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
+        final long identifier = TestUtils.create(resolver, MeasurementTable.Companion.getUri(AUTHORITY),
+                fixtureMeasurement);
         final ContentValues fixtureGeoLocation = geoLocationContentValues(identifier);
-        TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
+        TestUtils.create(resolver, LocationTable.Companion.getUri(AUTHORITY), fixtureGeoLocation);
 
         // Test load the create measurement
-        try (final Cursor measurementCursor = resolver.query(getMeasurementUri(AUTHORITY), null,
+        try (final Cursor measurementCursor = resolver.query(MeasurementTable.Companion.getUri(AUTHORITY), null,
                 MeasurementTable.COLUMN_STATUS + "=?",
                 new String[] {MeasurementStatus.SYNCED.getDatabaseIdentifier()}, null)) {
             Validate.notNull(measurementCursor);
@@ -109,9 +111,10 @@ public class MeasurementTest {
         }
 
         // Ensure deletion of measurement with data works
-        final int rowsDeleted = resolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 2, is(rowsDeleted));
-        assertThat(TestUtils.count(resolver, getGeoLocationsUri(AUTHORITY)), is(0));
+        final int rowsDeleted = resolver.delete(MeasurementTable.Companion.getUri(AUTHORITY), null, null);
+        assertThat("Delete was unsuccessful for uri " + MeasurementTable.Companion.getUri(AUTHORITY), 2,
+                is(rowsDeleted));
+        assertThat(TestUtils.count(resolver, LocationTable.Companion.getUri(AUTHORITY)), is(0));
     }
 
     /**
@@ -122,14 +125,16 @@ public class MeasurementTest {
 
         // Create measurements with data
         for (int i = 0; i < 2; i++) {
-            final long identifier = TestUtils.create(resolver, getMeasurementUri(AUTHORITY), fixtureMeasurement);
+            final long identifier = TestUtils.create(resolver, MeasurementTable.Companion.getUri(AUTHORITY),
+                    fixtureMeasurement);
             final ContentValues fixtureGeoLocation = geoLocationContentValues(identifier);
-            TestUtils.create(resolver, getGeoLocationsUri(AUTHORITY), fixtureGeoLocation);
+            TestUtils.create(resolver, LocationTable.Companion.getUri(AUTHORITY), fixtureGeoLocation);
         }
 
         // Ensure deletion of measurements with data works
-        final int rowsDeleted = resolver.delete(getMeasurementUri(AUTHORITY), null, null);
-        assertThat("Delete was unsuccessful for uri " + getMeasurementUri(AUTHORITY), 4, is(rowsDeleted));
+        final int rowsDeleted = resolver.delete(MeasurementTable.Companion.getUri(AUTHORITY), null, null);
+        assertThat("Delete was unsuccessful for uri " + MeasurementTable.Companion.getUri(AUTHORITY), 4,
+                is(rowsDeleted));
     }
 
     /**
@@ -140,12 +145,12 @@ public class MeasurementTest {
      */
     private ContentValues geoLocationContentValues(final long measurementIdentifier) {
         final ContentValues ret = new ContentValues();
-        ret.put(GeoLocationsTable.COLUMN_GEOLOCATION_TIME, 10000L);
-        ret.put(GeoLocationsTable.COLUMN_LAT, 13.0);
-        ret.put(GeoLocationsTable.COLUMN_LON, 51.0);
-        ret.put(GeoLocationsTable.COLUMN_MEASUREMENT_FK, measurementIdentifier);
-        ret.put(GeoLocationsTable.COLUMN_SPEED, 1.0);
-        ret.put(GeoLocationsTable.COLUMN_ACCURACY, 3.0f);
+        ret.put(BaseColumns.TIMESTAMP, 10000L);
+        ret.put(LocationTable.COLUMN_LAT, 13.0);
+        ret.put(LocationTable.COLUMN_LON, 51.0);
+        ret.put(BaseColumns.MEASUREMENT_ID, measurementIdentifier);
+        ret.put(LocationTable.COLUMN_SPEED, 1.0);
+        ret.put(LocationTable.COLUMN_ACCURACY, 3.0f);
         return ret;
     }
 }

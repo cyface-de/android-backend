@@ -43,9 +43,9 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -78,7 +78,8 @@ public class PersistenceLayerTest {
      */
     private ContentResolver resolver;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link DefaultPersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a
+     * {@link DefaultPersistenceLayer}.
      */
     private CapturingPersistenceBehaviour capturingBehaviour;
 
@@ -90,7 +91,7 @@ public class PersistenceLayerTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         resolver = context.getContentResolver();
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new DefaultPersistenceLayer<>(context, resolver, AUTHORITY, capturingBehaviour);
+        oocut = new DefaultPersistenceLayer<>(context, capturingBehaviour);
     }
 
     /**
@@ -148,13 +149,13 @@ public class PersistenceLayerTest {
     public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
-        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getId());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
         capturingBehaviour.updateRecentMeasurement(FINISHED);
         List<Measurement> finishedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(finishedMeasurements.size(), is(equalTo(1)));
-        assertThat(finishedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
+        assertThat(finishedMeasurements.get(0).getId(), is(equalTo(measurement.getId())));
     }
 
     /**
@@ -168,21 +169,21 @@ public class PersistenceLayerTest {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
-        oocut.markFinishedAs(SYNCED, measurement.getIdentifier());
+        oocut.markFinishedAs(SYNCED, measurement.getId());
 
         // Check that measurement was marked as synced
         List<Measurement> syncedMeasurements = oocut.loadMeasurements(SYNCED);
         assertThat(syncedMeasurements.size(), is(equalTo(1)));
-        assertThat(syncedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
+        assertThat(syncedMeasurements.get(0).getId(), is(equalTo(measurement.getId())));
 
         // Check that sensor data was deleted
-        final File accelerationFile = oocut.getFileDao().getFilePath(context, measurement.getIdentifier(),
+        final File accelerationFile = oocut.getFileDao().getFilePath(context, measurement.getId(),
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION);
         Validate.isTrue(!accelerationFile.exists());
-        final File rotationFile = oocut.getFileDao().getFilePath(context, measurement.getIdentifier(),
+        final File rotationFile = oocut.getFileDao().getFilePath(context, measurement.getId(),
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION);
         Validate.isTrue(!rotationFile.exists());
-        final File directionFile = oocut.getFileDao().getFilePath(context, measurement.getIdentifier(),
+        final File directionFile = oocut.getFileDao().getFilePath(context, measurement.getId(),
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION);
         Validate.isTrue(!directionFile.exists());
     }
@@ -209,7 +210,7 @@ public class PersistenceLayerTest {
         // Check that syncable measurements = finishedMeasurement
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(loadedMeasurements.size(), is(1));
-        assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
+        assertThat(loadedMeasurements.get(0).getId(), is(equalTo(finishedMeasurement.getId())));
     }
 
     /**
@@ -225,14 +226,14 @@ public class PersistenceLayerTest {
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
 
         // Act
-        oocut.setDistance(measurement.getIdentifier(), 2.0);
+        oocut.setDistance(measurement.getId(), 2.0);
 
         // Assert
         Measurement loadedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
         assertThat(loadedMeasurement.getDistance(), is(equalTo(2.0)));
 
         // Ensure a second distance update works as well
-        oocut.setDistance(measurement.getIdentifier(), 4.0);
+        oocut.setDistance(measurement.getId(), 4.0);
         loadedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
         assertThat(loadedMeasurement.getDistance(), is(equalTo(4.0)));
     }
