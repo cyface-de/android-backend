@@ -48,7 +48,7 @@ import androidx.room.PrimaryKey
     )]
 )
 data class Pressure(
-    @PrimaryKey(autoGenerate = true) var id: Int = 0,
+    @PrimaryKey(autoGenerate = true) var id: Long = 0,
     override val timestamp: Long,
     override val pressure: Double,
     @ColumnInfo(index = true) val measurementId: Long

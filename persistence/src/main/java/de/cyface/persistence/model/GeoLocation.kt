@@ -49,7 +49,7 @@ data class GeoLocation(
      * It's `0`, which equals `null` in the non-nullable column `Long` when the entry is not yet persisted.
      */
     @PrimaryKey(autoGenerate = true)
-    var id: Int = 0,
+    var id: Long = 0,
     /**
      * The timestamp at which this data point was captured in milliseconds since 1.1.1970.
      */

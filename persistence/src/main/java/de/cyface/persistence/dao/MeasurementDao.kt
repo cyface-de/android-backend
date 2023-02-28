@@ -33,23 +33,17 @@ import de.cyface.persistence.model.MeasurementStatus
  */
 @Dao
 interface MeasurementDao {
+    @Insert
+    fun insert(measurement: Measurement): Long
+
     @Query("SELECT * FROM Measurement")
-    fun getAll(): List<Measurement?>?
+    fun getAll(): List<Measurement>
 
     @Query("SELECT * FROM Measurement WHERE id = :id")
     fun loadById(id: Long): Measurement?
 
     @Query("SELECT * FROM Measurement WHERE status = :status")
-    fun loadAllByStatus(status: MeasurementStatus): List<Measurement?>?
-
-    @Insert
-    fun insert(measurement: Measurement?) : Long
-
-    @Query("DELETE FROM Measurement WHERE id = :id")
-    fun deleteItemById(id: Long): Int
-
-    @Query("DELETE FROM Measurement")
-    fun deleteAll() : Int
+    fun loadAllByStatus(status: MeasurementStatus): List<Measurement>
 
     @Query("UPDATE Measurement SET fileFormatVersion = :fileFormatVersion WHERE id = :id")
     fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
@@ -59,4 +53,10 @@ interface MeasurementDao {
 
     @Query("UPDATE Measurement SET distance = :distance WHERE id = :id")
     fun updateDistance(id: Long, distance: Double): Int
+
+    @Query("DELETE FROM Measurement WHERE id = :id")
+    fun deleteItemById(id: Long): Int
+
+    @Query("DELETE FROM Measurement")
+    fun deleteAll() : Int
 }

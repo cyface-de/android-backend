@@ -68,28 +68,28 @@ abstract class Database : RoomDatabase() {
     /**
      * @return Data access object which provides the API to interact with the [Identifier] database table.
      */
-    abstract fun identifierDao(): IdentifierDao?
+    abstract fun identifierDao(): IdentifierDao
 
     /**
      * @return Data access object which provides the API to interact with the [Measurement] database table.
      */
-    abstract fun measurementDao(): MeasurementDao?
+    abstract fun measurementDao(): MeasurementDao
 
     /**
      * @return Data access object which provides the API to interact with the [Event] database table.
      */
-    abstract fun eventDao(): EventDao?
+    abstract fun eventDao(): EventDao
 
     /**
      * @return Data access object which provides the API to interact with the [Pressure] database table.
      */
-    abstract fun pressureDao(): PressureDao?
+    abstract fun pressureDao(): PressureDao
 
     /**
      * @return Data access object which provides the API to interact with the [GeoLocation] database
      * table.
      */
-    abstract fun geoLocationDao(): GeoLocationDao?
+    abstract fun geoLocationDao(): GeoLocationDao
 
     // See https://developer.android.com/codelabs/android-room-with-a-view-kotlin#7
     companion object {

@@ -127,7 +127,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#12
         this.database = Database.getDatabase(context.applicationContext)
         this.authority = authority
-        this.identifierRepository = IdentifierRepository(database.identifierDao()!!)
+        this.identifierRepository = IdentifierRepository(database.identifierDao())
         this.persistenceBehaviour = persistenceBehaviour
         fileDao = DefaultFileDao()
         val accelerationsFolder =
@@ -172,7 +172,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         )
         runBlocking {
             val measurementId = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.insert(measurement)
+                database!!.measurementDao().insert(measurement)
             }
             measurement.id = measurementId
         }
@@ -194,7 +194,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>?
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.loadAllByStatus(status)
+                database!!.measurementDao().loadAllByStatus(status)
             }
         }
         val hasMeasurement = measurements!!.isNotEmpty()
@@ -218,7 +218,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.getAll()!!
+                database!!.measurementDao().getAll()!!
             }
         }
         return measurements
@@ -230,7 +230,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurement: Measurement?
         runBlocking {
             measurement = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.loadById(measurementIdentifier)
+                database!!.measurementDao().loadById(measurementIdentifier)
             }
         }
         return measurement
@@ -251,7 +251,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var event: Event?
         runBlocking {
             event = withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.loadById(eventId)
+                database!!.eventDao().loadById(eventId)
             }
         }
         return event
@@ -289,7 +289,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>?
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.loadAllByStatus(status)
+                database!!.measurementDao().loadAllByStatus(status)
             }
         }
         return measurements
@@ -417,10 +417,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // FIXME: See if this is still necessary as we now added ForeignKey and onDelete = CASCADING
         runBlocking {
             withContext(scope.coroutineContext) {
-                database!!.geoLocationDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-                database.eventDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-                database.pressureDao()!!.deleteItemByMeasurementId(measurementIdentifier)
-                database.measurementDao()!!.deleteItemById(measurementIdentifier)
+                database!!.geoLocationDao().deleteItemByMeasurementId(measurementIdentifier)
+                database.eventDao().deleteItemByMeasurementId(measurementIdentifier)
+                database.pressureDao().deleteItemByMeasurementId(measurementIdentifier)
+                database.measurementDao().deleteItemById(measurementIdentifier)
             }
         }
     }
@@ -434,7 +434,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun deleteEvent(eventId: Long) {
         runBlocking {
             withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.deleteItemById(eventId)
+                database!!.eventDao().deleteItemById(eventId)
             }
         }
     }
@@ -754,17 +754,17 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var pressures: List<Pressure?>?
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)
+                database!!.eventDao().loadAllByMeasurementId(measurementIdentifier)
             }
 
             // Load GeoLocation and Pressure
             // FIXME: Consider using Kotlin Coroutines for async code when upgrading to main branch
             // Or re-implement the UI with LiveData which handles data binding with Room for us.
             locations = withContext(scope.coroutineContext) {
-                database!!.geoLocationDao()!!.loadAllByMeasurementId(measurementIdentifier)
+                database!!.geoLocationDao().loadAllByMeasurementId(measurementIdentifier)
             }
             pressures = withContext(scope.coroutineContext) {
-                database!!.pressureDao()!!.loadAllByMeasurementId(measurementIdentifier)
+                database!!.pressureDao().loadAllByMeasurementId(measurementIdentifier)
             }
         }
         return loadTracks(locations, events, pressures)
@@ -863,12 +863,12 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         runBlocking {
             locations = withContext(scope.coroutineContext) {
                 locationCleaningStrategy.loadCleanedLocations(
-                    database!!.geoLocationDao()!!,
+                    database!!.geoLocationDao(),
                     measurementIdentifier
                 )
             }
             pressures = withContext(scope.coroutineContext) {
-                database!!.pressureDao()!!.loadAllByMeasurementId(measurementIdentifier)
+                database!!.pressureDao().loadAllByMeasurementId(measurementIdentifier)
             }
         }
         return if (locations!!.isEmpty()) emptyList() else loadTracks(locations, events, pressures)
@@ -890,7 +890,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event?>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.loadAllByMeasurementId(measurementIdentifier)!!
+                database!!.eventDao().loadAllByMeasurementId(measurementIdentifier)!!
             }
         }
         return events
@@ -910,7 +910,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event?>?
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                database!!.eventDao()!!.loadAllByMeasurementIdAndType(measurementId, eventType)
+                database!!.eventDao().loadAllByMeasurementIdAndType(measurementId, eventType)
             }
         }
         return events
@@ -972,7 +972,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!
+                database!!.measurementDao()
                     .updateFileFormatVersion(measurementId, persistenceFileFormatVersion)
             }
         }
@@ -1040,7 +1040,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.update(measurementIdentifier, newStatus)
+                database!!.measurementDao().update(measurementIdentifier, newStatus)
             }
         }
         Validate.isTrue(updates == 1)
@@ -1074,7 +1074,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                database!!.measurementDao()!!.updateDistance(measurementIdentifier, newDistance)
+                database!!.measurementDao().updateDistance(measurementIdentifier, newDistance)
             }
         }
         Validate.isTrue(updates == 1)
@@ -1118,7 +1118,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var id: Long?
         runBlocking {
             id = withContext(scope.coroutineContext) {
-                database!!.eventDao()!!
+                database!!.eventDao()
                     .insert(Event(timestamp, eventType, value, measurement.id))
             }
         }

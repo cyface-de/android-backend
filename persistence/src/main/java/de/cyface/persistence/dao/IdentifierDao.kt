@@ -32,9 +32,9 @@ import de.cyface.persistence.model.Identifier
  */
 @Dao
 interface IdentifierDao {
-    @Query("SELECT * FROM Identifier")
-    fun getAll(): List<Identifier?>?
-
     @Insert
-    fun insert(identifier: Identifier?)
+    fun insert(identifier: Identifier): Long
+
+    @Query("SELECT * FROM Identifier")
+    fun getAll(): List<Identifier>
 }

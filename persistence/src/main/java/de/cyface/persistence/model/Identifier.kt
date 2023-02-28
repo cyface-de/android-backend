@@ -35,7 +35,7 @@ import androidx.room.PrimaryKey
  * @property deviceId A String value which contains an identifier for this device.
  */
 @Entity
-class Identifier(
+data class Identifier(
     // Keep the table schema in sync with `ContentProvider`'s [IdentifierTable]
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val deviceId: String

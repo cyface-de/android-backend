@@ -34,6 +34,7 @@ import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
 
+import de.cyface.persistence.content.BaseColumns;
 import de.cyface.utils.Validate;
 
 /**
@@ -47,6 +48,7 @@ class TestUtils {
 
     static final String AUTHORITY = "de.cyface.persistence.test.provider";
 
+    /*
     private static void compareCursorWithValues(final Cursor cursor, final List<ContentValues> contentValues) {
         assertThat(contentValues.size() <= cursor.getCount(), is(equalTo(true)));
         for (ContentValues values : contentValues) {
@@ -72,10 +74,11 @@ class TestUtils {
 
     }
 
-    static long create(final ContentResolver mockResolver, final Uri contentUri, final ContentValues entry) {
-        final Uri result = mockResolver.insert(contentUri, entry);
+    static long createMeasurement(final Database database, final ContentValues entry) {
+
+        final Uri result = database.insert(contentUri, entry);
         Validate.notNull(result);
-        assertThat("Unable to create new entry.", result.getLastPathSegment(), is(not("-1")));
+        assertThat("Unable to createMeasurement new entry.", result.getLastPathSegment(), is(not("-1")));
         Validate.notNull(result.getLastPathSegment());
         long identifier = Long.parseLong(result.getLastPathSegment());
         assertThat("Entry inserted under wrong id.", identifier > 0L, is(true));
@@ -111,5 +114,5 @@ class TestUtils {
         final Cursor cursor = mockResolver.query(contentUri, null, null, null, null);
         Validate.notNull(cursor);
         return cursor.getCount();
-    }
+    }*/
 }

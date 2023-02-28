@@ -33,6 +33,12 @@ import de.cyface.persistence.model.EventType
  */
 @Dao
 interface EventDao {
+    @Insert
+    fun insert(event: Event) : Long
+
+    @Query("SELECT * FROM Event")
+    fun getAll(): List<Event>
+
     @Query("SELECT * FROM Event WHERE id = :id")
     fun loadById(id: Long): Event?
 
@@ -40,22 +46,19 @@ interface EventDao {
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Event WHERE measurementId = :measurementId ORDER BY timestamp ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<Event?>?
+    fun loadAllByMeasurementId(measurementId: Long): List<Event>
 
     /**
      * Ordered by timestamp is required.
      */
     @Query("SELECT * FROM Event WHERE measurementId = :measurementId AND type = :type ORDER BY timestamp ASC")
-    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event?>?
-
-    @Insert
-    fun insert(event: Event?) : Long
+    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>
 
     @Query("DELETE FROM Event WHERE measurementId = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM Event WHERE id = :id")
-    fun deleteItemById(id: Long)
+    fun deleteItemById(id: Long): Int
 
     @Query("DELETE FROM Event")
     fun deleteAll() : Int

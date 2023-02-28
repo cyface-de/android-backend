@@ -18,8 +18,8 @@
  */
 package de.cyface.persistence.content;
 
-import static de.cyface.persistence.content.TestUtils.AUTHORITY;
 import static de.cyface.persistence.content.LocationTable.Companion;
+import static de.cyface.persistence.content.TestUtils.AUTHORITY;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -40,9 +40,6 @@ import android.net.Uri;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.rule.provider.ProviderTestRule;
 
-import de.cyface.persistence.content.BaseColumns;
-import de.cyface.persistence.content.LocationTable;
-import de.cyface.persistence.content.MeasurementProvider;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 

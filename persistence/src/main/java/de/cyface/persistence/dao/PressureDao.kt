@@ -32,18 +32,24 @@ import de.cyface.persistence.model.Pressure
  */
 @Dao
 interface PressureDao {
+    @Insert
+    fun insert(pressure: Pressure): Long
+
+    @Insert
+    fun insertAll(vararg pressures: Pressure)
+
+    @Query("SELECT * FROM Pressure")
+    fun getAll(): List<Pressure>
+
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Pressure WHERE measurementId = :measurementId ORDER BY timestamp ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<Pressure?>?
-
-    @Insert
-    fun insertAll(vararg pressures: Pressure?)
+    fun loadAllByMeasurementId(measurementId: Long): List<Pressure>
 
     @Query("DELETE FROM Pressure WHERE measurementId = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM Pressure")
-    fun deleteAll() : Int
+    fun deleteAll(): Int
 }

@@ -32,6 +32,12 @@ import de.cyface.persistence.model.GeoLocation
  */
 @Dao
 interface GeoLocationDao {
+    @Insert
+    fun insert(location: GeoLocation): Long
+
+    @Insert
+    fun insertAll(vararg locations: GeoLocation)
+
     @Query("SELECT * FROM Location")
     fun getAll(): List<GeoLocation>
 
@@ -39,21 +45,18 @@ interface GeoLocationDao {
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM Location WHERE measurementId = :measurementId ORDER BY timestamp ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation?>?
+    fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation>
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM Location WHERE measurementId = :measurementId AND speed > :lowerSpeedThreshold AND accuracy > :accuracyThreshold AND speed < :upperSpeedThreshold ORDER BY timestamp ASC")
+    @Query("SELECT * FROM Location WHERE measurementId = :measurementId AND speed > :lowerSpeedThreshold AND accuracy < :accuracyThreshold AND speed < :upperSpeedThreshold ORDER BY timestamp ASC")
     fun loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
         measurementId: Long,
         lowerSpeedThreshold: Double,
         accuracyThreshold: Double,
         upperSpeedThreshold: Double
     ) : List<GeoLocation>
-
-    @Insert
-    fun insertAll(vararg locations: GeoLocation?)
 
     @Query("DELETE FROM Location WHERE measurementId = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
