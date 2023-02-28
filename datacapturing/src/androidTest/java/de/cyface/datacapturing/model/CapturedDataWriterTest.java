@@ -18,6 +18,7 @@
  */
 package de.cyface.datacapturing.model;
 
+import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.model.EventType.LIFECYCLE_PAUSE;
 import static de.cyface.persistence.model.EventType.LIFECYCLE_RESUME;
@@ -119,7 +120,7 @@ public class CapturedDataWriterTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new DefaultPersistenceLayer<>(context, capturingBehaviour);
+        oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, capturingBehaviour);
         // FIXME: we not use a real database, which might be okay as this is an androidTest
         SharedTestUtils.clearPersistenceLayer(context, oocut.getDatabase());
         // This is normally called in the <code>DataCapturingService#Constructor</code>

@@ -22,7 +22,6 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.net.Uri
-import android.provider.BaseColumns
 import android.text.TextUtils
 import androidx.sqlite.db.SupportSQLiteDatabase
 import de.cyface.persistence.Database
@@ -105,7 +104,7 @@ internal class MeasurementProviderHelper(
                     when (pathSegments[0]) {
                         // FIXME: ensure the measurement-related data is deleted automatically cascadingly (write/execute test)
                         MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH -> {
-                            val adaptedSelection = (BaseColumns._ID + "=" + rowIdentifier
+                            val adaptedSelection = (BaseColumns.ID + "=" + rowIdentifier
                                     + if (selection == null) "" else " AND $selection")
                             ret += table.deleteRow(
                                 getWritableDatabase(),
@@ -207,7 +206,7 @@ internal class MeasurementProviderHelper(
         return when (uri.pathSegments.size) {
             1 -> table.query(getReadableDatabase(), projection, selection, selectionArgs, sortOrder)
             2 -> {
-                val adaptedSelection = (BaseColumns._ID + "=" + uri.lastPathSegment
+                val adaptedSelection = (BaseColumns.ID + "=" + uri.lastPathSegment
                         + if (selection == null) "" else " AND $selection")
                 table.query(
                     getReadableDatabase(),
@@ -241,7 +240,7 @@ internal class MeasurementProviderHelper(
             1 -> table.update(getWritableDatabase(), values, selection, selectionArgs)
             2 -> {
                 val id = uri.lastPathSegment
-                val adaptedSelection = (BaseColumns._ID + "=" + id
+                val adaptedSelection = (BaseColumns.ID + "=" + id
                         + if (TextUtils.isEmpty(selection)) "" else " AND $selection")
                 table.update(getWritableDatabase(), values, adaptedSelection, selectionArgs)
             }

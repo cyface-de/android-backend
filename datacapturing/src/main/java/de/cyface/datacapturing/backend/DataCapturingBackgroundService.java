@@ -305,8 +305,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
                     "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
                             + AUTHORITY_ID);
         }
+        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new DefaultPersistenceLayer<>(this, capturingBehaviour);
+        persistenceLayer = new DefaultPersistenceLayer<>(this, authority, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);

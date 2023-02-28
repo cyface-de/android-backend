@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,7 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
 import static de.cyface.serializer.model.Point3DType.ACCELERATION;
 import static de.cyface.serializer.model.Point3DType.DIRECTION;
 import static de.cyface.serializer.model.Point3DType.ROTATION;
@@ -69,6 +68,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.content.LocationTable;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -106,8 +106,7 @@ public class UploadProgressTest {
         contentResolver = context.getContentResolver();
 
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
-        persistenceLayer = new DefaultPersistenceLayer<>(context, contentResolver, AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         // Ensure reproducibility
@@ -157,11 +156,11 @@ public class UploadProgressTest {
         ContentProviderClient client = null;
         try {
             final Measurement measurement = insertMeasurementEntry(persistenceLayer, Modality.UNKNOWN);
-            final long measurementIdentifier = measurement.getIdentifier();
-            insertGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055141000L, 49.9304133333333,
-                    8.82831833333333, 0.0, 940);
-            insertGeoLocation(contentResolver, AUTHORITY, measurementIdentifier, 1503055142000L, 49.9305066666667,
-                    8.82814, 8.78270530700684, 8.4f);
+            final long measurementIdentifier = measurement.getId();
+            insertGeoLocation(persistenceLayer.getDatabase(), measurementIdentifier, 1503055141000L, 49.9304133333333,
+                    8.82831833333333, 400., 0.0, 9.4, 20.);
+            insertGeoLocation(persistenceLayer.getDatabase(), measurementIdentifier, 1503055142000L, 49.9305066666667,
+                    8.82814, 400., 8.78270530700684, 8.4, 20.);
 
             // Insert file base data
             final Point3DFile accelerationsFile = new Point3DFile(context, measurementIdentifier, ACCELERATION);
@@ -180,7 +179,7 @@ public class UploadProgressTest {
             // Mark measurement as finished
             persistenceLayer.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false);
 
-            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
+            client = contentResolver.acquireContentProviderClient(LocationTable.Companion.getUri(AUTHORITY));
             SyncResult result = new SyncResult();
             Validate.notNull(client);
 

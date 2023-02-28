@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence.content;
 
 import static junit.framework.TestCase.fail;
 import static org.hamcrest.CoreMatchers.equalTo;
@@ -33,7 +33,6 @@ import android.content.ContentResolver;
 import android.content.ContentValues;
 import android.database.Cursor;
 import android.net.Uri;
-import android.provider.BaseColumns;
 
 import de.cyface.utils.Validate;
 
@@ -97,13 +96,13 @@ class TestUtils {
         ContentValues changedValues = new ContentValues();
         changedValues.put(columnName, changedValue);
 
-        final int rowsUpdated = mockResolver.update(contentUri, changedValues, BaseColumns._ID + "=?",
+        final int rowsUpdated = mockResolver.update(contentUri, changedValues, BaseColumns.ID + "=?",
                 new String[] {Long.valueOf(identifier).toString()});
         assertEquals("Update of rotation point was unsuccessful.", 1, rowsUpdated);
     }
 
     static void delete(final ContentResolver mockResolver, final Uri contentUri, final long identifier) {
-        final int rowsDeleted = mockResolver.delete(contentUri, BaseColumns._ID + "=?",
+        final int rowsDeleted = mockResolver.delete(contentUri, BaseColumns.ID + "=?",
                 new String[] {String.valueOf(identifier)});
         assertEquals("Delete was unsuccessful for uri " + contentUri, 1, rowsDeleted);
     }

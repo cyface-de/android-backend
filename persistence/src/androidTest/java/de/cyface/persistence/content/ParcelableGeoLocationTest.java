@@ -16,9 +16,9 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence.content;
 
-import static de.cyface.persistence.TestUtils.AUTHORITY;
+import static de.cyface.persistence.content.TestUtils.AUTHORITY;
 import static de.cyface.persistence.content.LocationTable.Companion;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;

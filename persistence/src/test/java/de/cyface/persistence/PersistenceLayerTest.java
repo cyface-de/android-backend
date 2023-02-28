@@ -23,6 +23,8 @@ import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.closeTo;
 
+import static de.cyface.persistence.TestUtils.AUTHORITY;
+
 import java.util.ArrayList;
 import java.util.Arrays;
 import java.util.Collections;
@@ -63,7 +65,7 @@ public class PersistenceLayerTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        oocut = new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
+        oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
     }
 
     @After

@@ -20,8 +20,11 @@ package de.cyface.persistence
 
 import android.content.Context
 import android.hardware.SensorManager
+import android.net.Uri
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
+import de.cyface.persistence.content.EventTable
+import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.exception.NoDeviceIdException
@@ -63,10 +66,16 @@ import kotlin.math.abs
  * @since 2.0.0
  */
 class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
+
     /**
      * The [Context] required to locate the app's internal storage directory.
      */
     override val context: Context?
+
+    /**
+     * The authority used to identify the Android content provider to persist data to or load it from.
+     */
+    private val authority: String?
 
     /**
      * The [PersistenceBehaviour] defines how the `Persistence` layer works. We need this behaviour to
@@ -101,6 +110,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     constructor() {
         context = null
         database = null
+        authority = null
         identifierRepository = null
         fileDao = DefaultFileDao()
     }
@@ -112,10 +122,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, persistenceBehaviour: B) {
+    constructor(context: Context, authority: String, persistenceBehaviour: B) {
         this.context = context
         // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#12
         this.database = Database.getDatabase(context.applicationContext)
+        this.authority = authority
         this.identifierRepository = IdentifierRepository(database.identifierDao()!!)
         this.persistenceBehaviour = persistenceBehaviour
         fileDao = DefaultFileDao()
@@ -1114,8 +1125,23 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return id!!
     }
 
+    /**
+     * @return The content provider `Uri` for the [EventTable].
+     */
+    fun eventUri(): Uri {
+        return EventTable.getUri(authority!!)
+    }
+
+    /**
+     * @return The content provider `Uri` for the [MeasurementTable].
+     */
+    fun measurementUri(): Uri {
+        return MeasurementTable.getUri(authority!!)
+    }
+
     override val cacheDir: File
         get() = context!!.cacheDir
+
 
     companion object {
         /**

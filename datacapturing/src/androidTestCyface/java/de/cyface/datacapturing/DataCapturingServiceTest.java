@@ -157,7 +157,7 @@ public class DataCapturingServiceTest {
 
         // Prepare
         // FIXME: we not use a real database, which might be okay as this is an androidTest
-        persistenceLayer = new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
+        persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
         SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
 
         // Making sure there is no service instance of a previous test running
@@ -693,7 +693,7 @@ public class DataCapturingServiceTest {
         resumeAndCheckThatLaunched(measurementIdentifier);
 
         // Resume 2: must be ignored by resumeAsync
-        var persistence = new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour());
+        var persistence = new DefaultPersistenceLayer<>(context, AUTHORITY, new CapturingPersistenceBehaviour());
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();

@@ -39,16 +39,16 @@ import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
+import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.MeasurementStatus;
+import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
-import de.cyface.persistence.DefaultPersistenceLayer;
-import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.ParcelableGeoLocation;
-import de.cyface.persistence.model.Measurement;
-import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.utils.CursorIsNullException;
@@ -87,18 +87,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
      *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
      *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @throws SetupException If writing the components preferences or registering the dummy user account fails.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final LocationCleaningStrategy locationCleaningStrategy,
-            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
-            throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency) {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
+                new DefaultPersistenceLayer<>(context, authority, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");

@@ -105,7 +105,7 @@ class SyncAdapter private constructor(
         val context = context
         val serializer = MeasurementSerializer()
         val persistence =
-            DefaultPersistenceLayer<DefaultPersistenceBehaviour?>(context, DefaultPersistenceBehaviour())
+            DefaultPersistenceLayer<DefaultPersistenceBehaviour?>(context, authority, DefaultPersistenceBehaviour())
         val authenticator = CyfaceAuthenticator(context)
         val syncPerformer = SyncPerformer(context)
         try {
