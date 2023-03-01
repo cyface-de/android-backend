@@ -62,7 +62,7 @@ import de.cyface.persistence.model.Pressure
     ],
     // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
     version = 18
-    autoMigrations = [] // test this feature on the next version change
+    //autoMigrations = [] // test this feature on the next version change
 )
 abstract class Database : RoomDatabase() {
     /**

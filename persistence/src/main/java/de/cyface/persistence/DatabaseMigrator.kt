@@ -21,12 +21,12 @@ package de.cyface.persistence
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteQueryBuilder
 import android.location.Location
 import android.preference.PreferenceManager
 import android.util.Log
 import androidx.room.migration.Migration
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteQueryBuilder
 import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
@@ -195,10 +195,10 @@ class DatabaseMigrator(val context: Context) {
                 var measurementCursor: Cursor? = null
                 var geoLocationCursor: Cursor? = null
                 try {
-                    val builder = SQLiteQueryBuilder()
-                    builder.tables = "measurements"
-                    val query = builder.buildQuery(arrayOf("_id"), null, null, null, null, null)
-                    measurementCursor = database.query(query)
+                    measurementCursor = database.query(
+                        SupportSQLiteQueryBuilder.builder("measurements").columns(arrayOf("_id"))
+                            .create()
+                    )
                     if (measurementCursor.count == 0) {
                         Log.v(Constants.TAG, "No measurements for migration found")
                         return
@@ -208,17 +208,15 @@ class DatabaseMigrator(val context: Context) {
                     while (measurementCursor.moveToNext()) {
                         val identifierColumnIndex = measurementCursor.getColumnIndex("_id")
                         val measurementId = measurementCursor.getLong(identifierColumnIndex)
-                        val locationBuilder = SQLiteQueryBuilder()
-                        locationBuilder.tables = "locations"
-                        val locationQuery = locationBuilder.buildQuery(
-                            arrayOf("gps_time"),
-                            "measurement_fk = $measurementId",
-                            null,
-                            null,
-                            "gps_time ASC",
-                            "1"
+                        geoLocationCursor = database.query(
+                            SupportSQLiteQueryBuilder
+                                .builder("locations")
+                                .selection("measurement_fk = ?", arrayOf(measurementId))
+                                .columns(arrayOf("gps_time"))
+                                .orderBy("gps_time ASC")
+                                .limit("1")
+                                .create()
                         )
-                        geoLocationCursor = database.query(locationQuery)
                         var timestamp = 0L // Default value for measurements without GeoLocations
                         if (geoLocationCursor.moveToNext()) {
                             val timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time")
@@ -496,7 +494,8 @@ class DatabaseMigrator(val context: Context) {
                 // Create table with Room generated name and new schema
                 database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Insert the data from the `v6` database version `1`
-                val locationCursor = v6Database.query("Location",null,null,null,null,null,"uid ASC")
+                val locationCursor =
+                    v6Database.query("Location", null, null, null, null, null, "uid ASC")
                 while (locationCursor.moveToNext()) {
                     val uidIndex = locationCursor.getColumnIndex("uid")
                     val id = locationCursor.getInt(uidIndex)
@@ -534,7 +533,8 @@ class DatabaseMigrator(val context: Context) {
                 // Create table with Room generated name and new schema
                 database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Insert the data from the `v6` database version `1`
-                val pressureCursor = v6Database.query("Pressure",null,null,null,null,null,"uid ASC")
+                val pressureCursor =
+                    v6Database.query("Pressure", null, null, null, null, null, "uid ASC")
                 while (pressureCursor.moveToNext()) {
                     val uidIndex = pressureCursor.getColumnIndex("uid")
                     val id = pressureCursor.getInt(uidIndex)
@@ -629,10 +629,11 @@ class DatabaseMigrator(val context: Context) {
                 var measurementCursor: Cursor? = null
                 var geoLocationCursor: Cursor? = null
                 try {
-                    val builder = SQLiteQueryBuilder()
-                    builder.tables = "measurements" // table & column name need to equal version `9`
-                    val query = builder.buildQuery(arrayOf("_id"), null, null, null, null, null)
-                    measurementCursor = database.query(query)
+                    // table & column name need to equal version `9`
+                    measurementCursor = database.query(
+                        SupportSQLiteQueryBuilder.builder("measurements").columns(arrayOf("_id"))
+                            .create()
+                    )
                     if (measurementCursor.count == 0) {
                         Log.v(Constants.TAG, "No measurements for migration found")
                         return
@@ -642,17 +643,14 @@ class DatabaseMigrator(val context: Context) {
                     while (measurementCursor.moveToNext()) {
                         val identifierColumnIndex = measurementCursor.getColumnIndex("_id")
                         val measurementId = measurementCursor.getLong(identifierColumnIndex)
-                        val locationBuilder = SQLiteQueryBuilder()
-                        locationBuilder.tables = "locations"
-                        val locationQuery = locationBuilder.buildQuery(
-                            arrayOf("lat", "lon", "gps_time", "speed", "accuracy"),
-                            "measurement_fk = $measurementId",
-                            null,
-                            null,
-                            "gps_time ASC",
-                            null
+                        geoLocationCursor = database.query(
+                            SupportSQLiteQueryBuilder
+                                .builder("locations")
+                                .selection("measurement_fk = ?", arrayOf(measurementId))
+                                .columns(arrayOf("lat", "lon", "gps_time", "speed", "accuracy"))
+                                .orderBy("gps_time ASC")
+                                .create()
                         )
-                        geoLocationCursor = database.query(locationQuery)
                         if (geoLocationCursor.count < 2) {
                             Log.v(
                                 Constants.TAG,
