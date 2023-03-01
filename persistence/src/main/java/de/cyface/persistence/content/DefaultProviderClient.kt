@@ -55,16 +55,14 @@ class DefaultProviderClient(
             BaseColumns.TIMESTAMP,
             LocationTable.COLUMN_LAT,
             LocationTable.COLUMN_LON,
+            LocationTable.COLUMN_ALTITUDE,
             LocationTable.COLUMN_SPEED,
-            LocationTable.COLUMN_ACCURACY
+            LocationTable.COLUMN_ACCURACY,
+            LocationTable.COLUMN_VERTICAL_ACCURACY
         )
         // Constructing selection clause with replaceable parameter `?` avoids SQL injection
         val selection = BaseColumns.MEASUREMENT_ID + "=?"
-        val selectionArgs = arrayOf(
-            java.lang.Long.valueOf(
-                measurementIdentifier
-            ).toString()
-        )
+        val selectionArgs = arrayOf(measurementIdentifier.toString())
 
         /*
          * For some reason this does not work (tested on N5X) so we always use the workaround implementation
@@ -80,6 +78,8 @@ class DefaultProviderClient(
 
         // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
         // the arguments limit and offset are only available starting with API 26 ("O")
+        // FIXME: There is a cleaner solution in that thread now, which does not abuse `order` for `limit`
+        // https://stackoverflow.com/a/24055457/5815054
         return client.query(
             uri, projection, selection, selectionArgs,
             BaseColumns.MEASUREMENT_ID + " ASC limit " + limit + " offset " + offset
@@ -102,6 +102,7 @@ class DefaultProviderClient(
 
         // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
         // the arguments limit and offset are only available starting with API 26 ("O")
+        // FIXME: see other usages of this hack in our code
         return client.query(
             uri, projection, selection, selectionArgs,
             BaseColumns.MEASUREMENT_ID + " ASC limit " + limit + " offset " + offset

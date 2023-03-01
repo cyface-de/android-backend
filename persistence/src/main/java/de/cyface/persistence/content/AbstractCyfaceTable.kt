@@ -21,8 +21,8 @@ package de.cyface.persistence.content
 import android.content.ContentValues
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase.CONFLICT_NONE
-import android.database.sqlite.SQLiteQueryBuilder
 import androidx.sqlite.db.SupportSQLiteDatabase
+import androidx.sqlite.db.SupportSQLiteQueryBuilder
 
 
 /**
@@ -88,11 +88,12 @@ abstract class AbstractCyfaceTable internal constructor(name: String) : CyfaceTa
         selectionArgs: Array<String>?, sortOrder: String?
     ): Cursor {
         checkColumns(projection)
-        // We could use a Room generated cursor: https://stackoverflow.com/a/46883664/5815054
-        val builder = SQLiteQueryBuilder()
-        builder.tables = name
-        val query = builder.buildQuery(projection, selection, null, null, sortOrder, null)
-        return database.query(query)
+        // We could maybe use a Room generated cursor: https://stackoverflow.com/a/46883664/5815054
+        // But the cursor/Query would need to be general to support the parameters here.
+        return database.query(
+            SupportSQLiteQueryBuilder.builder(name).selection(selection, selectionArgs)
+                .columns(projection).orderBy(sortOrder).create()
+        )
     }
 
     private fun checkColumns(projection: Array<String>?) {

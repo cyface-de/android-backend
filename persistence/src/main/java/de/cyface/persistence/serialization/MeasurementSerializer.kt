@@ -59,14 +59,14 @@ class MeasurementSerializer {
      * **ATTENTION**: The caller needs to delete the file which is referenced by the returned `FileInputStream`
      * when no longer needed or on program crash!
      *
-     * @param database The source to load the `Measurement` data from
+     * @param loader The source to load the `Measurement` data from
      * @param measurementId The id of the [de.cyface.persistence.model.Measurement] to load
      * @param persistenceLayer The [PersistenceLayer] to load the file based `Measurement` data from
      * @return A [File] pointing to a temporary file containing the serialized compressed data for transfer.
      */
     @Throws(CursorIsNullException::class)
     fun writeSerializedCompressed(
-        database: MeasurementProviderClient,
+        loader: MeasurementProviderClient,
         measurementId: Long,
         persistenceLayer: PersistenceLayer<*>
     ): File? {
@@ -81,7 +81,7 @@ class MeasurementSerializer {
                 // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
                 loadSerializedCompressed(
                     fileOutputStream,
-                    database,
+                    loader,
                     measurementId,
                     persistenceLayer
                 )
@@ -102,7 +102,7 @@ class MeasurementSerializer {
      * The Deflater ZLIB (RFC-1950) compression is used.
      *
      * @param fileOutputStream the `FileInputStream` to write the compressed data to
-     * @param database The source to load the `Measurement` data from
+     * @param loader The source to load the `Measurement` data from
      * @param measurementId The id of the [de.cyface.persistence.model.Measurement] to load
      * @param persistenceLayer The [PersistenceLayer] to load the file based `Measurement` data
      * @throws IOException When flushing or closing the [OutputStream] fails
@@ -110,7 +110,7 @@ class MeasurementSerializer {
     @Throws(IOException::class)
     private fun loadSerializedCompressed(
         fileOutputStream: OutputStream,
-        database: MeasurementProviderClient,
+        loader: MeasurementProviderClient,
         measurementId: Long,
         persistenceLayer: PersistenceLayer<*>
     ) {
@@ -126,7 +126,7 @@ class MeasurementSerializer {
         val deflaterStream = DeflaterOutputStream(bufferedFileOutputStream, compressor)
         BufferedOutputStream(deflaterStream).use { outputStream ->
             // Injecting the outputStream into which the serialized (in this case compressed) data is written to
-            loadSerialized(outputStream, database, measurementId, persistenceLayer)
+            loadSerialized(outputStream, loader, measurementId, persistenceLayer)
             outputStream.flush()
         }
         Log.d(

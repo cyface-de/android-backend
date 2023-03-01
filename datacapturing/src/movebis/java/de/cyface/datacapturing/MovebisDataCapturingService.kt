@@ -40,7 +40,6 @@ import de.cyface.datacapturing.ui.UIListener
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
-import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
@@ -89,7 +88,7 @@ class MovebisDataCapturingService internal constructor(
     capturingListener: DataCapturingListener, sensorFrequency: Int
 ) : DataCapturingService(
     context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-    DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
+    DefaultPersistenceLayer(context, authority, CapturingPersistenceBehaviour()),
     DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
     sensorFrequency
 ) {

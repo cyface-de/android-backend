@@ -218,7 +218,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                database!!.measurementDao().getAll()!!
+                database!!.measurementDao().getAll()
             }
         }
         return measurements
@@ -749,9 +749,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     @Throws(CursorIsNullException::class)  // May be used by SDK implementing app
     fun loadTracks(measurementIdentifier: Long): List<Track> {
 
-        var events: List<Event?>?
-        var locations: List<GeoLocation?>?
-        var pressures: List<Pressure?>?
+        var events: List<Event>
+        var locations: List<GeoLocation>
+        var pressures: List<Pressure>
         runBlocking {
             events = withContext(scope.coroutineContext) {
                 database!!.eventDao().loadAllByMeasurementId(measurementIdentifier)
@@ -890,7 +890,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event?>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                database!!.eventDao().loadAllByMeasurementId(measurementIdentifier)!!
+                database!!.eventDao().loadAllByMeasurementId(measurementIdentifier)
             }
         }
         return events
@@ -932,19 +932,19 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         pressures: MutableList<ParcelablePressure?>, pauseEventTime: Long?
     ): Track {
         val track = Track()
-        var location = locations[0]
+        var location = if (locations.isNotEmpty()) locations[0] else null
         while (location != null && location.timestamp <= pauseEventTime!!) {
             track.addLocation(location)
             // Load next data point to check it's timestamp in next iteration
             locations.removeAt(0)
-            location = locations[0]
+            location = if (locations.isNotEmpty()) locations[0] else null
         }
-        var pressure = pressures[0]
+        var pressure = if (pressures.isNotEmpty()) pressures[0] else null
         while (pressure != null && pressure.timestamp <= pauseEventTime!!) {
             track.addPressure(pressure)
             // Load next data point to check it's timestamp in next iteration
             pressures.removeAt(0)
-            pressure = pressures[0]
+            pressure = if (pressures.isNotEmpty()) pressures[0] else null
         }
         return track
     }

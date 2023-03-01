@@ -25,6 +25,7 @@ import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.Modality.CAR;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
@@ -48,6 +49,7 @@ import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
 import android.content.ContentProvider;
+import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
 
@@ -57,7 +59,6 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
-import androidx.test.rule.provider.ProviderTestRule;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.backend.TestCallback;
@@ -69,7 +70,6 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
-import de.cyface.persistence.content.MeasurementProvider;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.EventType;
@@ -84,7 +84,7 @@ import de.cyface.utils.Validate;
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
  * relies on external sensors and the availability of a GNSS signal. Each tests waits a few seconds to actually capture
- * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
+ * some data, but it might still fail if you use a real device indoors.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -95,12 +95,7 @@ import de.cyface.utils.Validate;
 @LargeTest
 public class DataCapturingServiceTest {
 
-    /**
-     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
-     */
-    @Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasurementProvider.class, AUTHORITY)
-            .build();
+    private ContentResolver contentResolver;
     /**
      * Rule used to run
      */
@@ -136,6 +131,8 @@ public class DataCapturingServiceTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        contentResolver = context.getContentResolver();
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
@@ -156,9 +153,8 @@ public class DataCapturingServiceTest {
         });
 
         // Prepare
-        // FIXME: we not use a real database, which might be okay as this is an androidTest
+        // We use a real database, which should be okay as this is an androidTest
         persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
-        SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning());
@@ -196,7 +192,7 @@ public class DataCapturingServiceTest {
             assertThat(isRunning, is(equalTo(false)));
         }
 
-        SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
     }
 
     /**

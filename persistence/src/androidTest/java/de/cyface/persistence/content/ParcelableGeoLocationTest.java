@@ -18,8 +18,11 @@
  */
 package de.cyface.persistence.content;
 
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.content.LocationTable.Companion;
 import static de.cyface.persistence.content.TestUtils.AUTHORITY;
+import static de.cyface.persistence.model.MeasurementStatus.OPEN;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
@@ -28,70 +31,47 @@ import static org.junit.Assert.assertThat;
 
 import org.junit.After;
 import org.junit.Before;
-import org.junit.Rule;
 import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.content.ContentResolver;
 import android.content.ContentValues;
+import android.content.Context;
 import android.database.Cursor;
 import android.net.Uri;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
-import androidx.test.rule.provider.ProviderTestRule;
+import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
- * Tests whether the content provider for measuring points works or not.
+ * Tests that the {@link DefaultProviderClient} for {@link de.cyface.persistence.model.GeoLocation}s works.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
 public final class ParcelableGeoLocationTest {
-    /**
-     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
-     */
-    @Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasurementProvider.class, AUTHORITY)
-            .build();
-    /**
-     * A mock content resolver provided by the Android test environment to work on a simulated content provider.
-     */
+
+    private Context context;
     private ContentResolver mockResolver;
-
-    /**
-     * Compares a cursor from the database with a set of content values via JUnit assertions.
-     *
-     * @param message Error message to show if cursor contains multiple elements.
-     * @param cursor The cursor to compare
-     * @param values The values to compare to
-     */
-    private void cursorEqualsValues(final String message, final Cursor cursor, final ContentValues values) {
-        assertThat(message, 1, is(cursor.getCount()));
-        cursor.moveToFirst();
-
-        assertThat(values.getAsLong(BaseColumns.TIMESTAMP),
-                is(cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns.TIMESTAMP))));
-        assertThat(values.getAsDouble(LocationTable.COLUMN_LAT),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LAT))));
-        assertThat(values.getAsDouble(LocationTable.COLUMN_LON),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LON))));
-        assertThat(values.getAsInteger(BaseColumns.MEASUREMENT_ID),
-                is(cursor.getInt(cursor.getColumnIndexOrThrow(BaseColumns.MEASUREMENT_ID))));
-        assertThat(values.getAsDouble(LocationTable.COLUMN_SPEED),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_SPEED))));
-        assertThat(values.getAsDouble(LocationTable.COLUMN_ACCURACY),
-                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY))));
-    }
+    private Long measurementId;
 
     @Before
     public void setUp() {
-        mockResolver = providerRule.getResolver();
+        context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        mockResolver = context.getContentResolver();
+        clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        measurementId = createMeasurement();
+    }
+
+    @After
+    public void tearDown() {
+        clearPersistenceLayer(context, mockResolver, AUTHORITY);
     }
 
     /**
@@ -104,9 +84,11 @@ public final class ParcelableGeoLocationTest {
         values.put(BaseColumns.TIMESTAMP, 1234567890L);
         values.put(LocationTable.COLUMN_LAT, 51.03624633f);
         values.put(LocationTable.COLUMN_LON, 13.78828128f);
+        values.put(LocationTable.COLUMN_ALTITUDE, 400.);
         values.put(LocationTable.COLUMN_SPEED, 2.0f);
         values.put(LocationTable.COLUMN_ACCURACY, 3.0f);
-        values.put(BaseColumns.MEASUREMENT_ID, 2);
+        values.put(LocationTable.COLUMN_VERTICAL_ACCURACY, 20.);
+        values.put(BaseColumns.MEASUREMENT_ID, measurementId);
         return values;
     }
 
@@ -211,11 +193,48 @@ public final class ParcelableGeoLocationTest {
     }
 
     /**
-     * Clean the database after each test.
+     * Creates a {@link de.cyface.persistence.model.Measurement} in the test database.
+     *
+     * @return The created object.
      */
-    @After
-    public void tearDown() {
-        mockResolver.delete(Companion.getUri(AUTHORITY), null, null);
+    private long createMeasurement() {
+        var values = new ContentValues();
+        values.put(MeasurementTable.COLUMN_STATUS, OPEN.getDatabaseIdentifier());
+        values.put(MeasurementTable.COLUMN_MODALITY, "BICYCLE");
+        values.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
+                PERSISTENCE_FILE_FORMAT_VERSION);
+        values.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
+        values.put(BaseColumns.TIMESTAMP, 1);
+        Uri result = mockResolver.insert(MeasurementTable.Companion.getUri(AUTHORITY), values);
+        return Long.parseLong(result.getLastPathSegment());
     }
 
+    /**
+     * Compares a cursor from the database with a set of content values via JUnit assertions.
+     *
+     * @param message Error message to show if cursor contains multiple elements.
+     * @param cursor The cursor to compare
+     * @param values The values to compare to
+     */
+    private void cursorEqualsValues(final String message, final Cursor cursor, final ContentValues values) {
+        assertThat(message, 1, is(cursor.getCount()));
+        cursor.moveToFirst();
+
+        assertThat(values.getAsLong(BaseColumns.TIMESTAMP),
+                is(cursor.getLong(cursor.getColumnIndexOrThrow(BaseColumns.TIMESTAMP))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_LAT),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LAT))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_LON),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_LON))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_ALTITUDE),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ALTITUDE))));
+        assertThat(values.getAsInteger(BaseColumns.MEASUREMENT_ID),
+                is(cursor.getInt(cursor.getColumnIndexOrThrow(BaseColumns.MEASUREMENT_ID))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_SPEED),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_SPEED))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_ACCURACY),
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY))));
+        assertThat(values.getAsDouble(LocationTable.COLUMN_VERTICAL_ACCURACY),
+                is(cursor.getDouble(cursor.getColumnIndex(LocationTable.COLUMN_VERTICAL_ACCURACY))));
+    }
 }

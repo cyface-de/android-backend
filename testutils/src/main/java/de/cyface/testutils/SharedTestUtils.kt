@@ -154,7 +154,10 @@ object SharedTestUtils {
     }
 
     @JvmStatic
-    fun generateRequestMetaDataGeoLocation(distanceFromBase: Int, timestamp: Long): RequestMetaData.GeoLocation {
+    fun generateRequestMetaDataGeoLocation(
+        distanceFromBase: Int,
+        timestamp: Long
+    ): RequestMetaData.GeoLocation {
         val location = generateGeoLocation(distanceFromBase, timestamp)
         return RequestMetaData.GeoLocation(location.timestamp, location.lat, location.lon)
     }
@@ -242,62 +245,22 @@ object SharedTestUtils {
      * This method mut be in the [SharedTestUtils] to ensure multiple modules can access it in androidTests!
      *
      * @param context The [Context] required to access the file persistence layer
-     * @param database The [Database] to access the data from
+     * @param database The [Database] to remove the data from
      * @return number of rows removed from the database and number of **FILES** (not points) deleted. The earlier
      * includes [Measurement]s, [ParcelableGeoLocation]s and [de.cyface.persistence.model.Event]s.
      * The later includes the [Point3DFile]s.
      */
     @JvmStatic
     fun clearPersistenceLayer(context: Context, database: Database): Int {
-        val fileDao: FileDao = DefaultFileDao()
-
-        // Remove {@code Point3DFile}s and their parent folders
-        var removedFiles = 0
-        val accelerationFolder =
-            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
-        if (accelerationFolder.exists()) {
-            Validate.isTrue(accelerationFolder.isDirectory)
-            val accelerationFiles = accelerationFolder.listFiles()
-            if (accelerationFiles != null) {
-                for (file in accelerationFiles) {
-                    Validate.isTrue(file.delete())
-                }
-                removedFiles += accelerationFiles.size
-            }
-            Validate.isTrue(accelerationFolder.delete())
-        }
-        val rotationFolder =
-            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
-        if (rotationFolder.exists()) {
-            Validate.isTrue(rotationFolder.isDirectory)
-            val rotationFiles = rotationFolder.listFiles()
-            if (rotationFiles != null) {
-                for (file in rotationFiles) {
-                    Validate.isTrue(file.delete())
-                }
-                removedFiles += rotationFiles.size
-            }
-            Validate.isTrue(rotationFolder.delete())
-        }
-        val directionFolder =
-            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
-        if (directionFolder.exists()) {
-            Validate.isTrue(directionFolder.isDirectory)
-            val directionFiles = directionFolder.listFiles()
-            if (directionFiles != null) {
-                for (file in directionFiles) {
-                    Validate.isTrue(file.delete())
-                }
-                removedFiles += directionFiles.size
-            }
-            Validate.isTrue(directionFolder.delete())
-        }
+        // To be able to inject the database, the persistence layer has to be created before but if we
+        // remove the file folders, they are not create again, as this is done in persistence construction.
+        val removedFiles = clearFileLayer(context, false)
 
         // Remove database entries
-        val removedGeoLocations = database.geoLocationDao()!!.deleteAll()
-        val removedPressures = database.pressureDao()!!.deleteAll()
-        val removedEvents = database.eventDao()!!.deleteAll()
-        val removedMeasurements = database.measurementDao()!!.deleteAll()
+        val removedGeoLocations = database.geoLocationDao().deleteAll()
+        val removedPressures = database.pressureDao().deleteAll()
+        val removedEvents = database.eventDao().deleteAll()
+        val removedMeasurements = database.measurementDao().deleteAll()
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.
@@ -322,49 +285,7 @@ object SharedTestUtils {
      */
     @JvmStatic
     fun clearPersistenceLayer(context: Context, resolver: ContentResolver, authority: String): Int {
-        val fileAccessLayer: FileDao = DefaultFileDao()
-
-        // Remove {@code Point3DFile}s and their parent folders
-        var removedFiles = 0
-        val accelerationFolder: File =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
-        if (accelerationFolder.exists()) {
-            Validate.isTrue(accelerationFolder.isDirectory)
-            val accelerationFiles = accelerationFolder.listFiles()
-            if (accelerationFiles != null) {
-                for (file in accelerationFiles) {
-                    Validate.isTrue(file.delete())
-                }
-                removedFiles += accelerationFiles.size
-            }
-            Validate.isTrue(accelerationFolder.delete())
-        }
-        val rotationFolder: File =
-            fileAccessLayer.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
-        if (rotationFolder.exists()) {
-            Validate.isTrue(rotationFolder.isDirectory)
-            val rotationFiles = rotationFolder.listFiles()
-            if (rotationFiles != null) {
-                for (file in rotationFiles) {
-                    Validate.isTrue(file.delete())
-                }
-                removedFiles += rotationFiles.size
-            }
-            Validate.isTrue(rotationFolder.delete())
-        }
-        val directionFolder: File =
-            fileAccessLayer.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
-        if (directionFolder.exists()) {
-            Validate.isTrue(directionFolder.isDirectory)
-            val directionFiles = directionFolder.listFiles()
-            if (directionFiles != null) {
-                for (file in directionFiles) {
-                    Validate.isTrue(file.delete())
-                }
-                removedFiles += directionFiles.size
-            }
-            Validate.isTrue(directionFolder.delete())
-        }
+        val removedFiles = clearFileLayer(context, true)
 
         // Remove database entries
         val removedGeoLocations = resolver.delete(LocationTable.getUri(authority), null, null)
@@ -375,6 +296,59 @@ object SharedTestUtils {
         // database itself is removed when the app is uninstalled or the app data is deleted.
         // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
         return removedFiles +  /* removedIdentifierRows + */removedGeoLocations + removedEvents + removedMeasurements
+    }
+
+    private fun clearFileLayer(context: Context, removeFolder: Boolean = true): Int {
+        val fileDao: FileDao = DefaultFileDao()
+
+        // Remove {@code Point3DFile}s and their parent folders
+        var removedFiles = 0
+        val accelerationFolder =
+            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+        if (accelerationFolder.exists()) {
+            Validate.isTrue(accelerationFolder.isDirectory)
+            val accelerationFiles = accelerationFolder.listFiles()
+            if (accelerationFiles != null) {
+                for (file in accelerationFiles) {
+                    Validate.isTrue(file.delete())
+                }
+                removedFiles += accelerationFiles.size
+            }
+            if (removeFolder) {
+                Validate.isTrue(accelerationFolder.delete())
+            }
+        }
+        val rotationFolder =
+            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+        if (rotationFolder.exists()) {
+            Validate.isTrue(rotationFolder.isDirectory)
+            val rotationFiles = rotationFolder.listFiles()
+            if (rotationFiles != null) {
+                for (file in rotationFiles) {
+                    Validate.isTrue(file.delete())
+                }
+                removedFiles += rotationFiles.size
+            }
+            if (removeFolder) {
+                Validate.isTrue(rotationFolder.delete())
+            }
+        }
+        val directionFolder =
+            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+        if (directionFolder.exists()) {
+            Validate.isTrue(directionFolder.isDirectory)
+            val directionFiles = directionFolder.listFiles()
+            if (directionFiles != null) {
+                for (file in directionFiles) {
+                    Validate.isTrue(file.delete())
+                }
+                removedFiles += directionFiles.size
+            }
+            if (removeFolder) {
+                Validate.isTrue(directionFolder.delete())
+            }
+        }
+        return removedFiles
     }
 
     /**
@@ -541,7 +515,7 @@ object SharedTestUtils {
         timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
         accuracy: Double, verticalAccuracy: Double
     ) {
-        database.geoLocationDao()!!.insertAll(
+        database.geoLocationDao().insertAll(
             GeoLocation(
                 timestamp, lat, lon, altitude, speed, accuracy,
                 verticalAccuracy, measurementIdentifier
@@ -567,7 +541,7 @@ object SharedTestUtils {
         for (geoLocation in geoLocations) {
             locations.add(GeoLocation(geoLocation, measurementIdentifier))
         }
-        database.geoLocationDao()!!.insertAll(*locations.toTypedArray())
+        database.geoLocationDao().insertAll(*locations.toTypedArray())
 
         // This avoids "failed binder transaction - parcel size ..." error - FIXME See if this works without this code block
         /*final int maxBatchSize = 2_000;

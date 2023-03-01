@@ -25,7 +25,6 @@ import android.content.Context
 import android.database.Cursor
 import android.net.Uri
 import de.cyface.persistence.Database
-import de.cyface.persistence.dao.IdentifierDao
 
 /**
  * A content provider for the databased used as cache for all measurements acquired via the mobile device prior to
@@ -51,15 +50,9 @@ class MeasurementProvider : ContentProvider() {
      */
     private var myContext: Context? = null
 
-    /**
-     * The object to access [de.cyface.persistence.model.Identifier] data from.
-     */
-    private var identifierDao: IdentifierDao? = null
-
     override fun onCreate(): Boolean {
         myContext = context
         val database = Database.getDatabase(context!!.applicationContext)
-        identifierDao = database.identifierDao()
         helper = MeasurementProviderHelper(context!!, database)
         return true
     }

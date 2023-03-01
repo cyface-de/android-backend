@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -49,10 +49,8 @@ import androidx.test.filters.SdkSuppress;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 
-import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.synchronization.exception.SynchronisationException;
 import de.cyface.testutils.SharedTestUtils;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -60,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.5
+ * @version 2.3.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -121,14 +119,10 @@ public final class MovebisTest {
         testListener = new TestListener();
         testUIListener = new TestUIListener(lock, condition);
 
-        InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
-            try {
-                oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE, "https://localhost:8080",
-                        testUIListener, 0L, new IgnoreEventsStrategy(), testListener, 100);
-            } catch (SetupException | CursorIsNullException e) {
-                throw new IllegalStateException(e);
-            }
-        });
+        InstrumentationRegistry.getInstrumentation()
+                .runOnMainSync(() -> oocut = new MovebisDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE,
+                        "https://localhost:8080",
+                        testUIListener, 0L, new IgnoreEventsStrategy(), testListener, 100));
 
         // Ensure reproducibility
         accountManager = AccountManager.get(context);

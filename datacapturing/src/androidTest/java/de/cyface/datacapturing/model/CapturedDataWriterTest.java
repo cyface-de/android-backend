@@ -65,6 +65,7 @@ import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.dao.DefaultFileDao;
 import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
@@ -121,7 +122,6 @@ public class CapturedDataWriterTest {
 
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
         oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, capturingBehaviour);
-        // FIXME: we not use a real database, which might be okay as this is an androidTest
         SharedTestUtils.clearPersistenceLayer(context, oocut.getDatabase());
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
@@ -151,8 +151,8 @@ public class CapturedDataWriterTest {
         // Try to load the created measurement and check its properties
         final var measurementDao = oocut.getDatabase().measurementDao();
         final var created = measurementDao.loadById(measurement.getId());
-        assertThat(created.getModality(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-        assertThat(created.getStatus(), is(equalTo(MeasurementStatus.OPEN.getDatabaseIdentifier())));
+        assertThat(created.getModality(), is(equalTo(UNKNOWN)));
+        assertThat(created.getStatus(), is(equalTo(MeasurementStatus.OPEN)));
         assertThat(created.getFileFormatVersion(), is(equalTo(PERSISTENCE_FILE_FORMAT_VERSION)));
         assertThat(created.getDistance(), is(equalTo(0.0)));
 
@@ -164,8 +164,8 @@ public class CapturedDataWriterTest {
 
         // Load the finished measurement
         final var finished = measurementDao.loadById(measurement.getId());
-        assertThat(finished.getModality(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-        assertThat(finished.getStatus(), is(equalTo(FINISHED.getDatabaseIdentifier())));
+        assertThat(finished.getModality(), is(equalTo(UNKNOWN)));
+        assertThat(finished.getStatus(), is(equalTo(FINISHED)));
     }
 
     /**
@@ -664,9 +664,9 @@ public class CapturedDataWriterTest {
         // Assert
         assertThat(cleanedTracks.size(), is(equalTo(2)));
         assertThat(cleanedTracks.get(0).getGeoLocations().size(), is(equalTo(1)));
-        assertThat(cleanedTracks.get(0).getGeoLocations().get(0), is(equalTo(locationWithHighEnoughSpeed)));
+        assertThat(cleanedTracks.get(0).getGeoLocations().get(0), is(equalTo(new GeoLocation(locationWithHighEnoughSpeed, measurement.getId()))));
         assertThat(cleanedTracks.get(1).getGeoLocations().size(), is(equalTo(1)));
-        assertThat(cleanedTracks.get(1).getGeoLocations().get(0), is(equalTo(locationWithGoodEnoughAccuracy)));
+        assertThat(cleanedTracks.get(1).getGeoLocations().get(0), is(equalTo(new GeoLocation(locationWithGoodEnoughAccuracy, measurement.getId()))));
     }
 
     @Test

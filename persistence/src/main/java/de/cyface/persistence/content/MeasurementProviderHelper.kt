@@ -34,15 +34,31 @@ import de.cyface.persistence.Database
  * @author Armin Schnabel
  * @version 5.0.0
  * @since 1.0.0
- * @property database The database to be used for data access.
  */
 internal class MeasurementProviderHelper(
     /**
      * The Android context to use to access the Android System via.
      */
     context: Context,
-    val database: Database
+    /**
+     * The database to use for data access.
+     */
+    database: Database
 ) {
+    /**
+     * Create/Open a database that can be used for reading.
+     *
+     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.getReadableDatabase]
+     */
+    private var readableDatabase: SupportSQLiteDatabase
+
+    /**
+     * Create/Open a database that can be used for writing.
+     *
+     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.getWritableDatabase]
+     */
+    private var writableDatabase: SupportSQLiteDatabase
+
     /**
      * The table containing all the measurements, without the corresponding data. Data is stored in one table per type.
      */
@@ -91,7 +107,7 @@ internal class MeasurementProviderHelper(
         selectionArgs: Array<String>?
     ): Int {
         val pathSegments = uri.pathSegments
-        val database = getWritableDatabase()
+        val database = writableDatabase
 
         val table: CyfaceTable = matchTable(uri)
 
@@ -106,11 +122,7 @@ internal class MeasurementProviderHelper(
                         MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH -> {
                             val adaptedSelection = (BaseColumns.ID + "=" + rowIdentifier
                                     + if (selection == null) "" else " AND $selection")
-                            ret += table.deleteRow(
-                                getWritableDatabase(),
-                                adaptedSelection,
-                                selectionArgs
-                            )
+                            ret += table.deleteRow(database, adaptedSelection, selectionArgs)
                             database.setTransactionSuccessful()
                             ret
                         }
@@ -121,7 +133,7 @@ internal class MeasurementProviderHelper(
                     when (pathSegments[0]) {
                         // FIXME: ensure the measurement-related data is deleted automatically cascadingly (write/execute test)
                         MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH, IdentifierTable.URI_PATH -> {
-                            ret += table.deleteRow(getWritableDatabase(), selection, selectionArgs)
+                            ret += table.deleteRow(database, selection, selectionArgs)
                             database.setTransactionSuccessful()
                             ret
                         }
@@ -140,24 +152,6 @@ internal class MeasurementProviderHelper(
     }
 
     /**
-     * Create/Open a database that can be used for writing.
-     *
-     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.getWritableDatabase]
-     */
-    private fun getWritableDatabase(): SupportSQLiteDatabase {
-        return database.openHelper.writableDatabase
-    }
-
-    /**
-     * Create/Open a database that can be used for reading.
-     *
-     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.getReadableDatabase]
-     */
-    private fun getReadableDatabase(): SupportSQLiteDatabase {
-        return database.openHelper.readableDatabase
-    }
-
-    /**
      * Inserts a single row into a table.
      *
      * @param uri The table to insert the row into.
@@ -166,7 +160,7 @@ internal class MeasurementProviderHelper(
      */
     fun insertRow(uri: Uri, values: ContentValues): Long {
         val table: CyfaceTable = matchTable(uri)
-        return table.insertRow(getWritableDatabase(), values)
+        return table.insertRow(writableDatabase, values)
     }
 
     /**
@@ -182,7 +176,7 @@ internal class MeasurementProviderHelper(
         // The only old task I found is: https://cyface.atlassian.net/browse/MOV-248
         // But nothing about bulkInsert. I guess we leave it like this as this is working
         // writableDatabase.bulkInsert(uri, Arrays.asList(*values)).length
-        return table.insertBatch(getWritableDatabase(), values)
+        return table.insertBatch(writableDatabase, values)
     }
 
     /**
@@ -204,12 +198,12 @@ internal class MeasurementProviderHelper(
     ): Cursor {
         val table: CyfaceTable = matchTable(uri)
         return when (uri.pathSegments.size) {
-            1 -> table.query(getReadableDatabase(), projection, selection, selectionArgs, sortOrder)
+            1 -> table.query(readableDatabase, projection, selection, selectionArgs, sortOrder)
             2 -> {
                 val adaptedSelection = (BaseColumns.ID + "=" + uri.lastPathSegment
                         + if (selection == null) "" else " AND $selection")
                 table.query(
-                    getReadableDatabase(),
+                    readableDatabase,
                     projection,
                     adaptedSelection,
                     selectionArgs,
@@ -237,12 +231,12 @@ internal class MeasurementProviderHelper(
     ): Int {
         val table: CyfaceTable = matchTable(uri)
         return when (uri.pathSegments.size) {
-            1 -> table.update(getWritableDatabase(), values, selection, selectionArgs)
+            1 -> table.update(writableDatabase, values, selection, selectionArgs)
             2 -> {
                 val id = uri.lastPathSegment
                 val adaptedSelection = (BaseColumns.ID + "=" + id
                         + if (TextUtils.isEmpty(selection)) "" else " AND $selection")
-                table.update(getWritableDatabase(), values, adaptedSelection, selectionArgs)
+                table.update(writableDatabase, values, adaptedSelection, selectionArgs)
             }
             else -> throw IllegalArgumentException("Unknown URI: $uri")
         }
@@ -282,5 +276,10 @@ internal class MeasurementProviderHelper(
             EventTable.URI_PATH -> eventTable
             else -> throw IllegalStateException("Unknown table with URI: $uri")
         }
+    }
+
+    init {
+        this.readableDatabase = database.openHelper.readableDatabase
+        this.writableDatabase = database.openHelper.writableDatabase
     }
 }

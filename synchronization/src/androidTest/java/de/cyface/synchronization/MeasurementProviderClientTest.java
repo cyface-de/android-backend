@@ -116,6 +116,7 @@ public class MeasurementProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
+            measurementValues.put(BaseColumns.TIMESTAMP, 1);
             Uri result = client.insert(MeasurementTable.Companion.getUri(AUTHORITY), measurementValues);
             Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
@@ -126,8 +127,10 @@ public class MeasurementProviderClientTest {
             geoLocationValues.put(BaseColumns.MEASUREMENT_ID, measurementIdentifier);
             geoLocationValues.put(LocationTable.COLUMN_LON, 1.0);
             geoLocationValues.put(LocationTable.COLUMN_LAT, 1.0);
+            geoLocationValues.put(LocationTable.COLUMN_ALTITUDE, 400.);
             geoLocationValues.put(BaseColumns.TIMESTAMP, 1);
             geoLocationValues.put(LocationTable.COLUMN_ACCURACY, 1.0f);
+            geoLocationValues.put(LocationTable.COLUMN_VERTICAL_ACCURACY, 20.);
             ContentValues[] geoLocationValuesArray = new ContentValues[numberOftestEntries];
             for (int i = 0; i < numberOftestEntries; i++) {
                 geoLocationValuesArray[i] = geoLocationValues;
@@ -192,6 +195,7 @@ public class MeasurementProviderClientTest {
             measurementValues.put(MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION,
                     PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
+            measurementValues.put(BaseColumns.TIMESTAMP, 1);
 
             // Insert test measurement
             Uri result = client.insert(MeasurementTable.Companion.getUri(AUTHORITY), measurementValues);
@@ -205,8 +209,10 @@ public class MeasurementProviderClientTest {
             geoLocationValues.put(BaseColumns.MEASUREMENT_ID, measurementIdentifier);
             geoLocationValues.put(LocationTable.COLUMN_LON, 1.0);
             geoLocationValues.put(LocationTable.COLUMN_LAT, 1.0);
+            geoLocationValues.put(LocationTable.COLUMN_ALTITUDE, 400.);
             geoLocationValues.put(BaseColumns.TIMESTAMP, 1L);
             geoLocationValues.put(LocationTable.COLUMN_ACCURACY, 1.0f);
+            geoLocationValues.put(LocationTable.COLUMN_VERTICAL_ACCURACY, 20.);
 
             // Insert GeoLocations
             client.insert(LocationTable.Companion.getUri(AUTHORITY), geoLocationValues);

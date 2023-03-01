@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -58,8 +58,8 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.model.MeasurementIdentifier;
 import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.content.DefaultProviderClient;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -91,7 +91,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.1
+ * @version 2.1.2
  * @see <a href="http://d.android.com/tools/testing">Testing documentation</a>
  * @since 2.0.0
  */
@@ -106,7 +106,7 @@ public class SyncPerformerTest {
     private Context context;
     private ContentResolver contentResolver;
     private SyncPerformer oocut;
-    private PersistenceLayer<DefaultPersistenceBehaviour> persistence;
+    private DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistence;
     @Mock
     private Http mockedHttp;
 
@@ -118,7 +118,7 @@ public class SyncPerformerTest {
 
         // Ensure reproducibility
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
-        persistence = new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistence = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
 
         oocut = new SyncPerformer(context);
     }
@@ -143,9 +143,9 @@ public class SyncPerformerTest {
         // Arrange
         // Insert data to be synced
         final int locationCount = 1;
-        final Measurement measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
+        final Measurement measurement = insertSampleMeasurementWithData(context, MeasurementStatus.FINISHED,
                 persistence, 1, locationCount);
-        final long measurementIdentifier = measurement.getIdentifier();
+        final long measurementIdentifier = measurement.getId();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
@@ -156,11 +156,10 @@ public class SyncPerformerTest {
                         String.format("Unable to acquire client for content provider %s", AUTHORITY));
 
             // Load measurement serialized compressed
-            final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                    client, AUTHORITY);
+            final var loader = new DefaultProviderClient(measurementIdentifier, client, AUTHORITY);
             final MeasurementSerializer serializer = new MeasurementSerializer();
             final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader,
-                    measurement.getIdentifier(), persistence);
+                    measurement.getId(), persistence);
             Log.d(TAG, "CompressedTransferTempFile size: "
                     + humanReadableSize(compressedTransferTempFile.length(), true));
 
@@ -173,7 +172,8 @@ public class SyncPerformerTest {
             final var lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
             final var endLocation = lastTrack.get(lastTrack.size() - 1);
             final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
-            final var startRecord = new RequestMetaData.GeoLocation(startLocation.getTimestamp(), startLocation.getLat(),
+            final var startRecord = new RequestMetaData.GeoLocation(startLocation.getTimestamp(),
+                    startLocation.getLat(),
                     startLocation.getLon());
             final var endRecord = new RequestMetaData.GeoLocation(endLocation.getTimestamp(), endLocation.getLat(),
                     endLocation.getLon());
@@ -218,15 +218,16 @@ public class SyncPerformerTest {
             BadRequestException, EntityNotParsableException, ForbiddenException, ConflictException,
             NetworkUnavailableException, SynchronizationInterruptedException, InternalServerErrorException,
             SynchronisationException, UnauthorizedException, TooManyRequestsException, HostUnresolvable,
-            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode, AccountNotActivated {
+            ServerUnavailableException, MeasurementTooLarge, UploadSessionExpired, UnexpectedResponseCode,
+            AccountNotActivated {
 
         // Arrange
         // 24 hours test data ~ 108 MB which is more then the currently supported upload size (100)
         final int hours = 1;
         final int locationCount = hours * 3_600;
-        final Measurement measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
+        final Measurement measurement = insertSampleMeasurementWithData(context, MeasurementStatus.FINISHED,
                 persistence, locationCount * 100, locationCount);
-        final long measurementIdentifier = measurement.getIdentifier();
+        final long measurementIdentifier = measurement.getId();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
         File file = null;
@@ -273,9 +274,9 @@ public class SyncPerformerTest {
         final int locationCount = 3 * 1_000;
 
         // Insert data to be synced
-        final var measurement = insertSampleMeasurementWithData(context, AUTHORITY, MeasurementStatus.FINISHED,
+        final var measurement = insertSampleMeasurementWithData(context, MeasurementStatus.FINISHED,
                 persistence, point3DCount, locationCount);
-        final long measurementIdentifier = measurement.getIdentifier();
+        final long measurementIdentifier = measurement.getId();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
@@ -301,12 +302,12 @@ public class SyncPerformerTest {
     private RequestMetaData loadMetaData(Measurement measurement,
             @SuppressWarnings("SameParameterValue") int locationCount) throws CursorIsNullException {
         // Load meta data
-        final List<Track> tracks = persistence.loadTracks(measurement.getIdentifier());
+        final List<Track> tracks = persistence.loadTracks(measurement.getId());
         final var startLocation = tracks.get(0).getGeoLocations().get(0);
         final var lastTrack = tracks.get(tracks.size() - 1).getGeoLocations();
         final var endLocation = lastTrack.get(lastTrack.size() - 1);
         final String deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8"; // Must be a valid UUID
-        final var id = new MeasurementIdentifier(deviceId, measurement.getIdentifier());
+        final var id = new MeasurementIdentifier(deviceId, measurement.getId());
         final var startRecord = new RequestMetaData.GeoLocation(startLocation.getTimestamp(), startLocation.getLat(),
                 startLocation.getLon());
         final var endRecord = new RequestMetaData.GeoLocation(endLocation.getTimestamp(), endLocation.getLat(),
@@ -321,8 +322,7 @@ public class SyncPerformerTest {
             throws CursorIsNullException {
 
         // Load measurement serialized compressed
-        final MeasurementContentProviderClient loader = new MeasurementContentProviderClient(measurementIdentifier,
-                client, AUTHORITY);
+        final var loader = new DefaultProviderClient(measurementIdentifier, client, AUTHORITY);
         final MeasurementSerializer serializer = new MeasurementSerializer();
         final File compressedTransferTempFile = serializer.writeSerializedCompressed(loader, measurementIdentifier,
                 persistence);
