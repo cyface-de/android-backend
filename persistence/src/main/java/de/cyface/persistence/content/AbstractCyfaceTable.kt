@@ -111,7 +111,7 @@ abstract class AbstractCyfaceTable internal constructor(name: String) : CyfaceTa
         selectionArgs: Array<String>?
     ): Int {
         // CONFLICT_NONE is used as this was the default behavior before (in SQLiteDatabase)
-        return database.update(name, CONFLICT_NONE, values, selection, selectionArgs)
+        return database.update(name, CONFLICT_NONE, values!!, selection, selectionArgs)
     }
 
     override fun toString(): String {

@@ -67,11 +67,24 @@ android {
         jvmTarget = rootProject.ext.kotlinTargetJavaVersion
     }
 
+    sourceSets {
+        // Adds exported schemas as test assets
+        androidTest.assets.srcDirs += files("$projectDir/schemas".toString())
+    }
+
     // Uncomment to show more lint warnings
     /*tasks.withType(JavaCompile) {
         options.compilerArgs << '-Xlint:unchecked'
         options.deprecation = true
     }*/
+}
+
+// This would collide with hamcrest-all
+configurations.all {
+    resolutionStrategy.dependencySubstitution {
+        // collides with hamcrest-all
+        substitute module("org.hamcrest:hamcrest-core:$rootProject.ext.hamcrestVersion") with module("junit:junit:$rootProject.ext.junitVersion")
+    }
 }
 
 dependencies {
@@ -105,6 +118,8 @@ dependencies {
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
+    androidTestImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
+    androidTestImplementation "androidx.room:room-testing:$rootProject.ext.roomVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 }
