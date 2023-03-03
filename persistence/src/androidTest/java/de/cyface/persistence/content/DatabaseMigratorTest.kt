@@ -114,209 +114,217 @@ class DatabaseMigratorTest {
     @Test
     fun testMigrationV17ToV18_withV6DatabaseMerge() {
         // Arrange
-        val v6Db = createV6Database(context!!)
-        createV6Tables(v6Db)
-        // Only insert data for the second measurement `id=44` into `v6` database
-        addV6LocationsAndPressures(v6Db, 44L, 1, 1, 0.0)
-        // Database `v6` still contained `accuracy` in cm but as `Double`
-        addV6LocationsAndPressures(v6Db, 45L, 1, 1, 500.0)
-        v6Db.close()
-        // Create main database
-        @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-        var db = helper.createDatabase(TEST_DB_NAME, 17).apply {
-            this.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b')")
-            // The measurement `43L` has no `v6` data as it was "captured with SDK < 6.3/7.4"
-            addDatabaseV17Measurement(this, 43L, 1, 5.0)
-            // `measures.locations.accuracy = 0.0` is expected to be set to `null`
-            addDatabaseV17Measurement(this, 44L, 1, 0.0)
-            addDatabaseV17Measurement(this, 45L, 1, 5.0)
-            close() // Prepare for the next version
-        }
+        val v6DatabaseName = "v6"
+        val v6Db = createV6Database(context!!, v6DatabaseName)
+        try {
+            createV6Tables(v6Db)
+            // Only insert data for the second measurement `id=44` into `v6` database
+            addV6LocationsAndPressures(v6Db, 44L, 1, 1, 0.0)
+            // Database `v6` still contained `accuracy` in cm but as `Double`
+            addV6LocationsAndPressures(v6Db, 45L, 1, 1, 500.0)
+            v6Db.close()
+            // Create main database
+            @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
+            var db = helper.createDatabase(TEST_DB_NAME, 17).apply {
+                this.execSQL("INSERT INTO identifiers (_id,device_id) VALUES (1,'61e112e1-548e-4a90-be28-9d5b31d6875b')")
+                // The measurement `43L` has no `v6` data as it was "captured with SDK < 6.3/7.4"
+                addDatabaseV17Measurement(this, 43L, 1, 5.0)
+                // `measures.locations.accuracy = 0.0` is expected to be set to `null`
+                addDatabaseV17Measurement(this, 44L, 1, 0.0)
+                addDatabaseV17Measurement(this, 45L, 1, 5.0)
+                close() // Prepare for the next version
+            }
 
-        // Act
-        // Re-open the database with target version and provide migrations
-        // MigrationTestHelper automatically verifies the schema changes, but not the data validity
-        db = helper.runMigrationsAndValidate(
-            TEST_DB_NAME,
-            18,
-            true,
-            migrator!!.MIGRATION_17_18
-        )
+            // Act
+            // Re-open the database with target version and provide migrations
+            // MigrationTestHelper automatically verifies the schema changes, but not the data validity
+            db = helper.runMigrationsAndValidate(
+                TEST_DB_NAME,
+                18,
+                true,
+                migrator!!.MIGRATION_17_18
+            )
 
-        // Assert
-        checkV18IdentifierTable(db)
-        checkV18MeasurementTable(db, 3)
-        checkV18EventTable(db)
-        // Location table
-        // Ensure measurement 43 contains location where `altitude` and `verticalAccuracy` is `null`
-        db.query(
-            SupportSQLiteQueryBuilder.builder("Location")
-                .selection("measurementId = ?", arrayOf("43"))
-                .create()
-        ).use { cursor ->
-            MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(/*FIXME ! => 1*/0))
-            /*cursor.moveToNext()
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
-                CoreMatchers.equalTo(1551431485000L)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("lat")),
-                CoreMatchers.equalTo(51.05210394)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("lon")),
-                CoreMatchers.equalTo(13.72873203)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("altitude")),
-                CoreMatchers.equalTo(null)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("speed")),
-                CoreMatchers.equalTo(1.01)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("accuracy")),
-                CoreMatchers.equalTo(5.0)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("verticalAccuracy")),
-                CoreMatchers.equalTo(null)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
-                CoreMatchers.equalTo(43L)
-            )*/
+            // Assert
+            checkV18IdentifierTable(db)
+            checkV18MeasurementTable(db, 3)
+            checkV18EventTable(db)
+            // Location table
+            // Ensure measurement 43 contains location where `altitude` and `verticalAccuracy` is `null`
+            db.query(
+                SupportSQLiteQueryBuilder.builder("Location")
+                    .selection("measurementId = ?", arrayOf("43"))
+                    .create()
+            ).use { cursor ->
+                MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
+                cursor.moveToNext()
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                    CoreMatchers.equalTo(1551431485000L)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("lat")),
+                    CoreMatchers.equalTo(51.05210394)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("lon")),
+                    CoreMatchers.equalTo(13.72873203)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("altitude")),
+                    CoreMatchers.equalTo(null)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("speed")),
+                    CoreMatchers.equalTo(1.01)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("accuracy")),
+                    CoreMatchers.equalTo(5.0)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("verticalAccuracy")),
+                    CoreMatchers.equalTo(null)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
+                    CoreMatchers.equalTo(43L)
+                )
+            }
+            // Ensure measurement 44 contains locations with altitude from `v6` and that `accuracy` is `null`
+            db.query(
+                SupportSQLiteQueryBuilder.builder("Location")
+                    .selection("measurementId = ?", arrayOf("44"))
+                    .create()
+            ).use { cursor ->
+                MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
+                cursor.moveToNext()
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                    CoreMatchers.equalTo(1551431485000L)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("lat")),
+                    CoreMatchers.equalTo(51.05210394)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("lon")),
+                    CoreMatchers.equalTo(13.72873203)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("altitude")),
+                    CoreMatchers.equalTo(400.0)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("speed")),
+                    CoreMatchers.equalTo(1.01)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("accuracy")),
+                    CoreMatchers.equalTo(null)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("verticalAccuracy")),
+                    CoreMatchers.equalTo(20.0)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
+                    CoreMatchers.equalTo(44L)
+                )
+            }
+            // Ensure measurement 45 contains locations with altitude from `v6` and the accuracy in meters
+            db.query(
+                SupportSQLiteQueryBuilder.builder("Location")
+                    .selection("measurementId = ?", arrayOf("45"))
+                    .create()
+            ).use { cursor ->
+                MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
+                cursor.moveToNext()
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                    CoreMatchers.equalTo(1551431485000L)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("lat")),
+                    CoreMatchers.equalTo(51.05210394)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("lon")),
+                    CoreMatchers.equalTo(13.72873203)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("altitude")),
+                    CoreMatchers.equalTo(400.0)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("speed")),
+                    CoreMatchers.equalTo(1.01)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("accuracy")),
+                    CoreMatchers.equalTo(5.0)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("verticalAccuracy")),
+                    CoreMatchers.equalTo(20.0)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
+                    CoreMatchers.equalTo(45L)
+                )
+            }
+            // Pressure table
+            // Ensure measurement 43 contains no pressures
+            db.query(
+                SupportSQLiteQueryBuilder.builder("Pressure")
+                    .selection("measurementId = ?", arrayOf("43")).create()
+            ).use { cursor ->
+                MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(0))
+            }
+            // Ensure measurement 44 contains pressures from `v6´
+            db.query(
+                SupportSQLiteQueryBuilder.builder("Pressure")
+                    .selection("measurementId = ?", arrayOf("44")).create()
+            ).use { cursor ->
+                MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
+                cursor.moveToNext()
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("pressure")),
+                    CoreMatchers.equalTo(1013.25)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                    CoreMatchers.equalTo(1551431485000L)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
+                    CoreMatchers.equalTo(44L)
+                )
+            }
+            // Ensure measurement 45 contains pressures from `v6´
+            db.query(
+                SupportSQLiteQueryBuilder.builder("Pressure")
+                    .selection("measurementId = ?", arrayOf("45")).create()
+            ).use { cursor ->
+                MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
+                cursor.moveToNext()
+                MatcherAssert.assertThat(
+                    cursor.getDouble(cursor.getColumnIndexOrThrow("pressure")),
+                    CoreMatchers.equalTo(1013.25)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
+                    CoreMatchers.equalTo(1551431485000L)
+                )
+                MatcherAssert.assertThat(
+                    cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
+                    CoreMatchers.equalTo(45L)
+                )
+            }
+            // `runMigrationsAndValidate()` above ensures old tables `locations` are deleted.
+        } finally {
+            context!!.deleteDatabase(v6DatabaseName)
         }
-        // Ensure measurement 44 contains locations with altitude from `v6` and that `accuracy` is `null`
-        db.query(
-            SupportSQLiteQueryBuilder.builder("Location")
-                .selection("measurementId = ?", arrayOf("44"))
-                .create()
-        ).use { cursor ->
-            MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
-            cursor.moveToNext()
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
-                CoreMatchers.equalTo(1551431485000L)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("lat")),
-                CoreMatchers.equalTo(51.05210394)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("lon")),
-                CoreMatchers.equalTo(13.72873203)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("altitude")),
-                CoreMatchers.equalTo(400.0)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("speed")),
-                CoreMatchers.equalTo(1.01)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("accuracy")),
-                CoreMatchers.equalTo(null)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("verticalAccuracy")),
-                CoreMatchers.equalTo(20.0)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
-                CoreMatchers.equalTo(44L)
-            )
-        }
-        // Ensure measurement 45 contains locations with altitude from `v6` and the accuracy in meters
-        db.query(
-            SupportSQLiteQueryBuilder.builder("Location")
-                .selection("measurementId = ?", arrayOf("45"))
-                .create()
-        ).use { cursor ->
-            MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
-            cursor.moveToNext()
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
-                CoreMatchers.equalTo(1551431485000L)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("lat")),
-                CoreMatchers.equalTo(51.05210394)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("lon")),
-                CoreMatchers.equalTo(13.72873203)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("altitude")),
-                CoreMatchers.equalTo(400.0)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("speed")),
-                CoreMatchers.equalTo(1.01)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("accuracy")),
-                CoreMatchers.equalTo(5.0)
-            )
-            MatcherAssert.assertThat(
-                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow("verticalAccuracy")),
-                CoreMatchers.equalTo(20.0)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
-                CoreMatchers.equalTo(45L)
-            )
-        }
-        // Pressure table
-        // Ensure measurement 43 contains no pressures
-        db.query(
-            SupportSQLiteQueryBuilder.builder("Pressure").selection("measurementId = ?", arrayOf("43")).create()
-        ).use { cursor ->
-            MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(0))
-        }
-        // Ensure measurement 44 contains pressures from `v6´
-        db.query(
-            SupportSQLiteQueryBuilder.builder("Pressure").selection("measurementId = ?", arrayOf("44")).create()
-        ).use { cursor ->
-            MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
-            cursor.moveToNext()
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("pressure")),
-                CoreMatchers.equalTo(1013.25)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
-                CoreMatchers.equalTo(1551431485000L)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
-                CoreMatchers.equalTo(44L)
-            )
-        }
-        // Ensure measurement 45 contains pressures from `v6´
-        db.query(
-            SupportSQLiteQueryBuilder.builder("Pressure").selection("measurementId = ?", arrayOf("45")).create()
-        ).use { cursor ->
-            MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
-            cursor.moveToNext()
-            MatcherAssert.assertThat(
-                cursor.getDouble(cursor.getColumnIndexOrThrow("pressure")),
-                CoreMatchers.equalTo(1013.25)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("timestamp")),
-                CoreMatchers.equalTo(1551431485000L)
-            )
-            MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("measurementId")),
-                CoreMatchers.equalTo(45L)
-            )
-        }
-        // `runMigrationsAndValidate()` above ensures old tables `locations` are deleted.
     }
 
     /**
@@ -1003,9 +1011,13 @@ class DatabaseMigratorTest {
      * Creates a secondary database with the name `v6` which existed in SDK 6.3 and 7.4.
      *
      * @param context The context required to get the database folder path.
+     * @param v6DatabaseName The file name of the database to create.
      */
-    private fun createV6Database(context: Context): SQLiteDatabase {
-        val v6File = context.getDatabasePath("v6")
+    private fun createV6Database(
+        context: Context,
+        @Suppress("SameParameterValue") v6DatabaseName: String
+    ): SQLiteDatabase {
+        val v6File = context.getDatabasePath(v6DatabaseName)
         try {
             return SQLiteDatabase.openOrCreateDatabase(
                 v6File.path,

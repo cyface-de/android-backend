@@ -59,13 +59,14 @@ class DatabaseMigrator(val context: Context) {
      * tables and before adding `ForeignKey` constraints and an index on the `measurementId`.
      *
      * This migration step is special as it checks for `altitude` data which we stored for a short time
-     * in a second database with the name `v6`. If the second database `v6` exists, the locations of
-     * measurements which also exist in `v6.Location` are used instead of `measures.locations` as they
-     * are a copy of the later but are annotated with `altitude` and `verticalAccuracy`. Additionally,
-     * if `v6` exists, the `v6.Pressure` data is imported into `measures.Pressure`.
+     * in a second database with the name `v6`.
      *
-     * FIXME: We need to load locations of measurements which are in `measures` but not `v6` from
-     * `measures.17.locations` as they where never added to `v6`!
+     * If the second database `v6` exists, the migrations code first checks if the `v6` database
+     * contains a copy of the locations for a measurement, in that case these locations are migrated as they
+     * are a copy of the `measures.locations` but are annotated with `altitude` and `verticalAccuracy`.
+     * For measurements which were collected before `v6` database existed / altitude data was collected the
+     * locations from `measures.locations` without altitude data is migrated. Additionally,
+     * if `v6` exists, the `v6.Pressure` data is imported into `measures.Pressure`.
      *
      * The second database `v6` was added in both, `6.3.0` and `7.4.0` at the same time as both SDK API
      * versions were in use at the same time by different apps.
@@ -407,9 +408,6 @@ class DatabaseMigrator(val context: Context) {
                 database.execSQL("DROP TABLE _locations_old;")
             }
         }
-
-        // FIXME: check was happens when a versions < 8 tries to migrate
-        //val MIGRATION_8_9 = crashingMigration()
     }
 
     /**
@@ -493,43 +491,72 @@ class DatabaseMigrator(val context: Context) {
                 // Migrate GeoLocation data
                 // Create table with Room generated name and new schema
                 database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
-                // Insert the data from the `v6` database version `1`
-                val locationCursor =
-                    v6Database.query("Location", null, null, null, null, null, "uid ASC")
-                while (locationCursor.moveToNext()) {
-                    val uidIndex = locationCursor.getColumnIndex("uid")
-                    val id = locationCursor.getInt(uidIndex)
-                    val timestampIndex = locationCursor.getColumnIndex("timestamp")
-                    val timestamp = locationCursor.getLong(timestampIndex)
-                    val latIndex = locationCursor.getColumnIndex("lat")
-                    val lat = locationCursor.getDouble(latIndex)
-                    val lonIndex = locationCursor.getColumnIndex("lon")
-                    val lon = locationCursor.getDouble(lonIndex)
-                    val altitudeIndex = locationCursor.getColumnIndex("altitude")
-                    val altitude = locationCursor.getDouble(altitudeIndex)
-                    val speedIndex = locationCursor.getColumnIndex("speed")
-                    val speed = locationCursor.getDouble(speedIndex)
-                    val accuracyIndex = locationCursor.getColumnIndex("accuracy")
-                    val accuracyCm = locationCursor.getDouble(accuracyIndex)
-                    // Convert accuracy from cm to meters
-                    val accuracy = accuracyCm / 100.0
-                    val verticalAccuracyIndex = locationCursor.getColumnIndex("vertical_accuracy")
-                    val verticalAccuracy = locationCursor.getDouble(verticalAccuracyIndex)
-                    val measurementIdIndex = locationCursor.getColumnIndex("measurement_fk")
-                    val measurementId = locationCursor.getInt(measurementIdIndex)
-                    // v6.1 `altitude` and `verticalAccuracy` are already in the same format
-                    database.execSQL(
-                        "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
-                                + " VALUES ('" + id + "', '" + timestamp + "', '" + lat + "', '" + lon + "', '" + altitude + "', '" + speed + "', '" + accuracy + "', '" + verticalAccuracy + "', '" + measurementId + "');"
+                // Load all measurements to see which have locations in `v6` and which only in `measures`
+                val measurementCursor = database.query(
+                    SupportSQLiteQueryBuilder.builder("Measurement").orderBy("id ASC").create()
+                )
+                while (measurementCursor.moveToNext()) {
+                    val measurementId =
+                        measurementCursor.getLong(measurementCursor.getColumnIndexOrThrow("id"))
+                    // Check if secondary `v6` database contains locations for that measurement
+                    val locationCursor = v6Database.query(
+                        "Location",
+                        null,
+                        "measurement_fk = ?",
+                        arrayOf(measurementId.toString()),
+                        null,
+                        null,
+                        "uid ASC"
                     )
+                    if (locationCursor.count > 0) {
+                        // Insert the data from the `v6` database version `1`
+                        while (locationCursor.moveToNext()) {
+                            val uidIndex = locationCursor.getColumnIndex("uid")
+                            val id = locationCursor.getInt(uidIndex)
+                            val timestampIndex = locationCursor.getColumnIndex("timestamp")
+                            val timestamp = locationCursor.getLong(timestampIndex)
+                            val latIndex = locationCursor.getColumnIndex("lat")
+                            val lat = locationCursor.getDouble(latIndex)
+                            val lonIndex = locationCursor.getColumnIndex("lon")
+                            val lon = locationCursor.getDouble(lonIndex)
+                            val altitudeIndex = locationCursor.getColumnIndex("altitude")
+                            val altitude = locationCursor.getDouble(altitudeIndex)
+                            val speedIndex = locationCursor.getColumnIndex("speed")
+                            val speed = locationCursor.getDouble(speedIndex)
+                            val accuracyIndex = locationCursor.getColumnIndex("accuracy")
+                            val accuracyCm = locationCursor.getDouble(accuracyIndex)
+                            // Convert accuracy from cm to meters
+                            val accuracy = accuracyCm / 100.0
+                            val verticalAccuracyIndex =
+                                locationCursor.getColumnIndex("vertical_accuracy")
+                            val verticalAccuracy = locationCursor.getDouble(verticalAccuracyIndex)
+                            val measurementIdIndex = locationCursor.getColumnIndex("measurement_fk")
+                            val locationMeasurementId = locationCursor.getInt(measurementIdIndex)
+                            // v6.1 `altitude` and `verticalAccuracy` are already in the same format
+                            database.execSQL(
+                                "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                                        + " VALUES ('" + id + "', '" + timestamp + "', '" + lat + "', '" + lon + "', '" + altitude + "', '" + speed + "', '" + accuracy + "', '" + verticalAccuracy + "', '" + locationMeasurementId + "');"
+                            )
+                        }
+                    }
+                    // Secondary `v6` database contains no locations for that measurement, load from main database
+                    else {
+                        // Insert the data from old table
+                        /// `accuracy` in `measures` version `17` is already in meters
+                        database.execSQL(
+                            "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                                    + " SELECT `_id`, `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`"
+                                    + " WHERE measurement_fk = $measurementId;"
+                        )
+                    }
+                    locationCursor.close()
                 }
-                locationCursor.close()
                 /// Set `accuracy` values with `0` m to `null`
                 database.execSQL("UPDATE `Location` SET `accuracy` = null WHERE `accuracy` = 0;")
                 // Create index
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_Location_measurementId` ON `Location` (`measurementId`);")
                 // Drop the old `measures` table for locations, as we already imported `v6.Location`
-                database.execSQL("DROP TABLE `locations`;") // FIXME: see FIXME in method documentation! load locations which are not in `v6` from `measures`!
+                database.execSQL("DROP TABLE `locations`;")
 
                 // Migrate Pressure data
                 // Create table with Room generated name and new schema
