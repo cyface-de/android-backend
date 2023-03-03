@@ -511,8 +511,8 @@ class DatabaseMigrator(val context: Context) {
                     val speed = locationCursor.getDouble(speedIndex)
                     val accuracyIndex = locationCursor.getColumnIndex("accuracy")
                     val accuracyCm = locationCursor.getDouble(accuracyIndex)
-                    // Set 0 `accuracy` to null and convert accuracy from cm to m
-                    val accuracy = if (accuracyCm == 0.0) null else accuracyCm / 100.0
+                    // Convert accuracy from cm to meters
+                    val accuracy = accuracyCm / 100.0
                     val verticalAccuracyIndex = locationCursor.getColumnIndex("vertical_accuracy")
                     val verticalAccuracy = locationCursor.getDouble(verticalAccuracyIndex)
                     val measurementIdIndex = locationCursor.getColumnIndex("measurement_fk")
@@ -524,6 +524,8 @@ class DatabaseMigrator(val context: Context) {
                     )
                 }
                 locationCursor.close()
+                /// Set `accuracy` values with `0` m to `null`
+                database.execSQL("UPDATE `Location` SET `accuracy` = null WHERE `accuracy` = 0;")
                 // Create index
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_Location_measurementId` ON `Location` (`measurementId`);")
                 // Drop the old `measures` table for locations, as we already imported `v6.Location`
@@ -574,7 +576,7 @@ class DatabaseMigrator(val context: Context) {
                     "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
                             + " SELECT `_id`, `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`;"
                 )
-                /// Set `accuracy` values with `0` m to `null` FIXME: check if this would happen automatically anyways
+                /// Set `accuracy` values with `0` m to `null`
                 database.execSQL("UPDATE `Location` SET `accuracy` = null WHERE `accuracy` = 0;")
                 // Create index
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_Location_measurementId` ON `Location` (`measurementId`);")
