@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -32,7 +32,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation;
  * Tests that the {@link ParcelableGeoLocation}s are filtered as expected.
  *
  * @author Armin Schnabel
- * @version 1.0.2
+ * @version 1.0.3
  * @since 4.0.0
  */
 public class DefaultLocationCleaningTest {

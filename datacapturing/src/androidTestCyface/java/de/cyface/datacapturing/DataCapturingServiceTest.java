@@ -153,7 +153,6 @@ public class DataCapturingServiceTest {
         });
 
         // Prepare
-        // We use a real database, which should be okay as this is an androidTest
         persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Making sure there is no service instance of a previous test running

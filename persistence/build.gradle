@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.2.0
+ * @version 3.3.0
  * @since 1.0.0
  */
 
@@ -79,7 +79,6 @@ android {
     }*/
 }
 
-// This would collide with hamcrest-all
 configurations.all {
     resolutionStrategy.dependencySubstitution {
         // collides with hamcrest-all
@@ -96,7 +95,7 @@ dependencies {
         exclude group:'org.apache.httpcomponents', module:'httpclient'
     })
 
-    // `Room` API used for database `v6` and `v7`
+    // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
     annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"

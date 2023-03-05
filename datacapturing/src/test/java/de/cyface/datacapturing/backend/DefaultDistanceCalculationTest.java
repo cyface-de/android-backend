@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -40,7 +40,7 @@ import de.cyface.persistence.model.Measurement;
  * This has to be an integration test as we use Android's {@link Location} class for distance calculation.
  *
  * @author Armin Schnabel
- * @version 1.0.5
+ * @version 1.0.6
  * @since 3.2.0
  */
 @RunWith(RobolectricTestRunner.class)

@@ -925,6 +925,10 @@ class DatabaseMigratorTest {
      * to the binary format for sensor data in 2019. This has been the case since then, so there
      * should not be any installations with older databases out there, but if so, this test ensures
      * that such cases crash hard, so we see this and can add handling for such cases.
+     *
+     * Back in 2019 the SR app switched to another package in the Play Store, so the users had to install
+     * a new app, and the old app was renamed to "SR-2018" or so. I.e. it should be impossible that
+     * users of the current SR app have an older database version than 8.
      */
     @Test(expected = IllegalStateException::class)
     fun testMigrationFromLowerThenV8Fails() {

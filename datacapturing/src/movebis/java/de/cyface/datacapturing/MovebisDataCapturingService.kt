@@ -38,18 +38,16 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.ui.Reason
 import de.cyface.datacapturing.ui.UIListener
 import de.cyface.persistence.DefaultPersistenceLayer
-import de.cyface.persistence.strategy.DefaultDistanceCalculation
-import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
+import de.cyface.persistence.strategy.DefaultDistanceCalculation
+import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE
 import de.cyface.synchronization.exception.SynchronisationException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
-import java.lang.IllegalStateException
-import java.util.ArrayList
 
 /**
  * In implementation of the [DataCapturingService] as required inside the Movebis project.
@@ -148,7 +146,7 @@ class MovebisDataCapturingService internal constructor(
      * fails.
      * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
-    // Used by SDK implementing apps (SR)
+    @Suppress("unused") // Used by SDK implementing apps (SR)
     constructor(
         context: Context, dataUploadServerAddress: String,
         uiListener: UIListener, locationUpdateRate: Long,
@@ -170,7 +168,6 @@ class MovebisDataCapturingService internal constructor(
     /**
      * Creates a new completely initialized [MovebisDataCapturingService].
      * This variant is required to test the ContentProvider.
-     *
      *
      * **ATTENTION:** This constructor is only for testing to be able to inject authority and account type. Use
      * []
@@ -202,9 +199,6 @@ class MovebisDataCapturingService internal constructor(
     init {
         preMeasurementLocationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        if (preMeasurementLocationManager == null) {
-            throw SetupException("Unable to load location manager. Only got null!")
-        }
         setUiListener(uiListener)
     }
 
@@ -265,7 +259,6 @@ class MovebisDataCapturingService internal constructor(
     /**
      * Adds a [JWT](https://jwt.io/) authentication token for a specific user to Android's account system.
      *
-     *
      * After the token has been added it starts periodic data synchronization if not yet active by calling
      * [WiFiSurveyor.startSurveillance].
      *
@@ -291,10 +284,8 @@ class MovebisDataCapturingService internal constructor(
     /**
      * Removes the [JWT](https://jwt.io/) auth token for a specific username from the system.
      *
-     *
      * This method calls [WiFiSurveyor.stopSurveillance] before removing the account as the surveillance expects
      * an account to be registered.
-     *
      *
      * If that username was not registered with [.registerJWTAuthToken] no account is removed.
      *
@@ -335,18 +326,14 @@ class MovebisDataCapturingService internal constructor(
      * Starts the capturing process with a [DataCapturingListener], that is notified of important events occurring
      * while the capturing process is running.
      *
-     *
      * This is an asynchronous method. This method returns as soon as starting the service was initiated. You may not
      * assume the service is running, after the method returns. Please use the [StartUpFinishedHandler] to receive
      * a callback, when the service has been started.
      *
-     *
      * This method is thread safe to call.
-     *
      *
      * **ATTENTION:** If there are errors while starting the service, your handler might never be called. You may
      * need to apply some timeout mechanism to not wait indefinitely.
-     *
      *
      * This wrapper avoids an unrecoverable state after the app crashed with an un[MeasurementStatus.FINISHED]
      * [Measurement]. "Dead" `MeasurementStatus#OPEN` and [MeasurementStatus.PAUSED] measurements are

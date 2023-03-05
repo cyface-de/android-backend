@@ -80,10 +80,7 @@ import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.CursorIsNullException;
 
 /**
- * Tests whether captured data is correctly saved to the underlying content provider. This test uses
- * <code>ProviderTestRule</code> to get a mocked content provider. Implementation details are explained in the
- * <a href="https://developer.android.com/reference/android/support/test/rule/provider/ProviderTestRule">Android
- * documentation</a>.
+ * Tests whether captured data is correctly saved to the underlying content provider.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel

@@ -33,20 +33,13 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.Pressure
 
 /**
- * FIXME: documentation
- * This class holds the database added in SDK 7, which is why the database file is called `v7`.
+ * This class represents the database stored in an SQLite file named `measures`.
  *
  * It defines the database configuration and serves as the main access point to the persisted data.
  *
- * FIXME: when fully migrating to Room, check if we need to use pagination like in our SQLite implementation
- * where we used a database limit of 10k because of performance issues. [MOV-248]
- * Maybe library androidx.room:room-paging can be used for this.
- *
- * FIXME: The Data Access objects (DAOs) implemented are currently only executed synchronously, i.e. cannot be executed
- * from main thread as this would freeze the UI. To ease merging the SDK 6 features into SDK 7, we use the
- * synchronous execution and AsyncTasks, like everywhere else in SDK 6. When migrating to SDK 7, check if
- * we want to use the async queries https://developer.android.com/training/data-storage/room/async-queries,
- * where we cannot migrate to LiveData.
+ * The Data Access objects (DAOs) implemented are currently only used from `runBlocking` to offer the
+ * synchronous API used until now. We might want to add an async API, too, in the future.
+ * For this, see: https://developer.android.com/training/data-storage/room/async-queries
  *
  * @author Armin Schnabel
  * @version 1.0.0

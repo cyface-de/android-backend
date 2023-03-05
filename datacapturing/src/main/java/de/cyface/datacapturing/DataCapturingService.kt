@@ -84,7 +84,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.0.0
+ * @version 18.0.7
  * @since 1.0.0
  */
 abstract class DataCapturingService(

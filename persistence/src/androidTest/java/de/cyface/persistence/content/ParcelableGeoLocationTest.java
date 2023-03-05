@@ -20,7 +20,6 @@ package de.cyface.persistence.content;
 
 import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.content.LocationTable.Companion;
-import static de.cyface.persistence.content.TestUtils.AUTHORITY;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
@@ -51,27 +50,29 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.0.3
+ * @version 2.1.0
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4.class)
 public final class ParcelableGeoLocationTest {
 
+    static final String AUTHORITY = "de.cyface.persistence.test.provider";
+
     private Context context;
-    private ContentResolver mockResolver;
+    private ContentResolver resolver;
     private Long measurementId;
 
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        mockResolver = context.getContentResolver();
-        clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        resolver = context.getContentResolver();
+        clearPersistenceLayer(context, resolver, AUTHORITY);
         measurementId = createMeasurement();
     }
 
     @After
     public void tearDown() {
-        clearPersistenceLayer(context, mockResolver, AUTHORITY);
+        clearPersistenceLayer(context, resolver, AUTHORITY);
     }
 
     /**
@@ -97,9 +98,9 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testDeleteAllMeasuringPoints() {
-        mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
+        resolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
 
-        assertThat(mockResolver.delete(Companion.getUri(AUTHORITY), null, null) > 0, is(equalTo(true)));
+        assertThat(resolver.delete(Companion.getUri(AUTHORITY), null, null) > 0, is(equalTo(true)));
     }
 
     /**
@@ -107,12 +108,12 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testDeleteMeasuringPointViaSelection() {
-        Uri createdRowUri = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
+        Uri createdRowUri = resolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
         assertThat(
-                mockResolver.delete(Companion.getUri(AUTHORITY), BaseColumns.ID + "= ?", new String[] {createdId}),
+                resolver.delete(Companion.getUri(AUTHORITY), BaseColumns.ID + "= ?", new String[] {createdId}),
                 is(1));
     }
 
@@ -121,11 +122,11 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testDeleteMeasuringPointViaURL() {
-        Uri createdRowUri = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
+        Uri createdRowUri = resolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(createdRowUri);
         String createdId = createdRowUri.getLastPathSegment();
 
-        assertThat(mockResolver.delete(Companion.getUri(AUTHORITY).buildUpon().appendPath(createdId).build(), null,
+        assertThat(resolver.delete(Companion.getUri(AUTHORITY).buildUpon().appendPath(createdId).build(), null,
                 null), is(1));
     }
 
@@ -135,7 +136,7 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testCreateMeasuringPoint() {
-        Uri insert = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
+        Uri insert = resolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
         assertThat(lastPathSegment, not(equalTo("-1")));
@@ -149,15 +150,15 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testReadMeasuringPoint() {
-        Uri insert = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
+        Uri insert = resolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
 
-        try (Cursor urlQuery = mockResolver.query(
+        try (Cursor urlQuery = resolver.query(
                 Companion.getUri(AUTHORITY).buildUpon().appendPath(lastPathSegment).build(), null, null, null, null);
-                Cursor selectionQuery = mockResolver.query(Companion.getUri(AUTHORITY), null, BaseColumns.ID + "=?",
+                Cursor selectionQuery = resolver.query(Companion.getUri(AUTHORITY), null, BaseColumns.ID + "=?",
                         new String[] {lastPathSegment}, null);
-                Cursor allQuery = mockResolver.query(Companion.getUri(AUTHORITY), null, null, null, null)) {
+                Cursor allQuery = resolver.query(Companion.getUri(AUTHORITY), null, null, null, null)) {
             // Select
             Validate.notNull(urlQuery);
             Validate.notNull(selectionQuery);
@@ -173,7 +174,7 @@ public final class ParcelableGeoLocationTest {
      */
     @Test
     public void testUpdateMeasuringPoint() throws CursorIsNullException {
-        Uri insert = mockResolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
+        Uri insert = resolver.insert(Companion.getUri(AUTHORITY), getTestFixture());
         Validate.notNull(insert);
         String lastPathSegment = insert.getLastPathSegment();
 
@@ -181,9 +182,9 @@ public final class ParcelableGeoLocationTest {
         newValues.put(LocationTable.COLUMN_LAT, 10.34);
 
         Uri dataPointUri = Companion.getUri(AUTHORITY).buildUpon().appendPath(lastPathSegment).build();
-        assertThat(mockResolver.update(dataPointUri, newValues, null, null), is(1));
+        assertThat(resolver.update(dataPointUri, newValues, null, null), is(1));
 
-        try (Cursor cursor = mockResolver.query(dataPointUri, null, null, null, null)) {
+        try (Cursor cursor = resolver.query(dataPointUri, null, null, null, null)) {
             softCatchNullCursor(cursor);
             assertThat(cursor.getCount(), is(1));
             cursor.moveToFirst();
@@ -205,7 +206,7 @@ public final class ParcelableGeoLocationTest {
                 PERSISTENCE_FILE_FORMAT_VERSION);
         values.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
         values.put(BaseColumns.TIMESTAMP, 1);
-        Uri result = mockResolver.insert(MeasurementTable.Companion.getUri(AUTHORITY), values);
+        Uri result = resolver.insert(MeasurementTable.Companion.getUri(AUTHORITY), values);
         return Long.parseLong(result.getLastPathSegment());
     }
 

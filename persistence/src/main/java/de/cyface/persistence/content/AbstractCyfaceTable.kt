@@ -121,6 +121,11 @@ abstract class AbstractCyfaceTable internal constructor(name: String) : CyfaceTa
     companion object {
         /**
          * Loading all entries at once seems slower than loading it in chunks of 10k entries [#MOV-248]
+         *
+         * If we replace the SQLite API used above with Room-generated methods which return `Cursor`
+         * for the `ContentResolver` (if this is possible) we need to ensure querying more than 10T
+         * rows from the database is not slow again like before, which was why we added this query segmentation.
+         * Maybe library androidx.room:room-paging can be used for this.
          */
         const val DATABASE_QUERY_LIMIT = 10000
     }
