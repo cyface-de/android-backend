@@ -138,6 +138,11 @@ class SyncAdapter private constructor(
                 Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
 
                 // Load measurement data
+                // Even though the ContentResolver is easier to use, we use the ContentProviderClient as it is
+                // faster when you execute multiple operations. (https://stackoverflow.com/a/5233631/5815054)
+                // - It's essential to create a new client for each thread and to close the client after usage,
+                // as the client is not thread safe, see:
+                // https://developer.android.com/reference/android/content/ContentProviderClient
                 val loader = DefaultProviderClient(measurement.id, provider, authority)
                 val metaData = loadMetaData(measurement, persistence, deviceId, context)
 
@@ -205,6 +210,7 @@ class SyncAdapter private constructor(
                     if (compressedTransferTempFile != null && compressedTransferTempFile.exists()) {
                         Validate.isTrue(compressedTransferTempFile.delete())
                     }
+                    provider.close()
                 }
             }
         } catch (e: CursorIsNullException) {
