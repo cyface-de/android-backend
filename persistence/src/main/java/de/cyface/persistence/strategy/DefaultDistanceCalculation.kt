@@ -28,7 +28,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * [de.cyface.persistence.model.Measurement.distance] using simply [Location.distanceTo].
  *
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 3.2.0
  */
 class DefaultDistanceCalculation : DistanceCalculationStrategy {

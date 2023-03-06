@@ -118,7 +118,6 @@ internal class MeasurementProviderHelper(
                 2 -> {
                     val rowIdentifier = pathSegments[1]
                     when (pathSegments[0]) {
-                        // FIXME: ensure the measurement-related data is deleted automatically cascadingly (write/execute test)
                         MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH -> {
                             val adaptedSelection = (BaseColumns.ID + "=" + rowIdentifier
                                     + if (selection == null) "" else " AND $selection")
@@ -131,7 +130,6 @@ internal class MeasurementProviderHelper(
                 }
                 1 -> {
                     when (pathSegments[0]) {
-                        // FIXME: ensure the measurement-related data is deleted automatically cascadingly (write/execute test)
                         MeasurementTable.URI_PATH, LocationTable.URI_PATH, PressureTable.URI_PATH, EventTable.URI_PATH, IdentifierTable.URI_PATH -> {
                             ret += table.deleteRow(database, selection, selectionArgs)
                             database.setTransactionSuccessful()
@@ -172,10 +170,10 @@ internal class MeasurementProviderHelper(
      */
     fun bulkInsert(uri: Uri, values: List<ContentValues>): LongArray {
         val table: CyfaceTable = matchTable(uri)
-        // FIXME: Why is insertBatch used here when we state everywhere that bulkInsert is 80x faster?
+        // Why is insertBatch used here when we state everywhere that bulkInsert is 80x faster?
         // The only old task I found is: https://cyface.atlassian.net/browse/MOV-248
-        // But nothing about bulkInsert. I guess we leave it like this as this is working
-        // writableDatabase.bulkInsert(uri, Arrays.asList(*values)).length
+        // But nothing about bulkInsert. We leave it for now like this as this is working.
+        // Alternative may be: writableDatabase.bulkInsert(uri, Arrays.asList(*values)).length
         return table.insertBatch(writableDatabase, values)
     }
 

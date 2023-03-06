@@ -1,3 +1,21 @@
+/*
+ * Copyright 2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.persistence.repository
 
 import androidx.annotation.WorkerThread
@@ -11,17 +29,10 @@ import de.cyface.persistence.model.Identifier
  *
  * @author Armin Schnabel
  * @version 1.0.0
- * @since 3.2.0
+ * @since 7.5.0
  * @property dao The object to access identifier data from the persistence layer.
  */
 class IdentifierRepository(private val dao: IdentifierDao) {
-
-    // Room executes queries on separate threads. Flow notifies the observers on data changes.
-    // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#8
-    // The list of words is a public property. It's initialized by getting the Flow list of words from Room;
-    // you can do this because of how you defined the getAlphabetizedWords method to return Flow in the
-    // "Observing database changes" step. Room executes all queries on a separate thread.
-    //val allIdentifiers: Flow<List<Identifier>> = identifierDao.getAll()
 
     // Room runs suspend queries off the main thread.
     @Suppress("RedundantSuspendModifier")
@@ -32,7 +43,7 @@ class IdentifierRepository(private val dao: IdentifierDao) {
 
     @Suppress("RedundantSuspendModifier")
     @WorkerThread
-    suspend fun getAll(): List<Identifier?>? {
+    suspend fun getAll(): List<Identifier> {
         return dao.getAll()
     }
 }

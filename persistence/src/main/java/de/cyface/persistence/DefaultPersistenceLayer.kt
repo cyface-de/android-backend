@@ -62,7 +62,7 @@ import kotlin.math.abs
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.2.0
+ * @version 18.3.0
  * @since 2.0.0
  */
 class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
@@ -92,14 +92,43 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * The database which contains all persisted data which is not written to binary files.
      */
     val database: Database?
+
+    /**
+     * The repository to load the [Identifier] from.
+     */
     private val identifierRepository: IdentifierRepository?
 
-    // FIXME: use this when one async task failure should not cancel all others
-    // FIXME: onDestroy() => job.cancel()
+    /**
+     * The repository to load the [Measurement] from.
+     */
+    /*private val measurementRepository: MeasurementRepository?
+
+    /**
+     * The repository to load the [Event] from.
+     */
+    private val eventRepository: EventRepository?
+
+    /**
+     * The repository to load the [GeoLocation] from.
+     */
+    private val locationRepository: LocationRepository?
+
+    /**
+     * The repository to load the [Pressure] from.
+     */
+    private val pressureRepository: PressureRepository?*/
+
+    /**
+     * A `SupervisorJob` is used so that the failure of one async task started by this supervisor
+     * does not cancel all other tasks started by that supervisor.
+     */
     private val job = SupervisorJob()
 
-    // The scope keeps track of coroutines, can cancel them and is notified about failures
-    // No need to cancel this scope as it'll be torn down with the process
+    /**+
+     * The scope that keeps track of coroutines, can cancel them and is notified about failures.
+     *
+     * No need to cancel this scope as it'll be torn down with the process.
+     */
     private val scope = CoroutineScope(Dispatchers.IO + job)
 
     /**

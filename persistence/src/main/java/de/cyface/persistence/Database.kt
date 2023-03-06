@@ -118,6 +118,10 @@ abstract class Database : RoomDatabase() {
                 // This needs to be here as it requires a context to load database `v6` (17->18)
                 val migrator = DatabaseMigrator(context)
 
+                // Enabling `multiInstanceInvalidation` tells Room that we use it across processes.
+                // A `MultiInstanceInvalidationService` is used to transfer database modifications
+                // between the processes, so we can use it safely across processes. No Singleton
+                // should be necessary, see: https://github.com/cyface-de/android-backend/pull/268
                 val instance = Room.databaseBuilder(
                     context.applicationContext,
                     Database::class.java,
