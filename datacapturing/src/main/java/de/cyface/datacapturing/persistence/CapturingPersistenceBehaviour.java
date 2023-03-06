@@ -36,22 +36,22 @@ import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.Constants;
-import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
-import de.cyface.persistence.dao.PressureDao;
+import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
-import de.cyface.persistence.model.GeoLocation;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePressure;
+import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
- * This {@link PersistenceBehaviour} is used when a {@link DefaultPersistenceLayer} is used to capture a {@link Measurement}s.
+ * This {@link PersistenceBehaviour} is used when a {@link DefaultPersistenceLayer} is used to capture a
+ * {@link Measurement}s.
  *
  * @author Armin Schnabel
  * @version 2.1.1
@@ -149,8 +149,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
             // Using the timestamp of the latest pressure sample
             final long timestamp = pressures.get(pressures.size() - 1).getTimestamp();
             final Pressure pressure = new Pressure(timestamp, averagePressure, measurementIdentifier);
-            PressureDao dao = persistenceLayer.getDatabase().pressureDao();
-            dao.insertAll(pressure);
+            persistenceLayer.getPressureDao().insertAll(pressure);
         }
     }
 
@@ -161,9 +160,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * @param measurementIdentifier The identifier of the measurement to store the data to.
      */
     public void storeLocation(final @NonNull ParcelableGeoLocation location, final long measurementIdentifier) {
-
-        persistenceLayer.getDatabase().locationDao()
-                .insertAll(new GeoLocation(location, measurementIdentifier));
+        persistenceLayer.getLocationDao().insertAll(new GeoLocation(location, measurementIdentifier));
     }
 
     /**
@@ -171,7 +168,8 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * method should only be called if capturing is active. It throws an error otherwise.
      *
      * @throws NoSuchMeasurementException If this method has been called while no measurement was active. To avoid this
-     *             use {@link DefaultPersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an actual
+     *             use {@link DefaultPersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an
+     *             actual
      *             {@link MeasurementStatus#OPEN} measurement.
      * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */

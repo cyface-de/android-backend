@@ -111,25 +111,24 @@ class DatabaseMigratorTest {
         // Arrange
         // Generate first bytes of a database file which contains a version > 1 at byte 60...64
         val dbVersion = 2
-        val dbV6Version2File = context!!.getDatabasePath("v6.$dbVersion")
+        val dbV6File = context!!.getDatabasePath("v6")
         val versionBytes = ByteBuffer.allocate(4).putInt(dbVersion).array()
-        dbV6Version2File.writeBytes(ByteArray(60) + versionBytes)
+        dbV6File.writeBytes(ByteArray(60) + versionBytes)
         try {
             // Create main database
-            @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
-            var db = helper.createDatabase(TEST_DB_NAME, 17)
+            helper.createDatabase(TEST_DB_NAME, 17)
 
             // Act
             // Re-open the database with target version and provide migrations
             // MigrationTestHelper automatically verifies the schema changes, but not the data validity
-            db = helper.runMigrationsAndValidate(
+            helper.runMigrationsAndValidate(
                 TEST_DB_NAME,
                 18,
                 true,
                 migrator!!.MIGRATION_17_18
             )
         } finally {
-            dbV6Version2File.delete()
+            dbV6File.delete()
         }
     }
 

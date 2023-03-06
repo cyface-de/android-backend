@@ -36,7 +36,7 @@ import static de.cyface.testutils.SharedTestUtils.insertMeasurementEntry;
 import static de.cyface.testutils.SharedTestUtils.insertPoint3D;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.LinkedList;
 import java.util.List;
@@ -50,7 +50,6 @@ import org.junit.runner.RunWith;
 import android.accounts.Account;
 import android.accounts.AccountManager;
 import android.content.BroadcastReceiver;
-import android.content.ContentProvider;
 import android.content.ContentProviderClient;
 import android.content.ContentResolver;
 import android.content.Context;
@@ -97,11 +96,8 @@ public class UploadProgressTest {
     private SyncAdapter oocut;
     private Account account;
 
-    /**
-     * @throws CursorIsNullException When the {@link ContentProvider} is not accessible
-     */
     @Before
-    public void setUp() throws CursorIsNullException {
+    public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         contentResolver = context.getContentResolver();
 
@@ -157,9 +153,11 @@ public class UploadProgressTest {
         try {
             final Measurement measurement = insertMeasurementEntry(persistenceLayer, Modality.UNKNOWN);
             final long measurementIdentifier = measurement.getId();
-            insertGeoLocation(persistenceLayer.getDatabase(), measurementIdentifier, 1503055141000L, 49.9304133333333,
+            insertGeoLocation(persistenceLayer.getLocationDao(), measurementIdentifier, 1503055141000L,
+                    49.9304133333333,
                     8.82831833333333, 400., 0.0, 9.4, 20.);
-            insertGeoLocation(persistenceLayer.getDatabase(), measurementIdentifier, 1503055142000L, 49.9305066666667,
+            insertGeoLocation(persistenceLayer.getLocationDao(), measurementIdentifier, 1503055142000L,
+                    49.9305066666667,
                     8.82814, 400., 8.78270530700684, 8.4, 20.);
 
             // Insert file base data

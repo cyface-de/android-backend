@@ -18,9 +18,12 @@
  */
 package de.cyface.datacapturing.backend;
 
+import static org.hamcrest.CoreMatchers.both;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
+import static org.hamcrest.Matchers.greaterThanOrEqualTo;
+import static org.hamcrest.Matchers.lessThanOrEqualTo;
 import static org.mockito.Mockito.mock;
 import static org.mockito.Mockito.when;
 
@@ -147,8 +150,6 @@ public class CapturingProcessTest {
 
     /**
      * Tests that the correct `eventTimeOffset` is calculated for known `event.time` implementations.
-     * <p>
-     * Flaky: This test seems to be occasionally flaky on the Github CI (2022-03-17)
      */
     @Test
     public void testEventTimeOffset() {
@@ -167,8 +168,10 @@ public class CapturingProcessTest {
         // Arrange
         final long expectedEventTimeOffset = currentTimeMillis - elapsedRealTimeMillis; // bootTime
         final long expectedEventTimeOffsetCurrent = 0; // event.time equals currentTime of event
-        assertThat(eventTimeOffsetDefault, is(equalTo(expectedEventTimeOffset)));
-        assertThat(eventTimeOffsetCurrentTime, is(equalTo(expectedEventTimeOffsetCurrent)));
+        // As we call `currentTimeMillis` after `elapsedRealTimeMillis` a milliseconds might have passed
+        assertThat(eventTimeOffsetDefault, is(both(greaterThanOrEqualTo(expectedEventTimeOffset))
+                .and(lessThanOrEqualTo(expectedEventTimeOffset + 1))));
+        assertThat(eventTimeOffsetCurrentTime, equalTo(expectedEventTimeOffsetCurrent));
     }
 
     /**

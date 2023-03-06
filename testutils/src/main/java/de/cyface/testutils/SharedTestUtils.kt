@@ -31,11 +31,14 @@ import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
+import de.cyface.persistence.PersistenceBehaviour
+import de.cyface.persistence.PersistenceLayer
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.MeasurementStatus
@@ -49,7 +52,8 @@ import de.cyface.serializer.model.Point3DType
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
-import org.junit.Assert
+import org.hamcrest.CoreMatchers.equalTo
+import org.hamcrest.MatcherAssert.assertThat
 import java.io.File
 
 
@@ -108,7 +112,7 @@ object SharedTestUtils {
         }
         // To ensure reproducibility make sure there is no old account registered
         val oldAccounts = accountManager.getAccountsByType(accountType)
-        Assert.assertThat(oldAccounts.size, CoreMatchers.`is`(CoreMatchers.equalTo(0)))
+        assertThat(oldAccounts.size, equalTo(0))
     }
 
     /**
@@ -245,22 +249,25 @@ object SharedTestUtils {
      * This method mut be in the [SharedTestUtils] to ensure multiple modules can access it in androidTests!
      *
      * @param context The [Context] required to access the file persistence layer
-     * @param database The [Database] to remove the data from
+     * @param persistence The [PersistenceLayer] to remove the data from
      * @return number of rows removed from the database and number of **FILES** (not points) deleted. The earlier
      * includes [Measurement]s, [ParcelableGeoLocation]s and [de.cyface.persistence.model.Event]s.
      * The later includes the [Point3DFile]s.
      */
     @JvmStatic
-    fun clearPersistenceLayer(context: Context, database: Database): Int {
+    fun clearPersistenceLayer(
+        context: Context,
+        persistence: PersistenceLayer<PersistenceBehaviour>
+    ): Int {
         // To be able to inject the database, the persistence layer has to be created before but if we
         // remove the file folders, they are not create again, as this is done in persistence construction.
         val removedFiles = clearFileLayer(context, false)
 
         // Remove database entries
-        val removedGeoLocations = database.locationDao().deleteAll()
-        val removedPressures = database.pressureDao().deleteAll()
-        val removedEvents = database.eventDao().deleteAll()
-        val removedMeasurements = database.measurementDao().deleteAll()
+        val removedGeoLocations = persistence.locationDao!!.deleteAll()
+        val removedPressures = persistence.pressureDao!!.deleteAll()
+        val removedEvents = persistence.eventDao!!.deleteAll()
+        val removedMeasurements = persistence.measurementDao!!.deleteAll()
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.
@@ -386,7 +393,7 @@ object SharedTestUtils {
                     )
                 )
         }
-        insertGeoLocations(Database.getDatabase(context), measurement.id, geoLocations)
+        insertGeoLocations(Database.build(context), measurement.id, geoLocations)
 
         // Insert file base data
         val accelerationsFile =
@@ -452,24 +459,17 @@ object SharedTestUtils {
 
         // Check the measurement entry
         val loadedMeasurement = persistence.loadMeasurement(measurementIdentifier)
-        Assert.assertThat(loadedMeasurement, CoreMatchers.notNullValue())
-        Assert.assertThat(
-            persistence.loadMeasurementStatus(measurementIdentifier), CoreMatchers.`is`(
-                CoreMatchers.equalTo(status)
-            )
-        )
-        Assert.assertThat(
-            loadedMeasurement!!.fileFormatVersion, CoreMatchers.`is`(
-                CoreMatchers.equalTo(
-                    DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION
-                )
-            )
+        assertThat(loadedMeasurement, CoreMatchers.notNullValue())
+        assertThat(persistence.loadMeasurementStatus(measurementIdentifier), equalTo(status))
+        assertThat(
+            loadedMeasurement!!.fileFormatVersion,
+            equalTo(DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
         )
 
         // Check the Tracks
         // noinspection unchecked
         val loadedTracks = persistence.loadTracks(measurementIdentifier)
-        Assert.assertThat(loadedTracks[0].geoLocations.size, CoreMatchers.`is`(locationCount))
+        assertThat(loadedTracks[0].geoLocations.size, equalTo(locationCount))
         return measurement
     }
 
@@ -500,7 +500,7 @@ object SharedTestUtils {
     /**
      * Inserts a test [ParcelableGeoLocation] into the database content provider accessed by the test.
      *
-     * @param database The [Database] to access the data
+     * @param dao The [LocationDao] to insert the data into
      * @param measurementIdentifier The identifier of the test [Measurement].
      * @param timestamp A fake test timestamp of the `GeoLocation`.
      * @param lat The fake test latitude of the `GeoLocation`.
@@ -511,11 +511,11 @@ object SharedTestUtils {
     // Used by the cyface flavour tests
     @JvmStatic
     fun insertGeoLocation(
-        database: Database, measurementIdentifier: Long,
+        dao: LocationDao, measurementIdentifier: Long,
         timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
         accuracy: Double, verticalAccuracy: Double
     ) {
-        database.locationDao().insertAll(
+        dao.insertAll(
             GeoLocation(
                 timestamp, lat, lon, altitude, speed, accuracy,
                 verticalAccuracy, measurementIdentifier

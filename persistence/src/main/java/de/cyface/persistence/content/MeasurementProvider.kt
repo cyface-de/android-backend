@@ -52,7 +52,7 @@ class MeasurementProvider : ContentProvider() {
 
     override fun onCreate(): Boolean {
         myContext = context
-        val database = Database.getDatabase(context!!.applicationContext)
+        val database = Database.build(context!!.applicationContext)
         helper = MeasurementProviderHelper(context!!, database)
         return true
     }

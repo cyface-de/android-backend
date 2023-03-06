@@ -22,13 +22,13 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.net.Uri
 import android.util.Log
-import androidx.room.Room
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.dao.PressureDao
@@ -45,7 +45,6 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
-import de.cyface.persistence.repository.IdentifierRepository
 import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
@@ -72,9 +71,6 @@ import kotlin.math.abs
  */
 class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
-    /**
-     * The [Context] required to locate the app's internal storage directory.
-     */
     override val context: Context?
 
     /**
@@ -93,30 +89,15 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
     override val fileDao: FileDao
 
-    /**
-     * The repository to load the [Identifier] from.
-     */
-    private val identifierRepository: IdentifierRepository?
+    override val identifierDao: IdentifierDao?
 
-    /**
-     * The source to load the [Measurement] from.
-     */
-    private val measurementDao: MeasurementDao?
+    override val measurementDao: MeasurementDao?
 
-    /**
-     * The source to load the [Event] from.
-     */
-    private val eventDao: EventDao?
+    override val eventDao: EventDao?
 
-    /**
-     * The source to load the [GeoLocation] from.
-     */
-    private val locationDao: LocationDao?
+    override val locationDao: LocationDao?
 
-    /**
-     * The source to load the [Pressure] from.
-     */
-    private val pressureDao: PressureDao?
+    override val pressureDao: PressureDao?
 
     /**
      * A `SupervisorJob` is used so that the failure of one async task started by this supervisor
@@ -139,7 +120,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     constructor() {
         context = null
         authority = null
-        identifierRepository = null
+        identifierDao = null
         measurementDao = null
         eventDao = null
         locationDao = null
@@ -156,32 +137,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor(context: Context, authority: String, persistenceBehaviour: B) {
         this.context = context
-        // Enabling `multiInstanceInvalidation` tells Room that we use it across processes.
-        // A `MultiInstanceInvalidationService` is used to transfer database modifications
-        // between the processes, so we can use it safely across processes. No Singleton
-        // should be necessary, see: https://github.com/cyface-de/android-backend/pull/268
-        val migrator = DatabaseMigrator(context)
-        val database = Room.databaseBuilder(
-            context.applicationContext,
-            Database::class.java,
-            "measures"
-        )
-            .enableMultiInstanceInvalidation()
-            .addMigrations(
-                DatabaseMigrator.MIGRATION_8_9,
-                migrator.MIGRATION_9_10,
-                DatabaseMigrator.MIGRATION_10_11,
-                DatabaseMigrator.MIGRATION_11_12,
-                DatabaseMigrator.MIGRATION_12_13,
-                DatabaseMigrator.MIGRATION_13_14,
-                DatabaseMigrator.MIGRATION_14_15,
-                DatabaseMigrator.MIGRATION_15_16,
-                DatabaseMigrator.MIGRATION_16_17,
-                migrator.MIGRATION_17_18
-            )
-            .build()
+        val database = Database.build(context.applicationContext)
         this.authority = authority
-        this.identifierRepository = IdentifierRepository(database.identifierDao())
+        this.identifierDao = database.identifierDao()
         this.measurementDao = database.measurementDao()
         this.eventDao = database.eventDao()
         this.locationDao = database.locationDao()
@@ -211,15 +169,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
     }
 
-    /**
-     * Creates a new, [MeasurementStatus.OPEN] [Measurement] for the provided [Modality].
-     *
-     * **ATTENTION:** This method should not be called from outside the SDK.
-     *
-     * @param modality The `Modality` to create a new `Measurement` for.
-     * @return The newly created `Measurement`.
-     */
-    fun newMeasurement(modality: Modality): Measurement {
+    override fun newMeasurement(modality: Modality): Measurement {
         val timestamp = System.currentTimeMillis()
         val measurement = Measurement(
             MeasurementStatus.OPEN,
@@ -234,20 +184,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
             measurement.id = measurementId
         }
-        // To ensure this works, i.e. blocking code alters the object
-        Validate.notNull(measurement.id)
+        Validate.notNull(measurement.id) // Ensure the blocking code altered the object
         return measurement
     }
 
-    /**
-     * Provides information about whether there is currently a [Measurement] in the specified
-     * [MeasurementStatus].
-     *
-     * @param status The `MeasurementStatus` in question
-     * @return `true` if a `Measurement` of the {@param status} exists.
-     */
-    @Throws(CursorIsNullException::class)
-    fun hasMeasurement(status: MeasurementStatus): Boolean {
+    override fun hasMeasurement(status: MeasurementStatus): Boolean {
         Log.v(TAG, "Checking if app has an $status measurement.")
         var measurements: List<Measurement?>?
         runBlocking {
@@ -263,16 +204,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return hasMeasurement
     }
 
-    /**
-     * Returns all [Measurement]s, no matter the current [MeasurementStatus].
-     * If you only want measurements of a specific [MeasurementStatus] call
-     * [.loadMeasurements] instead.
-     *
-     * @return A list containing all `Measurement`s currently stored on this device by this application. An empty
-     * list if there are no such measurements, but never `null`.
-     */
-    @Throws(CursorIsNullException::class)  // Used by cyface flavour tests and possibly by implementing apps
-    fun loadMeasurements(): List<Measurement?> {
+    override fun loadMeasurements(): List<Measurement?> {
         var measurements: List<Measurement?>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
@@ -282,9 +214,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return measurements
     }
 
-    @Throws(CursorIsNullException::class) // Sdk implementing apps (SR) use this to load single measurements
-    override
-    fun loadMeasurement(measurementIdentifier: Long): Measurement? {
+    override fun loadMeasurement(measurementIdentifier: Long): Measurement? {
         var measurement: Measurement?
         runBlocking {
             measurement = withContext(scope.coroutineContext) {
@@ -328,9 +258,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
     fun loadMeasurementStatus(measurementIdentifier: Long): MeasurementStatus {
-
-        // FIXME: for performance reasons, we could add another dao method which only loads the status (we did not do
-        // this before)
         return loadMeasurement(measurementIdentifier)!!.status
     }
 
@@ -398,19 +325,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
     }
 
-    /**
-     * This method asynchronously loads or creates a new device identifier, if none exists.
-     *
-     * The device identifier is persisted into the database where the measurement id is also stored.
-     * This way we ensure either both or none of both is reset upon re-installation or app reset.
-     *
-     * **ATTENTION:** This method should not be called from outside the SDK. Use
-     * `DataCapturingService#getDeviceIdentifier()` instead.
-     *
-     * @return The device identifier
-     */
-    @Throws(CursorIsNullException::class)
-    fun restoreOrCreateDeviceId(): String {
+    override fun restoreOrCreateDeviceId(): String {
         return try {
             loadDeviceId().deviceId
         } catch (e: NoDeviceIdException) {
@@ -429,7 +344,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var identifier: Identifier?
         runBlocking {
             val identifiers: List<Identifier?> = withContext(scope.coroutineContext) {
-                identifierRepository!!.getAll()
+                identifierDao!!.getAll()
             }
 
             Validate.isTrue(identifiers.size <= 1, "More entries than expected")
@@ -453,7 +368,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         val deviceId = UUID.randomUUID().toString()
         runBlocking {
             withContext(scope.coroutineContext) {
-                identifierRepository!!.insert(Identifier(deviceId))
+                identifierDao!!.insert(Identifier(deviceId))
             }
         }
 
@@ -462,22 +377,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return deviceId
     }
 
-    /**
-     * Removes one [Measurement] from the local persistent data storage.
-     *
-     * @param measurementIdentifier The id of the `Measurement` to remove.
-     */
-    // Sdk implementing apps (SR) use this to delete measurements
-    fun delete(measurementIdentifier: Long) {
+    override fun delete(measurementIdentifier: Long) {
         deletePoint3DData(measurementIdentifier)
-
-        // Delete {@link GeoLocation}s, {@link Event}s and {@link Measurement} entry from database
-        // FIXME: See if this is still necessary as we now added ForeignKey and onDelete = CASCADING
         runBlocking {
             withContext(scope.coroutineContext) {
-                locationDao!!.deleteItemByMeasurementId(measurementIdentifier)
-                eventDao!!.deleteItemByMeasurementId(measurementIdentifier)
-                pressureDao!!.deleteItemByMeasurementId(measurementIdentifier)
+                // measurement data like locations are deleted automatically because of `ForeignKey`
                 measurementDao!!.deleteItemById(measurementIdentifier)
             }
         }
@@ -555,20 +459,22 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): Double {
-        val tracks = loadTracks(measurementIdentifier)
         var speedSum = 0.0
         var speedCounter = 0
-        for (track in tracks) {
-            var sum = 0.0
-            var counter = 0
-            for (location in track.geoLocations) {
-                if (locationCleaningStrategy.isClean(location)) {
-                    sum += location!!.speed
-                    counter += 1
+        runBlocking {
+            val tracks = loadTracks(measurementIdentifier)
+            for (track in tracks) {
+                var sum = 0.0
+                var counter = 0
+                for (location in track.geoLocations) {
+                    if (locationCleaningStrategy.isClean(location)) {
+                        sum += location!!.speed
+                        counter += 1
+                    }
                 }
+                speedSum += sum
+                speedCounter += counter
             }
-            speedSum += sum
-            speedCounter += counter
         }
         return if (speedCounter > 0) speedSum / speedCounter.toDouble() else 0.0
     }
@@ -580,8 +486,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
      * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
      * returned.
-     *
-     * **Attention:** This method executes blocking code (database access) and cannot be executed on the main thread.
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @param forceGnssAscend `true` if the ascend calculated based on GNSS data should be returned regardless if
@@ -795,17 +699,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return duration
     }
 
-    /**
-     * Loads the [Track]s for the provided [Measurement].
-     *
-     * @param measurementIdentifier The id of the `Measurement` to load the track for.
-     * @return The [Track]s associated with the `Measurement`. If no [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an
-     * empty
-     * list is returned.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
-     */
-    @Throws(CursorIsNullException::class)  // May be used by SDK implementing app
-    fun loadTracks(measurementIdentifier: Long): List<Track> {
+    override fun loadTracks(measurementIdentifier: Long): List<Track> {
 
         var events: List<Event>
         var locations: List<GeoLocation>
@@ -816,8 +710,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
 
             // Load GeoLocation and Pressure
-            // FIXME: Consider using Kotlin Coroutines for async code when upgrading to main branch
-            // Or re-implement the UI with LiveData which handles data binding with Room for us.
             locations = withContext(scope.coroutineContext) {
                 locationDao!!.loadAllByMeasurementId(measurementIdentifier)
             }
@@ -845,7 +737,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             return emptyList()
         }
 
-        // FIXME: check if this works
         var mutableLocations = locations.toMutableList()
         val mutableEvents = events!!.toMutableList()
         var mutablePressures = pressures!!.toMutableList()
@@ -899,18 +790,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return tracks
     }
 
-    /**
-     * Loads the "cleaned" [Track]s for the provided [Measurement].
-     *
-     * @param measurementIdentifier The id of the `Measurement` to load the track for.
-     * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
-     * [de.cyface.persistence.model.ParcelableGeoLocation]s
-     * @return The [Track]s associated with the `Measurement`. If no `GeoLocation`s exists, an empty
-     * list is returned.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
-     */
-    @Throws(CursorIsNullException::class)  // Used by SDK implementing apps (SR, CY)
-    fun loadTracks(
+    override fun loadTracks(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
     ): List<Track> {
@@ -1008,18 +888,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         persistenceBehaviour!!.shutdown()
     }
 
-    /**
-     * When pausing or stopping a [Measurement] we store the
-     * [.PERSISTENCE_FILE_FORMAT_VERSION] in the [Measurement] to make sure we can
-     * deserialize the [Point3DFile]s with previous `PERSISTENCE_FILE_FORMAT_VERSION`s.
-     *
-     * **ATTENTION:** This method should not be called from outside the SDK.
-     *
-     * @param persistenceFileFormatVersion The `MeasurementSerializer#PERSISTENCE_FILE_FORMAT_VERSION` required
-     * for deserialization
-     * @param measurementId The id of the measurement to update
-     */
-    fun storePersistenceFileFormatVersion(
+    override fun storePersistenceFileFormatVersion(
         persistenceFileFormatVersion: Short,
         measurementId: Long
     ) {
@@ -1137,18 +1006,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         Validate.isTrue(updates == 1)
     }
 
-    /**
-     * Stores a new [Event] in the [DefaultPersistenceLayer] which is linked to a [Measurement].
-     *
-     * @param eventType The [EventType] to be logged.
-     * @param measurement The `Measurement` which is linked to the `Event`.
-     * @param timestamp The timestamp in ms at which the event was triggered
-     */
-    @JvmOverloads
-    fun logEvent(
-        eventType: EventType, measurement: Measurement,
-        timestamp: Long = System.currentTimeMillis()
-    ) {
+    override fun logEvent(eventType: EventType, measurement: Measurement, timestamp: Long) {
         logEvent(eventType, measurement, timestamp, null)
     }
 

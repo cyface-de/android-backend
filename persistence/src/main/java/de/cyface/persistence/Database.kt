@@ -18,6 +18,8 @@
  */
 package de.cyface.persistence
 
+import android.content.Context
+import androidx.room.Room
 import androidx.room.RoomDatabase
 import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.IdentifierDao
@@ -85,4 +87,42 @@ abstract class Database : RoomDatabase() {
      * table.
      */
     abstract fun locationDao(): LocationDao
+
+    companion object {
+        /**
+         * The file name of the database represented by this class.
+         */
+        private const val DATABASE_NAME = "measures"
+
+        /**
+         * Creates a new instance of this class.
+         *
+         * No Singleton should be necessary (https://github.com/cyface-de/android-backend/pull/268).
+         */
+        fun build(context: Context): Database {
+            val migrator = DatabaseMigrator(context)
+            // Enabling `multiInstanceInvalidation` tells Room that we use it across processes.
+            // A `MultiInstanceInvalidationService` is used to transfer database modifications
+            // between the processes, so we can use it safely across processes.
+            return Room.databaseBuilder(
+                context.applicationContext,
+                Database::class.java,
+                DATABASE_NAME
+            )
+                .enableMultiInstanceInvalidation()
+                .addMigrations(
+                    DatabaseMigrator.MIGRATION_8_9,
+                    migrator.MIGRATION_9_10,
+                    DatabaseMigrator.MIGRATION_10_11,
+                    DatabaseMigrator.MIGRATION_11_12,
+                    DatabaseMigrator.MIGRATION_12_13,
+                    DatabaseMigrator.MIGRATION_13_14,
+                    DatabaseMigrator.MIGRATION_14_15,
+                    DatabaseMigrator.MIGRATION_15_16,
+                    DatabaseMigrator.MIGRATION_16_17,
+                    migrator.MIGRATION_17_18
+                )
+                .build()
+        }
+    }
 }

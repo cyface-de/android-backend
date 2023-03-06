@@ -29,8 +29,7 @@ import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 import java.util.concurrent.TimeUnit;
@@ -70,6 +69,8 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
 import de.cyface.persistence.model.EventType;
@@ -122,7 +123,7 @@ public class DataCapturingServiceTest {
     /**
      * {@link DefaultPersistenceLayer} required to access stored {@link Measurement}s.
      */
-    private DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+    private PersistenceLayer<PersistenceBehaviour> persistenceLayer;
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
@@ -663,7 +664,7 @@ public class DataCapturingServiceTest {
         stopAndCheckThatStopped(measurementIdentifier);
 
         final long measurementIdentifier2 = startAndCheckThatLaunched();
-        assertTrue(measurementIdentifier2 != measurementIdentifier);
+        assertThat(measurementIdentifier2, not(equalTo(measurementIdentifier)));
         stopAndCheckThatStopped(measurementIdentifier2);
     }
 
@@ -823,7 +824,7 @@ public class DataCapturingServiceTest {
             startPauseResumeStop();
 
             // For for-i-loops within this test
-            SharedTestUtils.clearPersistenceLayer(context, persistenceLayer.getDatabase());
+            SharedTestUtils.clearPersistenceLayer(context, persistenceLayer);
         }
     }
 
@@ -843,8 +844,7 @@ public class DataCapturingServiceTest {
         stopAndCheckThatStopped(measurementIdentifier);
 
         // Check Events
-        final var eventDao = persistenceLayer.getDatabase().eventDao();
-        final var events = eventDao.loadAllByMeasurementId(measurementIdentifier);
+        final var events = persistenceLayer.getEventDao().loadAllByMeasurementId(measurementIdentifier);
 
         assertThat(events.size(), is(equalTo(5)));
         assertThat(events.get(0).getType(), is(equalTo(EventType.LIFECYCLE_START)));

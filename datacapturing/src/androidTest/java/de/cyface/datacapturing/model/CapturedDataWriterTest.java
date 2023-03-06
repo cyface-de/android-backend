@@ -31,9 +31,9 @@ import static de.cyface.serializer.model.Point3DType.DIRECTION;
 import static de.cyface.serializer.model.Point3DType.ROTATION;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.deserialize;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.core.Is.is;
 import static org.hamcrest.core.IsEqual.equalTo;
-import static org.junit.Assert.assertThat;
 
 import java.io.File;
 import java.util.ArrayList;
@@ -62,6 +62,7 @@ import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback;
 import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.dao.DefaultFileDao;
 import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
@@ -94,7 +95,7 @@ public class CapturedDataWriterTest {
     /**
      * The object of the class under test.
      */
-    private DefaultPersistenceLayer<CapturingPersistenceBehaviour> oocut;
+    private PersistenceLayer<PersistenceBehaviour> oocut;
     /**
      * The {@link Context} required to access the persistence layer.
      */
@@ -119,7 +120,7 @@ public class CapturedDataWriterTest {
 
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
         oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, capturingBehaviour);
-        SharedTestUtils.clearPersistenceLayer(context, oocut.getDatabase());
+        SharedTestUtils.clearPersistenceLayer(context, oocut);
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut.restoreOrCreateDeviceId();
     }
@@ -129,7 +130,7 @@ public class CapturedDataWriterTest {
      */
     @After
     public void tearDown() {
-        clearPersistenceLayer(context, oocut.getDatabase());
+        clearPersistenceLayer(context, oocut);
     }
 
     /**
@@ -146,8 +147,7 @@ public class CapturedDataWriterTest {
         assertThat(measurement.getId() > 0L, is(equalTo(true)));
 
         // Try to load the created measurement and check its properties
-        final var measurementDao = oocut.getDatabase().measurementDao();
-        final var created = measurementDao.loadById(measurement.getId());
+        final var created = oocut.getMeasurementDao().loadById(measurement.getId());
         assertThat(created.getModality(), is(equalTo(UNKNOWN)));
         assertThat(created.getStatus(), is(equalTo(MeasurementStatus.OPEN)));
         assertThat(created.getFileFormatVersion(), is(equalTo(PERSISTENCE_FILE_FORMAT_VERSION)));
@@ -160,7 +160,7 @@ public class CapturedDataWriterTest {
         capturingBehaviour.updateRecentMeasurement(FINISHED);
 
         // Load the finished measurement
-        final var finished = measurementDao.loadById(measurement.getId());
+        final var finished = oocut.getMeasurementDao().loadById(measurement.getId());
         assertThat(finished.getModality(), is(equalTo(UNKNOWN)));
         assertThat(finished.getStatus(), is(equalTo(FINISHED)));
     }
@@ -202,8 +202,7 @@ public class CapturedDataWriterTest {
 
         // Check if the captured data was persisted
         FileDao fileDao = new DefaultFileDao();
-        final var locationDao = oocut.getDatabase().locationDao();
-        final var locations = locationDao.getAll();
+        final var locations = oocut.getLocationDao().getAll();
         assertThat(locations.size(), is(equalTo(TEST_LOCATION_COUNT)));
 
         // Point3Ds
@@ -270,19 +269,16 @@ public class CapturedDataWriterTest {
         }
 
         // clear the test data
-        int removedEntries = clearPersistenceLayer(context, oocut.getDatabase());
+        int removedEntries = clearPersistenceLayer(context, oocut);
         // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
         // the life-cycle DataCapturingServiceTests
         assertThat(removedEntries, is(equalTo(testMeasurementsWithPoint3DFiles * point3DFilesPerMeasurement
                 + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents)));
 
         // make sure nothing is left in the database
-        final var locationsDao = oocut.getDatabase().locationDao();
-        final var measurementsDao = oocut.getDatabase().measurementDao();
-        final var identifierDao = oocut.getDatabase().identifierDao();
-        final var locations = locationsDao.loadAllByMeasurementId(measurement.getId());
-        final var measurements = measurementsDao.getAll();
-        final var identifiers = identifierDao.getAll();
+        final var locations = oocut.getLocationDao().loadAllByMeasurementId(measurement.getId());
+        final var measurements = oocut.getMeasurementDao().getAll();
+        final var identifiers = oocut.getIdentifierDao().getAll();
         assertThat(locations.size(), is(equalTo(0)));
         assertThat(measurements.size(), is(equalTo(0)));
         assertThat(identifiers.size(), is(equalTo(1))); // because we don't clean it up currently
@@ -364,12 +360,10 @@ public class CapturedDataWriterTest {
         assertThat(!rotationFile.exists(), is(true));
         assertThat(!directionFile.exists(), is(true));
 
-        final var locationsDao = oocut.getDatabase().locationDao();
-        final var locations = locationsDao.loadAllByMeasurementId(measurementId);
+        final var locations = oocut.getLocationDao().loadAllByMeasurementId(measurementId);
         assertThat(locations.size(), is(equalTo(0)));
 
-        final var eventsDao = oocut.getDatabase().eventDao();
-        final var events = eventsDao.loadAllByMeasurementId(measurementId);
+        final var events = oocut.getEventDao().loadAllByMeasurementId(measurementId);
         assertThat(events.size(), is(equalTo(0)));
 
         assertThat(oocut.loadMeasurements().size(), is(equalTo(0)));
