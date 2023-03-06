@@ -42,11 +42,15 @@ import de.cyface.persistence.model.PersistedPressure;
  * where we cannot migrate to LiveData.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1 // Port all future changes to `main` branch
  * @since 6.3.0
  */
 // (!) If `version` is increased, ensure migration to `measures` Version 18 is still possible.
-@Database(entities = {PersistedPressure.class, PersistedGeoLocation.class}, version = 1)
+@Database(
+        entities = {PersistedPressure.class, PersistedGeoLocation.class},
+        // If increased, ensure to add migration support to migration17To18 in SDK 7
+        version = 1
+)
 public abstract class DatabaseV6 extends RoomDatabase {
 
     /**
