@@ -21,6 +21,8 @@ package de.cyface.persistence.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import de.cyface.persistence.content.BaseColumns
+import de.cyface.persistence.content.PressureTable
 import de.cyface.persistence.model.Pressure
 
 /**
@@ -38,18 +40,18 @@ interface PressureDao {
     @Insert
     fun insertAll(vararg pressures: Pressure)
 
-    @Query("SELECT * FROM Pressure")
+    @Query("SELECT * FROM ${PressureTable.URI_PATH}")
     fun getAll(): List<Pressure>
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM Pressure WHERE measurementId = :measurementId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM ${PressureTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<Pressure>
 
-    @Query("DELETE FROM Pressure WHERE measurementId = :measurementId")
+    @Query("DELETE FROM ${PressureTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
 
-    @Query("DELETE FROM Pressure")
+    @Query("DELETE FROM ${PressureTable.URI_PATH}")
     fun deleteAll(): Int
 }

@@ -21,6 +21,8 @@ package de.cyface.persistence.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import de.cyface.persistence.content.BaseColumns
+import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
 
@@ -36,30 +38,30 @@ interface EventDao {
     @Insert
     fun insert(event: Event) : Long
 
-    @Query("SELECT * FROM Event")
+    @Query("SELECT * FROM ${EventTable.URI_PATH}")
     fun getAll(): List<Event>
 
-    @Query("SELECT * FROM Event WHERE id = :id")
+    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     fun loadById(id: Long): Event?
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM Event WHERE measurementId = :measurementId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY timestamp ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<Event>
 
     /**
      * Ordered by timestamp is required.
      */
-    @Query("SELECT * FROM Event WHERE measurementId = :measurementId AND type = :type ORDER BY timestamp ASC")
+    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${EventTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>
 
-    @Query("DELETE FROM Event WHERE measurementId = :measurementId")
+    @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
 
-    @Query("DELETE FROM Event WHERE id = :id")
+    @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     fun deleteItemById(id: Long): Int
 
-    @Query("DELETE FROM Event")
+    @Query("DELETE FROM ${EventTable.URI_PATH}")
     fun deleteAll() : Int
 }

@@ -21,6 +21,8 @@ package de.cyface.persistence.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import de.cyface.persistence.content.BaseColumns
+import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 
@@ -36,27 +38,27 @@ interface MeasurementDao {
     @Insert
     fun insert(measurement: Measurement): Long
 
-    @Query("SELECT * FROM Measurement")
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH}")
     fun getAll(): List<Measurement>
 
-    @Query("SELECT * FROM Measurement WHERE id = :id")
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     fun loadById(id: Long): Measurement?
 
-    @Query("SELECT * FROM Measurement WHERE status = :status")
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} = :status")
     fun loadAllByStatus(status: MeasurementStatus): List<Measurement>
 
-    @Query("UPDATE Measurement SET fileFormatVersion = :fileFormatVersion WHERE id = :id")
+    @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION} = :fileFormatVersion WHERE ${BaseColumns.ID} = :id")
     fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int
 
-    @Query("UPDATE Measurement SET status = :status WHERE id = :id")
+    @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_STATUS} = :status WHERE ${BaseColumns.ID} = :id")
     fun update(id: Long, status: MeasurementStatus): Int
 
-    @Query("UPDATE Measurement SET distance = :distance WHERE id = :id")
+    @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_DISTANCE} = :distance WHERE ${BaseColumns.ID} = :id")
     fun updateDistance(id: Long, distance: Double): Int
 
-    @Query("DELETE FROM Measurement WHERE id = :id")
+    @Query("DELETE FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     fun deleteItemById(id: Long): Int
 
-    @Query("DELETE FROM Measurement")
-    fun deleteAll() : Int
+    @Query("DELETE FROM ${MeasurementTable.URI_PATH}")
+    fun deleteAll(): Int
 }

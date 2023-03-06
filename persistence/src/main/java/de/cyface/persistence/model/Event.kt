@@ -44,15 +44,16 @@ import java.util.Objects
  * This foreign key points to [Measurement.id] and is indexed to avoid full table scan on parent update.
  */
 @Entity(
-    // Keep the table schema in sync with `ContentProvider`'s [EventTable]
     foreignKeys = [ForeignKey(
         entity = Measurement::class,
-        parentColumns = arrayOf("id"),
+        parentColumns = arrayOf("_id"),
         childColumns = arrayOf("measurementId"),
         onDelete = CASCADE
     )]
 )
 data class Event(
+    // Keep the table schema in sync with `ContentProvider`'s [EventTable]
+    @ColumnInfo(name = "_id") // The CursorAdapter requires a column with the name `_id`
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val timestamp: Long,
     val type: EventType,

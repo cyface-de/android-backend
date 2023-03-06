@@ -18,6 +18,7 @@
  */
 package de.cyface.persistence.model
 
+import androidx.room.ColumnInfo
 import androidx.room.Entity
 import androidx.room.PrimaryKey
 
@@ -37,6 +38,7 @@ import androidx.room.PrimaryKey
 @Entity
 data class Identifier(
     // Keep the table schema in sync with `ContentProvider`'s [IdentifierTable]
+    @ColumnInfo(name = "_id") // The CursorAdapter requires a column with the name `_id`
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     val deviceId: String
 ) {

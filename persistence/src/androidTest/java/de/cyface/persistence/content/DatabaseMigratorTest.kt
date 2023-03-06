@@ -571,7 +571,7 @@ class DatabaseMigratorTest {
             MatcherAssert.assertThat(cursor.count, CoreMatchers.equalTo(1))
             cursor.moveToNext()
             MatcherAssert.assertThat(
-                cursor.getLong(cursor.getColumnIndexOrThrow("id")),
+                cursor.getLong(cursor.getColumnIndexOrThrow("_id")),
                 CoreMatchers.equalTo(1L)
             )
             MatcherAssert.assertThat(

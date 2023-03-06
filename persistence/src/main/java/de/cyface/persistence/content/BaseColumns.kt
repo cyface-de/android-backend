@@ -28,11 +28,11 @@ package de.cyface.persistence.content
 class BaseColumns {
     companion object {
         /**
-         * The unique identifier of a row in a database table.
+         * The unique identifier of a row in a database table. SQLite Type: INTEGER (long)
          *
-         * SQLite Type: INTEGER (long)
+         * The CursorAdapter requires a column with the name `_id`.
          */
-        const val ID = "id"
+        const val ID = "_id"
 
         /**
          * Column name for the Unix timestamp in milliseconds of the data represented by the table row.

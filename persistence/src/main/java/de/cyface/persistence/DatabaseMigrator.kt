@@ -422,18 +422,18 @@ class DatabaseMigrator(val context: Context) {
             override fun migrate(database: SupportSQLiteDatabase) {
                 // Migrate Identifier data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Identifier` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `deviceId` TEXT NOT NULL);")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Identifier` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `deviceId` TEXT NOT NULL);")
                 // Insert the data from old table
-                database.execSQL("INSERT INTO `Identifier` (`id`, `deviceId`) SELECT `_id`, `device_id` FROM `identifiers`;")
+                database.execSQL("INSERT INTO `Identifier` (`_id`, `deviceId`) SELECT `_id`, `device_id` FROM `identifiers`;")
                 // Drop the old table
                 database.execSQL("DROP TABLE `identifiers`;")
 
                 // Migrate Measurement data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Measurement` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, `modality` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `distance` REAL NOT NULL, `timestamp` INTEGER NOT NULL);")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Measurement` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `status` TEXT NOT NULL, `modality` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `distance` REAL NOT NULL, `timestamp` INTEGER NOT NULL);")
                 // Insert the data from old table
                 database.execSQL(
-                    "INSERT INTO `Measurement` (`id`, `status`, `modality`, `fileFormatVersion`, `distance`, `timestamp`)"
+                    "INSERT INTO `Measurement` (`_id`, `status`, `modality`, `fileFormatVersion`, `distance`, `timestamp`)"
                             + " SELECT `_id`, `status`, `modality`, `file_format_version`, `distance`, `timestamp` FROM `measurements`;"
                 )
                 // Drop the old table
@@ -441,10 +441,10 @@ class DatabaseMigrator(val context: Context) {
 
                 // Migrate Event data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Event` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `value` TEXT, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Event` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `type` TEXT NOT NULL, `value` TEXT, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Insert the data from old table
                 database.execSQL(
-                    "INSERT INTO `Event` (`id`, `timestamp`, `type`, `value`, `measurementId`)"
+                    "INSERT INTO `Event` (`_id`, `timestamp`, `type`, `value`, `measurementId`)"
                             + " SELECT `_id`, `timestamp`, `type`, `value`, `measurement_fk` FROM `events`;"
                 )
                 // Create index
@@ -493,14 +493,14 @@ class DatabaseMigrator(val context: Context) {
 
                 // Migrate GeoLocation data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
-                // Load all measurements to see which have locations in `v6` and which only in `measures`
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
+                // Load all measurements to see which also have locations in `v6` and which only have locations in `measures`
                 val measurementCursor = database.query(
-                    SupportSQLiteQueryBuilder.builder("Measurement").orderBy("id ASC").create()
+                    SupportSQLiteQueryBuilder.builder("Measurement").orderBy("_id ASC").create()
                 )
                 while (measurementCursor.moveToNext()) {
                     val measurementId =
-                        measurementCursor.getLong(measurementCursor.getColumnIndexOrThrow("id"))
+                        measurementCursor.getLong(measurementCursor.getColumnIndexOrThrow("_id"))
                     // Check if secondary `v6` database contains locations for that measurement
                     val locationCursor = v6Database.query(
                         "Location",
@@ -537,7 +537,7 @@ class DatabaseMigrator(val context: Context) {
                             val locationMeasurementId = locationCursor.getInt(measurementIdIndex)
                             // v6.1 `altitude` and `verticalAccuracy` are already in the same format
                             database.execSQL(
-                                "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                                "INSERT INTO `Location` (`_id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
                                         + " VALUES ('" + id + "', '" + timestamp + "', '" + lat + "', '" + lon + "', '" + altitude + "', '" + speed + "', '" + accuracy + "', '" + verticalAccuracy + "', '" + locationMeasurementId + "');"
                             )
                         }
@@ -547,7 +547,7 @@ class DatabaseMigrator(val context: Context) {
                         // Insert the data from old table
                         /// `accuracy` in `measures` version `17` is already in meters
                         database.execSQL(
-                            "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                            "INSERT INTO `Location` (`_id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
                                     + " SELECT `_id`, `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`"
                                     + " WHERE measurement_fk = $measurementId;"
                         )
@@ -563,7 +563,7 @@ class DatabaseMigrator(val context: Context) {
 
                 // Migrate Pressure data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Insert the data from the `v6` database version `1`
                 val pressureCursor =
                     v6Database.query("Pressure", null, null, null, null, null, "uid ASC")
@@ -578,7 +578,7 @@ class DatabaseMigrator(val context: Context) {
                     val measurementId = pressureCursor.getInt(measurementIdIndex)
                     // v6.1 `altitude` and `verticalAccuracy` are already in the same format
                     database.execSQL(
-                        "INSERT INTO `Pressure` (`id`, `timestamp`, `pressure`, `measurementId`)"
+                        "INSERT INTO `Pressure` (`_id`, `timestamp`, `pressure`, `measurementId`)"
                                 + " VALUES ('" + id + "', '" + timestamp + "', '" + pressure + "', '" + measurementId + "');"
                     )
                 }
@@ -599,11 +599,11 @@ class DatabaseMigrator(val context: Context) {
             private fun migrate17To18LocationsAndPressuresWithoutV6Data(database: SupportSQLiteDatabase) {
                 // Migrate GeoLocation data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Location` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `lat` REAL NOT NULL, `lon` REAL NOT NULL, `altitude` REAL, `speed` REAL NOT NULL, `accuracy` REAL, `verticalAccuracy` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Insert the data from old table
                 /// `accuracy` in `measures` version `17` is already in meters
                 database.execSQL(
-                    "INSERT INTO `Location` (`id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
+                    "INSERT INTO `Location` (`_id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
                             + " SELECT `_id`, `gps_time`, `lat`, `lon`, null, `speed`, `accuracy`, null, `measurement_fk` FROM `locations`;"
                 )
                 /// Set `accuracy` values with `0` m to `null`
@@ -615,7 +615,7 @@ class DatabaseMigrator(val context: Context) {
 
                 // Migrate Pressure data
                 // Create table with Room generated name and new schema
-                database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
+                database.execSQL("CREATE TABLE IF NOT EXISTS `Pressure` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `pressure` REAL NOT NULL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE );")
                 // Create index
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_Pressure_measurementId` ON `Pressure` (`measurementId`);")
             }

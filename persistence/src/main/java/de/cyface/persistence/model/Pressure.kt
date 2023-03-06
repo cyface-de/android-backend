@@ -42,12 +42,13 @@ import androidx.room.PrimaryKey
     // Keep the table schema in sync with `ContentProvider`'s [PressureTable]
     foreignKeys = [ForeignKey(
         entity = Measurement::class,
-        parentColumns = arrayOf("id"),
+        parentColumns = arrayOf("_id"),
         childColumns = arrayOf("measurementId"),
         onDelete = ForeignKey.CASCADE
     )]
 )
 data class Pressure(
+    @ColumnInfo(name = "_id") // The CursorAdapter requires a column with the name `_id`
     @PrimaryKey(autoGenerate = true) var id: Long = 0,
     override val timestamp: Long,
     override val pressure: Double,

@@ -21,6 +21,7 @@ package de.cyface.persistence.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import de.cyface.persistence.content.IdentifierTable
 import de.cyface.persistence.model.Identifier
 
 /**
@@ -35,6 +36,6 @@ interface IdentifierDao {
     @Insert
     fun insert(identifier: Identifier): Long
 
-    @Query("SELECT * FROM Identifier")
+    @Query("SELECT * FROM ${IdentifierTable.URI_PATH}")
     fun getAll(): List<Identifier>
 }

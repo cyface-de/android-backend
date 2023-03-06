@@ -21,6 +21,8 @@ package de.cyface.persistence.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
+import de.cyface.persistence.content.BaseColumns
+import de.cyface.persistence.content.LocationTable
 import de.cyface.persistence.model.GeoLocation
 
 /**
@@ -38,19 +40,19 @@ interface LocationDao {
     @Insert
     fun insertAll(vararg locations: GeoLocation)
 
-    @Query("SELECT * FROM Location")
+    @Query("SELECT * FROM ${LocationTable.URI_PATH}")
     fun getAll(): List<GeoLocation>
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM Location WHERE measurementId = :measurementId ORDER BY timestamp ASC")
+    @Query("SELECT * FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation>
 
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
-    @Query("SELECT * FROM Location WHERE measurementId = :measurementId AND speed > :lowerSpeedThreshold AND accuracy < :accuracyThreshold AND speed < :upperSpeedThreshold ORDER BY timestamp ASC")
+    @Query("SELECT * FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${LocationTable.COLUMN_SPEED} > :lowerSpeedThreshold AND ${LocationTable.COLUMN_ACCURACY} < :accuracyThreshold AND ${LocationTable.COLUMN_SPEED} < :upperSpeedThreshold ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     fun loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
         measurementId: Long,
         lowerSpeedThreshold: Double,
@@ -58,9 +60,9 @@ interface LocationDao {
         upperSpeedThreshold: Double
     ) : List<GeoLocation>
 
-    @Query("DELETE FROM Location WHERE measurementId = :measurementId")
+    @Query("DELETE FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
 
-    @Query("DELETE FROM Location")
+    @Query("DELETE FROM ${LocationTable.URI_PATH}")
     fun deleteAll() : Int
 }
