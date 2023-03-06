@@ -41,7 +41,7 @@ class MeasurementDaoTest {
     private lateinit var database: Database
     private lateinit var measurementDao: MeasurementDao
     private lateinit var eventDao: EventDao
-    private lateinit var locationDao: GeoLocationDao
+    private lateinit var locationDao: LocationDao
     private lateinit var pressureDao: PressureDao
 
     @Before
@@ -49,7 +49,7 @@ class MeasurementDaoTest {
         database = TestUtils.createDatabase()
         measurementDao = database.measurementDao()
         eventDao = database.eventDao()
-        locationDao = database.geoLocationDao()
+        locationDao = database.locationDao()
         pressureDao = database.pressureDao()
     }
 

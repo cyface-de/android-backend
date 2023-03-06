@@ -162,7 +162,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      */
     public void storeLocation(final @NonNull ParcelableGeoLocation location, final long measurementIdentifier) {
 
-        persistenceLayer.getDatabase().geoLocationDao()
+        persistenceLayer.getDatabase().locationDao()
                 .insertAll(new GeoLocation(location, measurementIdentifier));
     }
 

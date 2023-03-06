@@ -30,22 +30,22 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests the CRUD operations of the [GeoLocationDao].
+ * Tests the CRUD operations of the [LocationDao].
  *
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.5.0
  */
-class GeoLocationDaoTest {
+class LocationDaoTest {
     private lateinit var database: Database
     private lateinit var measurementDao: MeasurementDao
-    private lateinit var locationDao: GeoLocationDao
+    private lateinit var locationDao: LocationDao
     private var measurementId: Long? = null
 
     @Before
     fun setupDatabase() {
         database = TestUtils.createDatabase()
-        locationDao = database.geoLocationDao()
+        locationDao = database.locationDao()
         measurementDao = database.measurementDao()
         // Insert a default measurement as each location needs a measurement in the database
         measurementId = createMeasurement().id

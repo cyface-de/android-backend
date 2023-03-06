@@ -31,7 +31,7 @@ import de.cyface.persistence.model.GeoLocation
  * @since 7.5.0
  */
 @Dao
-interface GeoLocationDao {
+interface LocationDao {
     @Insert
     fun insert(location: GeoLocation): Long
 

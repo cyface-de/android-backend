@@ -22,7 +22,7 @@ import android.content.Context
 import androidx.room.Room
 import androidx.room.RoomDatabase
 import de.cyface.persistence.dao.EventDao
-import de.cyface.persistence.dao.GeoLocationDao
+import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.dao.PressureDao
@@ -82,12 +82,12 @@ abstract class Database : RoomDatabase() {
      * @return Data access object which provides the API to interact with the [GeoLocation] database
      * table.
      */
-    abstract fun geoLocationDao(): GeoLocationDao
+    abstract fun locationDao(): LocationDao
 
     // See https://developer.android.com/codelabs/android-room-with-a-view-kotlin#7
     companion object {
         @Volatile // Singleton to prevent multiple open database-instances at the same time
-        private var INSTANCE: Database? = null
+        private var INSTANCE: Database? = null // FIXME: see SDK 6 branch
 
         /**
          * The file name of the database represented by this class.

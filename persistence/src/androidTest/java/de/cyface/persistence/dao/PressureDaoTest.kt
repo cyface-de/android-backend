@@ -30,7 +30,7 @@ import org.junit.Before
 import org.junit.Test
 
 /**
- * Tests the CRUD operations of the [GeoLocationDao].
+ * Tests the CRUD operations of the [LocationDao].
  *
  * @author Armin Schnabel
  * @version 1.0.0

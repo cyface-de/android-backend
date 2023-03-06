@@ -202,7 +202,7 @@ public class CapturedDataWriterTest {
 
         // Check if the captured data was persisted
         FileDao fileDao = new DefaultFileDao();
-        final var locationDao = oocut.getDatabase().geoLocationDao();
+        final var locationDao = oocut.getDatabase().locationDao();
         final var locations = locationDao.getAll();
         assertThat(locations.size(), is(equalTo(TEST_LOCATION_COUNT)));
 
@@ -277,7 +277,7 @@ public class CapturedDataWriterTest {
                 + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents)));
 
         // make sure nothing is left in the database
-        final var locationsDao = oocut.getDatabase().geoLocationDao();
+        final var locationsDao = oocut.getDatabase().locationDao();
         final var measurementsDao = oocut.getDatabase().measurementDao();
         final var identifierDao = oocut.getDatabase().identifierDao();
         final var locations = locationsDao.loadAllByMeasurementId(measurement.getId());
@@ -364,7 +364,7 @@ public class CapturedDataWriterTest {
         assertThat(!rotationFile.exists(), is(true));
         assertThat(!directionFile.exists(), is(true));
 
-        final var locationsDao = oocut.getDatabase().geoLocationDao();
+        final var locationsDao = oocut.getDatabase().locationDao();
         final var locations = locationsDao.loadAllByMeasurementId(measurementId);
         assertThat(locations.size(), is(equalTo(0)));
 

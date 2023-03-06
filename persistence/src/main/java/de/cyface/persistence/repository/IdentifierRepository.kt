@@ -23,9 +23,9 @@ import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.model.Identifier
 
 /**
- * The repository mediates between different data sources for [Identifier].
+ * The repository decides which data source to load [Identifier] from.
  *
- * It manages identifier queries and decides to fetch data from local persistence or network.
+ * We did not implement this layer for all DAO objects as we only offer one data source right now.
  *
  * @author Armin Schnabel
  * @version 1.0.0

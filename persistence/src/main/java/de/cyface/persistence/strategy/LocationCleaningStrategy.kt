@@ -19,7 +19,7 @@
 package de.cyface.persistence.strategy
 
 import android.os.Parcelable
-import de.cyface.persistence.dao.GeoLocationDao
+import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.ParcelableGeoLocation
 
@@ -55,5 +55,5 @@ interface LocationCleaningStrategy : Parcelable {
      * @param measurementId The identifier for the [de.cyface.persistence.model.Measurement] to load the track for.
      * @return A list which contains the "clean" [GeoLocation]s of that measurement.
      */
-    fun loadCleanedLocations(dao: GeoLocationDao, measurementId: Long): List<GeoLocation?>?
+    fun loadCleanedLocations(dao: LocationDao, measurementId: Long): List<GeoLocation?>?
 }

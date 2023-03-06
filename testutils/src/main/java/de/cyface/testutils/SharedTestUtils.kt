@@ -257,7 +257,7 @@ object SharedTestUtils {
         val removedFiles = clearFileLayer(context, false)
 
         // Remove database entries
-        val removedGeoLocations = database.geoLocationDao().deleteAll()
+        val removedGeoLocations = database.locationDao().deleteAll()
         val removedPressures = database.pressureDao().deleteAll()
         val removedEvents = database.eventDao().deleteAll()
         val removedMeasurements = database.measurementDao().deleteAll()
@@ -515,7 +515,7 @@ object SharedTestUtils {
         timestamp: Long, lat: Double, lon: Double, altitude: Double, speed: Double,
         accuracy: Double, verticalAccuracy: Double
     ) {
-        database.geoLocationDao().insertAll(
+        database.locationDao().insertAll(
             GeoLocation(
                 timestamp, lat, lon, altitude, speed, accuracy,
                 verticalAccuracy, measurementIdentifier
@@ -541,7 +541,7 @@ object SharedTestUtils {
         for (geoLocation in geoLocations) {
             locations.add(GeoLocation(geoLocation, measurementIdentifier))
         }
-        database.geoLocationDao().insertAll(*locations.toTypedArray())
+        database.locationDao().insertAll(*locations.toTypedArray())
 
         // This avoids "failed binder transaction - parcel size ..." error - FIXME See if this works without this code block
         /*final int maxBatchSize = 2_000;

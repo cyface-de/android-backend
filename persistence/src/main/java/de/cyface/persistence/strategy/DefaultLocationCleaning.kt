@@ -20,7 +20,7 @@ package de.cyface.persistence.strategy
 
 import android.os.Parcel
 import android.os.Parcelable.Creator
-import de.cyface.persistence.dao.GeoLocationDao
+import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.ParcelableGeoLocation
 
@@ -61,7 +61,7 @@ class DefaultLocationCleaning : LocationCleaningStrategy {
     }
 
     override fun loadCleanedLocations(
-        dao: GeoLocationDao,
+        dao: LocationDao,
         measurementId: Long
     ): List<GeoLocation> {
         return dao.loadAllByMeasurementIdAndSpeedGtAndAccuracyLtAndSpeedLt(
