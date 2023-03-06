@@ -32,6 +32,8 @@ import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.utils.Validate
 import java.io.File
+import java.io.RandomAccessFile
+import java.nio.ByteBuffer
 
 /**
  * This class wraps the [Database] migration code.
@@ -454,6 +456,8 @@ class DatabaseMigrator(val context: Context) {
                 val v6DatabaseName = "v6"
                 val v6File = context.getDatabasePath(v6DatabaseName)
                 if (v6File.exists()) {
+                    val version = sqLiteDatabaseVersion(v6File)
+                    Validate.isTrue(version == 1, "Unsupported version $version")
                     migrate17To18LocationsAndPressuresWithV6Data(database, v6File, v6DatabaseName)
                 } else {
                     migrate17To18LocationsAndPressuresWithoutV6Data(database)
@@ -753,5 +757,17 @@ class DatabaseMigrator(val context: Context) {
                 return previousLocation.distanceTo(nextLocation).toDouble()
             }
         }
+    }
+
+    /**
+     * The SQLite database version is stored in 4 bytes at offset 60 in the field `user cookie`.
+     */
+    @Throws(Exception::class)
+    private fun sqLiteDatabaseVersion(file: File): Int {
+        val fileAccess = RandomAccessFile(file, "r")
+        fileAccess.seek(60)
+        val buff = ByteArray(4)
+        fileAccess.read(buff, 0, 4)
+        return ByteBuffer.wrap(buff).int
     }
 }

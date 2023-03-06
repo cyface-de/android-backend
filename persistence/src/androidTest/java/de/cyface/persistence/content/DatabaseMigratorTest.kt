@@ -38,6 +38,7 @@ import de.cyface.persistence.DatabaseMigrator
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.testutils.SharedTestUtils
 import de.cyface.utils.Validate
+import de.cyface.utils.ValidationException
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.hamcrest.Matchers
@@ -45,6 +46,7 @@ import org.junit.Before
 import org.junit.Rule
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.nio.ByteBuffer
 
 /**
  * This class tests the migration functionality of the [de.cyface.persistence.DatabaseMigrator].
@@ -100,7 +102,36 @@ class DatabaseMigratorTest {
         )
     }
 
-    // FIXME: Add test which ensures reading `v6` version > `1` fails
+    /**
+     * This test ensures that the migration code fails in case the secondary database `v6` is not still
+     * in version `1` at the time the migration code is executed.
+     */
+    @Test(expected = ValidationException::class)
+    fun testMigrationV17ToV18_withUnsupportedV6DatabaseVersion_fails() {
+        // Arrange
+        // Generate first bytes of a database file which contains a version > 1 at byte 60...64
+        val dbVersion = 2
+        val dbV6Version2File = context!!.getDatabasePath("v6.$dbVersion")
+        val versionBytes = ByteBuffer.allocate(4).putInt(dbVersion).array()
+        dbV6Version2File.writeBytes(ByteArray(60) + versionBytes)
+        try {
+            // Create main database
+            @Suppress("VARIABLE_WITH_REDUNDANT_INITIALIZER")
+            var db = helper.createDatabase(TEST_DB_NAME, 17)
+
+            // Act
+            // Re-open the database with target version and provide migrations
+            // MigrationTestHelper automatically verifies the schema changes, but not the data validity
+            db = helper.runMigrationsAndValidate(
+                TEST_DB_NAME,
+                18,
+                true,
+                migrator!!.MIGRATION_17_18
+            )
+        } finally {
+            dbV6Version2File.delete()
+        }
+    }
 
     /**
      * Tests the migration when a user has installed SDK 6.3 or SDK 7.4 and upgrades to SDK 7.5.
