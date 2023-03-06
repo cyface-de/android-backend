@@ -22,6 +22,7 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.net.Uri
 import android.util.Log
+import androidx.room.Room
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.content.MeasurementTable
@@ -155,8 +156,30 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor(context: Context, authority: String, persistenceBehaviour: B) {
         this.context = context
-        // FIXME: see https://developer.android.com/codelabs/android-room-with-a-view-kotlin#12
-        val database = Database.getDatabase(context.applicationContext)
+        // Enabling `multiInstanceInvalidation` tells Room that we use it across processes.
+        // A `MultiInstanceInvalidationService` is used to transfer database modifications
+        // between the processes, so we can use it safely across processes. No Singleton
+        // should be necessary, see: https://github.com/cyface-de/android-backend/pull/268
+        val migrator = DatabaseMigrator(context)
+        val database = Room.databaseBuilder(
+            context.applicationContext,
+            Database::class.java,
+            "measures"
+        )
+            .enableMultiInstanceInvalidation()
+            .addMigrations(
+                DatabaseMigrator.MIGRATION_8_9,
+                migrator.MIGRATION_9_10,
+                DatabaseMigrator.MIGRATION_10_11,
+                DatabaseMigrator.MIGRATION_11_12,
+                DatabaseMigrator.MIGRATION_12_13,
+                DatabaseMigrator.MIGRATION_13_14,
+                DatabaseMigrator.MIGRATION_14_15,
+                DatabaseMigrator.MIGRATION_15_16,
+                DatabaseMigrator.MIGRATION_16_17,
+                migrator.MIGRATION_17_18
+            )
+            .build()
         this.authority = authority
         this.identifierRepository = IdentifierRepository(database.identifierDao())
         this.measurementDao = database.measurementDao()
