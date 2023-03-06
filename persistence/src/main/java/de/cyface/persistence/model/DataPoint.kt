@@ -64,9 +64,6 @@ abstract class DataPoint(open val timestamp: Long) : Parcelable {
         return timestamp == that.timestamp
     }
 
-    // FIXME
-    // DEPRECATED: To ease migration with `main` we keep the `hashCode()` similar to `DataPoint`:
-    // DEPRECATED: https://github.com/cyface-de/android-backend/pull/258#discussion_r1071071508
     override fun hashCode(): Int {
         return Objects.hash(timestamp)
     }

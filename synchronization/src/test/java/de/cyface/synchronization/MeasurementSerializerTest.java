@@ -150,7 +150,7 @@ public class MeasurementSerializerTest {
 
         // Mock GeoLocation database access
         Uri geoLocationUri = LocationTable.Companion.getUri(AUTHORITY);
-        when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
+        when(loader.createLocationTableUri()).thenReturn(geoLocationUri);
         when(loader.countData(geoLocationUri, BaseColumns.MEASUREMENT_ID))
                 .thenReturn(SAMPLE_GEO_LOCATIONS);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);

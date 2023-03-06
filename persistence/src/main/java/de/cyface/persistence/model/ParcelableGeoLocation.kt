@@ -24,20 +24,12 @@ import android.util.Log
 import androidx.room.Ignore
 import de.cyface.persistence.Constants
 import java.util.Locale
-import java.util.Objects
 
 /**
  * This class represents a geographical location, usually captured by a GNSS.
  *
  * An instance of this class represents a data point captured and cached but not yet persisted. Such an
  * [GeoLocation] requires the measurement id to be set.
- *
- * [ParcelableGeoLocation] DB Version 17 now contains accuracy in meters.
- * [ParcelableGeoLocation] accuracy is still in the old format (cm), vertical in the new (m)
- * FIXME This is fixed after merging `measures` and `v6` databases (both in m)
- *
- * This is fixed automatically in `measures` V16-V17 upgrade which is already implemented in the SDK 7 branch.
- * FIXME: but as we'll use the `GeoLocationsV6` which contain elevation data, we need to convert the accuracy there!
  *
  * @author Armin Schnabel
  * @version 3.0.0
@@ -78,7 +70,7 @@ open class ParcelableGeoLocation : DataPoint {
     open val verticalAccuracy: Double?
 
     /**
-     * `True` if this location is considered "clean" by the provided [de.cyface.persistence.LocationCleaningStrategy].
+     * `True` if this location is considered "clean" by the provided [de.cyface.persistence.strategy.LocationCleaningStrategy].
      *
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
@@ -213,10 +205,15 @@ open class ParcelableGeoLocation : DataPoint {
                 && isValid == that.isValid)
     }
 
-    // To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
-    // in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1071077508
     override fun hashCode(): Int {
-        return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy)
+        var result = super.hashCode()
+        result = 31 * result + lat.hashCode()
+        result = 31 * result + lon.hashCode()
+        result = 31 * result + (altitude?.hashCode() ?: 0)
+        result = 31 * result + speed.hashCode()
+        result = 31 * result + (accuracy?.hashCode() ?: 0)
+        result = 31 * result + (verticalAccuracy?.hashCode() ?: 0)
+        return result
     }
 
     companion object {

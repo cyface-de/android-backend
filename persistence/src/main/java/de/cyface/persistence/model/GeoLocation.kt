@@ -82,7 +82,7 @@ data class GeoLocation(
      */
     override val verticalAccuracy: Double?,
     /**
-     * `True` if this location is considered "clean" by the provided [de.cyface.persistence.LocationCleaningStrategy].
+     * `True` if this location is considered "clean" by the provided [de.cyface.persistence.strategy.LocationCleaningStrategy].
      *
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
@@ -139,32 +139,28 @@ data class GeoLocation(
         location.speed, location.accuracy, location.verticalAccuracy, measurementId
     )
 
-    // is timestamp checked?
     override fun equals(other: Any?): Boolean {
         if (this === other) return true
-        if (other == null || javaClass != other.javaClass) return false
-        val that = other as GeoLocation
-        return (that.lat.compareTo(lat) == 0 && that.lon.compareTo(lon) == 0
-                && that.speed.compareTo(speed) == 0 && that.accuracy == accuracy
-                && measurementId == that.measurementId && altitude == that.altitude
-                && verticalAccuracy == that.verticalAccuracy && isValid == that.isValid)
+        if (javaClass != other?.javaClass) return false
+        if (!super.equals(other)) return false
+
+        other as GeoLocation
+
+        if (id != other.id) return false
+        if (timestamp != other.timestamp) return false
+        if (lat != other.lat) return false
+        if (lon != other.lon) return false
+        if (altitude != other.altitude) return false
+        if (speed != other.speed) return false
+        if (accuracy != other.accuracy) return false
+        if (verticalAccuracy != other.verticalAccuracy) return false
+        if (isValid != other.isValid) return false
+        if (measurementId != other.measurementId) return false
+
+        return true
     }
 
-    // FIXME: I changed the hashCode to `id` only like in all other @Entity classes,
-    // as the constructor which has `id` set to `0` is usually only used to insert an entry into the db.
-    // The only issue which could occur would be if we want to insert a set or new points into the database,
-    // as the set would then just have one of these points as entry, as `id` is `0`.
-    // But for Measurement, GeoLocation, Event and Pressure we usually insert one point at a time.
-    // DEPRECATED: To ease migration with `main` branch, we keep the models similar to `GeoLocation` but might want to change this
-    // DEPRECATED: in future. https://github.com/cyface-de/android-backend/pull/258#discussion_r1070618174
     override fun hashCode(): Int {
         return id.hashCode()
-        // FIXME: In `Track` v1 `ParcelableGeoLocation` is used, which has the following hashCode:
-        // GeoLocation.hashCode(): lat, lon, timestamp, speed, accuracy
-        // ParcelableGeoLocation.hashCode: geolocation.hashCode + isValid
-        // In this class it should probably be: id
-        // In the child class GeoLocation: super.timestamp, lat, lon, altitude, speed, accuracy, verticalAccuracy
-        // or simply: timestamp, as we only expect one gnss point per timestamp
-        //return Objects.hash(lat, lon, altitude, speed, accuracy, verticalAccuracy, measurementId)
     }
 }

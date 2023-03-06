@@ -77,6 +77,7 @@ data class Pressure(
 
         other as Pressure
 
+        if (id != other.id) return false
         if (timestamp != other.timestamp) return false
         if (pressure != other.pressure) return false
         if (measurementId != other.measurementId) return false
@@ -84,7 +85,6 @@ data class Pressure(
         return true
     }
 
-    // FIXME: See [GeoLocation.hashCode]
     override fun hashCode(): Int {
         return id.hashCode()
     }

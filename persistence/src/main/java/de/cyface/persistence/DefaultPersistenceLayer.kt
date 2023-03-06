@@ -461,20 +461,18 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     ): Double {
         var speedSum = 0.0
         var speedCounter = 0
-        runBlocking {
-            val tracks = loadTracks(measurementIdentifier)
-            for (track in tracks) {
-                var sum = 0.0
-                var counter = 0
-                for (location in track.geoLocations) {
-                    if (locationCleaningStrategy.isClean(location)) {
-                        sum += location!!.speed
-                        counter += 1
-                    }
+        val tracks = loadTracks(measurementIdentifier)
+        for (track in tracks) {
+            var sum = 0.0
+            var counter = 0
+            for (location in track.geoLocations) {
+                if (locationCleaningStrategy.isClean(location)) {
+                    sum += location!!.speed
+                    counter += 1
                 }
-                speedSum += sum
-                speedCounter += counter
             }
+            speedSum += sum
+            speedCounter += counter
         }
         return if (speedCounter > 0) speedSum / speedCounter.toDouble() else 0.0
     }

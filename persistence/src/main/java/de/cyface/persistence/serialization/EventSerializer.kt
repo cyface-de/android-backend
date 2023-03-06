@@ -42,7 +42,6 @@ class EventSerializer {
     /**
      * Fully initialized constructor of this class.
      *
-     *
      * Use [.readFrom] to add `Event` from the database.
      * And [.result] to receive the `Event`s in the serialized format.
      */

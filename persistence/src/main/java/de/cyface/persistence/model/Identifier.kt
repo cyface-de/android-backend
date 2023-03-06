@@ -59,7 +59,6 @@ data class Identifier(
         return true
     }
 
-    // FIXME: See [GeoLocation.hashCode]
     override fun hashCode(): Int {
         return id.hashCode()
     }

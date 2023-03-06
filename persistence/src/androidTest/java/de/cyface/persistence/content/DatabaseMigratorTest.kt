@@ -19,6 +19,7 @@
 package de.cyface.persistence.content
 
 import android.content.Context
+import android.content.Context.MODE_PRIVATE
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
 import android.database.sqlite.SQLiteQueryBuilder
@@ -145,7 +146,7 @@ class DatabaseMigratorTest {
     fun testMigrationV17ToV18_withV6DatabaseMerge() {
         // Arrange
         val v6DatabaseName = "v6"
-        val v6Db = createV6Database(context!!, v6DatabaseName)
+        val v6Db = createV6Database(context!!, v6DatabaseName, 1)
         try {
             createV6Tables(v6Db)
             // Only insert data for the second measurement `id=44` into `v6` database
@@ -1046,19 +1047,20 @@ class DatabaseMigratorTest {
      *
      * @param context The context required to get the database folder path.
      * @param v6DatabaseName The file name of the database to create.
+     * @param version The database version to set.
      */
     private fun createV6Database(
         context: Context,
-        @Suppress("SameParameterValue") v6DatabaseName: String
+        @Suppress("SameParameterValue") v6DatabaseName: String,
+        @Suppress("SameParameterValue") version: Int
     ): SQLiteDatabase {
-        val v6File = context.getDatabasePath(v6DatabaseName)
+        val file = context.getDatabasePath(v6DatabaseName)
         try {
-            return SQLiteDatabase.openOrCreateDatabase(
-                v6File.path,
-                null
-            )
+            val db = context.openOrCreateDatabase(v6DatabaseName, MODE_PRIVATE, null)
+            db.version = 1
+            return db
         } catch (e: RuntimeException) {
-            throw java.lang.IllegalStateException("Unable to open database at ${v6File.path}")
+            throw java.lang.IllegalStateException("Unable to open database at ${file.path}")
         }
     }
 

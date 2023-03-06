@@ -40,7 +40,6 @@ import de.cyface.utils.Validate
 import java.io.BufferedOutputStream
 import java.io.IOException
 
-
 /**
  * Serializes [MeasurementSerializer.TRANSFER_FILE_FORMAT_VERSION] files.
  *
@@ -208,7 +207,7 @@ object TransferFileSerializer {
         val locationSerializer = LocationSerializer()
         var geoLocationsCursor: Cursor? = null
         try {
-            val geoLocationTableUri: Uri = loader.createGeoLocationTableUri()
+            val geoLocationTableUri: Uri = loader.createLocationTableUri()
             val geoLocationCount: Int =
                 loader.countData(geoLocationTableUri, BaseColumns.MEASUREMENT_ID)
             var startIndex = 0

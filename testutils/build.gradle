@@ -63,7 +63,7 @@ dependencies {
     implementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
 
-    // `Room` API used for database `v6` and `v7`
+    // `Room` API used to access the database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
     annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"

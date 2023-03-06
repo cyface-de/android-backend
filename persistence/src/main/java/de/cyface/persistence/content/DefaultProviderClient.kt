@@ -50,7 +50,7 @@ class DefaultProviderClient(
 ) : MeasurementProviderClient {
     @Throws(RemoteException::class)
     override fun loadGeoLocations(offset: Int, limit: Int): Cursor? {
-        val uri = createGeoLocationTableUri()
+        val uri = createLocationTableUri()
         val projection = arrayOf(
             BaseColumns.TIMESTAMP,
             LocationTable.COLUMN_LAT,
@@ -128,10 +128,16 @@ class DefaultProviderClient(
         }
     }
 
-    override fun createGeoLocationTableUri(): Uri {
+    /**
+     * @return The URI which identifies the table represented by the [LocationTable] class.
+     */
+    override fun createLocationTableUri(): Uri {
         return LocationTable.getUri(authority)
     }
 
+    /**
+     * @return The URI which identifies the table represented by the [EventTable] class.
+     */
     override fun createEventTableUri(): Uri {
         return EventTable.getUri(authority)
     }

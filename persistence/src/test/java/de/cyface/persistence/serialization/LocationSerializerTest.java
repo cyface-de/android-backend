@@ -86,7 +86,7 @@ public class LocationSerializerTest {
 
         // Mock GeoLocation database access
         var geoLocationUri = LocationTable.Companion.getUri(AUTHORITY);
-        when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
+        when(loader.createLocationTableUri()).thenReturn(geoLocationUri);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor1)
                 .thenReturn(geoLocationsCursor2);
 

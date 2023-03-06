@@ -84,7 +84,6 @@ data class Measurement(
         return true
     }
 
-    // FIXME: See [GeoLocation.hashCode]
     override fun hashCode(): Int {
         return id.hashCode()
     }
