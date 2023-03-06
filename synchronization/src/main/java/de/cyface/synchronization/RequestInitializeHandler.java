@@ -86,7 +86,6 @@ public class RequestInitializeHandler implements HttpRequestInitializer {
         headers.set("osVersion", metaData.getOperatingSystemVersion());
         headers.set("appVersion", metaData.getApplicationVersion());
         headers.set("length", String.valueOf(metaData.getLength()));
-        // FIXME: changed from `vehicle` to `modality` => add to migration guide
         // To support the API v2 specification we may not change the "vehicle" key name of the modality
         headers.set("modality", String.valueOf(metaData.getModality()));
         headers.set("formatVersion", String.valueOf(metaData.getFormatVersion()));

@@ -412,7 +412,6 @@ public class HttpConnection implements Http {
         attributes.put("osVersion", metaData.getOperatingSystemVersion());
         attributes.put("appVersion", metaData.getApplicationVersion());
         attributes.put("length", String.valueOf(metaData.getLength()));
-        // FIXME: I changed this from `vehicle` to `modality` => add this to the API migration guide
         // To support the API specification we may not change the "vehicle" key name of the modality
         attributes.put("modality", String.valueOf(metaData.getModality()));
         attributes.put("formatVersion", String.valueOf(metaData.getFormatVersion()));

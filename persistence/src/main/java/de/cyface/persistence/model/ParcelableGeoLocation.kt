@@ -59,8 +59,6 @@ open class ParcelableGeoLocation : DataPoint {
 
     /**
      * The current accuracy of the measuring device in meters if available.
-     *
-     * FIXME: Write `null` when `Location.hasAccuracy()` is false. The transfer file format might need adjustment for that.
      */
     open val accuracy: Double?
 

@@ -490,7 +490,6 @@ class DatabaseMigrator(val context: Context) {
                 } catch (e: RuntimeException) {
                     throw java.lang.IllegalStateException("Unable to open database at ${v6DatabaseFile.path}")
                 }
-                // FIXME: ensure version is 1 as this only migrates from version 1
 
                 // Migrate GeoLocation data
                 // Create table with Room generated name and new schema

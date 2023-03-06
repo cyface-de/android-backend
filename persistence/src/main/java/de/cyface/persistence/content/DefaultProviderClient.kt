@@ -78,7 +78,7 @@ class DefaultProviderClient(
 
         // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
         // the arguments limit and offset are only available starting with API 26 ("O")
-        // FIXME: There is a cleaner solution in that thread now, which does not abuse `order` for `limit`
+        // There is a cleaner solution in that thread now, which does not abuse `order` for `limit`
         // https://stackoverflow.com/a/24055457/5815054
         return client.query(
             uri, projection, selection, selectionArgs,
@@ -102,7 +102,7 @@ class DefaultProviderClient(
 
         // Backward compatibility workaround from https://stackoverflow.com/a/12641015/5815054
         // the arguments limit and offset are only available starting with API 26 ("O")
-        // FIXME: see other usages of this hack in our code
+        // See other usages of this hack in our code
         return client.query(
             uri, projection, selection, selectionArgs,
             BaseColumns.MEASUREMENT_ID + " ASC limit " + limit + " offset " + offset

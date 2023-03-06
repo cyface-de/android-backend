@@ -543,7 +543,7 @@ object SharedTestUtils {
         }
         database.locationDao().insertAll(*locations.toTypedArray())
 
-        // This avoids "failed binder transaction - parcel size ..." error - FIXME See if this works without this code block
+        // This avoids "failed binder transaction - parcel size ..."
         /*final int maxBatchSize = 2_000;
         int nextInsertIndex = 0;
         while (nextInsertIndex < list.size()) {

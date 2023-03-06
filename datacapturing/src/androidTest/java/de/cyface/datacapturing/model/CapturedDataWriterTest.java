@@ -655,9 +655,13 @@ public class CapturedDataWriterTest {
         // Assert
         assertThat(cleanedTracks.size(), is(equalTo(2)));
         assertThat(cleanedTracks.get(0).getGeoLocations().size(), is(equalTo(1)));
-        assertThat(cleanedTracks.get(0).getGeoLocations().get(0), is(equalTo(new GeoLocation(locationWithHighEnoughSpeed, measurement.getId()))));
+        final var location1 = (GeoLocation) cleanedTracks.get(0).getGeoLocations().get(0);
+        location1.setId(0); // We don't care about the database id being different after loading
+        assertThat(location1, is(equalTo(new GeoLocation(locationWithHighEnoughSpeed, measurement.getId()))));
         assertThat(cleanedTracks.get(1).getGeoLocations().size(), is(equalTo(1)));
-        assertThat(cleanedTracks.get(1).getGeoLocations().get(0), is(equalTo(new GeoLocation(locationWithGoodEnoughAccuracy, measurement.getId()))));
+        final var location2 = (GeoLocation) cleanedTracks.get(1).getGeoLocations().get(0);
+        location2.setId(0); // We don't care about the database id being different after loading
+        assertThat(location2, is(equalTo(new GeoLocation(locationWithGoodEnoughAccuracy, measurement.getId()))));
     }
 
     @Test
