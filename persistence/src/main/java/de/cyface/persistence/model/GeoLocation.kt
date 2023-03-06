@@ -88,7 +88,7 @@ data class GeoLocation(
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
     @Ignore
-    override var isValid: Boolean? = null,
+    override var isValid: Boolean = true,
     /**
      * The device-unique id of the measurement this data point belongs to.
      *
@@ -125,7 +125,7 @@ data class GeoLocation(
         speed,
         accuracy,
         verticalAccuracy,
-        null,
+        true,
         measurementId
     )
 

@@ -72,7 +72,7 @@ open class ParcelableGeoLocation : DataPoint {
      *
      * This is not persisted, as the validity can be different depending on the strategy implementation.
      */
-    open var isValid: Boolean? = null
+    open var isValid: Boolean = true
 
     /**
      * Creates a new completely initialized instance of this class.
@@ -146,14 +146,6 @@ open class ParcelableGeoLocation : DataPoint {
         this.verticalAccuracy = verticalAccuracy
     }
 
-    /**
-     * @param valid `True` if this location is considered "clean" by the provided
-     * [de.cyface.persistence.LocationCleaningStrategy].
-     */
-    open fun setValid(valid: Boolean) {
-        isValid = valid
-    }
-
     /*
      * MARK: Parcelable Interface
      */
@@ -171,7 +163,7 @@ open class ParcelableGeoLocation : DataPoint {
         speed = `in`.readDouble()
         accuracy = `in`.readDouble()
         verticalAccuracy = `in`.readDouble()
-        isValid = `in`.readByte().toInt() != 0
+        isValid = `in`.readByte().let { (it > 0) }
     }
 
     override fun describeContents(): Int {
@@ -186,7 +178,7 @@ open class ParcelableGeoLocation : DataPoint {
         dest.writeDouble(speed)
         dest.writeDouble(accuracy!!)
         dest.writeDouble(verticalAccuracy!!)
-        dest.writeByte((if (isValid!!) 1 else 0).toByte())
+        dest.writeByte((if (isValid) 1 else 0).toByte())
     }
 
     override fun toString(): String {
