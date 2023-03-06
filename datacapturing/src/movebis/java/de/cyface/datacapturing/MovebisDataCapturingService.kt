@@ -378,6 +378,7 @@ class MovebisDataCapturingService internal constructor(
             }
             Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.OPEN))
             Validate.isTrue(!persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))
+            this.persistenceLayer.persistenceBehaviour!!.resetIdentifierOfCurrentlyCapturedMeasurement()
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {

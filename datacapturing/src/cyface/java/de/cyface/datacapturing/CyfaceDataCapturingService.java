@@ -234,6 +234,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             }
             Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.OPEN));
             Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED));
+            this.persistenceLayer.getPersistenceBehaviour().resetIdentifierOfCurrentlyCapturedMeasurement();
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {

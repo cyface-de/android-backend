@@ -182,6 +182,15 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
     }
 
     /**
+     * Resets the cached identifier of the currently active measurement.
+     *
+     * This is necessary when the measurement status is changed manually, e.g. when cleaning up crashed measurements.
+     */
+    public void resetIdentifierOfCurrentlyCapturedMeasurement() {
+        currentMeasurementIdentifier = null;
+    }
+
+    /**
      * Loads the current {@link Measurement} from the internal cache if possible, or from the persistence layer if an
      * {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} {@code Measurement} exists.
      *
@@ -249,7 +258,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                 persistenceLayer.setStatus(currentlyCapturedMeasurementId, newStatus, false);
             } finally {
                 if (newStatus == FINISHED) {
-                    currentMeasurementIdentifier = null;
+                    resetIdentifierOfCurrentlyCapturedMeasurement();
                 }
             }
         }
