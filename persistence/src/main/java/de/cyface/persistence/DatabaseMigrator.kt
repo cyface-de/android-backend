@@ -209,8 +209,8 @@ class DatabaseMigrator(val context: Context) {
 
                     // Check all measurements
                     while (measurementCursor.moveToNext()) {
-                        val identifierColumnIndex = measurementCursor.getColumnIndex("_id")
-                        val measurementId = measurementCursor.getLong(identifierColumnIndex)
+                        val measurementId =
+                            measurementCursor.getLong(measurementCursor.getColumnIndexOrThrow("_id"))
                         geoLocationCursor = database.query(
                             SupportSQLiteQueryBuilder
                                 .builder("locations")
@@ -222,8 +222,8 @@ class DatabaseMigrator(val context: Context) {
                         )
                         var timestamp = 0L // Default value for measurements without GeoLocations
                         if (geoLocationCursor.moveToNext()) {
-                            val timeColumnIndex = geoLocationCursor.getColumnIndex("gps_time")
-                            timestamp = geoLocationCursor.getLong(timeColumnIndex)
+                            timestamp =
+                                geoLocationCursor.getLong(geoLocationCursor.getColumnIndexOrThrow("gps_time"))
                         }
                         Validate.isTrue(timestamp >= 0L)
                         Log.v(
@@ -514,27 +514,26 @@ class DatabaseMigrator(val context: Context) {
                     if (locationCursor.count > 0) {
                         // Insert the data from the `v6` database version `1`
                         while (locationCursor.moveToNext()) {
-                            val uidIndex = locationCursor.getColumnIndex("uid")
-                            val id = locationCursor.getInt(uidIndex)
-                            val timestampIndex = locationCursor.getColumnIndex("timestamp")
-                            val timestamp = locationCursor.getLong(timestampIndex)
-                            val latIndex = locationCursor.getColumnIndex("lat")
-                            val lat = locationCursor.getDouble(latIndex)
-                            val lonIndex = locationCursor.getColumnIndex("lon")
-                            val lon = locationCursor.getDouble(lonIndex)
-                            val altitudeIndex = locationCursor.getColumnIndex("altitude")
-                            val altitude = locationCursor.getDouble(altitudeIndex)
-                            val speedIndex = locationCursor.getColumnIndex("speed")
-                            val speed = locationCursor.getDouble(speedIndex)
-                            val accuracyIndex = locationCursor.getColumnIndex("accuracy")
-                            val accuracyCm = locationCursor.getDouble(accuracyIndex)
+                            val id =
+                                locationCursor.getInt(locationCursor.getColumnIndexOrThrow("uid"))
+                            val timestamp =
+                                locationCursor.getLong(locationCursor.getColumnIndexOrThrow("timestamp"))
+                            val lat =
+                                locationCursor.getDouble(locationCursor.getColumnIndexOrThrow("lat"))
+                            val lon =
+                                locationCursor.getDouble(locationCursor.getColumnIndexOrThrow("lon"))
+                            val altitude =
+                                locationCursor.getDouble(locationCursor.getColumnIndexOrThrow("altitude"))
+                            val speed =
+                                locationCursor.getDouble(locationCursor.getColumnIndexOrThrow("speed"))
+                            val accuracyCm =
+                                locationCursor.getDouble(locationCursor.getColumnIndexOrThrow("accuracy"))
                             // Convert accuracy from cm to meters
                             val accuracy = accuracyCm / 100.0
-                            val verticalAccuracyIndex =
-                                locationCursor.getColumnIndex("vertical_accuracy")
-                            val verticalAccuracy = locationCursor.getDouble(verticalAccuracyIndex)
-                            val measurementIdIndex = locationCursor.getColumnIndex("measurement_fk")
-                            val locationMeasurementId = locationCursor.getInt(measurementIdIndex)
+                            val verticalAccuracy =
+                                locationCursor.getDouble(locationCursor.getColumnIndexOrThrow("vertical_accuracy"))
+                            val locationMeasurementId =
+                                locationCursor.getInt(locationCursor.getColumnIndexOrThrow("measurement_fk"))
                             // v6.1 `altitude` and `verticalAccuracy` are already in the same format
                             database.execSQL(
                                 "INSERT INTO `Location` (`_id`, `timestamp`, `lat`, `lon`, `altitude`, `speed`, `accuracy`, `verticalAccuracy`, `measurementId`)"
@@ -568,14 +567,13 @@ class DatabaseMigrator(val context: Context) {
                 val pressureCursor =
                     v6Database.query("Pressure", null, null, null, null, null, "uid ASC")
                 while (pressureCursor.moveToNext()) {
-                    val uidIndex = pressureCursor.getColumnIndex("uid")
-                    val id = pressureCursor.getInt(uidIndex)
-                    val timestampIndex = pressureCursor.getColumnIndex("timestamp")
-                    val timestamp = pressureCursor.getLong(timestampIndex)
-                    val pressureIndex = pressureCursor.getColumnIndex("pressure")
-                    val pressure = pressureCursor.getDouble(pressureIndex)
-                    val measurementIdIndex = pressureCursor.getColumnIndex("measurement_fk")
-                    val measurementId = pressureCursor.getInt(measurementIdIndex)
+                    val id = pressureCursor.getInt(pressureCursor.getColumnIndexOrThrow("uid"))
+                    val timestamp =
+                        pressureCursor.getLong(pressureCursor.getColumnIndexOrThrow("timestamp"))
+                    val pressure =
+                        pressureCursor.getDouble(pressureCursor.getColumnIndexOrThrow("pressure"))
+                    val measurementId =
+                        pressureCursor.getInt(pressureCursor.getColumnIndexOrThrow("measurement_fk"))
                     // v6.1 `altitude` and `verticalAccuracy` are already in the same format
                     database.execSQL(
                         "INSERT INTO `Pressure` (`_id`, `timestamp`, `pressure`, `measurementId`)"
@@ -673,8 +671,8 @@ class DatabaseMigrator(val context: Context) {
 
                     // Check all measurements
                     while (measurementCursor.moveToNext()) {
-                        val identifierColumnIndex = measurementCursor.getColumnIndex("_id")
-                        val measurementId = measurementCursor.getLong(identifierColumnIndex)
+                        val measurementId =
+                            measurementCursor.getLong(measurementCursor.getColumnIndexOrThrow("_id"))
                         geoLocationCursor = database.query(
                             SupportSQLiteQueryBuilder
                                 .builder("locations")
@@ -696,12 +694,12 @@ class DatabaseMigrator(val context: Context) {
                         var lastLocationLat: Double? = null
                         var lastLocationLon: Double? = null
                         while (geoLocationCursor.moveToNext()) {
-                            val latColumnIndex = geoLocationCursor.getColumnIndex("lat")
-                            val lonColumnIndex = geoLocationCursor.getColumnIndex("lon")
                             val newLocationLat =
-                                geoLocationCursor.getFloat(latColumnIndex).toDouble()
+                                geoLocationCursor.getFloat(geoLocationCursor.getColumnIndexOrThrow("lat"))
+                                    .toDouble()
                             val newLocationLon =
-                                geoLocationCursor.getFloat(lonColumnIndex).toDouble()
+                                geoLocationCursor.getFloat(geoLocationCursor.getColumnIndexOrThrow("lon"))
+                                    .toDouble()
 
                             // We cannot calculate a distance from just one geoLocation:
                             if (lastLocationLat == null || lastLocationLon == null) {

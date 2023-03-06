@@ -236,6 +236,6 @@ public final class ParcelableGeoLocationTest {
         assertThat(values.getAsDouble(LocationTable.COLUMN_ACCURACY),
                 is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY))));
         assertThat(values.getAsDouble(LocationTable.COLUMN_VERTICAL_ACCURACY),
-                is(cursor.getDouble(cursor.getColumnIndex(LocationTable.COLUMN_VERTICAL_ACCURACY))));
+                is(cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_VERTICAL_ACCURACY))));
     }
 }
