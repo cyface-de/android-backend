@@ -10,6 +10,8 @@ This project contains the Cyface Android SDK which is used by Cyface application
 * <<api-usage-guide,API Usage Guide>>
 * <<migration-guide,Migration Guide>>
 * <<developer-guide,Developer Guide>>
+** <<architecture, Architecture>>
+** <<release-a-new-version, Release a new Version>>
 * <<license,License>>
 
 [[integration-guide]]
@@ -752,7 +754,7 @@ To delete the measurement data stored on the device for finished or synchronized
 ----
 class measurementControlOrAccessClass {
 
-    void deleteMeasurement(final long measurementId) throws CursorIsNullException {
+    void deleteMeasurement(final long measurementId) {
         // To make sure you don't delete the ongoing measurement because this leads to an exception
         Measurement currentlyCapturedMeasurement;
         try {
@@ -850,6 +852,52 @@ This documentation still lacks of samples for the following features:
 == Developer Guide
 
 This section is only relevant for developers of this library.
+
+[[architecture]]
+=== Architecture
+
+The SDK contains the following models:
+
+==== Datacapturing
+
+The `DataCapturingService` allows to control data capturing, persists the data & informs about the capturing progress.
+
+==== Persistence
+
+The `PersistenceLayer` serves as the https://developer.android.com/topic/architecture/data-layer[data layer] for SDK implementing apps.
+
+The sub-package `model` contains the data types persisted.
+
+The following data types are persisted in a SQLite database using the https://developer.android.com/jetpack/androidx/releases/room[Room API].
+
+- Identifier: The device identifier
+- Measurement: The data collected between capturing `start` and `stop`
+- Event: Life-cycle changes (`start`/`pause`/`resume`/`stop`) or `modality` changes for one measurement
+- Location: GNSS data captured for one measurement
+- Pressure: Barometer data captured fro one measurement
+
+The following data types are persisted in the https://github.com/cyface-de/protos[Cyface Binary Format] using Protobuf and stored in the file system:
+
+- Accelerometer: `*.cyfa` files
+- Gyroscope: `*.cyfr` files
+- Magnetometer: `*.cyfd` files
+
+The sub-package `dao` contains the data access interfaces for the data types above.
+
+- As there is currently only one data source for each data type, the Repository layer is not yet implemented.
+
+The sub-package `serialization` contains the functionality to serialize all data of one measurement
+into a compressed `*.ccyf` file which can be uploaded to the Cyface Collector.
+
+The sub-package `content` implements a `ContentProvider` to allow `Synchronization`'s `SyncAdapter` to access and upload data.
+
+==== Synchronization
+
+The `SyncService` uploads measurements to the https://github.com/cyface-de/data-collector[Cyface Collector] & informs about the upload progress.
+
+==== Testutils
+
+The `SharedTestUtils` contains integration test code used from multiple modules.
 
 [[release-a-new-version]]
 === Release a new version
