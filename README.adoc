@@ -119,8 +119,7 @@ application separately.
 ----
 <?xml version="1.0" encoding="utf-8"?>
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    xmlns:tools="http://schemas.android.com/tools"
-    package="your.domain.app"> <!-- replace this! -->
+    xmlns:tools="http://schemas.android.com/tools">
 
     <application>
         <!-- This overwrites the provider in the SDK. This way the app can be installed next to other
@@ -882,9 +881,9 @@ The following data types are persisted in the https://github.com/cyface-de/proto
 - Gyroscope: `*.cyfr` files
 - Magnetometer: `*.cyfd` files
 
-The sub-package `dao` contains the data access interfaces for the data types above.
+The sub-package `dao` contains the local data sources for the data types above.
 
-- As there is currently only one data source for each data type, the Repository layer is not yet implemented.
+The sub-package `repository` contains the abstraction layer for data sources, allowing multiple data sources per type with a common interface (e.g. network and database/file (`dao`)).
 
 The sub-package `serialization` contains the functionality to serialize all data of one measurement
 into a compressed `*.ccyf` file which can be uploaded to the Cyface Collector.

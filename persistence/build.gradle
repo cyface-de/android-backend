@@ -99,7 +99,10 @@ dependencies {
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
     annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
-    kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion" // Required for use with Kotlin
+    // To observe data with `Flow`
+    implementation "androidx.room:room-ktx:$rootProject.ext.roomVersion"
+    // To use Room with Kotlin
+    kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

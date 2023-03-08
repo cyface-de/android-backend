@@ -101,10 +101,12 @@ dependencies {
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
 
-    // `Room` API used for second database (V6 specific features)
+    // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
     annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
+    // To use Room with Kotlin
+    //kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Kotlin components
     //implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"

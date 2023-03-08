@@ -45,6 +45,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
+import de.cyface.persistence.repository.MeasurementRepository
 import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
@@ -89,7 +90,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
     override val identifierDao: IdentifierDao?
 
-    override val measurementDao: MeasurementDao?
+    override val measurementRepository: MeasurementRepository?
+    val measurementDao: MeasurementDao?
 
     override val eventDao: EventDao?
 
@@ -104,7 +106,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     private val job = SupervisorJob()
 
     /**+
-     * The scope that keeps track of coroutines, can cancel them and is notified about failures.
+     * The scope tracks coroutines, can cancel them and is notified about failures.
      *
      * No need to cancel this scope as it'll be torn down with the process.
      */
@@ -120,6 +122,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         authority = null
         identifierDao = null
         measurementDao = null
+        measurementRepository = null
         eventDao = null
         locationDao = null
         pressureDao = null
@@ -139,6 +142,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.authority = authority
         this.identifierDao = database.identifierDao()
         this.measurementDao = database.measurementDao()
+        this.measurementRepository = MeasurementRepository(database.measurementDao())
         this.eventDao = database.eventDao()
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
@@ -178,7 +182,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         )
         runBlocking {
             val measurementId = withContext(scope.coroutineContext) {
-                measurementDao!!.insert(measurement)
+                measurementRepository!!.insert(measurement)
             }
             measurement.id = measurementId
         }
@@ -191,7 +195,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>?
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                measurementDao!!.loadAllByStatus(status)
+                //measurementDao!!.loadAllByStatus(status)
+                measurementRepository!!.loadAllByStatus(status)
             }
         }
         val hasMeasurement = measurements!!.isNotEmpty()
@@ -206,7 +211,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                measurementDao!!.getAll()
+                measurementRepository!!.getAll()
             }
         }
         return measurements
@@ -216,7 +221,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurement: Measurement?
         runBlocking {
             measurement = withContext(scope.coroutineContext) {
-                measurementDao!!.loadById(measurementIdentifier)
+                //measurementDao!!.loadById(measurementIdentifier)
+                measurementRepository!!.loadById(measurementIdentifier)
             }
         }
         return measurement
@@ -272,7 +278,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>?
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                measurementDao!!.loadAllByStatus(status)
+                measurementRepository!!.loadAllByStatus(status)
             }
         }
         return measurements
@@ -380,7 +386,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         runBlocking {
             withContext(scope.coroutineContext) {
                 // measurement data like locations are deleted automatically because of `ForeignKey`
-                measurementDao!!.deleteItemById(measurementIdentifier)
+                measurementRepository!!.deleteItemById(measurementIdentifier)
             }
         }
     }
@@ -697,7 +703,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var pressures: List<Pressure>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementId(measurementIdentifier)
+                eventDao!!.loadAllByMeasurementId(measurementIdentifier)!!
             }
 
             // Load GeoLocation and Pressure
@@ -814,7 +820,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event?>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementId(measurementIdentifier)
+                eventDao!!.loadAllByMeasurementId(measurementIdentifier)!!
             }
         }
         return events
@@ -830,8 +836,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * specified {@param eventType}. An empty list if there are no such Events, but never `null`.
      */
     // Implementing apps (CY) use this
-    fun loadEvents(measurementId: Long, eventType: EventType): List<Event?>? {
-        var events: List<Event?>?
+    fun loadEvents(measurementId: Long, eventType: EventType): List<Event>? {
+        var events: List<Event>?
         runBlocking {
             events = withContext(scope.coroutineContext) {
                 eventDao!!.loadAllByMeasurementIdAndType(measurementId, eventType)
@@ -885,7 +891,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                measurementDao!!.updateFileFormatVersion(
+                measurementRepository!!.updateFileFormatVersion(
                     measurementId,
                     persistenceFileFormatVersion
                 )
@@ -953,7 +959,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                measurementDao!!.update(measurementIdentifier, newStatus)
+                measurementRepository!!.update(measurementIdentifier, newStatus)
             }
         }
         Validate.isTrue(updates == 1)
@@ -987,7 +993,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                measurementDao!!.updateDistance(measurementIdentifier, newDistance)
+                measurementRepository!!.updateDistance(measurementIdentifier, newDistance)
             }
         }
         Validate.isTrue(updates == 1)

@@ -253,7 +253,7 @@ object SharedTestUtils {
      * The later includes the [Point3DFile]s.
      */
     @JvmStatic
-    fun clearPersistenceLayer(
+    suspend fun clearPersistenceLayer(
         context: Context,
         persistence: PersistenceLayer<PersistenceBehaviour>
     ): Int {
@@ -265,7 +265,7 @@ object SharedTestUtils {
         val removedGeoLocations = persistence.locationDao!!.deleteAll()
         val removedPressures = persistence.pressureDao!!.deleteAll()
         val removedEvents = persistence.eventDao!!.deleteAll()
-        val removedMeasurements = persistence.measurementDao!!.deleteAll()
+        val removedMeasurements = persistence.measurementRepository!!.deleteAll()
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.

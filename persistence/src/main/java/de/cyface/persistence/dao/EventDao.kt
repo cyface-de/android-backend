@@ -49,13 +49,13 @@ interface EventDao {
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY timestamp ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<Event>
+    fun loadAllByMeasurementId(measurementId: Long): List<Event>?
 
     /**
      * Ordered by timestamp is required.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${EventTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>
+    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>?
 
     @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
