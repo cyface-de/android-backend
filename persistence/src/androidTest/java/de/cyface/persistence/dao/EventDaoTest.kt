@@ -23,7 +23,6 @@ import de.cyface.persistence.Database
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.Measurement
-import de.cyface.persistence.model.MeasurementStatus
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import org.junit.After
@@ -126,7 +125,8 @@ class EventDaoTest {
         createEvent(otherMeasurementId, EventType.LIFECYCLE_STOP)
 
         // Act
-        val events = eventDao.loadAllByMeasurementIdAndType(measurementId!!, EventType.LIFECYCLE_START)
+        val events =
+            eventDao.loadAllByMeasurementIdAndType(measurementId!!, EventType.LIFECYCLE_START)
 
         // Assert
         assertThat(events.size, equalTo(1))
@@ -186,7 +186,10 @@ class EventDaoTest {
      *
      * @return The created object.
      */
-    private fun createEvent(measurementId: Long, type: EventType = EventType.LIFECYCLE_START): Event {
+    private fun createEvent(
+        measurementId: Long,
+        type: EventType = EventType.LIFECYCLE_START
+    ): Event {
         val event = TestUtils.eventFixture(measurementId, type)
         event.id = eventDao.insert(event)
         return event

@@ -45,43 +45,22 @@ import java.io.File
  * @author Armin Schnabel
  * @version 1.0.0
  * @since 7.5.0
+ * @property context The [Context] required to locate the app's internal storage directory.
+ * @property fileDao The [FileDao] used to interact with files.
+ * **ATTENTION:** This should not be used by SDK implementing apps.
+ * @property identifierDao The repository to load the [Identifier] from.
+ * @property measurementDao The source to load the [Measurement] from.
+ * @property eventDao The source to load the [Event] from.
+ * @property locationDao The source to load the [GeoLocation] from.
+ * @property pressureDao The source to load the [Pressure] from.
  */
 interface PersistenceLayer<B : PersistenceBehaviour?> {
-    /**
-     * The [Context] required to locate the app's internal storage directory.
-     */
     val context: Context?
-
-    /**
-     * The [FileDao] used to interact with files.
-     *
-     * **ATTENTION:** This should not be used by SDK implementing apps.
-     */
     val fileDao: FileDao
-
-    /**
-     * The repository to load the [Identifier] from.
-     */
     val identifierDao: IdentifierDao?
-
-    /**
-     * The source to load the [Measurement] from.
-     */
     val measurementDao: MeasurementDao?
-
-    /**
-     * The source to load the [Event] from.
-     */
     val eventDao: EventDao?
-
-    /**
-     * The source to load the [GeoLocation] from.
-     */
     val locationDao: LocationDao?
-
-    /**
-     * The source to load the [Pressure] from.
-     */
     val pressureDao: PressureDao?
 
     /**

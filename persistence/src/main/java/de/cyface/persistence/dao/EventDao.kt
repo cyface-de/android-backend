@@ -27,7 +27,8 @@ import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
 
 /**
- * Data access object which provides the API to interact with the [PersistedGeoLocation] database table.
+ * Data access object which provides the API to interact with the
+ * [de.cyface.persistence.model.GeoLocation] database table.
  *
  * @author Armin Schnabel
  * @version 1.0.0

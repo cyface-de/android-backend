@@ -51,7 +51,6 @@ import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.synchronization.exception.SynchronisationException;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -121,14 +120,13 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
      *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
     public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
-            throws SetupException, CursorIsNullException {
+            throws SetupException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
                 sensorFrequency);
@@ -203,7 +201,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      *             Android context was available.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
@@ -211,7 +208,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     @Override
     @SuppressWarnings("unused") // This is called by the SDK implementing app to start a measurement
     public void start(@NonNull Modality modality, @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
+            throws DataCapturingException, MissingPermissionException {
 
         try {
             super.start(modality, finishedHandler);

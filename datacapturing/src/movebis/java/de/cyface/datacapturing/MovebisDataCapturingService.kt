@@ -46,7 +46,6 @@ import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE
 import de.cyface.synchronization.exception.SynchronisationException
-import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 
 /**
@@ -65,8 +64,31 @@ import de.cyface.utils.Validate
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.2
+ * @version 11.0.3
  * @since 2.0.0
+ * @constructor **ATTENTION:** This constructor is only for testing to be able to inject authority and
+ * account type. Use the other constructors instead.
+ * @property context The context (i.e. `Activity`) handling this service.
+ * @property authority The `ContentProvider` authority used to identify the content provider used by this
+ * `DataCapturingService`. You should use something world wide unique, like your domain, to
+ * avoid collisions between different apps using the Cyface SDK.
+ * @param accountType The type of the account to use to synchronize data.
+ * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+ * this service. This must be in the format "https://some.url/optional/resource".
+ * @property uiListener A listener for events which the UI might be interested in.
+ * @property locationUpdateRate The maximum rate of location updates to receive in milliseconds which are sent to the
+ * [UIListener]. This only determines the updates sent to the `UIListener`, not the amount
+ * of locations captured for [Measurement]s. Set this to `0L` if you would like to be
+ * notified as often as possible.
+ * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
+ * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
+ * @param capturingListener A [DataCapturingListener] that is notified of important events during data
+ * capturing.
+ * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+ * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+ * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
+ * @throws SetupException If initialization of this service facade fails or writing the components preferences
+ * fails.
  */
 // Used by SDK implementing apps (SR)
 class MovebisDataCapturingService internal constructor(
@@ -101,10 +123,10 @@ class MovebisDataCapturingService internal constructor(
      */
     private val locationListener: LocationListener = object : LocationListener {
         override fun onLocationChanged(location: Location) {
-            val uiListener: UIListener? = uiListener
-            uiListener?.onLocationUpdate(location)
+            uiListener.onLocationUpdate(location)
         }
 
+        @Deprecated("This callback will never be invoked on Android Q and above.")
         override fun onStatusChanged(provider: String, status: Int, extras: Bundle) {
             // Nothing to do here.
         }
@@ -136,7 +158,7 @@ class MovebisDataCapturingService internal constructor(
      * the amount of locations captured for [Measurement]s. Set this to `0L` if you would like to
      * be notified as often as possible.
      * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
-     * triggered by the [DataCapturingBackgroundService].
+     * triggered by the [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
      * @param capturingListener A [DataCapturingListener] that is notified of important events during data
      * capturing.
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
@@ -144,7 +166,6 @@ class MovebisDataCapturingService internal constructor(
      * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If initialization of this service facade fails or writing the components preferences
      * fails.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
     @Suppress("unused") // Used by SDK implementing apps (SR)
     constructor(
@@ -162,40 +183,8 @@ class MovebisDataCapturingService internal constructor(
         eventHandlingStrategy,
         capturingListener,
         sensorFrequency
-    ) {
-    }
+    )
 
-    /**
-     * Creates a new completely initialized [MovebisDataCapturingService].
-     * This variant is required to test the ContentProvider.
-     *
-     * **ATTENTION:** This constructor is only for testing to be able to inject authority and account type. Use
-     * []
-     * instead.
-     *
-     * @param context The context (i.e. `Activity`) handling this service.
-     * @param authority The `ContentProvider` authority used to identify the content provider used by this
-     * `DataCapturingService`. You should use something world wide unique, like your domain, to
-     * avoid collisions between different apps using the Cyface SDK.
-     * @param accountType The type of the account to use to synchronize data.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     * this service. This must be in the format "https://some.url/optional/resource".
-     * @param uiListener A listener for events which the UI might be interested in.
-     * @param locationUpdateRate The maximum rate of location updates to receive in milliseconds which are sent to the
-     * [UIListener]. This only determines the updates sent to the `UIListener`, not the amount
-     * of locations captured for [Measurement]s. Set this to `0L` if you would like to be
-     * notified as often as possible.
-     * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
-     * triggered by the [DataCapturingBackgroundService].
-     * @param capturingListener A [DataCapturingListener] that is notified of important events during data
-     * capturing.
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @throws SetupException If initialization of this service facade fails or writing the components preferences
-     * fails.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
-     */
     init {
         preMeasurementLocationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
@@ -223,7 +212,7 @@ class MovebisDataCapturingService internal constructor(
         }
         val coarseLocationAccessIsGranted = checkCoarseLocationAccess(getContext()!!)
         if (coarseLocationAccessIsGranted) {
-            if (!preMeasurementLocationManager!!.getAllProviders()
+            if (!preMeasurementLocationManager!!.allProviders
                     .contains(LocationManager.NETWORK_PROVIDER)
             ) {
                 Log.w(
@@ -260,7 +249,7 @@ class MovebisDataCapturingService internal constructor(
      * Adds a [JWT](https://jwt.io/) authentication token for a specific user to Android's account system.
      *
      * After the token has been added it starts periodic data synchronization if not yet active by calling
-     * [WiFiSurveyor.startSurveillance].
+     * [de.cyface.synchronization.WiFiSurveyor.startSurveillance].
      *
      * @param username The username of the user to add an auth token for.
      * @param token The auth token to add.
@@ -284,7 +273,7 @@ class MovebisDataCapturingService internal constructor(
     /**
      * Removes the [JWT](https://jwt.io/) auth token for a specific username from the system.
      *
-     * This method calls [WiFiSurveyor.stopSurveillance] before removing the account as the surveillance expects
+     * This method calls [de.cyface.synchronization.WiFiSurveyor.stopSurveillance] before removing the account as the surveillance expects
      * an account to be registered.
      *
      * If that username was not registered with [.registerJWTAuthToken] no account is removed.
@@ -292,7 +281,8 @@ class MovebisDataCapturingService internal constructor(
      * @param username The username of the user to remove the auth token for.
      * @throws SynchronisationException If no current Android Context is available
      */
-    @Throws(SynchronisationException::class)  // Because sdk implementing apps (SR) use this to inject a token
+    @Suppress("unused") // Because sdk implementing apps (SR) use this to inject a token
+    @Throws(SynchronisationException::class)
     fun deregisterJWTAuthToken(username: String) {
         wiFiSurveyor.stopSurveillance()
         wiFiSurveyor.deleteAccount(username)
@@ -344,15 +334,13 @@ class MovebisDataCapturingService internal constructor(
      * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      * Android context was available.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted. You may
      * register a [UIListener] to ask the user for this permission and prevent the
      * `Exception`. If the `Exception` was thrown the service does not start.
      */
     @Throws(
         DataCapturingException::class,
-        MissingPermissionException::class,
-        CursorIsNullException::class
+        MissingPermissionException::class
     )  // This is called by the SDK implementing app to start a measurement
     override fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
         try {

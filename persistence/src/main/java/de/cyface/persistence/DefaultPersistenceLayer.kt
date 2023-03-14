@@ -49,7 +49,6 @@ import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
@@ -68,6 +67,11 @@ import kotlin.math.abs
  * @author Armin Schnabel
  * @version 18.3.0
  * @since 2.0.0
+ * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
+ * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
+ * and or to load existing data.
+ *
+ * **ATTENTION:** This should not be used by SDK implementing apps.
  */
 class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
@@ -78,12 +82,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     private val authority: String?
 
-    /**
-     * The [PersistenceBehaviour] defines how the `Persistence` layer works. We need this behaviour to
-     * differentiate if the [DefaultPersistenceLayer] is used for live capturing and or to load existing data.
-     *
-     * **ATTENTION:** This should not be used by SDK implementing apps.
-     */
     var persistenceBehaviour: B? = null
         private set
 
@@ -234,7 +232,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param eventId The device wide unique identifier of the `Event` to load.
      * @return The loaded `Event` if it exists; `null` otherwise.
      */
-    @Throws(CursorIsNullException::class)  // Sdk implementing apps (CY)
+    // Sdk implementing apps (CY)
     fun loadEvent(eventId: Long): Event? {
         var event: Event?
         runBlocking {
@@ -256,7 +254,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return The loaded `MeasurementStatus`
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
-    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun loadMeasurementStatus(measurementIdentifier: Long): MeasurementStatus {
         return loadMeasurement(measurementIdentifier)!!.status
     }
@@ -269,7 +267,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return All the {code Measurement}s in the specified {@param state}. An empty list if there are no
      * such measurements, but never `null`.
      */
-    @Throws(CursorIsNullException::class)  // Implementing apps (SR) use this api to load the finished measurements
+    // Implementing apps (SR) use this api to load the finished measurements
     fun loadMeasurements(status: MeasurementStatus): List<Measurement?>? {
         var measurements: List<Measurement?>?
         runBlocking {
@@ -289,7 +287,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param measurementId The id of the [Measurement] to remove.
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
-    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun markFinishedAs(newStatus: MeasurementStatus, measurementId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
@@ -451,10 +449,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
      * [de.cyface.persistence.model.ParcelableGeoLocation]s
      * @return The average speed in meters per second.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
      */
     @Suppress("unused") // Part of the API
-    @Throws(CursorIsNullException::class)
     fun loadAverageSpeed(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy
@@ -489,11 +485,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param forceGnssAscend `true` if the ascend calculated based on GNSS data should be returned regardless if
      * barometer data is available.
      * @return The ascend in meters.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
      */
     @Suppress("unused") // Part of the API
     @JvmOverloads
-    @Throws(CursorIsNullException::class)
     fun loadAscend(measurementIdentifier: Long, forceGnssAscend: Boolean = false): Double? {
 
         // Check if locations with altitude values are available
@@ -646,11 +640,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @return The average speed in meters per second.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
      */
     @Suppress("unused") // Part of the API
-    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun loadDuration(measurementIdentifier: Long): Long {
 
         // Extract lifecycle events only
@@ -816,9 +809,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param measurementIdentifier The id of the `Measurement` to load the `Event`s for.
      * @return The `Cursor` pointing to the `Event`s of the `Measurement` with the provided
      * {@param measurementId}.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
      */
-    @Throws(CursorIsNullException::class)
     fun loadEvents(measurementIdentifier: Long): List<Event?> {
         var events: List<Event?>
         runBlocking {
@@ -838,7 +829,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @return All the {code Event}s of the `Measurement` with the provided {@param measurementId} of the
      * specified {@param eventType}. An empty list if there are no such Events, but never `null`.
      */
-    @Throws(CursorIsNullException::class)  // Implementing apps (CY) use this
+    // Implementing apps (CY) use this
     fun loadEvents(measurementId: Long, eventType: EventType): List<Event?>? {
         var events: List<Event?>?
         runBlocking {
@@ -912,10 +903,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * avoid this use [DefaultPersistenceLayer.hasMeasurement] to check whether there is
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      */
-    @Throws(
-        NoSuchMeasurementException::class,
-        CursorIsNullException::class
-    )  // Implementing apps use this to get the ongoing measurement info
+    @Throws(NoSuchMeasurementException::class)
+    // Implementing apps use this to get the ongoing measurement info
     fun loadCurrentlyCapturedMeasurement(): Measurement {
         return persistenceBehaviour!!.loadCurrentlyCapturedMeasurement()
     }
@@ -930,7 +919,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * avoid this use [DefaultPersistenceLayer.hasMeasurement] to check whether there is
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
      */
-    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun loadCurrentlyCapturedMeasurementFromPersistence(): Measurement? {
         Log.v(TAG, "Trying to load currently captured measurement from PersistenceLayer!")
         val openMeasurements = loadMeasurements(MeasurementStatus.OPEN)
@@ -955,7 +944,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @throws NoSuchMeasurementException if there was no `Measurement` with the id
      * {@param measurementIdentifier}.
      */
-    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun setStatus(
         measurementIdentifier: Long,
         newStatus: MeasurementStatus,

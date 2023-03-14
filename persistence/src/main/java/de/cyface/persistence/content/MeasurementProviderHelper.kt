@@ -44,14 +44,14 @@ internal class MeasurementProviderHelper(
     /**
      * Create/Open a database that can be used for reading.
      *
-     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.getReadableDatabase]
+     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.readableDatabase]
      */
     private var readableDatabase: SupportSQLiteDatabase
 
     /**
      * Create/Open a database that can be used for writing.
      *
-     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.getWritableDatabase]
+     * @see [androidx.sqlite.db.SupportSQLiteOpenHelper.writableDatabase]
      */
     private var writableDatabase: SupportSQLiteDatabase
 

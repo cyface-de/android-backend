@@ -24,7 +24,6 @@ import android.database.sqlite.SQLiteDatabase.CONFLICT_NONE
 import androidx.sqlite.db.SupportSQLiteDatabase
 import androidx.sqlite.db.SupportSQLiteQueryBuilder
 
-
 /**
  * Abstract base class for all Cyface measurement tables implementing common functionality.
  *
@@ -32,6 +31,7 @@ import androidx.sqlite.db.SupportSQLiteQueryBuilder
  * @author Armin Schnabel
  * @version 2.0.0
  * @since 1.0.0
+ * @property name The database table name.
  */
 abstract class AbstractCyfaceTable internal constructor(name: String) : CyfaceTable {
     /**

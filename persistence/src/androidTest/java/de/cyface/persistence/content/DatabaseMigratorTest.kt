@@ -1057,7 +1057,7 @@ class DatabaseMigratorTest {
         val file = context.getDatabasePath(v6DatabaseName)
         try {
             val db = context.openOrCreateDatabase(v6DatabaseName, MODE_PRIVATE, null)
-            db.version = 1
+            db.version = version
             return db
         } catch (e: RuntimeException) {
             throw java.lang.IllegalStateException("Unable to open database at ${file.path}")

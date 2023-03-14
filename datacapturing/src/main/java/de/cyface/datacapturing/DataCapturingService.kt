@@ -37,8 +37,6 @@ import android.preference.PreferenceManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
-import de.cyface.datacapturing.DataCapturingListener
-import de.cyface.datacapturing.DataCapturingService
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
@@ -62,7 +60,6 @@ import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.SyncService
 import de.cyface.synchronization.WiFiSurveyor
-import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
@@ -86,6 +83,25 @@ import java.util.concurrent.locks.ReentrantLock
  * @author Armin Schnabel
  * @version 18.0.7
  * @since 1.0.0
+ * @property context The context (i.e. `Activity`) handling this service.
+ * @property authority The `ContentProvider` authority required to request a sync operation in the
+ * [WiFiSurveyor]. You should use something world wide unique, like your domain, to avoid
+ * collisions between different apps using the Cyface SDK.
+ * @param accountType The type of the account to use to synchronize data with.
+ * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
+ * this service. This must be in the format "https://some.url/optional/resource".
+ * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
+ * triggered by the [DataCapturingBackgroundService].
+ * @property persistenceLayer The [de.cyface.persistence.PersistenceLayer] required to access the device id
+ * @property distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
+ * [Measurement.distance]
+ * @property locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
+ * [ParcelableGeoLocation]s
+ * @param capturingListener A [DataCapturingListener] that is notified of important events during data
+ * capturing.
+ * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
+ * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
+ * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
  */
 abstract class DataCapturingService(
     context: Context, authority: String,
@@ -203,7 +219,7 @@ abstract class DataCapturingService(
     private val eventHandlingStrategy: EventHandlingStrategy
 
     /**
-     * The strategy used to calculate the [Measurement.getDistance] from [ParcelableGeoLocation] pairs
+     * The strategy used to calculate the [Measurement.distance] from [ParcelableGeoLocation] pairs
      */
     private val distanceCalculationStrategy: DistanceCalculationStrategy
 
@@ -219,31 +235,6 @@ abstract class DataCapturingService(
      */
     private val sensorFrequency: Int
 
-    /**
-     * Creates a new completely initialized [DataCapturingService].
-     *
-     * @param context The context (i.e. `Activity`) handling this service.
-     * @param authority The `ContentProvider` authority required to request a sync operation in the
-     * [WiFiSurveyor]. You should use something world wide unique, like your domain, to avoid
-     * collisions between different apps using the Cyface SDK.
-     * @param accountType The type of the account to use to synchronize data with.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     * this service. This must be in the format "https://some.url/optional/resource".
-     * @param eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
-     * triggered by the [DataCapturingBackgroundService].
-     * @param persistenceLayer The [PersistenceLayer] required to access the device id
-     * @param distanceCalculationStrategy The [DistanceCalculationStrategy] used to calculate the
-     * [Measurement.getDistance]
-     * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
-     * [ParcelableGeoLocation]s
-     * @param capturingListener A [DataCapturingListener] that is notified of important events during data
-     * capturing.
-     * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
-     * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
-     * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @throws SetupException If writing the components preferences fails.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
-     */
     init {
         if (!dataUploadServerAddress.startsWith("https://") && !dataUploadServerAddress.startsWith("http://")) {
             throw SetupException("Invalid URL protocol")
@@ -286,7 +277,6 @@ abstract class DataCapturingService(
         }
         val connectivityManager = context
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
-            ?: throw SetupException("Android connectivity manager is not available!")
         wiFiSurveyor = WiFiSurveyor(context, connectivityManager, authority, accountType)
         fromServiceMessageHandler = FromServiceMessageHandler(context, this)
         // The listeners are automatically removed when the service is destroyed (e.g. app kill)
@@ -315,7 +305,6 @@ abstract class DataCapturingService(
      * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      * Android context was available.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted. You may
      * register a [UIListener] to ask the user for this permission and prevent the
      * `Exception`. If the `Exception` was thrown the service does not start.
@@ -325,7 +314,6 @@ abstract class DataCapturingService(
     @Throws(
         DataCapturingException::class,
         MissingPermissionException::class,
-        CursorIsNullException::class,
         CorruptedMeasurementException::class
     )
     open fun start(modality: Modality, finishedHandler: StartUpFinishedHandler) {
@@ -390,12 +378,9 @@ abstract class DataCapturingService(
      * [MeasurementStatus.PAUSED] while stopping the service. This usually occurs if
      * there was no call to [.start]
      * prior to stopping.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
-    @Throws(
-        NoSuchMeasurementException::class,
-        CursorIsNullException::class
-    )  // used by sdk implementing apps (e.g. SR)
+    @Throws(NoSuchMeasurementException::class)
+    // used by sdk implementing apps (e.g. SR)
     fun stop(finishedHandler: ShutDownFinishedHandler) {
         Log.d(Constants.TAG, "Stopping asynchronously!")
         if (getContext() == null) {
@@ -433,12 +418,9 @@ abstract class DataCapturingService(
      * paused.
      * @throws NoSuchMeasurementException If no [Measurement] was [MeasurementStatus.OPEN] or
      * [MeasurementStatus.PAUSED].
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
-    @Throws(
-        NoSuchMeasurementException::class,
-        CursorIsNullException::class
-    )  // used by sdk implementing apps (e.g. SR)
+    @Throws(NoSuchMeasurementException::class)
+    // used by sdk implementing apps (e.g. SR)
     fun pause(finishedHandler: ShutDownFinishedHandler) {
         Log.d(Constants.TAG, "Pausing asynchronously.")
         if (getContext() == null) {
@@ -483,14 +465,13 @@ abstract class DataCapturingService(
      * @throws NoSuchMeasurementException If no measurement was [MeasurementStatus.OPEN] while pausing the
      * service. This usually occurs if there was no call to
      * [.start] prior to pausing.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
     @Throws(
         DataCapturingException::class,
         MissingPermissionException::class,
-        NoSuchMeasurementException::class,
-        CursorIsNullException::class
-    )  // used by sdk implementing apps (e.g. SR)
+        NoSuchMeasurementException::class
+    )
+    // used by sdk implementing apps (e.g. SR)
     fun resume(finishedHandler: StartUpFinishedHandler) {
         val persistenceBehavior = persistenceLayer.persistenceBehaviour
         Log.d(Constants.TAG, "Resuming asynchronously.")
@@ -585,8 +566,6 @@ abstract class DataCapturingService(
                     )
                 } catch (e: NoSuchMeasurementException) {
                     throw IllegalStateException(e)
-                } catch (e: CursorIsNullException) {
-                    throw IllegalStateException(e)
                 }
             }
         })
@@ -641,8 +620,6 @@ abstract class DataCapturingService(
                         false
                     )
                 } catch (e: NoSuchMeasurementException) {
-                    throw IllegalStateException(e)
-                } catch (e: CursorIsNullException) {
                     throw IllegalStateException(e)
                 }
             }
@@ -929,12 +906,10 @@ abstract class DataCapturingService(
      * exception and, thus, did not finish the [Measurement]. To find out if this can happen, we
      * explicitly do not handle this case softly. If this case occurs we need to write a handling to clean
      * up such measurements.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
     @Throws(
         DataCapturingException::class,
-        MissingPermissionException::class,
-        CursorIsNullException::class
+        MissingPermissionException::class
     )
     private fun prepareStart(modality: Modality): Measurement {
         if (context.get() == null) {
@@ -958,16 +933,15 @@ abstract class DataCapturingService(
      * [DefaultPersistenceLayer].
      *
      * We offer this API through the [DataCapturingService] to allow the SDK implementor to load the
-     * currentlyCapturedMeasurement from the cache as the [DefaultPersistenceBehaviour] does not have a cache
-     * which is the only [PersistenceBehaviour] the implementor may use directly.
+     * currentlyCapturedMeasurement from the cache as the [de.cyface.persistence.DefaultPersistenceBehaviour]
+     * does not have a cache which is the only [de.cyface.persistence.PersistenceBehaviour] the implementor may use directly.
      *
      * @return the currently captured [Measurement]
      * @throws NoSuchMeasurementException If this method has been called while no `Measurement` was active. To
      * avoid this use [DefaultPersistenceLayer.hasMeasurement] to check whether there is
      * an actual [MeasurementStatus.OPEN] or [MeasurementStatus.PAUSED] measurement.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
-    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun loadCurrentlyCapturedMeasurement(): Measurement {
         return persistenceLayer.loadCurrentlyCapturedMeasurement()
     }
@@ -1121,7 +1095,7 @@ abstract class DataCapturingService(
      * Called when the user switches the [Modality] via UI.
      *
      * In order to record multi-`Modality` `Measurement`s this method records `Modality` switches as
-     * [Event]s when this occurs during an ongoing [Measurement]. Does nothing when no capturing
+     * [de.cyface.persistence.model.Event]s when this occurs during an ongoing [Measurement]. Does nothing when no capturing
      * [.isRunning].
      *
      * @param newModality the identifier of the new [Modality]
@@ -1141,13 +1115,12 @@ abstract class DataCapturingService(
 
             // Record modality-switch Event for ongoing Measurements
             Log.v(Constants.TAG, "changeModalityType(): Logging Modality type change!")
-            val measurement: Measurement
-            measurement = loadCurrentlyCapturedMeasurement()
+            val measurement: Measurement = loadCurrentlyCapturedMeasurement()
 
             // Ensure the newModality is actually different to the current Modality
             val modalityChanges =
                 persistenceLayer.loadEvents(measurement.id, EventType.MODALITY_TYPE_CHANGE)
-            if (modalityChanges!!.size > 0) {
+            if (modalityChanges!!.isNotEmpty()) {
                 val lastModalityChangeEvent = modalityChanges[modalityChanges.size - 1]
                 val lastChangeValue = lastModalityChangeEvent!!.value
                 Validate.notNull(lastChangeValue)
@@ -1163,8 +1136,6 @@ abstract class DataCapturingService(
                 EventType.MODALITY_TYPE_CHANGE, measurement, timestamp,
                 newModality.databaseIdentifier
             )
-        } catch (e: CursorIsNullException) {
-            throw IllegalStateException(e)
         } catch (e: NoSuchMeasurementException) {
             throw IllegalStateException(e)
         }
@@ -1176,9 +1147,8 @@ abstract class DataCapturingService(
      * @param measurementIdentifier the id of the measurement to update
      * @param status the current [MeasurementStatus] of the measurement
      * @throws NoSuchMeasurementException If the [Measurement] does not exist.
-     * @throws CursorIsNullException If [ContentProvider] was inaccessible.
      */
-    @Throws(CursorIsNullException::class, NoSuchMeasurementException::class)
+    @Throws(NoSuchMeasurementException::class)
     private fun markDeprecated(measurementIdentifier: Long, status: MeasurementStatus) {
         Log.d(
             Constants.TAG,
@@ -1214,10 +1184,12 @@ abstract class DataCapturingService(
      *
      * @author Klemens Muthmann
      * @author Armin Schnabel
-     * @version 2.0.1
+     * @version 2.0.2
      * @since 2.0.0
+     * @property context The Android context this handler is running under.
+     * @property dataCapturingService The service which calls this handler.
      */
-    private class FromServiceMessageHandler internal constructor(
+    private class FromServiceMessageHandler(
         /**
          * The Android context this handler is running under.
          */
@@ -1234,12 +1206,6 @@ abstract class DataCapturingService(
          */
         private val dataCapturingService: DataCapturingService
 
-        /**
-         * Creates a new completely initialized `FromServiceMessageHandler`.
-         *
-         * @param context The Android context this handler is running under.
-         * @param dataCapturingService The service which calls this handler.
-         */
         init {
             listener = HashSet()
             this.dataCapturingService = dataCapturingService
@@ -1247,8 +1213,7 @@ abstract class DataCapturingService(
 
         override fun handleMessage(msg: Message) {
             Log.v(Constants.TAG, String.format("Service facade received message: %d", msg.what))
-            val parcel: Bundle
-            parcel = msg.data
+            val parcel: Bundle = msg.data
             parcel.classLoader = javaClass.classLoader
             if (msg.what == MessageCodes.SERVICE_STOPPED || msg.what == MessageCodes.SERVICE_STOPPED_ITSELF) {
                 informShutdownFinishedHandler(msg.what, parcel)
