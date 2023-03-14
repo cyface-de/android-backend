@@ -19,6 +19,7 @@
 package de.cyface.persistence.serialization
 
 import android.database.Cursor
+import androidx.core.database.getDoubleOrNull
 import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.LocationTable
 import de.cyface.protos.model.LocationRecords
@@ -63,13 +64,14 @@ class LocationSerializer {
             val speedMeterPerSecond = cursor
                 .getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_SPEED))
             val accuracy =
-                cursor.getDouble(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY))
+                cursor.getDoubleOrNull(cursor.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY))
 
             // The proto serializer expects some fields in a different format and in offset-format
             val formatted = Formatter.Location(
                 timestamp, latitude, longitude,
                 speedMeterPerSecond,
-                accuracy
+                // TODO: When adding verticalAccuracy to protos, make accuracy nullable [STAD-481]
+                accuracy ?: 0.0
             )
             val offsets = offsetter.offset(formatted)
             builder.addTimestamp(offsets.timestamp)
