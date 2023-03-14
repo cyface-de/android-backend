@@ -46,7 +46,6 @@ interface LocationCleaningStrategy : Parcelable {
      * Implements the SQL-equivalent to load only the "cleaned" [GeoLocation]s with the same filters as
      * in the [.isClean] implementation.
      *
-     *
      * **Attention: The caller needs to wrap this method call with a try-finally block to ensure the returned
      * `Cursor` is always closed after use. The cursor cannot be closed within this implementation as it's
      * accessed by the caller.**

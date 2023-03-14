@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -28,14 +28,13 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * An implementation of the [LocationCleaningStrategy] which uses simple lightweight filters
  * which can be applied "live".
  *
- *
  * The goal is to ignore [ParcelableGeoLocation]s when standing still, to ignore very inaccurate locations and to
  * avoid
  * large distance "jumps", e.g. when the `LocationManager` implementation delivers an old, cached location at the
  * beginning of the track.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 4.1.0
  */
 class DefaultLocationCleaning : LocationCleaningStrategy {
@@ -52,6 +51,7 @@ class DefaultLocationCleaning : LocationCleaningStrategy {
      *
      * @param in A `Parcel` that is a serialized version of a `IgnoreEventsStrategy`.
      */
+    @Suppress("UNUSED_PARAMETER")
     private constructor(`in`: Parcel) {
         // Nothing to do here.
     }

@@ -21,6 +21,8 @@ package de.cyface.persistence.model
 /**
  * Status which defines whether a [Measurement] is still capturing data([.OPEN]), [.PAUSED],
  * [.FINISHED], [or ][.SKIPPED]
+ *
+ * @property databaseIdentifier The [String] which represents the enumeration value in the database.
  */
 enum class MeasurementStatus(val databaseIdentifier: String) {
     /**

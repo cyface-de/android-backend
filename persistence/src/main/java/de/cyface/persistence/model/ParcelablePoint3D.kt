@@ -32,17 +32,8 @@ import java.util.Objects
  * @since 1.0.0
  */
 open class ParcelablePoint3D : DataPoint, Point3D {
-    /**
-     * The x component of the data point.
-     */
     override val x: Float
-    /**
-     * The y component of the data point.
-     */
     override val y: Float
-    /**
-     * The z component of the data point.
-     */
     override val z: Float
 
     /**

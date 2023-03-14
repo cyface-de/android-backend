@@ -25,6 +25,7 @@ package de.cyface.persistence.model
  * @author Klemens Muthmann
  * @version 2.0.0
  * @since 1.0.0
+ * @property databaseIdentifier The [String] which represents the enumeration value in the database.
  */
 enum class Modality(val databaseIdentifier: String) {
     BICYCLE("BICYCLE"),

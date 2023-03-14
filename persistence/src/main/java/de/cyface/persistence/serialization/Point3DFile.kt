@@ -30,7 +30,7 @@ import java.io.File
  * The file format to persist [Point3D]s such as accelerations, rotations and directions.
  *
  * @author Armin Schnabel
- * @version 5.0.1
+ * @version 6.0.0
  * @since 3.0.0
  */
 class Point3DFile {
@@ -94,7 +94,7 @@ class Point3DFile {
      * @param dataPoints A valid object to create a data in Cyface binary format representation for.
      * @return The data in the Cyface binary format.
      */
-    fun serialize(dataPoints: List<Point3D?>?): ByteArray {
+    private fun serialize(dataPoints: List<Point3D?>?): ByteArray {
         return Point3DSerializer.serialize(dataPoints, type)
     }
 

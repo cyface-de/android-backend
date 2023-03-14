@@ -56,7 +56,6 @@ import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
 import java.io.File
 
-
 /**
  * This class (and the module test-utils) exist to be able to share test code between modules.
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.

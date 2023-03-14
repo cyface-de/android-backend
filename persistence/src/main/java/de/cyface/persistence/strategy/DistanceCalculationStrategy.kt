@@ -25,7 +25,6 @@ import de.cyface.persistence.model.ParcelableGeoLocation
  * Interface for strategies to respond to `DataCapturingBackgroundService#onLocationCaptured()` events
  * to calculate the [de.cyface.persistence.model.Measurement.distance] from [ParcelableGeoLocation] pairs.
  *
- *
  * Must be `Parcelable` to be passed from the `DataCapturingService` via `Intent`.
  *
  * @author Armin Schnabel

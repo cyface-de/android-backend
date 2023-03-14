@@ -34,44 +34,23 @@ import java.util.Locale
  * @author Armin Schnabel
  * @version 3.0.0
  * @since 1.0.0
+ * @property lat The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
+ * and 90.0 (north pole).
+ * @property lon The captured longitude of this data point in decimal coordinates as a value between -180.0 and 180.0.
+ * @property altitude The captured altitude of this data point in meters above WGS 84 if available.
+ * @property speed The current speed of the measuring device according to its location sensor in meters per second.
+ * @property accuracy The current accuracy of the measuring device in meters if available.
+ * @property verticalAccuracy The current vertical accuracy of the measuring device in meters if available.
+ * @property isValid `True` if this location is considered "clean" by the provided [de.cyface.persistence.strategy.LocationCleaningStrategy].
+ * This is not persisted, as the validity can be different depending on the strategy implementation.
  */
 open class ParcelableGeoLocation : DataPoint {
-    /**
-     * The captured latitude of this data point in decimal coordinates as a value between -90.0 (south pole)
-     * and 90.0 (north pole).
-     */
     open val lat: Double
-
-    /**
-     * The captured longitude of this data point in decimal coordinates as a value between -180.0 and 180.0.
-     */
     open val lon: Double
-
-    /**
-     * The captured altitude of this data point in meters above WGS 84 if available.
-     */
     open val altitude: Double?
-
-    /**
-     * The current speed of the measuring device according to its location sensor in meters per second.
-     */
     open val speed: Double
-
-    /**
-     * The current accuracy of the measuring device in meters if available.
-     */
     open val accuracy: Double?
-
-    /**
-     * The current vertical accuracy of the measuring device in meters if available.
-     */
     open val verticalAccuracy: Double?
-
-    /**
-     * `True` if this location is considered "clean" by the provided [de.cyface.persistence.strategy.LocationCleaningStrategy].
-     *
-     * This is not persisted, as the validity can be different depending on the strategy implementation.
-     */
     open var isValid: Boolean = true
 
     /**
