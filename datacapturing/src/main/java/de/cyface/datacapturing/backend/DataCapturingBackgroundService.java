@@ -78,7 +78,6 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.synchronization.BundlesExtrasCodes;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.PlaceholderNotificationBuilder;
 import de.cyface.utils.Validate;
 
@@ -155,7 +154,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     LocationCleaningStrategy locationCleaningStrategy;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link DefaultPersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a
+     * {@link DefaultPersistenceLayer}.
      */
     CapturingPersistenceBehaviour capturingBehaviour;
     /**
@@ -335,18 +335,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         this.currentMeasurementIdentifier = measurementIdentifier;
 
         // Load Distance (or else we would reset the distance when resuming a measurement)
-        try {
-            final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
-            lastDistance = measurement.getDistance();
+        final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
+        lastDistance = measurement.getDistance();
 
-            // Ensure we resume measurements with a known file format version
-            final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
-            Validate.isTrue(persistenceFileFormatVersion == PERSISTENCE_FILE_FORMAT_VERSION,
-                    "Resume a measurement of a previous persistence file format version is not supported!");
-        } catch (final CursorIsNullException e) {
-            // because onStartCommand is called by Android so we can't throw soft exception.
-            throw new IllegalStateException(e);
-        }
+        // Ensure we resume measurements with a known file format version
+        final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
+        Validate.isTrue(persistenceFileFormatVersion == PERSISTENCE_FILE_FORMAT_VERSION,
+                "Resume a measurement of a previous persistence file format version is not supported!");
 
         // Load sensor frequency
         final int sensorFrequency = intent.getIntExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, -1);
@@ -441,7 +436,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final var rotations = data.getRotations();
         final var directions = data.getDirections();
         final var pressures = data.getPressures();
-        final var iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
+        final var iterationSize = Math.max(accelerations.size(),
+                Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
         for (var i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
@@ -456,12 +452,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      *
-     * @param completeList The {@link List<  ParcelablePoint3D  >} to extract a subset from
+     * @param completeList The {@link List<ParcelablePoint3D>} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
     private @NonNull List<ParcelablePoint3D> sampleSubList(final @NonNull List<ParcelablePoint3D> completeList,
-                                                           final int fromIndex) {
+            final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
         return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
@@ -472,11 +468,12 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      * <p>
      * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPoint}.
      *
-     * @param completeList The {@link List< ParcelablePressure >} to extract a subset from
+     * @param completeList The {@link List<ParcelablePressure>} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
-    private @NonNull List<ParcelablePressure> pressureSubList(final @NonNull List<ParcelablePressure> completeList, final int fromIndex) {
+    private @NonNull List<ParcelablePressure> pressureSubList(final @NonNull List<ParcelablePressure> completeList,
+            final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
         return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
@@ -516,7 +513,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final double newDistance = lastDistance + distanceToAdd;
         try {
             capturingBehaviour.updateDistance(newDistance);
-        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+        } catch (final NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
         lastDistance = newDistance;

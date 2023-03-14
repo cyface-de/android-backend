@@ -25,7 +25,7 @@ import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyString;
 import static org.mockito.Mockito.doThrow;
@@ -300,7 +300,7 @@ public class SyncPerformerTest {
     }
 
     private RequestMetaData loadMetaData(Measurement measurement,
-            @SuppressWarnings("SameParameterValue") int locationCount) throws CursorIsNullException {
+            @SuppressWarnings("SameParameterValue") int locationCount) {
         // Load meta data
         final List<Track> tracks = persistence.loadTracks(measurement.getId());
         final var startLocation = tracks.get(0).getGeoLocations().get(0);

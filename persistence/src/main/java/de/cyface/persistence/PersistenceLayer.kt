@@ -36,7 +36,6 @@ import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
-import de.cyface.utils.CursorIsNullException
 import java.io.File
 
 /**
@@ -80,7 +79,6 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @param status The `MeasurementStatus` in question
      * @return `true` if a `Measurement` of the {@param status} exists.
      */
-    @Throws(CursorIsNullException::class)
     fun hasMeasurement(status: MeasurementStatus): Boolean
 
     /**
@@ -91,7 +89,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @return A list containing all `Measurement`s currently stored on this device by this application. An empty
      * list if there are no such measurements, but never `null`.
      */
-    @Throws(CursorIsNullException::class)  // Used by cyface flavour tests and possibly by implementing apps
+    // Used by cyface flavour tests and possibly by implementing apps
     fun loadMeasurements(): List<Measurement?>
 
     /**
@@ -104,7 +102,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @param measurementIdentifier The device wide unique identifier of the `Measurement` to load.
      * @return The loaded `Measurement` if it exists; `null` otherwise.
      */
-    @Throws(CursorIsNullException::class)  // Sdk implementing apps (SR) use this to load single measurements
+    // Sdk implementing apps (SR) use this to load single measurements
     fun loadMeasurement(measurementIdentifier: Long): Measurement?
 
     /**
@@ -118,7 +116,6 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      *
      * @return The device identifier
      */
-    @Throws(CursorIsNullException::class)
     fun restoreOrCreateDeviceId(): String
 
     /**
@@ -133,11 +130,9 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      *
      * @param measurementIdentifier The id of the `Measurement` to load the track for.
      * @return The [Track]s associated with the `Measurement`. If no [de.cyface.persistence.model.ParcelableGeoLocation]s exists, an
-     * empty
-     * list is returned.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
+     * empty list is returned.
      */
-    @Throws(CursorIsNullException::class)  // May be used by SDK implementing app
+    // May be used by SDK implementing app
     fun loadTracks(measurementIdentifier: Long): List<Track>
 
     /**
@@ -148,9 +143,8 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * [de.cyface.persistence.model.ParcelableGeoLocation]s
      * @return The [Track]s associated with the `Measurement`. If no `GeoLocation`s exists, an empty
      * list is returned.
-     * @throws CursorIsNullException when accessing the `ContentProvider` failed
      */
-    @Throws(CursorIsNullException::class)  // Used by SDK implementing apps (SR, CY)
+    // Used by SDK implementing apps (SR, CY)
     fun loadTracks(
         measurementIdentifier: Long,
         locationCleaningStrategy: LocationCleaningStrategy

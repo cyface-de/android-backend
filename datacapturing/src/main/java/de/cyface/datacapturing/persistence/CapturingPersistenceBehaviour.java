@@ -117,7 +117,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * @param measurementIdentifier The id of the {@link Measurement} to store the data to.
      */
     public void storeData(final @NonNull CapturedData data, final long measurementIdentifier,
-            final @NonNull WritingDataCompletedCallback callback) {
+                          final @NonNull WritingDataCompletedCallback callback) {
         if (threadPool.isShutdown()) {
             return;
         }
@@ -171,10 +171,9 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      *             use {@link DefaultPersistenceLayer#hasMeasurement(MeasurementStatus)} to check whether there is an
      *             actual
      *             {@link MeasurementStatus#OPEN} measurement.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void refreshIdentifierOfCurrentlyCapturedMeasurement()
-            throws NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException {
 
         final var measurement = persistenceLayer.loadCurrentlyCapturedMeasurementFromPersistence();
         currentMeasurementIdentifier = measurement.getId();
@@ -197,11 +196,10 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * @return The currently captured {@code Measurement}
      * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
      *             {@link MeasurementStatus#OPEN} or {@link MeasurementStatus#PAUSED} {@code Measurement}
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Override
     @NonNull
-    public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+    public Measurement loadCurrentlyCapturedMeasurement() throws NoSuchMeasurementException {
         synchronized (this) {
             if (currentMeasurementIdentifier == null && (persistenceLayer.hasMeasurement(MeasurementStatus.OPEN)
                     || persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED))) {
@@ -246,7 +244,7 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
                 Validate.isTrue(
                         persistenceLayer.loadMeasurementStatus(currentlyCapturedMeasurementId) == MeasurementStatus.OPEN
                                 || persistenceLayer.loadMeasurementStatus(
-                                        currentlyCapturedMeasurementId) == MeasurementStatus.PAUSED);
+                                currentlyCapturedMeasurementId) == MeasurementStatus.PAUSED);
                 break;
             default:
                 throw new IllegalArgumentException("No supported newState: " + newStatus);

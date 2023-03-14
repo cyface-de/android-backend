@@ -23,7 +23,7 @@ import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.robolectric.Shadows.shadowOf;
 
 import org.junit.Before;

@@ -20,7 +20,6 @@ package de.cyface.persistence
 
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
-import de.cyface.utils.CursorIsNullException
 
 /**
  * The [PersistenceBehaviour] defines how the [DefaultPersistenceLayer] works. Select a behaviour depending on
@@ -56,6 +55,6 @@ interface PersistenceBehaviour {
      * @throws NoSuchMeasurementException If neither the cache nor the persistence layer have an an
      * [de.cyface.persistence.model.MeasurementStatus.OPEN] or [de.cyface.persistence.model.MeasurementStatus.PAUSED] `Measurement`
      */
-    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun loadCurrentlyCapturedMeasurement(): Measurement
 }

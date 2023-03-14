@@ -74,7 +74,6 @@ import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.Point3DFile;
 import de.cyface.testutils.SharedTestUtils;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -135,7 +134,7 @@ public class UploadProgressTest {
     @Test
     // TODO [MOV-683]: See logcat - still uses an actual API
     @Ignore("This is currently still dependent on a real test api")
-    public void testUploadProgressHappyPath() throws CursorIsNullException, NoSuchMeasurementException {
+    public void testUploadProgressHappyPath() throws NoSuchMeasurementException {
 
         final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final SharedPreferences.Editor editor = preferences.edit();

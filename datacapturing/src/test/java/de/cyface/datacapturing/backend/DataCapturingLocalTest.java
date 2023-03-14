@@ -21,9 +21,9 @@ package de.cyface.datacapturing.backend;
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
 import static de.cyface.datacapturing.backend.DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -61,7 +61,6 @@ import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
-import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests the inner workings of the {@link DataCapturingBackgroundService} without any calls to the Android system. Uses
@@ -91,7 +90,7 @@ public class DataCapturingLocalTest {
      * Mocking the persistence layer to avoid calling Android system functions.
      */
     @Spy
-    PersistenceLayer mockPersistence;
+    PersistenceLayer<CapturingPersistenceBehaviour> mockPersistence;
     /**
      * Mocking the persistence behaviour to avoid calling Android system functions.
      */
@@ -120,11 +119,9 @@ public class DataCapturingLocalTest {
 
     /**
      * This test case checks the internal workings of the onLocationCaptured method.
-     *
-     * @throws CursorIsNullException when the content provider is not accessible
      */
     @Test
-    public void testOnLocationCapturedDistanceCalculation() throws CursorIsNullException, NoSuchMeasurementException {
+    public void testOnLocationCapturedDistanceCalculation() throws NoSuchMeasurementException {
 
         // Arrange
         final int expectedDistance = 2;
@@ -154,12 +151,10 @@ public class DataCapturingLocalTest {
      * where a cached location with a timestamp smaller than the start time of the background service is returned.
      *
      * Those "cached" locations are filtered by the background service (STAD-140).
-     *
-     * @throws CursorIsNullException when the content provider is not accessible
      */
     @Test
     public void testOnLocationCapturedDistanceCalculation_withCachedLocation()
-            throws CursorIsNullException, NoSuchMeasurementException {
+            throws NoSuchMeasurementException {
 
         // Arrange
         final int expectedDistance = 2;

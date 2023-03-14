@@ -26,7 +26,7 @@ import static de.cyface.datacapturing.TestUtils.TIMEOUT_TIME;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
@@ -40,7 +40,6 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.AccountAuthenticatorActivity;
-import android.content.ContentProvider;
 import android.content.Context;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -57,7 +56,6 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
-import de.cyface.utils.CursorIsNullException;
 
 /**
  * This test checks that the ping pong mechanism works as expected. This mechanism ist used to check if a service, in
@@ -123,11 +121,10 @@ public class PingPongTest {
      * @throws MissingPermissionException Should not happen, since there is a JUnit rule to prevent it.
      * @throws DataCapturingException If data capturing was not possible after starting the service.
      * @throws NoSuchMeasurementException If the service lost track of the measurement.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testWithRunningService() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         // Arrange
         // Instantiate DataCapturingService
@@ -139,7 +136,7 @@ public class PingPongTest {
                 dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
                         TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener,
                         100);
-            } catch (SetupException | CursorIsNullException e) {
+            } catch (SetupException e) {
                 throw new IllegalStateException(e);
             }
         });

@@ -20,7 +20,6 @@ package de.cyface.persistence
 
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
-import de.cyface.utils.CursorIsNullException
 
 /**
  * This [PersistenceBehaviour] is used when a [DefaultPersistenceLayer] is only used to access existing
@@ -44,10 +43,7 @@ class DefaultPersistenceBehaviour : PersistenceBehaviour {
         // nothing to do
     }
 
-    @Throws(
-        NoSuchMeasurementException::class,
-        CursorIsNullException::class
-    )
+    @Throws(NoSuchMeasurementException::class)
     override fun loadCurrentlyCapturedMeasurement(): Measurement {
 
         // The {@code DefaultPersistenceBehaviour} does not have a cache for this so load it from the persistence

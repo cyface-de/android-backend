@@ -26,10 +26,11 @@ import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.After;
 import org.junit.Before;
@@ -50,7 +51,6 @@ import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.Point3DFile;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -108,11 +108,10 @@ public class PersistenceLayerTest {
      * <code>loadFinishedMeasurements</code> method returns a list of size 1.
      *
      * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
-            throws NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException {
 
         oocut.newMeasurement(Modality.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
@@ -120,19 +119,18 @@ public class PersistenceLayerTest {
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(false)));
         oocut.newMeasurement(Modality.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
-        assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).size(), is(equalTo(1)));
+        assertThat(Objects.requireNonNull(oocut.loadMeasurements(FINISHED)).size(), is(equalTo(1)));
     }
 
     /**
      * Checks that calling {@link DefaultPersistenceLayer#loadMeasurements(MeasurementStatus)} on an empty database
      * returns an empty list.
      *
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testLoadFinishedMeasurements_noMeasurements() throws CursorIsNullException {
+    public void testLoadFinishedMeasurements_noMeasurements() {
 
-        assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), is(equalTo(true)));
+        assertThat(Objects.requireNonNull(oocut.loadMeasurements(FINISHED)).isEmpty(), is(equalTo(true)));
     }
 
     /**
@@ -143,10 +141,9 @@ public class PersistenceLayerTest {
      * then finish this measurement and then load it as FINISHED measurement as we usually do to synchronize them.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getId());
@@ -162,10 +159,9 @@ public class PersistenceLayerTest {
      * Test that marking a measurement as synced works as expected.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
@@ -192,10 +188,9 @@ public class PersistenceLayerTest {
      * Tests whether the sync adapter loads the correct measurements for synchronization.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testGetSyncableMeasurement() throws NoSuchMeasurementException {
 
         // Create a synchronized measurement
         insertSampleMeasurementWithData(context, SYNCED, oocut, 1, 1);
@@ -217,10 +212,9 @@ public class PersistenceLayerTest {
      * Test that updating the distance in the {@link DefaultPersistenceLayer} during capturing works as expected.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testUpdateDistanceDuringCapturing() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testUpdateDistanceDuringCapturing() throws NoSuchMeasurementException {
 
         // Arrange
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);

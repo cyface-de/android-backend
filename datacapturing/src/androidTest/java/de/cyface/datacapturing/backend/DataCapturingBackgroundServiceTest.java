@@ -29,7 +29,7 @@ import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -65,7 +65,6 @@ import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.strategy.DefaultDistanceCalculation;
 import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.synchronization.BundlesExtrasCodes;
-import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the {@link DataCapturingBackgroundService} handling the data capturing works correctly.
@@ -113,11 +112,9 @@ public class DataCapturingBackgroundServiceTest {
 
     /**
      * Sets up all the instances required by all tests in this test class.
-     *
-     * @throws CursorIsNullException Then the content provider is not accessible
      */
     @Before
-    public void setUp() throws CursorIsNullException {
+    public void setUp() {
         lock = new ReentrantLock();
         condition = lock.newCondition();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
@@ -188,6 +185,7 @@ public class DataCapturingBackgroundServiceTest {
      * @throws TimeoutException if timed out waiting for a successful connection with the service.
      */
     @Test
+    //@FlakyTest // Flaky in the Github CI (2023-03-14)
     public void testStartDataCapturingTwice() throws TimeoutException {
 
         // Arrange

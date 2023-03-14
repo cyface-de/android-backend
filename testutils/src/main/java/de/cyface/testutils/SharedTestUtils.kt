@@ -49,7 +49,6 @@ import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.protos.model.Measurement
 import de.cyface.protos.model.MeasurementBytes
 import de.cyface.serializer.model.Point3DType
-import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.CoreMatchers.equalTo
@@ -364,10 +363,9 @@ object SharedTestUtils {
      * @param point3DCount The number of point3Ds to insert (of each sensor type).
      * @param locationCount The number of location points to insert.
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @JvmStatic
-    @Throws(NoSuchMeasurementException::class, CursorIsNullException::class)
+    @Throws(NoSuchMeasurementException::class)
     fun insertSampleMeasurementWithData(
         context: Context,
         status: MeasurementStatus,
@@ -485,7 +483,6 @@ object SharedTestUtils {
      * @return The database identifier of the created [Measurement].
      */
     @JvmStatic
-    @Throws(CursorIsNullException::class)
     fun insertMeasurementEntry(
         persistence: DefaultPersistenceLayer<*>,
         modality: Modality

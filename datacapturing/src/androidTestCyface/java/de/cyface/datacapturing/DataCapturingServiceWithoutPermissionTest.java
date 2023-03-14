@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -22,7 +22,7 @@ import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -48,7 +48,6 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
-import de.cyface.utils.CursorIsNullException;
 
 /**
  * Checks if missing permissions are correctly detected before starting a service.
@@ -62,7 +61,7 @@ import de.cyface.utils.CursorIsNullException;
 @MediumTest
 @FlakyTest
 @Ignore("Ignore this test until Android is capable of resetting permissions for every test")
-public class DataCapturingServiceTestWithoutPermission {
+public class DataCapturingServiceWithoutPermissionTest {
 
     /**
      * An object of the class under test.
@@ -98,7 +97,7 @@ public class DataCapturingServiceTestWithoutPermission {
             try {
                 oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
                         dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
-            } catch (SetupException | CursorIsNullException e) {
+            } catch (SetupException e) {
                 throw new IllegalStateException(e);
             }
         });
@@ -116,7 +115,7 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Test(expected = MissingPermissionException.class)
     public void testServiceDoesNotStartWithoutPermission() throws MissingPermissionException, DataCapturingException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
         final TestStartUpFinishedHandler startUpFinishedHandler = new TestStartUpFinishedHandler(lock, condition,
                 MessageCodes.GLOBAL_BROADCAST_SERVICE_STARTED);
         oocut.start(Modality.UNKNOWN, startUpFinishedHandler);
@@ -128,7 +127,7 @@ public class DataCapturingServiceTestWithoutPermission {
      */
     @Test
     public void testUIListenerIsInformedOfMissingPermission()
-            throws CursorIsNullException, CorruptedMeasurementException {
+            throws CorruptedMeasurementException {
         TestUIListener uiListener = new TestUIListener();
         oocut.setUiListener(uiListener);
 
