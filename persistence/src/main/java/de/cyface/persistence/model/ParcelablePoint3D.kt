@@ -31,7 +31,7 @@ import java.util.Objects
  * @version 4.0.0
  * @since 1.0.0
  */
-open class ParcelablePoint3D : DataPoint, Point3D {
+class ParcelablePoint3D : DataPoint, Point3D {
     override val x: Float
     override val y: Float
     override val z: Float
@@ -45,6 +45,7 @@ open class ParcelablePoint3D : DataPoint, Point3D {
      * @param z The z component of the data point.
      */
     constructor(timestamp: Long, x: Float, y: Float, z: Float) : super(timestamp) {
+        require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         this.x = x
         this.y = y
         this.z = z
@@ -59,7 +60,7 @@ open class ParcelablePoint3D : DataPoint, Point3D {
      *
      * @param in A `Parcel` that is a serialized version of a data point.
      */
-    protected constructor(`in`: Parcel) : super(`in`) {
+    constructor(`in`: Parcel) : super(`in`) {
         x = `in`.readFloat()
         y = `in`.readFloat()
         z = `in`.readFloat()

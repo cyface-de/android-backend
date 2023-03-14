@@ -46,7 +46,7 @@ open class ParcelablePressure : DataPoint {
      * @param pressure The atmospheric pressure of this data point in hPa (millibar).
      */
     constructor(timestamp: Long, pressure: Double) : super(timestamp) {
-
+        require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         // Lowest/highest pressure on earth with a bounding box because of inaccuracy and weather. We only support
         // measuring between death see and mt. everest, no flying, diving and caves are supported.
         require(!(pressure < 250.0 || pressure > 1100.0)) {

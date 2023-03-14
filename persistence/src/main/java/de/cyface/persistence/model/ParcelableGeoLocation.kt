@@ -71,6 +71,7 @@ open class ParcelableGeoLocation : DataPoint {
         timestamp: Long, lat: Double, lon: Double, altitude: Double?,
         speed: Double, accuracy: Double?, verticalAccuracy: Double?
     ) : super(timestamp) {
+        require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         require(!(lat < -90.0 || lat > 90.0)) {
             String.format(
                 Locale.US,

@@ -87,4 +87,8 @@ data class Pressure(
     override fun hashCode(): Int {
         return id.hashCode()
     }
+
+    init {
+        require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
+    }
 }

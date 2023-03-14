@@ -32,10 +32,6 @@ import java.util.Objects
  * @property timestamp The Unix timestamp at which this [DataPoint] was measured in milliseconds.
  */
 abstract class DataPoint(open val timestamp: Long) : Parcelable {
-    init {
-        require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
-    }
-
     /*
      * MARK: Code for Parcelable interface.
      */
