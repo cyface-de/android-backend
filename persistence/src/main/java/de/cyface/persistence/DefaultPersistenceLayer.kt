@@ -781,7 +781,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
 
         // Collect tail sub track
-        // This is ether the track between start[, pause] and stop or resume[, pause] and stop.
+        // This is either the track between start[, pause] and stop or resume[, pause] and stop.
         val track = Track(mutableLocations, mutablePressures)
         Validate.isTrue(track.geoLocations.isNotEmpty())
         tracks.add(track)

@@ -34,15 +34,11 @@ import de.cyface.persistence.Database
  * @author Armin Schnabel
  * @version 5.0.0
  * @since 1.0.0
+ * @param context The Android context to use to access the Android System via.
+ * @param database The database to use for data access.
  */
 internal class MeasurementProviderHelper(
-    /**
-     * The Android context to use to access the Android System via.
-     */
     context: Context,
-    /**
-     * The database to use for data access.
-     */
     database: Database
 ) {
     /**

@@ -18,8 +18,6 @@
  */
 package de.cyface.persistence.exception
 
-import java.lang.Exception
-
 /**
  * An `Exception` which occurs every time someone wants to load the device id from the
  * [de.cyface.persistence.DefaultPersistenceLayer] when there is no such entry in the database.
@@ -27,12 +25,6 @@ import java.lang.Exception
  * @author Armin Schnabel
  * @version 1.0.1
  * @since 4.0.0
+ * @property message The explanation of why this error occurred.
  */
-class NoDeviceIdException
-/**
- * Creates a new completely initialized [NoDeviceIdException], providing a detailed explanation
- * about the error to the caller.
- *
- * @param message The explanation of why this error occurred.
- */
-    (message: String) : Exception(message)
+class NoDeviceIdException(message: String) : Exception(message)

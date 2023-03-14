@@ -195,7 +195,7 @@ public class HttpConnection implements Http {
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
             NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode, AccountNotActivated {
 
-        // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
+        // For performance reasons (documentation) set either fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
         connection.setChunkedStreamingMode(0);
         final BufferedOutputStream outputStream = initOutputStream(connection);
@@ -556,7 +556,7 @@ public class HttpConnection implements Http {
     }
 
     /**
-     * Reads the body from the {@link HttpURLConnection}. This contains ether the error or the success message.
+     * Reads the body from the {@link HttpURLConnection}. This contains either the error or the success message.
      *
      * @param connection the {@link HttpURLConnection} to read the response from
      * @return the {@link HttpResponse} body
@@ -586,7 +586,7 @@ public class HttpConnection implements Http {
     /**
      * Reads the body from the {@code com.google.api.client.http.HttpResponse}.
      * <p>
-     * This contains ether the error or the success message.
+     * This contains either the error or the success message.
      *
      * @param response the {@code HttpResponse} to read the body from
      * @param jsonFactory the {@code Factory} to be used to parse the response if it's JSON

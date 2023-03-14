@@ -714,7 +714,7 @@ Each time a measurement is paused and resumed, a new `Track` is started for the 
 
 A `Track` contains the chronologically ordered ``ParcelableGeoLocation``s captured.
 
-You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaning` class for details.
+You can either load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaning` class for details.
 
 [source,java]
 ----
@@ -868,7 +868,7 @@ The `PersistenceLayer` serves as the https://developer.android.com/topic/archite
 
 The sub-package `model` contains the data types persisted.
 
-The following data types are persisted in a SQLite database using the https://developer.android.com/jetpack/androidx/releases/room[Room API].
+The following data types are persisted in an SQLite database using the https://developer.android.com/jetpack/androidx/releases/room[Room API].
 
 - Identifier: The device identifier
 - Measurement: The data collected between capturing `start` and `stop`
