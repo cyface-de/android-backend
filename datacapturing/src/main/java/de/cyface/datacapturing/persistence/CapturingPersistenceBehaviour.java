@@ -46,7 +46,6 @@ import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.persistence.model.Pressure;
 import de.cyface.persistence.serialization.Point3DFile;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -223,10 +222,9 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      * @throws IllegalArgumentException When the {@param newStatus} was none of the supported:
      *             {@link MeasurementStatus#FINISHED}, {@link MeasurementStatus#PAUSED} or
      *             {@link MeasurementStatus#OPEN}.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     public void updateRecentMeasurement(@NonNull final MeasurementStatus newStatus)
-            throws NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException {
         Validate.isTrue(
                 newStatus == FINISHED || newStatus == MeasurementStatus.PAUSED || newStatus == MeasurementStatus.OPEN);
 
@@ -267,9 +265,8 @@ public class CapturingPersistenceBehaviour implements PersistenceBehaviour {
      *
      * @param newDistance The new distance value to be stored.
      * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
-    public void updateDistance(final double newDistance) throws NoSuchMeasurementException, CursorIsNullException {
+    public void updateDistance(final double newDistance) throws NoSuchMeasurementException {
         Validate.isTrue(newDistance >= 0.0);
 
         final long currentlyCapturedMeasurementId = loadCurrentlyCapturedMeasurement().getId();
