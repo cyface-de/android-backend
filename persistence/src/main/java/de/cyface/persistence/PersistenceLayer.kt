@@ -19,7 +19,6 @@
 package de.cyface.persistence
 
 import android.content.Context
-import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
@@ -33,6 +32,7 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
+import de.cyface.persistence.repository.EventRepository
 import de.cyface.persistence.repository.MeasurementRepository
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
@@ -47,18 +47,18 @@ import java.io.File
  * @property context The [Context] required to locate the app's internal storage directory.
  * @property fileDao The [FileDao] used to interact with files.
  * **ATTENTION:** This should not be used by SDK implementing apps.
- * @property identifierDao The repository to load the [Identifier] from.
- * @property measurementRepository The source to load the [Measurement] from.
- * @property eventDao The source to load the [Event] from.
- * @property locationDao The source to load the [GeoLocation] from.
- * @property pressureDao The source to load the [Pressure] from.
+ * @property identifierDao The repository to load the [Identifier] data from.
+ * @property measurementRepository The source to load the [Measurement] data from.
+ * @property eventRepository The source to load the [Event] data from.
+ * @property locationDao The source to load the [GeoLocation] data from.
+ * @property pressureDao The source to load the [Pressure] data from.
  */
 interface PersistenceLayer<B : PersistenceBehaviour?> {
     val context: Context?
     val fileDao: FileDao
     val identifierDao: IdentifierDao?
     val measurementRepository: MeasurementRepository?
-    val eventDao: EventDao?
+    val eventRepository: EventRepository?
     val locationDao: LocationDao?
     val pressureDao: PressureDao?
 

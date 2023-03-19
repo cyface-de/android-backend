@@ -26,11 +26,9 @@ import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
-import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.dao.PressureDao
 import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -45,6 +43,7 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
+import de.cyface.persistence.repository.EventRepository
 import de.cyface.persistence.repository.MeasurementRepository
 import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
@@ -91,9 +90,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     override val identifierDao: IdentifierDao?
 
     override val measurementRepository: MeasurementRepository?
-    val measurementDao: MeasurementDao?
 
-    override val eventDao: EventDao?
+    override val eventRepository: EventRepository?
 
     override val locationDao: LocationDao?
 
@@ -121,9 +119,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         context = null
         authority = null
         identifierDao = null
-        measurementDao = null
         measurementRepository = null
-        eventDao = null
+        eventRepository = null
         locationDao = null
         pressureDao = null
         fileDao = DefaultFileDao()
@@ -141,9 +138,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         val database = Database.build(context.applicationContext)
         this.authority = authority
         this.identifierDao = database.identifierDao()
-        this.measurementDao = database.measurementDao()
         this.measurementRepository = MeasurementRepository(database.measurementDao())
-        this.eventDao = database.eventDao()
+        this.eventRepository = EventRepository(database.eventDao())
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
         this.persistenceBehaviour = persistenceBehaviour
@@ -243,7 +239,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var event: Event?
         runBlocking {
             event = withContext(scope.coroutineContext) {
-                eventDao!!.loadById(eventId)
+                eventRepository!!.loadById(eventId)
             }
         }
         return event
@@ -400,7 +396,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun deleteEvent(eventId: Long) {
         runBlocking {
             withContext(scope.coroutineContext) {
-                eventDao!!.deleteItemById(eventId)
+                eventRepository!!.deleteItemById(eventId)
             }
         }
     }
@@ -703,7 +699,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var pressures: List<Pressure>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementId(measurementIdentifier)!!
+                eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
             }
 
             // Load GeoLocation and Pressure
@@ -820,7 +816,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event?>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementId(measurementIdentifier)!!
+                eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
             }
         }
         return events
@@ -840,7 +836,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event>?
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementIdAndType(measurementId, eventType)
+                eventRepository!!.loadAllByMeasurementIdAndType(measurementId, eventType)
             }
         }
         return events
@@ -1026,7 +1022,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var id: Long?
         runBlocking {
             id = withContext(scope.coroutineContext) {
-                eventDao!!.insert(Event(timestamp, eventType, value, measurement.id))
+                eventRepository!!.insert(Event(timestamp, eventType, value, measurement.id))
             }
         }
         return id!!

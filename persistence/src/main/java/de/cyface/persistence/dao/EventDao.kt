@@ -25,6 +25,7 @@ import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Data access object which provides the API to interact with the
@@ -37,7 +38,7 @@ import de.cyface.persistence.model.EventType
 @Dao
 interface EventDao {
     @Insert
-    fun insert(event: Event) : Long
+    fun insert(event: Event): Long
 
     @Query("SELECT * FROM ${EventTable.URI_PATH}")
     fun getAll(): List<Event>
@@ -52,6 +53,14 @@ interface EventDao {
     fun loadAllByMeasurementId(measurementId: Long): List<Event>?
 
     /**
+     * Loads and observes all [Event]s of a specified measurement.
+     *
+     * As this returns a `Flow`, queries are automatically run asynchronously on a background thread.
+     */
+    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
+    fun observeAllByMeasurementId(measurementId: Long): Flow<List<Event>?>
+
+    /**
      * Ordered by timestamp is required.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${EventTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
@@ -64,5 +73,5 @@ interface EventDao {
     fun deleteItemById(id: Long): Int
 
     @Query("DELETE FROM ${EventTable.URI_PATH}")
-    fun deleteAll() : Int
+    fun deleteAll(): Int
 }
