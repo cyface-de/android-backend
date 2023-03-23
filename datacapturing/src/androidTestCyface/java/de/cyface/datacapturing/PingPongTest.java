@@ -133,7 +133,7 @@ public class PingPongTest {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
+                dcs = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY,
                         TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener,
                         100);
             } catch (SetupException e) {

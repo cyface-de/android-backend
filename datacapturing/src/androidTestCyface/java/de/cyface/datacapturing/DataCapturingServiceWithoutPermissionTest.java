@@ -95,7 +95,7 @@ public class DataCapturingServiceWithoutPermissionTest {
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
+                oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE,
                         dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
             } catch (SetupException e) {
                 throw new IllegalStateException(e);

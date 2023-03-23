@@ -264,7 +264,7 @@ object SharedTestUtils {
         // Remove database entries
         val removedGeoLocations = persistence.locationDao!!.deleteAll()
         val removedPressures = persistence.pressureDao!!.deleteAll()
-        val removedEvents = persistence.eventDao!!.deleteAll()
+        val removedEvents = persistence.eventRepository!!.deleteAll()
         val removedMeasurements = persistence.measurementRepository!!.deleteAll()
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the

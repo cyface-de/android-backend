@@ -584,7 +584,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param slidingWindowSize The window size to use to average the pressure values.
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
-    private fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
+    protected fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
         val allAltitudes = ArrayList<List<Double>>()
         for (track in tracks) {
 
@@ -619,7 +619,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param tracks The tracks to calculate the altitudes for.
      * @return The altitudes in meters as list of lists, each representing a sub-track.
      */
-    private fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
+    protected fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
         val allAltitudes = ArrayList<List<Double>>()
         for (track in tracks) {
             val altitudes = ArrayList<Double>()
@@ -645,7 +645,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param altitudes The list of altitudes to calculate the ascend for.
      * @return The ascend in meters.
      */
-    private fun totalAscend(altitudes: List<List<Double>>): Double? {
+    protected fun totalAscend(altitudes: List<List<Double>>): Double? {
         var totalAscend: Double? = null
         for (trackAltitudes in altitudes) {
             // Tracks without much altitude should return 0 not null

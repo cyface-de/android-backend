@@ -127,8 +127,10 @@ public class PersistenceLayerTest {
         track2.addPressure(new Pressure(3L, pressure(-1., p0), 1L));
 
         // Act
-        final Double ascend = oocut.ascend(Collections.singletonList(track), 1);
-        final Double ascend2 = oocut.ascend(Collections.singletonList(track2), 1);
+        final var altitudes = oocut.altitudesFromPressures(Collections.singletonList(track), 1);
+        final var altitudes2 = oocut.altitudesFromPressures(Collections.singletonList(track2), 1);
+        final Double ascend = oocut.totalAscend(altitudes);
+        final Double ascend2 = oocut.totalAscend(altitudes2);
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.02)));
@@ -159,8 +161,10 @@ public class PersistenceLayerTest {
         track2.addLocation(new GeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
 
         // Act
-        final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(track));
-        final Double ascend2 = oocut.ascendFromGNSS(Collections.singletonList(track2));
+        final var altitudes = oocut.altitudesFromGNSS(Collections.singletonList(track));
+        final var altitudes2 = oocut.altitudesFromGNSS(Collections.singletonList(track2));
+        final Double ascend = oocut.totalAscend(altitudes);
+        final Double ascend2 = oocut.totalAscend(altitudes2);
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.01)));
