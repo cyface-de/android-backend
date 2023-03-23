@@ -53,8 +53,8 @@ class MeasurementRepository(private val dao: MeasurementDao) {
      * Observes all entries.
      */
     @WorkerThread
-    fun observeAll(): Flow<List<Measurement>> {
-        return dao.observeAll()
+    fun observeAllCompleted(): Flow<List<Measurement>> {
+        return dao.observeAllCompleted()
     }
 
     @Suppress("RedundantSuspendModifier")

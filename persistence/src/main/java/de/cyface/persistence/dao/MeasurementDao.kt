@@ -44,8 +44,12 @@ interface MeasurementDao {
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH}")
     fun getAll(): List<Measurement>
 
-    @Query("SELECT * FROM ${MeasurementTable.URI_PATH}")
-    fun observeAll(): Flow<List<Measurement>>
+    /**
+     * Loads and observes all measurements which are not in the [MeasurementStatus.OPEN] or
+     * [MeasurementStatus.PAUSED] state starting with the newest measurement.
+     */
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
+    fun observeAllCompleted(): Flow<List<Measurement>>
 
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     fun loadById(id: Long): Measurement?

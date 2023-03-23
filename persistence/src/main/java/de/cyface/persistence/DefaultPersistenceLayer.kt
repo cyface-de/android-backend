@@ -58,6 +58,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * This class wraps the Cyface Android persistence API as required by the `DataCapturingListener` and its delegate
@@ -473,6 +474,33 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             speedCounter += counter
         }
         return if (speedCounter > 0) speedSum / speedCounter.toDouble() else 0.0
+    }
+
+    /**
+     * Returns the maximum speed of the measurement with the provided measurement identifier.
+     *
+     * Loads the [Track]s from the database to calculate the metric on the fly [STAD-384].
+     *
+     * @param measurementIdentifier The id of the `Measurement` to load the track for.
+     * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
+     * [de.cyface.persistence.model.ParcelableGeoLocation]s
+     * @return The maximum speed in meters per second.
+     */
+    @Suppress("unused") // Part of the API
+    fun loadMaxSpeed(
+        measurementIdentifier: Long,
+        locationCleaningStrategy: LocationCleaningStrategy
+    ): Double {
+        var maxSpeed = 0.0
+        val tracks = loadTracks(measurementIdentifier)
+        for (track in tracks) {
+            for (location in track.geoLocations) {
+                if (locationCleaningStrategy.isClean(location)) {
+                    maxSpeed = max(location!!.speed, maxSpeed)
+                }
+            }
+        }
+        return maxSpeed
     }
 
     /**
