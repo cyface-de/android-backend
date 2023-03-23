@@ -204,8 +204,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return hasMeasurement
     }
 
-    override fun loadMeasurements(): List<Measurement?> {
-        var measurements: List<Measurement?>
+    override fun loadMeasurements(): List<Measurement> {
+        var measurements: List<Measurement>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
                 measurementRepository!!.getAll()
@@ -531,23 +531,61 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 }
             }
             return if (hasPressures && !forceGnssAscend) {
-                ascendFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE)
+                val altitudes = altitudesFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE)
+                totalAscend(altitudes)
             } else {
-                ascendFromGNSS(tracks)
+                val altitudes = altitudesFromGNSS(tracks)
+                totalAscend(altitudes)
             }
         }
         return null
     }
 
     /**
-     * Calculate based on atmospheric pressure.
+     * Returns the altitudes for each sub-track of a specified measurement.
      *
-     * @param tracks The track to calculate the ascend for.
-     * @param slidingWindowSize The window size to use to average the pressure values.
-     * @return The ascend in meters.
+     * To calculate the altitudes, the [ParcelablePressure] values are loaded from the database if such values are
+     * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
+     * returned.
+     *
+     * @param measurementIdentifier The id of the `Measurement` to load the track for.
+     * @param forceGnssAltitudes `true` if the altitudes calculated based on GNSS data should be returned regardless if
+     * barometer data is available.
+     * @return A list of lists, each representing the altitudes of a sub-track in meters.
      */
-    fun ascendFromPressures(tracks: List<Track>, slidingWindowSize: Int): Double? {
-        var totalAscend: Double? = null
+    @Suppress("unused") // Part of the API
+    @JvmOverloads
+    fun loadAltitudes(measurementIdentifier: Long, forceGnssAltitudes: Boolean = false): List<List<Double>>? {
+
+        // Check if locations with altitude values are available
+        val tracks = loadTracks(measurementIdentifier)
+        if (tracks.isNotEmpty()) {
+            var hasPressures = false
+            for (track in tracks) {
+                if (track.pressures.isNotEmpty()) {
+                    hasPressures = true
+                    break
+                }
+            }
+            return if (hasPressures && !forceGnssAltitudes) {
+                altitudesFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE)
+            } else {
+                altitudesFromGNSS(tracks)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Calculate the altitudes based on atmospheric pressure.
+     *
+     * @param tracks The tracks to calculate the altitudes for.
+     * @param slidingWindowSize The window size to use to average the pressure values.
+     * @return The altitudes in meters as list of lists, each representing a sub-track.
+     */
+    private fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
+        val allAltitudes = ArrayList<List<Double>>()
         for (track in tracks) {
 
             // Calculate average pressure because some devices measure large pressure differences when
@@ -558,7 +596,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 pressures.add(pressure!!.pressure)
             }
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
-            val altitudes: MutableList<Double> = ArrayList()
+            val altitudes = ArrayList<Double>()
             for (pressure in averagePressures) {
                 // As we're only interested in ascend and elevation profile, using a static reference pressure is
                 // sufficient [STAD-385] [STAD-391]
@@ -568,24 +606,50 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 ).toDouble()
                 altitudes.add(altitude)
             }
-
-            // Tracks without much altitude should return 0 not null
-            var ascend = if (altitudes.isEmpty()) null else 0.0
-            var lastAltitude: Double? = null
-            for (altitude in altitudes) {
-                if (lastAltitude == null) {
-                    lastAltitude = altitude
-                    continue
-                }
-                val newAscend = altitude - lastAltitude
-                if (abs(newAscend) < ASCEND_THRESHOLD_METERS) {
-                    continue
-                }
-                if (newAscend > 0) {
-                    ascend = ascend!! + newAscend
-                }
-                lastAltitude = altitude
+            if (altitudes.isNotEmpty()) {
+                allAltitudes.add(altitudes)
             }
+        }
+        return allAltitudes
+    }
+
+    /**
+     * Calculate the altitudes based on GNSS.altitude.
+     *
+     * @param tracks The tracks to calculate the altitudes for.
+     * @return The altitudes in meters as list of lists, each representing a sub-track.
+     */
+    private fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
+        val allAltitudes = ArrayList<List<Double>>()
+        for (track in tracks) {
+            val altitudes = ArrayList<Double>()
+            for (location in track.geoLocations) {
+                val altitude = location!!.altitude
+                val verticalAccuracy = location.verticalAccuracy
+                if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
+                    if (altitude != null) {
+                        altitudes.add(altitude)
+                    }
+                }
+            }
+            if (altitudes.isNotEmpty()) {
+                allAltitudes.add(altitudes)
+            }
+        }
+        return allAltitudes
+    }
+
+    /**
+     * Calculate total ascend for a list of sub-tracks.
+     *
+     * @param altitudes The list of altitudes to calculate the ascend for.
+     * @return The ascend in meters.
+     */
+    private fun totalAscend(altitudes: List<List<Double>>): Double? {
+        var totalAscend: Double? = null
+        for (trackAltitudes in altitudes) {
+            // Tracks without much altitude should return 0 not null
+            val ascend = if (trackAltitudes.isEmpty()) null else ascend(trackAltitudes)
             if (ascend != null) {
                 totalAscend = if (totalAscend != null) totalAscend + ascend else ascend
             }
@@ -594,46 +658,30 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Calculate based on GNSS.altitude.
+     * Calculate ascend from an ordered list of valid altitudes, from one sub-track.
      *
-     * @param tracks The track to calculate the ascend for.
+     * @param altitudes The altitudes to calculate the ascend for.
      * @return The ascend in meters.
      */
-    fun ascendFromGNSS(tracks: List<Track>): Double? {
-        var totalAscend: Double? = null
-        for (track in tracks) {
-            var ascend: Double? = null
-            var lastAltitude: Double? = null
-            for (location in track.geoLocations) {
-                val altitude = location!!.altitude
-                if (ascend == null && altitude != null) {
-                    // Tracks without much altitude should return 0 not null
-                    ascend = 0.0
-                }
-                val verticalAccuracy = location.verticalAccuracy
-                if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
-                    if (altitude == null) {
-                        continue
-                    }
-                    if (lastAltitude == null) {
-                        lastAltitude = altitude
-                        continue
-                    }
-                    if (abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
-                        continue
-                    }
-                    val newAscend = altitude - lastAltitude
-                    if (newAscend > 0) {
-                        ascend = ascend!! + newAscend
-                    }
-                    lastAltitude = altitude
-                }
+    private fun ascend(altitudes: List<Double>): Double {
+        var ascend = 0.0
+        var lastAltitude: Double? = null
+
+        for (altitude in altitudes) {
+            if (lastAltitude == null) {
+                lastAltitude = altitude
+                continue
             }
-            if (ascend != null) {
-                totalAscend = if (totalAscend != null) totalAscend + ascend else ascend
+            val newAscend = altitude - lastAltitude
+            if (abs(newAscend) < ASCEND_THRESHOLD_METERS) {
+                continue
             }
+            if (newAscend > 0) {
+                ascend += newAscend
+            }
+            lastAltitude = altitude
         }
-        return totalAscend
+        return ascend
     }
 
     /**

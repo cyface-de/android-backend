@@ -90,7 +90,7 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * list if there are no such measurements, but never `null`.
      */
     // Used by cyface flavour tests and possibly by implementing apps
-    fun loadMeasurements(): List<Measurement?>
+    fun loadMeasurements(): List<Measurement>
 
     /**
      * Provide one specific [Measurement] from the data storage if it exists.

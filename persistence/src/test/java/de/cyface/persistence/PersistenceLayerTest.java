@@ -127,8 +127,8 @@ public class PersistenceLayerTest {
         track2.addPressure(new Pressure(3L, pressure(-1., p0), 1L));
 
         // Act
-        final Double ascend = oocut.ascendFromPressures(Collections.singletonList(track), 1);
-        final Double ascend2 = oocut.ascendFromPressures(Collections.singletonList(track2), 1);
+        final Double ascend = oocut.ascend(Collections.singletonList(track), 1);
+        final Double ascend2 = oocut.ascend(Collections.singletonList(track2), 1);
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.02)));
