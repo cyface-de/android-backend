@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -29,7 +29,7 @@ import static de.cyface.synchronization.BundlesExtrasCodes.SENSOR_FREQUENCY;
 import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.TimeoutException;
@@ -59,20 +59,19 @@ import de.cyface.datacapturing.IsRunningCallback;
 import de.cyface.datacapturing.PongReceiver;
 import de.cyface.datacapturing.TestUtils;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.strategy.DefaultDistanceCalculation;
+import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.synchronization.BundlesExtrasCodes;
-import de.cyface.utils.CursorIsNullException;
 
 /**
  * Tests whether the {@link DataCapturingBackgroundService} handling the data capturing works correctly.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.7
+ * @version 2.3.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -113,18 +112,15 @@ public class DataCapturingBackgroundServiceTest {
 
     /**
      * Sets up all the instances required by all tests in this test class.
-     *
-     * @throws CursorIsNullException Then the content provider is not accessible
      */
     @Before
-    public void setUp() throws CursorIsNullException {
+    public void setUp() {
         lock = new ReentrantLock();
         condition = lock.newCondition();
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        final PersistenceLayer<CapturingPersistenceBehaviour> persistenceLayer = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
+        final var persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         testMeasurement = persistenceLayer.newMeasurement(Modality.BICYCLE);
@@ -160,11 +156,11 @@ public class DataCapturingBackgroundServiceTest {
 
         // Start and bind DataCapturingBackgroundService [ usually in DCS.runService() ]
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getId());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
-        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
-        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaningStrategy());
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculation());
+        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaning());
         startIntent.putExtra(SENSOR_FREQUENCY, 100);
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);
@@ -189,6 +185,7 @@ public class DataCapturingBackgroundServiceTest {
      * @throws TimeoutException if timed out waiting for a successful connection with the service.
      */
     @Test
+    //@FlakyTest // Flaky in the Github CI (2023-03-14)
     public void testStartDataCapturingTwice() throws TimeoutException {
 
         // Arrange
@@ -196,11 +193,11 @@ public class DataCapturingBackgroundServiceTest {
 
         // Start background service twice
         final Intent startIntent = new Intent(context, DataCapturingBackgroundService.class);
-        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getIdentifier());
+        startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, testMeasurement.getId());
         startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, AUTHORITY);
         startIntent.putExtra(EVENT_HANDLING_STRATEGY_ID, new IgnoreEventsStrategy());
-        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculationStrategy());
-        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaningStrategy());
+        startIntent.putExtra(DISTANCE_CALCULATION_STRATEGY_ID, new DefaultDistanceCalculation());
+        startIntent.putExtra(LOCATION_CLEANING_STRATEGY_ID, new DefaultLocationCleaning());
         startIntent.putExtra(SENSOR_FREQUENCY, 100);
         final Intent bindIntent = new Intent(context, DataCapturingBackgroundService.class);
         serviceTestRule.startService(startIntent);

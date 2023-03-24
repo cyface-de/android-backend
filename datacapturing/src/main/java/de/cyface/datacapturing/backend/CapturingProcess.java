@@ -47,10 +47,9 @@ import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
-import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.utils.Validate;
 
 /**
@@ -59,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.0
+ * @version 3.2.1
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -87,7 +86,7 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
     /**
      * Cache for captured but not yet processed points from the barometer.
      */
-    private final List<Pressure> pressures;
+    private final List<ParcelablePressure> pressures;
     /**
      * A <code>List</code> of listeners we need to inform about captured data.
      */
@@ -225,10 +224,10 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 accuracy = Math.random() * 30.0;
                 verticalAccuracyMeters = accuracy * 2.5;
                 altitude = 400. + Math.random() * 2 - Math.random();
-                final List<Pressure> emulatedPressure = new ArrayList<>();
-                for (final Pressure p : pressures) {
+                final List<ParcelablePressure> emulatedPressure = new ArrayList<>();
+                for (final ParcelablePressure p : pressures) {
                     emulatedPressure
-                            .add(new Pressure(p.getTimestamp(), p.getPressure() + Math.random() * 2 - Math.random()));
+                            .add(new ParcelablePressure(p.getTimestamp(), p.getPressure() + Math.random() * 2 - Math.random()));
                 }
                 pressures.clear();
                 pressures.addAll(emulatedPressure);
@@ -239,16 +238,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
 
             synchronized (this) {
                 for (final CapturingProcessListener listener : this.listener) {
-                    listener.onLocationCaptured(
-                            // ParcelableGeoLocation DB Version 17 now contains accuracy in meters
-                            new ParcelableGeoLocation(latitude, longitude, locationTime, speed, accuracy),
-                            // GeoLocationV6 accuracy is still in the old format (cm), vertical in the new (m)
-                            // This is fixed after merging `measures` and `v6` databases (both in m)
-                            // Attention: This is fixed automatically in `measures` V16-V17 upgrade
-                            // which is already implemented in the SDK 7 branch.
-                            // DO NOT CHANGE THIS until we migrate the SDK 6 apps/dbs to SDK 7.
-                            new GeoLocationV6(locationTime, latitude, longitude, altitude, speed,
-                                    accuracy * 100, verticalAccuracyMeters));
+                    listener.onLocationCaptured(new ParcelableGeoLocation(locationTime, latitude, longitude, altitude, speed,
+                            accuracy, verticalAccuracyMeters));
                     try {
                         listener.onDataCaptured(new CapturedData(accelerations, rotations, directions, pressures));
                     } catch (DataCapturingException e) {
@@ -427,8 +418,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param storage The storage to store the {@code SensorEvent} to.
      */
     private void saveSensorValue(final SensorEvent event, final List<ParcelablePoint3D> storage) {
-        final var dataPoint = new ParcelablePoint3D(event.values[0], event.values[1], event.values[2],
-                timestampMillis(event.timestamp));
+        final var dataPoint = new ParcelablePoint3D(timestampMillis(event.timestamp), event.values[0], event.values[1],
+                event.values[2]);
         storage.add(dataPoint);
     }
 
@@ -438,9 +429,9 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param event The Android {@code SensorEvent} to store.
      * @param storage The storage to store the {@code SensorEvent} to.
      */
-    private void savePressureValue(final SensorEvent event, final List<Pressure> storage) {
+    private void savePressureValue(final SensorEvent event, final List<ParcelablePressure> storage) {
         Validate.isTrue(event.values.length == 1, "Unexpected number of values");
-        Pressure dataPoint = new Pressure(timestampMillis(event.timestamp), event.values[0]);
+        ParcelablePressure dataPoint = new ParcelablePressure(timestampMillis(event.timestamp), event.values[0]);
         storage.add(dataPoint);
     }
 

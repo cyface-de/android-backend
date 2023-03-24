@@ -1,5 +1,5 @@
 /*
- * Copyright 2019-2021 Cyface GmbH
+ * Copyright 2019-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -20,12 +20,12 @@
  * Gradle's build file for the module which contains cross cutting code used by all other modules.
  *
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.2.0
  * @since 3.0.0
  */
-
 plugins {
     id 'com.android.library'
+    id 'kotlin-android'
 }
 
 android {
@@ -52,12 +52,22 @@ android {
         sourceCompatibility rootProject.ext.sourceCompatibility
         targetCompatibility rootProject.ext.targetCompatibility
     }
+
+    kotlinOptions {
+        jvmTarget = rootProject.ext.kotlinTargetJavaVersion
+    }
 }
 
 dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
     implementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     implementation "androidx.test:rules:$rootProject.ext.rulesVersion"
+
+    // `Room` API used to access the database
+    // Further room libraries and Kotlin support see Room guide.
+    implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
+    annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
+    //kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion" // Required for use with Kotlin
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

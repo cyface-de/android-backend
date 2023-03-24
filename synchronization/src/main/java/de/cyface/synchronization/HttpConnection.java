@@ -18,9 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.Constants.DEFAULT_CHARSET;
-import static de.cyface.persistence.Constants.TRANSFER_FILE_EXTENSION;
-
 import java.io.BufferedInputStream;
 import java.io.BufferedOutputStream;
 import java.io.BufferedReader;
@@ -94,6 +91,15 @@ public class HttpConnection implements Http {
      * A String to filter log output from {@link HttpConnection} logs.
      */
     final static String TAG = "de.cyface.sync.http";
+    /**
+     * The file extension of the measurement file which is transmitted on synchronization.
+     */
+    @SuppressWarnings("SpellCheckingInspection")
+    private static final String TRANSFER_FILE_EXTENSION = "ccyf";
+    /**
+     * The charset used to parse Strings (e.g. for JSON data)
+     */
+    private final static String DEFAULT_CHARSET = "UTF-8";
     /**
      * The status code returned when the MultiPart request is erroneous, e.g. when there is not exactly onf file or a
      * syntax error.
@@ -189,7 +195,7 @@ public class HttpConnection implements Http {
             InternalServerErrorException, ForbiddenException, EntityNotParsableException, ConflictException,
             NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode, AccountNotActivated {
 
-        // For performance reasons (documentation) set ether fixedLength (known length) or chunked streaming mode
+        // For performance reasons (documentation) set either fixedLength (known length) or chunked streaming mode
         // we currently don't use fixedLengthStreamingMode as we only use this request for small login requests
         connection.setChunkedStreamingMode(0);
         final BufferedOutputStream outputStream = initOutputStream(connection);
@@ -406,7 +412,6 @@ public class HttpConnection implements Http {
         attributes.put("osVersion", metaData.getOperatingSystemVersion());
         attributes.put("appVersion", metaData.getApplicationVersion());
         attributes.put("length", String.valueOf(metaData.getLength()));
-        // FIXME: I changed this from `vehicle` to `modality` => add this to the API migration guide
         // To support the API specification we may not change the "vehicle" key name of the modality
         attributes.put("modality", String.valueOf(metaData.getModality()));
         attributes.put("formatVersion", String.valueOf(metaData.getFormatVersion()));
@@ -551,7 +556,7 @@ public class HttpConnection implements Http {
     }
 
     /**
-     * Reads the body from the {@link HttpURLConnection}. This contains ether the error or the success message.
+     * Reads the body from the {@link HttpURLConnection}. This contains either the error or the success message.
      *
      * @param connection the {@link HttpURLConnection} to read the response from
      * @return the {@link HttpResponse} body
@@ -581,7 +586,7 @@ public class HttpConnection implements Http {
     /**
      * Reads the body from the {@code com.google.api.client.http.HttpResponse}.
      * <p>
-     * This contains ether the error or the success message.
+     * This contains either the error or the success message.
      *
      * @param response the {@code HttpResponse} to read the body from
      * @param jsonFactory the {@code Factory} to be used to parse the response if it's JSON

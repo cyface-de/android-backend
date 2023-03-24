@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,7 +19,7 @@
 package de.cyface.synchronization;
 
 import static android.os.Build.VERSION_CODES.P;
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.serialization.MeasurementSerializer.BYTES_IN_HEADER;
 import static de.cyface.persistence.serialization.MeasurementSerializer.COMPRESSION_NOWRAP;
@@ -72,12 +72,12 @@ import android.os.RemoteException;
 import de.cyface.deserializer.LocationDeserializer;
 import de.cyface.deserializer.Point3DDeserializer;
 import de.cyface.model.Point3DImpl;
-import de.cyface.persistence.DefaultFileAccess;
-import de.cyface.persistence.FileAccessLayer;
-import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.MeasurementContentProviderClient;
 import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.Utils;
+import de.cyface.persistence.content.BaseColumns;
+import de.cyface.persistence.content.LocationTable;
+import de.cyface.persistence.content.MeasurementProviderClient;
+import de.cyface.persistence.dao.DefaultFileDao;
+import de.cyface.persistence.dao.FileDao;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.serialization.MeasurementSerializer;
@@ -94,7 +94,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.1
+ * @version 3.0.2
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -110,7 +110,7 @@ public class MeasurementSerializerTest {
      * A mock loader, not accessing any database
      */
     @Mock
-    private MeasurementContentProviderClient loader;
+    private MeasurementProviderClient loader;
     /**
      * A mock persistence layer, not accessing any files.
      */
@@ -128,7 +128,7 @@ public class MeasurementSerializerTest {
     @Mock
     private Cursor geoLocationsCursor;
     @Mock
-    private FileAccessLayer mockedFileAccessLayer;
+    private FileDao mockedFileDao;
     @Mock
     private File mockedAccelerationFile;
     @Mock
@@ -149,9 +149,9 @@ public class MeasurementSerializerTest {
     public void setUp() throws RemoteException, CursorIsNullException {
 
         // Mock GeoLocation database access
-        Uri geoLocationUri = Utils.getGeoLocationsUri(AUTHORITY);
-        when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
-        when(loader.countData(geoLocationUri, GeoLocationsTable.COLUMN_MEASUREMENT_FK))
+        Uri geoLocationUri = LocationTable.Companion.getUri(AUTHORITY);
+        when(loader.createLocationTableUri()).thenReturn(geoLocationUri);
+        when(loader.countData(geoLocationUri, BaseColumns.MEASUREMENT_ID))
                 .thenReturn(SAMPLE_GEO_LOCATIONS);
         when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor);
 
@@ -195,21 +195,21 @@ public class MeasurementSerializerTest {
         Validate.notNull(serializedDirections);
 
         // Mock persistence
-        when(persistence.getFileAccessLayer()).thenReturn(mockedFileAccessLayer);
+        when(persistence.getFileDao()).thenReturn(mockedFileDao);
 
         // Mock FileAccessLayer
-        when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
+        when(mockedFileDao.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
                 eq(Point3DFile.ACCELERATIONS_FOLDER_NAME), eq(Point3DFile.ACCELERATIONS_FILE_EXTENSION)))
                         .thenReturn(mockedAccelerationFile);
-        when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
+        when(mockedFileDao.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
                 eq(Point3DFile.ROTATIONS_FOLDER_NAME), eq(Point3DFile.ROTATION_FILE_EXTENSION)))
                         .thenReturn(mockedRotationFile);
-        when(mockedFileAccessLayer.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
+        when(mockedFileDao.getFilePath(any(Context.class), eq(SAMPLE_MEASUREMENT_ID),
                 eq(Point3DFile.DIRECTIONS_FOLDER_NAME), eq(Point3DFile.DIRECTION_FILE_EXTENSION)))
                         .thenReturn(mockedDirectionFile);
-        when(mockedFileAccessLayer.loadBytes(mockedAccelerationFile)).thenReturn(serializedAccelerations);
-        when(mockedFileAccessLayer.loadBytes(mockedRotationFile)).thenReturn(serializedRotations);
-        when(mockedFileAccessLayer.loadBytes(mockedDirectionFile)).thenReturn(serializedDirections);
+        when(mockedFileDao.loadBytes(mockedAccelerationFile)).thenReturn(serializedAccelerations);
+        when(mockedFileDao.loadBytes(mockedRotationFile)).thenReturn(serializedRotations);
+        when(mockedFileDao.loadBytes(mockedDirectionFile)).thenReturn(serializedDirections);
         when(mockedAccelerationFile.exists()).thenReturn(true);
         when(mockedRotationFile.exists()).thenReturn(true);
         when(mockedDirectionFile.exists()).thenReturn(true);
@@ -267,7 +267,7 @@ public class MeasurementSerializerTest {
             assertThat(serializedFile.length(), is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
 
             // Act & Assert - check the deserialized bytes
-            deserializeAndCheck(new DefaultFileAccess().loadBytes(serializedFile));
+            deserializeAndCheck(new DefaultFileDao().loadBytes(serializedFile));
         } finally {
             if (serializedFile.exists()) {
                 Validate.isTrue(serializedFile.delete());
@@ -328,7 +328,7 @@ public class MeasurementSerializerTest {
             TransferFileSerializer.loadSerialized(bufferedFileOutputStream, loader, SAMPLE_MEASUREMENT_ID, persistence);
             assertThat(serializedFile.length(), is(equalTo(SERIALIZED_MEASUREMENT_FILE_SIZE)));
 
-            uncompressedTransferFileBytes = new DefaultFileAccess().loadBytes(serializedFile);
+            uncompressedTransferFileBytes = new DefaultFileDao().loadBytes(serializedFile);
             deserializeAndCheck(uncompressedTransferFileBytes); // just to be sure
         } finally {
             if (serializedFile.exists()) {

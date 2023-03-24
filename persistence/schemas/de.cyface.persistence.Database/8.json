@@ -1,0 +1,288 @@
+{
+  "formatVersion": 1,
+  "database": {
+    "version": 8,
+    "identityHash": "dummyHash8",
+    "entities": [
+      {
+        "tableName": "measurement",
+        "createSql": "CREATE TABLE measurement(_id INTEGER PRIMARY KEY AUTOINCREMENT, finished INTEGER NOT NULL DEFAULT 1, vehicle TEXT, synced INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "_id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "finished",
+            "columnName": "finished",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "default": 1
+          },
+          {
+            "fieldPath": "vehicle",
+            "columnName": "vehicle",
+            "affinity": "TEXT",
+            "notNull": false
+          },
+          {
+            "fieldPath": "synced",
+            "columnName": "synced",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "default": 0
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "gps_points",
+        "createSql": "CREATE TABLE gps_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, gps_time INTEGER NOT NULL, lat REAL NOT NULL, lon REAL NOT NULL, speed REAL NOT NULL, accuracy INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, is_synced INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "_id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "gps_time",
+            "columnName": "gps_time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lat",
+            "columnName": "lat",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "lon",
+            "columnName": "lon",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "speed",
+            "columnName": "speed",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "accuracy",
+            "columnName": "accuracy",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measurement_fk",
+            "columnName": "measurement_fk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_synced",
+            "columnName": "is_synced",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "default": 0
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "sample_points",
+        "createSql": "CREATE TABLE sample_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, ax REAL NOT NULL, ay REAL NOT NULL, az REAL NOT NULL, time INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, is_synced INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "_id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "ax",
+            "columnName": "ax",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ay",
+            "columnName": "ay",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "az",
+            "columnName": "az",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measurement_fk",
+            "columnName": "measurement_fk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_synced",
+            "columnName": "is_synced",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "default": 0
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "rotation_points",
+        "createSql": "CREATE TABLE rotation_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, rx REAL NOT NULL, ry REAL NOT NULL, rz REAL NOT NULL, time INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, is_synced INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "_id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "rx",
+            "columnName": "rx",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "ry",
+            "columnName": "ry",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "rz",
+            "columnName": "rz",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measurement_fk",
+            "columnName": "measurement_fk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_synced",
+            "columnName": "is_synced",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "default": 0
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      },
+      {
+        "tableName": "magnetic_value_points",
+        "createSql": "CREATE TABLE magnetic_value_points(_id INTEGER PRIMARY KEY AUTOINCREMENT, mx REAL NOT NULL, my REAL NOT NULL, mz REAL NOT NULL, time INTEGER NOT NULL, measurement_fk INTEGER NOT NULL, is_synced INTEGER NOT NULL DEFAULT 0)",
+        "fields": [
+          {
+            "fieldPath": "_id",
+            "columnName": "_id",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
+            "fieldPath": "mx",
+            "columnName": "mx",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "my",
+            "columnName": "my",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "mz",
+            "columnName": "mz",
+            "affinity": "REAL",
+            "notNull": true
+          },
+          {
+            "fieldPath": "time",
+            "columnName": "time",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "measurement_fk",
+            "columnName": "measurement_fk",
+            "affinity": "INTEGER",
+            "notNull": true
+          },
+          {
+            "fieldPath": "is_synced",
+            "columnName": "is_synced",
+            "affinity": "INTEGER",
+            "notNull": true,
+            "default": 0
+          }
+        ],
+        "primaryKey": {
+          "autoGenerate": true,
+          "columnNames": [
+            "_id"
+          ]
+        },
+        "indices": [],
+        "foreignKeys": []
+      }
+    ],
+    "views": [],
+    "setupQueries": [
+      "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dummyHash8')"
+    ]
+  }
+}

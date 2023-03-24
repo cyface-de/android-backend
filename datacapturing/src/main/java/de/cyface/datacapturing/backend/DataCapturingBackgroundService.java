@@ -22,7 +22,7 @@ import static android.content.pm.ServiceInfo.FOREGROUND_SERVICE_TYPE_MANIFEST;
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
-import static de.cyface.persistence.PersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
+import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
 import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
@@ -66,20 +66,18 @@ import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.DistanceCalculationStrategy;
-import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.strategy.DistanceCalculationStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.DataPoint;
-import de.cyface.persistence.model.DataPointV6;
-import de.cyface.persistence.model.GeoLocationV6;
-import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
+import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.synchronization.BundlesExtrasCodes;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.PlaceholderNotificationBuilder;
 import de.cyface.utils.Validate;
 
@@ -92,7 +90,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.0
+ * @version 8.0.1
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -156,7 +154,8 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     LocationCleaningStrategy locationCleaningStrategy;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a
+     * {@link DefaultPersistenceLayer}.
      */
     CapturingPersistenceBehaviour capturingBehaviour;
     /**
@@ -308,7 +307,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new PersistenceLayer<>(this, this.getContentResolver(), authority, capturingBehaviour);
+        persistenceLayer = new DefaultPersistenceLayer<>(this, authority, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);
@@ -336,18 +335,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         this.currentMeasurementIdentifier = measurementIdentifier;
 
         // Load Distance (or else we would reset the distance when resuming a measurement)
-        try {
-            final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
-            lastDistance = measurement.getDistance();
+        final Measurement measurement = persistenceLayer.loadMeasurement(currentMeasurementIdentifier);
+        lastDistance = measurement.getDistance();
 
-            // Ensure we resume measurements with a known file format version
-            final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
-            Validate.isTrue(persistenceFileFormatVersion == PERSISTENCE_FILE_FORMAT_VERSION,
-                    "Resume a measurement of a previous persistence file format version is not supported!");
-        } catch (final CursorIsNullException e) {
-            // because onStartCommand is called by Android so we can't throw soft exception.
-            throw new IllegalStateException(e);
-        }
+        // Ensure we resume measurements with a known file format version
+        final short persistenceFileFormatVersion = measurement.getFileFormatVersion();
+        Validate.isTrue(persistenceFileFormatVersion == PERSISTENCE_FILE_FORMAT_VERSION,
+                "Resume a measurement of a previous persistence file format version is not supported!");
 
         // Load sensor frequency
         final int sensorFrequency = intent.getIntExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, -1);
@@ -438,12 +432,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
 
     @Override
     public void onDataCaptured(final @NonNull CapturedData data) {
-        final List<ParcelablePoint3D> accelerations = data.getAccelerations();
-        final List<ParcelablePoint3D> rotations = data.getRotations();
-        final List<ParcelablePoint3D> directions = data.getDirections();
-        final List<Pressure> pressures = data.getPressures();
-        final int iterationSize = Math.max(accelerations.size(), Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
-        for (int i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
+        final var accelerations = data.getAccelerations();
+        final var rotations = data.getRotations();
+        final var directions = data.getDirections();
+        final var pressures = data.getPressures();
+        final var iterationSize = Math.max(accelerations.size(),
+                Math.max(directions.size(), Math.max(rotations.size(), pressures.size())));
+        for (var i = 0; i < iterationSize; i += MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE) {
 
             final CapturedData dataSublist = new CapturedData(sampleSubList(accelerations, i),
                     sampleSubList(rotations, i), sampleSubList(directions, i), pressureSubList(pressures, i));
@@ -471,25 +466,25 @@ public class DataCapturingBackgroundService extends Service implements Capturing
     /**
      * Extracts a subset of maximal {@code MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE} elements of captured data.
      * <p>
-     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPointV6}.
+     * TODO: Copy of {@link #sampleSubList(List, int)} until {@link DataPoint} merges with {@link DataPoint}.
      *
-     * @param completeList The {@link List<Pressure>} to extract a subset from
+     * @param completeList The {@link List<ParcelablePressure>} to extract a subset from
      * @param fromIndex The low endpoint (inclusive) of the subList
      * @return The extracted sublist
      */
-    private @NonNull List<Pressure> pressureSubList(final @NonNull List<Pressure> completeList, final int fromIndex) {
+    private @NonNull List<ParcelablePressure> pressureSubList(final @NonNull List<ParcelablePressure> completeList,
+            final int fromIndex) {
         final int endIndex = fromIndex + MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         final int toIndex = Math.min(endIndex, completeList.size());
-        return (fromIndex >= toIndex) ? Collections.<Pressure> emptyList() : completeList.subList(fromIndex, toIndex);
+        return (fromIndex >= toIndex) ? Collections.emptyList() : completeList.subList(fromIndex, toIndex);
     }
 
     @Override
-    public void onLocationCaptured(@NonNull final ParcelableGeoLocation newLocation, @NonNull GeoLocationV6 newLocationV6) {
+    public void onLocationCaptured(@NonNull final ParcelableGeoLocation newLocation) {
 
         // Store raw, unfiltered track
         Log.d(TAG, "Location captured");
         capturingBehaviour.storeLocation(newLocation, currentMeasurementIdentifier);
-        capturingBehaviour.storeLocationV6(newLocationV6, currentMeasurementIdentifier);
 
         // Check available space
         if (!spaceAvailable()) {
@@ -500,7 +495,6 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
         if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
             newLocation.setValid(false);
-            newLocationV6.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
         }
@@ -519,7 +513,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         final double newDistance = lastDistance + distanceToAdd;
         try {
             capturingBehaviour.updateDistance(newDistance);
-        } catch (final NoSuchMeasurementException | CursorIsNullException e) {
+        } catch (final NoSuchMeasurementException e) {
             throw new IllegalStateException(e);
         }
         lastDistance = newDistance;

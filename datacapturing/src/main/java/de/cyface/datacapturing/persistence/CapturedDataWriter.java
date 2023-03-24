@@ -1,3 +1,21 @@
+/*
+ * Copyright 2017-2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.datacapturing.persistence;
 
 import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
@@ -17,7 +35,7 @@ import de.cyface.persistence.serialization.Point3DFile;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.1
+ * @version 4.0.2
  * @since 1.0.0
  */
 public class CapturedDataWriter implements Runnable {
@@ -66,13 +84,6 @@ public class CapturedDataWriter implements Runnable {
         this.callback = callback;
     }
 
-    /**
-     * Even though the ContentResolver is easier to use, we use the ContentProviderClient as it is
-     * faster when you execute multiple operations. (https://stackoverflow.com/a/5233631/5815054)
-     * - It's essential to create a new client for each thread and to close the client after usage,
-     * as the client is not thread safe, see:
-     * https://developer.android.com/reference/android/content/ContentProviderClient
-     */
     private void writeCapturedData() {
 
         Log.d(TAG, "appending " + data.getAccelerations().size() + "/" + data.getRotations().size() + "/"

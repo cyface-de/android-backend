@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -39,19 +39,18 @@ import de.cyface.datacapturing.exception.MissingPermissionException;
 import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
-import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
-import de.cyface.persistence.DistanceCalculationStrategy;
-import de.cyface.persistence.LocationCleaningStrategy;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
+import de.cyface.persistence.model.ParcelableGeoLocation;
+import de.cyface.persistence.strategy.DefaultDistanceCalculation;
+import de.cyface.persistence.strategy.DefaultLocationCleaning;
+import de.cyface.persistence.strategy.DistanceCalculationStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.synchronization.exception.SynchronisationException;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -59,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.1
+ * @version 12.0.2
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
@@ -87,18 +86,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
      *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
      *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @throws SetupException If writing the components preferences or registering the dummy user account fails.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final LocationCleaningStrategy locationCleaningStrategy,
-            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
-            throws SetupException, CursorIsNullException {
+            @NonNull final DataCapturingListener capturingListener, final int sensorFrequency) {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new PersistenceLayer<>(context, resolver, authority, new CapturingPersistenceBehaviour()),
+                new DefaultPersistenceLayer<>(context, authority, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");
@@ -124,16 +120,15 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
      *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
     public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
-            throws SetupException, CursorIsNullException {
+            throws SetupException {
         this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultDistanceCalculationStrategy(), new DefaultLocationCleaningStrategy(), capturingListener,
+                new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
                 sensorFrequency);
     }
 
@@ -206,7 +201,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param finishedHandler A handler called if the service started successfully.
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      *             Android context was available.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
@@ -214,7 +208,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     @Override
     @SuppressWarnings("unused") // This is called by the SDK implementing app to start a measurement
     public void start(@NonNull Modality modality, @NonNull StartUpFinishedHandler finishedHandler)
-            throws DataCapturingException, MissingPermissionException, CursorIsNullException {
+            throws DataCapturingException, MissingPermissionException {
 
         try {
             super.start(modality, finishedHandler);
@@ -227,16 +221,17 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             corruptedMeasurements.addAll(pausedMeasurements);
 
             for (final Measurement measurement : corruptedMeasurements) {
-                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getIdentifier() + ").");
+                Log.w(TAG, "Finishing corrupted measurement (mid " + measurement.getId() + ").");
                 try {
                     // Because of MOV-790 we disable the validation in setStatus and do this manually below
-                    this.persistenceLayer.setStatus(measurement.getIdentifier(), MeasurementStatus.FINISHED, true);
+                    this.persistenceLayer.setStatus(measurement.getId(), MeasurementStatus.FINISHED, true);
                 } catch (NoSuchMeasurementException e1) {
                     throw new IllegalStateException(e);
                 }
             }
             Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.OPEN));
             Validate.isTrue(!this.persistenceLayer.hasMeasurement(MeasurementStatus.PAUSED));
+            this.persistenceLayer.getPersistenceBehaviour().resetIdentifierOfCurrentlyCapturedMeasurement();
 
             // Now try again to start Capturing - now there can't be any corrupted measurements
             try {

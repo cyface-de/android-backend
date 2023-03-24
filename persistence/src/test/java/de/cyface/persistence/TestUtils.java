@@ -1,5 +1,5 @@
 /*
- * Copyright 2018 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -22,7 +22,7 @@ package de.cyface.persistence;
  * Contains constants and utility methods required during testing.
  *
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.3.0
  * @since 4.0.0
  */
 public final class TestUtils {
@@ -31,10 +31,6 @@ public final class TestUtils {
      * The content provider authority used for testing.
      */
     public final static String AUTHORITY = "de.cyface.persistence.provider.test";
-    /**
-     * The account type used during testing. This must be the same as in the authenticator configuration.
-     */
-    public final static String ACCOUNT_TYPE = "de.cyface.persistence.account.test";
 
     /**
      * Private constructor to avoid instantiation of utility class.

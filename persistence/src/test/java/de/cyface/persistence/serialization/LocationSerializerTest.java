@@ -1,5 +1,5 @@
 /*
- * Copyright 2022 Cyface GmbH
+ * Copyright 2022-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -40,18 +40,17 @@ import org.robolectric.RobolectricTestRunner;
 import org.robolectric.annotation.Config;
 
 import android.database.Cursor;
-import android.net.Uri;
 import android.os.RemoteException;
 
-import de.cyface.persistence.MeasurementContentProviderClient;
-import de.cyface.persistence.Utils;
+import de.cyface.persistence.content.LocationTable;
+import de.cyface.persistence.content.MeasurementProviderClient;
 import de.cyface.serializer.LocationOffsetter;
 
 /**
  * Tests the inner workings of {@link LocationSerializer}.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.3.3
  */
 @RunWith(RobolectricTestRunner.class)
@@ -67,7 +66,7 @@ public class LocationSerializerTest {
      * A mock loader, not accessing any database
      */
     @Mock
-    private MeasurementContentProviderClient loader;
+    private MeasurementProviderClient loader;
     /**
      * A mocked cursor for the first call.
      */
@@ -78,6 +77,11 @@ public class LocationSerializerTest {
      */
     @Mock
     private Cursor geoLocationsCursor2;
+    /**
+     * A mocked cursor for the 3rd call.
+     */
+    @Mock
+    private Cursor geoLocationsCursor3;
     private LocationSerializer oocut;
     private final static double SAMPLE_DOUBLE_VALUE = 1.0;
     private final static long SAMPLE_LONG_VALUE = 1L;
@@ -86,14 +90,13 @@ public class LocationSerializerTest {
     public void setUp() throws RemoteException {
 
         // Mock GeoLocation database access
-        Uri geoLocationUri = Utils.getGeoLocationsUri(AUTHORITY);
-        when(loader.createGeoLocationTableUri()).thenReturn(geoLocationUri);
-        when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor1)
-                .thenReturn(geoLocationsCursor2);
+        var geoLocationUri = LocationTable.Companion.getUri(AUTHORITY);
+        when(loader.createLocationTableUri()).thenReturn(geoLocationUri);
 
         // Mock return of two GeoLocations per `readFrom` call (i.e. DATABASE_QUERY_LIMIT = 2)
         when(geoLocationsCursor1.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(false);
         when(geoLocationsCursor2.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(false);
+        when(geoLocationsCursor3.moveToNext()).thenReturn(true).thenReturn(true).thenReturn(false);
 
         // Mock load sample GeoLocation data
         int sampleColumnIndex = 0;
@@ -103,6 +106,15 @@ public class LocationSerializerTest {
         when(geoLocationsCursor2.getColumnIndexOrThrow(any(String.class))).thenReturn(sampleColumnIndex);
         when(geoLocationsCursor2.getDouble(sampleColumnIndex)).thenReturn(SAMPLE_DOUBLE_VALUE);
         when(geoLocationsCursor2.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
+        // Make accuracy return null as this needs to be handled by the serializer [STAD-481]
+        when(geoLocationsCursor3.getColumnIndexOrThrow(LocationTable.COLUMN_LAT)).thenReturn(sampleColumnIndex);
+        when(geoLocationsCursor3.getColumnIndexOrThrow(LocationTable.COLUMN_LON)).thenReturn(sampleColumnIndex);
+        when(geoLocationsCursor3.getColumnIndexOrThrow(LocationTable.COLUMN_SPEED)).thenReturn(sampleColumnIndex);
+        when(geoLocationsCursor3.getColumnIndexOrThrow(LocationTable.COLUMN_ACCURACY)).thenReturn(123);
+        when(geoLocationsCursor3.getColumnIndexOrThrow(any(String.class))).thenReturn(sampleColumnIndex);
+        when(geoLocationsCursor3.getDouble(1)).thenReturn(SAMPLE_DOUBLE_VALUE);
+        //when(geoLocationsCursor3.getDoubleOrNull(123)).thenReturn(null);
+        when(geoLocationsCursor3.getLong(sampleColumnIndex)).thenReturn(SAMPLE_LONG_VALUE);
 
         oocut = new LocationSerializer();
     }
@@ -116,8 +128,10 @@ public class LocationSerializerTest {
      * was reset unintentionally, which lead to locations with doubled values (e.g. lat 46, 46, 92, 92).
      */
     @Test
-    public void testReadMultipleTimes_usesOneOffsetter() {
+    public void testReadFrom_multipleTimes_usesOneOffsetter() throws RemoteException {
         // Arrange - nothing to do
+        when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor1)
+                .thenReturn(geoLocationsCursor2);
 
         // Act
         oocut.readFrom(geoLocationsCursor1);
@@ -129,5 +143,22 @@ public class LocationSerializerTest {
         // The timestamps 1, 1, 1, 1 should be converted to 1, 0, 0, 0 (offsets)
         // in case they are converted to 1, 0, 1, 0 the offsetter was initialized twice
         assertThat(res.getTimestampList(), is(equalTo(Arrays.asList(1L, 0L, 0L, 0L))));
+    }
+
+    /**
+     * Ensures `accuracy=null` db entries are converted to `0 cm` by the serializer [STAD-481].
+     */
+    @Test
+    public void testReadFrom_withNullAccuracy_isConvertedToZero() throws RemoteException {
+        // Arrange - nothing to do
+        when(loader.loadGeoLocations(anyInt(), anyInt())).thenReturn(geoLocationsCursor3);
+
+        // Act
+        oocut.readFrom(geoLocationsCursor3);
+        final var res = oocut.result();
+
+        // Assert
+        assertThat(res.getAccuracyCount(), is(equalTo(2)));
+        assertThat(res.getAccuracyList(), is(equalTo(Arrays.asList(0, 0))));
     }
 }

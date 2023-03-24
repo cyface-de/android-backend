@@ -21,10 +21,9 @@ package de.cyface.datacapturing.backend;
 import static de.cyface.datacapturing.MessageCodes.DATA_CAPTURED;
 import static de.cyface.datacapturing.backend.DataCapturingBackgroundService.MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
 import static de.cyface.testutils.SharedTestUtils.generateGeoLocation;
-import static de.cyface.testutils.SharedTestUtils.geoLocationV6;
+import static org.hamcrest.MatcherAssert.assertThat;
 import static org.hamcrest.Matchers.equalTo;
 import static org.hamcrest.Matchers.is;
-import static org.junit.Assert.assertThat;
 import static org.mockito.ArgumentMatchers.any;
 import static org.mockito.ArgumentMatchers.anyInt;
 import static org.mockito.ArgumentMatchers.eq;
@@ -55,15 +54,13 @@ import android.os.Parcelable;
 import de.cyface.datacapturing.EventHandlingStrategy;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.DefaultDistanceCalculationStrategy;
-import de.cyface.persistence.DefaultLocationCleaningStrategy;
 import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
-import de.cyface.persistence.model.GeoLocationV6;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
-import de.cyface.persistence.model.Pressure;
-import de.cyface.utils.CursorIsNullException;
+import de.cyface.persistence.model.ParcelablePressure;
+import de.cyface.persistence.strategy.DistanceCalculationStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
 
 /**
  * Tests the inner workings of the {@link DataCapturingBackgroundService} without any calls to the Android system. Uses
@@ -71,7 +68,7 @@ import de.cyface.utils.CursorIsNullException;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.3
+ * @version 2.3.4
  * @since 2.0.0
  */
 @RunWith(RobolectricTestRunner.class)
@@ -100,14 +97,13 @@ public class DataCapturingLocalTest {
     @Mock
     CapturingPersistenceBehaviour mockBehaviour;
     @Mock
-    DefaultDistanceCalculationStrategy distanceCalculationStrategy;
+    DistanceCalculationStrategy distanceCalculationStrategy;
     @Mock
-    DefaultLocationCleaningStrategy locationCleaningStrategy;
+    LocationCleaningStrategy locationCleaningStrategy;
     @Mock
     EventHandlingStrategy mockEventHandlingStrategy;
     private final int base = 0;
-    private final ParcelableGeoLocation location1 = generateGeoLocation(base);
-    private final GeoLocationV6 location1V6 = geoLocationV6(location1, 400., 19.99);
+    private final ParcelableGeoLocation location1 = generateGeoLocation(base, 1L);
 
     @Before
     public void setUp() {
@@ -123,18 +119,14 @@ public class DataCapturingLocalTest {
 
     /**
      * This test case checks the internal workings of the onLocationCaptured method.
-     *
-     * @throws CursorIsNullException when the content provider is not accessible
      */
     @Test
-    public void testOnLocationCapturedDistanceCalculation() throws CursorIsNullException, NoSuchMeasurementException {
+    public void testOnLocationCapturedDistanceCalculation() throws NoSuchMeasurementException {
 
         // Arrange
         final int expectedDistance = 2;
         ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance);
         ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
-        GeoLocationV6 location2V6 = geoLocationV6(location2, 400.234, 21_00);
-        GeoLocationV6 location3V6 = geoLocationV6(location3, 400.345, 22_00);
 
         // Mock
         when(distanceCalculationStrategy.calculateDistance(location1, location2))
@@ -145,9 +137,9 @@ public class DataCapturingLocalTest {
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act
-        oocut.onLocationCaptured(location1, location1V6);
-        oocut.onLocationCaptured(location2, location2V6); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3, location3V6); // Now the two distances should be added
+        oocut.onLocationCaptured(location1);
+        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
@@ -157,23 +149,18 @@ public class DataCapturingLocalTest {
     /**
      * This test case checks the internal workings of the onLocationCaptured method in the special case
      * where a cached location with a timestamp smaller than the start time of the background service is returned.
-     * <p>
-     * Those "cached" locations are filtered by the background service (STAD-140).
      *
-     * @throws CursorIsNullException when the content provider is not accessible
+     * Those "cached" locations are filtered by the background service (STAD-140).
      */
     @Test
     public void testOnLocationCapturedDistanceCalculation_withCachedLocation()
-            throws CursorIsNullException, NoSuchMeasurementException {
+            throws NoSuchMeasurementException {
 
         // Arrange
         final int expectedDistance = 2;
-        ParcelableGeoLocation cachedLocation = generateGeoLocation(base - expectedDistance);
-        ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance);
-        ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance);
-        GeoLocationV6 cachedLocationV6 = geoLocationV6(cachedLocation, 400.123, 20_00);
-        GeoLocationV6 location2V6 = geoLocationV6(location2, 400.234, 21_00);
-        GeoLocationV6 location3V6 = geoLocationV6(location3, 400.345, 22_00);
+        ParcelableGeoLocation cachedLocation = generateGeoLocation(base - expectedDistance, 0L);
+        ParcelableGeoLocation location2 = generateGeoLocation(base + expectedDistance, 1L);
+        ParcelableGeoLocation location3 = generateGeoLocation(base + 2 * expectedDistance, 2L);
 
         // Mock
         // When the onLocationCaptured implementation is correct, this method is never called.
@@ -188,10 +175,10 @@ public class DataCapturingLocalTest {
         doNothing().when(oocut).informCaller(anyInt(), any(Parcelable.class));
 
         // Act
-        oocut.onLocationCaptured(cachedLocation, cachedLocationV6);
-        oocut.onLocationCaptured(location1, location1V6);
-        oocut.onLocationCaptured(location2, location2V6); // On second call a distance should be calculated
-        oocut.onLocationCaptured(location3, location3V6); // Now the two distances should be added
+        oocut.onLocationCaptured(cachedLocation);
+        oocut.onLocationCaptured(location1);
+        oocut.onLocationCaptured(location2); // On second call a distance should be calculated
+        oocut.onLocationCaptured(location3); // Now the two distances should be added
 
         // Assert
         verify(mockBehaviour, times(1)).updateDistance(expectedDistance);
@@ -215,24 +202,24 @@ public class DataCapturingLocalTest {
         List<ParcelablePoint3D> accelerations = new ArrayList<>(accelerationsSize);
         List<ParcelablePoint3D> rotations = new ArrayList<>(rotationsSize);
         List<ParcelablePoint3D> directions = new ArrayList<>(directionsSize);
-        List<Pressure> pressures = new ArrayList<>(pressuresSize);
+        List<ParcelablePressure> pressures = new ArrayList<>(pressuresSize);
 
         // Create some random test data.
         for (int i = 0; i < accelerationsSize; i++) {
-            accelerations.add(new ParcelablePoint3D(random.nextFloat(), random.nextFloat(), random.nextFloat(),
-                    Math.abs(random.nextLong())));
+            accelerations.add(new ParcelablePoint3D(Math.abs(random.nextLong()), random.nextFloat(), random.nextFloat(),
+                    random.nextFloat()));
         }
         for (int i = 0; i < rotationsSize; i++) {
-            rotations.add(new ParcelablePoint3D(random.nextFloat(), random.nextFloat(), random.nextFloat(),
-                    Math.abs(random.nextLong())));
+            rotations.add(new ParcelablePoint3D(Math.abs(random.nextLong()), random.nextFloat(), random.nextFloat(),
+                    random.nextFloat()));
         }
         for (int i = 0; i < directionsSize; i++) {
-            directions.add(new ParcelablePoint3D(random.nextFloat(), random.nextFloat(), random.nextFloat(),
-                    Math.abs(random.nextLong())));
+            directions.add(new ParcelablePoint3D(Math.abs(random.nextLong()), random.nextFloat(), random.nextFloat(),
+                    random.nextFloat()));
         }
         for (int i = 0; i < pressuresSize; i++) {
-            final double validPressure = 250L + (long) (Math.random() * 850);
-            pressures.add(new Pressure(Math.abs(random.nextLong()), validPressure));
+            final double validPressure = 250L + (long)(Math.random() * 850);
+            pressures.add(new ParcelablePressure(Math.abs(random.nextLong()), validPressure));
         }
         CapturedData data = new CapturedData(accelerations, rotations, directions, pressures);
         ArgumentCaptor<CapturedData> captor = ArgumentCaptor.forClass(CapturedData.class);
@@ -245,7 +232,8 @@ public class DataCapturingLocalTest {
 
         // 1247*2 / 800 = 3,1 --> 4
         // noinspection ConstantConditions
-        final var maxSensorSize = Math.max(accelerationsSize, Math.max(rotationsSize, Math.max(directionsSize, pressuresSize)));
+        final var maxSensorSize = Math.max(accelerationsSize,
+                Math.max(rotationsSize, Math.max(directionsSize, pressuresSize)));
         int times = maxSensorSize / MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         int remainder = maxSensorSize % MAXIMUM_CAPTURED_DATA_MESSAGE_SIZE;
         // noinspection ConstantConditions

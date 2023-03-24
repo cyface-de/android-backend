@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,7 +21,7 @@ package de.cyface.datacapturing;
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.ui.Reason;
-import de.cyface.persistence.LocationCleaningStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Modality;
 import de.cyface.utils.DiskConsumption;
@@ -34,7 +34,7 @@ import de.cyface.utils.DiskConsumption;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.3.6
+ * @version 1.3.7
  * @since 1.0.0
  */
 public interface DataCapturingListener {

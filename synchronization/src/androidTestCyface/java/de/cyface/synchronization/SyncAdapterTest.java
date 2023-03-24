@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,8 +18,6 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.persistence.Utils.getGeoLocationsUri;
-import static de.cyface.persistence.Utils.getMeasurementUri;
 import static de.cyface.synchronization.SyncAdapter.MOCK_IS_CONNECTED_TO_RETURN_TRUE;
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
@@ -29,7 +27,7 @@ import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithDat
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.core.IsNull.notNullValue;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.util.List;
 
@@ -52,15 +50,16 @@ import android.database.Cursor;
 import android.os.Build;
 import android.os.Bundle;
 import android.preference.PreferenceManager;
-import android.provider.BaseColumns;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.GeoLocationsTable;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.content.BaseColumns;
+import de.cyface.persistence.content.LocationTable;
+import de.cyface.persistence.content.MeasurementTable;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
@@ -74,7 +73,7 @@ import de.cyface.utils.Validate;
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.4
+ * @version 2.4.5
  * @since 2.4.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -145,20 +144,19 @@ public final class SyncAdapterTest {
 
         // Arrange
         // Insert data to be synced
-        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        final var persistence = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
-        final var insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+        final var insertedMeasurement = insertSampleMeasurementWithData(context,
                 MeasurementStatus.FINISHED, persistence, point3DCount, locationCount);
-        final long measurementIdentifier = insertedMeasurement.getIdentifier();
+        final long measurementIdentifier = insertedMeasurement.getId();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
         // Mock - nothing to do
 
         // Act: sync
-        try (final ContentProviderClient client = contentResolver
-                .acquireContentProviderClient(getGeoLocationsUri(AUTHORITY))) {
+        try (final var client = contentResolver
+                .acquireContentProviderClient(LocationTable.Companion.getUri(AUTHORITY))) {
             final SyncResult result = new SyncResult();
             Validate.notNull(client);
 
@@ -174,7 +172,7 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        final List<Track> tracks = persistence.loadTracks(loadedMeasurement.getIdentifier());
+        final List<Track> tracks = persistence.loadTracks(loadedMeasurement.getId());
         assertThat(tracks.get(0).getGeoLocations().size(), is(1));
     }
 
@@ -197,12 +195,11 @@ public final class SyncAdapterTest {
 
         // Arrange
         // Insert data to be synced
-        final PersistenceLayer<DefaultPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        final var persistence = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
         persistence.restoreOrCreateDeviceId(); // is usually called by the DataCapturingService
-        final var insertedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY,
+        final var insertedMeasurement = insertSampleMeasurementWithData(context,
                 MeasurementStatus.FINISHED, persistence, point3DCount, locationCount);
-        final long measurementIdentifier = insertedMeasurement.getIdentifier();
+        final long measurementIdentifier = insertedMeasurement.getId();
         final MeasurementStatus loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier);
         assertThat(loadedStatus, is(equalTo(MeasurementStatus.FINISHED)));
 
@@ -211,7 +208,7 @@ public final class SyncAdapterTest {
         // Act: sync
         ContentProviderClient client = null;
         try {
-            client = contentResolver.acquireContentProviderClient(getGeoLocationsUri(AUTHORITY));
+            client = contentResolver.acquireContentProviderClient(LocationTable.Companion.getUri(AUTHORITY));
             final SyncResult result = new SyncResult();
             Validate.notNull(client);
 
@@ -235,7 +232,7 @@ public final class SyncAdapterTest {
         // GeoLocation
         final Measurement loadedMeasurement = persistence.loadMeasurement(measurementIdentifier);
         assertThat(loadedMeasurement, notNullValue());
-        final List<Track> tracks = persistence.loadTracks(loadedMeasurement.getIdentifier());
+        final List<Track> tracks = persistence.loadTracks(loadedMeasurement.getId());
         assertThat(tracks.get(0).getGeoLocations().size(), is(locationCount));
     }
 
@@ -246,8 +243,8 @@ public final class SyncAdapterTest {
      * @return The cursor for the track of geolocation objects ordered by time ascending.
      */
     public Cursor loadTrack(final ContentResolver resolver, final long measurementId) {
-        return resolver.query(getGeoLocationsUri(AUTHORITY), null, GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {String.valueOf(measurementId)}, GeoLocationsTable.COLUMN_GEOLOCATION_TIME + " ASC");
+        return resolver.query(LocationTable.Companion.getUri(AUTHORITY), null, BaseColumns.MEASUREMENT_ID + "=?",
+                new String[] {String.valueOf(measurementId)}, BaseColumns.TIMESTAMP + " ASC");
     }
 
     /**
@@ -257,7 +254,7 @@ public final class SyncAdapterTest {
      * @return The cursor for the loaded measurement.
      */
     public Cursor loadMeasurement(final ContentResolver resolver, final long measurementId) {
-        return resolver.query(getMeasurementUri(AUTHORITY), null, BaseColumns._ID + "=?",
+        return resolver.query(MeasurementTable.Companion.getUri(AUTHORITY), null, BaseColumns.ID + "=?",
                 new String[] {String.valueOf(measurementId)}, null);
     }
 }

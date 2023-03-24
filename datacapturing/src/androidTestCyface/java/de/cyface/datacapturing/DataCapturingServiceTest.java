@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -21,20 +21,18 @@ package de.cyface.datacapturing;
 import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static de.cyface.datacapturing.TestUtils.TAG;
-import static de.cyface.persistence.Utils.getEventUri;
 import static de.cyface.persistence.model.MeasurementStatus.FINISHED;
 import static de.cyface.persistence.model.MeasurementStatus.OPEN;
 import static de.cyface.persistence.model.Modality.CAR;
 import static de.cyface.persistence.model.Modality.UNKNOWN;
-import static de.cyface.utils.CursorIsNullException.softCatchNullCursor;
+import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
-import static org.junit.Assert.assertThat;
-import static org.junit.Assert.assertTrue;
+import static org.hamcrest.MatcherAssert.assertThat;
 
-import java.util.ArrayList;
 import java.util.List;
+import java.util.Objects;
 import java.util.concurrent.TimeUnit;
 import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
@@ -50,11 +48,8 @@ import org.junit.runner.RunWith;
 import android.accounts.Account;
 import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountManager;
-import android.content.ContentProvider;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.database.Cursor;
-import android.provider.BaseColumns;
 import android.util.Log;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
@@ -63,7 +58,6 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 import androidx.test.rule.GrantPermissionRule;
 import androidx.test.rule.ServiceTestRule;
-import androidx.test.rule.provider.ProviderTestRule;
 
 import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.backend.TestCallback;
@@ -74,23 +68,23 @@ import de.cyface.datacapturing.exception.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceBehaviour;
-import de.cyface.persistence.EventTable;
-import de.cyface.persistence.MeasuringPointsContentProvider;
-import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Event;
+import de.cyface.persistence.model.EventType;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
 import de.cyface.testutils.SharedTestUtils;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
  * Tests whether the {@link DataCapturingService} works correctly. This is a flaky test since it starts a service that
  * relies on external sensors and the availability of a GNSS signal. Each tests waits a few seconds to actually capture
- * some data, but it might still fail if you are indoors (which you will usually be while running tests, right?)
+ * some data, but it might still fail if you use a real device indoors.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
@@ -101,12 +95,7 @@ import de.cyface.utils.Validate;
 @LargeTest
 public class DataCapturingServiceTest {
 
-    /**
-     * Test rule that provides a mock connection to a <code>ContentProvider</code> to test against.
-     */
-    @Rule
-    public ProviderTestRule providerRule = new ProviderTestRule.Builder(MeasuringPointsContentProvider.class, AUTHORITY)
-            .build();
+    private ContentResolver contentResolver;
     /**
      * Rule used to run
      */
@@ -131,9 +120,9 @@ public class DataCapturingServiceTest {
      */
     private Context context;
     /**
-     * {@link PersistenceLayer} required to access stored {@link Measurement}s.
+     * {@link DefaultPersistenceLayer} required to access stored {@link Measurement}s.
      */
-    private PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
+    private PersistenceLayer<PersistenceBehaviour> persistenceLayer;
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
@@ -142,6 +131,8 @@ public class DataCapturingServiceTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
+        contentResolver = context.getContentResolver();
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
@@ -156,15 +147,13 @@ public class DataCapturingServiceTest {
             try {
                 oocut = new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                         ACCOUNT_TYPE, "https://localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
-            } catch (SetupException | CursorIsNullException e) {
+            } catch (SetupException e) {
                 throw new IllegalStateException(e);
             }
         });
 
         // Prepare
-        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
-        persistenceLayer = new PersistenceLayer<>(context, context.getContentResolver(), AUTHORITY,
-                new DefaultPersistenceBehaviour());
+        persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning());
@@ -178,10 +167,9 @@ public class DataCapturingServiceTest {
      *             there was no call to
      *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @After
-    public void tearDown() throws CursorIsNullException, NoSuchMeasurementException {
+    public void tearDown() throws NoSuchMeasurementException {
         if (isDataCapturingServiceRunning()) {
 
             // Stop zombie
@@ -202,7 +190,7 @@ public class DataCapturingServiceTest {
             assertThat(isRunning, is(equalTo(false)));
         }
 
-        SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+        clearPersistenceLayer(context, contentResolver, AUTHORITY);
     }
 
     /**
@@ -229,13 +217,12 @@ public class DataCapturingServiceTest {
      * @return the measurement id of the started capturing
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      *             Android context was available.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      * @throws MissingPermissionException If no Android <code>ACCESS_FINE_LOCATION</code> has been granted. You may
      *             register a {@link UIListener} to ask the user for this permission and prevent the
      *             <code>Exception</code>. If the <code>Exception</code> was thrown the service does not start.
      */
     private long startAndCheckThatLaunched() throws MissingPermissionException, DataCapturingException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
 
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
@@ -255,10 +242,9 @@ public class DataCapturingServiceTest {
      *             service. This usually occurs if there was no call to
      *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} prior to
      *             pausing.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void pauseAndCheckThatStopped(long measurementIdentifier)
-            throws NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException {
 
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
@@ -283,10 +269,9 @@ public class DataCapturingServiceTest {
      *             service. This usually occurs if there was no call to
      *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)} prior to
      *             pausing.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void resumeAndCheckThatLaunched(long measurementIdentifier) throws MissingPermissionException,
-            DataCapturingException, CursorIsNullException, NoSuchMeasurementException {
+            DataCapturingException, NoSuchMeasurementException {
 
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
@@ -309,10 +294,9 @@ public class DataCapturingServiceTest {
      *             there was no call to
      *             {@link DataCapturingService#start(Modality, StartUpFinishedHandler)}
      *             prior to stopping.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     private void stopAndCheckThatStopped(final long measurementIdentifier)
-            throws NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException {
 
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
@@ -381,11 +365,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStartStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
 
         final long receivedMeasurementIdentifier = startAndCheckThatLaunched();
         stopAndCheckThatStopped(receivedMeasurementIdentifier);
@@ -400,11 +383,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testMultipleStartStopWithDelay() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         List<Measurement> measurements = persistenceLayer.loadMeasurements();
@@ -425,14 +407,13 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     @Ignore("This test fails as our library currently runs lifecycle tasks (start/stop) in parallel.\n" +
             "To fix this we need to re-use a handler for a sequential execution. See CY-4098, MOV-378\n" +
             "We should consider refactoring the code before to use startCommandReceived as intended CY-4097.")
     public void testMultipleStartStopWithoutDelay() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         // Do not reuse the lock/condition!
         final Lock lock1 = new ReentrantLock();
@@ -493,11 +474,11 @@ public class DataCapturingServiceTest {
         assertThat(measurements.size(), is(equalTo(3)));
 
         final long measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier;
-        assertThat(measurements.get(0).getIdentifier(), is(equalTo(measurementId1)));
+        assertThat(measurements.get(0).getId(), is(equalTo(measurementId1)));
         final long measurementId2 = startUpFinishedHandler2.receivedMeasurementIdentifier;
-        assertThat(measurements.get(1).getIdentifier(), is(equalTo(measurementId2)));
+        assertThat(measurements.get(1).getId(), is(equalTo(measurementId2)));
         final long measurementId3 = startUpFinishedHandler3.receivedMeasurementIdentifier;
-        assertThat(measurements.get(2).getIdentifier(), is(equalTo(measurementId3)));
+        assertThat(measurements.get(2).getId(), is(equalTo(measurementId3)));
 
         assertThat(measurementId1, is(not(equalTo(-1L))));
         assertThat(shutDownFinishedHandler1.receivedMeasurementIdentifier, is(equalTo(measurementId1)));
@@ -517,12 +498,12 @@ public class DataCapturingServiceTest {
      */
     @Test
     public void testDisconnectReconnect() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
         oocut.disconnect();
-        assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(true));
+        assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(equalTo(true)));
 
         stopAndCheckThatStopped(measurementIdentifier);
     }
@@ -534,11 +515,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testDoubleStart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -561,11 +541,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test(expected = NoSuchMeasurementException.class)
     public void testDoubleStop() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
 
         final long measurementId = startAndCheckThatLaunched();
 
@@ -583,11 +562,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test(expected = DataCapturingException.class)
     public void testDoubleDisconnect() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -602,11 +580,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStopNonConnectedService() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -621,11 +598,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testDoubleReconnect() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         oocut.disconnect();
@@ -642,11 +618,10 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testDisconnectReconnectTwice() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -664,17 +639,16 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException On any error during running the capturing process.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testRestart() throws DataCapturingException, MissingPermissionException, NoSuchMeasurementException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         stopAndCheckThatStopped(measurementIdentifier);
 
         final long measurementIdentifier2 = startAndCheckThatLaunched();
-        assertTrue(measurementIdentifier2 != measurementIdentifier);
+        assertThat(measurementIdentifier2, not(equalTo(measurementIdentifier)));
         stopAndCheckThatStopped(measurementIdentifier2);
     }
 
@@ -685,11 +659,10 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If permission to access geo location sensor is missing.
      * @throws DataCapturingException If any unexpected error occurs during the test.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testResumeTwice() throws MissingPermissionException, DataCapturingException, NoSuchMeasurementException,
-            CursorIsNullException, CorruptedMeasurementException {
+            CorruptedMeasurementException {
 
         // Start, pause
         final long measurementIdentifier = startAndCheckThatLaunched();
@@ -699,8 +672,7 @@ public class DataCapturingServiceTest {
         resumeAndCheckThatLaunched(measurementIdentifier);
 
         // Resume 2: must be ignored by resumeAsync
-        PersistenceLayer<CapturingPersistenceBehaviour> persistence = new PersistenceLayer<>(context,
-                context.getContentResolver(), AUTHORITY, new CapturingPersistenceBehaviour());
+        var persistence = new DefaultPersistenceLayer<>(context, AUTHORITY, new CapturingPersistenceBehaviour());
         // Do not reuse the lock/condition!
         final Lock lock = new ReentrantLock();
         final Condition condition = lock.newCondition();
@@ -721,11 +693,10 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStartPauseStop() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         pauseAndCheckThatStopped(measurementIdentifier);
@@ -740,12 +711,11 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     public void testStartPauseStop_MultipleTimes() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         for (int i = 0; i < 20; i++) {
             Log.d(TAG, "ITERATION: " + i);
@@ -763,11 +733,10 @@ public class DataCapturingServiceTest {
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testRemoveDataCapturingListener() throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         // This happens in SDK implementing apps (SR) when the app is paused and resumed
@@ -793,22 +762,21 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testStartPauseResumeStop_EventsAreLogged() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startPauseResumeStop();
 
         final List<Event> events = oocut.persistenceLayer.loadEvents(measurementIdentifier);
         // start, pause, resume, stop and initial MODALITY_TYPE_CHANGE event
         assertThat(events.size(), is(equalTo(5)));
-        assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-        assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
-        assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-        assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-        assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
+        assertThat(events.get(0).getType(), is(equalTo(EventType.LIFECYCLE_START)));
+        assertThat(events.get(1).getType(), is(equalTo(EventType.MODALITY_TYPE_CHANGE)));
+        assertThat(events.get(2).getType(), is(equalTo(EventType.LIFECYCLE_PAUSE)));
+        assertThat(events.get(3).getType(), is(equalTo(EventType.LIFECYCLE_RESUME)));
+        assertThat(events.get(4).getType(), is(equalTo(EventType.LIFECYCLE_STOP)));
     }
 
     /**
@@ -822,12 +790,11 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException Happens on unexpected states during data capturing.
      * @throws MissingPermissionException Should not happen since a <code>GrantPermissionRule</code> is used.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Ignore("Not needed to be executed automatically as MOV-527 made the normal tests flaky")
     @Test
     public void testStartPauseResumeStop_MultipleTimes() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         for (int i = 0; i < 50; i++) {
             Log.d(TAG, "ITERATION: " + i);
@@ -835,12 +802,12 @@ public class DataCapturingServiceTest {
             startPauseResumeStop();
 
             // For for-i-loops within this test
-            SharedTestUtils.clearPersistenceLayer(context, context.getContentResolver(), AUTHORITY);
+            SharedTestUtils.clearPersistenceLayer(context, persistenceLayer);
         }
     }
 
     private long startPauseResumeStop() throws DataCapturingException, NoSuchMeasurementException,
-            CursorIsNullException, CorruptedMeasurementException, MissingPermissionException {
+            CorruptedMeasurementException, MissingPermissionException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         final List<Measurement> measurements = persistenceLayer.loadMeasurements();
@@ -855,34 +822,18 @@ public class DataCapturingServiceTest {
         stopAndCheckThatStopped(measurementIdentifier);
 
         // Check Events
-        ContentResolver contentResolver = context.getContentResolver();
-        try (final Cursor eventCursor = contentResolver.query(getEventUri(AUTHORITY), null,
-                EventTable.COLUMN_MEASUREMENT_FK + "=?",
-                new String[] {Long.valueOf(measurementIdentifier).toString()},
-                EventTable.COLUMN_TIMESTAMP + " ASC")) {
-            softCatchNullCursor(eventCursor);
+        final var events = Objects.requireNonNull(persistenceLayer.getEventDao())
+                .loadAllByMeasurementId(measurementIdentifier);
 
-            final List<Event> events = new ArrayList<>();
-            while (eventCursor.moveToNext()) {
-                final Event.EventType eventType = Event.EventType
-                        .valueOf(eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TYPE)));
-                final long eventTime = eventCursor
-                        .getLong(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_TIMESTAMP));
-                final String value = eventCursor.getString(eventCursor.getColumnIndexOrThrow(EventTable.COLUMN_VALUE));
-                final long eventId = eventCursor.getLong(eventCursor.getColumnIndexOrThrow(BaseColumns._ID));
-                events.add(new Event(eventId, eventType, eventTime, value));
-            }
+        assertThat(events.size(), is(equalTo(5)));
+        assertThat(events.get(0).getType(), is(equalTo(EventType.LIFECYCLE_START)));
+        assertThat(events.get(1).getType(), is(equalTo(EventType.MODALITY_TYPE_CHANGE)));
+        assertThat(events.get(1).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
+        assertThat(events.get(2).getType(), is(equalTo(EventType.LIFECYCLE_PAUSE)));
+        assertThat(events.get(3).getType(), is(equalTo(EventType.LIFECYCLE_RESUME)));
+        assertThat(events.get(4).getType(), is(equalTo(EventType.LIFECYCLE_STOP)));
 
-            assertThat(events.size(), is(equalTo(5)));
-            assertThat(events.get(0).getType(), is(equalTo(Event.EventType.LIFECYCLE_START)));
-            assertThat(events.get(1).getType(), is(equalTo(Event.EventType.MODALITY_TYPE_CHANGE)));
-            assertThat(events.get(1).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
-            assertThat(events.get(2).getType(), is(equalTo(Event.EventType.LIFECYCLE_PAUSE)));
-            assertThat(events.get(3).getType(), is(equalTo(Event.EventType.LIFECYCLE_RESUME)));
-            assertThat(events.get(4).getType(), is(equalTo(Event.EventType.LIFECYCLE_STOP)));
-
-            return measurementIdentifier;
-        }
+        return measurementIdentifier;
     }
 
     /**
@@ -898,13 +849,12 @@ public class DataCapturingServiceTest {
      * @throws DataCapturingException If any unexpected errors occur during data capturing.
      * @throws MissingPermissionException If an Android permission is missing.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     @LargeTest
     @FlakyTest
     public void testSensorDataCapturing() throws DataCapturingException, MissingPermissionException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException, InterruptedException {
+            NoSuchMeasurementException, CorruptedMeasurementException, InterruptedException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
 
@@ -924,7 +874,7 @@ public class DataCapturingServiceTest {
     @Test
     public void testReconnectOnNonRunningServer() {
         assertThat(oocut.reconnect(DataCapturingService.IS_RUNNING_CALLBACK_TIMEOUT), is(false));
-        assertThat(oocut.getIsRunning(), is(equalTo(false)));
+        assertThat(oocut.isRunning(), is(equalTo(false)));
     }
 
     /**
@@ -936,7 +886,7 @@ public class DataCapturingServiceTest {
      */
     @Test(expected = SetupException.class)
     public void testDataCapturingService_doesNotAcceptUrlWithoutProtocol()
-            throws CursorIsNullException, SetupException {
+            throws SetupException {
 
         new CyfaceDataCapturingService(context, context.getContentResolver(), AUTHORITY,
                 ACCOUNT_TYPE, "localhost:8080", new IgnoreEventsStrategy(), testListener, 100);
@@ -944,23 +894,22 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests that starting a new {@code Measurement} and changing the {@code Modality} during runtime creates two
-     * {@link Event.EventType#MODALITY_TYPE_CHANGE} entries.
+     * {@link EventType#MODALITY_TYPE_CHANGE} entries.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testChangeModality_EventLogContainsTwoModalities()
             throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         oocut.changeModalityType(CAR);
         stopAndCheckThatStopped(measurementIdentifier);
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
-                Event.EventType.MODALITY_TYPE_CHANGE);
+                EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));
         assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
         assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));
@@ -968,46 +917,44 @@ public class DataCapturingServiceTest {
 
     /**
      * Tests that changing to the same {@code Modality} twice does not produce a new
-     * {@link Event.EventType#MODALITY_TYPE_CHANGE} {@code Event}.
+     * {@link EventType#MODALITY_TYPE_CHANGE} {@code Event}.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testChangeModalityToSameModalityTwice_EventLogStillContainsOnlyTwoModalities()
             throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         oocut.changeModalityType(CAR);
         oocut.changeModalityType(CAR);
         stopAndCheckThatStopped(measurementIdentifier);
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
-                Event.EventType.MODALITY_TYPE_CHANGE);
+                EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));
     }
 
     /**
-     * Tests that changing {@code Modality} during a {@link Event.EventType#LIFECYCLE_PAUSE} works as expected.
+     * Tests that changing {@code Modality} during a {@link EventType#LIFECYCLE_PAUSE} works as expected.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
      * @throws NoSuchMeasurementException Fails the test if the capturing measurement is lost somewhere.
-     * @throws CursorIsNullException If {@link ContentProvider} was inaccessible.
      */
     @Test
     public void testChangeModalityWhilePaused_EventLogStillContainsModalityChange()
             throws MissingPermissionException, DataCapturingException,
-            NoSuchMeasurementException, CursorIsNullException, CorruptedMeasurementException {
+            NoSuchMeasurementException, CorruptedMeasurementException {
 
         final long measurementIdentifier = startAndCheckThatLaunched();
         pauseAndCheckThatStopped(measurementIdentifier);
         oocut.changeModalityType(CAR);
         stopAndCheckThatStopped(measurementIdentifier); // stop paused returns mid, too [STAD-333]
         final List<Event> modalityTypeChanges = oocut.persistenceLayer.loadEvents(measurementIdentifier,
-                Event.EventType.MODALITY_TYPE_CHANGE);
+                EventType.MODALITY_TYPE_CHANGE);
         assertThat(modalityTypeChanges.size(), is(equalTo(2)));
         assertThat(modalityTypeChanges.get(0).getValue(), is(equalTo(UNKNOWN.getDatabaseIdentifier())));
         assertThat(modalityTypeChanges.get(1).getValue(), is(equalTo(CAR.getDatabaseIdentifier())));

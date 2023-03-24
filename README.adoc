@@ -10,6 +10,8 @@ This project contains the Cyface Android SDK which is used by Cyface application
 * <<api-usage-guide,API Usage Guide>>
 * <<migration-guide,Migration Guide>>
 * <<developer-guide,Developer Guide>>
+** <<architecture, Architecture>>
+** <<release-a-new-version, Release a new Version>>
 * <<license,License>>
 
 [[integration-guide]]
@@ -104,7 +106,10 @@ The following steps are required before you can start coding.
 [[content-provider-authority]]
 ==== Content Provider Authority
 
-You need to set a provider and to make sure you use the same provider everywhere:
+This SDK uses Android's `SyncAdapter` to sync data. The `MeasurementProvider` is a `ContentProvider`
+implementation which allows `SyncAdapter` to access the data of this SDK.
+
+Therefor, you need to set a provider and to make sure you use the same provider everywhere:
 
 * The `AndroidManifest.xml` is required to override the default content provider as
 declared by the persistence project. This needs to be done by each SDK integrating
@@ -118,11 +123,10 @@ application separately.
     package="your.domain.app"> <!-- replace this! -->
 
     <application>
-        <!-- This overwrites the provider in the SDK. This way the app can
-        be installed next to other SDK using apps.
-        The "authorities" must match the one in your AndroidManifest.xml! -->
+        <!-- This overwrites the provider in the SDK. This way the app can be installed next to other
+        SDK using apps. The "authorities" must match the one in your AndroidManifest.xml! -->
         <provider
-            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:name="de.cyface.persistence.content.MeasurementProvider"
             android:authorities="your.domain.app.provider"
             android:exported="false"
             android:process=":persistence_process"
@@ -133,8 +137,8 @@ application separately.
 </manifest>
 ----
 
-* Define your authority which you must use as parameter in `new Cyface/MovebisDataCapturingService()` (see sample below).
-This must be the same as defined in the `AndroidManifest.xml` above.
+* Define your authority which you must use as parameter in `new Cyface-/MovebisDataCapturingService()`
+(see sample below). This must be the same as defined in the `AndroidManifest.xml` above.
 
 [source,java]
 ----
@@ -307,7 +311,7 @@ This way we can use the `isRunning()` result from within `reconnect()` and avoid
 public class DataCapturingButton implements DataCapturingListener {
 
     PersistenceLayer<DefaultPersistenceBehaviour> persistence =
-        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
 
     public void onResume(@NonNull final CyfaceDataCapturingService dataCapturingService) {
         this.dataCapturingService = dataCapturingService;
@@ -663,14 +667,14 @@ public class DataCapturingButton implements DataCapturingListener {
 [[access-measurements]]
 === Access Measurements
 
-You now need to use the `PersistenceLayer` to access and control captured _measurement data_.
+You now need to use the `DefaultPersistenceLayer` to access and control captured _measurement data_.
 
 [source,java]
 ----
 class measurementControlOrAccessClass {
 
     PersistenceLayer<DefaultPersistenceBehaviour> persistence =
-        new PersistenceLayer<>(context, contentResolver, AUTHORITY, new DefaultPersistenceBehaviour());
+        new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
 }
 ----
 
@@ -710,7 +714,7 @@ Each time a measurement is paused and resumed, a new `Track` is started for the 
 
 A `Track` contains the chronologically ordered ``ParcelableGeoLocation``s captured.
 
-You can ether load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaningStrategy` class for details.
+You can either load the raw track or a "cleaned" version of it. See the `DefaultLocationCleaning` class for details.
 
 [source,java]
 ----
@@ -750,7 +754,7 @@ To delete the measurement data stored on the device for finished or synchronized
 ----
 class measurementControlOrAccessClass {
 
-    void deleteMeasurement(final long measurementId) throws CursorIsNullException {
+    void deleteMeasurement(final long measurementId) {
         // To make sure you don't delete the ongoing measurement because this leads to an exception
         Measurement currentlyCapturedMeasurement;
         try {
@@ -771,7 +775,7 @@ class measurementControlOrAccessClass {
         final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer;
         final long measurementId;
 
-        DeleteFromDBTaskParams(final PersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer,
+        DeleteFromDBTaskParams(final DefaultPersistenceLayer<DefaultPersistenceBehaviour> persistenceLayer,
                 final long measurementId) {
             this.persistenceLayer = persistenceLayer;
             this.measurementId = measurementId;
@@ -848,6 +852,52 @@ This documentation still lacks of samples for the following features:
 == Developer Guide
 
 This section is only relevant for developers of this library.
+
+[[architecture]]
+=== Architecture
+
+The SDK contains the following models:
+
+==== Datacapturing
+
+The `DataCapturingService` allows to control data capturing, persists the data & informs about the capturing progress.
+
+==== Persistence
+
+The `PersistenceLayer` serves as the https://developer.android.com/topic/architecture/data-layer[data layer] for SDK implementing apps.
+
+The sub-package `model` contains the data types persisted.
+
+The following data types are persisted in an SQLite database using the https://developer.android.com/jetpack/androidx/releases/room[Room API].
+
+- Identifier: The device identifier
+- Measurement: The data collected between capturing `start` and `stop`
+- Event: Life-cycle changes (`start`/`pause`/`resume`/`stop`) or `modality` changes for one measurement
+- Location: GNSS data captured for one measurement
+- Pressure: Barometer data captured fro one measurement
+
+The following data types are persisted in the https://github.com/cyface-de/protos[Cyface Binary Format] using Protobuf and stored in the file system:
+
+- Accelerometer: `*.cyfa` files
+- Gyroscope: `*.cyfr` files
+- Magnetometer: `*.cyfd` files
+
+The sub-package `dao` contains the data access interfaces for the data types above.
+
+- As there is currently only one data source for each data type, the Repository layer is not yet implemented.
+
+The sub-package `serialization` contains the functionality to serialize all data of one measurement
+into a compressed `*.ccyf` file which can be uploaded to the Cyface Collector.
+
+The sub-package `content` implements a `ContentProvider` to allow `Synchronization`'s `SyncAdapter` to access and upload data.
+
+==== Synchronization
+
+The `SyncService` uploads measurements to the https://github.com/cyface-de/data-collector[Cyface Collector] & informs about the upload progress.
+
+==== Testutils
+
+The `SharedTestUtils` contains integration test code used from multiple modules.
 
 [[release-a-new-version]]
 === Release a new version

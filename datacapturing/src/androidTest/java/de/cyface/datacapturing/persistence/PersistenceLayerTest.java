@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -26,10 +26,11 @@ import static de.cyface.testutils.SharedTestUtils.clearPersistenceLayer;
 import static de.cyface.testutils.SharedTestUtils.insertSampleMeasurementWithData;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
-import static org.junit.Assert.assertThat;
+import static org.hamcrest.MatcherAssert.assertThat;
 
 import java.io.File;
 import java.util.List;
+import java.util.Objects;
 
 import org.junit.After;
 import org.junit.Before;
@@ -43,14 +44,13 @@ import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
-import de.cyface.persistence.exception.NoSuchMeasurementException;
+import de.cyface.persistence.DefaultPersistenceLayer;
 import de.cyface.persistence.PersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
+import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.Measurement;
 import de.cyface.persistence.model.MeasurementStatus;
 import de.cyface.persistence.model.Modality;
 import de.cyface.persistence.serialization.Point3DFile;
-import de.cyface.utils.CursorIsNullException;
 import de.cyface.utils.Validate;
 
 /**
@@ -58,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.5.6
+ * @version 1.5.7
  * @since 2.0.3
  */
 @RunWith(AndroidJUnit4.class)
@@ -68,7 +68,7 @@ public class PersistenceLayerTest {
     /**
      * An object of the class under test. It is setup prior to each test execution.
      */
-    private PersistenceLayer<CapturingPersistenceBehaviour> oocut;
+    private DefaultPersistenceLayer<CapturingPersistenceBehaviour> oocut;
     /**
      * {@link Context} used to access the persistence layer
      */
@@ -78,7 +78,8 @@ public class PersistenceLayerTest {
      */
     private ContentResolver resolver;
     /**
-     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a {@link PersistenceLayer}.
+     * This {@link PersistenceBehaviour} is used to capture a {@link Measurement}s with when a
+     * {@link DefaultPersistenceLayer}.
      */
     private CapturingPersistenceBehaviour capturingBehaviour;
 
@@ -90,7 +91,7 @@ public class PersistenceLayerTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         resolver = context.getContentResolver();
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new PersistenceLayer<>(context, resolver, AUTHORITY, capturingBehaviour);
+        oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, capturingBehaviour);
     }
 
     /**
@@ -107,11 +108,10 @@ public class PersistenceLayerTest {
      * <code>loadFinishedMeasurements</code> method returns a list of size 1.
      *
      * @throws NoSuchMeasurementException When there was no currently captured {@code Measurement}.
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
     public void testLoadFinishedMeasurements_oneFinishedOneRunning()
-            throws NoSuchMeasurementException, CursorIsNullException {
+            throws NoSuchMeasurementException {
 
         oocut.newMeasurement(Modality.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
@@ -119,19 +119,18 @@ public class PersistenceLayerTest {
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(false)));
         oocut.newMeasurement(Modality.UNKNOWN);
         assertThat(oocut.hasMeasurement(MeasurementStatus.OPEN), is(equalTo(true)));
-        assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).size(), is(equalTo(1)));
+        assertThat(Objects.requireNonNull(oocut.loadMeasurements(FINISHED)).size(), is(equalTo(1)));
     }
 
     /**
-     * Checks that calling {@link PersistenceLayer#loadMeasurements(MeasurementStatus)} on an empty database
+     * Checks that calling {@link DefaultPersistenceLayer#loadMeasurements(MeasurementStatus)} on an empty database
      * returns an empty list.
      *
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testLoadFinishedMeasurements_noMeasurements() throws CursorIsNullException {
+    public void testLoadFinishedMeasurements_noMeasurements() {
 
-        assertThat(oocut.loadMeasurements(MeasurementStatus.FINISHED).isEmpty(), is(equalTo(true)));
+        assertThat(Objects.requireNonNull(oocut.loadMeasurements(FINISHED)).isEmpty(), is(equalTo(true)));
     }
 
     /**
@@ -142,47 +141,45 @@ public class PersistenceLayerTest {
      * then finish this measurement and then load it as FINISHED measurement as we usually do to synchronize them.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testLoadMeasurementSuccessfully() throws NoSuchMeasurementException {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
-        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getIdentifier());
+        Measurement loadedOpenMeasurement = oocut.loadMeasurement(measurement.getId());
         assertThat(loadedOpenMeasurement, is(equalTo(measurement)));
 
         capturingBehaviour.updateRecentMeasurement(FINISHED);
         List<Measurement> finishedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(finishedMeasurements.size(), is(equalTo(1)));
-        assertThat(finishedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
+        assertThat(finishedMeasurements.get(0).getId(), is(equalTo(measurement.getId())));
     }
 
     /**
      * Test that marking a measurement as synced works as expected.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testMarkMeasurementAsSynced() throws NoSuchMeasurementException {
 
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
         capturingBehaviour.updateRecentMeasurement(FINISHED);
-        oocut.markFinishedAs(SYNCED, measurement.getIdentifier());
+        oocut.markFinishedAs(SYNCED, measurement.getId());
 
         // Check that measurement was marked as synced
         List<Measurement> syncedMeasurements = oocut.loadMeasurements(SYNCED);
         assertThat(syncedMeasurements.size(), is(equalTo(1)));
-        assertThat(syncedMeasurements.get(0).getIdentifier(), is(equalTo(measurement.getIdentifier())));
+        assertThat(syncedMeasurements.get(0).getId(), is(equalTo(measurement.getId())));
 
         // Check that sensor data was deleted
-        final File accelerationFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
+        final File accelerationFile = oocut.getFileDao().getFilePath(context, measurement.getId(),
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION);
         Validate.isTrue(!accelerationFile.exists());
-        final File rotationFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
+        final File rotationFile = oocut.getFileDao().getFilePath(context, measurement.getId(),
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION);
         Validate.isTrue(!rotationFile.exists());
-        final File directionFile = oocut.getFileAccessLayer().getFilePath(context, measurement.getIdentifier(),
+        final File directionFile = oocut.getFileDao().getFilePath(context, measurement.getId(),
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION);
         Validate.isTrue(!directionFile.exists());
     }
@@ -191,48 +188,46 @@ public class PersistenceLayerTest {
      * Tests whether the sync adapter loads the correct measurements for synchronization.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testGetSyncableMeasurement() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testGetSyncableMeasurement() throws NoSuchMeasurementException {
 
         // Create a synchronized measurement
-        insertSampleMeasurementWithData(context, AUTHORITY, SYNCED, oocut, 1, 1);
+        insertSampleMeasurementWithData(context, SYNCED, oocut, 1, 1);
 
         // Create a finished measurement
-        final Measurement finishedMeasurement = insertSampleMeasurementWithData(context, AUTHORITY, FINISHED, oocut, 1,
+        final Measurement finishedMeasurement = insertSampleMeasurementWithData(context, FINISHED, oocut, 1,
                 1);
 
         // Create an open measurement - must be created at last (life-cycle checks in PersistenceLayer.setStatus)
-        insertSampleMeasurementWithData(context, AUTHORITY, OPEN, oocut, 1, 1);
+        insertSampleMeasurementWithData(context, OPEN, oocut, 1, 1);
 
         // Check that syncable measurements = finishedMeasurement
         final List<Measurement> loadedMeasurements = oocut.loadMeasurements(FINISHED);
         assertThat(loadedMeasurements.size(), is(1));
-        assertThat(loadedMeasurements.get(0).getIdentifier(), is(equalTo(finishedMeasurement.getIdentifier())));
+        assertThat(loadedMeasurements.get(0).getId(), is(equalTo(finishedMeasurement.getId())));
     }
 
     /**
-     * Test that updating the distance in the {@link PersistenceLayer} during capturing works as expected.
+     * Test that updating the distance in the {@link DefaultPersistenceLayer} during capturing works as expected.
      *
      * @throws NoSuchMeasurementException – if there was no measurement with the id .
-     * @throws CursorIsNullException – If ContentProvider was inaccessible
      */
     @Test
-    public void testUpdateDistanceDuringCapturing() throws NoSuchMeasurementException, CursorIsNullException {
+    public void testUpdateDistanceDuringCapturing() throws NoSuchMeasurementException {
 
         // Arrange
         final Measurement measurement = oocut.newMeasurement(Modality.UNKNOWN);
 
         // Act
-        oocut.setDistance(measurement.getIdentifier(), 2.0);
+        oocut.setDistance(measurement.getId(), 2.0);
 
         // Assert
         Measurement loadedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
         assertThat(loadedMeasurement.getDistance(), is(equalTo(2.0)));
 
         // Ensure a second distance update works as well
-        oocut.setDistance(measurement.getIdentifier(), 4.0);
+        oocut.setDistance(measurement.getId(), 4.0);
         loadedMeasurement = oocut.loadCurrentlyCapturedMeasurement();
         assertThat(loadedMeasurement.getDistance(), is(equalTo(4.0)));
     }

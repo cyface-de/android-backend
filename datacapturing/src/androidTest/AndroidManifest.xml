@@ -3,10 +3,10 @@
     <!-- Required to change WiFi state for testing. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
-    <!-- Content provider used for storing and retrieving test data.-->
     <application>
+        <!-- Content provider used for storing and retrieving test data.-->
         <provider
-            android:name="de.cyface.persistence.MeasuringPointsContentProvider"
+            android:name="de.cyface.persistence.content.MeasurementProvider"
             android:authorities="de.cyface.datacapturing.test.provider"
             android:exported="false"
             android:process=":persistence_process"
