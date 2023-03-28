@@ -69,7 +69,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.5
+ * @version 5.7.6
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -194,8 +194,8 @@ class DataCapturingServiceTest {
             assertThat(isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(false)))
         }
         clearPersistenceLayer(context!!, contentResolver!!, TestUtils.AUTHORITY)
-    }// Get the current isRunning state (i.e. updates runningStatusCallback). This is important, see #MOV-484.
-    // Do not reuse the lock/condition/runningStatusCallback!
+    }
+
     /**
      * Makes sure a test did not forget to stop the capturing.
      */
@@ -225,7 +225,7 @@ class DataCapturingServiceTest {
      * @throws DataCapturingException If the asynchronous background service did not start successfully or no valid
      * Android context was available.
      * @throws MissingPermissionException If no Android `ACCESS_FINE_LOCATION` has been granted. You may
-     * register a [UIListener] to ask the user for this permission and prevent the
+     * register a [de.cyface.datacapturing.ui.UIListener] to ask the user for this permission and prevent the
      * `Exception`. If the `Exception` was thrown the service does not start.
      */
     @Throws(
@@ -881,7 +881,6 @@ We should consider refactoring the code before to use startCommandReceived as in
     /**
      * Tests that stopping a paused service does work successfully.
      *
-     *
      * As this test was flaky MOV-527, we have this test here which executes it multiple times.
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
@@ -907,7 +906,7 @@ We should consider refactoring the code before to use startCommandReceived as in
 
     /**
      * Tests that removing the [DataCapturingListener] during capturing does not stop the
-     * [DataCapturingBackgroundService].
+     * [de.cyface.datacapturing.backend.DataCapturingBackgroundService].
      *
      * @throws MissingPermissionException If the test is missing the permission to access the geo location sensor.
      * @throws DataCapturingException If any unexpected error occurs.
@@ -937,8 +936,7 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Tests if the service lifecycle is running successfully and that the life-cycle [Event]s are logged.
-     *
+     * Tests if the service lifecycle is running successfully and that the life-cycle [de.cyface.persistence.model.Event]s are logged.
      *
      * Makes sure the [DataCapturingService.pause] and
      * [DataCapturingService.resume] work correctly.
@@ -982,7 +980,7 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Tests if the service lifecycle is running successfully and that the life-cycle [Event]s are logged.
+     * Tests if the service lifecycle is running successfully and that the life-cycle [de.cyface.persistence.model.Event]s are logged.
      *
      * Makes sure the [DataCapturingService.pause] and
      * [DataCapturingService.resume] work correctly.

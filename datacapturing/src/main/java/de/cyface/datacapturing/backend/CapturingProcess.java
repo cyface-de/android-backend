@@ -61,7 +61,7 @@ import kotlin.NotImplementedError;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.1
+ * @version 3.2.2
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {

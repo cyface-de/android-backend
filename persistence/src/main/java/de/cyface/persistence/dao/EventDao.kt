@@ -32,7 +32,7 @@ import kotlinx.coroutines.flow.Flow
  * [de.cyface.persistence.model.GeoLocation] database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.5.0
  */
 @Dao

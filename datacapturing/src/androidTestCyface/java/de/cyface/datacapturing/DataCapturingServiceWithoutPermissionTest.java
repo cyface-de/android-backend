@@ -54,7 +54,7 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.8
+ * @version 2.1.9
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)

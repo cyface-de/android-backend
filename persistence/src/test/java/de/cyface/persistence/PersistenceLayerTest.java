@@ -51,7 +51,7 @@ import de.cyface.persistence.model.Track;
  * Tests the inner workings of the {@link DefaultPersistenceLayer}.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 6.3.0
  */
 @RunWith(AndroidJUnit4.class)
