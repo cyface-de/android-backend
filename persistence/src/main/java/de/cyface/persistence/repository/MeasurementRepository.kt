@@ -59,6 +59,12 @@ class MeasurementRepository(private val dao: MeasurementDao) {
 
     @Suppress("RedundantSuspendModifier")
     @WorkerThread
+    suspend fun loadAllCompleted(): List<Measurement> {
+        return dao.loadAllCompleted()
+    }
+
+    @Suppress("RedundantSuspendModifier")
+    @WorkerThread
     suspend fun loadById(id: Long): Measurement? {
         return dao.loadById(id)
     }

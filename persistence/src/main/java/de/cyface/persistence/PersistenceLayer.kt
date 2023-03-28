@@ -191,4 +191,10 @@ interface PersistenceLayer<B : PersistenceBehaviour?> {
      * @return The directory to be used for temporary files
      */
     val cacheDir: File
+
+    /**
+     * Loads all measurements which are not in the [MeasurementStatus.OPEN] or
+     * [MeasurementStatus.PAUSED] state starting with the newest measurement.
+     */
+    fun loadCompletedMeasurements(): List<Measurement>
 }

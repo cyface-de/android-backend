@@ -204,6 +204,16 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return hasMeasurement
     }
 
+    override fun loadCompletedMeasurements(): List<Measurement> {
+        var measurements: List<Measurement>
+        runBlocking {
+            measurements = withContext(scope.coroutineContext) {
+                measurementRepository!!.loadAllCompleted()
+            }
+        }
+        return measurements
+    }
+
     override fun loadMeasurements(): List<Measurement> {
         var measurements: List<Measurement>
         runBlocking {

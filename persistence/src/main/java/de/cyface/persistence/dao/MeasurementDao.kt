@@ -45,6 +45,13 @@ interface MeasurementDao {
     fun getAll(): List<Measurement>
 
     /**
+     * Loads all measurements which are not in the [MeasurementStatus.OPEN] or
+     * [MeasurementStatus.PAUSED] state starting with the newest measurement.
+     */
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
+    fun loadAllCompleted(): List<Measurement>
+
+    /**
      * Loads and observes all measurements which are not in the [MeasurementStatus.OPEN] or
      * [MeasurementStatus.PAUSED] state starting with the newest measurement.
      */
