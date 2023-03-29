@@ -25,19 +25,20 @@ import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Data access object which provides the API to interact with the
  * [de.cyface.persistence.model.GeoLocation] database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.5.0
  */
 @Dao
 interface EventDao {
     @Insert
-    fun insert(event: Event) : Long
+    fun insert(event: Event): Long
 
     @Query("SELECT * FROM ${EventTable.URI_PATH}")
     fun getAll(): List<Event>
@@ -49,13 +50,21 @@ interface EventDao {
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY timestamp ASC")
-    fun loadAllByMeasurementId(measurementId: Long): List<Event>
+    fun loadAllByMeasurementId(measurementId: Long): List<Event>?
+
+    /**
+     * Loads and observes all [Event]s of a specified measurement.
+     *
+     * As this returns a `Flow`, queries are automatically run asynchronously on a background thread.
+     */
+    @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
+    fun observeAllByMeasurementId(measurementId: Long): Flow<List<Event>?>
 
     /**
      * Ordered by timestamp is required.
      */
     @Query("SELECT * FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${EventTable.COLUMN_TYPE} = :type ORDER BY ${BaseColumns.TIMESTAMP} ASC")
-    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>
+    fun loadAllByMeasurementIdAndType(measurementId: Long, type: EventType): List<Event>?
 
     @Query("DELETE FROM ${EventTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
@@ -64,5 +73,5 @@ interface EventDao {
     fun deleteItemById(id: Long): Int
 
     @Query("DELETE FROM ${EventTable.URI_PATH}")
-    fun deleteAll() : Int
+    fun deleteAll(): Int
 }

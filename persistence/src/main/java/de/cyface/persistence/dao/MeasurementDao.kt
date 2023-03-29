@@ -25,27 +25,56 @@ import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
+import kotlinx.coroutines.flow.Flow
 
 /**
  * Data access object which provides the API to interact with the [Measurement] database table.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.1.0
  * @since 7.5.0
  */
 @Dao
 interface MeasurementDao {
+
     @Insert
     fun insert(measurement: Measurement): Long
 
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH}")
     fun getAll(): List<Measurement>
 
+    /**
+     * Loads all measurements which are not in the [MeasurementStatus.OPEN] or
+     * [MeasurementStatus.PAUSED] state starting with the newest measurement.
+     */
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
+    fun loadAllCompleted(): List<Measurement>
+
+    /**
+     * Loads and observes all measurements which are not in the [MeasurementStatus.OPEN] or
+     * [MeasurementStatus.PAUSED] state starting with the newest measurement.
+     */
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} NOT IN ('OPEN', 'PAUSED') ORDER BY ${BaseColumns.ID} DESC")
+    fun observeAllCompleted(): Flow<List<Measurement>>
+
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
     fun loadById(id: Long): Measurement?
 
+    /**
+     * Loads and observes a measurement.
+     *
+     * As this returns a `Flow`, queries are automatically run asynchronously on a background thread.
+     */
+    @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
+    fun observeById(id: Long): Flow<Measurement?>
+
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} = :status")
     fun loadAllByStatus(status: MeasurementStatus): List<Measurement>
+
+    // Try simplified updates: [RFR-341]
+    // https://developer.android.com/training/data-storage/room/accessing-data#convenience-update
+    //@Update
+    //fun update(vararg measurements: Measurement)
 
     @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION} = :fileFormatVersion WHERE ${BaseColumns.ID} = :id")
     fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int

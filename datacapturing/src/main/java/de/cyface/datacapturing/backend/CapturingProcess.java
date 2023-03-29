@@ -28,6 +28,7 @@ import java.util.Collection;
 import java.util.HashSet;
 import java.util.List;
 import java.util.Vector;
+import java.util.stream.Collectors;
 
 import android.hardware.Sensor;
 import android.hardware.SensorEvent;
@@ -45,12 +46,14 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
+import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.ParcelablePressure;
 import de.cyface.utils.Validate;
+import kotlin.NotImplementedError;
 
 /**
  * Implements the data capturing functionality for Cyface. This class implements the SensorEventListener to listen to
@@ -58,7 +61,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.1
+ * @version 3.2.2
  * @since 1.0.0
  */
 public abstract class CapturingProcess implements SensorEventListener, LocationListener, Closeable {
@@ -219,18 +222,18 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
                 verticalAccuracyMeters = location.hasVerticalAccuracy() ? (double)location.getVerticalAccuracyMeters()
                         : null;
             }
-            if (de.cyface.datacapturing.BuildConfig.DEBUG
+            if (BuildConfig.DEBUG
                     && (isEmulator() || (Build.FINGERPRINT != null && Build.FINGERPRINT.startsWith("google/sdk_")))) {
                 accuracy = Math.random() * 30.0;
                 verticalAccuracyMeters = accuracy * 2.5;
                 altitude = 400. + Math.random() * 2 - Math.random();
-                final List<ParcelablePressure> emulatedPressure = new ArrayList<>();
-                for (final ParcelablePressure p : pressures) {
-                    emulatedPressure
-                            .add(new ParcelablePressure(p.getTimestamp(), p.getPressure() + Math.random() * 2 - Math.random()));
+                if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                    final var copy = new ArrayList<>(pressures);
+                    pressures.clear();
+                    pressures.addAll(copy.stream().map(p -> new ParcelablePressure(p.getTimestamp(), p.getPressure() + Math.random() * 2 - Math.random())).collect(Collectors.toList()));
+                } else {
+                    throw new NotImplementedError("We don't support older emulators right now");
                 }
-                pressures.clear();
-                pressures.addAll(emulatedPressure);
                 Log.d(TAG,
                         String.format("Emulator detected, Accuracy overwritten with %f and vertical accuracy with %f",
                                 accuracy, verticalAccuracyMeters));

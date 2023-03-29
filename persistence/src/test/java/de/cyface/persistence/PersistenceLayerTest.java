@@ -51,7 +51,7 @@ import de.cyface.persistence.model.Track;
  * Tests the inner workings of the {@link DefaultPersistenceLayer}.
  *
  * @author Armin Schnabel
- * @version 1.0.1
+ * @version 1.0.2
  * @since 6.3.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -127,8 +127,10 @@ public class PersistenceLayerTest {
         track2.addPressure(new Pressure(3L, pressure(-1., p0), 1L));
 
         // Act
-        final Double ascend = oocut.ascendFromPressures(Collections.singletonList(track), 1);
-        final Double ascend2 = oocut.ascendFromPressures(Collections.singletonList(track2), 1);
+        final var altitudes = oocut.altitudesFromPressures(Collections.singletonList(track), 1);
+        final var altitudes2 = oocut.altitudesFromPressures(Collections.singletonList(track2), 1);
+        final Double ascend = oocut.totalAscend(altitudes);
+        final Double ascend2 = oocut.totalAscend(altitudes2);
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.02)));
@@ -159,8 +161,10 @@ public class PersistenceLayerTest {
         track2.addLocation(new GeoLocation(3L, 0., 0., -1., 1., 5., 5., 1L));
 
         // Act
-        final Double ascend = oocut.ascendFromGNSS(Collections.singletonList(track));
-        final Double ascend2 = oocut.ascendFromGNSS(Collections.singletonList(track2));
+        final var altitudes = oocut.altitudesFromGNSS(Collections.singletonList(track));
+        final var altitudes2 = oocut.altitudesFromGNSS(Collections.singletonList(track2));
+        final Double ascend = oocut.totalAscend(altitudes);
+        final Double ascend2 = oocut.totalAscend(altitudes2);
 
         // Assert
         assertThat(ascend, is(closeTo(5., 0.01)));

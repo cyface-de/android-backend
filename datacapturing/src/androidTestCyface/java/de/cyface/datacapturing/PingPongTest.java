@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2022 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -63,7 +63,7 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.10
+ * @version 1.2.11
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4.class)
@@ -133,7 +133,7 @@ public class PingPongTest {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                dcs = new CyfaceDataCapturingService(context, context.getContentResolver(), TestUtils.AUTHORITY,
+                dcs = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY,
                         TestUtils.ACCOUNT_TYPE, "https://fake.fake/", new IgnoreEventsStrategy(), testListener,
                         100);
             } catch (SetupException e) {

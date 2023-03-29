@@ -60,7 +60,7 @@ import java.io.File
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 7.0.1
  * @since 3.0.0
  */
 object SharedTestUtils {
@@ -253,7 +253,7 @@ object SharedTestUtils {
      * The later includes the [Point3DFile]s.
      */
     @JvmStatic
-    fun clearPersistenceLayer(
+    suspend fun clearPersistenceLayer(
         context: Context,
         persistence: PersistenceLayer<PersistenceBehaviour>
     ): Int {
@@ -264,8 +264,8 @@ object SharedTestUtils {
         // Remove database entries
         val removedGeoLocations = persistence.locationDao!!.deleteAll()
         val removedPressures = persistence.pressureDao!!.deleteAll()
-        val removedEvents = persistence.eventDao!!.deleteAll()
-        val removedMeasurements = persistence.measurementDao!!.deleteAll()
+        val removedEvents = persistence.eventRepository!!.deleteAll()
+        val removedMeasurements = persistence.measurementRepository!!.deleteAll()
         // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
         // However this should be okay to ignore for now as the identifier table should never be reset unless the
         // database itself is removed when the app is uninstalled or the app data is deleted.

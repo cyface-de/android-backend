@@ -54,7 +54,7 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.8
+ * @version 2.1.9
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -95,7 +95,7 @@ public class DataCapturingServiceWithoutPermissionTest {
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                oocut = new CyfaceDataCapturingService(context, contentResolver, AUTHORITY, ACCOUNT_TYPE,
+                oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE,
                         dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
             } catch (SetupException e) {
                 throw new IllegalStateException(e);

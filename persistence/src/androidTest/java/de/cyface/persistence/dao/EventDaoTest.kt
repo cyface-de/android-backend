@@ -33,7 +33,7 @@ import org.junit.Test
  * Tests the CRUD operations of the [EventDao].
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.5.0
  */
 class EventDaoTest {
@@ -111,7 +111,7 @@ class EventDaoTest {
         val events = eventDao.loadAllByMeasurementId(measurementId!!)
 
         // Assert
-        assertThat(events.size, equalTo(2))
+        assertThat(events!!.size, equalTo(2))
         assertThat(events, equalTo(listOf(event1, event2)))
     }
 
@@ -129,7 +129,7 @@ class EventDaoTest {
             eventDao.loadAllByMeasurementIdAndType(measurementId!!, EventType.LIFECYCLE_START)
 
         // Assert
-        assertThat(events.size, equalTo(1))
+        assertThat(events!!.size, equalTo(1))
         assertThat(events, equalTo(listOf(event)))
     }
 

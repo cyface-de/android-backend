@@ -26,7 +26,6 @@ import java.util.List;
 
 import android.accounts.Account;
 import android.content.ContentProvider;
-import android.content.ContentResolver;
 import android.content.Context;
 import android.util.Log;
 
@@ -58,7 +57,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 12.0.2
+ * @version 13.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
@@ -68,7 +67,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param resolver Resolver used to access the content provider for storing measurements.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
      *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
@@ -87,7 +85,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            frequency the maximum frequency is used. If this is lower than the maximum frequency the system
      *            usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
      */
-    private CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
+    private CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
@@ -105,7 +103,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * Creates a new completely initialized {@link DataCapturingService}.
      *
      * @param context The context (i.e. <code>Activity</code>) handling this service.
-     * @param resolver Resolver used to access the content provider for storing measurements.
      * @param authority The <code>ContentProvider</code> authority used to identify the content provider used by this
      *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
@@ -122,12 +119,12 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @throws SetupException If writing the components preferences or registering the dummy user account fails.
      */
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
-    public CyfaceDataCapturingService(@NonNull final Context context, @NonNull final ContentResolver resolver,
+    public CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
             @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException {
-        this(context, resolver, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+        this(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
                 new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
                 sensorFrequency);
     }

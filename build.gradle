@@ -27,7 +27,7 @@
 
 buildscript {
     ext.gradle_version = "7.3.0"
-    ext.kotlin_version = "1.7.10"
+    ext.kotlin_version = "1.8.0"
 
     repositories {
         google()
@@ -45,7 +45,7 @@ ext {
     cyfaceAndroidBackendVersion = "0.0.0" // Automatically overwritten by CI
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "3.3.4"
+    cyfaceUtilsVersion = "3.3.5"
     cyfaceSerializationVersion = "2.3.3"
 
     // Android SDK versions
@@ -55,10 +55,10 @@ ext {
     buildToolsVersion = '33.0.0' // optional, if defined, use latest (SDK Manager > SDK Tools)
 
     // Android dependencies
-    androidxAnnotationVersion = '1.5.0'
+    androidxAnnotationVersion = '1.6.0'
     androidxAppCompatVersion = "1.6.1"
     localbroadcastmanagerVersion = '1.1.0'
-    roomVersion = "2.5.0"
+    roomVersion = "2.5.1"
 
     // Kotlin components
     coroutinesVersion = "1.6.4"

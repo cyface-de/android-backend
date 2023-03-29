@@ -26,11 +26,9 @@ import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
-import de.cyface.persistence.dao.MeasurementDao
 import de.cyface.persistence.dao.PressureDao
 import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
@@ -45,6 +43,8 @@ import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.model.ParcelablePressure
 import de.cyface.persistence.model.Pressure
 import de.cyface.persistence.model.Track
+import de.cyface.persistence.repository.EventRepository
+import de.cyface.persistence.repository.MeasurementRepository
 import de.cyface.persistence.serialization.NoSuchFileException
 import de.cyface.persistence.serialization.Point3DFile
 import de.cyface.persistence.strategy.LocationCleaningStrategy
@@ -58,6 +58,7 @@ import kotlinx.coroutines.withContext
 import java.io.File
 import java.util.UUID
 import kotlin.math.abs
+import kotlin.math.max
 
 /**
  * This class wraps the Cyface Android persistence API as required by the `DataCapturingListener` and its delegate
@@ -65,7 +66,7 @@ import kotlin.math.abs
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.3.0
+ * @version 18.4.0
  * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
@@ -89,9 +90,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
     override val identifierDao: IdentifierDao?
 
-    override val measurementDao: MeasurementDao?
+    override val measurementRepository: MeasurementRepository?
 
-    override val eventDao: EventDao?
+    override val eventRepository: EventRepository?
 
     override val locationDao: LocationDao?
 
@@ -104,7 +105,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     private val job = SupervisorJob()
 
     /**+
-     * The scope that keeps track of coroutines, can cancel them and is notified about failures.
+     * The scope tracks coroutines, can cancel them and is notified about failures.
      *
      * No need to cancel this scope as it'll be torn down with the process.
      */
@@ -119,8 +120,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         context = null
         authority = null
         identifierDao = null
-        measurementDao = null
-        eventDao = null
+        measurementRepository = null
+        eventRepository = null
         locationDao = null
         pressureDao = null
         fileDao = DefaultFileDao()
@@ -138,8 +139,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         val database = Database.build(context.applicationContext)
         this.authority = authority
         this.identifierDao = database.identifierDao()
-        this.measurementDao = database.measurementDao()
-        this.eventDao = database.eventDao()
+        this.measurementRepository = MeasurementRepository(database.measurementDao())
+        this.eventRepository = EventRepository(database.eventDao())
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
         this.persistenceBehaviour = persistenceBehaviour
@@ -178,7 +179,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         )
         runBlocking {
             val measurementId = withContext(scope.coroutineContext) {
-                measurementDao!!.insert(measurement)
+                measurementRepository!!.insert(measurement)
             }
             measurement.id = measurementId
         }
@@ -191,7 +192,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>?
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                measurementDao!!.loadAllByStatus(status)
+                measurementRepository!!.loadAllByStatus(status)
             }
         }
         val hasMeasurement = measurements!!.isNotEmpty()
@@ -202,11 +203,21 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return hasMeasurement
     }
 
-    override fun loadMeasurements(): List<Measurement?> {
-        var measurements: List<Measurement?>
+    override fun loadCompletedMeasurements(): List<Measurement> {
+        var measurements: List<Measurement>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                measurementDao!!.getAll()
+                measurementRepository!!.loadAllCompleted()
+            }
+        }
+        return measurements
+    }
+
+    override fun loadMeasurements(): List<Measurement> {
+        var measurements: List<Measurement>
+        runBlocking {
+            measurements = withContext(scope.coroutineContext) {
+                measurementRepository!!.getAll()
             }
         }
         return measurements
@@ -216,7 +227,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurement: Measurement?
         runBlocking {
             measurement = withContext(scope.coroutineContext) {
-                measurementDao!!.loadById(measurementIdentifier)
+                measurementRepository!!.loadById(measurementIdentifier)
             }
         }
         return measurement
@@ -237,7 +248,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var event: Event?
         runBlocking {
             event = withContext(scope.coroutineContext) {
-                eventDao!!.loadById(eventId)
+                eventRepository!!.loadById(eventId)
             }
         }
         return event
@@ -272,7 +283,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var measurements: List<Measurement?>?
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
-                measurementDao!!.loadAllByStatus(status)
+                measurementRepository!!.loadAllByStatus(status)
             }
         }
         return measurements
@@ -380,7 +391,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         runBlocking {
             withContext(scope.coroutineContext) {
                 // measurement data like locations are deleted automatically because of `ForeignKey`
-                measurementDao!!.deleteItemById(measurementIdentifier)
+                measurementRepository!!.deleteItemById(measurementIdentifier)
             }
         }
     }
@@ -394,7 +405,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun deleteEvent(eventId: Long) {
         runBlocking {
             withContext(scope.coroutineContext) {
-                eventDao!!.deleteItemById(eventId)
+                eventRepository!!.deleteItemById(eventId)
             }
         }
     }
@@ -474,6 +485,33 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
+     * Returns the maximum speed of the measurement with the provided measurement identifier.
+     *
+     * Loads the [Track]s from the database to calculate the metric on the fly [STAD-384].
+     *
+     * @param measurementIdentifier The id of the `Measurement` to load the track for.
+     * @param locationCleaningStrategy The [LocationCleaningStrategy] used to filter the
+     * [de.cyface.persistence.model.ParcelableGeoLocation]s
+     * @return The maximum speed in meters per second.
+     */
+    @Suppress("unused") // Part of the API
+    fun loadMaxSpeed(
+        measurementIdentifier: Long,
+        locationCleaningStrategy: LocationCleaningStrategy
+    ): Double {
+        var maxSpeed = 0.0
+        val tracks = loadTracks(measurementIdentifier)
+        for (track in tracks) {
+            for (location in track.geoLocations) {
+                if (locationCleaningStrategy.isClean(location)) {
+                    maxSpeed = max(location!!.speed, maxSpeed)
+                }
+            }
+        }
+        return maxSpeed
+    }
+
+    /**
      * Returns the sum of the positive altitude changes of the measurement with the provided measurement identifier.
      *
      * To calculate the ascend, the [ParcelablePressure] values are loaded from the database if such values are
@@ -501,23 +539,61 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 }
             }
             return if (hasPressures && !forceGnssAscend) {
-                ascendFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE)
+                val altitudes = altitudesFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE)
+                totalAscend(altitudes)
             } else {
-                ascendFromGNSS(tracks)
+                val altitudes = altitudesFromGNSS(tracks)
+                totalAscend(altitudes)
             }
         }
         return null
     }
 
     /**
-     * Calculate based on atmospheric pressure.
+     * Returns the altitudes for each sub-track of a specified measurement.
      *
-     * @param tracks The track to calculate the ascend for.
-     * @param slidingWindowSize The window size to use to average the pressure values.
-     * @return The ascend in meters.
+     * To calculate the altitudes, the [ParcelablePressure] values are loaded from the database if such values are
+     * available, otherwise the the [Track]s with the [de.cyface.persistence.model.ParcelableGeoLocation] are loaded from the database to
+     * calculate the metric on the fly [STAD-384]. In case no altitude information is available, `null` is
+     * returned.
+     *
+     * @param measurementIdentifier The id of the `Measurement` to load the track for.
+     * @param forceGnssAltitudes `true` if the altitudes calculated based on GNSS data should be returned regardless if
+     * barometer data is available.
+     * @return A list of lists, each representing the altitudes of a sub-track in meters.
      */
-    fun ascendFromPressures(tracks: List<Track>, slidingWindowSize: Int): Double? {
-        var totalAscend: Double? = null
+    @Suppress("unused") // Part of the API
+    @JvmOverloads
+    fun loadAltitudes(measurementIdentifier: Long, forceGnssAltitudes: Boolean = false): List<List<Double>>? {
+
+        // Check if locations with altitude values are available
+        val tracks = loadTracks(measurementIdentifier)
+        if (tracks.isNotEmpty()) {
+            var hasPressures = false
+            for (track in tracks) {
+                if (track.pressures.isNotEmpty()) {
+                    hasPressures = true
+                    break
+                }
+            }
+            return if (hasPressures && !forceGnssAltitudes) {
+                altitudesFromPressures(tracks, PRESSURE_SLIDING_WINDOW_SIZE)
+            } else {
+                altitudesFromGNSS(tracks)
+            }
+        }
+        return null
+    }
+
+    /**
+     * Calculate the altitudes based on atmospheric pressure.
+     *
+     * @param tracks The tracks to calculate the altitudes for.
+     * @param slidingWindowSize The window size to use to average the pressure values.
+     * @return The altitudes in meters as list of lists, each representing a sub-track.
+     */
+    protected fun altitudesFromPressures(tracks: List<Track>, slidingWindowSize: Int): List<List<Double>> {
+        val allAltitudes = ArrayList<List<Double>>()
         for (track in tracks) {
 
             // Calculate average pressure because some devices measure large pressure differences when
@@ -528,7 +604,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 pressures.add(pressure!!.pressure)
             }
             val averagePressures = averages(pressures, slidingWindowSize) ?: continue
-            val altitudes: MutableList<Double> = ArrayList()
+            val altitudes = ArrayList<Double>()
             for (pressure in averagePressures) {
                 // As we're only interested in ascend and elevation profile, using a static reference pressure is
                 // sufficient [STAD-385] [STAD-391]
@@ -538,24 +614,50 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 ).toDouble()
                 altitudes.add(altitude)
             }
-
-            // Tracks without much altitude should return 0 not null
-            var ascend = if (altitudes.isEmpty()) null else 0.0
-            var lastAltitude: Double? = null
-            for (altitude in altitudes) {
-                if (lastAltitude == null) {
-                    lastAltitude = altitude
-                    continue
-                }
-                val newAscend = altitude - lastAltitude
-                if (abs(newAscend) < ASCEND_THRESHOLD_METERS) {
-                    continue
-                }
-                if (newAscend > 0) {
-                    ascend = ascend!! + newAscend
-                }
-                lastAltitude = altitude
+            if (altitudes.isNotEmpty()) {
+                allAltitudes.add(altitudes)
             }
+        }
+        return allAltitudes
+    }
+
+    /**
+     * Calculate the altitudes based on GNSS.altitude.
+     *
+     * @param tracks The tracks to calculate the altitudes for.
+     * @return The altitudes in meters as list of lists, each representing a sub-track.
+     */
+    protected fun altitudesFromGNSS(tracks: List<Track>): List<List<Double>> {
+        val allAltitudes = ArrayList<List<Double>>()
+        for (track in tracks) {
+            val altitudes = ArrayList<Double>()
+            for (location in track.geoLocations) {
+                val altitude = location!!.altitude
+                val verticalAccuracy = location.verticalAccuracy
+                if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
+                    if (altitude != null) {
+                        altitudes.add(altitude)
+                    }
+                }
+            }
+            if (altitudes.isNotEmpty()) {
+                allAltitudes.add(altitudes)
+            }
+        }
+        return allAltitudes
+    }
+
+    /**
+     * Calculate total ascend for a list of sub-tracks.
+     *
+     * @param altitudes The list of altitudes to calculate the ascend for.
+     * @return The ascend in meters.
+     */
+    protected fun totalAscend(altitudes: List<List<Double>>): Double? {
+        var totalAscend: Double? = null
+        for (trackAltitudes in altitudes) {
+            // Tracks without much altitude should return 0 not null
+            val ascend = if (trackAltitudes.isEmpty()) null else ascend(trackAltitudes)
             if (ascend != null) {
                 totalAscend = if (totalAscend != null) totalAscend + ascend else ascend
             }
@@ -564,46 +666,30 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     }
 
     /**
-     * Calculate based on GNSS.altitude.
+     * Calculate ascend from an ordered list of valid altitudes, from one sub-track.
      *
-     * @param tracks The track to calculate the ascend for.
+     * @param altitudes The altitudes to calculate the ascend for.
      * @return The ascend in meters.
      */
-    fun ascendFromGNSS(tracks: List<Track>): Double? {
-        var totalAscend: Double? = null
-        for (track in tracks) {
-            var ascend: Double? = null
-            var lastAltitude: Double? = null
-            for (location in track.geoLocations) {
-                val altitude = location!!.altitude
-                if (ascend == null && altitude != null) {
-                    // Tracks without much altitude should return 0 not null
-                    ascend = 0.0
-                }
-                val verticalAccuracy = location.verticalAccuracy
-                if (verticalAccuracy == null || verticalAccuracy <= VERTICAL_ACCURACY_THRESHOLD_METERS) {
-                    if (altitude == null) {
-                        continue
-                    }
-                    if (lastAltitude == null) {
-                        lastAltitude = altitude
-                        continue
-                    }
-                    if (abs(altitude - lastAltitude) < ASCEND_THRESHOLD_METERS) {
-                        continue
-                    }
-                    val newAscend = altitude - lastAltitude
-                    if (newAscend > 0) {
-                        ascend = ascend!! + newAscend
-                    }
-                    lastAltitude = altitude
-                }
+    private fun ascend(altitudes: List<Double>): Double {
+        var ascend = 0.0
+        var lastAltitude: Double? = null
+
+        for (altitude in altitudes) {
+            if (lastAltitude == null) {
+                lastAltitude = altitude
+                continue
             }
-            if (ascend != null) {
-                totalAscend = if (totalAscend != null) totalAscend + ascend else ascend
+            val newAscend = altitude - lastAltitude
+            if (abs(newAscend) < ASCEND_THRESHOLD_METERS) {
+                continue
             }
+            if (newAscend > 0) {
+                ascend += newAscend
+            }
+            lastAltitude = altitude
         }
-        return totalAscend
+        return ascend
     }
 
     /**
@@ -697,7 +783,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var pressures: List<Pressure>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementId(measurementIdentifier)
+                eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
             }
 
             // Load GeoLocation and Pressure
@@ -814,7 +900,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var events: List<Event?>
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementId(measurementIdentifier)
+                eventRepository!!.loadAllByMeasurementId(measurementIdentifier)!!
             }
         }
         return events
@@ -830,11 +916,11 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * specified {@param eventType}. An empty list if there are no such Events, but never `null`.
      */
     // Implementing apps (CY) use this
-    fun loadEvents(measurementId: Long, eventType: EventType): List<Event?>? {
-        var events: List<Event?>?
+    fun loadEvents(measurementId: Long, eventType: EventType): List<Event>? {
+        var events: List<Event>?
         runBlocking {
             events = withContext(scope.coroutineContext) {
-                eventDao!!.loadAllByMeasurementIdAndType(measurementId, eventType)
+                eventRepository!!.loadAllByMeasurementIdAndType(measurementId, eventType)
             }
         }
         return events
@@ -885,7 +971,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                measurementDao!!.updateFileFormatVersion(
+                measurementRepository!!.updateFileFormatVersion(
                     measurementId,
                     persistenceFileFormatVersion
                 )
@@ -953,7 +1039,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                measurementDao!!.update(measurementIdentifier, newStatus)
+                measurementRepository!!.update(measurementIdentifier, newStatus)
             }
         }
         Validate.isTrue(updates == 1)
@@ -987,7 +1073,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var updates: Int?
         runBlocking {
             updates = withContext(scope.coroutineContext) {
-                measurementDao!!.updateDistance(measurementIdentifier, newDistance)
+                measurementRepository!!.updateDistance(measurementIdentifier, newDistance)
             }
         }
         Validate.isTrue(updates == 1)
@@ -1020,7 +1106,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         var id: Long?
         runBlocking {
             id = withContext(scope.coroutineContext) {
-                eventDao!!.insert(Event(timestamp, eventType, value, measurement.id))
+                eventRepository!!.insert(Event(timestamp, eventType, value, measurement.id))
             }
         }
         return id!!

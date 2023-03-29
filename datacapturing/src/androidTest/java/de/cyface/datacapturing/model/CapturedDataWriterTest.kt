@@ -46,6 +46,7 @@ import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.serializer.model.Point3DType
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.testutils.SharedTestUtils.deserialize
+import kotlinx.coroutines.runBlocking
 import org.hamcrest.MatcherAssert
 import org.hamcrest.core.Is
 import org.hamcrest.core.IsEqual
@@ -63,7 +64,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.6.3
+ * @version 5.6.4
  * @since 1.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -93,7 +94,7 @@ class CapturedDataWriterTest {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         capturingBehaviour = CapturingPersistenceBehaviour()
         oocut = DefaultPersistenceLayer(context!!, TestUtils.AUTHORITY, capturingBehaviour!!)
-        clearPersistenceLayer(context!!, oocut!!)
+        runBlocking { clearPersistenceLayer(context!!, oocut!!) }
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut!!.restoreOrCreateDeviceId()
     }
@@ -103,7 +104,7 @@ class CapturedDataWriterTest {
      */
     @After
     fun tearDown() {
-        clearPersistenceLayer(context!!, oocut!!)
+        runBlocking { clearPersistenceLayer(context!!, oocut!!) }
     }
 
     /**
@@ -120,34 +121,43 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(id > 0L, Is.`is`(IsEqual.equalTo(true)))
 
         // Try to load the created measurement and check its properties
-        val created = oocut!!.measurementDao!!.loadById(id)
-        MatcherAssert.assertThat(created!!.modality, Is.`is`(IsEqual.equalTo(Modality.UNKNOWN)))
-        MatcherAssert.assertThat(created.status, Is.`is`(IsEqual.equalTo(MeasurementStatus.OPEN)))
-        MatcherAssert.assertThat(
-            created.fileFormatVersion, Is.`is`(
-                IsEqual.equalTo(
-                    DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION
+        runBlocking {
+            val created = oocut!!.measurementRepository!!.loadById(id)
+
+            MatcherAssert.assertThat(created!!.modality, Is.`is`(IsEqual.equalTo(Modality.UNKNOWN)))
+            MatcherAssert.assertThat(
+                created.status,
+                Is.`is`(IsEqual.equalTo(MeasurementStatus.OPEN))
+            )
+            MatcherAssert.assertThat(
+                created.fileFormatVersion, Is.`is`(
+                    IsEqual.equalTo(
+                        DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION
+                    )
                 )
             )
-        )
-        MatcherAssert.assertThat(created.distance, Is.`is`(IsEqual.equalTo(0.0)))
+            MatcherAssert.assertThat(created.distance, Is.`is`(IsEqual.equalTo(0.0)))
 
-        // Store persistenceFileFormatVersion
-        oocut!!.storePersistenceFileFormatVersion(
-            DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
-            id
-        )
+            // Store persistenceFileFormatVersion
+            oocut!!.storePersistenceFileFormatVersion(
+                DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION,
+                id
+            )
 
-        // Finish the measurement
-        capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
+            // Finish the measurement
+            capturingBehaviour!!.updateRecentMeasurement(MeasurementStatus.FINISHED)
 
-        // Load the finished measurement
-        val finished = oocut!!.measurementDao!!.loadById(id)
-        MatcherAssert.assertThat(finished!!.modality, Is.`is`(IsEqual.equalTo(Modality.UNKNOWN)))
-        MatcherAssert.assertThat(
-            finished.status,
-            Is.`is`(IsEqual.equalTo(MeasurementStatus.FINISHED))
-        )
+            // Load the finished measurement
+            val finished = oocut!!.measurementRepository!!.loadById(id)
+            MatcherAssert.assertThat(
+                finished!!.modality,
+                Is.`is`(IsEqual.equalTo(Modality.UNKNOWN))
+            )
+            MatcherAssert.assertThat(
+                finished.status,
+                Is.`is`(IsEqual.equalTo(MeasurementStatus.FINISHED))
+            )
+        }
     }
 
     /**
@@ -268,45 +278,47 @@ class CapturedDataWriterTest {
             lock.unlock()
         }
 
-        // clear the test data
-        val removedEntries = clearPersistenceLayer(context!!, oocut!!)
-        // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
-        // the life-cycle DataCapturingServiceTests
-        MatcherAssert.assertThat(
-            removedEntries, Is.`is`(
-                IsEqual.equalTo(
-                    testMeasurementsWithPoint3DFiles * point3DFilesPerMeasurement + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents
+        runBlocking {
+            // clear the test data
+            val removedEntries = clearPersistenceLayer(context!!, oocut!!)
+            // final int testIdentifierTableCount = 1; - currently not deleted at the end of tests because this breaks
+            // the life-cycle DataCapturingServiceTests
+            MatcherAssert.assertThat(
+                removedEntries, Is.`is`(
+                    IsEqual.equalTo(
+                        testMeasurementsWithPoint3DFiles * point3DFilesPerMeasurement + TEST_LOCATION_COUNT + testMeasurements /* + testIdentifierTableCount */ + testEvents
+                    )
                 )
             )
-        )
 
-        // make sure nothing is left in the database
-        val locations = oocut!!.locationDao!!.loadAllByMeasurementId(measurement.id)
-        val measurements = oocut!!.measurementDao!!.getAll()
-        val identifiers = oocut!!.identifierDao!!.getAll()
-        MatcherAssert.assertThat(locations.size, Is.`is`(IsEqual.equalTo(0)))
-        MatcherAssert.assertThat(measurements.size, Is.`is`(IsEqual.equalTo(0)))
-        MatcherAssert.assertThat(
-            identifiers.size,
-            Is.`is`(IsEqual.equalTo(1))
-        ) // because we don't clean it up currently
+            // make sure nothing is left in the database
+            val locations = oocut!!.locationDao!!.loadAllByMeasurementId(measurement.id)
+            val measurements = oocut!!.measurementRepository!!.getAll()
+            val identifiers = oocut!!.identifierDao!!.getAll()
+            MatcherAssert.assertThat(locations.size, Is.`is`(IsEqual.equalTo(0)))
+            MatcherAssert.assertThat(measurements.size, Is.`is`(IsEqual.equalTo(0)))
+            MatcherAssert.assertThat(
+                identifiers.size,
+                Is.`is`(IsEqual.equalTo(1))
+            ) // because we don't clean it up currently
 
-        // Make sure nothing is left of the Point3DFiles
-        val accelerationsFolder = oocut!!.fileDao.getFolderPath(
-            context!!,
-            Point3DFile.ACCELERATIONS_FOLDER_NAME
-        )
-        val rotationsFolder = oocut!!.fileDao.getFolderPath(
-            context!!,
-            Point3DFile.ROTATIONS_FOLDER_NAME
-        )
-        val directionsFolder = oocut!!.fileDao.getFolderPath(
-            context!!,
-            Point3DFile.DIRECTIONS_FOLDER_NAME
-        )
-        MatcherAssert.assertThat(accelerationsFolder.exists(), Is.`is`(IsEqual.equalTo(false)))
-        MatcherAssert.assertThat(rotationsFolder.exists(), Is.`is`(IsEqual.equalTo(false)))
-        MatcherAssert.assertThat(directionsFolder.exists(), Is.`is`(IsEqual.equalTo(false)))
+            // Make sure nothing is left of the Point3DFiles
+            val accelerationsFolder = oocut!!.fileDao.getFolderPath(
+                context!!,
+                Point3DFile.ACCELERATIONS_FOLDER_NAME
+            )
+            val rotationsFolder = oocut!!.fileDao.getFolderPath(
+                context!!,
+                Point3DFile.ROTATIONS_FOLDER_NAME
+            )
+            val directionsFolder = oocut!!.fileDao.getFolderPath(
+                context!!,
+                Point3DFile.DIRECTIONS_FOLDER_NAME
+            )
+            MatcherAssert.assertThat(accelerationsFolder.exists(), Is.`is`(IsEqual.equalTo(false)))
+            MatcherAssert.assertThat(rotationsFolder.exists(), Is.`is`(IsEqual.equalTo(false)))
+            MatcherAssert.assertThat(directionsFolder.exists(), Is.`is`(IsEqual.equalTo(false)))
+        }
     }
 
     /**
@@ -320,7 +332,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(2)))
         for (measurement in loadedMeasurements) {
-            oocut!!.delete(measurement!!.id)
+            oocut!!.delete(measurement.id)
         }
     }
 
@@ -377,9 +389,11 @@ class CapturedDataWriterTest {
         MatcherAssert.assertThat(!directionFile.exists(), Is.`is`(true))
         val locations = oocut!!.locationDao!!.loadAllByMeasurementId(measurementId)
         MatcherAssert.assertThat(locations.size, Is.`is`(IsEqual.equalTo(0)))
-        val events = oocut!!.eventDao!!.loadAllByMeasurementId(measurementId)
-        MatcherAssert.assertThat(events.size, Is.`is`(IsEqual.equalTo(0)))
-        MatcherAssert.assertThat(oocut!!.loadMeasurements().size, Is.`is`(IsEqual.equalTo(0)))
+        runBlocking {
+            val events = oocut!!.eventRepository!!.loadAllByMeasurementId(measurementId)
+            MatcherAssert.assertThat(events!!.size, Is.`is`(IsEqual.equalTo(0)))
+            MatcherAssert.assertThat(oocut!!.loadMeasurements().size, Is.`is`(IsEqual.equalTo(0)))
+        }
     }
 
     /**
@@ -417,7 +431,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val tracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id
+            loadedMeasurements[0].id
         )
 
         // Assert
@@ -475,7 +489,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val tracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id
+            loadedMeasurements[0].id
         )
 
         // Assert
@@ -516,7 +530,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val tracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id
+            loadedMeasurements[0].id
         )
 
         // Assert
@@ -568,7 +582,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val tracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id
+            loadedMeasurements[0].id
         )
 
         // Assert
@@ -610,7 +624,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val tracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id
+            loadedMeasurements[0].id
         )
 
         // Assert
@@ -641,7 +655,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val tracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id
+            loadedMeasurements[0].id
         )
 
         // Assert
@@ -701,7 +715,7 @@ class CapturedDataWriterTest {
         val loadedMeasurements = oocut!!.loadMeasurements()
         MatcherAssert.assertThat(loadedMeasurements.size, Is.`is`(IsEqual.equalTo(1)))
         val cleanedTracks = oocut!!.loadTracks(
-            loadedMeasurements[0]!!.id,
+            loadedMeasurements[0].id,
             DefaultLocationCleaning()
         )
 
