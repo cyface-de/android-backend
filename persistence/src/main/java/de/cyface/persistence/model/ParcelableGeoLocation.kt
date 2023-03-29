@@ -44,7 +44,7 @@ import java.util.Locale
  * @property isValid `True` if this location is considered "clean" by the provided [de.cyface.persistence.strategy.LocationCleaningStrategy].
  * This is not persisted, as the validity can be different depending on the strategy implementation.
  */
-open class ParcelableGeoLocation : DataPoint { // TODO: checkout 'kotlin-parcelize'
+open class ParcelableGeoLocation : DataPoint {
     open val lat: Double
     open val lon: Double
     open val altitude: Double?

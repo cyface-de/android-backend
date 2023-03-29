@@ -21,7 +21,6 @@ package de.cyface.persistence.dao
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
-import androidx.room.Update
 import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.model.Measurement
@@ -72,9 +71,10 @@ interface MeasurementDao {
     @Query("SELECT * FROM ${MeasurementTable.URI_PATH} WHERE ${MeasurementTable.COLUMN_STATUS} = :status")
     fun loadAllByStatus(status: MeasurementStatus): List<Measurement>
 
-    // TODO: See simplified versions: https://developer.android.com/training/data-storage/room/accessing-data#convenience-update
-    @Update
-    fun update(vararg measurements: Measurement)
+    // Try simplified updates: [RFR-341]
+    // https://developer.android.com/training/data-storage/room/accessing-data#convenience-update
+    //@Update
+    //fun update(vararg measurements: Measurement)
 
     @Query("UPDATE ${MeasurementTable.URI_PATH} SET ${MeasurementTable.COLUMN_PERSISTENCE_FILE_FORMAT_VERSION} = :fileFormatVersion WHERE ${BaseColumns.ID} = :id")
     fun updateFileFormatVersion(id: Long, fileFormatVersion: Short): Int

@@ -52,6 +52,7 @@ class MeasurementRepository(private val dao: MeasurementDao) {
     /**
      * Observes all entries.
      */
+    @Suppress("unused") // Used by SDK implementing app
     @WorkerThread
     fun observeAllCompleted(): Flow<List<Measurement>> {
         return dao.observeAllCompleted()
@@ -74,6 +75,7 @@ class MeasurementRepository(private val dao: MeasurementDao) {
      *
      * @param id The id of the [Measurement] to observe.
      */
+    @Suppress("unused") // Used by SDK implementing app
     @WorkerThread
     fun observeById(id: Long): Flow<Measurement?> {
         return dao.observeById(id)
@@ -83,12 +85,6 @@ class MeasurementRepository(private val dao: MeasurementDao) {
     @WorkerThread
     suspend fun loadAllByStatus(status: MeasurementStatus): List<Measurement> {
         return dao.loadAllByStatus(status)
-    }
-
-    @Suppress("RedundantSuspendModifier")
-    @WorkerThread
-    suspend fun update(measurement: Measurement) {
-        dao.update(measurement)
     }
 
     @Suppress("RedundantSuspendModifier")
