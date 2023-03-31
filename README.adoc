@@ -106,8 +106,8 @@ The following steps are required before you can start coding.
 [[content-provider-authority]]
 ==== Content Provider Authority
 
-This SDK uses Android's `SyncAdapter` to sync data. The `MeasurementProvider` is a `ContentProvider`
-implementation which allows `SyncAdapter` to access the data of this SDK.
+This SDK uses Android's `SyncAdapter` to sync data. The `StubProvider` is a `ContentProvider` stub
+which the `SyncAdapter` requires, even when we don't use it to access the data of this SDK.
 
 Therefor, you need to set a provider and to make sure you use the same provider everywhere:
 
@@ -125,7 +125,7 @@ application separately.
         <!-- This overwrites the provider in the SDK. This way the app can be installed next to other
         SDK using apps. The "authorities" must match the one in your AndroidManifest.xml! -->
         <provider
-            android:name="de.cyface.persistence.content.MeasurementProvider"
+            android:name="de.cyface.persistence.content.StubProvider"
             android:authorities="your.domain.app.provider"
             android:exported="false"
             android:process=":persistence_process"

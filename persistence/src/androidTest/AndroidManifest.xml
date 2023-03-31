@@ -5,8 +5,9 @@
 
     <application>
         <!-- The integration test uses a different authority to be executed next to the default app (same device) -->
+        <!-- But we replaced the Content Provider with a Stub Content provider. -->
         <provider
-            android:name="de.cyface.persistence.content.MeasurementProvider"
+            android:name="de.cyface.persistence.content.StubProvider"
             android:authorities="de.cyface.persistence.test.provider"
             android:exported="false"
             android:process=":persistence_process"

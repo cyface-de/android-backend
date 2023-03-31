@@ -22,10 +22,11 @@ import android.util.Log
 import de.cyface.persistence.Constants.TAG
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.content.MeasurementProviderClient
 import de.cyface.persistence.serialization.TransferFileSerializer.loadSerialized
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.withContext
 import java.io.BufferedOutputStream
 import java.io.File
 import java.io.FileOutputStream
@@ -59,14 +60,12 @@ class MeasurementSerializer {
      * **ATTENTION**: The caller needs to delete the file which is referenced by the returned `FileInputStream`
      * when no longer needed or on program crash!
      *
-     * @param loader The source to load the `Measurement` data from
      * @param measurementId The id of the [de.cyface.persistence.model.Measurement] to load
-     * @param persistenceLayer The [PersistenceLayer] to load the file based `Measurement` data from
+     * @param persistenceLayer The [PersistenceLayer] to load the `Measurement` data from
      * @return A [File] pointing to a temporary file containing the serialized compressed data for transfer.
      */
     @Throws(CursorIsNullException::class)
-    fun writeSerializedCompressed(
-        loader: MeasurementProviderClient,
+    suspend fun writeSerializedCompressed(
         measurementId: Long,
         persistenceLayer: PersistenceLayer<*>
     ): File? {
@@ -76,15 +75,18 @@ class MeasurementSerializer {
         var compressedTempFile: File? = null
         try {
             compressedTempFile =
-                File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir)
-            FileOutputStream(compressedTempFile).use { fileOutputStream ->
-                // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
-                loadSerializedCompressed(
-                    fileOutputStream,
-                    loader,
-                    measurementId,
-                    persistenceLayer
-                )
+                withContext(Dispatchers.IO) {
+                    File.createTempFile(COMPRESSED_TRANSFER_FILE_PREFIX, ".tmp", cacheDir)
+                }
+            withContext(Dispatchers.IO) {
+                FileOutputStream(compressedTempFile).use { fileOutputStream ->
+                    // As we create the DeflaterOutputStream with an FileOutputStream the compressed data is written to file
+                    loadSerializedCompressed(
+                        fileOutputStream,
+                        measurementId,
+                        persistenceLayer
+                    )
+                }
             }
         } catch (e: IOException) {
             if (compressedTempFile != null && compressedTempFile.exists()) {
@@ -102,15 +104,13 @@ class MeasurementSerializer {
      * The Deflater ZLIB (RFC-1950) compression is used.
      *
      * @param fileOutputStream the `FileInputStream` to write the compressed data to
-     * @param loader The source to load the `Measurement` data from
      * @param measurementId The id of the [de.cyface.persistence.model.Measurement] to load
-     * @param persistenceLayer The [PersistenceLayer] to load the file based `Measurement` data
+     * @param persistenceLayer The [PersistenceLayer] to load the `Measurement` data
      * @throws IOException When flushing or closing the [OutputStream] fails
      */
     @Throws(IOException::class)
-    private fun loadSerializedCompressed(
+    private suspend fun loadSerializedCompressed(
         fileOutputStream: OutputStream,
-        loader: MeasurementProviderClient,
         measurementId: Long,
         persistenceLayer: PersistenceLayer<*>
     ) {
@@ -126,7 +126,7 @@ class MeasurementSerializer {
         val deflaterStream = DeflaterOutputStream(bufferedFileOutputStream, compressor)
         BufferedOutputStream(deflaterStream).use { outputStream ->
             // Injecting the outputStream into which the serialized (in this case compressed) data is written to
-            loadSerialized(outputStream, loader, measurementId, persistenceLayer)
+            loadSerialized(outputStream, measurementId, persistenceLayer)
             outputStream.flush()
         }
         Log.d(

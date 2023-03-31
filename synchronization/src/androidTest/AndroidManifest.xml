@@ -6,9 +6,9 @@
     <!-- `usesCleartextTraffic="true"' allows to test against a local API as in `SyncPerformerTest` -->
     <application
         android:usesCleartextTraffic="true">
-        <!-- Content provider used for storing and retrieving test data.-->
+        <!-- Stub Content provider required for the SyncAdapter. -->
         <provider
-            android:name="de.cyface.persistence.content.MeasurementProvider"
+            android:name="de.cyface.persistence.content.StubProvider"
             android:authorities="de.cyface.synchronization.test.provider"
             android:exported="false"
             android:process=":persistence_process"

@@ -18,6 +18,7 @@
  */
 package de.cyface.persistence.dao
 
+import android.database.Cursor
 import androidx.room.Dao
 import androidx.room.Insert
 import androidx.room.Query
@@ -50,6 +51,26 @@ interface LocationDao {
     fun loadAllByMeasurementId(measurementId: Long): List<GeoLocation>
 
     /**
+     * Returns a [Cursor] which points to a specific page defined by [limit] and [offset] of all locations
+     * of a measurement with a specified the [measurementId].
+     *
+     * This way we can reuse the code in `SyncAdapter` > `TransferFileSerializer` which queries and serializes
+     * only 10_000 entries at a time which fixed performance issues with large measurements.
+     *
+     * The locations are ordered by timestamp.
+     *
+     * This could be replaced by room-paging, but it's not straight forward.
+     */
+    @Query("SELECT * FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC LIMIT :limit OFFSET :offset")
+    fun selectAllByMeasurementId(measurementId: Long, offset: Int, limit: Int): Cursor?
+
+    /**
+     * Returns the number of locations found for a specific [measurementId].
+     */
+    @Query("SELECT COUNT(*) FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
+    fun countByMeasurementId(measurementId: Long): Int
+
+    /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${LocationTable.COLUMN_SPEED} > :lowerSpeedThreshold AND ${LocationTable.COLUMN_ACCURACY} < :accuracyThreshold AND ${LocationTable.COLUMN_SPEED} < :upperSpeedThreshold ORDER BY ${BaseColumns.TIMESTAMP} ASC")
@@ -58,11 +79,11 @@ interface LocationDao {
         lowerSpeedThreshold: Double,
         accuracyThreshold: Double,
         upperSpeedThreshold: Double
-    ) : List<GeoLocation>
+    ): List<GeoLocation>
 
     @Query("DELETE FROM ${LocationTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM ${LocationTable.URI_PATH}")
-    fun deleteAll() : Int
+    fun deleteAll(): Int
 }
