@@ -307,7 +307,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         }
         final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new DefaultPersistenceLayer<>(this, authority, capturingBehaviour);
+        persistenceLayer = new DefaultPersistenceLayer<>(this, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);

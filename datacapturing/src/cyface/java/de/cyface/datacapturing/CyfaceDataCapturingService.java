@@ -92,7 +92,7 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
             @NonNull final LocationCleaningStrategy locationCleaningStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency) {
         super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-                new DefaultPersistenceLayer<>(context, authority, new CapturingPersistenceBehaviour()),
+                new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
             throw new IllegalStateException("No LOGIN_ACTIVITY was set from the SDK using app.");

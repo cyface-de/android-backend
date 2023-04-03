@@ -91,7 +91,7 @@ public class PersistenceLayerTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
         resolver = context.getContentResolver();
         this.capturingBehaviour = new CapturingPersistenceBehaviour();
-        oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, capturingBehaviour);
+        oocut = new DefaultPersistenceLayer<>(context, capturingBehaviour);
     }
 
     /**

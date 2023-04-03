@@ -110,7 +110,6 @@ class SyncAdapter private constructor(
         val persistence =
             DefaultPersistenceLayer<DefaultPersistenceBehaviour?>(
                 context,
-                authority,
                 DefaultPersistenceBehaviour()
             )
         val authenticator = CyfaceAuthenticator(context)

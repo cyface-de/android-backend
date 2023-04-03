@@ -120,7 +120,7 @@ public class DataCapturingBackgroundServiceTest {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
 
         // This is normally called in the <code>DataCapturingService#Constructor</code>
-        final var persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new CapturingPersistenceBehaviour());
+        final var persistenceLayer = new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         testMeasurement = persistenceLayer.newMeasurement(Modality.BICYCLE);

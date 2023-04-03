@@ -101,7 +101,7 @@ public class UploadProgressTest {
         contentResolver = context.getContentResolver();
 
         clearPersistenceLayer(context, contentResolver, AUTHORITY);
-        persistenceLayer = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
+        persistenceLayer = new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
         persistenceLayer.restoreOrCreateDeviceId();
 
         // Ensure reproducibility

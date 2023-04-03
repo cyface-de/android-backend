@@ -20,11 +20,8 @@ package de.cyface.persistence
 
 import android.content.Context
 import android.hardware.SensorManager
-import android.net.Uri
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.content.EventTable
-import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.IdentifierDao
@@ -78,11 +75,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
     override val context: Context?
 
-    /**
-     * The authority used to identify the Android content provider to persist data to or load it from.
-     */
-    private val authority: String?
-
     var persistenceBehaviour: B? = null
         private set
 
@@ -118,7 +110,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor() {
         context = null
-        authority = null
         identifierDao = null
         measurementRepository = null
         eventRepository = null
@@ -134,10 +125,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, authority: String, persistenceBehaviour: B) {
+    constructor(context: Context, persistenceBehaviour: B) {
         this.context = context
         val database = Database.build(context.applicationContext)
-        this.authority = authority
         this.identifierDao = database.identifierDao()
         this.measurementRepository = MeasurementRepository(database.measurementDao())
         this.eventRepository = EventRepository(database.eventDao())
@@ -1110,20 +1100,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
         }
         return id!!
-    }
-
-    /**
-     * @return The content provider `Uri` for the [EventTable].
-     */
-    fun eventUri(): Uri {
-        return EventTable.getUri(authority!!)
-    }
-
-    /**
-     * @return The content provider `Uri` for the [MeasurementTable].
-     */
-    fun measurementUri(): Uri {
-        return MeasurementTable.getUri(authority!!)
     }
 
     override val cacheDir: File

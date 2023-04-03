@@ -148,7 +148,7 @@ class DataCapturingServiceTest {
 
         // Prepare
         persistenceLayer =
-            DefaultPersistenceLayer(context!!, TestUtils.AUTHORITY, DefaultPersistenceBehaviour())
+            DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning)
@@ -833,7 +833,7 @@ We should consider refactoring the code before to use startCommandReceived as in
 
         // Resume 2: must be ignored by resumeAsync
         val persistence = DefaultPersistenceLayer(
-            context!!, TestUtils.AUTHORITY, CapturingPersistenceBehaviour()
+            context!!, CapturingPersistenceBehaviour()
         )
         // Do not reuse the lock/condition!
         val lock: Lock = ReentrantLock()
