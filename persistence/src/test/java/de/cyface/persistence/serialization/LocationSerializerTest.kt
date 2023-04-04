@@ -131,7 +131,6 @@ class LocationSerializerTest {
     /**
      * Reproducing test for bug [RFR-104].
      *
-     *
      * When more than DATABASE_QUERY_LIMIT (in that case 10.000) locations where loaded from the
      * database for serialization, [LocationSerializer.readFrom] was called more
      * than once. As we did initialized `LocationOffsetter` in that function, the offsetter

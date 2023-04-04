@@ -48,7 +48,7 @@ import java.util.zip.DeflaterOutputStream
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.2
+ * @version 9.0.0
  * @since 2.0.0
  */
 class MeasurementSerializer {

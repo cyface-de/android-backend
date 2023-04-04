@@ -55,7 +55,7 @@ import java.io.File
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.0.2
  * @since 2.0.0
  * @property http The http connection to use for synchronization.
  */
