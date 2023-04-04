@@ -125,7 +125,17 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, persistenceBehaviour: B) {
+    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileDao())
+
+    /**
+     * Creates a new completely initialized `PersistenceLayer`.
+     *
+     * @param context The [Context] required to locate the app's internal storage directory.
+     * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
+     * to capture live data.
+     * @param fileDao The DAO to load files from.
+     */
+    constructor(context: Context, persistenceBehaviour: B, fileDao: FileDao) {
         this.context = context
         val database = Database.build(context.applicationContext)
         this.identifierDao = database.identifierDao()
@@ -134,7 +144,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
         this.persistenceBehaviour = persistenceBehaviour
-        fileDao = DefaultFileDao()
+        this.fileDao = fileDao
         val accelerationsFolder =
             fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationsFolder =

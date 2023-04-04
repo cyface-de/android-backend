@@ -125,16 +125,17 @@ dependencies {
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")
+    androidTestImplementation "de.cyface:deserializer:$rootProject.ext.cyfaceSerializationVersion"
     androidTestImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     androidTestImplementation "androidx.test:rules:$rootProject.ext.rulesVersion"
     androidTestImplementation "org.mockito:mockito-android:$rootProject.ext.mockitoVersion"
+    androidTestImplementation "org.mockito.kotlin:mockito-kotlin:$rootProject.ext.mockitoKotlinVersion"
     // For some reasons the CI does does pull the transitive dependencies of mockito-android which will fails
     // https://search.maven.org/remotecontent?filepath=org/mockito/mockito-android/2.26.0/mockito-android-2.26.0.pom
     androidTestImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
 
     // Dependencies for local unit tests
     testImplementation project(":testutils")
-    testImplementation "de.cyface:deserializer:$rootProject.ext.cyfaceSerializationVersion"
     // If Junit symbols are unresolvable make sure Build Variant is set to debug
     testImplementation "androidx.test.ext:junit:$rootProject.ext.junitVersion"
     testImplementation "org.mockito:mockito-core:$rootProject.ext.mockitoVersion"
