@@ -188,7 +188,7 @@ class MovebisDataCapturingService internal constructor(
     init {
         preMeasurementLocationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        setUiListener(uiListener)
+        this.uiListener = uiListener
     }
 
     /**

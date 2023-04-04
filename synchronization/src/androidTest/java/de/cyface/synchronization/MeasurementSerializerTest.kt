@@ -89,12 +89,11 @@ class MeasurementSerializerTest {
     @Before
     @Throws(RemoteException::class)
     fun setUp() = runBlocking {
-        // Generate sample sensor data
+
+        // Mock file access layer
         val accelerations = serializeSamplePoints(SAMPLE_ACCELERATIONS, Point3DType.ACCELERATION)
         val serializedRotations = serializeSamplePoints(SAMPLE_ROTATIONS, Point3DType.ROTATION)
         val serializedDirections = serializeSamplePoints(SAMPLE_DIRECTIONS, Point3DType.DIRECTION)
-
-        // Mock FileAccessLayer
         val mockFolder = mock<File> {
             on { exists() } doReturn true
         }

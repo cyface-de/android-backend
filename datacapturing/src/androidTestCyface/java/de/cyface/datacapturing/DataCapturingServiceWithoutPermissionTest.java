@@ -18,8 +18,6 @@
  */
 package de.cyface.datacapturing;
 
-import static de.cyface.datacapturing.TestUtils.ACCOUNT_TYPE;
-import static de.cyface.datacapturing.TestUtils.AUTHORITY;
 import static org.hamcrest.CoreMatchers.equalTo;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.MatcherAssert.assertThat;
@@ -34,13 +32,13 @@ import org.junit.Test;
 import org.junit.runner.RunWith;
 
 import android.accounts.AccountAuthenticatorActivity;
-import android.content.ContentResolver;
 import android.content.Context;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.filters.MediumTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
@@ -86,7 +84,6 @@ public class DataCapturingServiceWithoutPermissionTest {
     @Before
     public void setUp() {
         context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        final ContentResolver contentResolver = context.getContentResolver();
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
@@ -95,7 +92,7 @@ public class DataCapturingServiceWithoutPermissionTest {
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
-                oocut = new CyfaceDataCapturingService(context, AUTHORITY, ACCOUNT_TYPE,
+                oocut = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
                         dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
             } catch (SetupException e) {
                 throw new IllegalStateException(e);

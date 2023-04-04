@@ -46,8 +46,6 @@ import de.cyface.datacapturing.model.CapturedData
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.ui.Reason
 import de.cyface.datacapturing.ui.UIListener
-import de.cyface.persistence.strategy.DistanceCalculationStrategy
-import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.EventType
@@ -55,6 +53,8 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.model.ParcelableGeoLocation
+import de.cyface.persistence.strategy.DistanceCalculationStrategy
+import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
@@ -187,7 +187,6 @@ abstract class DataCapturingService(
      * been no previous call to [.setUiListener].
      */
     var uiListener: UIListener? = null
-        private set
 
     /**
      * The `ContentProvider` authority required to request a sync operation in the [WiFiSurveyor].
@@ -206,7 +205,7 @@ abstract class DataCapturingService(
      * The identifier used to qualify [Measurement]s from this capturing service with the server receiving
      * the `Measurement`s. This needs to be world wide unique.
      */
-    val deviceIdentifier: String
+    private val deviceIdentifier: String
 
     /**
      * A receiver for synchronization events.
@@ -252,7 +251,7 @@ abstract class DataCapturingService(
 
         // Mark deprecated measurements
         for (m in persistenceLayer.loadMeasurements()) {
-            if (m!!.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
+            if (m.fileFormatVersion < DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION && m.status != MeasurementStatus.DEPRECATED) {
                 try {
                     markDeprecated(m.id, m.status)
                 } catch (e: NoSuchMeasurementException) {
@@ -733,13 +732,6 @@ abstract class DataCapturingService(
     }
 
     /**
-     * @param uiListener A listener for events which the UI might be interested in.
-     */
-    fun setUiListener(uiListener: UIListener) {
-        this.uiListener = uiListener
-    }
-
-    /**
      * @return The current Android `Context` used by this service or `null` if there currently is
      * none.
      */
@@ -775,7 +767,6 @@ abstract class DataCapturingService(
         // Binding the intent to the package of the app which runs this SDK [DAT-1509].
         startIntent.setPackage(context.packageName)
         startIntent.putExtra(BundlesExtrasCodes.MEASUREMENT_ID, measurement.id)
-        startIntent.putExtra(BundlesExtrasCodes.AUTHORITY_ID, authority)
         startIntent.putExtra(BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID, eventHandlingStrategy)
         startIntent.putExtra(
             BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID,
@@ -786,8 +777,7 @@ abstract class DataCapturingService(
             locationCleaningStrategy
         )
         startIntent.putExtra(BundlesExtrasCodes.SENSOR_FREQUENCY, sensorFrequency)
-        val serviceComponentName: ComponentName?
-        serviceComponentName =
+        val serviceComponentName: ComponentName? =
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
                 context.startForegroundService(startIntent)
             } else {
@@ -872,8 +862,7 @@ abstract class DataCapturingService(
      * @param context Current `Activity` context.
      * @return Either `true` if permission was or has been granted; `false` otherwise.
      */
-    // BooleanMethodIsAlwaysInverted: Better readable this way
-    // WeakerAccess: Used by MovebisDataCapturingService
+    @Suppress("MemberVisibilityCanBePrivate") //Used by MovebisDataCapturingService
     fun checkFineLocationAccess(context: Context): Boolean {
         val permissionAlreadyGranted = ActivityCompat.checkSelfPermission(
             context,
@@ -1122,7 +1111,7 @@ abstract class DataCapturingService(
                 persistenceLayer.loadEvents(measurement.id, EventType.MODALITY_TYPE_CHANGE)
             if (modalityChanges!!.isNotEmpty()) {
                 val lastModalityChangeEvent = modalityChanges[modalityChanges.size - 1]
-                val lastChangeValue = lastModalityChangeEvent!!.value
+                val lastChangeValue = lastModalityChangeEvent.value
                 Validate.notNull(lastChangeValue)
                 if (lastChangeValue == newModality.databaseIdentifier) {
                     Log.d(

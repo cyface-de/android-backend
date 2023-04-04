@@ -22,7 +22,6 @@ import android.Manifest
 import android.accounts.Account
 import android.accounts.AccountAuthenticatorActivity
 import android.accounts.AccountManager
-import android.content.ContentResolver
 import android.content.Context
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -75,7 +74,6 @@ import java.util.concurrent.locks.ReentrantLock
 @RunWith(AndroidJUnit4::class)
 @LargeTest
 class DataCapturingServiceTest {
-    private var contentResolver: ContentResolver? = null
 
     /**
      * Rule used to run
@@ -108,17 +106,17 @@ class DataCapturingServiceTest {
     /**
      * [DefaultPersistenceLayer] required to access stored [Measurement]s.
      */
-    private var persistenceLayer: PersistenceLayer<PersistenceBehaviour>? = null
+    private var persistence: PersistenceLayer<PersistenceBehaviour>? = null
 
     /**
      * Initializes the super class as well as the object of the class under test and the synchronization lock. This is
      * called prior to every single test case.
      */
     @Before
-    fun setUp() {
+    fun setUp() = runBlocking {
         context = InstrumentationRegistry.getInstrumentation().targetContext
-        contentResolver = context!!.contentResolver
-        clearPersistenceLayer(context!!, contentResolver!!, TestUtils.AUTHORITY)
+        persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
+        clearPersistenceLayer(context!!, persistence!!)
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity::class.java
@@ -145,10 +143,6 @@ class DataCapturingServiceTest {
                 throw IllegalStateException(e)
             }
         }
-
-        // Prepare
-        persistenceLayer =
-            DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
 
         // Making sure there is no service instance of a previous test running
         Validate.isTrue(!isDataCapturingServiceRunning)
@@ -193,7 +187,7 @@ class DataCapturingServiceTest {
             val isRunning = isDataCapturingServiceRunning
             assertThat(isRunning, CoreMatchers.`is`(CoreMatchers.equalTo(false)))
         }
-        clearPersistenceLayer(context!!, contentResolver!!, TestUtils.AUTHORITY)
+        runBlocking { clearPersistenceLayer(context!!, persistence!!) }
     }
 
     /**
@@ -438,11 +432,11 @@ class DataCapturingServiceTest {
     )
     fun testMultipleStartStopWithDelay() {
         val measurementIdentifier = startAndCheckThatLaunched()
-        var measurements: List<Measurement?> = persistenceLayer!!.loadMeasurements()
+        var measurements: List<Measurement?> = persistence!!.loadMeasurements()
         assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(1)))
         stopAndCheckThatStopped(measurementIdentifier)
         val measurementIdentifier2 = startAndCheckThatLaunched()
-        measurements = persistenceLayer!!.loadMeasurements()
+        measurements = persistence!!.loadMeasurements()
         assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(2)))
         stopAndCheckThatStopped(measurementIdentifier2)
     }
@@ -546,7 +540,7 @@ We should consider refactoring the code before to use startCommandReceived as in
             2, TimeUnit.SECONDS, shutDownFinishedHandler3.lock,
             shutDownFinishedHandler3.condition
         )
-        val measurements = persistenceLayer!!.loadMeasurements()
+        val measurements = persistence!!.loadMeasurements()
         assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(3)))
         val measurementId1 = startUpFinishedHandler1.receivedMeasurementIdentifier
         assertThat(
@@ -1006,7 +1000,7 @@ We should consider refactoring the code before to use startCommandReceived as in
 
             // For for-i-loops within this test
             runBlocking {
-                clearPersistenceLayer(context!!, persistenceLayer!!)
+                clearPersistenceLayer(context!!, persistence!!)
             }
         }
     }
@@ -1019,11 +1013,11 @@ We should consider refactoring the code before to use startCommandReceived as in
     )
     private fun startPauseResumeStop(): Long {
         val measurementIdentifier = startAndCheckThatLaunched()
-        val measurements = persistenceLayer!!.loadMeasurements()
+        val measurements = persistence!!.loadMeasurements()
         assertThat(measurements.size, CoreMatchers.`is`(CoreMatchers.equalTo(1)))
         pauseAndCheckThatStopped(measurementIdentifier)
         resumeAndCheckThatLaunched(measurementIdentifier)
-        val newMeasurements = persistenceLayer!!.loadMeasurements()
+        val newMeasurements = persistence!!.loadMeasurements()
         assertThat(
             measurements.size == newMeasurements.size, CoreMatchers.`is`(
                 CoreMatchers.equalTo(true)
@@ -1034,7 +1028,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         runBlocking {
             // Check Events
             val events =
-                persistenceLayer!!.eventRepository!!.loadAllByMeasurementId(measurementIdentifier)
+                persistence!!.eventRepository!!.loadAllByMeasurementId(measurementIdentifier)
             assertThat(events!!.size, CoreMatchers.`is`(CoreMatchers.equalTo(5)))
             assertThat(
                 events[0].type,
@@ -1092,7 +1086,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         val measurementIdentifier = startAndCheckThatLaunched()
 
         // Check sensor data
-        val measurements = persistenceLayer!!.loadMeasurements()
+        val measurements = persistence!!.loadMeasurements()
         assertThat(
             measurements.size > 0,
             CoreMatchers.`is`(CoreMatchers.equalTo(true))

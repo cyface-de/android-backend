@@ -32,6 +32,7 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.LocationSerializer
 import de.cyface.testutils.SharedTestUtils.clearPersistenceLayer
 import de.cyface.utils.CursorIsNullException
+import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers.equalTo
 import org.hamcrest.MatcherAssert.assertThat
@@ -39,6 +40,7 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import java.lang.Double.min
 
 /**
  * Tests that the database access of [LocationSerializer]s works.
@@ -51,6 +53,7 @@ import org.junit.runner.RunWith
  */
 @RunWith(AndroidJUnit4::class)
 class LocationSerializerTest {
+
     private lateinit var persistence: PersistenceLayer<PersistenceBehaviour>
     private var context: Context? = null
     private var oocut: LocationSerializer? = null
@@ -81,33 +84,45 @@ class LocationSerializerTest {
      */
     @Test
     fun testReadFrom() {
+        testReadFrom(2)
+    }
+
+    /**
+     * This test makes sure that larger GeoLocation tracks can be loaded completely form the
+     * database as there was a bug which limited the query size to 10_000 entries #MOV-248.
+     */
+    @Test
+    fun testReadFrom_10hTrack() {
+        // The Location frequency is always 1 Hz, i.e. 10h of measurement:
+        testReadFrom(3600 * 10)
+    }
+
+    private fun testReadFrom(numberOfTestEntries: Int) {
+        Validate.isTrue(numberOfTestEntries >= 2, "not supported")
+
         // Arrange
-        val location1 = GeoLocation(
-            1L,
-            2.0,
-            3.0,
-            4.0,
-            5.0,
-            6.0,
-            7.0,
-            measurementId!!
-        )
-        val location2 = GeoLocation(
-            2L,
-            3.0,
-            4.0,
-            5.0,
-            6.0,
-            7.0,
-            8.0,
-            measurementId!!
-        )
-        persistence.locationDao!!.insertAll(location1, location2)
+        val locations = arrayListOf<GeoLocation>()
+        for (i in 1.rangeTo(numberOfTestEntries)) {
+            val location = GeoLocation(
+                i.toLong(),
+                min(i + 1.0, 90.0),
+                min(i + 2.0, 180.0),
+                min(i + 3.0, 10_000.0),
+                i + 4.0,
+                i + 5.0,
+                i + 6.0,
+                measurementId!!
+            )
+            locations.add(location)
+        }
+        persistence.locationDao!!.insertAll(*locations.toTypedArray())
+
 
         // Act
         var cursor: Cursor? = null
         try {
             val count = persistence.locationDao!!.countByMeasurementId(measurementId!!)
+            assertThat(count, equalTo(numberOfTestEntries))
             var startIndex = 0
             while (startIndex < count) {
                 cursor =
@@ -128,9 +143,9 @@ class LocationSerializerTest {
         val result = oocut!!.result()
 
         // Assert
-        assertThat(result.timestampCount, equalTo(2))
-        assertThat(result.getTimestamp(0), equalTo(location1.timestamp))
-        assertThat(result.getTimestamp(1), equalTo(location2.timestamp - location1.timestamp))
+        assertThat(result.timestampCount, equalTo(numberOfTestEntries))
+        assertThat(result.getTimestamp(0), equalTo(locations[0].timestamp))
+        assertThat(result.getTimestamp(1), equalTo(locations[1].timestamp - locations[0].timestamp))
         assertThat(result.getLatitude(0), equalTo(2000000))
         assertThat(result.getLatitude(1), equalTo(1000000))
         assertThat(result.getLongitude(0), equalTo(3000000))
