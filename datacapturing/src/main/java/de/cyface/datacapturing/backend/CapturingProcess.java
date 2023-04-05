@@ -433,7 +433,8 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
      * @param storage The storage to store the {@code SensorEvent} to.
      */
     private void savePressureValue(final SensorEvent event, final List<ParcelablePressure> storage) {
-        Validate.isTrue(event.values.length == 1, "Unexpected number of values");
+        // On emulator with API 21 3 pressure values are returned on change instead of one
+        Validate.isTrue(event.values.length >= 1, "Unexpected number of values");
         ParcelablePressure dataPoint = new ParcelablePressure(timestampMillis(event.timestamp), event.values[0]);
         storage.add(dataPoint);
     }
