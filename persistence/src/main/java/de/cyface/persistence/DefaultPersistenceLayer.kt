@@ -20,11 +20,8 @@ package de.cyface.persistence
 
 import android.content.Context
 import android.hardware.SensorManager
-import android.net.Uri
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.content.EventTable
-import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.IdentifierDao
@@ -66,7 +63,7 @@ import kotlin.math.max
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.4.0
+ * @version 19.0.0
  * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
@@ -77,11 +74,6 @@ import kotlin.math.max
 class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
 
     override val context: Context?
-
-    /**
-     * The authority used to identify the Android content provider to persist data to or load it from.
-     */
-    private val authority: String?
 
     var persistenceBehaviour: B? = null
         private set
@@ -118,7 +110,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     constructor() {
         context = null
-        authority = null
         identifierDao = null
         measurementRepository = null
         eventRepository = null
@@ -134,17 +125,26 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, authority: String, persistenceBehaviour: B) {
+    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileDao())
+
+    /**
+     * Creates a new completely initialized `PersistenceLayer`.
+     *
+     * @param context The [Context] required to locate the app's internal storage directory.
+     * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
+     * to capture live data.
+     * @param fileDao The DAO to load files from.
+     */
+    constructor(context: Context, persistenceBehaviour: B, fileDao: FileDao) {
         this.context = context
         val database = Database.build(context.applicationContext)
-        this.authority = authority
         this.identifierDao = database.identifierDao()
         this.measurementRepository = MeasurementRepository(database.measurementDao())
         this.eventRepository = EventRepository(database.eventDao())
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
         this.persistenceBehaviour = persistenceBehaviour
-        fileDao = DefaultFileDao()
+        this.fileDao = fileDao
         val accelerationsFolder =
             fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationsFolder =
@@ -1110,20 +1110,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
         }
         return id!!
-    }
-
-    /**
-     * @return The content provider `Uri` for the [EventTable].
-     */
-    fun eventUri(): Uri {
-        return EventTable.getUri(authority!!)
-    }
-
-    /**
-     * @return The content provider `Uri` for the [MeasurementTable].
-     */
-    fun measurementUri(): Uri {
-        return MeasurementTable.getUri(authority!!)
     }
 
     override val cacheDir: File

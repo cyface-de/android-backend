@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -25,7 +25,7 @@ import static de.cyface.synchronization.Constants.TAG;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.7.0
+ * @version 2.8.0
  * @since 2.1.0
  */
 public class BundlesExtrasCodes {
@@ -39,10 +39,6 @@ public class BundlesExtrasCodes {
      * checking whether the service is running.
      */
     public final static String PING_PONG_ID = "de.cyface.pingpong.id";
-    /**
-     * Code that identifies the authority id if transmitted via an Android bundle.
-     */
-    public final static String AUTHORITY_ID = "de.cyface.authority.id";
     /**
      * Code that identifies the status information in the message send when the data capturing service has been stopped.
      * This should be a boolean extra that is <code>false</code> if the service was not actually stopped (if stop is

@@ -23,7 +23,6 @@ import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
 import androidx.test.platform.app.InstrumentationRegistry
 import com.google.protobuf.InvalidProtocolBufferException
-import de.cyface.datacapturing.TestUtils
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.persistence.WritingDataCompletedCallback
 import de.cyface.persistence.DefaultPersistenceLayer
@@ -93,7 +92,7 @@ class CapturedDataWriterTest {
     fun setUp() {
         context = InstrumentationRegistry.getInstrumentation().targetContext
         capturingBehaviour = CapturingPersistenceBehaviour()
-        oocut = DefaultPersistenceLayer(context!!, TestUtils.AUTHORITY, capturingBehaviour!!)
+        oocut = DefaultPersistenceLayer(context!!, capturingBehaviour!!)
         runBlocking { clearPersistenceLayer(context!!, oocut!!) }
         // This is normally called in the <code>DataCapturingService#Constructor</code>
         oocut!!.restoreOrCreateDeviceId()

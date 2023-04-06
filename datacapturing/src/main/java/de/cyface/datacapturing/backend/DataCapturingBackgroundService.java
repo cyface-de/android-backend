@@ -23,7 +23,6 @@ import static de.cyface.datacapturing.Constants.BACKGROUND_TAG;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PING;
 import static de.cyface.datacapturing.MessageCodes.GLOBAL_BROADCAST_PONG;
 import static de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION;
-import static de.cyface.synchronization.BundlesExtrasCodes.AUTHORITY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.DISTANCE_CALCULATION_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.EVENT_HANDLING_STRATEGY_ID;
 import static de.cyface.synchronization.BundlesExtrasCodes.LOCATION_CLEANING_STRATEGY_ID;
@@ -66,17 +65,17 @@ import de.cyface.datacapturing.MessageCodes;
 import de.cyface.datacapturing.StartUpFinishedHandler;
 import de.cyface.datacapturing.model.CapturedData;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
-import de.cyface.persistence.PersistenceLayer;
-import de.cyface.persistence.strategy.DistanceCalculationStrategy;
-import de.cyface.persistence.strategy.LocationCleaningStrategy;
-import de.cyface.persistence.PersistenceBehaviour;
 import de.cyface.persistence.DefaultPersistenceLayer;
+import de.cyface.persistence.PersistenceBehaviour;
+import de.cyface.persistence.PersistenceLayer;
 import de.cyface.persistence.exception.NoSuchMeasurementException;
 import de.cyface.persistence.model.DataPoint;
-import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.Measurement;
+import de.cyface.persistence.model.ParcelableGeoLocation;
 import de.cyface.persistence.model.ParcelablePoint3D;
 import de.cyface.persistence.model.ParcelablePressure;
+import de.cyface.persistence.strategy.DistanceCalculationStrategy;
+import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.PlaceholderNotificationBuilder;
 import de.cyface.utils.Validate;
@@ -90,7 +89,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 8.0.1
+ * @version 8.0.2
  * @since 2.0.0
  */
 public class DataCapturingBackgroundService extends Service implements CapturingProcessListener {
@@ -299,15 +298,9 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         Validate.notNull(intent, "The process should not be automatically recreated without START_STICKY!");
         Log.v(TAG, "onStartCommand: Starting DataCapturingBackgroundService");
 
-        // Loads authority / persistence layer
-        if (!intent.hasExtra(AUTHORITY_ID)) {
-            throw new IllegalStateException(
-                    "Unable to start data capturing service without a valid content provider authority. Please provide one as extra to the starting intent using the extra identifier: "
-                            + AUTHORITY_ID);
-        }
-        final String authority = intent.getCharSequenceExtra(AUTHORITY_ID).toString();
+        // Loads persistence layer
         capturingBehaviour = new CapturingPersistenceBehaviour();
-        persistenceLayer = new DefaultPersistenceLayer<>(this, authority, capturingBehaviour);
+        persistenceLayer = new DefaultPersistenceLayer<>(this, capturingBehaviour);
 
         // Loads EventHandlingStrategy
         this.eventHandlingStrategy = intent.getParcelableExtra(EVENT_HANDLING_STRATEGY_ID);

@@ -108,7 +108,7 @@ class MovebisDataCapturingService internal constructor(
     capturingListener: DataCapturingListener, sensorFrequency: Int
 ) : DataCapturingService(
     context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
-    DefaultPersistenceLayer(context, authority, CapturingPersistenceBehaviour()),
+    DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
     DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
     sensorFrequency
 ) {
@@ -188,7 +188,7 @@ class MovebisDataCapturingService internal constructor(
     init {
         preMeasurementLocationManager =
             context.getSystemService(Context.LOCATION_SERVICE) as LocationManager
-        setUiListener(uiListener)
+        this.uiListener = uiListener
     }
 
     /**

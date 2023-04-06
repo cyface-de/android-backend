@@ -3,9 +3,9 @@
     package="de.cyface.persistence">
 
     <application>
-        <!-- ContentProvider required to share data with Android's `SyncAdapter` -->
+        <!-- Stub Content provider required for the SyncAdapter. -->
         <provider
-            android:name="de.cyface.persistence.content.MeasurementProvider"
+            android:name="de.cyface.persistence.content.StubProvider"
             android:authorities="de.cyface.provider"
             android:exported="false"
             android:process=":persistence_process"

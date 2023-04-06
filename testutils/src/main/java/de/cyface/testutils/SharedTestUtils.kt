@@ -31,11 +31,7 @@ import de.cyface.model.RequestMetaData
 import de.cyface.persistence.Constants
 import de.cyface.persistence.Database
 import de.cyface.persistence.DefaultPersistenceLayer
-import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.content.EventTable
-import de.cyface.persistence.content.LocationTable
-import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.dao.DefaultFileDao
 import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.dao.LocationDao
@@ -60,7 +56,7 @@ import java.io.File
  * It's located in the main folder to be compiled and imported as dependency in the testImplementations.
  *
  * @author Armin Schnabel
- * @version 7.0.1
+ * @version 8.0.0
  * @since 3.0.0
  */
 object SharedTestUtils {
@@ -255,7 +251,7 @@ object SharedTestUtils {
     @JvmStatic
     suspend fun clearPersistenceLayer(
         context: Context,
-        persistence: PersistenceLayer<PersistenceBehaviour>
+        persistence: PersistenceLayer<*>
     ): Int {
         // To be able to inject the database, the persistence layer has to be created before but if we
         // remove the file folders, they are not create again, as this is done in persistence construction.
@@ -274,36 +270,10 @@ object SharedTestUtils {
                 + removedMeasurements)
     }
 
-    /**
-     * Removes everything from the local persistent data storage to allow reproducible test results.
-     *
-     * (!) This removes both the data from file persistence and the database which will also reset the device id.
-     * This is not part of the persistence layer as we want to avoid that this is used outside the test code.
-     *
-     * This method mut be in the [SharedTestUtils] to ensure multiple modules can access it in androidTests!
-     *
-     * @param context The [Context] required to access the file persistence layer
-     * @param resolver The [ContentResolver] required to access the database
-     * @return number of rows removed from the database and number of **FILES** (not points) deleted. The earlier
-     * includes [Measurement]s, [ParcelableGeoLocation]s and [de.cyface.persistence.model.Event]s.
-     * The later includes the [Point3DFile]s.
-     */
-    @JvmStatic
-    fun clearPersistenceLayer(context: Context, resolver: ContentResolver, authority: String): Int {
-        val removedFiles = clearFileLayer(context, true)
-
-        // Remove database entries
-        val removedGeoLocations = resolver.delete(LocationTable.getUri(authority), null, null)
-        val removedEvents = resolver.delete(EventTable.getUri(authority), null, null)
-        val removedMeasurements = resolver.delete(MeasurementTable.getUri(authority), null, null)
-        // Unclear why this breaks the life-cycle tests in DataCapturingServiceTest.
-        // However this should be okay to ignore for now as the identifier table should never be reset unless the
-        // database itself is removed when the app is uninstalled or the app data is deleted.
-        // final int removedIdentifierRows = resolver.delete(getIdentifierUri(authority), null, null);
-        return removedFiles +  /* removedIdentifierRows + */removedGeoLocations + removedEvents + removedMeasurements
-    }
-
-    private fun clearFileLayer(context: Context, removeFolder: Boolean = true): Int {
+    private fun clearFileLayer(
+        context: Context,
+        @Suppress("SameParameterValue") removeFolder: Boolean = true
+    ): Int {
         val fileDao: FileDao = DefaultFileDao()
 
         // Remove {@code Point3DFile}s and their parent folders
@@ -521,7 +491,6 @@ object SharedTestUtils {
 
     /**
      * Inserts test [ParcelableGeoLocation]s into the database content provider accessed by the test.
-     *
      *
      * This increases the performance of large tests and avoids "failed binder transaction - parcel size ..." error.
      *

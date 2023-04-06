@@ -65,7 +65,7 @@ public class PersistenceLayerTest {
     @Before
     public void setUp() {
         final Context context = InstrumentationRegistry.getInstrumentation().getTargetContext();
-        oocut = new DefaultPersistenceLayer<>(context, AUTHORITY, new DefaultPersistenceBehaviour());
+        oocut = new DefaultPersistenceLayer<>(context, new DefaultPersistenceBehaviour());
     }
 
     @After

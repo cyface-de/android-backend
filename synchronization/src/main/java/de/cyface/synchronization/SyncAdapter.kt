@@ -35,7 +35,6 @@ import android.util.Log
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
-import de.cyface.persistence.content.DefaultProviderClient
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
@@ -45,14 +44,18 @@ import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.synchronization.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
+import kotlinx.coroutines.runBlocking
 import java.io.File
 
 /**
  * An Android SyncAdapter implementation to transmit data to a Cyface server.
  *
+ * In the SyncAdapter guide, the `WorkManager` is recommended for background work
+ * https://developer.android.com/training/sync-adapters/index.html (postponed for now)
+ *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.1
+ * @version 3.0.2
  * @since 2.0.0
  * @property http The http connection to use for synchronization.
  */
@@ -107,7 +110,6 @@ class SyncAdapter private constructor(
         val persistence =
             DefaultPersistenceLayer<DefaultPersistenceBehaviour?>(
                 context,
-                authority,
                 DefaultPersistenceBehaviour()
             )
         val authenticator = CyfaceAuthenticator(context)
@@ -142,20 +144,15 @@ class SyncAdapter private constructor(
                 Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
 
                 // Load measurement data
-                // Even though the ContentResolver is easier to use, we use the ContentProviderClient as it is
-                // faster when you execute multiple operations. (https://stackoverflow.com/a/5233631/5815054)
-                // - It's essential to create a new client for each thread and to close the client after usage,
-                // as the client is not thread safe, see:
-                // https://developer.android.com/reference/android/content/ContentProviderClient
-                val loader = DefaultProviderClient(measurement.id, provider, authority)
                 val metaData = loadMetaData(measurement, persistence, deviceId, context)
 
                 // Load, try to sync the file to be transferred and clean it up afterwards
                 var compressedTransferTempFile: File? = null
                 try {
-                    compressedTransferTempFile = serializer.writeSerializedCompressed(
-                        loader, measurement.id, persistence
-                    )
+                    runBlocking {
+                        compressedTransferTempFile =
+                            serializer.writeSerializedCompressed(measurement.id, persistence)
+                    }
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     val jwtAuthToken = getAuthToken(authenticator, account)
@@ -211,8 +208,8 @@ class SyncAdapter private constructor(
                         throw IllegalStateException(e)
                     }
                 } finally {
-                    if (compressedTransferTempFile != null && compressedTransferTempFile.exists()) {
-                        Validate.isTrue(compressedTransferTempFile.delete())
+                    if (compressedTransferTempFile != null && compressedTransferTempFile!!.exists()) {
+                        Validate.isTrue(compressedTransferTempFile!!.delete())
                     }
                     provider.close()
                 }

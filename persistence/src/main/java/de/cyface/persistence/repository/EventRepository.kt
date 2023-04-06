@@ -18,7 +18,11 @@
  */
 package de.cyface.persistence.repository
 
+import android.database.Cursor
 import androidx.annotation.WorkerThread
+import androidx.room.Query
+import de.cyface.persistence.content.BaseColumns
+import de.cyface.persistence.content.EventTable
 import de.cyface.persistence.dao.EventDao
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
@@ -70,6 +74,30 @@ class EventRepository(private val dao: EventDao) {
     @WorkerThread
     fun observeAllByMeasurementId(measurementId: Long): Flow<List<Event>?> {
         return dao.observeAllByMeasurementId(measurementId)
+    }
+
+    /**
+     * Returns a [Cursor] which points to a specific page defined by [limit] and [offset] of all events
+     * of a measurement with a specified the [measurementId].
+     *
+     * This way we can reuse the code in `SyncAdapter` > `TransferFileSerializer` which queries and serializes
+     * only 10_000 entries at a time which fixed performance issues with large measurements.
+     *
+     * The events are ordered by timestamp.
+     */
+    @Suppress("RedundantSuspendModifier")
+    @WorkerThread
+    suspend fun selectAllByMeasurementId(measurementId: Long, offset: Int, limit: Int): Cursor? {
+        return dao.selectAllByMeasurementId(measurementId, offset, limit)
+    }
+
+    /**
+     * Returns the number of events found for a specific [measurementId].
+     */
+    @Suppress("RedundantSuspendModifier")
+    @WorkerThread
+    suspend fun countByMeasurementId(measurementId: Long): Int {
+        return dao.countByMeasurementId(measurementId)
     }
 
     /**
