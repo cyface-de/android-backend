@@ -297,7 +297,7 @@ public class DataCapturingBackgroundService extends Service implements Capturing
      */
     @Override
     public int onStartCommand(final Intent intent, final int flags, final int startId) {
-        Validate.notNull("The process should not be automatically recreated without START_STICKY!", intent);
+        Validate.notNull(intent, "The process should not be automatically recreated without START_STICKY!");
         Log.v(TAG, "onStartCommand: Starting DataCapturingBackgroundService");
 
         // Loads authority / persistence layer

@@ -118,7 +118,7 @@ public class MeasurementContentProviderClientTest {
                     MeasurementSerializer.PERSISTENCE_FILE_FORMAT_VERSION);
             measurementValues.put(MeasurementTable.COLUMN_DISTANCE, 0.0);
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
-            Validate.notNull("Measurement insertion failed!", result);
+            Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
             final long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 
@@ -183,8 +183,8 @@ public class MeasurementContentProviderClientTest {
     public void test() throws RemoteException {
 
         try (ContentProviderClient client = contentResolver.acquireContentProviderClient(AUTHORITY)) {
-            Validate.notNull(String.format("Unable to initialize content provider client for content provider \"(%s)\"",
-                    AUTHORITY), client);
+            Validate.notNull(client, String.format("Unable to initialize content provider client for content provider \"(%s)\"",
+                    AUTHORITY));
 
             // Create test measurement data
             ContentValues measurementValues = new ContentValues();
@@ -196,7 +196,7 @@ public class MeasurementContentProviderClientTest {
 
             // Insert test measurement
             Uri result = client.insert(getMeasurementUri(AUTHORITY), measurementValues);
-            Validate.notNull("Measurement insertion failed!", result);
+            Validate.notNull(result, "Measurement insertion failed!");
             Validate.notNull(result.getLastPathSegment());
             long measurementIdentifier = Long.parseLong(result.getLastPathSegment());
 

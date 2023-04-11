@@ -153,11 +153,11 @@ public abstract class CapturingProcess implements SensorEventListener, LocationL
             @NonNull final GeoLocationDeviceStatusHandler geoLocationDeviceStatusHandler,
             @NonNull final HandlerThread locationEventHandlerThread,
             @NonNull final HandlerThread sensorEventHandlerThread, final int sensorFrequency) throws SecurityException {
-        Validate.notNull("Illegal argument: locationManager was null!", locationManager);
-        Validate.notNull("Illegal argument: sensorService was null!", sensorService);
-        Validate.notNull("Illegal argument: geoLocationDeviceStatusHandler was null!", geoLocationDeviceStatusHandler);
-        Validate.notNull("Illegal argument: locationEventHandlerThread was null!", locationEventHandlerThread);
-        Validate.notNull("Illegal argument: sensorEventHandlerThread was null!", sensorEventHandlerThread);
+        Validate.notNull(locationManager, "Illegal argument: locationManager was null!");
+        Validate.notNull(sensorService, "Illegal argument: sensorService was null!");
+        Validate.notNull(geoLocationDeviceStatusHandler, "Illegal argument: geoLocationDeviceStatusHandler was null!");
+        Validate.notNull(locationEventHandlerThread, "Illegal argument: locationEventHandlerThread was null!");
+        Validate.notNull(sensorEventHandlerThread, "Illegal argument: sensorEventHandlerThread was null!");
 
         this.accelerations = new Vector<>(30);
         this.rotations = new Vector<>(30);

@@ -83,7 +83,7 @@ public final class IgnoreEventsStrategy implements EventHandlingStrategy {
     @Override
     @NonNull
     public Notification buildCapturingNotification(@NonNull final DataCapturingBackgroundService context) {
-        Validate.notNull("No context provided!", context);
+        Validate.notNull(context, "No context provided!");
 
         // The NotificationChannel settings are cached so you need to temporarily change the channel id for testing
         final String channelId = context.getString(R.string.cyface_notification_channel_id);
