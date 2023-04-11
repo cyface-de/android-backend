@@ -212,10 +212,10 @@ public class GeoLocationV6 extends DataPointV6 {
         super(in);
         lat = in.readDouble();
         lon = in.readDouble();
-        altitude = in.readDouble();
+        altitude = (Double) in.readSerializable(); // to support `null` as value [STAD-496]
         speed = in.readDouble();
         accuracy = in.readDouble();
-        verticalAccuracy = in.readDouble();
+        verticalAccuracy = (Double) in.readSerializable(); // to support `null` as value [STAD-496]
         isValid = in.readByte() != 0;
     }
 
@@ -244,10 +244,10 @@ public class GeoLocationV6 extends DataPointV6 {
         super.writeToParcel(dest, flags);
         dest.writeDouble(lat);
         dest.writeDouble(lon);
-        dest.writeDouble(altitude);
+        dest.writeSerializable(altitude);
         dest.writeDouble(speed);
         dest.writeDouble(accuracy);
-        dest.writeDouble(verticalAccuracy);
+        dest.writeSerializable(verticalAccuracy);
         dest.writeByte((byte)(isValid ? 1 : 0));
     }
 

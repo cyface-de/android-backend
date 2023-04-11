@@ -421,11 +421,16 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             } catch (final RemoteException e) {
                 Log.w(TAG, String.format("Unable to send message (%s) to caller %s!", msg, caller), e);
                 clients.remove(caller);
-            } catch (final NullPointerException e) {
+            } /*[STAD-496]: On devices with vertical accuracy = null this NPE was caught and unregistered
+            the caller, i.e. the service stopped intent was not forwarded to the client. As no client uses
+            React Native right now, we disable this catch completely, but if we have to re-enable it
+            we need to ensure only `client = null` is caught, not all NPEs.
+
+            catch (final NullPointerException e) {
                 // Caller may be null in a typical React Native application.
                 Log.w(TAG, String.format("Unable to send message (%s) to null caller!", msg), e);
                 clients.remove(caller);
-            }
+            }*/
         }
     }
 
