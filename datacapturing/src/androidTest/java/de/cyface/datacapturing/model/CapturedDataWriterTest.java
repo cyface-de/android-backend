@@ -270,8 +270,7 @@ public class CapturedDataWriterTest {
         try {
             // GeoLocations
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null, null, null, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
+            Validate.notNull(geoLocationsCursor, "Test failed because it was unable to load data from the content provider.");
             assertThat(geoLocationsCursor.getCount(), is(equalTo(TEST_LOCATION_COUNT)));
 
             // Point3ds
@@ -359,12 +358,9 @@ public class CapturedDataWriterTest {
                     new String[] {Long.toString(measurement.getIdentifier())}, null);
             measurementsCursor = mockResolver.query(getMeasurementUri(AUTHORITY), null, null, null, null);
             identifierCursor = mockResolver.query(getIdentifierUri(AUTHORITY), null, null, null, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    measurementsCursor);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    identifierCursor);
+            Validate.notNull(geoLocationsCursor, "Test failed because it was unable to load data from the content provider.");
+            Validate.notNull(measurementsCursor, "Test failed because it was unable to load data from the content provider.");
+            Validate.notNull(identifierCursor, "Test failed because it was unable to load data from the content provider.");
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
             assertThat(measurementsCursor.getCount(), is(equalTo(0)));
@@ -466,8 +462,7 @@ public class CapturedDataWriterTest {
             geoLocationsCursor = mockResolver.query(getGeoLocationsUri(AUTHORITY), null,
                     GeoLocationsTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.",
-                    geoLocationsCursor);
+            Validate.notNull(geoLocationsCursor, "Test failed because it was unable to load data from the content provider.");
 
             assertThat(geoLocationsCursor.getCount(), is(equalTo(0)));
         } finally {
@@ -480,7 +475,7 @@ public class CapturedDataWriterTest {
         try {
             eventsCursor = mockResolver.query(getEventUri(AUTHORITY), null, EventTable.COLUMN_MEASUREMENT_FK + "=?",
                     new String[] {Long.valueOf(measurement.getIdentifier()).toString()}, null);
-            Validate.notNull("Test failed because it was unable to load data from the content provider.", eventsCursor);
+            Validate.notNull(eventsCursor, "Test failed because it was unable to load data from the content provider.");
 
             assertThat(eventsCursor.getCount(), is(equalTo(0)));
         } finally {

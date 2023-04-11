@@ -62,7 +62,7 @@ public abstract class ShutDownFinishedHandler extends BroadcastReceiver {
     public void onReceive(@NonNull final Context context, @NonNull final Intent intent) {
         Log.v(TAG, "Start/Stop Synchronizer received an intent with action " + intent.getAction() + ".");
         final String action = intent.getAction();
-        Validate.notNull("Received broadcast with null action.", action);
+        Validate.notNull(action, "Received broadcast with null action.");
         Validate.isTrue(serviceStoppedActionId.equals(intent.getAction()),
                 "Received undefined broadcast " + intent.getAction());
 

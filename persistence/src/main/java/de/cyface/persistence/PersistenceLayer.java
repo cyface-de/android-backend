@@ -200,7 +200,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         // Synchronized to make sure there can't be two measurements with the same id
         synchronized (this) {
             Uri resultUri = resolver.insert(getMeasurementUri(), measurementValues);
-            Validate.notNull("New measurement could not be created!", resultUri);
+            Validate.notNull(resultUri, "New measurement could not be created!");
             Validate.notNull(resultUri.getLastPathSegment());
 
             final long measurementId = Long.parseLong(resultUri.getLastPathSegment());
@@ -487,7 +487,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
             final ContentValues identifierValues = new ContentValues();
             identifierValues.put(IdentifierTable.COLUMN_DEVICE_ID, deviceId);
             final Uri resultUri = resolver.insert(getIdentifierUri(), identifierValues);
-            Validate.notNull("New device id could not be created!", resultUri);
+            Validate.notNull(resultUri, "New device id could not be created!");
             // Show info in log so that we see if this happens more than once (or on app data reset)
             Log.i(TAG, "Created new device id: " + deviceId);
             return deviceId;
@@ -1571,7 +1571,7 @@ public class PersistenceLayer<B extends PersistenceBehaviour> {
         }
 
         final Uri resultUri = resolver.insert(getEventUri(), contentValues);
-        Validate.notNull("New Event could not be created!", resultUri);
+        Validate.notNull(resultUri, "New Event could not be created!");
         Validate.notNull(resultUri.getLastPathSegment());
 
         return Long.parseLong(resultUri.getLastPathSegment());
