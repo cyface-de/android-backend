@@ -139,10 +139,10 @@ open class ParcelableGeoLocation : DataPoint {
     protected constructor(`in`: Parcel) : super(`in`) {
         lat = `in`.readDouble()
         lon = `in`.readDouble()
-        altitude = `in`.readDouble()
+        altitude = `in`.readSerializable() as Double? // to support `null` as value [STAD-496]
         speed = `in`.readDouble()
-        accuracy = `in`.readDouble()
-        verticalAccuracy = `in`.readDouble()
+        accuracy = `in`.readSerializable() as Double? // to support `null` as value [STAD-496]
+        verticalAccuracy = `in`.readSerializable() as Double? // to support `null` as value [STAD-496]
         isValid = `in`.readByte().let { (it > 0) }
     }
 
@@ -154,10 +154,10 @@ open class ParcelableGeoLocation : DataPoint {
         super.writeToParcel(dest, flags)
         dest.writeDouble(lat)
         dest.writeDouble(lon)
-        dest.writeDouble(altitude!!)
+        dest.writeSerializable(altitude) // to support `null` as value [STAD-496]
         dest.writeDouble(speed)
-        dest.writeDouble(accuracy!!)
-        dest.writeDouble(verticalAccuracy!!)
+        dest.writeSerializable(accuracy) // to support `null` as value [STAD-496]
+        dest.writeSerializable(verticalAccuracy) // to support `null` as value [STAD-496]
         dest.writeByte((if (isValid) 1 else 0).toByte())
     }
 
