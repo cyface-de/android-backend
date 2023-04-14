@@ -555,36 +555,16 @@ public class DataCapturingButton implements DataCapturingListener {
         dataCapturingService.stop(new ShutDownFinishedHandler(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
-                // Disabled on Android 13+ for workaround, see `timeoutHandler` below [RFR-246]
-                if (Build.VERSION.SDK_INT < 33) {
-                    // Your logic, e.g.:
-                    setButtonStatus(button, FINISHED);
-                    setButtonEnabled(true);
-                }
-            }
-        });
-
-        // Workaround for flaky `rebind` on Android 13+ [RFR-246]
-        // - Don't wait for `shutDownFinished` to be called (flaky due to the bug).
-        // - Use a static 500ms delay to give the measurement some time to stop.
-        if (Build.VERSION.SDK_INT >= 33) {
-            final var timeoutHandler = new Handler(context.getMainLooper());
-            timeoutHandler.postAtTime(() -> {
-                // Attention: The measurementId is not available in this workaround!
-
                 // Your logic, e.g.:
                 setButtonStatus(button, FINISHED);
                 setButtonEnabled(true);
-            }, SystemClock.uptimeMillis() + 500L);
-        }
+            }
+        });
     }
 
     @Overwrite
     public void onCapturingStopped() {
-        // Disabled on Android 13+ for workaround, see `stop/pauseCapturing()` [RFR-246]
-        if (Build.VERSION.SDK_INT < 33) {
-            setButtonStatus(button, FINISHED);
-        }
+        setButtonStatus(button, FINISHED);
     }
 }
 ----
@@ -628,28 +608,11 @@ public class DataCapturingButton implements DataCapturingListener {
         dataCapturingService.pause(new ShutDownFinishedHandler(MessageCodes.LOCAL_BROADCAST_SERVICE_STOPPED) {
             @Override
             public void shutDownFinished(final long measurementIdentifier) {
-                // Disabled on Android 13+ for workaround, see `timeoutHandler` below [RFR-246]
-                if (Build.VERSION.SDK_INT < 33) {
-                    // Your logic, e.g.:
-                    setButtonStatus(button, PAUSED);
-                    setButtonEnabled(true);
-                }
-            }
-        });
-
-        // Workaround for flaky `rebind` on Android 13+ [RFR-246]
-        // - Don't wait for `shutDownFinished` to be called (flaky due to the bug).
-        // - Use a static 500ms delay to give the measurement some time to stop.
-        if (Build.VERSION.SDK_INT >= 33) {
-            final var timeoutHandler = new Handler(context.getMainLooper());
-            timeoutHandler.postAtTime(() -> {
-                // Attention: The measurementId is not available in this workaround!
-
                 // Your logic, e.g.:
                 setButtonStatus(button, PAUSED);
                 setButtonEnabled(true);
-            }, SystemClock.uptimeMillis() + 500L);
-        }
+            }
+        });
     }
 
     private void resumeCapturing() {
