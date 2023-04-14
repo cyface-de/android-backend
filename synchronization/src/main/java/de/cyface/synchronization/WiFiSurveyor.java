@@ -40,7 +40,7 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.uploader.exception.SynchronisationException;
 import de.cyface.utils.Validate;
 
 /**

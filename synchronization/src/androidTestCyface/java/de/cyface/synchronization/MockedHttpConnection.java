@@ -28,7 +28,9 @@ import org.json.JSONObject;
 import androidx.annotation.NonNull;
 
 import de.cyface.model.RequestMetaData;
-import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.uploader.Result;
+import de.cyface.uploader.UploadProgressListener;
+import de.cyface.uploader.exception.SynchronisationException;
 
 /**
  * An HTTP connection that does not actually connect to the server. This is useful for testing code requiring a
@@ -66,15 +68,15 @@ final class MockedHttpConnection implements Http {
 
     @NonNull
     @Override
-    public HttpConnection.Result login(@NonNull HttpURLConnection connection, @NonNull JSONObject payload,
-            boolean compress) {
-        return HttpConnection.Result.LOGIN_SUCCESSFUL;
+    public Result login(@NonNull HttpURLConnection connection, @NonNull JSONObject payload,
+                        boolean compress) {
+        return Result.LOGIN_SUCCESSFUL;
     }
 
     @Override
-    public HttpConnection.Result upload(URL url, String jwtBearer, RequestMetaData metaData, File file,
+    public Result upload(URL url, String jwtBearer, RequestMetaData metaData, File file,
             UploadProgressListener progressListener) {
         progressListener.updatedProgress(1.0f); // 100%
-        return HttpConnection.Result.UPLOAD_SUCCESSFUL;
+        return Result.UPLOAD_SUCCESSFUL;
     }
 }

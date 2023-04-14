@@ -48,7 +48,7 @@ import android.os.Bundle;
 import androidx.annotation.NonNull;
 import androidx.test.core.app.ApplicationProvider;
 
-import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.uploader.exception.SynchronisationException;
 import de.cyface.utils.Validate;
 
 /**

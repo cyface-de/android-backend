@@ -116,6 +116,7 @@ dependencies {
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
+    api "de.cyface:uploader:$rootProject.ext.cyfaceUploaderVersion" // `api` for `datacapturing` to access `uploader` exceptions
     implementation project(":persistence")
 
     // Android

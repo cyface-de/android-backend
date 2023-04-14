@@ -27,22 +27,24 @@ import org.json.JSONObject;
 import androidx.annotation.NonNull;
 
 import de.cyface.model.RequestMetaData;
-import de.cyface.synchronization.exception.AccountNotActivated;
-import de.cyface.synchronization.exception.BadRequestException;
-import de.cyface.synchronization.exception.ConflictException;
-import de.cyface.synchronization.exception.EntityNotParsableException;
-import de.cyface.synchronization.exception.ForbiddenException;
 import de.cyface.synchronization.exception.HostUnresolvable;
-import de.cyface.synchronization.exception.InternalServerErrorException;
-import de.cyface.synchronization.exception.MeasurementTooLarge;
-import de.cyface.synchronization.exception.NetworkUnavailableException;
-import de.cyface.synchronization.exception.ServerUnavailableException;
-import de.cyface.synchronization.exception.SynchronisationException;
-import de.cyface.synchronization.exception.SynchronizationInterruptedException;
-import de.cyface.synchronization.exception.TooManyRequestsException;
-import de.cyface.synchronization.exception.UnauthorizedException;
-import de.cyface.synchronization.exception.UnexpectedResponseCode;
-import de.cyface.synchronization.exception.UploadSessionExpired;
+import de.cyface.uploader.Result;
+import de.cyface.uploader.UploadProgressListener;
+import de.cyface.uploader.exception.AccountNotActivated;
+import de.cyface.uploader.exception.BadRequestException;
+import de.cyface.uploader.exception.ConflictException;
+import de.cyface.uploader.exception.EntityNotParsableException;
+import de.cyface.uploader.exception.ForbiddenException;
+import de.cyface.uploader.exception.InternalServerErrorException;
+import de.cyface.uploader.exception.MeasurementTooLarge;
+import de.cyface.uploader.exception.NetworkUnavailableException;
+import de.cyface.uploader.exception.ServerUnavailableException;
+import de.cyface.uploader.exception.SynchronisationException;
+import de.cyface.uploader.exception.SynchronizationInterruptedException;
+import de.cyface.uploader.exception.TooManyRequestsException;
+import de.cyface.uploader.exception.UnauthorizedException;
+import de.cyface.uploader.exception.UnexpectedResponseCode;
+import de.cyface.uploader.exception.UploadSessionExpired;
 
 /**
  * An interface for http connections.
@@ -110,8 +112,8 @@ interface Http {
      * @return {@code HttpConnection.Result.LOGIN_SUCCESSFUL} if successful or else an {@code Exception}.
      */
     @NonNull
-    HttpConnection.Result login(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
-            final boolean compress)
+    Result login(@NonNull final HttpURLConnection connection, @NonNull final JSONObject payload,
+                 final boolean compress)
             throws SynchronisationException, UnauthorizedException, BadRequestException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,
             TooManyRequestsException, HostUnresolvable, ServerUnavailableException, UnexpectedResponseCode, AccountNotActivated;
@@ -144,7 +146,7 @@ interface Http {
      *         when the upload attempt should be repeated or {@code HttpConnection.Result.UPLOAD_SKIPPED} if the server
      *         is not interested in the data.
      */
-    HttpConnection.Result upload(final URL url, final String jwtToken, final RequestMetaData metaData,
+    Result upload(final URL url, final String jwtToken, final RequestMetaData metaData,
             final File file, final UploadProgressListener progressListener)
             throws SynchronisationException, BadRequestException, UnauthorizedException, InternalServerErrorException,
             ForbiddenException, EntityNotParsableException, ConflictException, NetworkUnavailableException,

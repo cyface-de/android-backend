@@ -25,7 +25,6 @@ import java.util.ArrayList;
 import java.util.List;
 
 import android.accounts.Account;
-import android.content.ContentProvider;
 import android.content.Context;
 import android.util.Log;
 
@@ -49,7 +48,7 @@ import de.cyface.persistence.strategy.DefaultLocationCleaning;
 import de.cyface.persistence.strategy.DistanceCalculationStrategy;
 import de.cyface.persistence.strategy.LocationCleaningStrategy;
 import de.cyface.synchronization.WiFiSurveyor;
-import de.cyface.synchronization.exception.SynchronisationException;
+import de.cyface.uploader.exception.SynchronisationException;
 import de.cyface.utils.Validate;
 
 /**

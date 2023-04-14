@@ -52,19 +52,20 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.synchronization.exception.AccountNotActivated;
-import de.cyface.synchronization.exception.BadRequestException;
-import de.cyface.synchronization.exception.ConflictException;
-import de.cyface.synchronization.exception.EntityNotParsableException;
-import de.cyface.synchronization.exception.ForbiddenException;
 import de.cyface.synchronization.exception.HostUnresolvable;
-import de.cyface.synchronization.exception.InternalServerErrorException;
-import de.cyface.synchronization.exception.NetworkUnavailableException;
-import de.cyface.synchronization.exception.ServerUnavailableException;
-import de.cyface.synchronization.exception.SynchronisationException;
-import de.cyface.synchronization.exception.TooManyRequestsException;
-import de.cyface.synchronization.exception.UnauthorizedException;
-import de.cyface.synchronization.exception.UnexpectedResponseCode;
+import de.cyface.uploader.Result;
+import de.cyface.uploader.exception.AccountNotActivated;
+import de.cyface.uploader.exception.BadRequestException;
+import de.cyface.uploader.exception.ConflictException;
+import de.cyface.uploader.exception.EntityNotParsableException;
+import de.cyface.uploader.exception.ForbiddenException;
+import de.cyface.uploader.exception.InternalServerErrorException;
+import de.cyface.uploader.exception.NetworkUnavailableException;
+import de.cyface.uploader.exception.ServerUnavailableException;
+import de.cyface.uploader.exception.SynchronisationException;
+import de.cyface.uploader.exception.TooManyRequestsException;
+import de.cyface.uploader.exception.UnauthorizedException;
+import de.cyface.uploader.exception.UnexpectedResponseCode;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -280,15 +281,15 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
             connection = http.open(authUrl, false);
 
             // Try to send the request and handle expected errors
-            final HttpConnection.Result loginResponse = http.login(connection, loginPayload, false);
+            final Result loginResponse = http.login(connection, loginPayload, false);
 
             // Make sure the successful response contains an Authorization token
             authToken = connection.getHeaderField("Authorization");
-            if (loginResponse.equals(HttpConnection.Result.LOGIN_SUCCESSFUL) && authToken == null) {
+            if (loginResponse.equals(Result.LOGIN_SUCCESSFUL) && authToken == null) {
                 throw new IllegalStateException("Login successful but response does not contain a token");
             }
-        } catch (final BadRequestException | InternalServerErrorException | EntityNotParsableException
-                | ConflictException e) {
+        } catch (final BadRequestException | InternalServerErrorException |
+                       EntityNotParsableException | ConflictException e) {
             throw new IllegalStateException(e); // API definition does not define those errors
         } finally {
             if (connection != null) {

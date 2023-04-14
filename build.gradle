@@ -47,6 +47,7 @@ ext {
     // Cyface dependencies
     cyfaceUtilsVersion = "3.3.5"
     cyfaceSerializationVersion = "2.3.3"
+    cyfaceUploaderVersion = "0.0.7"
 
     // Android SDK versions
     minSdkVersion = 21 // device support
@@ -90,6 +91,14 @@ allprojects {
         gradlePluginPortal()
         maven {
             url = uri("https://maven.pkg.github.com/cyface-de/android-utils")
+            // Needed even for public projects: https://github.community/t5/GitHub-API-Development-and/Download-from-Github-Package-Registry-without-authentication/m-p/35255
+            credentials {
+                username = project.findProperty("githubUser")
+                password = project.findProperty("githubToken")
+            }
+        }
+        maven {
+            url = uri("https://maven.pkg.github.com/cyface-de/uploader")
             // Needed even for public projects: https://github.community/t5/GitHub-API-Development-and/Download-from-Github-Package-Registry-without-authentication/m-p/35255
             credentials {
                 username = project.findProperty("githubUser")
