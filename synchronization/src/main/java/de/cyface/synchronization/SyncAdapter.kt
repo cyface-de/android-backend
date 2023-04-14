@@ -45,6 +45,9 @@ import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import java.io.File
+import de.cyface.uploader.Result
+import de.cyface.uploader.UploadProgressListener
+import de.cyface.uploader.exception.SynchronizationInterruptedException
 
 /**
  * An Android SyncAdapter implementation to transmit data to a Cyface server.
@@ -163,9 +166,8 @@ class SyncAdapter private constructor(
                     }
 
                     // Synchronize measurement
-                    val result = syncPerformer.sendData(
-                        http, syncResult, endPointUrl, metaData,
-                        compressedTransferTempFile!!, { percent: Float ->
+                    val processListener = object : UploadProgressListener {
+                        override fun updatedProgress(percent: Float) {
                             // Multi-measurement progress
                             val progressPerMeasurement =
                                 100.0 / measurementCount.toDouble()
@@ -177,17 +179,21 @@ class SyncAdapter private constructor(
                             for (listener in progressListener) {
                                 listener.onProgress(total.toFloat(), measurement.id)
                             }
-                        }, jwtAuthToken
+                        }
+                    }
+                    val result = syncPerformer.sendData(
+                        http, syncResult, endPointUrl, metaData,
+                        compressedTransferTempFile!!, processListener, jwtAuthToken
                     )
-                    if (result == HttpConnection.Result.UPLOAD_FAILED) {
+                    if (result == Result.UPLOAD_FAILED) {
                         break
                     }
 
                     // Mark successfully transmitted measurement as synced
                     try {
-                        if (result == HttpConnection.Result.UPLOAD_SKIPPED) {
+                        if (result == Result.UPLOAD_SKIPPED) {
                             persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
-                        } else if (result == HttpConnection.Result.UPLOAD_SUCCESSFUL) {
+                        } else if (result == Result.UPLOAD_SUCCESSFUL) {
                             persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
                         } else {
                             throw IllegalArgumentException(
