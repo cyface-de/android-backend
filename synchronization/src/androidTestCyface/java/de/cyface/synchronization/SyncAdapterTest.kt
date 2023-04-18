@@ -60,12 +60,14 @@ import org.junit.runners.MethodSorters
 /**
  * Tests the correct internal workings of the `CyfaceSyncAdapter` with the persistence layer.
  *
+ * This test does not run against an actual API, but uses [MockedAuthenticator] and [MockedUploader].
+ *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.4.5
+ * @version 2.4.6
  * @since 2.4.0
  */
-@RunWith(AndroidJUnit4::class) // To execute notice errors with the short running testOnPerformSync before the large
+@RunWith(AndroidJUnit4::class) // To notice errors with the short running testOnPerformSync before the large
 // testOnPerformSyncWithLargeMeasurement which can save a lot of time
 @FixMethodOrder(MethodSorters.NAME_ASCENDING)
 class SyncAdapterTest {
@@ -83,10 +85,6 @@ class SyncAdapterTest {
         contentResolver = context!!.contentResolver
         persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour())
         clearPersistenceLayer(context!!, persistence)
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val editor = preferences.edit()
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TestUtils.TEST_API_URL)
-        editor.apply()
 
         // Ensure reproducibility
         accountManager = AccountManager.get(context)
@@ -95,7 +93,7 @@ class SyncAdapterTest {
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
         account = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)
         accountManager!!.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null)
-        oocut = SyncAdapter(context!!, false, MockedHttpConnection())
+        oocut = SyncAdapter(context!!, false, MockedAuthenticator(), MockedUploader())
     }
 
     @After
@@ -118,11 +116,8 @@ class SyncAdapterTest {
 
     /**
      * Tests whether measurements are correctly marked as synced.
-     *
-     * TODO [CY-4960]: Make test work in mock flavour without an actual API
      */
     @Test
-    @Ignore("Set to ignore as this test requires an actual API even in mock flavour")
     @Throws(
         NoSuchMeasurementException::class, CursorIsNullException::class
     )

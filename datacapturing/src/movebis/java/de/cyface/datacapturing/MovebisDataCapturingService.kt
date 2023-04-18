@@ -45,7 +45,7 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE
-import de.cyface.synchronization.exception.SynchronisationException
+import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.utils.Validate
 
 /**

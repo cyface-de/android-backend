@@ -46,8 +46,8 @@ ext {
 
     // Cyface dependencies
     cyfaceUtilsVersion = "3.3.5"
-    cyfaceSerializationVersion = "2.3.3"
-    cyfaceUploaderVersion = "0.0.0" // FIXME
+    cyfaceSerializationVersion = "2.3.4"
+    cyfaceUploaderVersion = "1.0.0-alpha1" // FIXME
 
     // Android SDK versions
     minSdkVersion = 21 // device support
@@ -63,9 +63,6 @@ ext {
 
     // Kotlin components
     coroutinesVersion = "1.6.4"
-
-    // Other dependencies
-    googleApiClientVersion = '1.31.5' // transmission protocol
 
     // Testing
     junitVersion = "1.1.5"

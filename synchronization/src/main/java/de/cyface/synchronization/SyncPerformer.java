@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 - 2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -19,13 +19,11 @@
 package de.cyface.synchronization;
 
 import static de.cyface.serializer.DataSerializable.humanReadableSize;
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.BAD_REQUEST;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.ENTITY_NOT_PARSABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.FORBIDDEN;
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.HOST_UNRESOLVABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.INTERNAL_SERVER_ERROR;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
@@ -34,11 +32,11 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_E
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_INTERRUPTED;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UPLOAD_SESSION_EXPIRED;
 
 import java.io.File;
 import java.net.MalformedURLException;
-import java.net.URL;
 import java.util.Locale;
 
 import android.content.Context;
@@ -50,9 +48,9 @@ import androidx.annotation.NonNull;
 import de.cyface.model.RequestMetaData;
 import de.cyface.persistence.Constants;
 import de.cyface.persistence.model.Measurement;
-import de.cyface.synchronization.exception.HostUnresolvable;
 import de.cyface.uploader.Result;
 import de.cyface.uploader.UploadProgressListener;
+import de.cyface.uploader.Uploader;
 import de.cyface.uploader.exception.AccountNotActivated;
 import de.cyface.uploader.exception.BadRequestException;
 import de.cyface.uploader.exception.ConflictException;
@@ -75,7 +73,7 @@ import de.cyface.uploader.exception.UploadSessionExpired;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.1.0
+ * @version 6.1.1
  * @since 2.0.0
  */
 class SyncPerformer {
@@ -111,17 +109,16 @@ class SyncPerformer {
      * Since this is a synchronous call it can take from seconds to minutes depending on the size of <code>data</code>.
      * Never call this on the UI thread. Your users are going to hate you.
      *
-     * @param http The {@link Http} connection to use for transmission
+     * @param uploader The uploader to use for transmission
      * @param syncResult The {@link SyncResult} used to store sync error information.
-     * @param dataServerUrl The server URL to send the data to.
      * @param metaData The {@link RequestMetaData} required for the Multipart request.
      * @param file The compressed transfer file containing the {@link Measurement} data to transmit
      * @param progressListener The {@link UploadProgressListener} to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
      * @return True of the transmission was successful.
      */
-    Result sendData(@NonNull final Http http, @NonNull final SyncResult syncResult,
-            @NonNull final String dataServerUrl, @NonNull final RequestMetaData metaData,
+    Result sendData(@NonNull final Uploader uploader, @NonNull final SyncResult syncResult,
+            @NonNull final RequestMetaData metaData,
             @NonNull final File file, @NonNull final UploadProgressListener progressListener,
             @NonNull final String jwtAuthToken) {
 
@@ -130,11 +127,10 @@ class SyncPerformer {
 
         final Result result;
         try {
-            final URL url = new URL(String.format("%s/measurements", dataServerUrl));
             final var fileName = String.format(Locale.US, "%s_%s." + TRANSFER_FILE_EXTENSION,
                     metaData.getDeviceIdentifier(), metaData.getMeasurementIdentifier());
-            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, url));
-            result = http.upload(url, jwtAuthToken, metaData, file, progressListener);
+            Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, uploader.endpoint()));
+            result = uploader.upload(jwtAuthToken, metaData, file, progressListener);
         } catch (final ServerUnavailableException e) {
             // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
             syncResult.stats.numIoExceptions++;
@@ -180,10 +176,6 @@ class SyncPerformer {
         } catch (final TooManyRequestsException e) {
             syncResult.stats.numIoExceptions++;
             sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final HostUnresolvable e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
             return Result.UPLOAD_FAILED;
         } catch (final UploadSessionExpired e) {
             syncResult.stats.numIoExceptions++; // Try again

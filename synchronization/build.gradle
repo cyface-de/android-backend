@@ -109,11 +109,6 @@ android {
 }
 
 dependencies {
-    // Upload
-    implementation ("com.google.api-client:google-api-client:$rootProject.ext.googleApiClientVersion",{
-        exclude group:'org.apache.httpcomponents', module:'httpclient'
-    })
-
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     api "de.cyface:uploader:$rootProject.ext.cyfaceUploaderVersion" // `api` for `datacapturing` to access `uploader` exceptions

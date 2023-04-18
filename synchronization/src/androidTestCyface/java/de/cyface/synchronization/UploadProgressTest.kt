@@ -28,7 +28,6 @@ import android.content.Intent
 import android.content.IntentFilter
 import android.content.SyncResult
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
@@ -54,7 +53,6 @@ import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
 import org.junit.After
 import org.junit.Before
-import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import java.util.LinkedList
@@ -62,9 +60,11 @@ import java.util.LinkedList
 /**
  * Tests if the upload progress is broadcasted as expected.
  *
+ * This test does not run against an actual API, but uses [MockedAuthenticator] and [MockedUploader].
+ *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.4.6
+ * @version 1.4.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -95,7 +95,7 @@ class UploadProgressTest {
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
         account = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)
         accountManager!!.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null)
-        oocut = SyncAdapter(context!!, false, MockedHttpConnection())
+        oocut = SyncAdapter(context!!, false, MockedAuthenticator(), MockedUploader())
     }
 
     @After
@@ -112,16 +112,11 @@ class UploadProgressTest {
         context = null
     }
 
-    @Test // TODO [MOV-683]: See logcat - still uses an actual API
-    @Ignore("This is currently still dependent on a real test api")
+    @Test
     @Throws(
         NoSuchMeasurementException::class
     )
     fun testUploadProgressHappyPath() {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val editor = preferences.edit()
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TestUtils.TEST_API_URL)
-        editor.apply()
         val receiver = TestReceiver()
         val filter = IntentFilter()
         filter.addAction(CyfaceConnectionStatusListener.SYNC_FINISHED)
@@ -180,7 +175,7 @@ class UploadProgressTest {
         )
         MatcherAssert.assertThat(
             receiver.getCollectedPercentages()[0], CoreMatchers.`is`(
-                CoreMatchers.equalTo(1.0f)
+                CoreMatchers.equalTo(100.0f)
             )
         )
     }

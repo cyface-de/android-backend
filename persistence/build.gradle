@@ -90,11 +90,6 @@ dependencies {
     // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
-    // Upload
-    implementation ("com.google.api-client:google-api-client:$rootProject.ext.googleApiClientVersion",{
-        exclude group:'org.apache.httpcomponents', module:'httpclient'
-    })
-
     // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"

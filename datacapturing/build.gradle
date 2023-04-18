@@ -93,6 +93,11 @@ android {
     kotlinOptions {
         jvmTarget = rootProject.ext.kotlinTargetJavaVersion
     }
+
+    // Avoid `2 files found with path ...` error
+    packagingOptions {
+        exclude("META-INF/DEPENDENCIES")
+    }
 }
 
 dependencies {

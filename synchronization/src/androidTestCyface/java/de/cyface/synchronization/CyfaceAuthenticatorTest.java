@@ -1,5 +1,5 @@
 /*
- * Copyright 2017-2021 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -37,15 +37,14 @@ import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
 import android.content.ContentResolver;
 import android.content.Context;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.testutils.SharedTestUtils;
+import de.cyface.uploader.DefaultAuthenticator;
 import de.cyface.utils.Validate;
 
 /**
@@ -53,7 +52,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.1
+ * @version 1.2.2
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -94,15 +93,10 @@ public class CyfaceAuthenticatorTest {
         Account requestAccount = new Account(TestUtils.DEFAULT_USERNAME, ACCOUNT_TYPE);
         accountManager.addAccountExplicitly(requestAccount, TestUtils.DEFAULT_PASSWORD, null);
 
-        SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        SharedPreferences.Editor editor = preferences.edit();
-        editor.putString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, TEST_API_URL);
-        editor.apply();
-
         // Act
         // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
-        Bundle bundle = new CyfaceAuthenticator(context).getAuthToken(null, requestAccount, Constants.AUTH_TOKEN_TYPE,
-                null);
+        Bundle bundle = new CyfaceAuthenticator(context, new DefaultAuthenticator(TEST_API_URL))
+                .getAuthToken(null, requestAccount, Constants.AUTH_TOKEN_TYPE, null);
 
         // Assert
         String authToken = bundle.getString(AccountManager.KEY_AUTHTOKEN);
