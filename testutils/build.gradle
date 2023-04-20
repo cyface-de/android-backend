@@ -26,9 +26,11 @@
 plugins {
     id 'com.android.library'
     id 'kotlin-android'
+    id 'kotlin-kapt'
 }
 
 android {
+    namespace "de.cyface.testutils"
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
@@ -66,8 +68,7 @@ dependencies {
     // `Room` API used to access the database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
-    annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
-    //kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion" // Required for use with Kotlin
+    kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"

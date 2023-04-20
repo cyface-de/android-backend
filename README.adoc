@@ -874,8 +874,8 @@ the https://github.com/cyface-de/android-backend/packages[Github Registry]
 * The tag is automatically marked as a 'new Release' on https://github.com/cyface-de/android-backend/releases[Github]
 
 
-[[known-issues]]]
-== Known Issues
+[[known-issues]]
+=== Known Issues
 
 The AVD Cache leads to `Install_failed_Update_Incompatible` after a few builds.
 - we opened an issue here: https://github.com/ReactiveCircus/android-emulator-runner/issues/319

@@ -17,6 +17,7 @@ jobs:
     steps:
       - name: Checkout commit
         uses: actions/checkout@v3
+
       - name: Set up JDK 11
         uses: actions/setup-java@v3
         with:
@@ -25,16 +26,28 @@ jobs:
 
       - name: Add gradle.properties
         run: |
-          # Use the repository's automatically set up token to pushlish to the registry
+          # Use the repository's automatically set up token to publish to the registry
           cp gradle.properties.template gradle.properties
-          echo "githubUser=${{ github.actor }}" >> gradle.properties
-          echo "githubToken=${{ secrets.GITHUB_TOKEN }}" >> gradle.properties
+          ##### FIXME: using ci account while `uploader` is still private
+          echo "githubUser=${{ secrets.GH_READ_ACCOUNT }}" >> gradle.properties
+          echo "githubToken=${{ secrets.GH_READ_TOKEN }}" >> gradle.properties
 
       # versionName is required to publish artifacts to Github Registry
       - name: Set versionName
         run: |
           sed -i "s/cyfaceAndroidBackendVersion = \"0.0.0\"/cyfaceAndroidBackendVersion = \"${{ github.ref_name }}\"/g" build.gradle
 
+      # FIXME: As we need the ci token above to download the uploader, we need to build here and then overwrite with the repo token to publish
+      - name: Build with Gradle
+        run: ./gradlew build
+      - name: Use repo token to publish
+        run: |
+          # Use the repository's automatically set up token to publish to the registry
+          cp gradle.properties.template gradle.properties
+          echo "githubUser=${{ github.actor }}" >> gradle.properties
+          echo "githubToken=${{ secrets.GITHUB_TOKEN }}" >> gradle.properties
+
+      # `build` added to fix cannot find symbol de.cyface.datacapturing.BuildConfig until upgraded to Gradle 8 [RFR-412]
       - name: Publish with Gradle
         run: ./gradlew publishAll
 
