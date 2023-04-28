@@ -29,7 +29,7 @@ To use it as a dependency in your app you need to:
 +
 ----
  githubUser=YOUR_USERNAME
- githubUser=YOUR_ACCESS_TOKEN
+ githubToken=YOUR_ACCESS_TOKEN
 ----
  ** Add the custom repository to your app's `build.gradle`:
 

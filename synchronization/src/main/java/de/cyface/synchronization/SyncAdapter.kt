@@ -191,8 +191,12 @@ class SyncAdapter private constructor(
                         }
                     }
                     val result = syncPerformer.sendData(
-                        uploader, syncResult, metaData,
-                        compressedTransferTempFile!!, processListener, jwtAuthToken
+                        uploader,
+                        syncResult,
+                        metaData,
+                        compressedTransferTempFile!!,
+                        processListener,
+                        jwtAuthToken
                     )
                     if (result == Result.UPLOAD_FAILED) {
                         break

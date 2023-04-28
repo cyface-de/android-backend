@@ -1,5 +1,7 @@
 package de.cyface.synchronization;
 
+import static de.cyface.synchronization.CyfaceAuthenticator.AUTH_ENDPOINT_URL_SETTINGS_KEY;
+
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -53,9 +55,10 @@ public final class SyncService extends Service {
         Log.v(TAG, "onCreate");
         synchronized (LOCK) {
             if (syncAdapter == null) {
-                final var apiEndpoint = apiUrl(getApplicationContext());
-                syncAdapter = new SyncAdapter(getApplicationContext(), true, new DefaultAuthenticator(apiEndpoint),
-                        new DefaultUploader(apiEndpoint));
+                final var authApi = authApi(getApplicationContext());
+                final var collectorApi = collectorApi(getApplicationContext());
+                syncAdapter = new SyncAdapter(getApplicationContext(), true, new DefaultAuthenticator(authApi),
+                        new DefaultUploader(collectorApi));
             }
         }
     }
@@ -72,12 +75,27 @@ public final class SyncService extends Service {
      * @param context The `Context` required to read the preferences
      * @return The URL as string
      */
-    private String apiUrl(@NonNull final Context context) {
+    private String collectorApi(@NonNull final Context context) {
         final var preferences = PreferenceManager.getDefaultSharedPreferences(context);
         final var apiEndpoint = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
         Validate.notNull(
                 apiEndpoint,
                 "Sync canceled: Server url not available. Please set the applications server url preference.");
+        return apiEndpoint;
+    }
+
+    /**
+     * Reads the Auth URL from the preferences.
+     *
+     * @param context The `Context` required to read the preferences
+     * @return The URL as string
+     */
+    private String authApi(@NonNull final Context context) {
+        final var preferences = PreferenceManager.getDefaultSharedPreferences(context);
+        final var apiEndpoint = preferences.getString(AUTH_ENDPOINT_URL_SETTINGS_KEY, null);
+        Validate.notNull(
+                apiEndpoint,
+                "Sync canceled: Auth url not available. Please set the applications server url preference.");
         return apiEndpoint;
     }
 }

@@ -49,6 +49,7 @@ import de.cyface.uploader.Authenticator;
 import de.cyface.uploader.exception.AccountNotActivated;
 import de.cyface.uploader.exception.ForbiddenException;
 import de.cyface.uploader.exception.HostUnresolvable;
+import de.cyface.uploader.exception.LoginFailed;
 import de.cyface.uploader.exception.NetworkUnavailableException;
 import de.cyface.uploader.exception.ServerUnavailableException;
 import de.cyface.uploader.exception.SynchronisationException;
@@ -142,33 +143,41 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // Thus, we report the specific error type via sendErrorIntent()
         try {
             freshAuthToken = login(account.name, password);
-        } catch (final ServerUnavailableException | ForbiddenException e) {
-            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final MalformedURLException e) {
-            sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final SynchronisationException e) {
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final UnauthorizedException e) {
-            sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final NetworkUnavailableException e) {
-            sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final TooManyRequestsException e) {
-            sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final HostUnresolvable e) {
-            sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final UnexpectedResponseCode e) {
-            sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final AccountNotActivated e) {
-            sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
+        } catch (final LoginFailed e) {
+            var cause = e.getCause();
+            if (cause instanceof ServerUnavailableException || cause instanceof ForbiddenException) {
+                sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof MalformedURLException) {
+                sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof SynchronisationException) {
+                sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof UnauthorizedException) {
+                sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof NetworkUnavailableException) {
+                sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof TooManyRequestsException) {
+                sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof HostUnresolvable) {
+                sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof UnexpectedResponseCode) {
+                sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof AccountNotActivated) {
+                sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else {
+                // Unknown sub-type of `UploadFailed`
+                throw new IllegalArgumentException(e);
+            }
+        } catch (final MalformedURLException e){
+            throw new IllegalArgumentException(e);
         }
 
         // Return a bundle containing the token
@@ -232,24 +241,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @param password The password belonging to the account with the {@code username}
      *            logging in to the Cyface server.
      * @return The currently valid auth token to be used by further requests from this application.
-     * @throws SynchronisationException If an IOException occurred while reading the response code or the connection
-     *             could not be prepared
-     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
-     * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
-     * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
-     * @throws TooManyRequestsException When the server returns {@code Uploader#HTTP_TOO_MANY_REQUESTS}
-     * @throws ForbiddenException E.g. when there is no actual API running at the URL
-     * @throws UnexpectedResponseCode When the server returns an unexpected response code
-     * @throws AccountNotActivated When the user account is not activated
+     * @throws LoginFailed when an expected error occurred, so that the UI can handle this.
+     * @throws MalformedURLException if the endpoint address provided is malformed.
      */
-    private String login(final @NonNull String username, final @NonNull String password)
-            throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException,
-            UnexpectedResponseCode, AccountNotActivated {
+    private String login(final @NonNull String username, final @NonNull String password) throws LoginFailed, MalformedURLException {
 
         // Login to get JWT token
-        Log.d(TAG, "Authenticating at " + authenticator.endpoint() + " with " + username + " / " + password);
+        Log.d(TAG, "Authenticating at " + authenticator.loginEndpoint() + " with " + username + " / " + password);
         return authenticator.authenticate(username, password);
     }
 }

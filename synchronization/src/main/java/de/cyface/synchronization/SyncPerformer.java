@@ -65,6 +65,7 @@ import de.cyface.uploader.exception.SynchronizationInterruptedException;
 import de.cyface.uploader.exception.TooManyRequestsException;
 import de.cyface.uploader.exception.UnauthorizedException;
 import de.cyface.uploader.exception.UnexpectedResponseCode;
+import de.cyface.uploader.exception.UploadFailed;
 import de.cyface.uploader.exception.UploadSessionExpired;
 
 /**
@@ -131,72 +132,85 @@ class SyncPerformer {
                     metaData.getDeviceIdentifier(), metaData.getMeasurementIdentifier());
             Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, uploader.endpoint()));
             result = uploader.upload(jwtAuthToken, metaData, file, progressListener);
-        } catch (final ServerUnavailableException e) {
-            // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final ForbiddenException e) {
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, FORBIDDEN.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final MalformedURLException e) {
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final SynchronisationException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final UnauthorizedException e) {
-            syncResult.stats.numAuthExceptions++;
-            sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final InternalServerErrorException e) {
-            syncResult.stats.numConflictDetectedExceptions++;
-            sendErrorIntent(context, INTERNAL_SERVER_ERROR.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final EntityNotParsableException e) {
+        } catch (final UploadFailed e) {
+            var cause = e.getCause();
+            if (cause instanceof ServerUnavailableException) {
+                // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
+                syncResult.stats.numIoExceptions++;
+                sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof ForbiddenException) {
+                syncResult.stats.numAuthExceptions++;
+                sendErrorIntent(context, FORBIDDEN.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof MalformedURLException) {
+                syncResult.stats.numAuthExceptions++;
+                sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof SynchronisationException) {
+                syncResult.stats.numIoExceptions++;
+                sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof UnauthorizedException) {
+                syncResult.stats.numAuthExceptions++;
+                sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof InternalServerErrorException) {
+                syncResult.stats.numConflictDetectedExceptions++;
+                sendErrorIntent(context, INTERNAL_SERVER_ERROR.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof EntityNotParsableException) {
+                syncResult.stats.numParseExceptions++;
+                sendErrorIntent(context, ENTITY_NOT_PARSABLE.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof BadRequestException) {
+                syncResult.stats.numParseExceptions++;
+                sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof NetworkUnavailableException) {
+                syncResult.stats.numIoExceptions++;
+                sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof SynchronizationInterruptedException) {
+                syncResult.stats.numIoExceptions++;
+                sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
+                e.printStackTrace();
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof TooManyRequestsException) {
+                syncResult.stats.numIoExceptions++;
+                sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof UploadSessionExpired) {
+                syncResult.stats.numIoExceptions++; // Try again
+                sendErrorIntent(context, UPLOAD_SESSION_EXPIRED.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof UnexpectedResponseCode) {
+                syncResult.stats.numParseExceptions++; // hard error
+                sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof AccountNotActivated) {
+                syncResult.stats.numAuthExceptions++; // hard error
+                sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
+                return Result.UPLOAD_FAILED;
+            } else if (cause instanceof MeasurementTooLarge) {
+                syncResult.stats.numSkippedEntries++;
+                Log.d(TAG, e.getMessage());
+                return Result.UPLOAD_SKIPPED;
+            } else if (cause instanceof ConflictException) {
+                syncResult.stats.numSkippedEntries++;
+                // We consider the upload successful and mark the measurement as synced
+                return Result.UPLOAD_SUCCESSFUL;
+            } else {
+                // Unknown sub-type of `UploadFailed`
+                throw new IllegalArgumentException(e);
+            }
+        } catch (MalformedURLException e) {
+            // Catching this temporarily to indicate a hard error to the sync adapter
             syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, ENTITY_NOT_PARSABLE.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final BadRequestException e) {
-            syncResult.stats.numParseExceptions++;
-            sendErrorIntent(context, BAD_REQUEST.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final NetworkUnavailableException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final SynchronizationInterruptedException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, SYNCHRONIZATION_INTERRUPTED.getCode(), e.getMessage());
-            e.printStackTrace();
-            return Result.UPLOAD_FAILED;
-        } catch (final TooManyRequestsException e) {
-            syncResult.stats.numIoExceptions++;
-            sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final UploadSessionExpired e) {
-            syncResult.stats.numIoExceptions++; // Try again
-            sendErrorIntent(context, UPLOAD_SESSION_EXPIRED.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final UnexpectedResponseCode e) {
-            syncResult.stats.numParseExceptions++; // hard error
-            sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final AccountNotActivated e) {
-            syncResult.stats.numAuthExceptions++; // hard error
-            sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
-            return Result.UPLOAD_FAILED;
-        } catch (final MeasurementTooLarge e) {
-            syncResult.stats.numSkippedEntries++;
-            Log.d(TAG, e.getMessage());
-            return Result.UPLOAD_SKIPPED;
-        } catch (final ConflictException e) {
-            syncResult.stats.numSkippedEntries++;
-            // We consider the upload successful and mark the measurement as synced
-            return Result.UPLOAD_SUCCESSFUL;
+
+            Log.e(TAG, "MalformedURLException in `HttpConnection.upload`.");
+            // Throw hard or else this error won't be recognized, fixed & device runs out of storage
+            throw new IllegalArgumentException(e);
         } catch (RuntimeException e) {
             // Catching this temporarily to indicate a hard error to the sync adapter
             syncResult.stats.numParseExceptions++;
