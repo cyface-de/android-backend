@@ -74,7 +74,7 @@ import de.cyface.uploader.exception.UploadSessionExpired;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 6.1.1
+ * @version 7.0.0
  * @since 2.0.0
  */
 class SyncPerformer {

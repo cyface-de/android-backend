@@ -1,7 +1,5 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.CyfaceAuthenticator.AUTH_ENDPOINT_URL_SETTINGS_KEY;
-
 import android.app.Service;
 import android.content.Context;
 import android.content.Intent;
@@ -38,6 +36,10 @@ public final class SyncService extends Service {
      * The settings key used to identify the settings storing the URL of the server to upload data to.
      */
     public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
+    /**
+     * The settings key used to identify the settings storing the URL of the server to authenticate against.
+     */
+    public static final String AUTH_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.auth.endpoint";
     /**
      * The synchronisation adapter this service is supposed to call.
      * <p>

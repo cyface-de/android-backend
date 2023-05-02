@@ -88,12 +88,13 @@ public class DataCapturingServiceWithoutPermissionTest {
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
-        final String dataUploadServerAddress = "https://localhost:8080";
+        final String dataUploadServerAddress = "https://localhost:8080/api/v3";
+        final var authServerAddress = "https://localhost:8081/api/v1";
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
                 oocut = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
-                        dataUploadServerAddress, new IgnoreEventsStrategy(), listener, 100);
+                        dataUploadServerAddress, authServerAddress, new IgnoreEventsStrategy(), listener, 100);
             } catch (SetupException e) {
                 throw new IllegalStateException(e);
             }

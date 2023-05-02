@@ -72,6 +72,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service. This must be in the format "https://some.url/optional/resource".
+     * @param authServerAddress The server address running an auth API that is capable of receiving registration and login requests.
+     *            This must be in the format "https://some.url/optional/resource".
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
@@ -86,11 +88,13 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      */
     private CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
-            @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final String dataUploadServerAddress,
+            @NonNull final String authServerAddress,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final LocationCleaningStrategy locationCleaningStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency) {
-        super(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+        super(context, authority, accountType, dataUploadServerAddress, authServerAddress, eventHandlingStrategy,
                 new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
@@ -108,6 +112,8 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      * @param accountType The type of the account to use to synchronize data.
      * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
      *            this service. This must be in the format "https://some.url/optional/resource".
+     * @param authServerAddress The server address running an auth API that is capable of receiving registration and login requests.
+     *            This must be in the format "https://some.url/optional/resource".
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
@@ -120,10 +126,12 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
     public CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
-            @NonNull final String dataUploadServerAddress, @NonNull final EventHandlingStrategy eventHandlingStrategy,
+            @NonNull final String dataUploadServerAddress,
+            @NonNull final String authServerAddress,
+            @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException {
-        this(context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+        this(context, authority, accountType, dataUploadServerAddress, authServerAddress, eventHandlingStrategy,
                 new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
                 sensorFrequency);
     }

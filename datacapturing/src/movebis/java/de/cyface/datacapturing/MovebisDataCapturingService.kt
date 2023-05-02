@@ -107,7 +107,9 @@ class MovebisDataCapturingService internal constructor(
     eventHandlingStrategy: EventHandlingStrategy,
     capturingListener: DataCapturingListener, sensorFrequency: Int
 ) : DataCapturingService(
-    context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+    context, authority, accountType, dataUploadServerAddress,
+    // This flavor uses a single API for both auth and upload requests
+    dataUploadServerAddress, eventHandlingStrategy,
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
     DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
     sensorFrequency

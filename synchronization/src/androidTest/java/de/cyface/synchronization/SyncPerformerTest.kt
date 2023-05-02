@@ -18,7 +18,6 @@
  */
 package de.cyface.synchronization
 
-import android.content.ContentResolver
 import android.content.Context
 import android.content.SyncResult
 import android.util.Log
@@ -55,9 +54,9 @@ import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.uploader.exception.TooManyRequestsException
 import de.cyface.uploader.exception.UnauthorizedException
 import de.cyface.uploader.exception.UnexpectedResponseCode
+import de.cyface.uploader.exception.UploadFailed
 import de.cyface.uploader.exception.UploadSessionExpired
 import de.cyface.utils.CursorIsNullException
-import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert
@@ -84,13 +83,11 @@ class SyncPerformerTest {
 
     private lateinit var persistence: DefaultPersistenceLayer<*>
     private lateinit var context: Context
-    private lateinit var contentResolver: ContentResolver
     private lateinit var oocut: SyncPerformer
 
     @Before
     fun setUp() = runBlocking {
         context = InstrumentationRegistry.getInstrumentation().targetContext
-        contentResolver = context.contentResolver
         persistence = DefaultPersistenceLayer(context, DefaultPersistenceBehaviour())
         SharedTestUtils.clearPersistenceLayer(context, persistence)
 
@@ -130,41 +127,33 @@ class SyncPerformerTest {
         val measurementIdentifier = measurement.id
         val loadedStatus = persistence.loadMeasurementStatus(measurementIdentifier)
         MatcherAssert.assertThat(loadedStatus, CoreMatchers.equalTo(MeasurementStatus.FINISHED))
-        contentResolver.acquireContentProviderClient(TestUtils.AUTHORITY).use { client ->
-            Validate.notNull(
-                client,
-                String.format(
-                    "Unable to acquire client for content provider %s",
-                    TestUtils.AUTHORITY
-                )
-            )
-            val compressedTransferTempFile = loadSerializedCompressed(persistence, measurementIdentifier)
-            val metaData: RequestMetaData = loadMetaData(persistence, measurement, locationCount)
-            val progressListener = object : UploadProgressListener {
-                override fun updatedProgress(percent: Float) {
-                    Log.d(TAG, String.format("Upload Progress %f", percent))
-                }
+        val compressedTransferTempFile =
+            loadSerializedCompressed(persistence, measurementIdentifier)
+        val metaData: RequestMetaData = loadMetaData(persistence, measurement, locationCount)
+        val progressListener = object : UploadProgressListener {
+            override fun updatedProgress(percent: Float) {
+                Log.d(TAG, String.format("Upload Progress %f", percent))
             }
-
-            // Prepare transmission
-            val syncResult = SyncResult()
-
-            // Act
-            val result = oocut.sendData(
-                MockedUploader(),
-                syncResult,
-                metaData,
-                compressedTransferTempFile,
-                progressListener,
-                "testToken"
-            )
-
-            // Assert
-            MatcherAssert.assertThat(
-                result,
-                CoreMatchers.`is`(CoreMatchers.equalTo(Result.UPLOAD_SUCCESSFUL))
-            )
         }
+
+        // Prepare transmission
+        val syncResult = SyncResult()
+
+        // Act
+        val result = oocut.sendData(
+            MockedUploader(),
+            syncResult,
+            metaData,
+            compressedTransferTempFile,
+            progressListener,
+            "testToken"
+        )
+
+        // Assert
+        MatcherAssert.assertThat(
+            result,
+            CoreMatchers.`is`(CoreMatchers.equalTo(Result.UPLOAD_SUCCESSFUL))
+        )
     }
 
     /**
@@ -208,107 +197,99 @@ class SyncPerformerTest {
                 CoreMatchers.equalTo(MeasurementStatus.FINISHED)
             )
         )
-        contentResolver.acquireContentProviderClient(TestUtils.AUTHORITY).use { client ->
-            checkNotNull(client) {
-                String.format(
-                    "Unable to acquire client for content provider %s",
-                    TestUtils.AUTHORITY
-                )
+
+        // Load measurement serialized compressed
+        val serializer = MeasurementSerializer()
+        val compressedTransferTempFile = serializer.writeSerializedCompressed(
+            measurementIdentifier, persistence
+        )
+        Log.d(
+            TAG, "CompressedTransferTempFile size: "
+                    + DataSerializable.humanReadableSize(
+                compressedTransferTempFile!!.length(),
+                true
+            )
+        )
+
+        // Prepare transmission
+        val syncResult = SyncResult()
+
+        // Load meta data
+        val tracks = persistence.loadTracks(measurementIdentifier)
+        val startLocation = tracks[0].geoLocations[0]!!
+        val lastTrack = tracks[tracks.size - 1].geoLocations
+        val endLocation = lastTrack[lastTrack.size - 1]!!
+        val deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8" // Must be a valid UUID
+        val startRecord = RequestMetaData.GeoLocation(
+            startLocation.timestamp,
+            startLocation.lat,
+            startLocation.lon
+        )
+        val endRecord = RequestMetaData.GeoLocation(
+            endLocation.timestamp, endLocation.lat,
+            endLocation.lon
+        )
+        val metaData = RequestMetaData(
+            deviceId, measurementIdentifier.toString(),
+            "testOsVersion", "testDeviceType", "testAppVersion",
+            distance, locationCount.toLong(), startRecord, endRecord,
+            Modality.BICYCLE.databaseIdentifier, 3
+        )
+        val progressListener = object : UploadProgressListener {
+            override fun updatedProgress(percent: Float) {
+                Log.d(TAG, String.format("Upload Progress %f", percent))
+            }
+        }
+
+        // Mock the actual post request
+        val mockedUploader = object : Uploader {
+            override fun endpoint(): URL {
+                return URL("https://mocked.cyface.de/api/v123/measurement")
             }
 
-            // Load measurement serialized compressed
-            val serializer = MeasurementSerializer()
-            val compressedTransferTempFile = serializer.writeSerializedCompressed(
-                measurementIdentifier, persistence
+            override fun upload(
+                jwtToken: String,
+                metaData: RequestMetaData,
+                file: File,
+                progressListener: UploadProgressListener
+            ): Result {
+                throw UploadFailed(ConflictException("Test ConflictException"))
+            }
+
+        }
+
+        // Act
+        try {
+            // In the mock settings above we faked a ConflictException from the server
+            val result = oocut.sendData(
+                mockedUploader,
+                syncResult,
+                metaData,
+                compressedTransferTempFile,
+                progressListener,
+                "testToken"
             )
-            Log.d(
-                TAG, "CompressedTransferTempFile size: "
-                        + DataSerializable.humanReadableSize(
-                    compressedTransferTempFile!!.length(),
-                    true
+
+            // Assert:
+            // because of the ConflictException true should be returned
+            MatcherAssert.assertThat(
+                result,
+                CoreMatchers.`is`(CoreMatchers.equalTo(Result.UPLOAD_SUCCESSFUL))
+            )
+            // Make sure the ConflictException is actually called (instead of no exception because of mock)
+            MatcherAssert.assertThat(
+                syncResult.stats.numSkippedEntries, CoreMatchers.`is`(
+                    CoreMatchers.equalTo(1L)
                 )
             )
 
-            // Prepare transmission
-            val syncResult = SyncResult()
-
-            // Load meta data
-            val tracks = persistence.loadTracks(measurementIdentifier)
-            val startLocation = tracks[0].geoLocations[0]!!
-            val lastTrack = tracks[tracks.size - 1].geoLocations
-            val endLocation = lastTrack[lastTrack.size - 1]!!
-            val deviceId = "testDevi-ce00-42b6-a840-1b70d30094b8" // Must be a valid UUID
-            val startRecord = RequestMetaData.GeoLocation(
-                startLocation.timestamp,
-                startLocation.lat,
-                startLocation.lon
-            )
-            val endRecord = RequestMetaData.GeoLocation(
-                endLocation.timestamp, endLocation.lat,
-                endLocation.lon
-            )
-            val metaData = RequestMetaData(
-                deviceId, measurementIdentifier.toString(),
-                "testOsVersion", "testDeviceType", "testAppVersion",
-                distance, locationCount.toLong(), startRecord, endRecord,
-                Modality.BICYCLE.databaseIdentifier, 3
-            )
-            val progressListener = object : UploadProgressListener {
-                override fun updatedProgress(percent: Float) {
-                    Log.d(TAG, String.format("Upload Progress %f", percent))
-                }
-            }
-
-            // Mock the actual post request
-            val mockedUploader = object : Uploader {
-                override fun endpoint(): URL {
-                    return URL("https://mocked.cyface.de/api/v123/measurement")
-                }
-
-                override fun upload(
-                    jwtToken: String,
-                    metaData: RequestMetaData,
-                    file: File,
-                    progressListener: UploadProgressListener
-                ): Result {
-                    throw ConflictException("Test ConflictException")
-                }
-
-            }
-
-            // Act
-            try {
-                // In the mock settings above we faked a ConflictException from the server
-                val result = oocut.sendData(
-                    mockedUploader,
-                    syncResult,
-                    metaData,
-                    compressedTransferTempFile,
-                    progressListener,
-                    "testToken"
-                )
-
-                // Assert:
-                // because of the ConflictException true should be returned
+            // Cleanup
+        } finally {
+            if (compressedTransferTempFile.exists()) {
                 MatcherAssert.assertThat(
-                    result,
-                    CoreMatchers.`is`(CoreMatchers.equalTo(Result.UPLOAD_SUCCESSFUL))
+                    compressedTransferTempFile.delete(),
+                    CoreMatchers.equalTo(true)
                 )
-                // Make sure the ConflictException is actually called (instead of no exception because of mock)
-                MatcherAssert.assertThat(
-                    syncResult.stats.numSkippedEntries, CoreMatchers.`is`(
-                        CoreMatchers.equalTo(1L)
-                    )
-                )
-
-                // Cleanup
-            } finally {
-                if (compressedTransferTempFile.exists()) {
-                    MatcherAssert.assertThat(
-                        compressedTransferTempFile.delete(),
-                        CoreMatchers.equalTo(true)
-                    )
-                }
             }
         }
     }

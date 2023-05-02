@@ -23,7 +23,10 @@ import androidx.annotation.NonNull;
 import java.net.MalformedURLException;
 import java.net.URL;
 
+import de.cyface.model.Activation;
 import de.cyface.uploader.Authenticator;
+import de.cyface.uploader.Result;
+import de.cyface.uploader.exception.RegistrationFailed;
 
 /**
  * An [Authenticator] that does not actually connect to the server, for testing.
@@ -42,11 +45,19 @@ final class MockedAuthenticator implements Authenticator {
 
     @NonNull
     @Override
-    public URL endpoint() {
-        try {
-            return new URL("https://mocked.cyface.de/api/v123/login");
-        } catch (MalformedURLException e) {
-            throw new IllegalStateException(e);
-        }
+    public URL loginEndpoint() throws MalformedURLException {
+        return new URL("https://mocked.cyface.de/api/v123/login");
+    }
+
+    @NonNull
+    @Override
+    public Result register(@NonNull String s, @NonNull String s1, @NonNull String s2, @NonNull Activation activation) throws RegistrationFailed {
+        return Result.UPLOAD_SUCCESSFUL;
+    }
+
+    @NonNull
+    @Override
+    public URL registrationEndpoint() throws MalformedURLException {
+        return new URL("https://mocked.cyface.de/api/v123/login");
     }
 }

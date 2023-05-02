@@ -1,7 +1,6 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.Constants.TAG;
-import static de.cyface.synchronization.CyfaceAuthenticator.AUTH_ENDPOINT_URL_SETTINGS_KEY;
+import static de.cyface.synchronization.SyncService.AUTH_ENDPOINT_URL_SETTINGS_KEY;
 
 import android.app.Service;
 import android.content.Intent;
@@ -24,6 +23,12 @@ import de.cyface.uploader.DefaultAuthenticator;
  * @since 2.0.0
  */
 public final class AuthenticatorService extends Service {
+
+    /**
+     * Logging TAG to identify logs associated with the {@link WiFiSurveyor}.
+     */
+    @SuppressWarnings({"FieldCanBeLocal", "unused"}) // we add and move logs often, so keep it
+    public static final String TAG = Constants.TAG + ".authSvc";
     /**
      * The <code>Authenticator</code> called from this service.
      */

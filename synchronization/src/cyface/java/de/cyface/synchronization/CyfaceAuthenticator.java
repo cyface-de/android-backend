@@ -68,15 +68,11 @@ import de.cyface.uploader.exception.UnexpectedResponseCode;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.2.0
+ * @version 4.0.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
-    /**
-     * The settings key used to identify the settings storing the URL of the server to authenticate against.
-     */
-    public static final String AUTH_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.auth.endpoint";
     private final Context context;
     private final static String TAG = "de.cyface.auth";
     private final Authenticator authenticator;
