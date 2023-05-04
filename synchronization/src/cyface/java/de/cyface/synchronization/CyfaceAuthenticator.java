@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2021 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -18,9 +18,8 @@
  */
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
-import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 import static de.cyface.synchronization.ErrorHandler.sendErrorIntent;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.ACCOUNT_NOT_ACTIVATED;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.HOST_UNRESOLVABLE;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.MALFORMED_URL;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.NETWORK_UNAVAILABLE;
@@ -28,13 +27,9 @@ import static de.cyface.synchronization.ErrorHandler.ErrorCode.SERVER_UNAVAILABL
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.SYNCHRONIZATION_ERROR;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.TOO_MANY_REQUESTS;
 import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNAUTHORIZED;
+import static de.cyface.synchronization.ErrorHandler.ErrorCode.UNEXPECTED_RESPONSE_CODE;
 
-import java.net.HttpURLConnection;
 import java.net.MalformedURLException;
-import java.net.URL;
-
-import org.json.JSONException;
-import org.json.JSONObject;
 
 import android.accounts.AbstractAccountAuthenticator;
 import android.accounts.Account;
@@ -44,27 +39,23 @@ import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
 import android.content.Context;
 import android.content.Intent;
-import android.content.SharedPreferences;
 import android.os.Bundle;
-import android.preference.PreferenceManager;
 import android.util.Log;
 
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.synchronization.exception.AccountNotActivated;
-import de.cyface.synchronization.exception.BadRequestException;
-import de.cyface.synchronization.exception.ConflictException;
-import de.cyface.synchronization.exception.EntityNotParsableException;
-import de.cyface.synchronization.exception.ForbiddenException;
-import de.cyface.synchronization.exception.HostUnresolvable;
-import de.cyface.synchronization.exception.InternalServerErrorException;
-import de.cyface.synchronization.exception.NetworkUnavailableException;
-import de.cyface.synchronization.exception.ServerUnavailableException;
-import de.cyface.synchronization.exception.SynchronisationException;
-import de.cyface.synchronization.exception.TooManyRequestsException;
-import de.cyface.synchronization.exception.UnauthorizedException;
-import de.cyface.synchronization.exception.UnexpectedResponseCode;
+import de.cyface.uploader.Authenticator;
+import de.cyface.uploader.exception.AccountNotActivated;
+import de.cyface.uploader.exception.ForbiddenException;
+import de.cyface.uploader.exception.HostUnresolvable;
+import de.cyface.uploader.exception.LoginFailed;
+import de.cyface.uploader.exception.NetworkUnavailableException;
+import de.cyface.uploader.exception.ServerUnavailableException;
+import de.cyface.uploader.exception.SynchronisationException;
+import de.cyface.uploader.exception.TooManyRequestsException;
+import de.cyface.uploader.exception.UnauthorizedException;
+import de.cyface.uploader.exception.UnexpectedResponseCode;
 
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
@@ -77,14 +68,14 @@ import de.cyface.synchronization.exception.UnexpectedResponseCode;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.1.0
+ * @version 4.0.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
 
     private final Context context;
     private final static String TAG = "de.cyface.auth";
-    private final Http http;
+    private final Authenticator authenticator;
     /**
      * A reference to the implementation of the {@link AccountAuthenticatorActivity} which is called by Android and its
      * {@link AccountManager}. This happens e.g. when a token is requested while none is cached, using
@@ -92,10 +83,10 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      */
     public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
 
-    public CyfaceAuthenticator(final @NonNull Context context) {
+    public CyfaceAuthenticator(final @NonNull Context context, final @NonNull Authenticator authenticator) {
         super(context);
         this.context = context;
-        this.http = new HttpConnection();
+        this.authenticator = authenticator;
     }
 
     @Override
@@ -148,33 +139,41 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
         // Thus, we report the specific error type via sendErrorIntent()
         try {
             freshAuthToken = login(account.name, password);
-        } catch (final ServerUnavailableException | ForbiddenException e) {
-            sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final MalformedURLException e) {
-            sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final SynchronisationException e) {
-            sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final UnauthorizedException e) {
-            sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final NetworkUnavailableException e) {
-            sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final TooManyRequestsException e) {
-            sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final HostUnresolvable e) {
-            sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final UnexpectedResponseCode e) {
-            sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
-        } catch (final AccountNotActivated e) {
-            sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
-            throw new NetworkErrorException(e);
+        } catch (final LoginFailed e) {
+            var cause = e.getCause();
+            if (cause instanceof ServerUnavailableException || cause instanceof ForbiddenException) {
+                sendErrorIntent(context, SERVER_UNAVAILABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof MalformedURLException) {
+                sendErrorIntent(context, MALFORMED_URL.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof SynchronisationException) {
+                sendErrorIntent(context, SYNCHRONIZATION_ERROR.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof UnauthorizedException) {
+                sendErrorIntent(context, UNAUTHORIZED.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof NetworkUnavailableException) {
+                sendErrorIntent(context, NETWORK_UNAVAILABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof TooManyRequestsException) {
+                sendErrorIntent(context, TOO_MANY_REQUESTS.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof HostUnresolvable) {
+                sendErrorIntent(context, HOST_UNRESOLVABLE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof UnexpectedResponseCode) {
+                sendErrorIntent(context, UNEXPECTED_RESPONSE_CODE.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else if (cause instanceof AccountNotActivated) {
+                sendErrorIntent(context, ACCOUNT_NOT_ACTIVATED.getCode(), e.getMessage());
+                throw new NetworkErrorException(e);
+            } else {
+                // Unknown sub-type of `UploadFailed`
+                throw new IllegalArgumentException(e);
+            }
+        } catch (final MalformedURLException e){
+            throw new IllegalArgumentException(e);
         }
 
         // Return a bundle containing the token
@@ -238,64 +237,13 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @param password The password belonging to the account with the {@code username}
      *            logging in to the Cyface server.
      * @return The currently valid auth token to be used by further requests from this application.
-     * @throws SynchronisationException If an IOException occurred while reading the response code or the connection
-     *             could not be prepared
-     * @throws UnauthorizedException When the server returns {@code HttpURLConnection#HTTP_UNAUTHORIZED}
-     * @throws MalformedURLException If no protocol is specified, or an unknown protocol is found, or spec is null.
-     * @throws ServerUnavailableException When there seems to be no server at the given URL.
-     * @throws NetworkUnavailableException When the network used for transmission becomes unavailable.
-     * @throws TooManyRequestsException When the server returns {@link HttpConnection#HTTP_TOO_MANY_REQUESTS}
-     * @throws ForbiddenException E.g. when there is no actual API running at the URL
-     * @throws UnexpectedResponseCode When the server returns an unexpected response code
-     * @throws AccountNotActivated When the user account is not activated
+     * @throws LoginFailed when an expected error occurred, so that the UI can handle this.
+     * @throws MalformedURLException if the endpoint address provided is malformed.
      */
-    private String login(final @NonNull String username, final @NonNull String password)
-            throws ServerUnavailableException, MalformedURLException, SynchronisationException, UnauthorizedException,
-            NetworkUnavailableException, TooManyRequestsException, HostUnresolvable, ForbiddenException, UnexpectedResponseCode, AccountNotActivated {
-        Log.v(TAG, "Logging in to get new authToken");
-
-        // Load authUrl
-        final SharedPreferences preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final String url = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null);
-        if (url == null) {
-            throw new IllegalStateException(
-                    "Server url not available. Please set the applications server url preference.");
-        }
-        final URL authUrl = new URL(http.returnUrlWithTrailingSlash(url) + "login");
-
-        // Generate login payload
-        final JSONObject loginPayload = new JSONObject();
-        try {
-            loginPayload.put("username", username);
-            loginPayload.put("password", password);
-        } catch (final JSONException e) {
-            throw new IllegalArgumentException(e);
-        }
+    private String login(final @NonNull String username, final @NonNull String password) throws LoginFailed, MalformedURLException {
 
         // Login to get JWT token
-        Log.d(TAG, "Authenticating at " + authUrl + " with " + loginPayload);
-        HttpURLConnection connection = null;
-        final String authToken;
-        try {
-            connection = http.open(authUrl, false);
-
-            // Try to send the request and handle expected errors
-            final HttpConnection.Result loginResponse = http.login(connection, loginPayload, false);
-
-            // Make sure the successful response contains an Authorization token
-            authToken = connection.getHeaderField("Authorization");
-            if (loginResponse.equals(HttpConnection.Result.LOGIN_SUCCESSFUL) && authToken == null) {
-                throw new IllegalStateException("Login successful but response does not contain a token");
-            }
-        } catch (final BadRequestException | InternalServerErrorException | EntityNotParsableException
-                | ConflictException e) {
-            throw new IllegalStateException(e); // API definition does not define those errors
-        } finally {
-            if (connection != null) {
-                connection.disconnect();
-            }
-        }
-
-        return authToken;
+        Log.d(TAG, "Authenticating at " + authenticator.loginEndpoint() + " with " + username + " / " + password);
+        return authenticator.authenticate(username, password);
     }
 }

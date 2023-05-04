@@ -26,12 +26,16 @@
  */
 
 plugins {
-    id 'de.cyface.android-publish' version '1.0.1' // Keep version in sync with other modules!
+    // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
+    // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
+    // Keep version in sync with other modules!
+    id 'de.cyface.android-publish' version '1.0.5'
     id 'kotlin-android'
     id 'kotlin-kapt'
 }
 
 android {
+    namespace "de.cyface.persistence"
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
@@ -90,15 +94,9 @@ dependencies {
     // Android dependencies
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
 
-    // Upload
-    implementation ("com.google.api-client:google-api-client:$rootProject.ext.googleApiClientVersion",{
-        exclude group:'org.apache.httpcomponents', module:'httpclient'
-    })
-
     // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
-    annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
     // To observe data with `Flow`
     implementation "androidx.room:room-ktx:$rootProject.ext.roomVersion"
     // To use Room with Kotlin

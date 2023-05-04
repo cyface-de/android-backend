@@ -45,7 +45,7 @@ import de.cyface.persistence.model.Modality
 import de.cyface.persistence.strategy.DefaultDistanceCalculation
 import de.cyface.persistence.strategy.DefaultLocationCleaning
 import de.cyface.synchronization.Constants.AUTH_TOKEN_TYPE
-import de.cyface.synchronization.exception.SynchronisationException
+import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.utils.Validate
 
 /**
@@ -107,7 +107,9 @@ class MovebisDataCapturingService internal constructor(
     eventHandlingStrategy: EventHandlingStrategy,
     capturingListener: DataCapturingListener, sensorFrequency: Int
 ) : DataCapturingService(
-    context, authority, accountType, dataUploadServerAddress, eventHandlingStrategy,
+    context, authority, accountType, dataUploadServerAddress,
+    // This flavor uses a single API for both auth and upload requests
+    dataUploadServerAddress, eventHandlingStrategy,
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
     DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
     sensorFrequency

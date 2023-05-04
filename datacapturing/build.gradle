@@ -26,12 +26,16 @@
  */
 
 plugins {
-    id 'de.cyface.android-publish' version '1.0.1' // Keep version in sync with other modules!
+    // use `:datacapturing:publishToMavenLocal` instead of `publishToMavenLocal` (see custom task `publishAll`)
+    // Don't move to root `build.gradle` as this forces SDK and camera_service to define this, too.
+    // Keep version in sync with other modules!
+    id 'de.cyface.android-publish' version '1.0.5'
     id 'kotlin-android'
     id 'kotlin-kapt'
 }
 
 android {
+    namespace "de.cyface.datacapturing"
     compileSdkVersion rootProject.ext.compileSdkVersion
     buildToolsVersion rootProject.ext.buildToolsVersion
 
@@ -93,6 +97,15 @@ android {
     kotlinOptions {
         jvmTarget = rootProject.ext.kotlinTargetJavaVersion
     }
+
+    // Avoid `2 files found with path ...` error
+    packagingOptions {
+        exclude("META-INF/DEPENDENCIES")
+    }
+
+    /*buildFeatures { // for Upgrade to Gradle 8 [RFR-412]
+        buildConfig = true
+    }*/
 }
 
 dependencies {
@@ -104,9 +117,7 @@ dependencies {
     // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
     implementation "androidx.room:room-runtime:$rootProject.ext.roomVersion"
-    annotationProcessor "androidx.room:room-compiler:$rootProject.ext.roomVersion"
-    // To use Room with Kotlin
-    //kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
+    kapt "androidx.room:room-compiler:$rootProject.ext.roomVersion"
 
     // Kotlin components
     //implementation "org.jetbrains.kotlin:kotlin-stdlib-jdk8:$kotlin_version"

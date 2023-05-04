@@ -28,8 +28,8 @@ import androidx.test.filters.LargeTest
 import androidx.test.filters.SdkSuppress
 import androidx.test.platform.app.InstrumentationRegistry
 import androidx.test.rule.GrantPermissionRule
-import de.cyface.synchronization.exception.SynchronisationException
 import de.cyface.testutils.SharedTestUtils.cleanupOldAccounts
+import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.utils.Validate
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert

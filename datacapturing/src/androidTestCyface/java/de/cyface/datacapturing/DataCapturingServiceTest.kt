@@ -134,7 +134,8 @@ class DataCapturingServiceTest {
                     context!!,
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
-                    "https://localhost:8080",
+                    "https://localhost:8080/api/v3",
+                    "https://localhost:8081/api/v1",
                     IgnoreEventsStrategy(),
                     testListener!!,
                     100
@@ -1126,7 +1127,7 @@ We should consider refactoring the code before to use startCommandReceived as in
     fun testDataCapturingService_doesNotAcceptUrlWithoutProtocol() {
         CyfaceDataCapturingService(
             context!!, TestUtils.AUTHORITY,
-            TestUtils.ACCOUNT_TYPE, "localhost:8080", IgnoreEventsStrategy(), testListener!!, 100
+            TestUtils.ACCOUNT_TYPE, "localhost:8080/api/v3", "localhost:8081/api/v1", IgnoreEventsStrategy(), testListener!!, 100
         )
     }
 

@@ -1,5 +1,5 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android"
-    package="de.cyface.datacapturing">
+    package="de.cyface.datacapturing"><!-- remove package with Gradle 8 [RFR-412] -->
 
     <!-- Required to keep the app from being send to sleep by the system. -->
     <uses-permission android:name="android.permission.WAKE_LOCK" />

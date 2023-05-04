@@ -59,6 +59,7 @@ import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.SyncService
+import de.cyface.synchronization.SyncService.AUTH_ENDPOINT_URL_SETTINGS_KEY
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
 import java.lang.ref.WeakReference
@@ -90,6 +91,8 @@ import java.util.concurrent.locks.ReentrantLock
  * @param accountType The type of the account to use to synchronize data with.
  * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
  * this service. This must be in the format "https://some.url/optional/resource".
+ * @param authServerAddress The server address running an API that is capable of receiving registration and login requests.
+ * This must be in the format "https://some.url/optional/resource".
  * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
  * triggered by the [DataCapturingBackgroundService].
  * @property persistenceLayer The [de.cyface.persistence.PersistenceLayer] required to access the device id
@@ -105,7 +108,7 @@ import java.util.concurrent.locks.ReentrantLock
  */
 abstract class DataCapturingService(
     context: Context, authority: String,
-    accountType: String, dataUploadServerAddress: String,
+    accountType: String, dataUploadServerAddress: String, authServerAddress: String?,
     eventHandlingStrategy: EventHandlingStrategy,
     persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
     distanceCalculationStrategy: DistanceCalculationStrategy,
@@ -238,6 +241,9 @@ abstract class DataCapturingService(
         if (!dataUploadServerAddress.startsWith("https://") && !dataUploadServerAddress.startsWith("http://")) {
             throw SetupException("Invalid URL protocol")
         }
+        if (authServerAddress != null && !authServerAddress.startsWith("https://") && !authServerAddress.startsWith("http://")) {
+            throw SetupException("Invalid URL protocol")
+        }
         this.context = WeakReference(context)
         this.authority = authority
         this.persistenceLayer = persistenceLayer
@@ -270,6 +276,10 @@ abstract class DataCapturingService(
         sharedPreferencesEditor.putString(
             SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY,
             dataUploadServerAddress
+        )
+        sharedPreferencesEditor.putString(
+            AUTH_ENDPOINT_URL_SETTINGS_KEY,
+            authServerAddress
         )
         if (!sharedPreferencesEditor.commit()) {
             throw SetupException("Unable to write preferences!")

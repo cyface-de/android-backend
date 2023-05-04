@@ -30,7 +30,6 @@ import android.content.SyncResult
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
-import android.preference.PreferenceManager
 import android.util.Log
 import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
@@ -41,7 +40,11 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.synchronization.ErrorHandler.ErrorCode
-import de.cyface.synchronization.exception.SynchronizationInterruptedException
+import de.cyface.uploader.Authenticator
+import de.cyface.uploader.Result
+import de.cyface.uploader.UploadProgressListener
+import de.cyface.uploader.Uploader
+import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
@@ -55,15 +58,17 @@ import java.io.File
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.0.2
+ * @version 4.0.0
  * @since 2.0.0
- * @property http The http connection to use for synchronization.
+ * @property authenticator The authenticator to use for synchronization.
+ * @property uploader The uploader to use for synchronization.
  */
 class SyncAdapter private constructor(
     context: Context,
     autoInitialize: Boolean,
     allowParallelSyncs: Boolean,
-    private val http: Http
+    private val authenticator: Authenticator,
+    private val uploader: Uploader
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
 
     private val progressListener: MutableCollection<ConnectionStatusListener>
@@ -79,13 +84,20 @@ class SyncAdapter private constructor(
      *
      * @param context The context this adapter is active under.
      * @param autoInitialize More details are available at `AbstractThreadedSyncAdapter`.
-     * @param http The http connection to use for synchronization.
+     * @param authenticator The authenticator to use for synchronization.
+     * @param uploader The uploader to use for synchronization.
      */
-    internal constructor(context: Context, autoInitialize: Boolean, http: Http) : this(
+    internal constructor(
+        context: Context,
+        autoInitialize: Boolean,
+        authenticator: Authenticator,
+        uploader: Uploader
+    ) : this(
         context,
         autoInitialize,
         false,
-        http
+        authenticator,
+        uploader
     )
 
     init {
@@ -112,7 +124,7 @@ class SyncAdapter private constructor(
                 context,
                 DefaultPersistenceBehaviour()
             )
-        val authenticator = CyfaceAuthenticator(context)
+        val authenticator = CyfaceAuthenticator(context, authenticator)
         val syncPerformer = SyncPerformer(context)
         try {
             // Ensure user is authorized before starting synchronization
@@ -156,7 +168,6 @@ class SyncAdapter private constructor(
 
                     // Acquire new auth token before each synchronization (old one could be expired)
                     val jwtAuthToken = getAuthToken(authenticator, account)
-                    val endPointUrl = getApiUrl(context)
 
                     // Check whether the network settings changed to avoid using metered network without permission
                     if (isSyncRequestAborted(account, authority)) {
@@ -164,9 +175,8 @@ class SyncAdapter private constructor(
                     }
 
                     // Synchronize measurement
-                    val result = syncPerformer.sendData(
-                        http, syncResult, endPointUrl, metaData,
-                        compressedTransferTempFile!!, { percent: Float ->
+                    val processListener = object : UploadProgressListener {
+                        override fun updatedProgress(percent: Float) {
                             // Multi-measurement progress
                             val progressPerMeasurement =
                                 100.0 / measurementCount.toDouble()
@@ -178,17 +188,25 @@ class SyncAdapter private constructor(
                             for (listener in progressListener) {
                                 listener.onProgress(total.toFloat(), measurement.id)
                             }
-                        }, jwtAuthToken
+                        }
+                    }
+                    val result = syncPerformer.sendData(
+                        uploader,
+                        syncResult,
+                        metaData,
+                        compressedTransferTempFile!!,
+                        processListener,
+                        jwtAuthToken
                     )
-                    if (result == HttpConnection.Result.UPLOAD_FAILED) {
+                    if (result == Result.UPLOAD_FAILED) {
                         break
                     }
 
                     // Mark successfully transmitted measurement as synced
                     try {
-                        if (result == HttpConnection.Result.UPLOAD_SKIPPED) {
+                        if (result == Result.UPLOAD_SKIPPED) {
                             persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
-                        } else if (result == HttpConnection.Result.UPLOAD_SUCCESSFUL) {
+                        } else if (result == Result.UPLOAD_SUCCESSFUL) {
                             persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
                         } else {
                             throw IllegalArgumentException(
@@ -211,7 +229,11 @@ class SyncAdapter private constructor(
                     if (compressedTransferTempFile != null && compressedTransferTempFile!!.exists()) {
                         Validate.isTrue(compressedTransferTempFile!!.delete())
                     }
-                    provider.close()
+                    if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+                        provider.close()
+                    } else {
+                        provider.release()
+                    }
                 }
             }
         } catch (e: CursorIsNullException) {
@@ -273,7 +295,6 @@ class SyncAdapter private constructor(
             Log.w(TAG, "getAuthToken failed, was the connection closed? Aborting sync.")
             throw e
         }
-        @Suppress("FoldInitializerAndIfToElvis") // For readability
         if (bundle == null) {
             // Because of Movebis we don't throw an IllegalStateException if there is no auth token
             throw AuthenticatorException("No valid auth token supplied. Aborting data synchronization!")
@@ -286,22 +307,6 @@ class SyncAdapter private constructor(
         }
         Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length - 7))
         return jwtAuthToken
-    }
-
-    /**
-     * Reads the Collector API URL from the preferences.
-     *
-     * @param context The `Context` required to read the preferences
-     * @return The URL as string
-     */
-    private fun getApiUrl(context: Context): String {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val endPointUrl = preferences.getString(SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY, null)
-        Validate.notNull(
-            endPointUrl,
-            "Sync canceled: Server url not available. Please set the applications server url preference."
-        )
-        return endPointUrl!!
     }
 
     /**

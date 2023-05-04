@@ -1,5 +1,6 @@
 <manifest xmlns:android="http://schemas.android.com/apk/res/android" xmlns:tools="http://schemas.android.com/tools"
-    package="de.cyface.synchronization.test">
+    package="de.cyface.synchronization.test"
+    android:versionName="testVersionName"> <!-- versionName required for SyncAdapterTest -->
     <!-- Required to change WiFi state for testing. -->
     <uses-permission android:name="android.permission.CHANGE_WIFI_STATE" />
 
