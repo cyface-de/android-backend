@@ -60,6 +60,13 @@ class DefaultDistanceCalculation : DistanceCalculationStrategy {
         previousLocation.longitude = lastLocation.lon
         nextLocation.latitude = newLocation.lat
         nextLocation.longitude = newLocation.lon
+        // w/o `accuracy`, `distanceTo()` returns `0` on Samsung Galaxy S9 Android 10 [STAD-513]
+        if (lastLocation.accuracy != null) {
+            previousLocation.accuracy = lastLocation.accuracy!!.toFloat()
+        }
+        if (newLocation.accuracy != null) {
+            nextLocation.accuracy = newLocation.accuracy!!.toFloat()
+        }
         return previousLocation.distanceTo(nextLocation).toDouble()
     }
 
