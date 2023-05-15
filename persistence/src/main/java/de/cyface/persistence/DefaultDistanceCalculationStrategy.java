@@ -1,5 +1,5 @@
 /*
- * Copyright 2019 Cyface GmbH
+ * Copyright 2019-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -22,6 +22,7 @@ import android.location.Location;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
+
 import de.cyface.persistence.model.GeoLocation;
 import de.cyface.persistence.model.Measurement;
 
@@ -30,7 +31,7 @@ import de.cyface.persistence.model.Measurement;
  * {@link Measurement#getDistance()} using simply {@link Location#distanceTo(Location)}.
  *
  * @author Armin Schnabel
- * @version 2.0.2
+ * @version 2.0.3
  * @since 3.2.0
  */
 public class DefaultDistanceCalculationStrategy implements DistanceCalculationStrategy {
@@ -81,6 +82,9 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
         previousLocation.setLongitude(lastLocation.getLon());
         nextLocation.setLatitude(newLocation.getLat());
         nextLocation.setLongitude(newLocation.getLon());
+        // w/o `accuracy`, `distanceTo()` returns `0` on Samsung Galaxy S9 Android 10 [STAD-513]
+        previousLocation.setAccuracy(lastLocation.getAccuracy());
+        nextLocation.setAccuracy(newLocation.getAccuracy());
 
         return previousLocation.distanceTo(nextLocation);
     }
