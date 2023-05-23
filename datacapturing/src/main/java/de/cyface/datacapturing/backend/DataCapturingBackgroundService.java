@@ -490,8 +490,13 @@ public class DataCapturingBackgroundService extends Service implements Capturing
             eventHandlingStrategy.handleSpaceWarning(this);
         }
 
+        // Filter cached locations from before the measurement started [STAD-140]
+        // while handling week-rollover-GPS-bug for old devices [STAD-515].
+        // To be able to identify such devices, currently don't fix the timestamp in the locations.
+        final var isCachedLocation = isCachedLocation(newLocation.getTimestamp(), startupTime);
+
         // Mark "unclean" locations as invalid and ignore it for distance calculation below
-        if (!locationCleaningStrategy.isClean(newLocation) || newLocation.getTimestamp() < startupTime) {
+        if (!locationCleaningStrategy.isClean(newLocation) || isCachedLocation) {
             newLocation.setValid(false);
             informCaller(MessageCodes.LOCATION_CAPTURED, newLocation);
             return;
@@ -517,6 +522,25 @@ public class DataCapturingBackgroundService extends Service implements Capturing
         lastDistance = newDistance;
         Log.d(TAG, "Distance updated: " + distanceToAdd);
         this.lastLocation = newLocation;
+    }
+
+    /**
+     * Identifies cached locations from before the measurement started [STAD-140].
+     * <p>
+     * As there are old devices which have a "week-rollover-GPS-bug" [STAD-515] this method makes
+     * sure this bug does not filter all locations.
+     * <p>
+     * The 1024 week shift is identified by checking for a shift > ~992 weeks.
+     *
+     * @param gpsTime The Unix timestamp in milliseconds of the GNSS point to check.
+     * @param startupTime The Unix timestamp in milliseconds from when the measurement started.
+     * @return {@code true} if the GNSS point is from before the measurement started.
+     */
+    static boolean isCachedLocation(final long gpsTime, final long startupTime) {
+        final var startupTimeGpsTimeOffset = startupTime - gpsTime;
+        final var isWeekRollOverBug = gpsTime > 0 && startupTimeGpsTimeOffset > 600000000000L;
+        final var fixedTime = isWeekRollOverBug ? gpsTime + 619315200000L : gpsTime;
+        return fixedTime < startupTime;
     }
 
     @Override
