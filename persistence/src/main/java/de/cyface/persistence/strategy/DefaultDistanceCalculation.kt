@@ -19,6 +19,7 @@
 package de.cyface.persistence.strategy
 
 import android.location.Location
+import android.location.LocationManager
 import android.os.Parcel
 import android.os.Parcelable.Creator
 import de.cyface.persistence.model.ParcelableGeoLocation
@@ -54,12 +55,17 @@ class DefaultDistanceCalculation : DistanceCalculationStrategy {
         lastLocation: ParcelableGeoLocation,
         newLocation: ParcelableGeoLocation
     ): Double {
-        val previousLocation = Location(DEFAULT_PROVIDER)
-        val nextLocation = Location(DEFAULT_PROVIDER)
+        // Changed to that the code is more similar to SR-calculated distance [STAD-518]
+        val previousLocation = Location(LocationManager.GPS_PROVIDER)
+        val nextLocation = Location(LocationManager.GPS_PROVIDER)
         previousLocation.latitude = lastLocation.lat
         previousLocation.longitude = lastLocation.lon
+        previousLocation.speed = lastLocation.speed.toFloat()
+        previousLocation.time = lastLocation.timestamp
         nextLocation.latitude = newLocation.lat
         nextLocation.longitude = newLocation.lon
+        nextLocation.speed = newLocation.speed.toFloat()
+        nextLocation.time = newLocation.timestamp
         // w/o `accuracy`, `distanceTo()` returns `0` on Samsung Galaxy S9 Android 10 [STAD-513]
         if (lastLocation.accuracy != null) {
             previousLocation.accuracy = lastLocation.accuracy!!.toFloat()
@@ -80,11 +86,6 @@ class DefaultDistanceCalculation : DistanceCalculationStrategy {
     }
 
     companion object {
-        /**
-         * The [Location.getProvider] String used to create a new [Location].
-         */
-        private const val DEFAULT_PROVIDER = "default"
-
         /**
          * The `Parcelable` creator as required by the Android Parcelable specification.
          */
