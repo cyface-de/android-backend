@@ -19,6 +19,7 @@
 package de.cyface.persistence;
 
 import android.location.Location;
+import android.location.LocationManager;
 import android.os.Parcel;
 
 import androidx.annotation.NonNull;
@@ -35,11 +36,6 @@ import de.cyface.persistence.model.Measurement;
  * @since 3.2.0
  */
 public class DefaultDistanceCalculationStrategy implements DistanceCalculationStrategy {
-
-    /**
-     * The {@link Location#getProvider()} String used to create a new {@link Location}.
-     */
-    private final static String DEFAULT_PROVIDER = "default";
 
     /**
      * The <code>Parcelable</code> creator as required by the Android Parcelable specification.
@@ -75,13 +71,17 @@ public class DefaultDistanceCalculationStrategy implements DistanceCalculationSt
 
     @Override
     public double calculateDistance(@NonNull GeoLocation lastLocation, @NonNull GeoLocation newLocation) {
-
-        final Location previousLocation = new Location(DEFAULT_PROVIDER);
-        final Location nextLocation = new Location(DEFAULT_PROVIDER);
+        // Changed to that the code is more similar to SR-calculated distance [STAD-518]
+        final Location previousLocation = new Location(LocationManager.GPS_PROVIDER);
+        final Location nextLocation = new Location(LocationManager.GPS_PROVIDER);
         previousLocation.setLatitude(lastLocation.getLat());
         previousLocation.setLongitude(lastLocation.getLon());
+        previousLocation.setSpeed((float) lastLocation.getSpeed());
+        previousLocation.setTime(lastLocation.getTimestamp());
         nextLocation.setLatitude(newLocation.getLat());
         nextLocation.setLongitude(newLocation.getLon());
+        nextLocation.setSpeed((float) newLocation.getSpeed());
+        nextLocation.setTime(newLocation.getTimestamp());
         // w/o `accuracy`, `distanceTo()` returns `0` on Samsung Galaxy S9 Android 10 [STAD-513]
         previousLocation.setAccuracy(lastLocation.getAccuracy());
         nextLocation.setAccuracy(newLocation.getAccuracy());
