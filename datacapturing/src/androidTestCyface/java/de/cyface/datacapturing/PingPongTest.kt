@@ -19,7 +19,7 @@
 package de.cyface.datacapturing
 
 import android.Manifest
-import android.accounts.AccountAuthenticatorActivity
+import android.app.Activity
 import android.content.Context
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.MediumTest
@@ -57,7 +57,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.11
+ * @version 1.2.12
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4::class)
@@ -139,7 +139,7 @@ class PingPongTest {
         // Instantiate DataCapturingService
         val testListener: DataCapturingListener = TestListener()
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
-        CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity::class.java
+        CyfaceAuthenticator.LOGIN_ACTIVITY = Activity::class.java
         InstrumentationRegistry.getInstrumentation().runOnMainSync {
             dcs = try {
                 CyfaceDataCapturingService(

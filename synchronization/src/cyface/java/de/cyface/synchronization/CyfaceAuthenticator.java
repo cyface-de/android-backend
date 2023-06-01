@@ -37,6 +37,7 @@ import android.accounts.AccountAuthenticatorActivity;
 import android.accounts.AccountAuthenticatorResponse;
 import android.accounts.AccountManager;
 import android.accounts.NetworkErrorException;
+import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
@@ -68,7 +69,7 @@ import de.cyface.uploader.exception.UnexpectedResponseCode;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 5.0.0
  * @since 2.0.0
  */
 public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
@@ -81,7 +82,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * {@link AccountManager}. This happens e.g. when a token is requested while none is cached, using
      * {@link #getAuthToken(AccountAuthenticatorResponse, Account, String, Bundle)}.
      */
-    public static Class<? extends AccountAuthenticatorActivity> LOGIN_ACTIVITY;
+    public static Class<? extends Activity> LOGIN_ACTIVITY;
 
     public CyfaceAuthenticator(final @NonNull Context context, final @NonNull Authenticator authenticator) {
         super(context);
@@ -172,7 +173,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
                 // Unknown sub-type of `UploadFailed`
                 throw new IllegalArgumentException(e);
             }
-        } catch (final MalformedURLException e){
+        } catch (final MalformedURLException e) {
             throw new IllegalArgumentException(e);
         }
 
@@ -240,7 +241,8 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
      * @throws LoginFailed when an expected error occurred, so that the UI can handle this.
      * @throws MalformedURLException if the endpoint address provided is malformed.
      */
-    private String login(final @NonNull String username, final @NonNull String password) throws LoginFailed, MalformedURLException {
+    private String login(final @NonNull String username, final @NonNull String password)
+            throws LoginFailed, MalformedURLException {
 
         // Login to get JWT token
         Log.d(TAG, "Authenticating at " + authenticator.loginEndpoint() + " with " + username + " / " + password);
