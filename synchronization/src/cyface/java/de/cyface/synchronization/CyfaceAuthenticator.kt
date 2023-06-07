@@ -28,6 +28,8 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
+import androidx.annotation.MainThread
+import androidx.annotation.WorkerThread
 import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.uploader.Authenticator
 import de.cyface.uploader.exception.AccountNotActivated
@@ -40,6 +42,12 @@ import de.cyface.uploader.exception.SynchronisationException
 import de.cyface.uploader.exception.TooManyRequestsException
 import de.cyface.uploader.exception.UnauthorizedException
 import de.cyface.uploader.exception.UnexpectedResponseCode
+import net.openid.appauth.AppAuthConfiguration
+import net.openid.appauth.AuthorizationException
+import net.openid.appauth.AuthorizationService
+import net.openid.appauth.ClientAuthentication
+import net.openid.appauth.TokenRequest
+import net.openid.appauth.TokenResponse
 import java.net.MalformedURLException
 
 /**
@@ -58,6 +66,42 @@ import java.net.MalformedURLException
  */
 class CyfaceAuthenticator(private val context: Context, private val authenticator: Authenticator) :
     AbstractAccountAuthenticator(context) {
+
+    /**
+     * The service used for authorization.
+     */
+    private var mAuthService: AuthorizationService
+
+    /**
+     * The authorization state.
+     */
+    private var mStateManager: AuthStateManager
+
+    /**
+     * The configuration of the OAuth 2 endpoint to authorize against.
+     */
+    private var mConfiguration: Configuration
+
+    init {
+        // Authorization
+        mStateManager = AuthStateManager.getInstance(context)
+        //mExecutor = Executors.newSingleThreadExecutor()
+        mConfiguration = Configuration.getInstance(context)
+        val config = Configuration.getInstance(context)
+        if (config.hasConfigurationChanged()) {
+            throw IllegalArgumentException("config changed")
+            /*show("Authentifizierung ist abgelaufen")
+            Handler().postDelayed({signOut()}, 2000)*/
+            //return
+        }
+        mAuthService = AuthorizationService(
+            context,
+            AppAuthConfiguration.Builder()
+                .setConnectionBuilder(config.connectionBuilder)
+                .build()
+        )
+    }
+
     override fun editProperties(
         response: AccountAuthenticatorResponse,
         accountType: String
@@ -96,7 +140,7 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
     @Throws(NetworkErrorException::class)
     override fun getAuthToken(
         response: AccountAuthenticatorResponse?, account: Account,
-        authTokenType: String, options: Bundle
+        authTokenType: String, options: Bundle?
     ): Bundle {
 
         // Invalidate existing token. They expire after 60 seconds, so it's more resourceful to
@@ -109,15 +153,21 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
 
         // Request login if no password is stored to get new authToken
         val freshAuthToken: String
-        val password = accountManager.getPassword(account)
-            ?: return getLoginActivityIntent(response, account, authTokenType)!!
+        /*val password = accountManager.getPassword(account)
+            ?: return getLoginActivityIntent(response, account, authTokenType)!!*/
 
         // Login to get a new authToken
         // Due to the interface we can only throw NetworkErrorException
         // Thus, we report the specific error type via sendErrorIntent()
-        freshAuthToken = try {
-            login(account.name, password)
-        } catch (e: LoginFailed) {
+        //freshAuthToken = try {
+            //login(account.name, password)
+            performTokenRequest(mStateManager.current.createTokenRefreshRequest()) { tokenResponse: TokenResponse?, authException: AuthorizationException? ->
+                handleAccessTokenResponse(
+                    tokenResponse,
+                    authException
+                )
+            }
+        /*} catch (e: LoginFailed) {
             when (e.cause) {
                 is ServerUnavailableException, is ForbiddenException -> {
                     ErrorHandler.sendErrorIntent(
@@ -199,14 +249,15 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
             }
         } catch (e: MalformedURLException) {
             throw IllegalArgumentException(e)
-        }
+        }*/
 
         // Return a bundle containing the token
-        Log.v(TAG, "Fresh authToken: **" + freshAuthToken.substring(freshAuthToken.length - 7))
+        //Log.v(TAG, "Fresh authToken: **" + freshAuthToken.substring(freshAuthToken.length - 7))
         val result = Bundle()
         result.putString(AccountManager.KEY_ACCOUNT_NAME, account.name)
         result.putString(AccountManager.KEY_ACCOUNT_TYPE, account.type)
-        result.putString(AccountManager.KEY_AUTHTOKEN, freshAuthToken)
+        //result.putString(AccountManager.KEY_AUTHTOKEN, freshAuthToken)
+        Log.v(TAG, "getAuthToken: Token refresh requested (async)")
         return result
     }
 
@@ -255,6 +306,38 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         features: Array<String>
     ): Bundle? {
         return null
+    }
+
+    @MainThread
+    private fun performTokenRequest(
+        request: TokenRequest,
+        callback: AuthorizationService.TokenResponseCallback
+    ) {
+        val clientAuthentication = try {
+            mStateManager.current.clientAuthentication
+        } catch (ex: ClientAuthentication.UnsupportedAuthenticationMethod) {
+            Log.d(
+                TAG, "Token request cannot be made, client authentication for the token "
+                        + "endpoint could not be constructed (%s)", ex
+            )
+            throw IllegalArgumentException("Client authentication method is unsupported")
+            //displayNotAuthorized("Client authentication method is unsupported")
+            return
+        }
+        mAuthService.performTokenRequest(
+            request,
+            clientAuthentication,
+            callback
+        )
+    }
+
+    @WorkerThread
+    private fun handleAccessTokenResponse(
+        tokenResponse: TokenResponse?,
+        authException: AuthorizationException?
+    ) {
+        mStateManager.updateAfterTokenResponse(tokenResponse, authException)
+        //runOnUiThread { displayAuthorized("handleAccessTokenResponse") }
     }
 
     /**

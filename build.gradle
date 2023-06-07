@@ -64,6 +64,10 @@ ext {
     // Kotlin components
     coroutinesVersion = "1.6.4"
 
+    // Other dependencies // FIXME: might move to uploader
+    appAuthVersion = "0.11.1"
+    okioVersion = "2.10.0"
+
     // Testing
     junitVersion = "1.1.5"
     mockitoVersion = '5.2.0'

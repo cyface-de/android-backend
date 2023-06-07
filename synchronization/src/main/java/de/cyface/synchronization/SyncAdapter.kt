@@ -48,6 +48,9 @@ import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
+import net.openid.appauth.AppAuthConfiguration
+import net.openid.appauth.AuthorizationException
+import net.openid.appauth.AuthorizationService
 import java.io.File
 
 /**
@@ -79,6 +82,21 @@ class SyncAdapter private constructor(
     private var mockIsConnectedToReturnTrue = false
 
     /**
+     * The service used for authorization.
+     */
+    private var mAuthService: AuthorizationService
+
+    /**
+     * The authorization state.
+     */
+    private var mStateManager: AuthStateManager
+
+    /**
+     * The configuration of the OAuth 2 endpoint to authorize against.
+     */
+    private var mConfiguration: Configuration
+
+    /**
      * Creates a new completely initialized `SyncAdapter`. See the documentation of
      * `AbstractThreadedSyncAdapter` from the Android framework for further information.
      *
@@ -103,6 +121,24 @@ class SyncAdapter private constructor(
     init {
         progressListener = HashSet()
         addConnectionListener(CyfaceConnectionStatusListener(context))
+
+        // Authorization
+        mStateManager = AuthStateManager.getInstance(context)
+        //mExecutor = Executors.newSingleThreadExecutor()
+        mConfiguration = Configuration.getInstance(context)
+        val config = Configuration.getInstance(context)
+        if (config.hasConfigurationChanged()) {
+            throw IllegalArgumentException("config changed")
+            /*show("Authentifizierung ist abgelaufen")
+            Handler().postDelayed({signOut()}, 2000)*/
+            //return
+        }
+        mAuthService = AuthorizationService(
+            context,
+            AppAuthConfiguration.Builder()
+                .setConnectionBuilder(config.connectionBuilder)
+                .build()
+        )
     }
 
     override fun onPerformSync(
@@ -128,6 +164,7 @@ class SyncAdapter private constructor(
         val syncPerformer = SyncPerformer(context)
         try {
             // Ensure user is authorized before starting synchronization
+            // FIXME: getAuthToken currently just refreshes the token async, maybe call `authenticator.isAuthorized` here
             getAuthToken(authenticator, account)
             val deviceId = persistence.restoreOrCreateDeviceId()
 
@@ -167,7 +204,7 @@ class SyncAdapter private constructor(
                     }
 
                     // Acquire new auth token before each synchronization (old one could be expired)
-                    val jwtAuthToken = getAuthToken(authenticator, account)
+                    //val jwtAuthToken = getAuthToken(authenticator, account) // FIXME: replace with `performActionWithFreshTokens`
 
                     // Check whether the network settings changed to avoid using metered network without permission
                     if (isSyncRequestAborted(account, authority)) {
@@ -190,40 +227,50 @@ class SyncAdapter private constructor(
                             }
                         }
                     }
-                    val result = syncPerformer.sendData(
-                        uploader,
-                        syncResult,
-                        metaData,
-                        compressedTransferTempFile!!,
-                        processListener,
-                        jwtAuthToken
-                    )
-                    if (result == Result.UPLOAD_FAILED) {
-                        break
-                    }
 
-                    // Mark successfully transmitted measurement as synced
-                    try {
-                        if (result == Result.UPLOAD_SKIPPED) {
-                            persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
-                        } else if (result == Result.UPLOAD_SUCCESSFUL) {
-                            persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
-                        } else {
-                            throw IllegalArgumentException(
-                                String.format(
-                                    "Unknown result: %s",
-                                    result
+                    // FIXME: This is now executed asynchronously!
+
+                    // FIXME !!!!!!!!!!!! SyncAdapter may not be dependent on OAuth (used by SR, too)
+                    mStateManager.current.performActionWithFreshTokens(
+                        mAuthService
+                    ) { accessToken: String?, idToken: String?, ex: AuthorizationException? ->
+                        Log.w(TAG, "TOKEN ::::: FIXME ::: $accessToken")
+                        val result = syncPerformer.sendData(
+                            uploader,
+                            syncResult,
+                            metaData,
+                            compressedTransferTempFile!!,
+                            processListener,
+                            accessToken!!
+                        )
+                        if (result == Result.UPLOAD_FAILED) {
+                            throw java.lang.IllegalStateException("upload failed")
+                            //FIXME break
+                        }
+
+                        // Mark successfully transmitted measurement as synced
+                        try {
+                            if (result == Result.UPLOAD_SKIPPED) {
+                                persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
+                            } else if (result == Result.UPLOAD_SUCCESSFUL) {
+                                persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
+                            } else {
+                                throw IllegalArgumentException(
+                                    String.format(
+                                        "Unknown result: %s",
+                                        result
+                                    )
+                                )
+                            }
+                            Log.d(
+                                Constants.TAG, String.format(
+                                    "Measurement marked as %s.",
+                                    result.toString().lowercase()
                                 )
                             )
+                        } catch (e: NoSuchMeasurementException) {
+                            throw IllegalStateException(e)
                         }
-                        Log.d(
-                            Constants.TAG, String.format(
-                                "Measurement marked as %s.",
-                                result.toString().lowercase()
-                            )
-                        )
-                    } catch (e: NoSuchMeasurementException) {
-                        throw IllegalStateException(e)
                     }
                 } finally {
                     if (compressedTransferTempFile != null && compressedTransferTempFile!!.exists()) {
@@ -299,14 +346,14 @@ class SyncAdapter private constructor(
             // Because of Movebis we don't throw an IllegalStateException if there is no auth token
             throw AuthenticatorException("No valid auth token supplied. Aborting data synchronization!")
         }
-        jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN)
+        /*jwtAuthToken = bundle.getString(AccountManager.KEY_AUTHTOKEN)
         // When WifiSurveyor.deleteAccount() was called in the meantime the jwt token is empty, thus:
         if (jwtAuthToken == null) {
             Validate.isTrue(Thread.interrupted())
             throw SynchronizationInterruptedException("Sync interrupted, aborting sync.")
         }
-        Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length - 7))
-        return jwtAuthToken
+        Log.d(TAG, "Login authToken: **" + jwtAuthToken.substring(jwtAuthToken.length - 7))*/
+        return "FIXME123" //jwtAuthToken
     }
 
     /**
