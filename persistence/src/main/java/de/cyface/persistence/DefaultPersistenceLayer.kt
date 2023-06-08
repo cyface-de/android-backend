@@ -361,7 +361,6 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                 throw NoDeviceIdException("No entries in IdentifierTable.")
             } else {
                 val did = identifiers[0]
-                Log.v(TAG, "Providing device identifier $did")
                 identifier = did!!
             }
         }

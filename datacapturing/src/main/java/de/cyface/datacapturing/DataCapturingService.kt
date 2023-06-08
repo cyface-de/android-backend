@@ -1253,7 +1253,6 @@ abstract class DataCapturingService(
                             DataCapturingException(context.getString(R.string.missing_data_error))
                         )
                     } else {
-                        Log.v(Constants.TAG, "Captured some sensor data.")
                         listener.onNewSensorDataAcquired(capturedData)
                     }
                 }

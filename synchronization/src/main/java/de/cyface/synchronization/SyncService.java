@@ -54,7 +54,6 @@ public final class SyncService extends Service {
 
     @Override
     public void onCreate() {
-        Log.v(TAG, "onCreate");
         synchronized (LOCK) {
             if (syncAdapter == null) {
                 final var authApi = authApi(getApplicationContext());
@@ -67,7 +66,6 @@ public final class SyncService extends Service {
 
     @Override
     public IBinder onBind(Intent intent) {
-        Log.v(TAG, "onBind");
         return syncAdapter.getSyncAdapterBinder();
     }
 

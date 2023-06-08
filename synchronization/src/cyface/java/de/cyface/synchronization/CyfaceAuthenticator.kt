@@ -89,7 +89,8 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         mConfiguration = Configuration.getInstance(context)
         val config = Configuration.getInstance(context)
         if (config.hasConfigurationChanged()) {
-            throw IllegalArgumentException("config changed")
+            // This happens when starting the app after a fresh installation
+            throw IllegalArgumentException("config changed (CyAuth)")
             /*show("Authentifizierung ist abgelaufen")
             Handler().postDelayed({signOut()}, 2000)*/
             //return
@@ -111,8 +112,9 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
 
     override fun addAccount(
         response: AccountAuthenticatorResponse, accountType: String,
-        authTokenType: String, requiredFeatures: Array<String>, options: Bundle
+        authTokenType: String, requiredFeatures: Array<String>?, options: Bundle
     ): Bundle {
+        Log.d(TAG, "CyfaceAuthenticator.addAccount: start LoginActivity to authenticate")
         val intent = Intent(context, LOGIN_ACTIVITY)
         intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
         val bundle = Bundle()

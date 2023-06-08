@@ -165,7 +165,7 @@ class SyncAdapter private constructor(
         try {
             // Ensure user is authorized before starting synchronization
             // FIXME: getAuthToken currently just refreshes the token async, maybe call `authenticator.isAuthorized` here
-            getAuthToken(authenticator, account)
+            //getAuthToken(authenticator, account)
             val deviceId = persistence.restoreOrCreateDeviceId()
 
             // Inform ConnectionStatusListener
@@ -179,8 +179,12 @@ class SyncAdapter private constructor(
                 return  // nothing to sync
             }
             val measurementCount = syncableMeasurements.size
+            var error = false
             for (index in 0 until measurementCount) {
                 val measurement = syncableMeasurements[index]
+                if (error) {
+                    break
+                }
                 Log.d(
                     Constants.TAG, String.format(
                         "Measurement with identifier %d is about to be loaded for transmission.",
@@ -207,7 +211,7 @@ class SyncAdapter private constructor(
                     //val jwtAuthToken = getAuthToken(authenticator, account) // FIXME: replace with `performActionWithFreshTokens`
 
                     // Check whether the network settings changed to avoid using metered network without permission
-                    if (isSyncRequestAborted(account, authority)) {
+                    if (isSyncRequestAborted(account, authority) || error) {
                         return
                     }
 
@@ -231,6 +235,7 @@ class SyncAdapter private constructor(
                     // FIXME: This is now executed asynchronously!
 
                     // FIXME !!!!!!!!!!!! SyncAdapter may not be dependent on OAuth (used by SR, too)
+                    // => Move this into uploader => authentication.authenticate() (old= package v1)
                     mStateManager.current.performActionWithFreshTokens(
                         mAuthService
                     ) { accessToken: String?, idToken: String?, ex: AuthorizationException? ->
@@ -244,33 +249,40 @@ class SyncAdapter private constructor(
                             accessToken!!
                         )
                         if (result == Result.UPLOAD_FAILED) {
-                            throw java.lang.IllegalStateException("upload failed")
-                            //FIXME break
-                        }
+                            error = true
+                        } else {
 
-                        // Mark successfully transmitted measurement as synced
-                        try {
-                            if (result == Result.UPLOAD_SKIPPED) {
-                                persistence.markFinishedAs(MeasurementStatus.SKIPPED, measurement.id)
-                            } else if (result == Result.UPLOAD_SUCCESSFUL) {
-                                persistence.markFinishedAs(MeasurementStatus.SYNCED, measurement.id)
-                            } else {
-                                throw IllegalArgumentException(
-                                    String.format(
-                                        "Unknown result: %s",
-                                        result
+                            // Mark successfully transmitted measurement as synced
+                            try {
+                                if (result == Result.UPLOAD_SKIPPED) {
+                                    persistence.markFinishedAs(
+                                        MeasurementStatus.SKIPPED,
+                                        measurement.id
+                                    )
+                                } else if (result == Result.UPLOAD_SUCCESSFUL) {
+                                    persistence.markFinishedAs(
+                                        MeasurementStatus.SYNCED,
+                                        measurement.id
+                                    )
+                                } else {
+                                    throw IllegalArgumentException(
+                                        String.format(
+                                            "Unknown result: %s",
+                                            result
+                                        )
+                                    )
+                                }
+                                Log.d(
+                                    Constants.TAG, String.format(
+                                        "Measurement marked as %s.",
+                                        result.toString().lowercase()
                                     )
                                 )
+                            } catch (e: NoSuchMeasurementException) {
+                                throw IllegalStateException(e)
                             }
-                            Log.d(
-                                Constants.TAG, String.format(
-                                    "Measurement marked as %s.",
-                                    result.toString().lowercase()
-                                )
-                            )
-                        } catch (e: NoSuchMeasurementException) {
-                            throw IllegalStateException(e)
                         }
+
                     }
                 } finally {
                     if (compressedTransferTempFile != null && compressedTransferTempFile!!.exists()) {
