@@ -43,6 +43,10 @@ import de.cyface.uploader.exception.UnauthorizedException
 import de.cyface.uploader.exception.UnexpectedResponseCode
 import de.cyface.uploader.exception.UploadFailed
 import de.cyface.uploader.exception.UploadSessionExpired
+import kotlinx.coroutines.CoroutineScope
+import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.async
+import kotlinx.coroutines.runBlocking
 import java.io.File
 import java.net.MalformedURLException
 
@@ -76,185 +80,214 @@ internal class SyncPerformer(private val context: Context) {
      * @return True of the transmission was successful.
      */
     fun sendData(
-        uploader: Uploader, syncResult: SyncResult,
+        uploader: Uploader,
+        syncResult: SyncResult,
         metaData: RequestMetaData,
-        file: File, progressListener: UploadProgressListener,
+        file: File,
+        progressListener: UploadProgressListener,
         jwtAuthToken: String
     ): Result {
         val size = DataSerializable.humanReadableSize(file.length(), true)
         Log.d(TAG, "Transferring compressed measurement ($size})")
-        val result: Result = try {
-            val fileName =
-                "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.$TRANSFER_FILE_EXTENSION"
-            Log.i(TAG, "Uploading $fileName to ${uploader.endpoint()}")
-            // FIXME: use Dispatchers.IO and GlobalScope.async or runBlocking (NetworkOnMainThreadException)
-            uploader.upload(jwtAuthToken, metaData, file, progressListener)
-        } catch (e: UploadFailed) {
-            return when (e.cause) {
-                is ServerUnavailableException -> {
-                    // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
-                    syncResult.stats.numIoExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.SERVER_UNAVAILABLE.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
 
-                is ForbiddenException -> {
-                    syncResult.stats.numAuthExceptions++
-                    ErrorHandler.sendErrorIntent(context, ErrorCode.FORBIDDEN.code, e.message)
-                    Result.UPLOAD_FAILED
-                }
+        return runBlocking {
+            val deferredResult = CoroutineScope(Dispatchers.IO).async {
+                val result = try {
+                    val fileName =
+                        "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.$TRANSFER_FILE_EXTENSION"
+                    Log.i(TAG, "Uploading $fileName to ${uploader.endpoint()}")
 
-                is MalformedURLException -> {
-                    syncResult.stats.numAuthExceptions++
-                    ErrorHandler.sendErrorIntent(context, ErrorCode.MALFORMED_URL.code, e.message)
-                    Result.UPLOAD_FAILED
-                }
-
-                is SynchronisationException -> {
-                    syncResult.stats.numIoExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.SYNCHRONIZATION_ERROR.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is UnauthorizedException -> {
-                    syncResult.stats.numAuthExceptions++
-                    ErrorHandler.sendErrorIntent(context, ErrorCode.UNAUTHORIZED.code, e.message)
-                    Result.UPLOAD_FAILED
-                }
-
-                is InternalServerErrorException -> {
-                    syncResult.stats.numConflictDetectedExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.INTERNAL_SERVER_ERROR.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is EntityNotParsableException -> {
+                    uploader.upload(jwtAuthToken, metaData, file, progressListener)
+                } catch (e: UploadFailed) {
+                    return@async handleUploadFailed(e, syncResult)
+                } catch (e: MalformedURLException) {
+                    // Catching this temporarily to indicate a hard error to the sync adapter
                     syncResult.stats.numParseExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.ENTITY_NOT_PARSABLE.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is BadRequestException -> {
-                    syncResult.stats.numParseExceptions++
-                    ErrorHandler.sendErrorIntent(context, ErrorCode.BAD_REQUEST.code, e.message)
-                    Result.UPLOAD_FAILED
-                }
-
-                is NetworkUnavailableException -> {
-                    syncResult.stats.numIoExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.NETWORK_UNAVAILABLE.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is SynchronizationInterruptedException -> {
-                    syncResult.stats.numIoExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.SYNCHRONIZATION_INTERRUPTED.code,
-                        e.message
-                    )
-                    e.printStackTrace()
-                    Result.UPLOAD_FAILED
-                }
-
-                is TooManyRequestsException -> {
-                    syncResult.stats.numIoExceptions++
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.TOO_MANY_REQUESTS.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is UploadSessionExpired -> {
-                    syncResult.stats.numIoExceptions++ // Try again
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.UPLOAD_SESSION_EXPIRED.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is UnexpectedResponseCode -> {
-                    syncResult.stats.numParseExceptions++ // hard error
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.UNEXPECTED_RESPONSE_CODE.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is AccountNotActivated -> {
-                    syncResult.stats.numAuthExceptions++ // hard error
-                    ErrorHandler.sendErrorIntent(
-                        context,
-                        ErrorCode.ACCOUNT_NOT_ACTIVATED.code,
-                        e.message
-                    )
-                    Result.UPLOAD_FAILED
-                }
-
-                is MeasurementTooLarge -> {
-                    syncResult.stats.numSkippedEntries++
-                    Log.d(TAG, e.message!!)
-                    Result.UPLOAD_SKIPPED
-                }
-
-                is ConflictException -> {
-                    syncResult.stats.numSkippedEntries++
-                    // We consider the upload successful and mark the measurement as synced
-                    Result.UPLOAD_SUCCESSFUL
-                }
-
-                else -> {
-                    // Unknown sub-type of `UploadFailed`
+                    Log.e(TAG, "MalformedURLException in `HttpConnection.upload`.")
                     throw IllegalArgumentException(e)
+                } catch (e: RuntimeException) {
+                    // Catching this temporarily to indicate a hard error to the sync adapter
+                    syncResult.stats.numParseExceptions++
+
+                    // e.g. when the collector API does respond correctly [DAT-775]
+                    Log.e(TAG, "Uncaught Exception in `HttpConnection.upload`.")
+                    throw e // FIXME ensure this is still thrown
                 }
+
+                // Upload was successful, measurement can be marked as synced
+                if (result == Result.UPLOAD_SKIPPED) {
+                    syncResult.stats.numSkippedEntries++
+                } else {
+                    syncResult.stats.numUpdates++
+                }
+                return@async result
             }
-        } catch (e: MalformedURLException) {
-            // Catching this temporarily to indicate a hard error to the sync adapter
-            syncResult.stats.numParseExceptions++
-            Log.e(TAG, "MalformedURLException in `HttpConnection.upload`.")
-            throw IllegalArgumentException(e)
-        } catch (e: RuntimeException) {
-            // Catching this temporarily to indicate a hard error to the sync adapter
-            syncResult.stats.numParseExceptions++
 
-            // e.g. when the collector API does respond correctly [DAT-775]
-            Log.e(TAG, "Uncaught Exception in `HttpConnection.upload`.")
-            throw e
+            return@runBlocking deferredResult.await()
         }
+    }
 
-        // Upload was successful, measurement can be marked as synced
-        if (result == Result.UPLOAD_SKIPPED) {
-            syncResult.stats.numSkippedEntries++
-        } else {
-            syncResult.stats.numUpdates++
+    private fun handleUploadFailed(e: UploadFailed, syncResult: SyncResult): Result {
+        return when (e.cause) {
+            is ServerUnavailableException -> {
+                // The SyncResults come from Android and help the SyncAdapter to re-schedule the sync
+                syncResult.stats.numIoExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.SERVER_UNAVAILABLE.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is ForbiddenException -> {
+                syncResult.stats.numAuthExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.FORBIDDEN.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is MalformedURLException -> {
+                syncResult.stats.numAuthExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.MALFORMED_URL.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is SynchronisationException -> {
+                syncResult.stats.numIoExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.SYNCHRONIZATION_ERROR.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is UnauthorizedException -> {
+                syncResult.stats.numAuthExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.UNAUTHORIZED.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is InternalServerErrorException -> {
+                syncResult.stats.numConflictDetectedExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.INTERNAL_SERVER_ERROR.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is EntityNotParsableException -> {
+                syncResult.stats.numParseExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.ENTITY_NOT_PARSABLE.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is BadRequestException -> {
+                syncResult.stats.numParseExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.BAD_REQUEST.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is NetworkUnavailableException -> {
+                syncResult.stats.numIoExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.NETWORK_UNAVAILABLE.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is SynchronizationInterruptedException -> {
+                syncResult.stats.numIoExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.SYNCHRONIZATION_INTERRUPTED.code,
+                    e.message
+                )
+                e.printStackTrace()
+                Result.UPLOAD_FAILED
+            }
+
+            is TooManyRequestsException -> {
+                syncResult.stats.numIoExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.TOO_MANY_REQUESTS.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is UploadSessionExpired -> {
+                syncResult.stats.numIoExceptions++ // Try again
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.UPLOAD_SESSION_EXPIRED.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is UnexpectedResponseCode -> {
+                syncResult.stats.numParseExceptions++ // hard error
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.UNEXPECTED_RESPONSE_CODE.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is AccountNotActivated -> {
+                syncResult.stats.numAuthExceptions++ // hard error
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.ACCOUNT_NOT_ACTIVATED.code,
+                    e.message
+                )
+                Result.UPLOAD_FAILED
+            }
+
+            is MeasurementTooLarge -> {
+                syncResult.stats.numSkippedEntries++
+                Log.d(TAG, e.message!!)
+                Result.UPLOAD_SKIPPED
+            }
+
+            is ConflictException -> {
+                syncResult.stats.numSkippedEntries++
+                // We consider the upload successful and mark the measurement as synced
+                Result.UPLOAD_SUCCESSFUL
+            }
+
+            else -> {
+                // Unknown sub-type of `UploadFailed`
+                throw IllegalArgumentException(e)
+            }
         }
-        return result
     }
 
     companion object {
