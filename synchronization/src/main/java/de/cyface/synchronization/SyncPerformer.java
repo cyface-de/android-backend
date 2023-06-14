@@ -131,6 +131,8 @@ class SyncPerformer {
             final var fileName = String.format(Locale.US, "%s_%s." + TRANSFER_FILE_EXTENSION,
                     metaData.getDeviceIdentifier(), metaData.getMeasurementIdentifier());
             Log.i(TAG, String.format(Locale.GERMAN, "Uploading %s to %s", fileName, uploader.endpoint()));
+            // FIXME: convert to Kotlin to be able to use Dispatchers.IO and GlobalScope.async or runBlocking
+            // FIXME: NetworkOnMainThreadException
             result = uploader.upload(jwtAuthToken, metaData, file, progressListener);
         } catch (final UploadFailed e) {
             var cause = e.getCause();

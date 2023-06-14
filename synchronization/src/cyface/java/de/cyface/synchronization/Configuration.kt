@@ -109,6 +109,7 @@ class Configuration(private val mContext: Context) {
 
     @Throws(InvalidConfigurationException::class)
     private fun readConfiguration() {
+        // FIXME: ONLY THE config from utils/res/raw is used!!
         val configSource = mResources.openRawResource(R.raw.auth_config).source().buffer()
         val configData = Buffer()
         try {

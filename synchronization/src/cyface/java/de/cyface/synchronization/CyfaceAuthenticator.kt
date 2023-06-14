@@ -140,7 +140,7 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
      * [AbstractAccountAuthenticator.getAuthToken]
      */
     @Throws(NetworkErrorException::class)
-    override fun getAuthToken(
+    override fun getAuthToken( // FIXME move previous implementation to package v6 (cyface app)
         response: AccountAuthenticatorResponse?, account: Account,
         authTokenType: String, options: Bundle?
     ): Bundle {
@@ -163,6 +163,7 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         // Thus, we report the specific error type via sendErrorIntent()
         //freshAuthToken = try {
             //login(account.name, password)
+            // FIXME: remove this? While we use performActionWithFreshToken the token is automatically renewed when needed
             performTokenRequest(mStateManager.current.createTokenRefreshRequest()) { tokenResponse: TokenResponse?, authException: AuthorizationException? ->
                 handleAccessTokenResponse(
                     tokenResponse,
@@ -263,34 +264,6 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         return result
     }
 
-    /**
-     * Returns an [Intent] which displays the `AccountAuthenticatorActivity` to re-prompt for their
-     * credentials.
-     *
-     * @param response the [AccountAuthenticatorResponse] requested by
-     * [.getAuthToken]
-     * @param account the [Account] for whom an authToken was requested
-     * @param authTokenType the [AccountManager.KEY_AUTHTOKEN] type requested
-     * @return the [Bundle] containing the requesting `Intent`
-     */
-    private fun getLoginActivityIntent(
-        response: AccountAuthenticatorResponse?,
-        account: Account, authTokenType: String
-    ): Bundle? {
-        if (LOGIN_ACTIVITY == null) {
-            Log.w(TAG, "Please set LOGIN_ACTIVITY.")
-            return null
-        }
-        Log.v(TAG, "Spawn LoginActivity as no password exists.")
-        val intent = Intent(context, LOGIN_ACTIVITY)
-        intent.putExtra(AccountManager.KEY_ACCOUNT_AUTHENTICATOR_RESPONSE, response)
-        intent.putExtra(AccountManager.KEY_ACCOUNT_TYPE, account.type)
-        intent.putExtra(AccountManager.KEY_AUTHTOKEN, authTokenType)
-        val bundle = Bundle()
-        bundle.putParcelable(AccountManager.KEY_INTENT, intent)
-        return bundle
-    }
-
     override fun getAuthTokenLabel(authTokenType: String): String {
         return "JWT Token"
     }
@@ -340,28 +313,6 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
     ) {
         mStateManager.updateAfterTokenResponse(tokenResponse, authException)
         //runOnUiThread { displayAuthorized("handleAccessTokenResponse") }
-    }
-
-    /**
-     * Logs into the server to get a valid authToken.
-     *
-     * @param username The username that is used by the application to login to the
-     * server.
-     * @param password The password belonging to the account with the `username`
-     * logging in to the Cyface server.
-     * @return The currently valid auth token to be used by further requests from this application.
-     * @throws LoginFailed when an expected error occurred, so that the UI can handle this.
-     * @throws MalformedURLException if the endpoint address provided is malformed.
-     */
-    @Throws(LoginFailed::class, MalformedURLException::class)
-    private fun login(username: String, password: String): String {
-
-        // Login to get JWT token
-        Log.d(
-            TAG,
-            "Authenticating at " + authenticator.loginEndpoint() + " with " + username + " / " + password
-        )
-        return authenticator.authenticate(username, password)
     }
 
     companion object {

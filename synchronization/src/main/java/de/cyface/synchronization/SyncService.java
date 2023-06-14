@@ -38,6 +38,8 @@ public final class SyncService extends Service {
     public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
     /**
      * The settings key used to identify the settings storing the URL of the server to authenticate against.
+     * <p>
+     * TODO: Remove after dropping support for pre-OAuth login.
      */
     public static final String AUTH_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.auth.endpoint";
     /**
