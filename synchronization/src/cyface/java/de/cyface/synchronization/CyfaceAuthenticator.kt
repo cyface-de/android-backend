@@ -30,25 +30,13 @@ import android.os.Bundle
 import android.util.Log
 import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
-import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.uploader.Authenticator
-import de.cyface.uploader.exception.AccountNotActivated
-import de.cyface.uploader.exception.ForbiddenException
-import de.cyface.uploader.exception.HostUnresolvable
-import de.cyface.uploader.exception.LoginFailed
-import de.cyface.uploader.exception.NetworkUnavailableException
-import de.cyface.uploader.exception.ServerUnavailableException
-import de.cyface.uploader.exception.SynchronisationException
-import de.cyface.uploader.exception.TooManyRequestsException
-import de.cyface.uploader.exception.UnauthorizedException
-import de.cyface.uploader.exception.UnexpectedResponseCode
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationService
 import net.openid.appauth.ClientAuthentication
 import net.openid.appauth.TokenRequest
 import net.openid.appauth.TokenResponse
-import java.net.MalformedURLException
 
 /**
  * The CyfaceAuthenticator is called by the [AccountManager] to fulfill all account relevant
@@ -88,13 +76,13 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         //mExecutor = Executors.newSingleThreadExecutor()
         mConfiguration = Configuration.getInstance(context)
         val config = Configuration.getInstance(context)
-        if (config.hasConfigurationChanged()) {
+        //if (config.hasConfigurationChanged()) {
             // This happens when starting the app after a fresh installation
-            throw IllegalArgumentException("config changed (CyAuth)")
+            //throw IllegalArgumentException("config changed (CyfaceAuthenticator)")
             /*show("Authentifizierung ist abgelaufen")
             Handler().postDelayed({signOut()}, 2000)*/
             //return
-        }
+        //}
         mAuthService = AuthorizationService(
             context,
             AppAuthConfiguration.Builder()

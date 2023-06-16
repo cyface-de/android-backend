@@ -5,7 +5,6 @@ import android.content.Context;
 import android.content.Intent;
 import android.os.IBinder;
 import android.preference.PreferenceManager;
-import android.util.Log;
 
 import androidx.annotation.NonNull;
 
@@ -37,11 +36,9 @@ public final class SyncService extends Service {
      */
     public static final String SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint";
     /**
-     * The settings key used to identify the settings storing the URL of the server to authenticate against.
-     * <p>
-     * TODO: Remove after dropping support for pre-OAuth login.
+     * The settings key used to identify the settings storing the OAuth configuration JsonObject as String.
      */
-    public static final String AUTH_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.auth.endpoint";
+    public static final String OAUTH_CONFIG_SETTINGS_KEY = "de.cyface.oauth.config";
     /**
      * The synchronisation adapter this service is supposed to call.
      * <p>
@@ -94,7 +91,7 @@ public final class SyncService extends Service {
      */
     private String authApi(@NonNull final Context context) {
         final var preferences = PreferenceManager.getDefaultSharedPreferences(context);
-        final var apiEndpoint = preferences.getString(AUTH_ENDPOINT_URL_SETTINGS_KEY, null);
+        final var apiEndpoint = preferences.getString(OAUTH_CONFIG_SETTINGS_KEY, null);
         Validate.notNull(
                 apiEndpoint,
                 "Sync canceled: Auth url not available. Please set the applications server url preference.");

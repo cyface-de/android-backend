@@ -46,11 +46,7 @@ import de.cyface.uploader.Uploader
 import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.launch
 import kotlinx.coroutines.runBlocking
-import kotlinx.coroutines.withContext
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationService
@@ -130,12 +126,12 @@ class SyncAdapter private constructor(
         //mExecutor = Executors.newSingleThreadExecutor()
         mConfiguration = Configuration.getInstance(context)
         val config = Configuration.getInstance(context)
-        if (config.hasConfigurationChanged()) {
-            throw IllegalArgumentException("config changed")
-            /*show("Authentifizierung ist abgelaufen")
-            Handler().postDelayed({signOut()}, 2000)*/
+        /*if (config.hasConfigurationChanged()) {
+            //throw IllegalArgumentException("config changed (SyncAdapter)")
+            Toast.makeText(context, "Ignoring: config changed (SyncAdapter)", Toast.LENGTH_SHORT).show()
+            //Handler().postDelayed({signOut()}, 2000)
             //return
-        }
+        }*/
         mAuthService = AuthorizationService(
             context,
             AppAuthConfiguration.Builder()

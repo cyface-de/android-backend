@@ -1,16 +1,3 @@
-/*
- * Copyright 2016 The AppAuth for Android Authors. All Rights Reserved.
- *
- * Licensed under the Apache License, Version 2.0 (the "License"); you may not use this file except
- * in compliance with the License. You may obtain a copy of the License at
- *
- * http://www.apache.org/licenses/LICENSE-2.0
- *
- * Unless required by applicable law or agreed to in writing, software distributed under the
- * License is distributed on an "AS IS" BASIS, WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either
- * express or implied. See the License for the specific language governing permissions and
- * limitations under the License.
- */
 package de.cyface.synchronization
 
 import android.content.Context
@@ -18,23 +5,19 @@ import android.content.Intent
 import android.content.SharedPreferences
 import android.content.res.Resources
 import android.net.Uri
+import android.preference.PreferenceManager
 import android.text.TextUtils
+import android.util.Base64
+import de.cyface.synchronization.SyncService.OAUTH_CONFIG_SETTINGS_KEY
 import net.openid.appauth.connectivity.ConnectionBuilder
 import net.openid.appauth.connectivity.DefaultConnectionBuilder
-import okio.Buffer
-import okio.buffer
-import okio.source
 import org.json.JSONException
 import org.json.JSONObject
 import java.io.IOException
 import java.lang.ref.WeakReference
-import java.nio.charset.Charset
+import java.nio.charset.StandardCharsets
+import java.security.MessageDigest
 
-/**
- * Reads and validates the demo app configuration from `res/raw/auth_config.json`. Configuration
- * changes are detected by comparing the hash of the last known configuration to the read
- * configuration. When a configuration change is detected, the app state is reset.
- */
 class Configuration(private val mContext: Context) {
     private val mPrefs: SharedPreferences = mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private val mResources: Resources = mContext.resources
@@ -109,12 +92,10 @@ class Configuration(private val mContext: Context) {
 
     @Throws(InvalidConfigurationException::class)
     private fun readConfiguration() {
-        // FIXME: ONLY THE config from utils/res/raw is used!!
-        val configSource = mResources.openRawResource(R.raw.auth_config).source().buffer()
-        val configData = Buffer()
+        val preferences = PreferenceManager.getDefaultSharedPreferences(mContext)
+        val oAuthConfigString = preferences.getString(OAUTH_CONFIG_SETTINGS_KEY, null)
         try {
-            configSource.readAll(configData)
-            mConfigJson = JSONObject(configData.readString(Charset.forName("UTF-8")))
+            mConfigJson = JSONObject(oAuthConfigString!!)
         } catch (ex: IOException) {
             throw InvalidConfigurationException(
                 "Failed to read configuration: " + ex.message
@@ -124,7 +105,9 @@ class Configuration(private val mContext: Context) {
                 "Unable to parse configuration: " + ex.message
             )
         }
-        mConfigHash = configData.sha256().base64()
+        val digest = MessageDigest.getInstance("SHA-256")
+        val hash = digest.digest(oAuthConfigString.toByteArray(StandardCharsets.UTF_8))
+        mConfigHash = Base64.encodeToString(hash, Base64.DEFAULT)
         clientId = getConfigString("client_id")
         mScope = getRequiredConfigString("authorization_scope")
         mRedirectUri = getRequiredConfigUri("redirect_uri")
