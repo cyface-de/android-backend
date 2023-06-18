@@ -125,7 +125,6 @@ dependencies {
 
     // OAuth 2.0 with OpenID Connect (required by CyfaceAuthenticator) - FIXME might move to uploader
     implementation "net.openid:appauth:$rootProject.ext.appAuthVersion"
-    implementation "com.squareup.okio:okio:$rootProject.ext.okioVersion" // FIXME: replace config file
 
     // Dependencies for instrumentation tests
     androidTestImplementation project(":testutils")

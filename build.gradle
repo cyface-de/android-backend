@@ -64,9 +64,8 @@ ext {
     // Kotlin components
     coroutinesVersion = "1.6.4"
 
-    // Other dependencies // FIXME: might move to uploader
-    appAuthVersion = "0.11.1"
-    okioVersion = "2.10.0"
+    // Other dependencies
+    appAuthVersion = "0.11.1" // Can't move to uploader lib because of dependency issues
 
     // Testing
     junitVersion = "1.1.5"
