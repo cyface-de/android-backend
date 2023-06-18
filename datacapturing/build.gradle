@@ -44,6 +44,13 @@ android {
         targetSdkVersion rootProject.ext.targetSdkVersion
         versionName rootProject.ext.cyfaceAndroidBackendVersion
         testInstrumentationRunner rootProject.ext.testInstrumentationRunner
+
+        // Placeholders for AndroidManifest.xml
+        manifestPlaceholders = [
+                // Dummy schema, required by the AppAuth dependency.
+                // Replace this in the app which in integrated the SDK.
+                'appAuthRedirectScheme': 'com.example.PLACEHOLDER'
+        ]
     }
 
     // Specifies the flavor dimensions you want to use. The order in which you

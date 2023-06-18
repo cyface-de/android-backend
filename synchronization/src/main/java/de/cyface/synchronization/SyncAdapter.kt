@@ -39,7 +39,6 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.synchronization.ErrorHandler.ErrorCode
-import de.cyface.uploader.Authenticator
 import de.cyface.uploader.Result
 import de.cyface.uploader.UploadProgressListener
 import de.cyface.uploader.Uploader
@@ -47,8 +46,6 @@ import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
-import net.openid.appauth.AuthorizationException
-import net.openid.appauth.AuthorizationService
 import java.io.File
 
 /**
@@ -68,9 +65,8 @@ class SyncAdapter private constructor(
     context: Context,
     autoInitialize: Boolean,
     allowParallelSyncs: Boolean,
-    private val authenticator: Authenticator,
-    private val uploader: Uploader,
-    private var oauth: OAuth2,
+    private val authenticator: Auth,
+    private val uploader: Uploader
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
 
     private val progressListener: MutableCollection<ConnectionStatusListener>
@@ -92,16 +88,14 @@ class SyncAdapter private constructor(
     constructor(
         context: Context,
         autoInitialize: Boolean,
-        authenticator: Authenticator,
+        authenticator: Auth,
         uploader: Uploader,
-        oauth: OAuth2
     ) : this(
         context,
         autoInitialize,
         false,
         authenticator,
-        uploader,
-        oauth
+        uploader
     )
 
     init {
@@ -131,7 +125,7 @@ class SyncAdapter private constructor(
         val syncPerformer = SyncPerformer(context)
 
         // Ensure user is authorized before starting synchronization
-        oauth.performActionWithFreshTokens { _, _, ex ->
+        authenticator.performActionWithFreshTokens { _, _, ex ->
             if (ex != null) {
                 Log.w(TAG, ex.javaClass.simpleName + ": " + ex.message)
                 syncResult.stats.numAuthExceptions++
@@ -210,7 +204,7 @@ class SyncAdapter private constructor(
                             }
 
                             // This is now executed asynchronously!
-                            oauth.performActionWithFreshTokens { accessToken, _, e ->
+                            authenticator.performActionWithFreshTokens { accessToken, _, e ->
                                 if (e != null) {
                                     Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
                                     syncResult.stats.numAuthExceptions++

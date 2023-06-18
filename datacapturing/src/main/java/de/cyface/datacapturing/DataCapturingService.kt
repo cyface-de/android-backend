@@ -59,7 +59,7 @@ import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.SyncService
-import de.cyface.synchronization.SyncService.OAUTH_CONFIG_SETTINGS_KEY
+import de.cyface.synchronization.SyncService.Companion.OAUTH_CONFIG_SETTINGS_KEY
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
 import org.json.JSONObject
@@ -286,7 +286,7 @@ abstract class DataCapturingService(
         )
         sharedPreferencesEditor.putString(
             OAUTH_CONFIG_SETTINGS_KEY,
-            oAuthConfig.toString()
+            oAuthConfig?.toString()
         )
         if (!sharedPreferencesEditor.commit()) {
             throw SetupException("Unable to write preferences!")

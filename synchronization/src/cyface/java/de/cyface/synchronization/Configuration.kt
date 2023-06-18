@@ -8,7 +8,7 @@ import android.net.Uri
 import android.preference.PreferenceManager
 import android.text.TextUtils
 import android.util.Base64
-import de.cyface.synchronization.SyncService.OAUTH_CONFIG_SETTINGS_KEY
+import de.cyface.synchronization.SyncService.Companion.OAUTH_CONFIG_SETTINGS_KEY
 import net.openid.appauth.connectivity.ConnectionBuilder
 import net.openid.appauth.connectivity.DefaultConnectionBuilder
 import org.json.JSONException

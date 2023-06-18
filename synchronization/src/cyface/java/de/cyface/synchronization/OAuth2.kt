@@ -3,9 +3,11 @@ package de.cyface.synchronization
 import android.content.Context
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthState
+import net.openid.appauth.AuthState.AuthStateAction
+import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationService
 
-class OAuth2(context: Context) {
+class OAuth2(context: Context): Auth {
 
     private var mAuthService: AuthorizationService
     private var mStateManager: AuthStateManager
@@ -30,7 +32,7 @@ class OAuth2(context: Context) {
         )
     }
 
-    fun performActionWithFreshTokens(action: AuthState.AuthStateAction) {
+    override fun performActionWithFreshTokens(action: (accessToken: String?, idToken: String?, ex: Exception?) -> Unit) {
         mStateManager.current.performActionWithFreshTokens(mAuthService, action)
     }
 }

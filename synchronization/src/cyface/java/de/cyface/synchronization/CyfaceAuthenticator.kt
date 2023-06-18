@@ -32,10 +32,7 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import de.cyface.uploader.Authenticator
 import kotlinx.coroutines.CompletableDeferred
-import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.GlobalScope
-import kotlinx.coroutines.async
 import kotlinx.coroutines.runBlocking
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthorizationException
@@ -83,11 +80,11 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         mConfiguration = Configuration.getInstance(context)
         val config = Configuration.getInstance(context)
         //if (config.hasConfigurationChanged()) {
-            // This happens when starting the app after a fresh installation
-            //throw IllegalArgumentException("config changed (CyfaceAuthenticator)")
-            /*show("Authentifizierung ist abgelaufen")
-            Handler().postDelayed({signOut()}, 2000)*/
-            //return
+        // This happens when starting the app after a fresh installation
+        //throw IllegalArgumentException("config changed (CyfaceAuthenticator)")
+        /*show("Authentifizierung ist abgelaufen")
+        Handler().postDelayed({signOut()}, 2000)*/
+        //return
         //}
         mAuthService = AuthorizationService(
             context,
