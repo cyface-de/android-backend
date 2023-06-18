@@ -55,10 +55,11 @@ public final class SyncService extends Service {
     public void onCreate() {
         synchronized (LOCK) {
             if (syncAdapter == null) {
+                final var oauth = new OAuth2(getApplicationContext()); // move to DefaultAuthenticator
                 final var authApi = authApi(getApplicationContext());
                 final var collectorApi = collectorApi(getApplicationContext());
                 syncAdapter = new SyncAdapter(getApplicationContext(), true, new DefaultAuthenticator(authApi),
-                        new DefaultUploader(collectorApi));
+                        new DefaultUploader(collectorApi), oauth);
             }
         }
     }

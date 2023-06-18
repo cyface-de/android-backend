@@ -47,7 +47,6 @@ import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
 import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
-import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthorizationException
 import net.openid.appauth.AuthorizationService
 import java.io.File
@@ -70,7 +69,8 @@ class SyncAdapter private constructor(
     autoInitialize: Boolean,
     allowParallelSyncs: Boolean,
     private val authenticator: Authenticator,
-    private val uploader: Uploader
+    private val uploader: Uploader,
+    private var oauth: OAuth2,
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
 
     private val progressListener: MutableCollection<ConnectionStatusListener>
@@ -81,21 +81,6 @@ class SyncAdapter private constructor(
     private var mockIsConnectedToReturnTrue = false
 
     /**
-     * The service used for authorization.
-     */
-    private var mAuthService: AuthorizationService
-
-    /**
-     * The authorization state.
-     */
-    private var mStateManager: AuthStateManager
-
-    /**
-     * The configuration of the OAuth 2 endpoint to authorize against.
-     */
-    private var mConfiguration: Configuration
-
-    /**
      * Creates a new completely initialized `SyncAdapter`. See the documentation of
      * `AbstractThreadedSyncAdapter` from the Android framework for further information.
      *
@@ -104,40 +89,24 @@ class SyncAdapter private constructor(
      * @param authenticator The authenticator to use for synchronization.
      * @param uploader The uploader to use for synchronization.
      */
-    internal constructor(
+    constructor(
         context: Context,
         autoInitialize: Boolean,
         authenticator: Authenticator,
-        uploader: Uploader
+        uploader: Uploader,
+        oauth: OAuth2
     ) : this(
         context,
         autoInitialize,
         false,
         authenticator,
-        uploader
+        uploader,
+        oauth
     )
 
     init {
         progressListener = HashSet()
         addConnectionListener(CyfaceConnectionStatusListener(context))
-
-        // Authorization
-        mStateManager = AuthStateManager.getInstance(context)
-        //mExecutor = Executors.newSingleThreadExecutor()
-        mConfiguration = Configuration.getInstance(context)
-        val config = Configuration.getInstance(context)
-        /*if (config.hasConfigurationChanged()) {
-            //throw IllegalArgumentException("config changed (SyncAdapter)")
-            Toast.makeText(context, "Ignoring: config changed (SyncAdapter)", Toast.LENGTH_SHORT).show()
-            //Handler().postDelayed({signOut()}, 2000)
-            //return
-        }*/
-        mAuthService = AuthorizationService(
-            context,
-            AppAuthConfiguration.Builder()
-                .setConnectionBuilder(config.connectionBuilder)
-                .build()
-        )
     }
 
     override fun onPerformSync(
@@ -159,13 +128,10 @@ class SyncAdapter private constructor(
                 context,
                 DefaultPersistenceBehaviour()
             )
-        val authenticator = CyfaceAuthenticator(context, authenticator)
         val syncPerformer = SyncPerformer(context)
 
         // Ensure user is authorized before starting synchronization
-        mStateManager.current.performActionWithFreshTokens(
-            mAuthService
-        ) { accessToken: String?, idToken: String?, ex: AuthorizationException? ->
+        oauth.performActionWithFreshTokens { _, _, ex ->
             if (ex != null) {
                 Log.w(TAG, ex.javaClass.simpleName + ": " + ex.message)
                 syncResult.stats.numAuthExceptions++
@@ -176,7 +142,6 @@ class SyncAdapter private constructor(
                 )
             } else {
                 try {
-
                     val deviceId = persistence.restoreOrCreateDeviceId()
 
                     // Inform ConnectionStatusListener
@@ -244,53 +209,58 @@ class SyncAdapter private constructor(
                                 }
                             }
 
-                            // FIXME: This is now executed asynchronously!
-
-                            // FIXME !!!!!!!!!!!! SyncAdapter may not be dependent on OAuth (used by SR, too)
-                            // => Move this into uploader => authentication.authenticate() (old= package v1)
-                            mStateManager.current.performActionWithFreshTokens(
-                                mAuthService
-                            ) { accessToken: String?, idToken: String?, ex: AuthorizationException? ->
-                                val result = syncPerformer.sendData(
-                                    uploader,
-                                    syncResult,
-                                    metaData,
-                                    compressedTransferTempFile!!,
-                                    processListener,
-                                    accessToken!!
-                                )
-                                if (result == Result.UPLOAD_FAILED) {
-                                    error = true
+                            // This is now executed asynchronously!
+                            oauth.performActionWithFreshTokens { accessToken, _, e ->
+                                if (e != null) {
+                                    Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
+                                    syncResult.stats.numAuthExceptions++
+                                    ErrorHandler.sendErrorIntent(
+                                        context,
+                                        ErrorCode.AUTHENTICATION_ERROR.code,
+                                        e.message
+                                    )
                                 } else {
+                                    val result = syncPerformer.sendData(
+                                        uploader,
+                                        syncResult,
+                                        metaData,
+                                        compressedTransferTempFile!!,
+                                        processListener,
+                                        accessToken!!
+                                    )
+                                    if (result == Result.UPLOAD_FAILED) {
+                                        error = true
+                                    } else {
 
-                                    // Mark successfully transmitted measurement as synced
-                                    try {
-                                        if (result == Result.UPLOAD_SKIPPED) {
-                                            persistence.markFinishedAs(
-                                                MeasurementStatus.SKIPPED,
-                                                measurement.id
-                                            )
-                                        } else if (result == Result.UPLOAD_SUCCESSFUL) {
-                                            persistence.markFinishedAs(
-                                                MeasurementStatus.SYNCED,
-                                                measurement.id
-                                            )
-                                        } else {
-                                            throw IllegalArgumentException(
-                                                String.format(
-                                                    "Unknown result: %s",
-                                                    result
+                                        // Mark successfully transmitted measurement as synced
+                                        try {
+                                            if (result == Result.UPLOAD_SKIPPED) {
+                                                persistence.markFinishedAs(
+                                                    MeasurementStatus.SKIPPED,
+                                                    measurement.id
+                                                )
+                                            } else if (result == Result.UPLOAD_SUCCESSFUL) {
+                                                persistence.markFinishedAs(
+                                                    MeasurementStatus.SYNCED,
+                                                    measurement.id
+                                                )
+                                            } else {
+                                                throw IllegalArgumentException(
+                                                    String.format(
+                                                        "Unknown result: %s",
+                                                        result
+                                                    )
+                                                )
+                                            }
+                                            Log.d(
+                                                Constants.TAG, String.format(
+                                                    "Measurement marked as %s.",
+                                                    result.toString().lowercase()
                                                 )
                                             )
+                                        } catch (e: NoSuchMeasurementException) {
+                                            throw IllegalStateException(e)
                                         }
-                                        Log.d(
-                                            Constants.TAG, String.format(
-                                                "Measurement marked as %s.",
-                                                result.toString().lowercase()
-                                            )
-                                        )
-                                    } catch (e: NoSuchMeasurementException) {
-                                        throw IllegalStateException(e)
                                     }
                                 }
                             }
