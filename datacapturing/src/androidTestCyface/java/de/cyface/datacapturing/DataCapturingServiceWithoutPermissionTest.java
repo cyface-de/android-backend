@@ -26,6 +26,7 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
+import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -89,13 +90,12 @@ public class DataCapturingServiceWithoutPermissionTest {
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
         final String dataUploadServerAddress = "https://localhost:8080/api/v3";
-        final var authServerAddress = "https://localhost:8081/api/v1";
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
                 oocut = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
-                        dataUploadServerAddress, authServerAddress, new IgnoreEventsStrategy(), listener, 100);
-            } catch (SetupException e) {
+                        dataUploadServerAddress, TestUtils.oauthConfig(), new IgnoreEventsStrategy(), listener, 100);
+            } catch (SetupException | JSONException e) {
                 throw new IllegalStateException(e);
             }
         });

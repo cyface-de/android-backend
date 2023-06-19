@@ -27,7 +27,6 @@ import android.content.SyncResult
 import android.database.Cursor
 import android.os.Build
 import android.os.Bundle
-import android.preference.PreferenceManager
 import androidx.test.ext.junit.runners.AndroidJUnit4
 import androidx.test.filters.LargeTest
 import androidx.test.platform.app.InstrumentationRegistry
@@ -93,7 +92,7 @@ class SyncAdapterTest {
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
         account = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)
         accountManager!!.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null)
-        oocut = SyncAdapter(context!!, false, MockedAuthenticator(), MockedUploader())
+        oocut = SyncAdapter(context!!, false, MockAuth(), MockedUploader())
     }
 
     @After

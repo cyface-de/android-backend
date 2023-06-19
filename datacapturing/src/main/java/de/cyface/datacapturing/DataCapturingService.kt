@@ -59,9 +59,10 @@ import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
 import de.cyface.synchronization.SyncService
-import de.cyface.synchronization.SyncService.AUTH_ENDPOINT_URL_SETTINGS_KEY
+import de.cyface.synchronization.SyncService.Companion.OAUTH_CONFIG_SETTINGS_KEY
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
+import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
@@ -82,7 +83,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 18.1.0
+ * @version 19.0.0
  * @since 1.0.0
  * @property context The context (i.e. `Activity`) handling this service.
  * @property authority The `ContentProvider` authority required to request a sync operation in the
@@ -91,8 +92,7 @@ import java.util.concurrent.locks.ReentrantLock
  * @param accountType The type of the account to use to synchronize data with.
  * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
  * this service. This must be in the format "https://some.url/optional/resource".
- * @param authServerAddress The server address running an API that is capable of receiving registration and login requests.
- * This must be in the format "https://some.url/optional/resource".
+ * @param oAuthConfig The configuration required for the OAuth server.
  * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
  * triggered by the [DataCapturingBackgroundService].
  * @property persistenceLayer The [de.cyface.persistence.PersistenceLayer] required to access the device id
@@ -107,13 +107,17 @@ import java.util.concurrent.locks.ReentrantLock
  * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
  */
 abstract class DataCapturingService(
-    context: Context, authority: String,
-    accountType: String, dataUploadServerAddress: String, authServerAddress: String?,
+    context: Context,
+    authority: String,
+    accountType: String,
+    dataUploadServerAddress: String,
+    oAuthConfig: JSONObject?,
     eventHandlingStrategy: EventHandlingStrategy,
     persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
     distanceCalculationStrategy: DistanceCalculationStrategy,
     locationCleaningStrategy: LocationCleaningStrategy,
-    capturingListener: DataCapturingListener, sensorFrequency: Int
+    capturingListener: DataCapturingListener,
+    sensorFrequency: Int
 ) {
     /**
      * `true` if data capturing is running; `false` otherwise.
@@ -241,7 +245,10 @@ abstract class DataCapturingService(
         if (!dataUploadServerAddress.startsWith("https://") && !dataUploadServerAddress.startsWith("http://")) {
             throw SetupException("Invalid URL protocol")
         }
-        if (authServerAddress != null && !authServerAddress.startsWith("https://") && !authServerAddress.startsWith("http://")) {
+        if (oAuthConfig != null && !oAuthConfig.getString("discovery_uri")
+                .startsWith("https://") && !oAuthConfig.getString("discovery_uri")
+                .startsWith("http://")
+        ) {
             throw SetupException("Invalid URL protocol")
         }
         this.context = WeakReference(context)
@@ -278,8 +285,8 @@ abstract class DataCapturingService(
             dataUploadServerAddress
         )
         sharedPreferencesEditor.putString(
-            AUTH_ENDPOINT_URL_SETTINGS_KEY,
-            authServerAddress
+            OAUTH_CONFIG_SETTINGS_KEY,
+            oAuthConfig?.toString()
         )
         if (!sharedPreferencesEditor.commit()) {
             throw SetupException("Unable to write preferences!")
@@ -1164,16 +1171,19 @@ abstract class DataCapturingService(
                 persistenceLayer.setStatus(measurementIdentifier, MeasurementStatus.FINISHED, false)
                 persistenceLayer.markFinishedAs(MeasurementStatus.DEPRECATED, measurementIdentifier)
             }
+
             MeasurementStatus.FINISHED -> persistenceLayer.markFinishedAs(
                 MeasurementStatus.DEPRECATED,
                 measurementIdentifier
             )
+
             MeasurementStatus.SKIPPED, MeasurementStatus.SYNCED ->                 // No need to clean the measurement using `markFinishedAs`
                 persistenceLayer.setStatus(
                     measurementIdentifier,
                     MeasurementStatus.DEPRECATED,
                     false
                 )
+
             MeasurementStatus.DEPRECATED -> {}
         }
     }
@@ -1246,6 +1256,7 @@ abstract class DataCapturingService(
                         listener.onNewGeoLocationAcquired(location)
                     }
                 }
+
                 MessageCodes.DATA_CAPTURED -> {
                     val capturedData = parcel.getParcelable<CapturedData>("data")
                     if (capturedData == null) {
@@ -1253,10 +1264,10 @@ abstract class DataCapturingService(
                             DataCapturingException(context.getString(R.string.missing_data_error))
                         )
                     } else {
-                        Log.v(Constants.TAG, "Captured some sensor data.")
                         listener.onNewSensorDataAcquired(capturedData)
                     }
                 }
+
                 MessageCodes.GEOLOCATION_FIX -> listener.onFixAcquired()
                 MessageCodes.NO_GEOLOCATION_FIX -> listener.onFixLost()
                 MessageCodes.ERROR_PERMISSION -> listener.onRequiresPermission(
@@ -1264,6 +1275,7 @@ abstract class DataCapturingService(
                         "Data capturing requires permission to access geo location via satellite. Was not granted or revoked!"
                     )
                 )
+
                 MessageCodes.SERVICE_STOPPED, MessageCodes.SERVICE_STOPPED_ITSELF -> listener.onCapturingStopped()
                 else -> listener.onErrorState(
                     DataCapturingException(
@@ -1294,6 +1306,7 @@ abstract class DataCapturingService(
                     // Inform interested parties
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, true)
                 }
+
                 MessageCodes.SERVICE_STOPPED_ITSELF -> {
                     // Attention: This method is very rarely executed and so be careful when you change it's logic.
                     // The task for the missing test is CY-4111. Currently only tested manually.
@@ -1311,6 +1324,7 @@ abstract class DataCapturingService(
                     // Thus, no broadcast was sent to the ShutDownFinishedHandler, so we do this here:
                     dataCapturingService.sendServiceStoppedBroadcast(context, measurementId, false)
                 }
+
                 else -> throw IllegalArgumentException("Unknown messageCode: $messageCode")
             }
         }

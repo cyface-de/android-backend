@@ -31,8 +31,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 import androidx.annotation.Nullable;
 
-import de.cyface.uploader.Authenticator;
-
 /**
  * The CyfaceAuthenticator is called by the {@link AccountManager} to fulfill all account relevant
  * tasks such as getting stored auth-tokens and handling user authentication against the Movebis server.
@@ -51,8 +49,7 @@ public final class CyfaceAuthenticator extends AbstractAccountAuthenticator {
     private final Context context;
     private final static String TAG = "de.cyface.auth";
 
-    // The `authenticator` parameter is required in the Cyface flavor of `CyfaceAuthenticator`
-    public CyfaceAuthenticator(final @NonNull Context context, @SuppressWarnings("unused") final @NonNull Authenticator authenticator) {
+    public CyfaceAuthenticator(final @NonNull Context context) {
         super(context);
         this.context = context;
     }

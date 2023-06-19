@@ -25,6 +25,10 @@ import java.util.concurrent.locks.Lock;
 import androidx.annotation.NonNull;
 import androidx.test.platform.app.InstrumentationRegistry;
 
+import org.jetbrains.annotations.NotNull;
+import org.json.JSONException;
+import org.json.JSONObject;
+
 /**
  * A class containing static utility functions, encapsulating often used calls.
  *
@@ -97,5 +101,16 @@ public class TestUtils {
                 oocut.isRunning(1, TimeUnit.SECONDS, runningStatusCallback);
             }
         });
+    }
+
+    @NotNull
+    public static JSONObject oauthConfig() throws JSONException {
+        return new JSONObject()
+                .put("client_id", "android-app")
+                .put("redirect_uri", "de.cyface.app.r4r:/oauth2redirect")
+                .put("end_session_redirect_uri", "de.cyface.app.r4r:/oauth2redirect")
+                .put("authorization_scope", "openid email profile")
+                .put("discovery_uri", "https://example.com:8443/realms/tenant/.well-known/openid-configuration")
+                .put("https_required", true);
     }
 }

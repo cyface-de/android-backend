@@ -20,8 +20,8 @@ package de.cyface.datacapturing
 
 import android.Manifest
 import android.accounts.Account
-import android.accounts.AccountAuthenticatorActivity
 import android.accounts.AccountManager
+import android.app.Activity
 import android.content.Context
 import android.util.Log
 import androidx.test.ext.junit.runners.AndroidJUnit4
@@ -51,6 +51,7 @@ import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -68,7 +69,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.6
+ * @version 5.7.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -119,7 +120,7 @@ class DataCapturingServiceTest {
         clearPersistenceLayer(context!!, persistence!!)
 
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
-        CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity::class.java
+        CyfaceAuthenticator.LOGIN_ACTIVITY = Activity::class.java
 
         // Add test account
         val requestAccount = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)
@@ -135,7 +136,7 @@ class DataCapturingServiceTest {
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
                     "https://localhost:8080/api/v3",
-                    "https://localhost:8081/api/v1",
+                    TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener!!,
                     100
@@ -1127,7 +1128,7 @@ We should consider refactoring the code before to use startCommandReceived as in
     fun testDataCapturingService_doesNotAcceptUrlWithoutProtocol() {
         CyfaceDataCapturingService(
             context!!, TestUtils.AUTHORITY,
-            TestUtils.ACCOUNT_TYPE, "localhost:8080/api/v3", "localhost:8081/api/v1", IgnoreEventsStrategy(), testListener!!, 100
+            TestUtils.ACCOUNT_TYPE, "localhost:8080/api/v3", TestUtils.oauthConfig(), IgnoreEventsStrategy(), testListener!!, 100
         )
     }
 

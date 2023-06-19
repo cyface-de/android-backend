@@ -83,13 +83,6 @@ class DefaultFileDao : FileDao {
                 DataInputStream(bufferedInputStream).use { inputStream ->
                     try {
                         inputStream.readFully(bytes)
-                        Log.d(
-                            TAG,
-                            "Read " + DataSerializable.humanReadableSize(
-                                bytes.size.toLong(),
-                                true
-                            ) + " (from " + file.name + ")"
-                        )
                     } finally {
                         inputStream.close()
                         bufferedInputStream.close()
