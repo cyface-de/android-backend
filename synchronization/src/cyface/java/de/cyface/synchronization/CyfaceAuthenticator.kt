@@ -28,18 +28,9 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import androidx.annotation.MainThread
-import androidx.annotation.WorkerThread
-import de.cyface.uploader.Authenticator
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
-import net.openid.appauth.AppAuthConfiguration
-import net.openid.appauth.AuthorizationException
-import net.openid.appauth.AuthorizationService
-import net.openid.appauth.ClientAuthentication
-import net.openid.appauth.TokenRequest
-import net.openid.appauth.TokenResponse
 
 /**
  * The CyfaceAuthenticator is called by the [AccountManager] to fulfill all account relevant
@@ -55,44 +46,10 @@ import net.openid.appauth.TokenResponse
  * @version 5.0.0
  * @since 2.0.0
  */
-class CyfaceAuthenticator(private val context: Context, private val authenticator: Authenticator) :
+class CyfaceAuthenticator(private val context: Context) :
     AbstractAccountAuthenticator(context) {
 
-    /**
-     * The service used for authorization.
-     */
-    private var mAuthService: AuthorizationService
-
-    /**
-     * The authorization state.
-     */
-    private var mStateManager: AuthStateManager
-
-    /**
-     * The configuration of the OAuth 2 endpoint to authorize against.
-     */
-    private var mConfiguration: Configuration
-
-    init {
-        // Authorization
-        mStateManager = AuthStateManager.getInstance(context)
-        //mExecutor = Executors.newSingleThreadExecutor()
-        mConfiguration = Configuration.getInstance(context)
-        val config = Configuration.getInstance(context)
-        //if (config.hasConfigurationChanged()) {
-        // This happens when starting the app after a fresh installation
-        //throw IllegalArgumentException("config changed (CyfaceAuthenticator)")
-        /*show("Authentifizierung ist abgelaufen")
-        Handler().postDelayed({signOut()}, 2000)*/
-        //return
-        //}
-        mAuthService = AuthorizationService(
-            context,
-            AppAuthConfiguration.Builder()
-                .setConnectionBuilder(config.connectionBuilder)
-                .build()
-        )
-    }
+    private var auth: OAuth2 = OAuth2(context)
 
     override fun editProperties(
         response: AccountAuthenticatorResponse,
@@ -140,9 +97,12 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         val freshAuthToken = try {
             runBlocking(Dispatchers.IO) {
                 val deferredResult = CompletableDeferred<String>()
-                performTokenRequest(mStateManager.current.createTokenRefreshRequest()) { tokenResponse, authException ->
-                    val token = handleAccessTokenResponse(tokenResponse, authException)
+                val requestSuccessful = auth.performTokenRequest(auth.createTokenRefreshRequest()) { tokenResponse, authException ->
+                    val token = auth.handleAccessTokenResponse(tokenResponse, authException)
                     deferredResult.complete(token)
+                }
+                if (!requestSuccessful) {
+                    throw IllegalArgumentException("Client authentication method is unsupported")
                 }
                 val token = deferredResult.await()
                 token
@@ -191,36 +151,6 @@ class CyfaceAuthenticator(private val context: Context, private val authenticato
         features: Array<String>
     ): Bundle? {
         return null
-    }
-
-    @MainThread
-    private fun performTokenRequest(
-        request: TokenRequest,
-        callback: AuthorizationService.TokenResponseCallback
-    ) {
-        val clientAuthentication = try {
-            mStateManager.current.clientAuthentication
-        } catch (ex: ClientAuthentication.UnsupportedAuthenticationMethod) {
-            Log.d(
-                TAG, "Token request cannot be made, client authentication for the token "
-                        + "endpoint could not be constructed (%s)", ex
-            )
-            throw IllegalArgumentException("Client authentication method is unsupported")
-        }
-        mAuthService.performTokenRequest(
-            request,
-            clientAuthentication,
-            callback
-        )
-    }
-
-    @WorkerThread
-    private fun handleAccessTokenResponse(
-        tokenResponse: TokenResponse?,
-        authException: AuthorizationException?
-    ): String {
-        mStateManager.updateAfterTokenResponse(tokenResponse, authException)
-        return mStateManager.current.accessToken!!
     }
 
     companion object {

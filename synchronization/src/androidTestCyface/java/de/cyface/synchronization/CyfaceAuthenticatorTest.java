@@ -20,7 +20,6 @@ package de.cyface.synchronization;
 
 import static de.cyface.synchronization.TestUtils.ACCOUNT_TYPE;
 import static de.cyface.synchronization.TestUtils.AUTHORITY;
-import static de.cyface.synchronization.TestUtils.TEST_API_URL;
 import static org.hamcrest.CoreMatchers.is;
 import static org.hamcrest.CoreMatchers.not;
 import static org.hamcrest.CoreMatchers.nullValue;
@@ -44,7 +43,6 @@ import androidx.test.filters.LargeTest;
 import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.testutils.SharedTestUtils;
-import de.cyface.uploader.DefaultAuthenticator;
 import de.cyface.utils.Validate;
 
 /**
@@ -95,7 +93,7 @@ public class CyfaceAuthenticatorTest {
 
         // Act
         // Explicitly calling CyfaceAuthenticator.getAuthToken(), see its documentation
-        Bundle bundle = new CyfaceAuthenticator(context, new DefaultAuthenticator(TEST_API_URL))
+        Bundle bundle = new CyfaceAuthenticator(context)
                 .getAuthToken(null, requestAccount, Constants.AUTH_TOKEN_TYPE, null);
 
         // Assert

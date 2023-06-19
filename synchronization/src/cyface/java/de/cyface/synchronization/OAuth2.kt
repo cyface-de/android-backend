@@ -113,6 +113,15 @@ class OAuth2(context: Context) : Auth {
         return true
     }
 
+    @WorkerThread
+    fun handleAccessTokenResponse(
+        tokenResponse: TokenResponse?,
+        authException: AuthorizationException?
+    ): String {
+        stateManager.updateAfterTokenResponse(tokenResponse, authException)
+        return stateManager.current.accessToken!!
+    }
+
     /**
      * Updates the credentials
      *
@@ -250,6 +259,10 @@ class OAuth2(context: Context) : Auth {
             throw IllegalStateException("Auth server does not provide an end session endpoint")
             //signOut()
         }
+    }
+
+    fun createTokenRefreshRequest(): TokenRequest {
+        return stateManager.current.createTokenRefreshRequest()
     }
 
 

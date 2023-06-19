@@ -9,8 +9,6 @@ import android.preference.PreferenceManager;
 import android.util.Log;
 import androidx.annotation.NonNull;
 
-import de.cyface.uploader.DefaultAuthenticator;
-
 /**
  * The Android service used to communicate with the Stub Authenticator. This has been implemented as described in
  * <a href=
@@ -45,7 +43,7 @@ public final class AuthenticatorService extends Service {
             throw new IllegalStateException(
                     "Server url not available. Please set the applications server url preference.");
         }
-        authenticator = new CyfaceAuthenticator(this, new DefaultAuthenticator(url));
+        authenticator = new CyfaceAuthenticator(this);
     }
 
     @Override
