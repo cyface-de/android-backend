@@ -92,7 +92,7 @@ class SyncAdapterTest {
         // Add new sync account (usually done by DataCapturingService and WifiSurveyor)
         account = Account(TestUtils.DEFAULT_USERNAME, TestUtils.ACCOUNT_TYPE)
         accountManager!!.addAccountExplicitly(account, TestUtils.DEFAULT_PASSWORD, null)
-        oocut = SyncAdapter(context!!, false, MockedAuthenticator(), MockedUploader())
+        oocut = SyncAdapter(context!!, false, MockAuth(), MockedUploader())
     }
 
     @After

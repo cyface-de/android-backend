@@ -51,6 +51,7 @@ import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
+import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore
@@ -135,7 +136,7 @@ class DataCapturingServiceTest {
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
                     "https://localhost:8080/api/v3",
-                    "https://localhost:8081/api/v1",
+                    TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener!!,
                     100
@@ -1127,7 +1128,7 @@ We should consider refactoring the code before to use startCommandReceived as in
     fun testDataCapturingService_doesNotAcceptUrlWithoutProtocol() {
         CyfaceDataCapturingService(
             context!!, TestUtils.AUTHORITY,
-            TestUtils.ACCOUNT_TYPE, "localhost:8080/api/v3", "localhost:8081/api/v1", IgnoreEventsStrategy(), testListener!!, 100
+            TestUtils.ACCOUNT_TYPE, "localhost:8080/api/v3", TestUtils.oauthConfig(), IgnoreEventsStrategy(), testListener!!, 100
         )
     }
 

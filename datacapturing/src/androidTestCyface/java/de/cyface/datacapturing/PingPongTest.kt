@@ -147,7 +147,7 @@ class PingPongTest {
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
                     "https://upload.fake/",
-                    "https://auth.fake/",
+                    TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener,
                     100
