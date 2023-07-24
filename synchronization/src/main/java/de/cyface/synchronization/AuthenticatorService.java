@@ -1,12 +1,10 @@
 package de.cyface.synchronization;
 
-import static de.cyface.synchronization.SyncService.OAUTH_CONFIG_SETTINGS_KEY;
-
 import android.app.Service;
 import android.content.Intent;
 import android.os.IBinder;
-import android.preference.PreferenceManager;
 import android.util.Log;
+
 import androidx.annotation.NonNull;
 
 /**
@@ -37,9 +35,8 @@ public final class AuthenticatorService extends Service {
         Log.d(TAG, "authenticator service on create!");
 
         // Load authUrl
-        final var preferences = PreferenceManager.getDefaultSharedPreferences(getApplicationContext());
-        final var url = preferences.getString(OAUTH_CONFIG_SETTINGS_KEY, null);
-        if (url == null) {
+        final var preferences = new CustomPreferences(this);
+        if (preferences.getOAuthUrl() == null) {
             throw new IllegalStateException(
                     "Server url not available. Please set the applications server url preference.");
         }

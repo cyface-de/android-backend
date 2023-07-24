@@ -43,7 +43,7 @@ class SyncService : Service() {
      * @return The URL as string
      */
     private fun collectorApi(context: Context): String? {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
+        val preferences = AppPreferences(context)
         val apiEndpoint = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null)
         Validate.notNull(
             apiEndpoint,

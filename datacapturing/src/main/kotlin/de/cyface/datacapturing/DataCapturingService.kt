@@ -33,7 +33,6 @@ import android.os.IBinder
 import android.os.Message
 import android.os.Messenger
 import android.os.RemoteException
-import android.preference.PreferenceManager
 import android.util.Log
 import androidx.core.app.ActivityCompat
 import androidx.localbroadcastmanager.content.LocalBroadcastManager
@@ -58,8 +57,7 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
-import de.cyface.synchronization.SyncService
-import de.cyface.synchronization.SyncService.Companion.OAUTH_CONFIG_SETTINGS_KEY
+import de.cyface.synchronization.CustomPreferences
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
 import org.json.JSONObject
@@ -278,19 +276,9 @@ abstract class DataCapturingService(
             }
         }
         // Maybe use DataStore instead, see https://developer.android.com/topic/libraries/architecture/datastore
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val sharedPreferencesEditor = preferences.edit()
-        sharedPreferencesEditor.putString(
-            SyncService.SYNC_ENDPOINT_URL_SETTINGS_KEY,
-            dataUploadServerAddress
-        )
-        sharedPreferencesEditor.putString(
-            OAUTH_CONFIG_SETTINGS_KEY,
-            oAuthConfig?.toString()
-        )
-        if (!sharedPreferencesEditor.commit()) {
-            throw SetupException("Unable to write preferences!")
-        }
+        val preferences = CustomPreferences(context)
+        preferences.saveCollectorUrl(dataUploadServerAddress)
+        preferences.saveOAuthUrl(oAuthConfig?.toString())
         val connectivityManager = context
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         wiFiSurveyor = WiFiSurveyor(context, connectivityManager, authority, accountType)
