@@ -1,3 +1,21 @@
+/*
+ * Copyright 2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization
 
 import android.content.Context
@@ -15,6 +33,17 @@ import java.lang.ref.WeakReference
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
+/**
+ * Configuration class for setting up the OAuth2 authentication flow with AppAuth.
+ *
+ * This class holds the necessary configuration parameters required to initiate an OAuth2
+ * authentication flow using the AppAuth library. It includes the client ID, authorization endpoint,
+ * token endpoint, and redirect URI, among other optional parameters.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 7.8.0
+ */
 class Configuration(private val mContext: Context) {
     private val mPrefs: SharedPreferences =
         mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)

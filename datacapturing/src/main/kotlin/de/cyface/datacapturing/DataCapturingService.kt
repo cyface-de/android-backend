@@ -81,7 +81,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.0.0
+ * @version 19.0.1
  * @since 1.0.0
  * @property context The context (i.e. `Activity`) handling this service.
  * @property authority The `ContentProvider` authority required to request a sync operation in the
