@@ -1,14 +1,29 @@
+/*
+ * Copyright 2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization
 
 import android.content.Context
 import android.content.Intent
 import android.content.SharedPreferences
-import android.content.res.Resources
 import android.net.Uri
-import android.preference.PreferenceManager
 import android.text.TextUtils
 import android.util.Base64
-import de.cyface.synchronization.SyncService.Companion.OAUTH_CONFIG_SETTINGS_KEY
 import net.openid.appauth.connectivity.ConnectionBuilder
 import net.openid.appauth.connectivity.DefaultConnectionBuilder
 import org.json.JSONException
@@ -18,9 +33,20 @@ import java.lang.ref.WeakReference
 import java.nio.charset.StandardCharsets
 import java.security.MessageDigest
 
+/**
+ * Configuration class for setting up the OAuth2 authentication flow with AppAuth.
+ *
+ * This class holds the necessary configuration parameters required to initiate an OAuth2
+ * authentication flow using the AppAuth library. It includes the client ID, authorization endpoint,
+ * token endpoint, and redirect URI, among other optional parameters.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 7.8.0
+ */
 class Configuration(private val mContext: Context) {
-    private val mPrefs: SharedPreferences = mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-    private val mResources: Resources = mContext.resources
+    private val mPrefs: SharedPreferences =
+        mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private lateinit var mConfigJson: JSONObject
     private var mConfigHash: String? = null
 
@@ -92,8 +118,8 @@ class Configuration(private val mContext: Context) {
 
     @Throws(InvalidConfigurationException::class)
     private fun readConfiguration() {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(mContext)
-        val oAuthConfigString = preferences.getString(OAUTH_CONFIG_SETTINGS_KEY, null)
+        val preferences = CustomPreferences(mContext)
+        val oAuthConfigString = preferences.getOAuthUrl()
         try {
             mConfigJson = JSONObject(oAuthConfigString!!)
         } catch (ex: IOException) {
@@ -131,10 +157,10 @@ class Configuration(private val mContext: Context) {
         } else {
             discoveryUri = getRequiredConfigWebUri("discovery_uri")
         }
-        isHttpsRequired = mConfigJson!!.optBoolean("https_required", true)
+        isHttpsRequired = mConfigJson.optBoolean("https_required", true)
     }
 
-    fun getConfigString(propName: String?): String? {
+    private fun getConfigString(propName: String?): String? {
         var value: String = mConfigJson.optString(propName) ?: return null
         value = value.trim { it <= ' ' }
         return if (TextUtils.isEmpty(value)) {
@@ -191,15 +217,15 @@ class Configuration(private val mContext: Context) {
     // ensure that the redirect URI declared in the configuration is handled by some activity
     // in the app, by querying the package manager speculatively
     private val isRedirectUriRegistered: Boolean
-        private get() {
+        get() {
             // ensure that the redirect URI declared in the configuration is handled by some activity
             // in the app, by querying the package manager speculatively
             val redirectIntent = Intent()
             redirectIntent.setPackage(mContext.packageName)
-            redirectIntent.setAction(Intent.ACTION_VIEW)
+            redirectIntent.action = Intent.ACTION_VIEW
             redirectIntent.addCategory(Intent.CATEGORY_BROWSABLE)
-            redirectIntent.setData(mRedirectUri)
-            return !mContext.packageManager.queryIntentActivities(redirectIntent, 0).isEmpty()
+            redirectIntent.data = mRedirectUri
+            return mContext.packageManager.queryIntentActivities(redirectIntent, 0).isNotEmpty()
         }
 
     class InvalidConfigurationException : Exception {
@@ -208,10 +234,10 @@ class Configuration(private val mContext: Context) {
     }
 
     companion object {
-        private const val TAG = "Configuration"
         private const val PREFS_NAME = "config"
         private const val KEY_LAST_HASH = "lastHash"
         private var sInstance = WeakReference<Configuration?>(null)
+
         @JvmStatic
         fun getInstance(context: Context): Configuration {
             var config = sInstance.get()

@@ -56,7 +56,7 @@ import java.io.File
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 4.0.0
+ * @version 4.1.0
  * @since 2.0.0
  * @property authenticator The authenticator to use for synchronization.
  * @property uploader The uploader to use for synchronization.

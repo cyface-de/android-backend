@@ -51,7 +51,7 @@ import java.nio.ByteBuffer
  * provide a Migration object to the builder*!
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.5.0
  * @property context The `Context` required to import data from a secondary data source.
  */
@@ -641,6 +641,7 @@ class DatabaseMigrator(val context: Context) {
             private fun migrate9To10Identifiers(database: SupportSQLiteDatabase) {
                 database.execSQL("CREATE TABLE identifiers (_id INTEGER PRIMARY KEY AUTOINCREMENT, device_id TEXT NOT NULL);")
                 // Try to migrate old device id (which was stored in the preferences)
+                @Suppress("DEPRECATION") // (!) Don't change this, as this is migration code !
                 val preferences = PreferenceManager.getDefaultSharedPreferences(context)
                 val installId = preferences.getString("de.cyface.identifier.device", null)
                 if (installId != null) {

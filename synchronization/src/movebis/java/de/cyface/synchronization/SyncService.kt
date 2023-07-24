@@ -4,7 +4,6 @@ import android.app.Service
 import android.content.Context
 import android.content.Intent
 import android.os.IBinder
-import android.preference.PreferenceManager
 import de.cyface.uploader.DefaultUploader
 import de.cyface.utils.Validate
 
@@ -43,8 +42,8 @@ class SyncService : Service() {
      * @return The URL as string
      */
     private fun collectorApi(context: Context): String? {
-        val preferences = PreferenceManager.getDefaultSharedPreferences(context)
-        val apiEndpoint = preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null)
+        val preferences = CustomPreferences(context)
+        val apiEndpoint = preferences.getCollectorUrl()
         Validate.notNull(
             apiEndpoint,
             "Sync canceled: Server url not available. Please set the applications server url preference."
@@ -53,16 +52,6 @@ class SyncService : Service() {
     }
 
     companion object {
-        /**
-         * The settings key used to identify the settings storing the URL of the server to upload data to.
-         */
-        const val SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint"
-
-        /**
-         * The settings key used to identify the settings storing the OAuth configuration JsonObject as String.
-         */
-        const val OAUTH_CONFIG_SETTINGS_KEY = "de.cyface.oauth.config"
-
         /**
          * The synchronisation adapter this service is supposed to call.
          *
