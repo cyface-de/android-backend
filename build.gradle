@@ -21,7 +21,7 @@
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.9.0
+ * @version 2.9.1
  * @since 1.0.0
  */
 
@@ -45,7 +45,7 @@ ext {
     cyfaceAndroidBackendVersion = "0.0.0" // Automatically overwritten by CI
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "3.5.0"
+    cyfaceUtilsVersion = "3.5.1"
     cyfaceSerializationVersion = "2.3.7"
     cyfaceUploaderVersion = "1.0.0"
 
