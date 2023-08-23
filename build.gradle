@@ -43,7 +43,7 @@ ext {
     cyfaceBackendVersion = "6.3.4"
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "3.3.5"
+    cyfaceUtilsVersion = "3.5.1"
 
     minSdkVersion = 21
     targetSdkVersion = 33
