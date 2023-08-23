@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -37,7 +37,6 @@ import android.util.Log;
 import androidx.annotation.NonNull;
 
 import de.cyface.datacapturing.backend.PingReceiver;
-import de.cyface.synchronization.BundlesExtrasCodes;
 
 /**
  * A {@code BroadcastReceiver} and sender that send a {@code MessageCodes#GLOBAL_BROADCAST_PING} event to the system and
@@ -46,7 +45,7 @@ import de.cyface.synchronization.BundlesExtrasCodes;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 2.0.0
  */
 public class PongReceiver extends BroadcastReceiver {
@@ -175,17 +174,18 @@ public class PongReceiver extends BroadcastReceiver {
         }, currentUptimeInMillis + offset);
 
         final Intent broadcastIntent = new Intent(pingActionId);
-        if (BuildConfig.DEBUG) {
+        /*if (BuildConfig.DEBUG) {
             broadcastIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
-        }
+        }*/
         context.get().sendBroadcast(broadcastIntent);
         Log.d(TAG, "PongReceiver.checkIsRunningAsync(): Ping was sent!");
     }
 
     @Override
     public void onReceive(final @NonNull Context context, final @NonNull Intent intent) {
-        Log.v(TAG, "PongReceiver.onReceive(): Received pong with identifier "
-                + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));
+        Log.v(TAG, "PongReceiver.onReceive(): Received pong");
+        /*Log.v(TAG, "PongReceiver.onReceive(): Received pong with identifier "
+                + intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID));*/
         lock.lock();
         try {
             if (!isTimedOut && pongActionId.equals(intent.getAction())) {

@@ -1,5 +1,5 @@
 /*
- * Copyright 2017 Cyface GmbH
+ * Copyright 2017-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -25,9 +25,7 @@ import android.util.Log;
 
 import androidx.annotation.NonNull;
 
-import de.cyface.datacapturing.BuildConfig;
 import de.cyface.datacapturing.PongReceiver;
-import de.cyface.synchronization.BundlesExtrasCodes;
 import de.cyface.utils.Validate;
 
 /**
@@ -36,7 +34,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 4.0.0
+ * @version 4.0.1
  * @since 2.0.0
  */
 public class PingReceiver extends BroadcastReceiver {
@@ -74,12 +72,12 @@ public class PingReceiver extends BroadcastReceiver {
 
         if (intent.getAction().equals(pingActionId)) {
             final Intent pongIntent = new Intent(pongActionId);
-            if (BuildConfig.DEBUG) {
+            /*if (BuildConfig.DEBUG) {
                 final String pingPongIdentifier = intent.getStringExtra(BundlesExtrasCodes.PING_PONG_ID);
                 Log.v(TAG, "PingReceiver.onReceive(): Received Ping with identifier " + pingPongIdentifier
                         + ". Sending Pong.");
                 pongIntent.putExtra(BundlesExtrasCodes.PING_PONG_ID, pingPongIdentifier);
-            }
+            }*/
             context.sendBroadcast(pongIntent);
         }
     }
