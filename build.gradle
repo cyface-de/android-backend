@@ -59,7 +59,7 @@ ext {
     androidxAnnotationVersion = '1.6.0'
     androidxAppCompatVersion = "1.6.1"
     localbroadcastmanagerVersion = '1.1.0'
-    roomVersion = "2.5.1"
+    roomVersion = "2.5.2"
 
     // Kotlin components
     coroutinesVersion = "1.6.4"
