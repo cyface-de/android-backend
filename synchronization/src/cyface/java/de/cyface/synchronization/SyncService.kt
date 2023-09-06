@@ -1,11 +1,30 @@
+/*
+ * Copyright 2017-2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization
 
 import android.app.Service
-import android.content.Context
 import android.content.Intent
 import android.os.IBinder
 import de.cyface.uploader.DefaultUploader
 import de.cyface.utils.Validate
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 
 /**
  * The synchronisation `Service` used to bind the synchronisation adapter to the Android framework.
@@ -16,17 +35,19 @@ import de.cyface.utils.Validate
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 1.0.8
+ * @version 1.0.9
  * @since 2.0.0
  */
 class SyncService : Service() {
     override fun onCreate() {
         synchronized(LOCK) {
             if (syncAdapter == null) {
-                val collectorApi = collectorApi(applicationContext)
+                val collectorApi = collectorApi()
                 syncAdapter = SyncAdapter(
-                    applicationContext, true, OAuth2(applicationContext),
-                    DefaultUploader(collectorApi!!),
+                    applicationContext,
+                    true,
+                    OAuth2(applicationContext, CyfaceAuthenticator.settings),
+                    DefaultUploader(collectorApi),
                 )
             }
         }
@@ -39,12 +60,11 @@ class SyncService : Service() {
     /**
      * Reads the Collector API URL from the preferences.
      *
-     * @param context The `Context` required to read the preferences
      * @return The URL as string
      */
-    private fun collectorApi(context: Context): String? {
-        val preferences = CustomPreferences(context)
-        val apiEndpoint = preferences.getCollectorUrl()
+    private fun collectorApi(): String {
+        val apiEndpoint =
+            runBlocking { CyfaceAuthenticator.settings.collectorUrlFlow.first() } // FIXME
         Validate.notNull(
             apiEndpoint,
             "Sync canceled: Server url not available. Please set the applications server url preference."

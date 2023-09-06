@@ -43,13 +43,13 @@ import kotlinx.coroutines.runBlocking
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.0.0
+ * @version 5.1.0
  * @since 2.0.0
  */
 class CyfaceAuthenticator(private val context: Context) :
     AbstractAccountAuthenticator(context) {
 
-    private var auth: OAuth2 = OAuth2(context)
+    private var auth: OAuth2 = OAuth2(context, settings)
 
     override fun editProperties(
         response: AccountAuthenticatorResponse,
@@ -163,5 +163,10 @@ class CyfaceAuthenticator(private val context: Context) :
          */
         @JvmField
         var LOGIN_ACTIVITY: Class<out Activity?>? = null
+
+        /**
+         * Custom settings used by this library.
+         */
+        lateinit var settings: CustomSettings
     }
 }

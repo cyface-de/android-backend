@@ -57,9 +57,10 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
-import de.cyface.synchronization.CustomPreferences
+import de.cyface.synchronization.CyfaceAuthenticator
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
+import kotlinx.coroutines.runBlocking
 import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
@@ -276,9 +277,10 @@ abstract class DataCapturingService(
             }
         }
         // Maybe use DataStore instead, see https://developer.android.com/topic/libraries/architecture/datastore
-        val preferences = CustomPreferences(context)
-        preferences.saveCollectorUrl(dataUploadServerAddress)
-        preferences.saveOAuthUrl(oAuthConfig?.toString())
+        runBlocking {
+            CyfaceAuthenticator.settings.setCollectorUrl(dataUploadServerAddress)
+            CyfaceAuthenticator.settings.setOAuthConfiguration(oAuthConfig.toString())
+        }
         val connectivityManager = context
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         wiFiSurveyor = WiFiSurveyor(context, connectivityManager, authority, accountType)

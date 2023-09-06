@@ -41,7 +41,8 @@
                     android:resource="@xml/sync_adapter" />
         </service>
         <service android:name="de.cyface.synchronization.AuthenticatorService"
-            android:exported="false">
+            android:exported="false"
+            android:process=":sync"> <!-- FIXME: experimental, probably just forgot to do this -->
             <intent-filter>
                 <action android:name="android.accounts.AccountAuthenticator" />
             </intent-filter>

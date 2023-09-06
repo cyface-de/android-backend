@@ -1,3 +1,21 @@
+/*
+ * Copyright 2023 Cyface GmbH
+ *
+ * This file is part of the Cyface SDK for Android.
+ *
+ * The Cyface SDK for Android is free software: you can redistribute it and/or modify
+ * it under the terms of the GNU General Public License as published by
+ * the Free Software Foundation, either version 3 of the License, or
+ * (at your option) any later version.
+ *
+ * The Cyface SDK for Android is distributed in the hope that it will be useful,
+ * but WITHOUT ANY WARRANTY; without even the implied warranty of
+ * MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+ * GNU General Public License for more details.
+ *
+ * You should have received a copy of the GNU General Public License
+ * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
+ */
 package de.cyface.synchronization
 
 import android.accounts.Account
@@ -25,7 +43,7 @@ import net.openid.appauth.TokenRequest
 import net.openid.appauth.TokenResponse
 import org.json.JSONObject
 
-class OAuth2(context: Context) : Auth {
+class OAuth2(context: Context, settings: CustomSettings) : Auth {
 
     /**
      * The service used for authorization.
@@ -45,8 +63,7 @@ class OAuth2(context: Context) : Auth {
     init {
         // Authorization
         stateManager = AuthStateManager.getInstance(context)
-        configuration = Configuration.getInstance(context)
-        val config = Configuration.getInstance(context)
+        configuration = Configuration.getInstance(context, settings)
         /*if (config.hasConfigurationChanged()) {
             //throw IllegalArgumentException("config changed (SyncAdapter)")
             Toast.makeText(context, "Ignoring: config changed (SyncAdapter)", Toast.LENGTH_SHORT).show()
@@ -56,7 +73,7 @@ class OAuth2(context: Context) : Auth {
         authService = AuthorizationService(
             context,
             AppAuthConfiguration.Builder()
-                .setConnectionBuilder(config.connectionBuilder)
+                .setConnectionBuilder(configuration.connectionBuilder)
                 .build()
         )
     }

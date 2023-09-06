@@ -30,7 +30,7 @@ import android.util.Log
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.6
+ * @version 1.1.0
  * @since 2.0.0
  */
 class AuthenticatorService : Service() {
@@ -41,9 +41,6 @@ class AuthenticatorService : Service() {
     override fun onCreate() {
         Log.d(TAG, "authenticator service on create!")
 
-        // Load authUrl
-        val preferences = CustomPreferences(this)
-        checkNotNull(preferences.getOAuthUrl()) { "Server url not available. Please set the applications server url preference." }
         authenticator = CyfaceAuthenticator(this)
     }
 

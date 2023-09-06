@@ -24,6 +24,8 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.text.TextUtils
 import android.util.Base64
+import kotlinx.coroutines.flow.first
+import kotlinx.coroutines.runBlocking
 import net.openid.appauth.connectivity.ConnectionBuilder
 import net.openid.appauth.connectivity.DefaultConnectionBuilder
 import org.json.JSONException
@@ -41,10 +43,10 @@ import java.security.MessageDigest
  * token endpoint, and redirect URI, among other optional parameters.
  *
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 2.0.0
  * @since 7.8.0
  */
-class Configuration(private val mContext: Context) {
+class Configuration(private val mContext: Context, private val settings: CustomSettings) {
     private val mPrefs: SharedPreferences =
         mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private lateinit var mConfigJson: JSONObject
@@ -118,10 +120,9 @@ class Configuration(private val mContext: Context) {
 
     @Throws(InvalidConfigurationException::class)
     private fun readConfiguration() {
-        val preferences = CustomPreferences(mContext)
-        val oAuthConfigString = preferences.getOAuthUrl()
+        val oAuthConfigString = runBlocking { settings.oAuthConfigurationFlow.first() }
         try {
-            mConfigJson = JSONObject(oAuthConfigString!!)
+            mConfigJson = JSONObject(oAuthConfigString)
         } catch (ex: IOException) {
             throw InvalidConfigurationException(
                 "Failed to read configuration: " + ex.message
@@ -239,10 +240,10 @@ class Configuration(private val mContext: Context) {
         private var sInstance = WeakReference<Configuration?>(null)
 
         @JvmStatic
-        fun getInstance(context: Context): Configuration {
+        fun getInstance(context: Context, settings: CustomSettings): Configuration {
             var config = sInstance.get()
             if (config == null) {
-                config = Configuration(context)
+                config = Configuration(context, settings)
                 sInstance = WeakReference(config)
             }
             return config
