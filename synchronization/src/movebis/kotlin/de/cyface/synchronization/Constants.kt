@@ -1,4 +1,4 @@
-package de.cyface.synchronization;
+package de.cyface.synchronization
 
 /**
  * Final static constants used by multiple classes.
@@ -8,23 +8,18 @@ package de.cyface.synchronization;
  * @version 1.1.1
  * @since 2.0.0
  */
-public final class Constants {
-
+object Constants {
     /**
      * Tag used to identify Logcat messages issued by instances of this package.
      */
-    public final static String TAG = "de.cyface.sync";
-
+    const val TAG = "de.cyface.sync"
     // TODO [MOV-555]: Change these strings between two (STADTRADELN) campaigns.
-
     /**
      * The Cyface account type used to identify all Cyface system accounts.
      */
-    public final static String ACCOUNT_TYPE = "de.cyface";
-    @SuppressWarnings("unused") // Because this allows the sdk integrating app to add a sync account
-    public final static String AUTH_TOKEN_TYPE = "de.cyface.jwt";
+    const val ACCOUNT_TYPE = "de.cyface"
 
-    private Constants() {
-        // Nothing to do here.
-    }
+    @Suppress("unused") // Because this allows the sdk integrating app to add a sync account
+
+    val AUTH_TOKEN_TYPE = "de.cyface.jwt"
 }
