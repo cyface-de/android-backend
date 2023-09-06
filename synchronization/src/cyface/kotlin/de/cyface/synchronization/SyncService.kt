@@ -29,7 +29,6 @@ import kotlinx.coroutines.runBlocking
 /**
  * The synchronisation `Service` used to bind the synchronisation adapter to the Android framework.
  *
- *
  * Further details are described in the [Android
  * documentation](https://developer.android.com/training/sync-adapters/creating-sync-adapter.html#CreateSyncAdapterService).
  *
@@ -75,7 +74,6 @@ class SyncService : Service() {
     companion object {
         /**
          * The synchronisation adapter this service is supposed to call.
-         *
          *
          * Singleton isn't what they call a beauty. Nevertheless this is how it is specified in the documentation. Maybe try
          * to change this after it runs.
