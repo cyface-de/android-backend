@@ -51,24 +51,9 @@ class CustomSettings(context: Context) {
     private val dataStore: DataStore<Settings> = MultiProcessDataStoreFactory.create(
         serializer = SettingsSerializer,
         produceFile = {
-            File("${appContext.cacheDir.path}/synchronization_settings.pb")
+            File("${appContext.cacheDir.path}/synchronization.pb")
         }
     )
-
-    /**
-     * The data store with multi-process support.
-     * /
-    private lateinit var dataStore: DataStore<Settings>
-
-    @JvmStatic
-    fun initialize(context: Context) {
-        dataStore = MultiProcessDataStoreFactory.create(
-            serializer = SettingsSerializer,
-            produceFile = {
-                File("${context.cacheDir.path}/synchronization.pb")
-            }
-        )
-    }*/
 
     /**
      * Sets the URL of the server to upload data to.
