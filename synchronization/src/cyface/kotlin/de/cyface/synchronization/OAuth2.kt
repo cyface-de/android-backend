@@ -30,6 +30,7 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.fragment.app.FragmentActivity
 import de.cyface.synchronization.Constants.TAG
+import de.cyface.synchronization.settings.CustomSettings
 import de.cyface.utils.Validate
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthState

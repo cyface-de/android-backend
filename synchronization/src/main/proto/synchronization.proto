@@ -33,8 +33,13 @@ option java_multiple_files = true;
  * @version: 1.0.0
  */
 message Settings {
+  // Version of this datastore. It helps to support default values and to migrate data. When the
+  // datastore is newly created, it's 0, after default values are set it's 1, then migration happens.
+  uint32 version = 1;
+
   // The URL of the server to upload data to.
-  string collector_url = 1;
+  string collector_url = 2;
+
   // The OAuth configuration JsonObject as String.
-  string o_auth_configuration = 2;
+  string o_auth_configuration = 3;
 }

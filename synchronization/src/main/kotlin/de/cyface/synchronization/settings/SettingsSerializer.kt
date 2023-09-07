@@ -16,11 +16,12 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.synchronization
+package de.cyface.synchronization.settings
 
 import androidx.datastore.core.CorruptionException
 import androidx.datastore.core.Serializer
 import com.google.protobuf.InvalidProtocolBufferException
+import de.cyface.synchronization.Settings
 import java.io.InputStream
 import java.io.OutputStream
 

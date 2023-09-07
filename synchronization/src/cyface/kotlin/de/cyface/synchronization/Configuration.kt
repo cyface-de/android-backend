@@ -24,6 +24,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.text.TextUtils
 import android.util.Base64
+import de.cyface.synchronization.settings.CustomSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import net.openid.appauth.connectivity.ConnectionBuilder
