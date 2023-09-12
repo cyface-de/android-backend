@@ -23,7 +23,7 @@ package de.cyface.persistence.model
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 2.0.0
+ * @version 2.0.1
  * @since 1.0.0
  * @property databaseIdentifier The [String] which represents the enumeration value in the database.
  */
@@ -34,5 +34,9 @@ enum class Modality(val databaseIdentifier: String) {
     BUS("BUS"),
     TRAIN("TRAIN"),
     WALKING("WALKING"),
+
+    /**
+     * When the user did not choose a modality yet or when the previous modality is not unsupported.
+     */
     UNKNOWN("UNKNOWN")
 }
