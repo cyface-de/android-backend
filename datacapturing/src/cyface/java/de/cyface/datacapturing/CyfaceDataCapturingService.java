@@ -36,7 +36,7 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
-import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.persistence.SetupException;
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.DefaultPersistenceLayer;
@@ -58,7 +58,7 @@ import de.cyface.utils.Validate;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 14.0.0
+ * @version 15.0.0
  * @since 2.0.0
  */
 @SuppressWarnings({"unused", "WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
@@ -72,9 +72,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service. This must be in the format "https://some.url/optional/resource".
-     * @param oAuthConfig The configuration required for the OAuth server.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param distanceCalculationStrategy The {@link DistanceCalculationStrategy} used to calculate the
@@ -89,13 +86,11 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      */
     private CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
-            @NonNull final String dataUploadServerAddress,
-            @NonNull final JSONObject oAuthConfig,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DistanceCalculationStrategy distanceCalculationStrategy,
             @NonNull final LocationCleaningStrategy locationCleaningStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency) {
-        super(context, authority, accountType, dataUploadServerAddress, oAuthConfig, eventHandlingStrategy,
+        super(context, authority, accountType, eventHandlingStrategy,
                 new DefaultPersistenceLayer<>(context, new CapturingPersistenceBehaviour()),
                 distanceCalculationStrategy, locationCleaningStrategy, capturingListener, sensorFrequency);
         if (LOGIN_ACTIVITY == null) {
@@ -111,9 +106,6 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
      *            <code>DataCapturingService</code>. You should use something world wide unique, like your domain, to
      *            avoid collisions between different apps using the Cyface SDK.
      * @param accountType The type of the account to use to synchronize data.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     *            this service. This must be in the format "https://some.url/optional/resource".
-     * @param oAuthConfig The configuration required for the OAuth server.
      * @param eventHandlingStrategy The {@link EventHandlingStrategy} used to react to selected events
      *            triggered by the {@link DataCapturingBackgroundService}.
      * @param capturingListener A {@link DataCapturingListener} that is notified of important events during data
@@ -126,12 +118,10 @@ public final class CyfaceDataCapturingService extends DataCapturingService {
     @SuppressWarnings({"WeakerAccess", "RedundantSuppression"}) // Used by SDK implementing apps (CY)
     public CyfaceDataCapturingService(@NonNull final Context context,
             @NonNull final String authority, @NonNull final String accountType,
-            @NonNull final String dataUploadServerAddress,
-            @NonNull final JSONObject oAuthConfig,
             @NonNull final EventHandlingStrategy eventHandlingStrategy,
             @NonNull final DataCapturingListener capturingListener, final int sensorFrequency)
             throws SetupException {
-        this(context, authority, accountType, dataUploadServerAddress, oAuthConfig, eventHandlingStrategy,
+        this(context, authority, accountType, eventHandlingStrategy,
                 new DefaultDistanceCalculation(), new DefaultLocationCleaning(), capturingListener,
                 sensorFrequency);
     }

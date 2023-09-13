@@ -34,7 +34,7 @@ import de.cyface.datacapturing.backend.TestCallback
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.datacapturing.exception.SetupException
+import de.cyface.persistence.SetupException
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
@@ -51,7 +51,6 @@ import de.cyface.utils.Validate
 import kotlinx.coroutines.runBlocking
 import org.hamcrest.CoreMatchers
 import org.hamcrest.MatcherAssert.assertThat
-import org.json.JSONObject
 import org.junit.After
 import org.junit.Before
 import org.junit.Ignore

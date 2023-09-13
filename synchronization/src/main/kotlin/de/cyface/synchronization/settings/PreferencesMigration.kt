@@ -22,6 +22,7 @@ import android.content.Context
 import androidx.datastore.migrations.SharedPreferencesMigration
 import androidx.datastore.migrations.SharedPreferencesView
 import de.cyface.synchronization.Settings
+import org.json.JSONObject
 
 /**
  * Factory for the migration which imports preferences from the previously used SharedPreferences.
@@ -43,25 +44,48 @@ object PreferencesMigrationFactory {
 
     /**
      * @param context The context to search and access the old SharedPreferences from.
+     * @param collectorUrl The URL of the Collector API, e.g. "https://example.com/api/v4".
+     * @param oAuthConfig The configuration required for the OAuth server.
      * @return The migration code which imports preferences from the SharedPreferences if found.
      */
-    fun create(context: Context): SharedPreferencesMigration<Settings> {
+    fun create(
+        context: Context,
+        collectorUrl: String,
+        oAuthConfig: JSONObject
+    ): SharedPreferencesMigration<Settings> {
         return SharedPreferencesMigration(
             context,
             PREFERENCES_NAME,
-            migrate = ::migratePreferences
+            migrate = { preferences, settings ->
+                migratePreferences(preferences, settings, collectorUrl, oAuthConfig)
+            }
         )
     }
 
     private fun migratePreferences(
         preferences: SharedPreferencesView,
-        settings: Settings
+        settings: Settings,
+        defaultCollectorUrl: String,
+        defaultOAuthConfig: JSONObject
     ): Settings {
         return settings.toBuilder()
-            .setVersion(1) // Ensure the migrated values below are used instead of default values.
-            //FIXME: test both because of null
-            .setCollectorUrl(preferences.getString(SYNC_ENDPOINT_URL_SETTINGS_KEY, null))
-            .setOAuthConfiguration(preferences.getString(OAUTH_CONFIG_SETTINGS_KEY, null))
+            // Setting version to 1 as it would else default to Protobuf default of 0 which would
+            // trigger the StoreMigration from 0 -> 1 which ignores previous settings.
+            // This way the last supported version of SharedPreferences is hard-coded here and
+            // then the migration steps in StoreMigration starting at version 1 continues from here.
+            .setVersion(1)
+            .setCollectorUrl(
+                preferences.getString(
+                    SYNC_ENDPOINT_URL_SETTINGS_KEY,
+                    defaultCollectorUrl
+                )
+            )
+            .setOAuthConfiguration(
+                preferences.getString(
+                    OAUTH_CONFIG_SETTINGS_KEY,
+                    defaultOAuthConfig.toString()
+                )
+            )
             .build()
     }
 }

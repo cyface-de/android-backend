@@ -29,7 +29,7 @@ import de.cyface.datacapturing.backend.TestCallback
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.datacapturing.exception.SetupException
+import de.cyface.persistence.SetupException
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
