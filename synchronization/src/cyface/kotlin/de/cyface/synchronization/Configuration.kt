@@ -24,7 +24,7 @@ import android.content.SharedPreferences
 import android.net.Uri
 import android.text.TextUtils
 import android.util.Base64
-import de.cyface.synchronization.settings.CustomSettings
+import de.cyface.synchronization.settings.SynchronizationSettings
 import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.runBlocking
 import net.openid.appauth.connectivity.ConnectionBuilder
@@ -47,7 +47,7 @@ import java.security.MessageDigest
  * @version 2.0.0
  * @since 7.8.0
  */
-class Configuration(private val mContext: Context, private val settings: CustomSettings) {
+class Configuration(private val mContext: Context, private val settings: SynchronizationSettings) {
     private val mPrefs: SharedPreferences =
         mContext.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
     private lateinit var mConfigJson: JSONObject
@@ -241,7 +241,7 @@ class Configuration(private val mContext: Context, private val settings: CustomS
         private var sInstance = WeakReference<Configuration?>(null)
 
         @JvmStatic
-        fun getInstance(context: Context, settings: CustomSettings): Configuration {
+        fun getInstance(context: Context, settings: SynchronizationSettings): Configuration {
             var config = sInstance.get()
             if (config == null) {
                 config = Configuration(context, settings)

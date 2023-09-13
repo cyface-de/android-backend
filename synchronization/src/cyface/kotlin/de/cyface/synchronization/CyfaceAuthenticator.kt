@@ -28,7 +28,7 @@ import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.util.Log
-import de.cyface.synchronization.settings.CustomSettings
+import de.cyface.synchronization.settings.SynchronizationSettings
 import kotlinx.coroutines.CompletableDeferred
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.runBlocking
@@ -168,6 +168,6 @@ class CyfaceAuthenticator(private val context: Context) :
         /**
          * Custom settings used by this library.
          */
-        lateinit var settings: CustomSettings
+        lateinit var settings: SynchronizationSettings
     }
 }

@@ -30,7 +30,7 @@ import androidx.annotation.MainThread
 import androidx.annotation.WorkerThread
 import androidx.fragment.app.FragmentActivity
 import de.cyface.synchronization.Constants.TAG
-import de.cyface.synchronization.settings.CustomSettings
+import de.cyface.synchronization.settings.SynchronizationSettings
 import de.cyface.utils.Validate
 import net.openid.appauth.AppAuthConfiguration
 import net.openid.appauth.AuthState
@@ -44,7 +44,7 @@ import net.openid.appauth.TokenRequest
 import net.openid.appauth.TokenResponse
 import org.json.JSONObject
 
-class OAuth2(context: Context, settings: CustomSettings) : Auth {
+class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
 
     /**
      * The service used for authorization.
