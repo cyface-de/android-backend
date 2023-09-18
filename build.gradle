@@ -59,7 +59,7 @@ ext {
     targetSdkVersion = 33 // behavioral changes, follow migration guide & test the app against this
     compileSdkVersion = 34 // allows newest APIs to be used and to see deprecations, use latest
     buildToolsVersion = '34.0.0' // optional, if defined, use latest (SDK Manager > SDK Tools)
-    datastoreVersion = "1.1.0-alpha04" // only 1.1.0 supports multi-process datastore
+    datastoreVersion = "1.1.0-alpha05" // only 1.1.0 supports multi-process datastore
 
     // Android dependencies
     androidxAnnotationVersion = '1.6.0'

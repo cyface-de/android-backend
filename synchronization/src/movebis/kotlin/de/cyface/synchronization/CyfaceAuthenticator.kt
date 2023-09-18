@@ -27,6 +27,7 @@ import android.content.Context
 import android.os.Bundle
 import android.text.TextUtils
 import android.util.Log
+import de.cyface.synchronization.settings.SynchronizationSettings
 
 /**
  * The CyfaceAuthenticator is called by the [AccountManager] to fulfill all account relevant
@@ -136,6 +137,6 @@ class CyfaceAuthenticator(private val context: Context) :
         /**
          * Custom settings used by this library.
          */
-        lateinit var settings: CustomSettings
+        lateinit var settings: SynchronizationSettings
     }
 }

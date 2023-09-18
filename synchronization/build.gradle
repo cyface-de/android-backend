@@ -123,7 +123,6 @@ android {
 dependencies {
     // Proto DataStore with MultiProcess support to store settings
     implementation "androidx.datastore:datastore:${datastoreVersion}"
-    implementation "androidx.datastore:datastore-core-android:${datastoreVersion}"
     implementation  "com.google.protobuf:protobuf-javalite:${protobufVersion}"
 
     // Cyface dependencies

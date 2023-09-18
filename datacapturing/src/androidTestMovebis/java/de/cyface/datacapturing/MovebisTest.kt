@@ -49,7 +49,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.3.6
+ * @version 2.3.7
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -119,8 +119,8 @@ class MovebisTest {
             .runOnMainSync {
                 oocut = MovebisDataCapturingService(
                     context!!, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
-                    "https://localhost:8080",
-                    testUIListener!!, 0L, IgnoreEventsStrategy(), testListener!!, 100
+                    testUIListener!!,
+                    0L, IgnoreEventsStrategy(), testListener!!, 100
                 )
             }
 

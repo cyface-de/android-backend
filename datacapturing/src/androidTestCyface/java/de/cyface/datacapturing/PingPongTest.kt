@@ -29,11 +29,11 @@ import de.cyface.datacapturing.backend.TestCallback
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.persistence.SetupException
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
+import de.cyface.persistence.SetupException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Modality
 import de.cyface.synchronization.CyfaceAuthenticator
@@ -53,11 +53,11 @@ import java.util.concurrent.locks.ReentrantLock
 
 /**
  * This test checks that the ping pong mechanism works as expected. This mechanism ist used to check if a service, in
- * this case the [DataCapturingBackgroundService], is running or not.
+ * this case the ´DataCapturingBackgroundService`, is running or not.
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.2.12
+ * @version 1.2.13
  * @since 2.3.2
  */
 @RunWith(AndroidJUnit4::class)
@@ -67,7 +67,7 @@ class PingPongTest {
      * Grants the permission required by the [DataCapturingService].
      */
     @get:Rule
-    var mRuntimePermissionRule = GrantPermissionRule
+    var mRuntimePermissionRule: GrantPermissionRule = GrantPermissionRule
         .grant(Manifest.permission.ACCESS_FINE_LOCATION)
 
     /**
@@ -146,8 +146,8 @@ class PingPongTest {
                     context!!,
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
-                    "https://upload.fake/",
-                    TestUtils.oauthConfig(),
+                    //"https://upload.fake/",
+                    //TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener,
                     100

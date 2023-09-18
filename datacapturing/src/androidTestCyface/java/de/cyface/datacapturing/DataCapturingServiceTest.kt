@@ -68,7 +68,7 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.7.7
+ * @version 5.7.8
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -85,8 +85,8 @@ class DataCapturingServiceTest {
      * Grants the access location permission to this test.
      */
     @get:Rule
-    val grantPermissionRule = GrantPermissionRule
-        .grant(Manifest.permission.ACCESS_FINE_LOCATION)
+    val grantPermissionRule: GrantPermissionRule = GrantPermissionRule
+        .grant(Manifest.permission.ACCESS_FINE_LOCATION)!!
 
     /**
      * The object of class under test.
@@ -134,8 +134,8 @@ class DataCapturingServiceTest {
                     context!!,
                     TestUtils.AUTHORITY,
                     TestUtils.ACCOUNT_TYPE,
-                    "https://localhost:8080/api/v3",
-                    TestUtils.oauthConfig(),
+                    //"https://localhost:8080/api/v3",
+                    //TestUtils.oauthConfig(),
                     IgnoreEventsStrategy(),
                     testListener!!,
                     100
@@ -1036,23 +1036,23 @@ We should consider refactoring the code before to use startCommandReceived as in
                 CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_START))
             )
             assertThat(
-                events.get(1).type,
+                events[1].type,
                 CoreMatchers.`is`(CoreMatchers.equalTo(EventType.MODALITY_TYPE_CHANGE))
             )
             assertThat(
-                events.get(1).value,
+                events[1].value,
                 CoreMatchers.`is`(CoreMatchers.equalTo(Modality.UNKNOWN.databaseIdentifier))
             )
             assertThat(
-                events.get(2).type,
+                events[2].type,
                 CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_PAUSE))
             )
             assertThat(
-                events.get(3).type,
+                events[3].type,
                 CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_RESUME))
             )
             assertThat(
-                events.get(4).type,
+                events[4].type,
                 CoreMatchers.`is`(CoreMatchers.equalTo(EventType.LIFECYCLE_STOP))
             )
         }
@@ -1089,7 +1089,7 @@ We should consider refactoring the code before to use startCommandReceived as in
         // Check sensor data
         val measurements = persistence!!.loadMeasurements()
         assertThat(
-            measurements.size > 0,
+            measurements.isNotEmpty(),
             CoreMatchers.`is`(CoreMatchers.equalTo(true))
         )
         Thread.sleep(3000L)
@@ -1126,8 +1126,14 @@ We should consider refactoring the code before to use startCommandReceived as in
     @Throws(SetupException::class)
     fun testDataCapturingService_doesNotAcceptUrlWithoutProtocol() {
         CyfaceDataCapturingService(
-            context!!, TestUtils.AUTHORITY,
-            TestUtils.ACCOUNT_TYPE, "localhost:8080/api/v3", TestUtils.oauthConfig(), IgnoreEventsStrategy(), testListener!!, 100
+            context!!,
+            TestUtils.AUTHORITY,
+            TestUtils.ACCOUNT_TYPE,
+            //"localhost:8080/api/v3",
+            //TestUtils.oauthConfig(),
+            IgnoreEventsStrategy(),
+            testListener!!,
+            100
         )
     }
 

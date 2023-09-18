@@ -46,7 +46,7 @@ import java.util.Random
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.7
+ * @version 1.0.8
  * @since 2.0.0
  */
 class CapturingProcessTest {
@@ -119,7 +119,7 @@ class CapturingProcessTest {
             val currentTimestamp = Integer.valueOf(i).toLong() * 5L
             val accelerometer = sensorManager!!.getDefaultSensor(Sensor.TYPE_ACCELEROMETER)
             val sensorEvent = createSensorEvent(
-                accelerometer, random.nextFloat(), random.nextFloat(),
+                accelerometer!!, random.nextFloat(), random.nextFloat(),
                 random.nextFloat(), currentTimestamp * 1000000L
             )
             oocut!!.onSensorChanged(sensorEvent)

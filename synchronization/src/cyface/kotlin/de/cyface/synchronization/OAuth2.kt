@@ -44,6 +44,18 @@ import net.openid.appauth.TokenRequest
 import net.openid.appauth.TokenResponse
 import org.json.JSONObject
 
+/**
+ * The OAuth2 class facilitates the authorization process in Android using OAuth2.0 mechanism.
+ *
+ * It helps in managing tokens, performing code exchanges, updating account credentials, creating
+ * accounts, and handling sessions.
+ *
+ * @author Armin Schnabel
+ * @version 1.0.0
+ * @since 7.9.0
+ * @param context The context to load settings and accounts from.
+ * @param settings The settings which store the user preferences.
+ */
 class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
 
     /**
@@ -196,14 +208,14 @@ class OAuth2(context: Context, settings: SynchronizationSettings) : Auth {
      *
      * **ATTENTION:** If the login is successful you need to use `WiFiSurveyor.makeAccountSyncable`
      * to ensure the `WifiSurveyor` works as expected. We cannot inject the `WiFiSurveyor` as the
-     * [LoginActivity] is called by Android.
+     * `LoginActivity` is called by Android.
      *
      * @param context The current Android context (i.e. Activity or Service).
      * @param username The username of the account to be created.
-     * @param accessToken The token to generate new tokens
-     * @param accessToken The token to access user data
-     * @param password The password of the account to be created. May be null if a custom [CyfaceAuthenticator] is
-     * used instead of a LoginActivity to return tokens as in `MovebisDataCapturingService`.
+     * @param accessToken The token to access user data.
+     * @param refreshToken The token to generate new tokens.
+     * @param accountType The type of account to create.
+     * @param authority The provider to create an account for.
      */
     private fun createAccount(
         context: Context,

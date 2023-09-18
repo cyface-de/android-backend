@@ -33,7 +33,6 @@ import androidx.core.app.ActivityCompat
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.datacapturing.exception.SetupException
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.ui.Reason
 import de.cyface.datacapturing.ui.UIListener
@@ -64,7 +63,7 @@ import de.cyface.utils.Validate
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 11.0.3
+ * @version 12.0.0
  * @since 2.0.0
  * @constructor **ATTENTION:** This constructor is only for testing to be able to inject authority and
  * account type. Use the other constructors instead.
@@ -73,8 +72,6 @@ import de.cyface.utils.Validate
  * `DataCapturingService`. You should use something world wide unique, like your domain, to
  * avoid collisions between different apps using the Cyface SDK.
  * @param accountType The type of the account to use to synchronize data.
- * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
- * this service. This must be in the format "https://some.url/optional/resource".
  * @property uiListener A listener for events which the UI might be interested in.
  * @property locationUpdateRate The maximum rate of location updates to receive in milliseconds which are sent to the
  * [UIListener]. This only determines the updates sent to the `UIListener`, not the amount
@@ -87,29 +84,18 @@ import de.cyface.utils.Validate
  * @property sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
  * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
  * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
- * @throws SetupException If initialization of this service facade fails or writing the components preferences
- * fails.
  */
 // Used by SDK implementing apps (SR)
 class MovebisDataCapturingService internal constructor(
     context: Context, authority: String,
-    accountType: String, dataUploadServerAddress: String,
-    uiListener: UIListener,
-    /**
-     * The maximum rate of location updates to receive in milliseconds which are sent to the [UIListener].
-     *
-     * This only determines the updates sent to the `UIListener`, not the amount of locations captured for
-     * [Measurement]s.
-     *
-     * Set this to `0L` if you would like to be notified as often as possible.
-     */
+    accountType: String, uiListener: UIListener,
     private val locationUpdateRate: Long,
     eventHandlingStrategy: EventHandlingStrategy,
-    capturingListener: DataCapturingListener, sensorFrequency: Int
+    capturingListener: DataCapturingListener,
+    sensorFrequency: Int
 ) : DataCapturingService(
-    context, authority, accountType, dataUploadServerAddress,
-    // This flavor uses a single API for both auth and upload requests
-    null, eventHandlingStrategy,
+    context, authority, accountType,
+    eventHandlingStrategy,
     DefaultPersistenceLayer(context, CapturingPersistenceBehaviour()),
     DefaultDistanceCalculation(), DefaultLocationCleaning(), capturingListener,
     sensorFrequency
@@ -152,8 +138,6 @@ class MovebisDataCapturingService internal constructor(
      * Creates a new completely initialized [MovebisDataCapturingService].
      *
      * @param context The context (i.e. `Activity`) handling this service.
-     * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
-     * this service. This must be in the format "https://some.url/optional/resource".
      * @param uiListener A listener for events which the UI might be interested in.
      * @param locationUpdateRate The maximum rate of location updates to receive in milliseconds which are sent to the
      * [UIListener]. This only determines the updates sent to the `#getUiListener`, not
@@ -166,20 +150,17 @@ class MovebisDataCapturingService internal constructor(
      * @param sensorFrequency The frequency in which sensor data should be captured. If this is higher than the maximum
      * frequency the maximum frequency is used. If this is lower than the maximum frequency the system
      * usually uses a frequency sightly higher than this value, e.g.: 101-103/s for 100 Hz.
-     * @throws SetupException If initialization of this service facade fails or writing the components preferences
-     * fails.
      */
     @Suppress("unused") // Used by SDK implementing apps (SR)
     constructor(
-        context: Context, dataUploadServerAddress: String,
-        uiListener: UIListener, locationUpdateRate: Long,
-        eventHandlingStrategy: EventHandlingStrategy,
-        capturingListener: DataCapturingListener, sensorFrequency: Int
+        context: Context, uiListener: UIListener,
+        locationUpdateRate: Long, eventHandlingStrategy: EventHandlingStrategy,
+        capturingListener: DataCapturingListener,
+        sensorFrequency: Int
     ) : this(
         context,
         "de.cyface.provider",
         "de.cyface",
-        dataUploadServerAddress,
         uiListener,
         locationUpdateRate,
         eventHandlingStrategy,
