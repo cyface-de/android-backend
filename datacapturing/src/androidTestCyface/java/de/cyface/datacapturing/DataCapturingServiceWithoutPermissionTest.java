@@ -26,7 +26,6 @@ import java.util.concurrent.locks.Condition;
 import java.util.concurrent.locks.Lock;
 import java.util.concurrent.locks.ReentrantLock;
 
-import org.json.JSONException;
 import org.junit.Before;
 import org.junit.Ignore;
 import org.junit.Test;
@@ -43,7 +42,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 import de.cyface.datacapturing.exception.CorruptedMeasurementException;
 import de.cyface.datacapturing.exception.DataCapturingException;
 import de.cyface.datacapturing.exception.MissingPermissionException;
-import de.cyface.datacapturing.exception.SetupException;
+import de.cyface.persistence.SetupException;
 import de.cyface.datacapturing.ui.UIListener;
 import de.cyface.persistence.model.Modality;
 import de.cyface.synchronization.CyfaceAuthenticator;
@@ -53,7 +52,7 @@ import de.cyface.synchronization.CyfaceAuthenticator;
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 2.1.9
+ * @version 2.1.10
  * @since 2.0.0
  */
 @RunWith(AndroidJUnit4.class)
@@ -89,13 +88,13 @@ public class DataCapturingServiceWithoutPermissionTest {
         // The LOGIN_ACTIVITY is normally set to the LoginActivity of the SDK implementing app
         CyfaceAuthenticator.LOGIN_ACTIVITY = AccountAuthenticatorActivity.class;
 
-        final String dataUploadServerAddress = "https://localhost:8080/api/v3";
+        //final String dataUploadServerAddress = "https://localhost:8080/api/v3";
         final DataCapturingListener listener = new TestListener();
         InstrumentationRegistry.getInstrumentation().runOnMainSync(() -> {
             try {
                 oocut = new CyfaceDataCapturingService(context, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE,
-                        dataUploadServerAddress, TestUtils.oauthConfig(), new IgnoreEventsStrategy(), listener, 100);
-            } catch (SetupException | JSONException e) {
+                        /*dataUploadServerAddress, TestUtils.oauthConfig(),*/ new IgnoreEventsStrategy(), listener, 100);
+            } catch (SetupException e) {
                 throw new IllegalStateException(e);
             }
         });

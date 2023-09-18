@@ -40,7 +40,6 @@ import de.cyface.datacapturing.backend.DataCapturingBackgroundService
 import de.cyface.datacapturing.exception.CorruptedMeasurementException
 import de.cyface.datacapturing.exception.DataCapturingException
 import de.cyface.datacapturing.exception.MissingPermissionException
-import de.cyface.datacapturing.exception.SetupException
 import de.cyface.datacapturing.model.CapturedData
 import de.cyface.datacapturing.persistence.CapturingPersistenceBehaviour
 import de.cyface.datacapturing.ui.Reason
@@ -57,10 +56,8 @@ import de.cyface.persistence.strategy.LocationCleaningStrategy
 import de.cyface.synchronization.BundlesExtrasCodes
 import de.cyface.synchronization.ConnectionStatusListener
 import de.cyface.synchronization.ConnectionStatusReceiver
-import de.cyface.synchronization.CustomPreferences
 import de.cyface.synchronization.WiFiSurveyor
 import de.cyface.utils.Validate
-import org.json.JSONObject
 import java.lang.ref.WeakReference
 import java.util.concurrent.TimeUnit
 import java.util.concurrent.locks.Lock
@@ -81,16 +78,13 @@ import java.util.concurrent.locks.ReentrantLock
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.0.1
+ * @version 20.0.0
  * @since 1.0.0
  * @property context The context (i.e. `Activity`) handling this service.
  * @property authority The `ContentProvider` authority required to request a sync operation in the
  * [WiFiSurveyor]. You should use something world wide unique, like your domain, to avoid
  * collisions between different apps using the Cyface SDK.
  * @param accountType The type of the account to use to synchronize data with.
- * @param dataUploadServerAddress The server address running an API that is capable of receiving data captured by
- * this service. This must be in the format "https://some.url/optional/resource".
- * @param oAuthConfig The configuration required for the OAuth server.
  * @property eventHandlingStrategy The [EventHandlingStrategy] used to react to selected events
  * triggered by the [DataCapturingBackgroundService].
  * @property persistenceLayer The [de.cyface.persistence.PersistenceLayer] required to access the device id
@@ -108,8 +102,6 @@ abstract class DataCapturingService(
     context: Context,
     authority: String,
     accountType: String,
-    dataUploadServerAddress: String,
-    oAuthConfig: JSONObject?,
     eventHandlingStrategy: EventHandlingStrategy,
     persistenceLayer: DefaultPersistenceLayer<CapturingPersistenceBehaviour>,
     distanceCalculationStrategy: DistanceCalculationStrategy,
@@ -240,15 +232,6 @@ abstract class DataCapturingService(
     private val sensorFrequency: Int
 
     init {
-        if (!dataUploadServerAddress.startsWith("https://") && !dataUploadServerAddress.startsWith("http://")) {
-            throw SetupException("Invalid URL protocol")
-        }
-        if (oAuthConfig != null && !oAuthConfig.getString("discovery_uri")
-                .startsWith("https://") && !oAuthConfig.getString("discovery_uri")
-                .startsWith("http://")
-        ) {
-            throw SetupException("Invalid URL protocol")
-        }
         this.context = WeakReference(context)
         this.authority = authority
         this.persistenceLayer = persistenceLayer
@@ -275,10 +258,6 @@ abstract class DataCapturingService(
                 )
             }
         }
-        // Maybe use DataStore instead, see https://developer.android.com/topic/libraries/architecture/datastore
-        val preferences = CustomPreferences(context)
-        preferences.saveCollectorUrl(dataUploadServerAddress)
-        preferences.saveOAuthUrl(oAuthConfig?.toString())
         val connectivityManager = context
             .getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
         wiFiSurveyor = WiFiSurveyor(context, connectivityManager, authority, accountType)

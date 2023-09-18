@@ -260,7 +260,7 @@ class MainFragment extends Fragment {
             final Bundle savedInstanceState) {
 
         final static int SENSOR_FREQUENCY = 100;
-        dataCapturingService = new MovebisDataCapturingService(context, dataUploadServerAddress,
+        dataCapturingService = new MovebisDataCapturingService(context,
             uiListener, locationUpdateRate, eventHandlingStrategy, capturingListener, SENSOR_FREQUENCY);
     }
 
@@ -366,6 +366,40 @@ public class CustomApplication extends Application {
     public void onCreate() {
         super.onCreate();
         CyfaceAuthenticator.LOGIN_ACTIVITY = LoginActivity.class;
+    }
+}
+----
+
+[[initialize-settings]]
+==== Initialize Settings
+
+We use DataStore to store user preferences.
+
+Initialize these settings exactly once per file per process, for UI process:
+
+[source,kotlin]
+----
+class CustomApplication : Application() {
+
+    /**
+     * The settings used by both, UIs and libraries.
+     */
+    private val lazyAppSettings by lazy { // android-utils
+        AppSettings(this)
+    }
+
+    override fun onCreate() {
+        super.onCreate()
+
+        // Initialize DataStore once for all settings
+        appSettings = lazyAppSettings
+        TrackingSettings.initialize(this) // energy_settings
+        CyfaceAuthenticator.settings = SynchronizationSettings( // synchronization
+            this,
+            "https://example.com/api/v4", // Set the Data Collector URL
+            // Movebis variant can replace oauth config with `JsonObject()`
+            OAuth2.oauthConfig(BuildConfig.oauthRedirect, BuildConfig.oauthDiscovery)
+        )
     }
 }
 ----

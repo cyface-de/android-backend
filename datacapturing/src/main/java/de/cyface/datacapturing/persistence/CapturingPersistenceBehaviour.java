@@ -29,7 +29,6 @@ import java.util.concurrent.ExecutorService;
 import java.util.concurrent.Executors;
 import java.util.concurrent.TimeUnit;
 
-import android.content.ContentProvider;
 import android.util.Log;
 
 import androidx.annotation.NonNull;

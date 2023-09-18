@@ -44,6 +44,7 @@ import androidx.test.platform.app.InstrumentationRegistry;
 
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
+import de.cyface.synchronization.TestUtils;
 
 /**
  * Tests the internal workings of the {@link CyfaceAuthenticator} using an actual api.

@@ -24,7 +24,7 @@ import org.gradle.api.tasks.testing.logging.TestLogEvent
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 3.2.0
+ * @version 3.3.0
  * @since 1.0.0
  */
 
@@ -34,6 +34,7 @@ plugins {
     // Keep version in sync with other modules!
     id 'de.cyface.android-publish' version '1.0.5'
     id 'kotlin-android'
+    id 'com.google.protobuf' // For Proto DataStore
 }
 
 android {
@@ -120,6 +121,10 @@ android {
 }
 
 dependencies {
+    // Proto DataStore with MultiProcess support to store settings
+    implementation "androidx.datastore:datastore:${datastoreVersion}"
+    implementation  "com.google.protobuf:protobuf-javalite:${protobufVersion}"
+
     // Cyface dependencies
     implementation "de.cyface:android-utils:$rootProject.ext.cyfaceUtilsVersion"
     api "de.cyface:uploader:$rootProject.ext.cyfaceUploaderVersion" // `api` for `datacapturing` to access `uploader` exceptions
@@ -153,6 +158,26 @@ dependencies {
     testImplementation "org.hamcrest:hamcrest-all:$rootProject.ext.hamcrestVersion"
     testImplementation "org.robolectric:robolectric:$rootProject.ext.robolectricVersion"
     testImplementation "androidx.test:core:$rootProject.ext.androidxTestCoreVersion"
+}
+
+// Required for Proto DataStore
+protobuf {
+    protoc {
+        artifact = "com.google.protobuf:protoc:$protobufVersion"
+    }
+
+    // Generates the java Protobuf-lite code for the Protobuf files in this project. See
+    // https://github.com/google/protobuf-gradle-plugin#customizing-protobuf-compilation
+    // for more information.
+    generateProtoTasks {
+        all().each { task ->
+            task.builtins {
+                java {
+                    option 'lite'
+                }
+            }
+        }
+    }
 }
 
 tasks.withType(Test) {
