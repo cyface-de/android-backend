@@ -16,7 +16,7 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence;
+package de.cyface.persistence
 
 /**
  * Final static constants used by multiple classes.
@@ -25,10 +25,9 @@ package de.cyface.persistence;
  * @version 1.4.0
  * @since 2.5.0
  */
-public final class Constants {
-
+object Constants {
     /**
      * Tag used to identify Logcat messages issued by instances of this package.
      */
-    public final static String TAG = "de.cyface.persistence";
+    const val TAG = "de.cyface.persistence"
 }

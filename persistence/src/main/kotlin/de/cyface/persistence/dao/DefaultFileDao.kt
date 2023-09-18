@@ -21,7 +21,6 @@ package de.cyface.persistence.dao
 import android.content.Context
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.serializer.DataSerializable
 import de.cyface.utils.Validate
 import java.io.BufferedInputStream
 import java.io.BufferedOutputStream

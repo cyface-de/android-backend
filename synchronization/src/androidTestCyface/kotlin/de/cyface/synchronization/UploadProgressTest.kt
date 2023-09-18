@@ -55,6 +55,9 @@ import org.junit.After
 import org.junit.Before
 import org.junit.Test
 import org.junit.runner.RunWith
+import de.cyface.synchronization.MockAuth
+import de.cyface.synchronization.MockedUploader
+import de.cyface.synchronization.TestUtils
 import java.util.LinkedList
 
 /**

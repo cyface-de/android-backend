@@ -49,6 +49,8 @@ import androidx.annotation.NonNull;
 import androidx.test.ext.junit.runners.AndroidJUnit4;
 import androidx.test.filters.FlakyTest;
 import androidx.test.platform.app.InstrumentationRegistry;
+
+import de.cyface.synchronization.WiFiSurveyor;
 import de.cyface.testutils.SharedTestUtils;
 import de.cyface.utils.Validate;
 
@@ -102,11 +104,11 @@ public class SetAccountFlagTest {
                 .getSystemService(Context.CONNECTIVITY_SERVICE);
         Validate.notNull(connectivityManager);
 
-        oocut = new WiFiSurveyor(context, connectivityManager, AUTHORITY, ACCOUNT_TYPE);
+        oocut = new WiFiSurveyor(context, connectivityManager, TestUtils.AUTHORITY, TestUtils.ACCOUNT_TYPE);
 
         // Ensure reproducibility
         accountManager = AccountManager.get(context);
-        SharedTestUtils.cleanupOldAccounts(accountManager, ACCOUNT_TYPE, AUTHORITY);
+        SharedTestUtils.cleanupOldAccounts(accountManager, TestUtils.ACCOUNT_TYPE, TestUtils.AUTHORITY);
 
         // Create a thread to wait for the {@code Account} flags to change while the main test thread is locked
         handlerThread = new HandlerThread("de.cyface.sync.test.AccountFlagsChangeChecker");
@@ -117,10 +119,10 @@ public class SetAccountFlagTest {
     @After
     public void tearDown() {
 
-        final Account[] oldAccounts = accountManager.getAccountsByType(ACCOUNT_TYPE);
+        final Account[] oldAccounts = accountManager.getAccountsByType(TestUtils.ACCOUNT_TYPE);
         if (oldAccounts.length > 0) {
             for (Account oldAccount : oldAccounts) {
-                ContentResolver.removePeriodicSync(oldAccount, AUTHORITY, Bundle.EMPTY);
+                ContentResolver.removePeriodicSync(oldAccount, TestUtils.AUTHORITY, Bundle.EMPTY);
                 Validate.isTrue(accountManager.removeAccountExplicitly(oldAccount));
             }
         }

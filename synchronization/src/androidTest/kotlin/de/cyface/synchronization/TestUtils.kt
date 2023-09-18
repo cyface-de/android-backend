@@ -26,6 +26,7 @@ import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.serializer.DataSerializable
+import de.cyface.synchronization.Constants
 import de.cyface.utils.CursorIsNullException
 import java.io.File
 

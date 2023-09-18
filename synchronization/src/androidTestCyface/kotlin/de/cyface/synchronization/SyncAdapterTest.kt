@@ -55,6 +55,9 @@ import org.junit.Ignore
 import org.junit.Test
 import org.junit.runner.RunWith
 import org.junit.runners.MethodSorters
+import de.cyface.synchronization.MockAuth
+import de.cyface.synchronization.MockedUploader
+import de.cyface.synchronization.TestUtils
 
 /**
  * Tests the correct internal workings of the `CyfaceSyncAdapter` with the persistence layer.
