@@ -1115,29 +1115,6 @@ We should consider refactoring the code before to use startCommandReceived as in
     }
 
     /**
-     * Test that checks that the [DataCapturingService] constructor only accepts API URls with "https://" as
-     * protocol.
-     *
-     *
-     * We had twice the problem that SDK implementors used no or a false protocol. This test ensures that
-     * our code throws a hard exception if this happens again which should help to identify this prior to release.
-     */
-    @Test(expected = SetupException::class)
-    @Throws(SetupException::class)
-    fun testDataCapturingService_doesNotAcceptUrlWithoutProtocol() {
-        CyfaceDataCapturingService(
-            context!!,
-            TestUtils.AUTHORITY,
-            TestUtils.ACCOUNT_TYPE,
-            //"localhost:8080/api/v3",
-            //TestUtils.oauthConfig(),
-            IgnoreEventsStrategy(),
-            testListener!!,
-            100
-        )
-    }
-
-    /**
      * Tests that starting a new `Measurement` and changing the `Modality` during runtime creates two
      * [EventType.MODALITY_TYPE_CHANGE] entries.
      *
