@@ -25,12 +25,11 @@ import android.util.Log
 
 /**
  * The Android service used to communicate with the Stub Authenticator. This has been implemented as described in
- * [the
- * Android documentation](https://developer.android.com/training/sync-adapters/creating-authenticator.html#CreateAuthenticatorService).
+ * [the Android documentation](https://developer.android.com/training/sync-adapters/creating-authenticator.html#CreateAuthenticatorService).
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.1.0
+ * @version 1.0.7
  * @since 2.0.0
  */
 class AuthenticatorService : Service() {
@@ -38,6 +37,7 @@ class AuthenticatorService : Service() {
      * The `Authenticator` called from this service.
      */
     private var authenticator: CyfaceAuthenticator? = null
+
     override fun onCreate() {
         Log.d(TAG, "authenticator service on create!")
 

@@ -28,7 +28,8 @@ import org.json.JSONObject
  * Factory for the migration which imports preferences from the previously used SharedPreferences.
  *
  * @author Armin Schnabel
- * @since 4.3.0
+ * @version 1.0.0
+ * @since 7.9.0
  */
 object PreferencesMigrationFactory {
 
@@ -37,7 +38,6 @@ object PreferencesMigrationFactory {
      *
      * *Don't change this, this is migration code!*
      */
-    // FIXME: ensure this works, as multiple PreferencesMigrationFactories import data from that file
     private const val PREFERENCES_NAME = "AppPreferences"
     private const val SYNC_ENDPOINT_URL_SETTINGS_KEY = "de.cyface.sync.endpoint"
     private const val OAUTH_CONFIG_SETTINGS_KEY = "de.cyface.oauth.config"
