@@ -63,7 +63,7 @@ class SyncService : Service() {
      */
     private fun collectorApi(): String {
         val apiEndpoint =
-            runBlocking { CyfaceAuthenticator.settings.collectorUrlFlow.first() } // FIXME
+            runBlocking { CyfaceAuthenticator.settings.collectorUrlFlow.first() }
         Validate.notNull(
             apiEndpoint,
             "Sync canceled: Server url not available. Please set the applications server url preference."

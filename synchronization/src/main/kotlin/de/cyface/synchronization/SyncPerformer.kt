@@ -111,7 +111,7 @@ internal class SyncPerformer(private val context: Context) {
 
                     // e.g. when the collector API does respond correctly [DAT-775]
                     Log.e(TAG, "Uncaught Exception in `HttpConnection.upload`.")
-                    throw e // FIXME ensure this is still thrown
+                    throw e // TODO ensure this is still thrown
                 }
 
                 // Upload was successful, measurement can be marked as synced
