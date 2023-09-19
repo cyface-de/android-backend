@@ -24,7 +24,6 @@ import androidx.datastore.migrations.SharedPreferencesMigration
 import androidx.datastore.migrations.SharedPreferencesView
 import de.cyface.synchronization.Constants.TAG
 import de.cyface.synchronization.Settings
-import de.cyface.utils.Constants
 import org.json.JSONObject
 
 /**
