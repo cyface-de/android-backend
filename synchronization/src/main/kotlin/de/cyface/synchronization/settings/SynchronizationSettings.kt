@@ -57,7 +57,8 @@ class SynchronizationSettings(context: Context, collectorUrl: String, oAuthConfi
     private val dataStore: DataStore<Settings> = MultiProcessDataStoreFactory.create(
         serializer = SettingsSerializer,
         produceFile = {
-            File("${appContext.cacheDir.path}/synchronization.pb")
+            // With cacheDir the settings are lost on app restart [RFR-799]
+            File("${appContext.filesDir.path}/synchronization.pb")
         },
         migrations = listOf(
             PreferencesMigrationFactory.create(appContext, collectorUrl, oAuthConfig),
