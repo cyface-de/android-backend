@@ -19,9 +19,12 @@
 package de.cyface.synchronization.settings
 
 import android.content.Context
+import android.util.Log
 import androidx.datastore.migrations.SharedPreferencesMigration
 import androidx.datastore.migrations.SharedPreferencesView
+import de.cyface.synchronization.Constants.TAG
 import de.cyface.synchronization.Settings
+import de.cyface.utils.Constants
 import org.json.JSONObject
 
 /**
@@ -68,6 +71,7 @@ object PreferencesMigrationFactory {
         defaultCollectorUrl: String,
         defaultOAuthConfig: JSONObject
     ): Settings {
+        Log.i(TAG, "Migrating from shared preferences to version 1")
         return settings.toBuilder()
             // Setting version to 1 as it would else default to Protobuf default of 0 which would
             // trigger the StoreMigration from 0 -> 1 which ignores previous settings.

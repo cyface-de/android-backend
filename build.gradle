@@ -50,7 +50,7 @@ ext {
     cyfaceAndroidBackendVersion = "0.0.0" // Automatically overwritten by CI
 
     // Cyface dependencies
-    cyfaceUtilsVersion = "4.0.2"
+    cyfaceUtilsVersion = "4.0.3"
     cyfaceSerializationVersion = "3.0.0"
     cyfaceUploaderVersion = "1.0.0"
 
