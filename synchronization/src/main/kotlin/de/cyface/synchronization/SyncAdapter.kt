@@ -24,6 +24,7 @@ import android.accounts.NetworkErrorException
 import android.content.AbstractThreadedSyncAdapter
 import android.content.ContentProviderClient
 import android.content.ContentResolver
+import android.content.ContentResolver.SYNC_EXTRAS_MANUAL
 import android.content.Context
 import android.content.SyncResult
 import android.content.pm.PackageManager
@@ -56,7 +57,7 @@ import java.io.File
  *
  * @author Armin Schnabel
  * @author Klemens Muthmann
- * @version 4.1.0
+ * @version 4.1.1
  * @since 2.0.0
  * @property authenticator The authenticator to use for synchronization.
  * @property uploader The uploader to use for synchronization.
@@ -122,7 +123,10 @@ class SyncAdapter private constructor(
                 context,
                 DefaultPersistenceBehaviour()
             )
-        val syncPerformer = SyncPerformer(context)
+        // Ensure sync errors are shown to the user when triggering sync manually
+        val fromBackground = !extras.getBoolean(SYNC_EXTRAS_MANUAL)
+        val syncPerformer = SyncPerformer(context, fromBackground)
+
 
         // Ensure user is authorized before starting synchronization
         authenticator.performActionWithFreshTokens { _, _, ex ->
@@ -132,7 +136,8 @@ class SyncAdapter private constructor(
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.AUTHENTICATION_ERROR.code,
-                    ex.message
+                    ex.message,
+                    fromBackground
                 )
             } else {
                 try {
@@ -211,7 +216,8 @@ class SyncAdapter private constructor(
                                     ErrorHandler.sendErrorIntent(
                                         context,
                                         ErrorCode.AUTHENTICATION_ERROR.code,
-                                        e.message
+                                        e.message,
+                                        fromBackground
                                     )
                                 } else {
                                     val result = syncPerformer.sendData(
@@ -272,14 +278,20 @@ class SyncAdapter private constructor(
                 } catch (e: CursorIsNullException) {
                     Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
                     syncResult.databaseError = true
-                    ErrorHandler.sendErrorIntent(context, ErrorCode.DATABASE_ERROR.code, e.message)
+                    ErrorHandler.sendErrorIntent(
+                        context,
+                        ErrorCode.DATABASE_ERROR.code,
+                        e.message,
+                        fromBackground
+                    )
                 } catch (e: AuthenticatorException) {
                     Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
                     syncResult.stats.numAuthExceptions++
                     ErrorHandler.sendErrorIntent(
                         context,
                         ErrorCode.AUTHENTICATION_ERROR.code,
-                        e.message
+                        e.message,
+                        fromBackground
                     )
                 } catch (e: SynchronizationInterruptedException) {
                     Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
@@ -287,7 +299,8 @@ class SyncAdapter private constructor(
                     ErrorHandler.sendErrorIntent(
                         context,
                         ErrorCode.SYNCHRONIZATION_INTERRUPTED.code,
-                        e.message
+                        e.message,
+                        fromBackground
                     )
                 } catch (e: NetworkErrorException) {
                     Log.w(TAG, e.javaClass.simpleName + ": " + e.message)

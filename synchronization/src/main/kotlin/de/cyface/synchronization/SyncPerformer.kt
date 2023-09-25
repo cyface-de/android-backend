@@ -56,11 +56,13 @@ import java.net.MalformedURLException
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 7.0.0
+ * @version 8.0.0
  * @since 2.0.0
  * @property context The Android `Context` to use for setting the correct server certification information.
+ * @property fromBackground `true` if the error was caused without user interaction, e.g. to avoid
+ *          disturbing the user while he is not using the app.
  */
-internal class SyncPerformer(private val context: Context) {
+internal class SyncPerformer(private val context: Context, private val fromBackground: Boolean) {
     /**
      * Triggers the data transmission to a Cyface server API. The `measurementIdentifier` and
      * `deviceIdentifier` need to be globally unique. If they are not the server will probably reject the
@@ -135,7 +137,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.SERVER_UNAVAILABLE.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -145,7 +148,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.FORBIDDEN.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -155,7 +159,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.MALFORMED_URL.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -165,7 +170,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.SYNCHRONIZATION_ERROR.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -175,7 +181,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.UNAUTHORIZED.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -185,7 +192,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.INTERNAL_SERVER_ERROR.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -195,7 +203,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.ENTITY_NOT_PARSABLE.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -205,7 +214,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.BAD_REQUEST.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -215,7 +225,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.NETWORK_UNAVAILABLE.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -225,7 +236,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.SYNCHRONIZATION_INTERRUPTED.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 e.printStackTrace()
                 Result.UPLOAD_FAILED
@@ -236,7 +248,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.TOO_MANY_REQUESTS.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -246,7 +259,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.UPLOAD_SESSION_EXPIRED.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -256,7 +270,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.UNEXPECTED_RESPONSE_CODE.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
@@ -266,7 +281,8 @@ internal class SyncPerformer(private val context: Context) {
                 ErrorHandler.sendErrorIntent(
                     context,
                     ErrorCode.ACCOUNT_NOT_ACTIVATED.code,
-                    e.message
+                    e.message,
+                    fromBackground
                 )
                 Result.UPLOAD_FAILED
             }
