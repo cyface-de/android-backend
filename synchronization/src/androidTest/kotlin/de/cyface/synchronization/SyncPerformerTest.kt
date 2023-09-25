@@ -33,7 +33,6 @@ import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.MeasurementSerializer
 import de.cyface.serializer.DataSerializable
-import de.cyface.synchronization.SyncPerformer
 import de.cyface.synchronization.TestUtils.loadMetaData
 import de.cyface.synchronization.TestUtils.loadSerializedCompressed
 import de.cyface.testutils.SharedTestUtils

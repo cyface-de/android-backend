@@ -92,7 +92,7 @@ class SyncPerformerTestWithoutAuth {
         persistence = DefaultPersistenceLayer(context, DefaultPersistenceBehaviour())
         clearPersistenceLayer(context, persistence)
 
-        oocut = SyncPerformer(context)
+        oocut = SyncPerformer(context, true)
     }
 
     @After
