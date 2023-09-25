@@ -75,7 +75,7 @@ import java.net.URL
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 1.0.0
+ * @version 1.0.1
  * @since 7.7.0
  */
 @RunWith(AndroidJUnit4::class)
@@ -92,7 +92,7 @@ class SyncPerformerTest {
         persistence = DefaultPersistenceLayer(context, DefaultPersistenceBehaviour())
         SharedTestUtils.clearPersistenceLayer(context, persistence)
 
-        oocut = SyncPerformer(context)
+        oocut = SyncPerformer(context, true)
     }
 
     @After
