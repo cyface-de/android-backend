@@ -44,7 +44,7 @@ import kotlinx.coroutines.runBlocking
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 5.1.0
+ * @version 5.1.1
  * @since 2.0.0
  */
 class CyfaceAuthenticator(private val context: Context) :
@@ -112,7 +112,8 @@ class CyfaceAuthenticator(private val context: Context) :
             ErrorHandler.sendErrorIntent(
                 context,
                 ErrorHandler.ErrorCode.UNKNOWN.code,
-                e.message
+                e.message,
+                false // login currently only happens while the user is active
             )
             throw NetworkErrorException(e)
         }

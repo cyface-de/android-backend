@@ -1,5 +1,5 @@
 /*
- * Copyright 2018-2022 Cyface GmbH
+ * Copyright 2018-2023 Cyface GmbH
  *
  * This file is part of the Cyface SDK for Android.
  *
@@ -41,13 +41,14 @@ import de.cyface.utils.Validate;
  * support time for all involved.
  *
  * @author Armin Schnabel
- * @version 2.1.0
+ * @version 2.2.0
  * @since 2.2.0
  */
 public class ErrorHandler extends BroadcastReceiver {
 
     public final static String ERROR_INTENT = "de.cyface.error";
     public final static String ERROR_CODE_EXTRA = "de.cyface.error.error_code";
+    public final static String ERROR_BACKGROUND_EXTRA = "de.cyface.error.from_background";
     public final static String HTTP_CODE_EXTRA = "de.cyface.error.http_code";
     private final Collection<ErrorListener> errorListeners;
 
@@ -95,11 +96,15 @@ public class ErrorHandler extends BroadcastReceiver {
      *
      * @param context the {@link Context}
      * @param errorCode the Cyface error code
+     * @param message A message which can be shown to the user, e.g. as toast.
+     * @param fromBackground `true` if the error was caused without user interaction, e.g. to avoid
+     *                       disturbing the user while he is not using the app.
      */
-    public static void sendErrorIntent(final Context context, final int errorCode, @Nullable final String message) {
+    public static void sendErrorIntent(final Context context, final int errorCode, @Nullable final String message, final boolean fromBackground) {
 
         final Intent intent = new Intent(ERROR_INTENT);
         intent.putExtra(ERROR_CODE_EXTRA, errorCode);
+        intent.putExtra(ERROR_BACKGROUND_EXTRA, fromBackground);
         LocalBroadcastManager.getInstance(context).sendBroadcast(intent);
         if (message != null) {
             Log.d(TAG, message);
@@ -111,6 +116,7 @@ public class ErrorHandler extends BroadcastReceiver {
 
         Validate.notNull(intent.getExtras());
         final int errorCodeInt = intent.getExtras().getInt(ERROR_CODE_EXTRA);
+        final var fromBackground = intent.getExtras().getBoolean(ERROR_BACKGROUND_EXTRA);
         final ErrorCode errorCode = ErrorCode.getValueForCode(errorCodeInt);
         Validate.notNull(errorCode);
         String errorMessage;
@@ -220,7 +226,7 @@ public class ErrorHandler extends BroadcastReceiver {
         }
 
         for (final ErrorListener errorListener : errorListeners) {
-            errorListener.onErrorReceive(errorCode, errorMessage);
+            errorListener.onErrorReceive(errorCode, errorMessage, fromBackground);
         }
     }
 
@@ -274,10 +280,15 @@ public class ErrorHandler extends BroadcastReceiver {
      * @since 1.0.0
      */
     public interface ErrorListener {
-        // These enhanced error details will be (re)implemented with #CY-3709
-        // @ param causeId Optional id of the cause object for the error, e.g. measurementId
-        // @ param causeExtra Optional, additional information such as the date of a broken measurement
-        void onErrorReceive(final ErrorCode errorCode, final String errorMessage);
+        /**
+         * Handler called upon new errors.
+         *
+         * @param errorCode the Cyface error code
+         * @param errorMessage A message which can be shown to the user, e.g. as toast.
+         * @param fromBackground `true` if the error was caused without user interaction, e.g. to avoid
+         *                       disturbing the user while he is not using the app.
+         */
+        void onErrorReceive(final ErrorCode errorCode, final String errorMessage, final boolean fromBackground);
     }
 
     // The following error handling will be (re)implemented with #CY-3709
