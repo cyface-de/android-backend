@@ -22,6 +22,7 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
+import de.cyface.persistence.dao.FileDao
 import de.cyface.persistence.io.DefaultFileIOHandler
 import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.IdentifierDao
@@ -63,7 +64,7 @@ import kotlin.math.max
  *
  * @author Klemens Muthmann
  * @author Armin Schnabel
- * @version 19.0.0
+ * @version 19.1.0
  * @since 2.0.0
  * @property persistenceBehaviour The [PersistenceBehaviour] defines how the `Persistence` layer works.
  * We need this behaviour to differentiate if the [DefaultPersistenceLayer] is used for live capturing
@@ -78,7 +79,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     var persistenceBehaviour: B? = null
         private set
 
-    val fileIOHandler: FileIOHandler
+    override val fileIOHandler: FileIOHandler
 
     override val identifierDao: IdentifierDao?
 
@@ -89,6 +90,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     override val locationDao: LocationDao?
 
     override val pressureDao: PressureDao?
+
+    override val fileDao: FileDao?
 
     /**
      * A `SupervisorJob` is used so that the failure of one async task started by this supervisor
@@ -115,6 +118,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         eventRepository = null
         locationDao = null
         pressureDao = null
+        fileDao = null
         fileIOHandler = DefaultFileIOHandler()
     }
 
@@ -133,7 +137,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param context The [Context] required to locate the app's internal storage directory.
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
-     * @param fileIOHandler The DAO to load files from.
+     * @param fileIOHandler The handler to load files from.
      */
     constructor(context: Context, persistenceBehaviour: B, fileIOHandler: FileIOHandler) {
         this.context = context
@@ -143,6 +147,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.eventRepository = EventRepository(database.eventDao())
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
+        this.fileDao = database.fileDao()
         this.persistenceBehaviour = persistenceBehaviour
         this.fileIOHandler = fileIOHandler
         val accelerationsFolder =
