@@ -170,17 +170,17 @@ class PersistenceLayerTest {
         )
 
         // Check that sensor data was deleted
-        val accelerationFile = oocut!!.fileDao.getFilePath(
+        val accelerationFile = oocut!!.fileIOHandler.getFilePath(
             context!!, id,
             Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
         )
         Validate.isTrue(!accelerationFile.exists())
-        val rotationFile = oocut!!.fileDao.getFilePath(
+        val rotationFile = oocut!!.fileIOHandler.getFilePath(
             context!!, id,
             Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
         )
         Validate.isTrue(!rotationFile.exists())
-        val directionFile = oocut!!.fileDao.getFilePath(
+        val directionFile = oocut!!.fileIOHandler.getFilePath(
             context!!, id,
             Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
         )

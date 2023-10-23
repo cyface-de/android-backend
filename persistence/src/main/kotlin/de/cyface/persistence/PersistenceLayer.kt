@@ -19,7 +19,7 @@
 package de.cyface.persistence
 
 import android.content.Context
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.PressureDao
@@ -45,7 +45,7 @@ import java.io.File
  * @version 1.1.0
  * @since 7.5.0
  * @property context The [Context] required to locate the app's internal storage directory.
- * @property fileDao The [FileDao] used to interact with files.
+ * @property fileIOHandler The [FileIOHandler] used to interact with files.
  * **ATTENTION:** This should not be used by SDK implementing apps.
  * @property identifierDao The repository to load the [Identifier] data from.
  * @property measurementRepository The source to load the [Measurement] data from.
@@ -55,7 +55,7 @@ import java.io.File
  */
 interface PersistenceLayer<B : PersistenceBehaviour?> {
     val context: Context?
-    val fileDao: FileDao
+    val fileIOHandler: FileIOHandler
     val identifierDao: IdentifierDao?
     val measurementRepository: MeasurementRepository?
     val eventRepository: EventRepository?

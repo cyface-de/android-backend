@@ -22,8 +22,8 @@ import android.content.Context
 import android.hardware.SensorManager
 import android.util.Log
 import de.cyface.persistence.Constants.TAG
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.dao.IdentifierDao
 import de.cyface.persistence.dao.LocationDao
 import de.cyface.persistence.dao.PressureDao
@@ -78,7 +78,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     var persistenceBehaviour: B? = null
         private set
 
-    override val fileDao: FileDao
+    val fileIOHandler: FileIOHandler
 
     override val identifierDao: IdentifierDao?
 
@@ -115,7 +115,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         eventRepository = null
         locationDao = null
         pressureDao = null
-        fileDao = DefaultFileDao()
+        fileIOHandler = DefaultFileIOHandler()
     }
 
     /**
@@ -125,7 +125,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
      */
-    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileDao())
+    constructor(context: Context, persistenceBehaviour: B): this(context, persistenceBehaviour, DefaultFileIOHandler())
 
     /**
      * Creates a new completely initialized `PersistenceLayer`.
@@ -133,9 +133,9 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * @param context The [Context] required to locate the app's internal storage directory.
      * @param persistenceBehaviour A [PersistenceBehaviour] which tells if this [DefaultPersistenceLayer] is used
      * to capture live data.
-     * @param fileDao The DAO to load files from.
+     * @param fileIOHandler The DAO to load files from.
      */
-    constructor(context: Context, persistenceBehaviour: B, fileDao: FileDao) {
+    constructor(context: Context, persistenceBehaviour: B, fileIOHandler: FileIOHandler) {
         this.context = context
         val database = Database.build(context.applicationContext)
         this.identifierDao = database.identifierDao()
@@ -144,13 +144,13 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         this.locationDao = database.locationDao()
         this.pressureDao = database.pressureDao()
         this.persistenceBehaviour = persistenceBehaviour
-        this.fileDao = fileDao
+        this.fileIOHandler = fileIOHandler
         val accelerationsFolder =
-            fileDao.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationsFolder =
-            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         val directionsFolder =
-            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         checkOrCreateFolder(accelerationsFolder)
         checkOrCreateFolder(rotationsFolder)
         checkOrCreateFolder(directionsFolder)
@@ -308,7 +308,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         // TODO [CY-4359]: implement cyface variant where not only sensor data but also GeoLocations are deleted
         try {
             val accelerationFile = Point3DFile.loadFile(
-                context!!, fileDao, measurementId, Point3DType.ACCELERATION
+                context!!, fileIOHandler, measurementId, Point3DType.ACCELERATION
             )
                 .file
             Validate.isTrue(accelerationFile.delete())
@@ -317,7 +317,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
         try {
             val rotationFile = Point3DFile.loadFile(
-                context!!, fileDao, measurementId, Point3DType.ROTATION
+                context!!, fileIOHandler, measurementId, Point3DType.ROTATION
             ).file
             Validate.isTrue(rotationFile.delete())
         } catch (e: NoSuchFileException) {
@@ -325,7 +325,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         }
         try {
             val directionFile = Point3DFile.loadFile(
-                context!!, fileDao, measurementId, Point3DType.DIRECTION
+                context!!, fileIOHandler, measurementId, Point3DType.DIRECTION
             )
                 .file
             Validate.isTrue(directionFile.delete())
@@ -416,13 +416,13 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      */
     private fun deletePoint3DData(measurementIdentifier: Long) {
         val accelerationFolder =
-            fileDao.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context!!, Point3DFile.ACCELERATIONS_FOLDER_NAME)
         val rotationFolder =
-            fileDao.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.ROTATIONS_FOLDER_NAME)
         val directionFolder =
-            fileDao.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
+            fileIOHandler.getFolderPath(context, Point3DFile.DIRECTIONS_FOLDER_NAME)
         if (accelerationFolder.exists()) {
-            val accelerationFile = fileDao.getFilePath(
+            val accelerationFile = fileIOHandler.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
             )
@@ -431,7 +431,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
         }
         if (rotationFolder.exists()) {
-            val rotationFile = fileDao.getFilePath(
+            val rotationFile = fileIOHandler.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
             )
@@ -440,7 +440,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             }
         }
         if (directionFolder.exists()) {
-            val directionFile = fileDao.getFilePath(
+            val directionFile = fileIOHandler.getFilePath(
                 context, measurementIdentifier,
                 Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
             )

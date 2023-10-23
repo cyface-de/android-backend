@@ -28,8 +28,8 @@ import de.cyface.datacapturing.persistence.WritingDataCompletedCallback
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.EventType
 import de.cyface.persistence.model.GeoLocation
@@ -195,17 +195,17 @@ class CapturedDataWriterTest {
         capturingBehaviour!!.storeLocation(testLocation(1L), id)
 
         // Check if the captured data was persisted
-        val fileDao: FileDao = DefaultFileDao()
+        val fileIOHandler: FileIOHandler = DefaultFileIOHandler()
         val locations = oocut!!.locationDao!!.getAll()
         MatcherAssert.assertThat(locations.size, Is.`is`(IsEqual.equalTo(TEST_LOCATION_COUNT)))
 
         // Point3Ds
-        val accelerationsFile = loadFile(context!!, fileDao, id, Point3DType.ACCELERATION)
-        val rotationsFile = loadFile(context!!, fileDao, id, Point3DType.ROTATION)
-        val directionsFile = loadFile(context!!, fileDao, id, Point3DType.DIRECTION)
-        val accelerations = deserialize(fileDao, accelerationsFile.file, Point3DType.ACCELERATION)
-        val rotations = deserialize(fileDao, rotationsFile.file, Point3DType.ROTATION)
-        val directions = deserialize(fileDao, directionsFile.file, Point3DType.DIRECTION)
+        val accelerationsFile = loadFile(context!!, fileIOHandler, id, Point3DType.ACCELERATION)
+        val rotationsFile = loadFile(context!!, fileIOHandler, id, Point3DType.ROTATION)
+        val directionsFile = loadFile(context!!, fileIOHandler, id, Point3DType.DIRECTION)
+        val accelerations = deserialize(fileIOHandler, accelerationsFile.file, Point3DType.ACCELERATION)
+        val rotations = deserialize(fileIOHandler, rotationsFile.file, Point3DType.ROTATION)
+        val directions = deserialize(fileIOHandler, directionsFile.file, Point3DType.DIRECTION)
         val accelerationBatch = accelerations.accelerationsBinary.getAccelerations(0)
         MatcherAssert.assertThat(
             accelerationBatch.timestampCount, Is.`is`(
@@ -302,15 +302,15 @@ class CapturedDataWriterTest {
             ) // because we don't clean it up currently
 
             // Make sure nothing is left of the Point3DFiles
-            val accelerationsFolder = oocut!!.fileDao.getFolderPath(
+            val accelerationsFolder = oocut!!.fileIOHandler.getFolderPath(
                 context!!,
                 Point3DFile.ACCELERATIONS_FOLDER_NAME
             )
-            val rotationsFolder = oocut!!.fileDao.getFolderPath(
+            val rotationsFolder = oocut!!.fileIOHandler.getFolderPath(
                 context!!,
                 Point3DFile.ROTATIONS_FOLDER_NAME
             )
-            val directionsFolder = oocut!!.fileDao.getFolderPath(
+            val directionsFolder = oocut!!.fileIOHandler.getFolderPath(
                 context!!,
                 Point3DFile.DIRECTIONS_FOLDER_NAME
             )
@@ -371,15 +371,15 @@ class CapturedDataWriterTest {
         oocut!!.delete(measurement.id)
 
         // Assert
-        val accelerationFile = oocut!!.fileDao.getFilePath(
+        val accelerationFile = oocut!!.fileIOHandler.getFilePath(
             context!!, measurementId,
             Point3DFile.ACCELERATIONS_FOLDER_NAME, Point3DFile.ACCELERATIONS_FILE_EXTENSION
         )
-        val rotationFile = oocut!!.fileDao.getFilePath(
+        val rotationFile = oocut!!.fileIOHandler.getFilePath(
             context!!, measurementId,
             Point3DFile.ROTATIONS_FOLDER_NAME, Point3DFile.ROTATION_FILE_EXTENSION
         )
-        val directionFile = oocut!!.fileDao.getFilePath(
+        val directionFile = oocut!!.fileIOHandler.getFilePath(
             context!!, measurementId,
             Point3DFile.DIRECTIONS_FOLDER_NAME, Point3DFile.DIRECTION_FILE_EXTENSION
         )

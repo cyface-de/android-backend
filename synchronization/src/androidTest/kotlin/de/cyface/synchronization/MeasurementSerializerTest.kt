@@ -30,8 +30,8 @@ import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.PersistenceBehaviour
 import de.cyface.persistence.PersistenceLayer
-import de.cyface.persistence.dao.DefaultFileDao
-import de.cyface.persistence.dao.FileDao
+import de.cyface.persistence.io.DefaultFileIOHandler
+import de.cyface.persistence.io.FileIOHandler
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Modality
 import de.cyface.persistence.serialization.MeasurementSerializer
@@ -109,7 +109,7 @@ class MeasurementSerializerTest {
             on { exists() } doReturn true
             on { length() } doReturn serializedDirections.size.toLong()
         }
-        val mockFileDao = mock<FileDao> {
+        val mockFileIOHandler = mock<FileIOHandler> {
             on { getFolderPath(any(), any()) } doReturn mockFolder
             on {
                 getFilePath(
@@ -143,7 +143,7 @@ class MeasurementSerializerTest {
         // Initialization
         oocut = MeasurementSerializer()
         context = InstrumentationRegistry.getInstrumentation().targetContext
-        persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour(), mockFileDao)
+        persistence = DefaultPersistenceLayer(context!!, DefaultPersistenceBehaviour(), mockFileIOHandler)
         SharedTestUtils.clearPersistenceLayer(context!!, persistence)
 
         // Insert sample data into database
@@ -232,7 +232,7 @@ class MeasurementSerializerTest {
             )
 
             // Act & Assert - check the deserialized bytes
-            deserializeAndCheck(DefaultFileDao().loadBytes(serializedFile))
+            deserializeAndCheck(DefaultFileIOHandler().loadBytes(serializedFile))
         } finally {
             if (serializedFile.exists()) {
                 Validate.isTrue(serializedFile.delete())
@@ -317,7 +317,7 @@ class MeasurementSerializerTest {
                     )
                 )
             )
-            uncompressedTransferFileBytes = DefaultFileDao().loadBytes(serializedFile)
+            uncompressedTransferFileBytes = DefaultFileIOHandler().loadBytes(serializedFile)
             deserializeAndCheck(uncompressedTransferFileBytes) // just to be sure
         } finally {
             if (serializedFile.exists()) {

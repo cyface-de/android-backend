@@ -16,20 +16,20 @@
  * You should have received a copy of the GNU General Public License
  * along with the Cyface SDK for Android. If not, see <http://www.gnu.org/licenses/>.
  */
-package de.cyface.persistence.dao
+package de.cyface.persistence.io
 
 import android.content.Context
 import java.io.BufferedOutputStream
 import java.io.File
 
 /**
- * Interface access [File]s. This helps to mock the file access away during testing.
+ * Interface for IO operations for [java.io.File]s. Helps to mock the file access during testing.
  *
  * @author Amin Schnabel
- * @version 1.1.0
+ * @version 1.1.1
  * @since 3.0.0
  */
-interface FileDao {
+interface FileIOHandler {
     /**
      * Writes the content of the {@param file} to the provided {@param bufferedOutputStream} using a buffer for
      * performance reasons.

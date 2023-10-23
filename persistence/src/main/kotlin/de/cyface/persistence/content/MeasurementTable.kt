@@ -51,7 +51,7 @@ class MeasurementTable : AbstractCyfaceTable(URI_PATH) {
 
         /**
          * Column name for the [de.cyface.persistence.DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION]
-         * for the data persisted with the [de.cyface.persistence.dao.FileDao] of for this measurement.
+         * for the data persisted with the [de.cyface.persistence.dao.FileIOHandler] of for this measurement.
          */
         const val COLUMN_PERSISTENCE_FILE_FORMAT_VERSION = "fileFormatVersion"
 
