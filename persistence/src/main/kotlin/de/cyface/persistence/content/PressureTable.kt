@@ -21,11 +21,11 @@ package de.cyface.persistence.content
 import android.net.Uri
 
 /**
- * Table for storing [de.cyface.persistence.model.GeoLocation]s. The data in this table is intended for
+ * Table for storing [de.cyface.persistence.model.Pressure]s. The data in this table is intended for
  * storage prior to processing it by either transfer to a server or export to some external file or device.
  *
  * @author Armin Schnabel
- * @version 3.0.0
+ * @version 3.0.1
  * @since 1.0.0
  */
 class PressureTable : AbstractCyfaceTable(URI_PATH) {

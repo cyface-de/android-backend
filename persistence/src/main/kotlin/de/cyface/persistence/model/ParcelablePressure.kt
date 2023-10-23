@@ -26,11 +26,11 @@ import java.util.Objects
 /**
  * This class represents a pressure [DataPoint], usually captured by a barometer.
  *
- * An instance of this class represents a data point captured and cached but not yet persisted. Such an
+ * An instance of this class represents a data point captured and cached but not yet persisted. Such a
  * [Pressure] requires the measurement id to be set.
  *
  * @author Armin Schnabel
- * @version 2.0.0
+ * @version 2.0.1
  * @since 6.3.0
  */
 open class ParcelablePressure : DataPoint {
