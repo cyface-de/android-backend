@@ -23,7 +23,9 @@ import androidx.room.Insert
 import androidx.room.Query
 import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.FileTable
+import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.model.File
+import de.cyface.persistence.model.Measurement
 
 /**
  * Data access object which provides the API to interact with the [File] database table.
@@ -54,4 +56,7 @@ interface FileDao {
 
     @Query("DELETE FROM ${FileTable.URI_PATH}")
     fun deleteAll(): Int
+
+    @Query("UPDATE ${FileTable.URI_PATH} SET size = :size WHERE ${BaseColumns.ID} = :id")
+    suspend fun updateFileSize(id: Long, size: Long)
 }
