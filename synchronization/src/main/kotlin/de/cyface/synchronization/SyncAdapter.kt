@@ -149,9 +149,12 @@ class SyncAdapter private constructor(
                     }
 
                     // Load all Measurements ready for synchronization
-                    val syncableMeasurements =
+                    val partiallyUploaded =
+                        persistence.loadMeasurements(MeasurementStatus.UPLOADING)
+                    val finishedMeasurements =
                         persistence.loadMeasurements(MeasurementStatus.FINISHED)
-                    if (syncableMeasurements!!.isEmpty()) {
+                    val syncableMeasurements = partiallyUploaded + finishedMeasurements
+                    if (syncableMeasurements.isEmpty()) {
                         return@performActionWithFreshTokens  // nothing to sync
                     }
                     val measurementCount = syncableMeasurements.size
@@ -161,12 +164,7 @@ class SyncAdapter private constructor(
                         if (error) {
                             break
                         }
-                        Log.d(
-                            Constants.TAG, String.format(
-                                "Measurement with identifier %d is about to be loaded for transmission.",
-                                measurement!!.id
-                            )
-                        )
+                        Log.d(TAG, "Preparing Measurement (id ${measurement.id}) for upload.",)
 
                         // Ensure the measurement is supported
                         val format = measurement.fileFormatVersion

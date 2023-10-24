@@ -284,8 +284,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      * such measurements, but never `null`.
      */
     // Implementing apps (SR) use this api to load the finished measurements
-    fun loadMeasurements(status: MeasurementStatus): List<Measurement?>? {
-        var measurements: List<Measurement?>?
+    fun loadMeasurements(status: MeasurementStatus): List<Measurement> {
+        var measurements: List<Measurement>
         runBlocking {
             measurements = withContext(scope.coroutineContext) {
                 measurementRepository!!.loadAllByStatus(status)
@@ -337,6 +337,8 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         } catch (e: NoSuchFileException) {
             Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do")
         }
+
+        // FIXME: Also delete the image data when the measurement format is deprecated
     }
 
     override fun restoreOrCreateDeviceId(): String {
