@@ -361,7 +361,7 @@ class SyncAdapter private constructor(
     }
 
     private fun loadSyncableMeasurements(persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): List<Measurement> {
-        val partiallyUploaded = persistence.loadMeasurements(MeasurementStatus.UPLOADING)
+        val partiallyUploaded = persistence.loadMeasurements(MeasurementStatus.SYNCABLE_ATTACHMENTS)
         val finishedMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED)
         return partiallyUploaded + finishedMeasurements // Returns the partially uploaded measurements first
     }

@@ -1140,7 +1140,7 @@ abstract class DataCapturingService(
             }
 
             // When the measurement is not or only partially uploaded, we clean the binary data
-            MeasurementStatus.FINISHED, MeasurementStatus.UPLOADING -> persistenceLayer.markFinishedAs(
+            MeasurementStatus.FINISHED, MeasurementStatus.SYNCABLE_ATTACHMENTS -> persistenceLayer.markFinishedAs(
                 MeasurementStatus.DEPRECATED,
                 measurementIdentifier
             )

@@ -51,7 +51,7 @@ enum class MeasurementStatus(val databaseIdentifier: String) {
      * Check the state in the [File] table entries to see which attachments are not synced yet.
      * After all attachments are uploaded the measurement is set to [.SYNCED].
      */
-    UPLOADING("UPLOADING"),
+    SYNCABLE_ATTACHMENTS("SYNCABLE_ATTACHMENTS"),
 
     /**
      * This state defines that a [Measurement] has been synchronized.
