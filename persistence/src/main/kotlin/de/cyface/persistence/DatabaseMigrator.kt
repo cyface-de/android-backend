@@ -92,6 +92,22 @@ class DatabaseMigrator(val context: Context) {
     val MIGRATION_9_10: Migration = migrationFrom9To10()
 
     companion object {
+        /**
+         * Adds the `File` table.
+         */
+        val MIGRATION_18_19 = object : Migration(18, 19) {
+            override fun migrate(database: SupportSQLiteDatabase) {
+                database.execSQL("CREATE TABLE IF NOT EXISTS `File` (" +
+                        "`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, " +
+                        "`status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, " +
+                        "`size` INTEGER NOT NULL, `path` TEXT NOT NULL, " +
+                        "`lat` REAL, `lon` REAL, `measurementId` INTEGER NOT NULL, " +
+                        "FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) " +
+                        "ON UPDATE NO ACTION ON DELETE CASCADE )")
+                database.execSQL("CREATE INDEX IF NOT EXISTS `index_File_measurementId` ON `File` (`measurementId`)")
+            }
+        }
+
         //val MIGRATION_17_18 is provided from outside the companion object constructor!
 
         /**

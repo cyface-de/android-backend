@@ -63,7 +63,7 @@ import de.cyface.persistence.model.Pressure
         File::class
     ],
     // version 18 imported data from `v6.1` database into `measures.17` and migrated `measures` to Room
-    version = 18
+    version = 19
     //autoMigrations = [] // test this feature on the next version change
 )
 @TypeConverters(PathTypeConverter::class)
@@ -131,7 +131,8 @@ abstract class Database : RoomDatabase() {
                     DatabaseMigrator.MIGRATION_14_15,
                     DatabaseMigrator.MIGRATION_15_16,
                     DatabaseMigrator.MIGRATION_16_17,
-                    migrator.MIGRATION_17_18
+                    migrator.MIGRATION_17_18,
+                    DatabaseMigrator.MIGRATION_18_19
                 )
                 .build()
         }
