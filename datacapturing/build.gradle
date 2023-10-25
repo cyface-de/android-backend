@@ -95,8 +95,10 @@ android {
         }
     }
 
-    // Enabling desugaring to support Java 8 and Java 11 features
     compileOptions {
+        // Enabling desugaring to support Java 8 and Java 11 features
+        coreLibraryDesugaringEnabled true
+        // Set Java compatibility
         sourceCompatibility rootProject.ext.sourceCompatibility
         targetCompatibility rootProject.ext.targetCompatibility
     }
@@ -120,6 +122,8 @@ dependencies {
     implementation "androidx.annotation:annotation:$rootProject.ext.androidxAnnotationVersion"
     implementation "androidx.appcompat:appcompat:$rootProject.ext.androidxAppCompatVersion"
     implementation "androidx.localbroadcastmanager:localbroadcastmanager:$rootProject.ext.localbroadcastmanagerVersion"
+    // Add support desugaring with for NIO
+    coreLibraryDesugaring "com.android.tools:desugar_jdk_libs_nio:$rootProject.ext.desugaringVersion"
 
     // `Room` API used to access database
     // Further room libraries and Kotlin support see Room guide.
