@@ -32,6 +32,8 @@ import de.cyface.persistence.exception.NoDeviceIdException
 import de.cyface.persistence.exception.NoSuchMeasurementException
 import de.cyface.persistence.model.Event
 import de.cyface.persistence.model.EventType
+import de.cyface.persistence.model.File
+import de.cyface.persistence.model.FileStatus
 import de.cyface.persistence.model.GeoLocation
 import de.cyface.persistence.model.Identifier
 import de.cyface.persistence.model.Measurement
@@ -53,7 +55,6 @@ import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.SupervisorJob
 import kotlinx.coroutines.runBlocking
 import kotlinx.coroutines.withContext
-import java.io.File
 import java.util.UUID
 import kotlin.math.abs
 import kotlin.math.max
@@ -167,7 +168,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
      *
      * @param folder The [File] pointer to the folder which is created if it does not yet exist
      */
-    private fun checkOrCreateFolder(folder: File) {
+    private fun checkOrCreateFolder(folder: java.io.File) {
         if (!folder.exists()) {
             Validate.isTrue(folder.mkdir())
         }
@@ -338,7 +339,94 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
             Log.v(TAG, "markAsSynchronized: No direction file found to delete, nothing to do")
         }
 
-        // FIXME: Also delete the image data when the measurement format is deprecated
+        // Also delete syncable attachments binaries when the measurement is skipped or deprecated
+        if (newStatus == MeasurementStatus.SKIPPED || newStatus == MeasurementStatus.DEPRECATED) {
+            val files = fileDao!!.loadAllByMeasurementIdAndStatus(measurementId, FileStatus.SAVED)
+            files.forEach {
+                // TODO: Test this with large measurements (multiple hours) to ensure this does
+                // not block the persistence. In case we want to do this in a non-blocking way
+                // we need to ensure sync can handle this
+                @Suppress("KotlinConstantConditions")
+                val newFileStatus = if (newStatus == MeasurementStatus.SKIPPED) FileStatus.SKIPPED
+                    else if (newStatus == MeasurementStatus.DEPRECATED) FileStatus.DEPRECATED
+                    else throw IllegalArgumentException("Unexpected status: $newStatus")
+                markSavedAs(newFileStatus, it)
+                Log.d(TAG, "Cleaned up file (id ${it.id}): $newFileStatus")
+            }
+            cleanupEmptyFolder(measurementId)
+        }
+    }
+
+    /**
+     * Marks a [MeasurementStatus.FINISHED] [Measurement] as [MeasurementStatus.SYNCED],
+     * [MeasurementStatus.SKIPPED] or [MeasurementStatus.DEPRECATED] and deletes the sensor data.
+     *
+     * **ATTENTION:** This method should not be called from outside the SDK.
+     *
+     * @param measurementId The id of the [Measurement] to remove.
+     * @throws NoSuchMeasurementException If the [Measurement] does not exist.
+     */
+    @Throws(NoSuchMeasurementException::class)
+    fun markSyncableAttachmentsAs(newStatus: MeasurementStatus, measurementId: Long) {
+
+        // The status in the database could be different from the one in the object so load it again
+        Validate.isTrue(loadMeasurementStatus(measurementId) === MeasurementStatus.SYNCABLE_ATTACHMENTS)
+        setStatus(measurementId, newStatus, false)
+
+        cleanupEmptyFolder(measurementId)
+    }
+
+    private fun cleanupEmptyFolder(measurementId: Long) {
+        val file = fileDao!!.loadOneByMeasurementId(measurementId)
+        file?.let {
+            val parentDir = it.path.toFile().parentFile
+            if (parentDir!!.isDirectory && parentDir.list()?.isEmpty() == true) {
+                if (!parentDir.delete()) {
+                    Log.w(TAG, "Failed to delete empty directory: ${parentDir.absolutePath}")
+                } else {
+                    Log.d(TAG, "Deleted empty directory: ${parentDir.absolutePath}")
+                }
+            } else {
+                Log.w(TAG, "Skipped deleting directory, not empty: ${parentDir.absolutePath}")
+            }
+        }
+    }
+
+    /**
+     * Marks a [FileStatus.SAVED] [de.cyface.persistence.model.File] as [FileStatus.SYNCED],
+     * [FileStatus.SKIPPED] or [FileStatus.DEPRECATED] and deletes the binary file data.
+     *
+     * **ATTENTION:** This method should not be called from outside the SDK.
+     *
+     * @param fileId The id of the [File] to remove.
+     */
+    fun markSavedAs(newStatus: FileStatus, fileId: Long) {
+
+        // The status in the database could be different from the one in the object so load it again
+        val file = fileDao!!.loadById(fileId)!!
+        markSavedAs(newStatus, file)
+    }
+
+    /**
+     * Marks a [FileStatus.SAVED] [de.cyface.persistence.model.File] as [FileStatus.SYNCED],
+     * [FileStatus.SKIPPED] or [FileStatus.DEPRECATED] and deletes the binary file data.
+     *
+     * **ATTENTION:** This method should not be called from outside the SDK.
+     *
+     * @param file The [File] to remove.
+     */
+    private fun markSavedAs(newStatus: FileStatus, file: File) {
+
+        // The status in the database could be different from the one in the object so load it again
+        Validate.isTrue(file.status === FileStatus.SAVED, "Unexpected status: ${file.status}")
+        Validate.isTrue(newStatus == FileStatus.SYNCED || newStatus == FileStatus.SKIPPED || newStatus == FileStatus.DEPRECATED, "Unexpected status change from ${file.status} to $newStatus")
+        runBlocking {
+            fileDao!!.updateStatus(file.id, newStatus)
+        }
+
+        // Deleting first as a second upload approach would be handled by the API
+        val binaryFile = file.path.toFile()
+        Validate.isTrue(binaryFile.delete())
     }
 
     override fun restoreOrCreateDeviceId(): String {
@@ -1058,6 +1146,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
                     Validate.isTrue(!hasMeasurement(MeasurementStatus.OPEN))
                     Validate.isTrue(!hasMeasurement(MeasurementStatus.PAUSED))
                 }
+            MeasurementStatus.SYNCABLE_ATTACHMENTS,
             MeasurementStatus.SYNCED, MeasurementStatus.SKIPPED, MeasurementStatus.DEPRECATED -> {}
             else -> throw IllegalArgumentException(String.format("Unknown status: %s", newStatus))
         }
@@ -1118,7 +1207,7 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
         return id!!
     }
 
-    override val cacheDir: File
+    override val cacheDir: java.io.File
         get() = context!!.cacheDir
 
 

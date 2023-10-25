@@ -79,6 +79,7 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
      * @param file The compressed transfer file containing the `Measurement` data to transmit
      * @param progressListener The [UploadProgressListener] to be informed about the upload progress.
      * @param jwtAuthToken A valid JWT auth token to authenticate the transmission
+     * @param fileName Id of the attachment to upload or `null` if this is not an attachment.
      * @return True of the transmission was successful.
      */
     fun sendData(
@@ -87,16 +88,15 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
         metaData: RequestMetaData,
         file: File,
         progressListener: UploadProgressListener,
-        jwtAuthToken: String
+        jwtAuthToken: String,
+        fileName: String
     ): Result {
         val size = DataSerializable.humanReadableSize(file.length(), true)
-        Log.d(TAG, "Transferring compressed measurement ($size})")
+        Log.d(TAG, "Transferring attachment or compressed measurement ($size})")
 
         return runBlocking {
             val deferredResult = CoroutineScope(Dispatchers.IO).async {
                 val result = try {
-                    val fileName =
-                        "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.$TRANSFER_FILE_EXTENSION"
                     Log.i(TAG, "Uploading $fileName to ${uploader.endpoint()}")
 
                     uploader.upload(jwtAuthToken, metaData, file, progressListener)
@@ -311,11 +311,5 @@ internal class SyncPerformer(private val context: Context, private val fromBackg
          * A String to filter log output from [SyncPerformer] logs.
          */
         const val TAG = "de.cyface.sync.perf"
-
-        /**
-         * The file extension of the measurement file which is transmitted on synchronization.
-         */
-        @Suppress("SpellCheckingInspection")
-        private const val TRANSFER_FILE_EXTENSION = "ccyf"
     }
 }

@@ -35,13 +35,14 @@ import de.cyface.model.RequestMetaData
 import de.cyface.persistence.DefaultPersistenceBehaviour
 import de.cyface.persistence.DefaultPersistenceLayer
 import de.cyface.persistence.exception.NoSuchMeasurementException
+import de.cyface.persistence.model.FileStatus
 import de.cyface.persistence.model.Measurement
 import de.cyface.persistence.model.MeasurementStatus
 import de.cyface.persistence.model.ParcelableGeoLocation
 import de.cyface.persistence.serialization.MeasurementSerializer
+import de.cyface.protos.model.File.FileType
 import de.cyface.synchronization.ErrorHandler.ErrorCode
 import de.cyface.uploader.Result
-import de.cyface.uploader.UploadProgressListener
 import de.cyface.uploader.Uploader
 import de.cyface.uploader.exception.SynchronizationInterruptedException
 import de.cyface.utils.CursorIsNullException
@@ -72,7 +73,7 @@ class SyncAdapter private constructor(
     private val uploader: Uploader
 ) : AbstractThreadedSyncAdapter(context, autoInitialize, allowParallelSyncs) {
 
-    private val progressListener: MutableCollection<ConnectionStatusListener>
+    private val progressListeners: MutableCollection<ConnectionStatusListener>
 
     /**
      * When this is set to true the [.isConnected] method always returns true.
@@ -102,7 +103,7 @@ class SyncAdapter private constructor(
     )
 
     init {
-        progressListener = HashSet()
+        progressListeners = HashSet()
         addConnectionListener(CyfaceConnectionStatusListener(context))
     }
 
@@ -136,20 +137,35 @@ class SyncAdapter private constructor(
                 if (syncableMeasurements.isEmpty()) return@performActionWithFreshTokens
 
                 runBlocking {
-                    processMeasurements(syncableMeasurements, syncPerformer, persistence, deviceId, syncResult, fromBackground, account, authority, provider)
+                    processMeasurements(
+                        syncableMeasurements,
+                        syncPerformer,
+                        persistence,
+                        deviceId,
+                        syncResult,
+                        fromBackground,
+                        account,
+                        authority
+                    )
                 }
             } catch (e: Exception) {
                 handleSyncExceptions(e, syncResult, fromBackground)
             } finally {
-                finalizeSync(syncResult)
+                finalizeSync(syncResult, provider)
             }
         }
     }
 
-    private fun finalizeSync(syncResult: SyncResult) {
+    private fun finalizeSync(syncResult: SyncResult, provider: ContentProviderClient) {
         Log.d(TAG,"Sync finished. (${if (syncResult.hasError()) "ERROR" else "success"})")
-        for (listener in progressListener) {
+        for (listener in progressListeners) {
             listener.onSyncFinished()
+        }
+
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
+            provider.close()
+        } else {
+            provider.release()
         }
     }
 
@@ -216,8 +232,7 @@ class SyncAdapter private constructor(
         syncResult: SyncResult,
         fromBackground: Boolean,
         account: Account,
-        authority: String,
-        provider: ContentProviderClient
+        authority: String
     ) {
         val measurementCount = measurements.size
         var error = false
@@ -226,35 +241,79 @@ class SyncAdapter private constructor(
             val measurement = measurements[index]
             if (error) return
 
-            Log.d(TAG, "Preparing Measurement (id ${measurement.id}) for upload.",)
+            val fileCount = persistence.fileDao!!.countByMeasurementId(measurement.id)
+            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $fileCount attachments.")
             validateMeasurementFormat(measurement)
 
             val metaData = loadMetaData(measurement, persistence, deviceId, context)
 
-            // Load, try to sync the file to be transferred and clean it up afterwards
-            var compressedTransferTempFile: File? = null
-            try {
-                compressedTransferTempFile = serializeMeasurement(measurement, persistence)
+            // Upload measurement binary first
+            if (measurement.status === MeasurementStatus.FINISHED) {
+                var compressedTransferTempFile: File? = null
+                try {
+                    compressedTransferTempFile = serializeMeasurement(measurement, persistence)
 
-                if (isSyncRequestAborted(account, authority)) return
+                    if (isSyncRequestAborted(account, authority)) return
 
-                error = !syncMeasurement(measurement, metaData, compressedTransferTempFile, syncPerformer, syncResult, fromBackground, index, measurementCount, persistence)
+                    val indexWithinMeasurement = 0 // the core file is index 0
+                    val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, fileCount, indexWithinMeasurement, progressListeners)
+                    error = !syncMeasurement(
+                        measurement,
+                        metaData,
+                        compressedTransferTempFile,
+                        syncPerformer,
+                        syncResult,
+                        fromBackground,
+                        persistence,
+                        progressListener
+                    )
+                    if (error) return
+                } finally {
+                    delete(compressedTransferTempFile)
+                }
+            }
 
-                FIXME: Sync attachments, mark each as SYNCED and then mark measurement as SYNCED
-            } finally {
-                cleanUpAfterSync(compressedTransferTempFile, provider)
+            // Upload attachments of measurement
+            // The status in the database could have changed due to upload, reload it
+            val currentStatus = persistence.measurementRepository!!.loadById(measurement.id)!!.status
+            if (currentStatus === MeasurementStatus.SYNCABLE_ATTACHMENTS) {
+                val files = persistence.fileDao!!.loadAllByMeasurementIdAndStatus(measurement.id, FileStatus.SAVED)
+                val syncableFileCount = files.size
+
+                for (fileIndex in 0 until syncableFileCount) {
+                    val file = files[fileIndex]
+                    if (error) return
+
+                    Log.d(TAG, "Preparing to upload File (id ${file.id}).")
+                    validateFileFormat(file)
+
+                    val transferFile = file.path.toFile() // FIXME: Needs to be wrapped as cyf
+
+                    if (isSyncRequestAborted(account, authority)) return
+
+                    val indexWithinMeasurement = fileIndex + 1 // the core file is index 0
+                    val progressListener = DefaultUploadProgressListener(measurementCount, index, measurement.id, fileCount, indexWithinMeasurement, progressListeners)
+                    error = !syncAttachment(
+                        file.id,
+                        metaData,
+                        syncPerformer,
+                        transferFile,
+                        syncResult,
+                        fromBackground,
+                        persistence,
+                        progressListener
+                    )
+                }
+
+                persistence.markSyncableAttachmentsAs(MeasurementStatus.SYNCED, measurement.id)
+                Log.d(TAG, "Measurement marked as ${MeasurementStatus.SYNCED.name.lowercase()}")
             }
         }
     }
 
-    private fun cleanUpAfterSync(compressedTransferTempFile: File?, provider: ContentProviderClient) {
-        if (compressedTransferTempFile != null && compressedTransferTempFile.exists()) {
-            Validate.isTrue(compressedTransferTempFile.delete())
-        }
-        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.N) {
-            provider.close()
-        } else {
-            provider.release()
+    private fun delete(file: File?) {
+        if (file != null && file.exists()) {
+            Validate.isTrue(file.delete())
         }
     }
 
@@ -273,27 +332,10 @@ class SyncAdapter private constructor(
         syncPerformer: SyncPerformer,
         syncResult: SyncResult,
         fromBackground: Boolean,
-        index: Int,
-        measurementCount: Int,
-        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>,
+        progressListener: DefaultUploadProgressListener
     ): Boolean = coroutineScope {
         val resultDeferred = CompletableDeferred<Boolean>()
-
-        // Multi-measurement progress
-        val processListener = object : UploadProgressListener {
-            override fun updatedProgress(percent: Float) {
-                val progressPerMeasurement =
-                    100.0 / measurementCount.toDouble()
-                val progressBeforeThis =
-                    index.toDouble() * progressPerMeasurement
-                val lastMeasurement = index == measurementCount - 1
-                val total =
-                    if (lastMeasurement && percent.toDouble() == 1.0) 100.0 else progressBeforeThis + percent * progressPerMeasurement
-                for (listener in progressListener) {
-                    listener.onProgress(total.toFloat(), measurement.id)
-                }
-            }
-        }
 
         authenticator.performActionWithFreshTokens { accessToken, _, e ->
             if (e != null) {
@@ -307,13 +349,16 @@ class SyncAdapter private constructor(
                 )
                 resultDeferred.complete(false)
             } else {
+                val fileName =
+                    "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}.${COMPRESSED_TRANSFER_FILE_EXTENSION}"
                 val result = syncPerformer.sendData(
                     uploader,
                     syncResult,
                     metaData,
                     compressedTransferTempFile!!,
-                    processListener,
-                    accessToken!!
+                    progressListener,
+                    accessToken!!,
+                    fileName
                 )
                 if (result == Result.UPLOAD_FAILED) {
                     resultDeferred.complete(false)
@@ -326,6 +371,7 @@ class SyncAdapter private constructor(
                                     MeasurementStatus.SKIPPED,
                                     measurement.id
                                 )
+                                Log.d(TAG, "Measurement marked as ${MeasurementStatus.SKIPPED.name.lowercase()}")
                             }
                             Result.UPLOAD_SUCCESSFUL -> {
                                 // UPLOADING means only the attachments have to be synced
@@ -333,6 +379,7 @@ class SyncAdapter private constructor(
                                     MeasurementStatus.SYNCABLE_ATTACHMENTS,
                                     measurement.id
                                 )
+                                Log.d(TAG, "Measurement marked as ${MeasurementStatus.SYNCABLE_ATTACHMENTS.name.lowercase()}")
                             }
                             else -> {
                                 throw IllegalArgumentException(
@@ -343,7 +390,77 @@ class SyncAdapter private constructor(
                                 )
                             }
                         }
-                        Log.d(TAG, "Measurement marked as ${result.toString().lowercase()}")
+                        resultDeferred.complete(true)
+                    } catch (e: NoSuchMeasurementException) {
+                        throw IllegalStateException(e)
+                    }
+                }
+            }
+        }
+
+        return@coroutineScope resultDeferred.await()
+    }
+
+    private suspend fun syncAttachment(
+        fileId: Long,
+        metaData: RequestMetaData,
+        syncPerformer: SyncPerformer,
+        transferFile: File?,
+        syncResult: SyncResult,
+        fromBackground: Boolean,
+        persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>,
+        progressListener: DefaultUploadProgressListener,
+    ): Boolean = coroutineScope {
+        val resultDeferred = CompletableDeferred<Boolean>()
+
+        authenticator.performActionWithFreshTokens { accessToken, _, e ->
+            if (e != null) {
+                Log.w(TAG, e.javaClass.simpleName + ": " + e.message)
+                syncResult.stats.numAuthExceptions++
+                ErrorHandler.sendErrorIntent(
+                    context,
+                    ErrorCode.AUTHENTICATION_ERROR.code,
+                    e.message,
+                    fromBackground
+                )
+                resultDeferred.complete(false)
+            } else {
+                val fileName =
+                    "${metaData.deviceIdentifier}_${metaData.measurementIdentifier}_$fileId.${TRANSFER_FILE_EXTENSION}"
+                val result = syncPerformer.sendData( // FIXME: Needs to go to another endpoint
+                    uploader,
+                    syncResult,
+                    metaData,
+                    transferFile!!,
+                    progressListener,
+                    accessToken!!,
+                    fileName
+                )
+                if (result == Result.UPLOAD_FAILED) {
+                    resultDeferred.complete(false)
+                } else {
+                    // Update sync status of file
+                    try {
+                        when (result) {
+                            Result.UPLOAD_SKIPPED -> {
+                                persistence.markSavedAs(FileStatus.SKIPPED, fileId)
+                                Log.d(TAG, "File marked as ${FileStatus.SKIPPED.name.lowercase()}")
+                            }
+
+                            Result.UPLOAD_SUCCESSFUL -> {
+                                persistence.markSavedAs(FileStatus.SYNCED, fileId)
+                                Log.d(TAG, "File marked as ${FileStatus.SYNCED.name.lowercase()}")
+                            }
+
+                            else -> {
+                                throw IllegalArgumentException(
+                                    String.format(
+                                        "Unknown result: %s",
+                                        result
+                                    )
+                                )
+                            }
+                        }
                         resultDeferred.complete(true)
                     } catch (e: NoSuchMeasurementException) {
                         throw IllegalStateException(e)
@@ -360,6 +477,21 @@ class SyncAdapter private constructor(
         Validate.isTrue(format == DefaultPersistenceLayer.PERSISTENCE_FILE_FORMAT_VERSION)
     }
 
+    private fun validateFileFormat(file: de.cyface.persistence.model.File) {
+        val format = file.fileFormatVersion
+        when (file.type) {
+            FileType.CSV -> {
+                Validate.isTrue(format == 1.toShort())
+            }
+            FileType.JPG -> {
+                Validate.isTrue(format == 1.toShort())
+            }
+            else -> {
+                throw IllegalArgumentException("Unsupported format ($format) and type (${file.type} ")
+            }
+        }
+    }
+
     private fun loadSyncableMeasurements(persistence: DefaultPersistenceLayer<DefaultPersistenceBehaviour?>): List<Measurement> {
         val partiallyUploaded = persistence.loadMeasurements(MeasurementStatus.SYNCABLE_ATTACHMENTS)
         val finishedMeasurements = persistence.loadMeasurements(MeasurementStatus.FINISHED)
@@ -367,7 +499,7 @@ class SyncAdapter private constructor(
     }
 
     private fun notifySyncStarted() {
-        for (listener in progressListener) {
+        for (listener in progressListeners) {
             listener.onSyncStarted()
         }
     }
@@ -508,7 +640,7 @@ class SyncAdapter private constructor(
     }
 
     private fun addConnectionListener(listener: ConnectionStatusListener) {
-        progressListener.add(listener)
+        progressListeners.add(listener)
     }
 
     companion object {
@@ -526,5 +658,16 @@ class SyncAdapter private constructor(
          * method returns true;
          */
         const val MOCK_IS_CONNECTED_TO_RETURN_TRUE = "mocked_periodic_sync_check_false"
+
+        /**
+         * The file extension of the attachment file which is transmitted on synchronization.
+         */
+        private const val TRANSFER_FILE_EXTENSION = "cyf"
+
+        /**
+         * The file extension of the measurement file which is transmitted on synchronization.
+         */
+        @Suppress("SpellCheckingInspection")
+        private const val COMPRESSED_TRANSFER_FILE_EXTENSION = "ccyf"
     }
 }

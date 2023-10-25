@@ -23,9 +23,8 @@ import androidx.room.Insert
 import androidx.room.Query
 import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.FileTable
-import de.cyface.persistence.content.MeasurementTable
 import de.cyface.persistence.model.File
-import de.cyface.persistence.model.Measurement
+import de.cyface.persistence.model.FileStatus
 
 /**
  * Data access object which provides the API to interact with the [File] database table.
@@ -45,11 +44,26 @@ interface FileDao {
     @Query("SELECT * FROM ${FileTable.URI_PATH}")
     fun getAll(): List<File>
 
+    @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.ID} = :id")
+    fun loadById(id: Long): File?
+
     /**
      * Ordered by timestamp for [de.cyface.persistence.DefaultPersistenceLayer.loadTracks] to work.
      */
     @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId ORDER BY ${BaseColumns.TIMESTAMP} ASC")
     fun loadAllByMeasurementId(measurementId: Long): List<File>
+
+    @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId LIMIT 1")
+    fun loadOneByMeasurementId(measurementId: Long): File?
+
+    @Query("SELECT * FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${FileTable.COLUMN_STATUS} = :status ORDER BY ${BaseColumns.TIMESTAMP} ASC")
+    fun loadAllByMeasurementIdAndStatus(measurementId: Long, status: FileStatus): List<File>
+
+    /**
+     * Returns the number of files found for a specific [measurementId].
+     */
+    @Query("SELECT COUNT(*) FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
+    fun countByMeasurementId(measurementId: Long): Int
 
     @Query("DELETE FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int
@@ -57,6 +71,9 @@ interface FileDao {
     @Query("DELETE FROM ${FileTable.URI_PATH}")
     fun deleteAll(): Int
 
-    @Query("UPDATE ${FileTable.URI_PATH} SET size = :size WHERE ${BaseColumns.ID} = :id")
-    suspend fun updateFileSize(id: Long, size: Long)
+    @Query("UPDATE ${FileTable.URI_PATH} SET ${FileTable.COLUMN_SIZE} = :size WHERE ${BaseColumns.ID} = :id")
+    suspend fun updateSize(id: Long, size: Long)
+
+    @Query("UPDATE ${FileTable.URI_PATH} SET ${FileTable.COLUMN_STATUS} = :status WHERE ${BaseColumns.ID} = :id")
+    suspend fun updateStatus(id: Long, status: FileStatus)
 }
