@@ -93,6 +93,14 @@ class FileTable : AbstractCyfaceTable(URI_PATH) {
         const val COLUMN_LON = "lon"
 
         /**
+         * Column name for the column storing the Unix timestamp in milliseconds of the last known location.
+         *
+         * It allows to identify when the last known location is from too long. Additionally, it's the
+         * link to the location data, e.g. to get additional data like the accuracy.
+         */
+        const val COLUMN_LOCATION_TIMESTAMP = "location_timestamp"
+
+        /**
          * Returns the URI which identifies the table represented by this class.
          *
          * It's important to provide the authority string as parameter because depending on from where
@@ -116,6 +124,7 @@ class FileTable : AbstractCyfaceTable(URI_PATH) {
             COLUMN_PATH,
             COLUMN_LAT,
             COLUMN_LON,
+            COLUMN_LOCATION_TIMESTAMP,
             BaseColumns.MEASUREMENT_ID
         )
 }

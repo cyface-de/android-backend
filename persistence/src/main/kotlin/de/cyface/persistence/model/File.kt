@@ -58,8 +58,9 @@ data class File(
     override val path: Path,
     override val lat: Double?,
     override val lon: Double?,
+    override val locationTimestamp: Long?,
     @ColumnInfo(index = true) val measurementId: Long
-) : ParcelableFile(timestamp, status, type, fileFormatVersion, size, path, lat, lon) {
+) : ParcelableFile(timestamp, status, type, fileFormatVersion, size, path, lat, lon, locationTimestamp) {
 
     /**
      * Creates a new instance of this class which was not yet persisted and has [id] set to `0`.
@@ -74,6 +75,7 @@ data class File(
      * by Android: https://developer.android.com/training/data-storage/app-specific
      * @param lat The latitude of the last known location, e.g. 51.123, or null if unknown.
      * @param lon The longitude of the last known location, e.g. 13.123, or null if unknown.
+     * @param locationTimestamp The timestamp of the last known location, or null if unknown.
      * @param measurementId The device-unique id of the measurement this data point belongs to.
      */
     constructor(
@@ -85,6 +87,7 @@ data class File(
         path: Path,
         lat: Double?,
         lon: Double?,
+        locationTimestamp: Long?,
         measurementId: Long
     ) : this(
         0,
@@ -96,6 +99,7 @@ data class File(
         path,
         lat,
         lon,
+        locationTimestamp,
         measurementId
     )
 
@@ -119,6 +123,7 @@ data class File(
         if (path != other.path) return false
         if (lat != other.lat) return false
         if (lon != other.lon) return false
+        if (locationTimestamp != other.locationTimestamp) return false
         if (measurementId != other.measurementId) return false
 
         return true

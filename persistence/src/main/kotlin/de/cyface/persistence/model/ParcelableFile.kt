@@ -94,6 +94,15 @@ open class ParcelableFile : DataPoint {
     open val lon: Double?
 
     /**
+     * Column name for the column storing the Unix timestamp in milliseconds of the last known location,
+     * or null if unknown.
+     *
+     * It allows to identify when the last known location is from too long. Additionally, it's the
+     * link to the location data, e.g. to get additional data like the accuracy.
+     */
+    open val locationTimestamp: Long?
+
+    /**
      * Creates a new completely initialized instance of this class.
      *
      * @param timestamp The timestamp at which this data point was captured in milliseconds since 1.1.1970.
@@ -106,6 +115,7 @@ open class ParcelableFile : DataPoint {
      * by Android: https://developer.android.com/training/data-storage/app-specific
      * @param lat The latitude of the last known location, e.g. 51.123, or null if unknown.
      * @param lon The longitude of the last known location, e.g. 13.123, or null if unknown.
+     * @param locationTimestamp The timestamp of the last known location, or null if unknown.
      */
     constructor(
         timestamp: Long,
@@ -115,7 +125,8 @@ open class ParcelableFile : DataPoint {
         size: Long,
         path: Path,
         lat: Double?,
-        lon: Double?
+        lon: Double?,
+        locationTimestamp: Long?
     ) : super(timestamp) {
         require(timestamp >= 0L) { "Illegal argument: timestamp was less than 0L!" }
         require(type != FileType.FILE_TYPE_UNSPECIFIED) { "Unsupported type $type." }
@@ -131,6 +142,9 @@ open class ParcelableFile : DataPoint {
                 "Illegal value for longitude. Is required to be between -180.0 and 180.0 but was $lon."
             }
         }
+        if (locationTimestamp != null) {
+            require(locationTimestamp >= 0L) { "Illegal argument: locationTimestamp was less than 0L!" }
+        }
         this.status = status
         this.type = type
         this.fileFormatVersion = fileFormatVersion
@@ -138,6 +152,7 @@ open class ParcelableFile : DataPoint {
         this.path = path
         this.lat = lat
         this.lon = lon
+        this.locationTimestamp = locationTimestamp
     }
     /*
      * MARK: Parcelable Interface
@@ -155,6 +170,7 @@ open class ParcelableFile : DataPoint {
         path = Paths.get(`in`.readString()) // supported < API 26 with NIO enabled desugaring
         lat = `in`.readValue(Double::class.java.classLoader) as? Double
         lon = `in`.readValue(Double::class.java.classLoader) as? Double
+        locationTimestamp = `in`.readValue(Long::class.java.classLoader) as? Long
     }
 
     override fun describeContents(): Int {
@@ -170,6 +186,7 @@ open class ParcelableFile : DataPoint {
         dest.writeString(path.toString())
         dest.writeValue(lat)   // Handle nullable Double
         dest.writeValue(lon)   // Handle nullable Double
+        dest.writeValue(locationTimestamp)   // Handle nullable Long
     }
 
     override fun equals(other: Any?): Boolean {
@@ -186,6 +203,7 @@ open class ParcelableFile : DataPoint {
         if (path != other.path) return false
         if (lat != other.lat) return false
         if (lon != other.lon) return false
+        if (locationTimestamp != other.locationTimestamp) return false
 
         return true
     }

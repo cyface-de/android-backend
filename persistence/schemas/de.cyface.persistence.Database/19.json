@@ -2,7 +2,7 @@
   "formatVersion": 1,
   "database": {
     "version": 19,
-    "identityHash": "dbaa3857fac51d3902eb4f124f578417",
+    "identityHash": "150b3be3f34c7ca7d73037489f8f07af",
     "entities": [
       {
         "tableName": "Identifier",
@@ -298,7 +298,7 @@
       },
       {
         "tableName": "File",
-        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `size` INTEGER NOT NULL, `path` TEXT NOT NULL, `lat` REAL, `lon` REAL, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
+        "createSql": "CREATE TABLE IF NOT EXISTS `${TABLE_NAME}` (`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, `status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, `size` INTEGER NOT NULL, `path` TEXT NOT NULL, `lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) ON UPDATE NO ACTION ON DELETE CASCADE )",
         "fields": [
           {
             "fieldPath": "id",
@@ -355,6 +355,12 @@
             "notNull": false
           },
           {
+            "fieldPath": "locationTimestamp",
+            "columnName": "locationTimestamp",
+            "affinity": "INTEGER",
+            "notNull": false
+          },
+          {
             "fieldPath": "measurementId",
             "columnName": "measurementId",
             "affinity": "INTEGER",
@@ -396,7 +402,7 @@
     "views": [],
     "setupQueries": [
       "CREATE TABLE IF NOT EXISTS room_master_table (id INTEGER PRIMARY KEY,identity_hash TEXT)",
-      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, 'dbaa3857fac51d3902eb4f124f578417')"
+      "INSERT OR REPLACE INTO room_master_table (id,identity_hash) VALUES(42, '150b3be3f34c7ca7d73037489f8f07af')"
     ]
   }
 }

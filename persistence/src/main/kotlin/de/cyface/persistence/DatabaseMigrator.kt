@@ -101,7 +101,7 @@ class DatabaseMigrator(val context: Context) {
                         "`_id` INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL, `timestamp` INTEGER NOT NULL, " +
                         "`status` TEXT NOT NULL, `type` TEXT NOT NULL, `fileFormatVersion` INTEGER NOT NULL, " +
                         "`size` INTEGER NOT NULL, `path` TEXT NOT NULL, " +
-                        "`lat` REAL, `lon` REAL, `measurementId` INTEGER NOT NULL, " +
+                        "`lat` REAL, `lon` REAL, `locationTimestamp` INTEGER, `measurementId` INTEGER NOT NULL, " +
                         "FOREIGN KEY(`measurementId`) REFERENCES `Measurement`(`_id`) " +
                         "ON UPDATE NO ACTION ON DELETE CASCADE )")
                 database.execSQL("CREATE INDEX IF NOT EXISTS `index_File_measurementId` ON `File` (`measurementId`)")
