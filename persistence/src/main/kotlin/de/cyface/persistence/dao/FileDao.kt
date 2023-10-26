@@ -25,6 +25,7 @@ import de.cyface.persistence.content.BaseColumns
 import de.cyface.persistence.content.FileTable
 import de.cyface.persistence.model.File
 import de.cyface.persistence.model.FileStatus
+import de.cyface.protos.model.File.FileType
 
 /**
  * Data access object which provides the API to interact with the [File] database table.
@@ -64,6 +65,12 @@ interface FileDao {
      */
     @Query("SELECT COUNT(*) FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun countByMeasurementId(measurementId: Long): Int
+
+    /**
+     * Returns the number of files found for a specific [measurementId] and [type].
+     */
+    @Query("SELECT COUNT(*) FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId AND ${FileTable.COLUMN_TYPE} = :type")
+    fun countByMeasurementIdAndType(measurementId: Long, type: FileType): Int
 
     @Query("DELETE FROM ${FileTable.URI_PATH} WHERE ${BaseColumns.MEASUREMENT_ID} = :measurementId")
     fun deleteItemByMeasurementId(measurementId: Long): Int

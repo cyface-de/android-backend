@@ -403,8 +403,10 @@ class DefaultPersistenceLayer<B : PersistenceBehaviour?> : PersistenceLayer<B> {
     fun markSavedAs(newStatus: FileStatus, fileId: Long) {
 
         // The status in the database could be different from the one in the object so load it again
-        val file = fileDao!!.loadById(fileId)!!
-        markSavedAs(newStatus, file)
+        runBlocking {
+            val file = fileDao!!.loadById(fileId)!!
+            markSavedAs(newStatus, file)
+        }
     }
 
     /**

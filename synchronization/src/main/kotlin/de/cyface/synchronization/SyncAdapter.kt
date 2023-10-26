@@ -235,16 +235,16 @@ class SyncAdapter private constructor(
         authority: String
     ) {
         val measurementCount = measurements.size
-        var error = false
+        var error: Boolean
 
         for (index in 0 until measurementCount) {
             val measurement = measurements[index]
 
-            val fileCount = persistence.fileDao!!.countByMeasurementId(measurement.id)
-            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $fileCount attachments.")
             validateMeasurementFormat(measurement)
-
             val metaData = loadMetaData(measurement, persistence, deviceId, context)
+            val fileCount = metaData.logCount + metaData.imageCount + metaData.videoCount
+
+            Log.d(TAG, "Preparing to upload Measurement (id ${measurement.id}) with $fileCount attachments.")
 
             // Upload measurement binary first
             if (measurement.status === MeasurementStatus.FINISHED) {
@@ -612,29 +612,41 @@ class SyncAdapter private constructor(
             endLocation = RequestMetaData.GeoLocation(l!!.timestamp, l.lat, l.lon)
         }
 
-        // Non location meta data
-        val deviceType = Build.MODEL
-        val osVersion = "Android " + Build.VERSION.RELEASE
-        val appVersion: String
-        val packageManager = context.packageManager
-        appVersion = try {
-            packageManager.getPackageInfo(context.packageName, 0).versionName
-        } catch (e: PackageManager.NameNotFoundException) {
-            throw IllegalStateException(e)
+        // Attachments
+        return runBlocking {
+            val logCount = persistence.fileDao!!.countByMeasurementIdAndType(measurement.id, FileType.CSV)
+            val imageCount = persistence.fileDao!!.countByMeasurementIdAndType(measurement.id, FileType.JPG)
+            val otherFiles = persistence.fileDao!!.countByMeasurementId(measurement.id)
+            val unsupportedFiles = otherFiles - logCount - imageCount
+            require(unsupportedFiles == 0) { "Number of unsupported files: $unsupportedFiles" }
+
+            // Non location meta data
+            val deviceType = Build.MODEL
+            val osVersion = "Android " + Build.VERSION.RELEASE
+            val appVersion: String
+            val packageManager = context.packageManager
+            appVersion = try {
+                packageManager.getPackageInfo(context.packageName, 0).versionName
+            } catch (e: PackageManager.NameNotFoundException) {
+                throw IllegalStateException(e)
+            }
+            return@runBlocking RequestMetaData(
+                deviceId,
+                measurement.id.toString(),
+                osVersion,
+                deviceType,
+                appVersion,
+                measurement.distance,
+                locationCount.toLong(),
+                startLocation,
+                endLocation,
+                measurement.modality.databaseIdentifier,
+                RequestMetaData.CURRENT_TRANSFER_FILE_FORMAT_VERSION,
+                logCount,
+                imageCount,
+                0
+            )
         }
-        return RequestMetaData(
-            deviceId,
-            measurement.id.toString(),
-            osVersion,
-            deviceType,
-            appVersion,
-            measurement.distance,
-            locationCount.toLong(),
-            startLocation,
-            endLocation,
-            measurement.modality.databaseIdentifier,
-            RequestMetaData.CURRENT_TRANSFER_FILE_FORMAT_VERSION
-        )
     }
 
     /**
